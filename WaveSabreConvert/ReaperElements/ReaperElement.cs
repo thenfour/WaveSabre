@@ -76,7 +76,7 @@ namespace ReaperParser.ReaperElements
 
         private List<string> SplitData(string data)
         {
-            return Regex.Matches(data, @"[\""].+?[\""]|[^ ]+")
+            return Regex.Matches(data, @"[\""].*?[\""]|[^ ]+")
                 .Cast<Match>()
                 .Select(m => m.Value)
                 .ToList();
@@ -127,38 +127,45 @@ namespace ReaperParser.ReaperElements
             }
             else
             {
-                switch (propTypeName)
+                try
                 {
-                    case "String":
-                        prop.SetValue(this, value, null);
-                        break;
-                    case "Int16":
-                        prop.SetValue(this, Convert.ToInt16(value), null);
-                        break;
-                    case "Int32":
-                        prop.SetValue(this, Convert.ToInt32(value), null);
-                        break;
-                    case "Int64":
-                        prop.SetValue(this, Convert.ToInt64(value), null);
-                        break;
-                    case "Boolean":
-                        prop.SetValue(this, value.ToString() == "0" ? false : true, null);
-                        break;
-                    case "DateTime":
-                        prop.SetValue(this, Convert.ToDateTime(value), null);
-                        break;
-                    case "Decimal":
-                        prop.SetValue(this, Convert.ToDecimal(value), null);
-                        break;
-                    case "Single":
-                        prop.SetValue(this, Convert.ToSingle(value), null);
-                        break;
-                    case "Double":
-                        prop.SetValue(this, Convert.ToDouble(value), null);
-                        break;
-                    default:
-                        //Console.WriteLine(propTypeName);
-                        break;
+                    switch (propTypeName)
+                    {
+                        case "String":
+                            prop.SetValue(this, value, null);
+                            break;
+                        case "Int16":
+                            prop.SetValue(this, Convert.ToInt16(value), null);
+                            break;
+                        case "Int32":
+                            prop.SetValue(this, Convert.ToInt32(value), null);
+                            break;
+                        case "Int64":
+                            prop.SetValue(this, Convert.ToInt64(value), null);
+                            break;
+                        case "Boolean":
+                            prop.SetValue(this, value.ToString() == "0" ? false : true, null);
+                            break;
+                        case "DateTime":
+                            prop.SetValue(this, Convert.ToDateTime(value), null);
+                            break;
+                        case "Decimal":
+                            prop.SetValue(this, Convert.ToDecimal(value), null);
+                            break;
+                        case "Single":
+                            prop.SetValue(this, Convert.ToSingle(value), null);
+                            break;
+                        case "Double":
+                            prop.SetValue(this, Convert.ToDouble(value), null);
+                            break;
+                        default:
+                            //Console.WriteLine(propTypeName);
+                            break;
+                    }
+                }
+                catch (FormatException)
+                {
+                    Console.WriteLine($"Warning: format exception for type \"{propTypeName}\" & value \"{value}\"");
                 }
             }
         }
