@@ -98,7 +98,7 @@ namespace WaveSabreVstLib
 	void VstPlug::setParameter(VstInt32 index, float value)
 	{
 		if (device) device->SetParam(index, value);
-		if (editor) ((AEffGUIEditor *)editor)->setParameter(index, value);
+		//if (editor) ((AEffGUIEditor *)editor)->setParameter(index, value);
 	}
 
 	float VstPlug::getParameter(VstInt32 index)

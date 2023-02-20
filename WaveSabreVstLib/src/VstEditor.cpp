@@ -1,211 +1,286 @@
+
 #include <WaveSabreVstLib/VstEditor.h>
+#include "../imgui/imgui_impl_dx9.h"
+#include "../imgui/imgui_impl_win32.h"
+
+#include <sstream>
 
 using namespace std;
 
+// Forward declare message handler from imgui_impl_win32.cpp
+extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+extern void* hInstance;
+
 namespace WaveSabreVstLib
 {
-	const int BaseSize = 20;
-	const int LeftMargin = BaseSize;
-
-	const int TitleTopMargin = BaseSize / 2;
-	const int TitleAreaHeight = BaseSize * 2;
-
-	const int RowHeight = BaseSize * 3;
-
-	const int KnobWidth = 55;
-	const int KnobKnobOffset = 12;
-	const int KnobCaptionWidth = 100;
-	const int KnobCaptionOffset = 30;
-
-	const int ButtonWidth = 55;
-	const int ButtonButtonOffset = 18;
-	const int ButtonCaptionWidth = KnobCaptionWidth;
-	const int ButtonCaptionOffset = 14;
-
-	const int OptionMenuWidth = 100;
-	const int OptionMenuButtonOffset = 0;
-	const int OptionMenuCaptionWidth = 120;
-	const int OptionMenuCaptionOffset = 18;
-
-	const int SpacerWidth = BaseSize;
-
-	VstEditor::VstEditor(AudioEffect *audioEffect, int width, int height, string title)
-		: AEffGUIEditor(audioEffect)
-		, title(title)
+	VstEditor::VstEditor(AudioEffect *audioEffect, int width, int height)
+		: AEffEditor(audioEffect)
 	{
+		audioEffect->setEditor(this);
+		auto r = CoInitialize(0);
+
+		mDefaultRect.right = width;
+		mDefaultRect.bottom = height;
 		setKnobMode(kLinearMode);
-
-		frame = nullptr;
-
-		rect.left = rect.top = 0;
-		rect.right = width;
-		rect.bottom = height;
 	}
 
 	VstEditor::~VstEditor()
 	{
+		CoUninitialize();
 	}
 
-	void VstEditor::Open()
+	void VstEditor::Window_Open(HWND parentWindow)
 	{
+		static constexpr wchar_t const* const className = L"wavesabre vst";
+		WNDCLASSEXW wc = { sizeof(wc), CS_HREDRAW | CS_VREDRAW, gWndProc, 0L, 0L, (HINSTANCE)::hInstance, NULL, NULL, NULL, NULL, className, NULL };
+		::RegisterClassExW(&wc);
+
+		HWND hwnd = CreateWindowExW(0, className, nullptr, WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_TABSTOP,
+			0, 0, mDefaultRect.right - mDefaultRect.left, mDefaultRect.bottom - mDefaultRect.top,
+			parentWindow, (HMENU)1, (HINSTANCE)::hInstance, this);
+
+		mParentWindow = parentWindow;
+
+		SetTimer(hwnd, 0, 16, 0);
+
+		mCurrentWindow = hwnd;
+		SetPropW(hwnd, L"WSGuiInstance", (HANDLE)this);
+		SetWindowLongPtr(hwnd, GWLP_WNDPROC, (LONG_PTR)gWndProc);
+
+		// Initialize Direct3D
+		if (!CreateDeviceD3D(hwnd))
+		{
+			CleanupDeviceD3D();
+			OutputDebugStringW(L"failed to init d3d");
+		} else {
+
+			// Show the window
+			::ShowWindow(hwnd, SW_SHOWDEFAULT);
+			::UpdateWindow(hwnd);
+			::EnableWindow(hwnd, TRUE); // enable keyboard input
+
+			// Setup Dear ImGui context
+			IMGUI_CHECKVERSION();
+			ImGui::CreateContext();
+			ImGuiIO& io = ImGui::GetIO();
+			(void)io;
+			io.WantCaptureKeyboard = true;// ();
+
+			ImGui::StyleColorsDark();
+
+			ImGui_ImplWin32_Init(hwnd);
+			ImGui_ImplDX9_Init(g_pd3dDevice);
+		}
 	}
 
-	void VstEditor::Close()
+	void VstEditor::Window_Close()
 	{
+		ImGui_ImplDX9_Shutdown();
+		ImGui_ImplWin32_Shutdown();
+		ImGui::DestroyContext();
+
+		CleanupDeviceD3D();
+
+		DestroyWindow(mCurrentWindow);
+		mCurrentWindow = nullptr;
+		mParentWindow = nullptr;
 	}
 
-	void VstEditor::setParameter(VstInt32 index, float value)
+	bool VstEditor::CreateDeviceD3D(HWND hWnd)
 	{
-		if (!frame) return;
-		if (controls.find(index) != controls.end()) controls[index]->setValue(effect->getParameter(index));
-	}
+		if ((g_pD3D = Direct3DCreate9(D3D_SDK_VERSION)) == NULL)
+			return false;
 
-	void VstEditor::valueChanged(CControl *control)
-	{
-		effect->setParameterAutomated(control->getTag(), control->getValue());
-		control->setDirty();
-	}
-
-	bool VstEditor::open(void *ptr)
-	{
-		AEffGUIEditor::open(ptr);
-
-		controls.clear();
-
-		CRect size(rect.left, rect.top, rect.right, rect.bottom);
-		frame = new CFrame(size, ptr, this);
-
-		frame->setBackground(ImageManager::Get(ImageManager::ImageIds::Background));
-		addTextLabel(LeftMargin, TitleTopMargin, 300, BaseSize, title);
-
-		currentX = LeftMargin;
-		currentY = TitleAreaHeight;
-		currentRow = 1;
-		maxX = currentX;
-
-		Open();
+		// Create the D3DDevice
+		ZeroMemory(&g_d3dpp, sizeof(g_d3dpp));
+		g_d3dpp.Windowed = TRUE;
+		g_d3dpp.SwapEffect = D3DSWAPEFFECT_DISCARD;
+		g_d3dpp.BackBufferFormat = D3DFMT_UNKNOWN; // Need to use an explicit format with alpha if needing per-pixel alpha composition.
+		g_d3dpp.EnableAutoDepthStencil = TRUE;
+		g_d3dpp.AutoDepthStencilFormat = D3DFMT_D16;
+		//g_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_ONE;           // Present with vsync
+		g_d3dpp.PresentationInterval = D3DPRESENT_INTERVAL_IMMEDIATE;   // Present without vsync, maximum unthrottled framerate
+		if (g_pD3D->CreateDevice(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, hWnd, D3DCREATE_HARDWARE_VERTEXPROCESSING, &g_d3dpp, &g_pd3dDevice) < 0)
+			return false;
 
 		return true;
 	}
 
-	void VstEditor::close()
+	void VstEditor::CleanupDeviceD3D()
 	{
-		Close();
-		if (frame) delete frame;
-		frame = 0;
+		if (g_pd3dDevice) { g_pd3dDevice->Release(); g_pd3dDevice = NULL; }
+		if (g_pD3D) { g_pD3D->Release(); g_pD3D = NULL; }
 	}
 
-	void VstEditor::startNextRow()
-	{
-		currentX = LeftMargin;
-		currentY += RowHeight;
-		currentRow++;
+	void VstEditor::ResetDevice() {
+		ImGui_ImplDX9_InvalidateDeviceObjects();
+		HRESULT hr = g_pd3dDevice->Reset(&g_d3dpp);
+		if (hr == D3DERR_INVALIDCALL)
+			IM_ASSERT(0);
+		ImGui_ImplDX9_CreateDeviceObjects();
 	}
 
-	CTextLabel *VstEditor::addTextLabel(int x, int y, int w, int h, string text, CFontRef fontId, CHoriTxtAlign textAlign)
+	LRESULT WINAPI VstEditor::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		if (!frame) return nullptr;
+		// messages to ignore. we will handle character keys via the VST key notifications.
+		switch (msg)
+		{
+		case WM_SYSKEYDOWN:
+		{
+			//char b[200] = { 0 };
+			//std::sprintf(b, "windows WM_SYSKEYDOWN : %d", (int)wParam);
+			//OutputDebugStringA(b);
+			//return 0;
+			break;
+		}
+		case WM_SYSKEYUP:
+		{
+			//char b[200] = { 0 };
+			//std::sprintf(b, "windows WM_SYSKEYUP : %d", (int)wParam);
+			//OutputDebugStringA(b);
+			//return 0;
+			break;
+		}
+		case WM_KEYDOWN:
+		{
+			//char b[200] = { 0 };
+			//std::sprintf(b, "windows WM_KEYDOWN : %d", (int)wParam);
+			//OutputDebugStringA(b);
+			//return 0;
+			break;
+		}
+		case WM_KEYUP:
+		{
+			//char b[200] = { 0 };
+			//std::sprintf(b, "windows WM_KEYUP : %d", (int)wParam);
+			//OutputDebugStringA(b);
+			//return 0;
+			break;
+		}
+		case WM_CHAR:
+		{
+			//char b[200] = { 0 };
+			//std::sprintf(b, "windows WM_CHAR: %d", (int)wParam);
+			//OutputDebugStringA(b);
+			return ::DefWindowProcW(hWnd, msg, wParam, lParam);
+		}
+		}
 
-		CRect size(x, y, x + w, y + h);
-		CTextLabel *c = new CTextLabel(size, text.c_str());
-		c->setFontColor(VSTGUI::kBlackCColor);
-		c->setTransparency(true);
-		c->setTextTransparency(true);
-		c->setHoriAlign(textAlign);
-		c->setFont(fontId);
-		c->setStyle(kBoldFace);
-		frame->addView(c);
+		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+			return true;
+		}
 
-		return c;
+		switch (msg)
+		{
+		case WM_SIZE:
+			if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
+			{
+				g_d3dpp.BackBufferWidth = LOWORD(lParam);
+				g_d3dpp.BackBufferHeight = HIWORD(lParam);
+				ResetDevice();
+			}
+			return 0;
+		case WM_SYSCOMMAND:
+			if ((wParam & 0xfff0) == SC_KEYMENU) // Disable ALT application menu
+				return 0;
+			break;
+		case WM_TIMER:
+			if (!mIsRendering) {
+				mIsRendering = true;
+				ImguiPresent();
+				mIsRendering = false;
+			}
+			return 0;
+		}
+
+		return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 	}
 
-	CAnimKnob *VstEditor::addKnob(VstInt32 param, string caption)
+	LRESULT WINAPI VstEditor::gWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		if (!frame) return nullptr;
-
-		int x = currentX;
-		int y = currentY;
-
-		CBitmap *image = ImageManager::Get(ImageManager::ImageIds::Knob1);
-
-		CRect size(x + KnobKnobOffset, y, x + KnobKnobOffset + image->getWidth(), y + image->getWidth());
-		CAnimKnob *c = new CAnimKnob(size, this, param, image->getHeight() / image->getWidth(), image->getWidth(), image, CPoint(0));
-	
-		float v = effect->getParameter(param);
-		c->setDefaultValue(v);
-		c->setValue(v);
-		c->setTransparency(true);
-		frame->addView(c);
-
-		controls.emplace(param, c);
-
-		addTextLabel(x + KnobWidth / 2 - KnobCaptionWidth / 2, y + KnobCaptionOffset, KnobCaptionWidth, BaseSize, caption, kNormalFontVerySmall, kCenterText);
-
-		currentX += KnobWidth;
-		maxX = max(currentX, maxX);
-
-		return c;
+		VstEditor* pThis = (VstEditor*)GetPropW(hWnd, L"WSGuiInstance");
+		if (msg == WM_CREATE) {
+			auto pcs = (CREATESTRUCTW*)lParam;
+			SetPropW(hWnd, L"WSGuiInstance", pcs->lpCreateParams);
+			return TRUE;
+		}
+		if (!pThis) {
+			return DefWindowProcW(hWnd, msg, wParam, lParam);
+		}
+		return pThis->WndProc(hWnd, msg, wParam, lParam);
 	}
 
-	CKickButton *VstEditor::addButton(VstInt32 param, string caption)
+	void VstEditor::ImguiPresent()
 	{
-		if (!frame) return nullptr;
+		// make sure our child window is the same size as the one given to us.
+		RECT rcParent, rcWnd;
+		GetWindowRect(mParentWindow, &rcParent);
+		GetWindowRect(mCurrentWindow, &rcWnd);
 
-		int x = currentX;
-		int y = currentY;
+		auto parentX = (rcParent.right - rcParent.left);
+		auto childX = (rcWnd.right - rcWnd.left);
+		auto parentY = (rcParent.bottom - rcParent.top);
+		auto childY = (rcWnd.bottom - rcWnd.top);
+		if ((parentX != childX) || (parentY != childY))
+		{
+			SetWindowPos(mCurrentWindow, 0, 0, 0, parentX, parentY, 0);
+			// skip this frame now that window pos has changed it's just safer to not have to consider this case.
+			return;
+		}
 
-		CBitmap *image = ImageManager::Get(ImageManager::ImageIds::TinyButton);
+		// Start the Dear ImGui frame
+		ImGui_ImplDX9_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
 
-		CRect size(x + ButtonButtonOffset, y, x + ButtonButtonOffset + image->getWidth(), y + image->getHeight() / 2);
-		CKickButton *c = new CKickButton(size, this, param, image->getHeight() / 2, image, CPoint(0));
-		c->setTransparency(true);
-		frame->addView(c);
+		ImGui::GetStyle().FrameRounding = 3.0f;
 
-		controls.emplace(param, c);
+		auto& io = ImGui::GetIO();
 
-		addTextLabel(x + ButtonWidth / 2 - ButtonCaptionWidth / 2, y + ButtonCaptionOffset, ButtonCaptionWidth, BaseSize, caption, kNormalFontVerySmall, kCenterText);
+		ImGui::SetNextWindowPos(ImVec2{ 0, 0 });
+		ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Once);
 
-		currentX += ButtonWidth;
-		maxX = max(currentX, maxX);
+		char title[500];
+		GetEffectX()->getEffectName(title);
 
-		return c;
+		ImGui::Begin(title, 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+
+		if (ImGui::Button("Demo"))
+		{
+			showingDemo = !showingDemo;
+		}
+
+		ImGui::SameLine();
+		ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+
+		this->renderImgui();
+
+		ImGui::End();
+
+		if (showingDemo) {
+			ImGui::ShowDemoWindow(&showingDemo);
+		}
+
+		// Rendering
+		ImGui::EndFrame();
+		g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
+		g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+		g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
+		static constexpr ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+		static constexpr D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f), (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
+		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
+		if (g_pd3dDevice->BeginScene() >= 0)
+		{
+			ImGui::Render();
+			ImGui_ImplDX9_RenderDrawData(ImGui::GetDrawData());
+			g_pd3dDevice->EndScene();
+		}
+		HRESULT result = g_pd3dDevice->Present(NULL, NULL, NULL, NULL);
+
+		// Handle loss of D3D9 device
+		if (result == D3DERR_DEVICELOST && g_pd3dDevice->TestCooperativeLevel() == D3DERR_DEVICENOTRESET)
+			ResetDevice();
+
 	}
 
-	NoTextCOptionMenu *VstEditor::addOptionMenu(string caption)
-	{
-		if (!frame) return nullptr;
-
-		int x = currentX;
-		int y = currentY;
-
-		CBitmap *unpressedImage = ImageManager::Get(ImageManager::ImageIds::OptionMenuUnpressed);
-		CBitmap *pressedImage = ImageManager::Get(ImageManager::ImageIds::OptionMenuPressed);
-
-		CRect size(x + OptionMenuButtonOffset, y, x + OptionMenuButtonOffset + unpressedImage->getWidth(), y + unpressedImage->getHeight());
-
-		// So COptionMenu is fucking useless and doesn't help us _at all_ to propagate messages from its
-		//  submenus. This causes all kinds of "fun" things like the caption being completely bogus, the
-		//  pressed image behaving strangely when items from child menus are selected, etc. So, we do some
-		//  pretty weird stuff when using this, but it all makes sense, somehow..
-		auto c = new NoTextCOptionMenu(size, this, -1, unpressedImage/*, pressedImage*/);
-
-		c->setFontColor(VSTGUI::kBlackCColor);
-		c->setTransparency(true);
-		c->setTextTransparency(true);
-		c->setStyle(kBoldFace);
-		frame->addView(c);
-
-		addTextLabel(x + OptionMenuWidth / 2 - OptionMenuCaptionWidth / 2, y + OptionMenuCaptionOffset, OptionMenuCaptionWidth, BaseSize, caption, kNormalFontVerySmall, kCenterText);
-
-		currentX += OptionMenuWidth;
-		maxX = max(currentX, maxX);
-
-		return c;
-	}
-
-	void VstEditor::addSpacer()
-	{
-		currentX += SpacerWidth;
-		maxX = max(currentX, maxX);
-	}
 }

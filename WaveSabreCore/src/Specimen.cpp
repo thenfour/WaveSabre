@@ -284,6 +284,7 @@ namespace WaveSabreCore
 
 	void Specimen::SpecimenVoice::NoteOn(int note, int velocity, float detune, float pan)
 	{
+		if (!specimen->sample) return;
 		Voice::NoteOn(note, velocity, detune, pan);
 
 		ampEnv.Attack = specimen->ampAttack;

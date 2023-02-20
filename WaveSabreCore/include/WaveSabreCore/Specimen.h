@@ -65,6 +65,8 @@ namespace WaveSabreCore
 
 		void LoadSample(char *compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormatPtr);
 
+		GsmSample* sample = nullptr;
+
 	private:
 		class SpecimenVoice : public Voice
 		{
@@ -93,8 +95,6 @@ namespace WaveSabreCore
 		};
 
 		char *chunkData;
-
-		GsmSample* sample;
 
 		float ampAttack, ampDecay, ampSustain, ampRelease;
 		float sampleStart;

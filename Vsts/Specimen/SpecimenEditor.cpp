@@ -13,201 +13,391 @@ using namespace std;
 
 HACMDRIVERID SpecimenEditor::driverId = NULL;
 WAVEFORMATEX *SpecimenEditor::foundWaveFormat = nullptr;
+//
+//SpecimenEditor::SpecimenEditor(AudioEffect *audioEffect)
+//	: VstEditor(audioEffect, 580, 400, "SPECIMEN")
+//{
+//	pressedTheFuck = false;
+//
+//	fileSelector = nullptr;
+//
+//	specimen = ((SpecimenVst *)audioEffect)->GetSpecimen();
+//}
+//
+//SpecimenEditor::~SpecimenEditor()
+//{
+//}
+//
+//void SpecimenEditor::Open()
+//{
+//	//if (!fileSelector) fileSelector = new CFileSelector(nullptr);
+//
+//	//addSpacer();
+//	//addButton(1000, "LOAD SAMPLE");
+//	//addSpacer();
+//
+//	//startNextRow();
+//
+//	addKnob((VstInt32)Specimen::ParamIndices::SampleStart, "SAMPLE START");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::Reverse, "REVERSE");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::LoopMode, "LOOP MODE");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::LoopStart, "LOOP START");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::LoopLength, "LOOP LENGTH");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::InterpolationMode, "INTERPOLATION");
+//
+//	startNextRow();
+//
+//	addKnob((VstInt32)Specimen::ParamIndices::AmpAttack, "ATTACK");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::AmpDecay, "DECAY");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::AmpSustain, "SUSTAIN");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::AmpRelease, "RELEASE");
+//
+//	startNextRow();
+//
+//	addKnob((VstInt32)Specimen::ParamIndices::FilterType, "FLT TYPE");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::FilterFreq, "FLT FREQ");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::FilterResonance, "FLT RES");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::FilterModAmt, "FLT MOD");
+//
+//	startNextRow();
+//
+//	addKnob((VstInt32)Specimen::ParamIndices::ModAttack, "M ATTACK");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::ModDecay, "M DECAY");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::ModSustain, "M SUSTAIN");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::ModRelease, "M RELEASE");
+//
+//	startNextRow();
+//
+//	addKnob((VstInt32)Specimen::ParamIndices::VoicesUnisono, "UNISONO");
+//	addKnob((VstInt32)Specimen::ParamIndices::VoicesDetune, "DETUNE");
+//	addKnob((VstInt32)Specimen::ParamIndices::VoicesPan, "PAN");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::CoarseTune, "COARSE TUNE");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::FineTune, "FINE TUNE");
+//	addSpacer();
+//	addKnob((VstInt32)Slaughter::ParamIndices::VoiceMode, "MODE");
+//	addKnob((VstInt32)Slaughter::ParamIndices::SlideTime, "SLIDE");
+//	addSpacer();
+//	addKnob((VstInt32)Specimen::ParamIndices::Master, "MASTER");
+//
+//	VstEditor::Open();
+//}
+//
+//void SpecimenEditor::setParameter(VstInt32 index, float value)
+//{
+//	if (!frame) return;
+//	if (index == 1000)
+//	{
+//		bool oldValue = pressedTheFuck;
+//		pressedTheFuck = value != 0.0f;
+//		if (pressedTheFuck != oldValue && oldValue) // detect rising value
+//		{
+//			VstFileSelect vfs;
+//			memset(&vfs, 0, sizeof(vfs));
+//			vfs.command = kVstFileLoad;
+//			vfs.type = kVstFileType;
+//			if (fileSelector->run(&vfs))
+//			{
+//				try
+//				{
+//					ifstream input(vfs.returnPath, ios::in | ios::binary | ios::ate);
+//					if (!input.is_open()) throw exception("Could not open file.");
+//					auto inputSize = input.tellg();
+//					auto inputBuf = new unsigned char[(unsigned int)inputSize];
+//					input.seekg(0, ios::beg);
+//					input.read((char *)inputBuf, inputSize);
+//					input.close();
+//
+//					if (*((unsigned int *)inputBuf) != 0x46464952) throw exception("Input file missing RIFF header.");
+//					if (*((unsigned int *)(inputBuf + 4)) != (unsigned int)inputSize - 8) throw exception("Input file contains invalid RIFF header.");
+//					if (*((unsigned int *)(inputBuf + 8)) != 0x45564157) throw exception("Input file missing WAVE chunk.");
+//
+//					if (*((unsigned int *)(inputBuf + 12)) != 0x20746d66) throw exception("Input file missing format sub-chunk.");
+//					if (*((unsigned int *)(inputBuf + 16)) != 16) throw exception("Input file is not a PCM waveform.");
+//					auto inputFormat = (LPWAVEFORMATEX)(inputBuf + 20);
+//					if (inputFormat->wFormatTag != WAVE_FORMAT_PCM) throw exception("Input file is not a PCM waveform.");
+//					if (inputFormat->nChannels != 1) throw exception("Input file is not mono.");
+//					if (inputFormat->nSamplesPerSec != Specimen::SampleRate) throw exception(("Input file is not " + to_string(Specimen::SampleRate) + "hz.").c_str());
+//					if (inputFormat->wBitsPerSample != sizeof(short) * 8) throw exception("Input file is not 16-bit.");
+//
+//					int chunkPos = 36;
+//					int chunkSizeBytes;
+//					while (true)
+//					{
+//						if (chunkPos >= (int)inputSize) throw exception("Input file missing data sub-chunk.");
+//						chunkSizeBytes = *((unsigned int *)(inputBuf + chunkPos + 4));
+//						if (*((unsigned int *)(inputBuf + chunkPos)) == 0x61746164) break;
+//						else chunkPos += 8 + chunkSizeBytes;
+//					}
+//					int rawDataLength = chunkSizeBytes / 2;
+//					auto rawData = new short[rawDataLength];
+//					memcpy(rawData, inputBuf + chunkPos + 8, chunkSizeBytes);
+//
+//					auto compressedData = new char[chunkSizeBytes];
+//
+//					int waveFormatSize = 0;
+//					acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
+//					auto waveFormat = (WAVEFORMATEX *)(new char[waveFormatSize]);
+//					memset(waveFormat, 0, waveFormatSize);
+//					waveFormat->wFormatTag = WAVE_FORMAT_GSM610;
+//					waveFormat->nSamplesPerSec = Specimen::SampleRate;
+//
+//					ACMFORMATCHOOSE formatChoose;
+//					memset(&formatChoose, 0, sizeof(formatChoose));
+//					formatChoose.cbStruct = sizeof(formatChoose);
+//					formatChoose.pwfx = waveFormat;
+//					formatChoose.cbwfx = waveFormatSize;
+//					formatChoose.pwfxEnum = waveFormat;
+//					formatChoose.fdwEnum = ACM_FORMATENUMF_WFORMATTAG | ACM_FORMATENUMF_NSAMPLESPERSEC;
+//
+//					if (acmFormatChoose(&formatChoose)) throw exception("acmFormatChoose failed");
+//
+//					acmDriverEnum(driverEnumCallback, (DWORD_PTR)waveFormat, NULL);
+//					HACMDRIVER driver = NULL;
+//					if (acmDriverOpen(&driver, driverId, 0)) throw exception("acmDriverOpen failed");
+//
+//					HACMSTREAM stream = NULL;
+//					if (acmStreamOpen(&stream, driver, inputFormat, waveFormat, NULL, NULL, NULL, ACM_STREAMOPENF_NONREALTIME)) throw exception("acmStreamOpen failed");
+//
+//					ACMSTREAMHEADER streamHeader;
+//					memset(&streamHeader, 0, sizeof(streamHeader));
+//					streamHeader.cbStruct = sizeof(streamHeader);
+//					streamHeader.pbSrc = (LPBYTE)rawData;
+//					streamHeader.cbSrcLength = chunkSizeBytes;
+//					streamHeader.pbDst = (LPBYTE)compressedData;
+//					streamHeader.cbDstLength = chunkSizeBytes;
+//					if (acmStreamPrepareHeader(stream, &streamHeader, 0)) throw exception("acmStreamPrepareHeader failed");
+//					if (acmStreamConvert(stream, &streamHeader, 0)) throw exception("acmStreamConvert failed");
+//
+//					delete [] rawData;
+//
+//					acmStreamClose(stream, 0);
+//					acmDriverClose(driver, 0);
+//
+//					specimen->LoadSample(compressedData, streamHeader.cbDstLengthUsed, chunkSizeBytes, waveFormat);
+//
+//					delete [] (char *)waveFormat;
+//
+//					delete [] compressedData;
+//
+//					delete [] inputBuf;
+//				}
+//				catch (const exception& e)
+//				{
+//					MessageBoxA(0, e.what(), "FUCK THAT SHIT", MB_OK | MB_ICONEXCLAMATION);
+//				}
+//			}
+//		}
+//	}	else
+//	{
+//		VstEditor::setParameter(index, value);
+//	}
+//
+//}
 
-SpecimenEditor::SpecimenEditor(AudioEffect *audioEffect)
-	: VstEditor(audioEffect, 580, 400, "SPECIMEN")
+bool SpecimenEditor::LoadSample(const char* path)
 {
-	pressedTheFuck = false;
+	ifstream input(path, ios::in | ios::binary | ios::ate);
+	if (!input.is_open()) return SetStatus(StatusStyle::Error, "Could not open file.");
+	auto inputSize = input.tellg();
+	auto inputBuf = std::make_unique<char[]>(inputSize);// new unsigned char[(unsigned int)inputSize];
+	input.seekg(0, ios::beg);
+	input.read((char*)inputBuf.get(), inputSize);
+	input.close();
 
-	fileSelector = nullptr;
+	if (*((unsigned int*)inputBuf.get()) != 0x46464952) return SetStatus(StatusStyle::Error, "Input file missing RIFF header.");
+	if (*((unsigned int*)(inputBuf.get() + 4)) != (unsigned int)inputSize - 8) return SetStatus(StatusStyle::Error, "Input file contains invalid RIFF header.");
+	if (*((unsigned int*)(inputBuf.get() + 8)) != 0x45564157) return SetStatus(StatusStyle::Error, "Input file missing WAVE chunk.");
 
-	specimen = ((SpecimenVst *)audioEffect)->GetSpecimen();
-}
+	if (*((unsigned int*)(inputBuf.get() + 12)) != 0x20746d66) return SetStatus(StatusStyle::Error, "Input file missing format sub-chunk.");
+	if (*((unsigned int*)(inputBuf.get() + 16)) != 16) return SetStatus(StatusStyle::Error, "Input file is not a PCM waveform.");
+	auto inputFormat = (LPWAVEFORMATEX)(inputBuf.get() + 20);
+	if (inputFormat->wFormatTag != WAVE_FORMAT_PCM) return SetStatus(StatusStyle::Error, "Input file is not a PCM waveform.");
+	if (inputFormat->nChannels != 1) return SetStatus(StatusStyle::Error, "Input file is not mono.");
+	if (inputFormat->nSamplesPerSec != Specimen::SampleRate) return SetStatus(StatusStyle::Error, ("Input file is not " + to_string(Specimen::SampleRate) + "hz.").c_str());
+	if (inputFormat->wBitsPerSample != sizeof(short) * 8) return SetStatus(StatusStyle::Error, "Input file is not 16-bit.");
 
-SpecimenEditor::~SpecimenEditor()
-{
-}
-
-void SpecimenEditor::Open()
-{
-	if (!fileSelector) fileSelector = new CFileSelector(nullptr);
-
-	addSpacer();
-	addButton(1000, "LOAD SAMPLE");
-	addSpacer();
-
-	startNextRow();
-
-	addKnob((VstInt32)Specimen::ParamIndices::SampleStart, "SAMPLE START");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::Reverse, "REVERSE");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::LoopMode, "LOOP MODE");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::LoopStart, "LOOP START");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::LoopLength, "LOOP LENGTH");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::InterpolationMode, "INTERPOLATION");
-
-	startNextRow();
-
-	addKnob((VstInt32)Specimen::ParamIndices::AmpAttack, "ATTACK");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::AmpDecay, "DECAY");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::AmpSustain, "SUSTAIN");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::AmpRelease, "RELEASE");
-
-	startNextRow();
-
-	addKnob((VstInt32)Specimen::ParamIndices::FilterType, "FLT TYPE");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::FilterFreq, "FLT FREQ");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::FilterResonance, "FLT RES");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::FilterModAmt, "FLT MOD");
-
-	startNextRow();
-
-	addKnob((VstInt32)Specimen::ParamIndices::ModAttack, "M ATTACK");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::ModDecay, "M DECAY");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::ModSustain, "M SUSTAIN");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::ModRelease, "M RELEASE");
-
-	startNextRow();
-
-	addKnob((VstInt32)Specimen::ParamIndices::VoicesUnisono, "UNISONO");
-	addKnob((VstInt32)Specimen::ParamIndices::VoicesDetune, "DETUNE");
-	addKnob((VstInt32)Specimen::ParamIndices::VoicesPan, "PAN");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::CoarseTune, "COARSE TUNE");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::FineTune, "FINE TUNE");
-	addSpacer();
-	addKnob((VstInt32)Slaughter::ParamIndices::VoiceMode, "MODE");
-	addKnob((VstInt32)Slaughter::ParamIndices::SlideTime, "SLIDE");
-	addSpacer();
-	addKnob((VstInt32)Specimen::ParamIndices::Master, "MASTER");
-
-	VstEditor::Open();
-}
-
-void SpecimenEditor::setParameter(VstInt32 index, float value)
-{
-	if (!frame) return;
-	if (index == 1000)
+	int chunkPos = 36;
+	int chunkSizeBytes;
+	while (true)
 	{
-		bool oldValue = pressedTheFuck;
-		pressedTheFuck = value != 0.0f;
-		if (pressedTheFuck != oldValue && oldValue)
-		{
-			VstFileSelect vfs;
-			memset(&vfs, 0, sizeof(vfs));
-			vfs.command = kVstFileLoad;
-			vfs.type = kVstFileType;
-			if (fileSelector->run(&vfs))
-			{
-				try
-				{
-					ifstream input(vfs.returnPath, ios::in | ios::binary | ios::ate);
-					if (!input.is_open()) throw exception("Could not open file.");
-					auto inputSize = input.tellg();
-					auto inputBuf = new unsigned char[(unsigned int)inputSize];
-					input.seekg(0, ios::beg);
-					input.read((char *)inputBuf, inputSize);
-					input.close();
-
-					if (*((unsigned int *)inputBuf) != 0x46464952) throw exception("Input file missing RIFF header.");
-					if (*((unsigned int *)(inputBuf + 4)) != (unsigned int)inputSize - 8) throw exception("Input file contains invalid RIFF header.");
-					if (*((unsigned int *)(inputBuf + 8)) != 0x45564157) throw exception("Input file missing WAVE chunk.");
-
-					if (*((unsigned int *)(inputBuf + 12)) != 0x20746d66) throw exception("Input file missing format sub-chunk.");
-					if (*((unsigned int *)(inputBuf + 16)) != 16) throw exception("Input file is not a PCM waveform.");
-					auto inputFormat = (LPWAVEFORMATEX)(inputBuf + 20);
-					if (inputFormat->wFormatTag != WAVE_FORMAT_PCM) throw exception("Input file is not a PCM waveform.");
-					if (inputFormat->nChannels != 1) throw exception("Input file is not mono.");
-					if (inputFormat->nSamplesPerSec != Specimen::SampleRate) throw exception(("Input file is not " + to_string(Specimen::SampleRate) + "hz.").c_str());
-					if (inputFormat->wBitsPerSample != sizeof(short) * 8) throw exception("Input file is not 16-bit.");
-
-					int chunkPos = 36;
-					int chunkSizeBytes;
-					while (true)
-					{
-						if (chunkPos >= (int)inputSize) throw exception("Input file missing data sub-chunk.");
-						chunkSizeBytes = *((unsigned int *)(inputBuf + chunkPos + 4));
-						if (*((unsigned int *)(inputBuf + chunkPos)) == 0x61746164) break;
-						else chunkPos += 8 + chunkSizeBytes;
-					}
-					int rawDataLength = chunkSizeBytes / 2;
-					auto rawData = new short[rawDataLength];
-					memcpy(rawData, inputBuf + chunkPos + 8, chunkSizeBytes);
-
-					auto compressedData = new char[chunkSizeBytes];
-
-					int waveFormatSize = 0;
-					acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
-					auto waveFormat = (WAVEFORMATEX *)(new char[waveFormatSize]);
-					memset(waveFormat, 0, waveFormatSize);
-					waveFormat->wFormatTag = WAVE_FORMAT_GSM610;
-					waveFormat->nSamplesPerSec = Specimen::SampleRate;
-
-					ACMFORMATCHOOSE formatChoose;
-					memset(&formatChoose, 0, sizeof(formatChoose));
-					formatChoose.cbStruct = sizeof(formatChoose);
-					formatChoose.pwfx = waveFormat;
-					formatChoose.cbwfx = waveFormatSize;
-					formatChoose.pwfxEnum = waveFormat;
-					formatChoose.fdwEnum = ACM_FORMATENUMF_WFORMATTAG | ACM_FORMATENUMF_NSAMPLESPERSEC;
-
-					if (acmFormatChoose(&formatChoose)) throw exception("acmFormatChoose failed");
-
-					acmDriverEnum(driverEnumCallback, (DWORD_PTR)waveFormat, NULL);
-					HACMDRIVER driver = NULL;
-					if (acmDriverOpen(&driver, driverId, 0)) throw exception("acmDriverOpen failed");
-
-					HACMSTREAM stream = NULL;
-					if (acmStreamOpen(&stream, driver, inputFormat, waveFormat, NULL, NULL, NULL, ACM_STREAMOPENF_NONREALTIME)) throw exception("acmStreamOpen failed");
-
-					ACMSTREAMHEADER streamHeader;
-					memset(&streamHeader, 0, sizeof(streamHeader));
-					streamHeader.cbStruct = sizeof(streamHeader);
-					streamHeader.pbSrc = (LPBYTE)rawData;
-					streamHeader.cbSrcLength = chunkSizeBytes;
-					streamHeader.pbDst = (LPBYTE)compressedData;
-					streamHeader.cbDstLength = chunkSizeBytes;
-					if (acmStreamPrepareHeader(stream, &streamHeader, 0)) throw exception("acmStreamPrepareHeader failed");
-					if (acmStreamConvert(stream, &streamHeader, 0)) throw exception("acmStreamConvert failed");
-
-					delete [] rawData;
-
-					acmStreamClose(stream, 0);
-					acmDriverClose(driver, 0);
-
-					specimen->LoadSample(compressedData, streamHeader.cbDstLengthUsed, chunkSizeBytes, waveFormat);
-
-					delete [] (char *)waveFormat;
-
-					delete [] compressedData;
-
-					delete [] inputBuf;
-				}
-				catch (const exception& e)
-				{
-					MessageBoxA(0, e.what(), "FUCK THAT SHIT", MB_OK | MB_ICONEXCLAMATION);
-				}
-			}
-		}
-	}	else
-	{
-		VstEditor::setParameter(index, value);
+		if (chunkPos >= (int)inputSize)  return SetStatus(StatusStyle::Error, "Input file missing data sub-chunk.");
+		chunkSizeBytes = *((unsigned int*)(inputBuf.get() + chunkPos + 4));
+		if (*((unsigned int*)(inputBuf.get() + chunkPos)) == 0x61746164) break;
+		else chunkPos += 8 + chunkSizeBytes;
 	}
+	int rawDataLength = chunkSizeBytes / 2;
+	//auto rawData = new short[rawDataLength];
 
+	auto rawData = std::make_unique<short[]>(rawDataLength);
+
+	memcpy(rawData.get(), inputBuf.get() + chunkPos + 8, chunkSizeBytes);
+
+	auto compressedData = std::make_unique<char[]>(chunkSizeBytes);// new char[chunkSizeBytes];
+
+	int waveFormatSize = 0;
+	acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
+	auto waveFormatBuf = std::make_unique<char[]>(waveFormatSize);
+	auto waveFormat = (WAVEFORMATEX*)waveFormatBuf.get();// (new char[waveFormatSize]);
+	memset(waveFormat, 0, waveFormatSize);
+	waveFormat->wFormatTag = WAVE_FORMAT_GSM610;
+	waveFormat->nSamplesPerSec = Specimen::SampleRate;
+
+	ACMFORMATCHOOSE formatChoose;
+	memset(&formatChoose, 0, sizeof(formatChoose));
+	formatChoose.cbStruct = sizeof(formatChoose);
+	formatChoose.pwfx = waveFormat;
+	formatChoose.cbwfx = waveFormatSize;
+	formatChoose.pwfxEnum = waveFormat;
+	formatChoose.fdwEnum = ACM_FORMATENUMF_WFORMATTAG | ACM_FORMATENUMF_NSAMPLESPERSEC;
+
+	if (acmFormatChoose(&formatChoose))  return SetStatus(StatusStyle::Error, "acmFormatChoose failed");
+
+	acmDriverEnum(driverEnumCallback, (DWORD_PTR)waveFormat, NULL);
+	HACMDRIVER driver = NULL;
+	if (acmDriverOpen(&driver, driverId, 0))  return SetStatus(StatusStyle::Error, "acmDriverOpen failed");
+
+	HACMSTREAM stream = NULL;
+	if (acmStreamOpen(&stream, driver, inputFormat, waveFormat, NULL, NULL, NULL, ACM_STREAMOPENF_NONREALTIME))  return SetStatus(StatusStyle::Error, "acmStreamOpen failed");
+
+	ACMSTREAMHEADER streamHeader;
+	memset(&streamHeader, 0, sizeof(streamHeader));
+	streamHeader.cbStruct = sizeof(streamHeader);
+	streamHeader.pbSrc = (LPBYTE)rawData.get();
+	streamHeader.cbSrcLength = chunkSizeBytes;
+	streamHeader.pbDst = (LPBYTE)compressedData.get();
+	streamHeader.cbDstLength = chunkSizeBytes;
+	if (acmStreamPrepareHeader(stream, &streamHeader, 0))  return SetStatus(StatusStyle::Error, "acmStreamPrepareHeader failed");
+	if (acmStreamConvert(stream, &streamHeader, 0)) return SetStatus(StatusStyle::Error, "acmStreamConvert failed");
+
+	//delete[] rawData;
+
+	acmStreamClose(stream, 0);
+	acmDriverClose(driver, 0);
+
+	specimen->LoadSample(compressedData.get(), streamHeader.cbDstLengthUsed, chunkSizeBytes, waveFormat);
+
+	//delete[](char*)waveFormat;
+
+	//delete[] compressedData;
+
+	//delete[] inputBuf;
+	return SetStatus(StatusStyle::Green, "Sample loaded successfully.");
+}
+
+
+void SpecimenEditor::OnLoadSample()
+{
+	//VstFileSelect vfs;
+	//memset(&vfs, 0, sizeof(vfs));
+	//vfs.command = kVstFileLoad;
+	//vfs.type = kVstFileType;
+	//if (fileSelector->run(&vfs))
+	//{
+	//	try
+	//	{
+	//		ifstream input(vfs.returnPath, ios::in | ios::binary | ios::ate);
+	//		if (!input.is_open()) throw exception("Could not open file.");
+	//		auto inputSize = input.tellg();
+	//		auto inputBuf = new unsigned char[(unsigned int)inputSize];
+	//		input.seekg(0, ios::beg);
+	//		input.read((char*)inputBuf, inputSize);
+	//		input.close();
+
+	//		if (*((unsigned int*)inputBuf) != 0x46464952) throw exception("Input file missing RIFF header.");
+	//		if (*((unsigned int*)(inputBuf + 4)) != (unsigned int)inputSize - 8) throw exception("Input file contains invalid RIFF header.");
+	//		if (*((unsigned int*)(inputBuf + 8)) != 0x45564157) throw exception("Input file missing WAVE chunk.");
+
+	//		if (*((unsigned int*)(inputBuf + 12)) != 0x20746d66) throw exception("Input file missing format sub-chunk.");
+	//		if (*((unsigned int*)(inputBuf + 16)) != 16) throw exception("Input file is not a PCM waveform.");
+	//		auto inputFormat = (LPWAVEFORMATEX)(inputBuf + 20);
+	//		if (inputFormat->wFormatTag != WAVE_FORMAT_PCM) throw exception("Input file is not a PCM waveform.");
+	//		if (inputFormat->nChannels != 1) throw exception("Input file is not mono.");
+	//		if (inputFormat->nSamplesPerSec != Specimen::SampleRate) throw exception(("Input file is not " + to_string(Specimen::SampleRate) + "hz.").c_str());
+	//		if (inputFormat->wBitsPerSample != sizeof(short) * 8) throw exception("Input file is not 16-bit.");
+
+	//		int chunkPos = 36;
+	//		int chunkSizeBytes;
+	//		while (true)
+	//		{
+	//			if (chunkPos >= (int)inputSize) throw exception("Input file missing data sub-chunk.");
+	//			chunkSizeBytes = *((unsigned int*)(inputBuf + chunkPos + 4));
+	//			if (*((unsigned int*)(inputBuf + chunkPos)) == 0x61746164) break;
+	//			else chunkPos += 8 + chunkSizeBytes;
+	//		}
+	//		int rawDataLength = chunkSizeBytes / 2;
+	//		auto rawData = new short[rawDataLength];
+	//		memcpy(rawData, inputBuf + chunkPos + 8, chunkSizeBytes);
+
+	//		auto compressedData = new char[chunkSizeBytes];
+
+	//		int waveFormatSize = 0;
+	//		acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
+	//		auto waveFormat = (WAVEFORMATEX*)(new char[waveFormatSize]);
+	//		memset(waveFormat, 0, waveFormatSize);
+	//		waveFormat->wFormatTag = WAVE_FORMAT_GSM610;
+	//		waveFormat->nSamplesPerSec = Specimen::SampleRate;
+
+	//		ACMFORMATCHOOSE formatChoose;
+	//		memset(&formatChoose, 0, sizeof(formatChoose));
+	//		formatChoose.cbStruct = sizeof(formatChoose);
+	//		formatChoose.pwfx = waveFormat;
+	//		formatChoose.cbwfx = waveFormatSize;
+	//		formatChoose.pwfxEnum = waveFormat;
+	//		formatChoose.fdwEnum = ACM_FORMATENUMF_WFORMATTAG | ACM_FORMATENUMF_NSAMPLESPERSEC;
+
+	//		if (acmFormatChoose(&formatChoose)) throw exception("acmFormatChoose failed");
+
+	//		acmDriverEnum(driverEnumCallback, (DWORD_PTR)waveFormat, NULL);
+	//		HACMDRIVER driver = NULL;
+	//		if (acmDriverOpen(&driver, driverId, 0)) throw exception("acmDriverOpen failed");
+
+	//		HACMSTREAM stream = NULL;
+	//		if (acmStreamOpen(&stream, driver, inputFormat, waveFormat, NULL, NULL, NULL, ACM_STREAMOPENF_NONREALTIME)) throw exception("acmStreamOpen failed");
+
+	//		ACMSTREAMHEADER streamHeader;
+	//		memset(&streamHeader, 0, sizeof(streamHeader));
+	//		streamHeader.cbStruct = sizeof(streamHeader);
+	//		streamHeader.pbSrc = (LPBYTE)rawData;
+	//		streamHeader.cbSrcLength = chunkSizeBytes;
+	//		streamHeader.pbDst = (LPBYTE)compressedData;
+	//		streamHeader.cbDstLength = chunkSizeBytes;
+	//		if (acmStreamPrepareHeader(stream, &streamHeader, 0)) throw exception("acmStreamPrepareHeader failed");
+	//		if (acmStreamConvert(stream, &streamHeader, 0)) throw exception("acmStreamConvert failed");
+
+	//		delete[] rawData;
+
+	//		acmStreamClose(stream, 0);
+	//		acmDriverClose(driver, 0);
+
+	//		specimen->LoadSample(compressedData, streamHeader.cbDstLengthUsed, chunkSizeBytes, waveFormat);
+
+	//		delete[](char*)waveFormat;
+
+	//		delete[] compressedData;
+
+	//		delete[] inputBuf;
+	//	}
+	//	catch (const exception& e)
+	//	{
+	//		MessageBoxA(0, e.what(), "FUCK THAT SHIT", MB_OK | MB_ICONEXCLAMATION);
+	//	}
+	//}
 }
 
 BOOL __stdcall SpecimenEditor::driverEnumCallback(HACMDRIVERID driverId, DWORD_PTR dwInstance, DWORD fdwSupport)
@@ -221,17 +411,20 @@ BOOL __stdcall SpecimenEditor::driverEnumCallback(HACMDRIVERID driverId, DWORD_P
 
 	int waveFormatSize = 0;
 	acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
-	auto waveFormat = (WAVEFORMATEX *)(new char[waveFormatSize]);
-	memset(waveFormat, 0, waveFormatSize);
+	auto waveFormatBuf = std::make_unique<uint8_t[]>(waveFormatSize);
+	//WAVEFORMATEX waveFormat = { 0 };
+	auto pWaveFormat = (WAVEFORMATEX*)waveFormatBuf.get();
+	//auto waveFormat = (WAVEFORMATEX *)(new char[waveFormatSize]);
+	//memset(waveFormat, 0, waveFormatSize);
 	ACMFORMATDETAILS formatDetails;
 	memset(&formatDetails, 0, sizeof(formatDetails));
 	formatDetails.cbStruct = sizeof(formatDetails);
-	formatDetails.pwfx = waveFormat;
+	formatDetails.pwfx = pWaveFormat;
 	formatDetails.cbwfx = waveFormatSize;
 	formatDetails.dwFormatTag = WAVE_FORMAT_UNKNOWN;
 	acmFormatEnum(driver, &formatDetails, formatEnumCallback, dwInstance, NULL);
 
-	delete [] (char *)waveFormat;
+	//delete [] (char *)waveFormat;
 
 	return 1;
 }
