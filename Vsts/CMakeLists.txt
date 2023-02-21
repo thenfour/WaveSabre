@@ -13,6 +13,8 @@ foreach(child ${children})
 		set_property(TARGET ${child} APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL
 			" /LTCG")
 		set_property(TARGET ${child} PROPERTY FOLDER VSTs)
+		target_compile_features(${child} PUBLIC cxx_std_17)
+
 
 		if(VSTDIR)
 			add_custom_command(TARGET ${child} POST_BUILD
