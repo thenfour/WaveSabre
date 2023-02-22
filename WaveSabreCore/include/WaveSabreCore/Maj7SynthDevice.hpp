@@ -176,7 +176,7 @@ namespace WaveSabreCore
 				}
 				else {
 					myNote.mIsMusicallyHeld = true;
-					for (int iuv = 0; iuv < VoicesUnisono; ++iuv)
+					for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
 					{
 						auto v = FindFreeVoice();
 						v->BaseNoteOn(myNote, iuv, false);
@@ -195,7 +195,7 @@ namespace WaveSabreCore
 				myNote.mIsMusicallyHeld = true;
 				myNote.mSequence = ++mNoteSequence;
 
-				for (int iuv = 0; iuv < VoicesUnisono; ++iuv)
+				for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
 				{
 					mVoices[iuv]->BaseNoteOn(myNote, iuv, !!existingNote);
 				}
@@ -233,7 +233,7 @@ namespace WaveSabreCore
 					pTrillNote->mIsMusicallyHeld = true;
 				}
 
-				for (int iuv = 0; iuv < VoicesUnisono; ++iuv) // weird structuring here for size optimization
+				for (int iuv = 0; iuv < mVoicesUnisono; ++iuv) // weird structuring here for size optimization
 				{
 					if (pTrillNote)
 					{
@@ -284,11 +284,19 @@ namespace WaveSabreCore
 			}
 		}
 
+		void SetUnisonoVoices(int n) {
+			AllNotesOff(); // helps make things predictable, reduce cases
+			mVoicesUnisono = n;
+		}
+		int GetUnisonoVoices()const {
+			return mVoicesUnisono;
+		}
+
 		static constexpr int maxVoices = 64;
 		static constexpr int maxEvents = 64;
 		static constexpr int maxActiveNotes = 128; // should always be 128 for all midi notes.
 
-		int VoicesUnisono = 1;
+		int mVoicesUnisono = 1;
 		bool mIsPedalDown = false;
 
 		int mNoteSequence = 0;

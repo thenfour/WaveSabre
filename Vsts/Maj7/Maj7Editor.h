@@ -24,10 +24,12 @@ public:
 			pMaj7->AllNotesOff();
 		}
 
-		WSImGuiParamVoiceMode((VstInt32)Maj7::ParamIndices::VoicingMode, "VoiceMode##mst");
-
 		ImGui::Text("freq:%fHz note %d, current poly:%d", pMaj7->mLatestFreq, pMaj7->mLatestNote, pMaj7->GetCurrentPolyphony());
 		WSImGuiParamKnob((VstInt32)Maj7::ParamIndices::Master, "Output volume##hc");
+		ImGui::SameLine();
+		WSImGuiParamKnob((VstInt32)Maj7::ParamIndices::Unisono, "UNISONO##pitchenv", ParamBehavior::Unisono);
+		ImGui::SameLine();
+		WSImGuiParamVoiceMode((VstInt32)Maj7::ParamIndices::VoicingMode, "VoiceMode##mst");
 
 		for (size_t i = 0; i < std::size(pMaj7->mVoices); ++ i) {
 			auto pv = pMaj7->mVoices[i];

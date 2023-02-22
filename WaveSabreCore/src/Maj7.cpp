@@ -66,6 +66,9 @@ namespace WaveSabreCore
 		case ParamIndices::VoicingMode:
 			SetVoiceMode(Helpers::ParamToVoiceMode(value));
 			return;
+		case ParamIndices::Unisono:
+			SetUnisonoVoices(Helpers::ParamToUnisono(value));
+			return;
 		}
 	}
 
@@ -78,6 +81,8 @@ namespace WaveSabreCore
 			return mMasterVolume;
 		case ParamIndices::VoicingMode:
 			return Helpers::VoiceModeToParam(GetVoiceMode());
+		case ParamIndices::Unisono:
+			return Helpers::UnisonoToParam(GetUnisonoVoices());
 		}
 	}
 
