@@ -58,15 +58,26 @@ namespace WaveSabreVstLib
 					VstMidiEvent *midiEvent = (VstMidiEvent *)ev->events[i];
 					char *midiData = midiEvent->midiData;
 					int status = midiData[0] & 0xf0;
+
 					if (status == 0xb0)
 					{
-						if (midiData[1] == 0x7e || midiData[1] == 0x7b) device->AllNotesOff();
+						if (midiData[1] == 0x7e || midiData[1] == 0x7b) {
+							device->AllNotesOff();
+						}
+						else {
+							device->MidiCC(midiData[1], midiData[2], midiEvent->deltaFrames);
+						}
 					}
 					else if (status == 0x90 || status == 0x80)
 					{
 						int note = midiData[1] & 0x7f;
 						if (status == 0x80) device->NoteOff(note, midiEvent->deltaFrames);
 						else device->NoteOn(note, midiData[2] & 0x7f, midiEvent->deltaFrames);
+					}
+					else if (status == 0xe0) {
+						int msb = midiData[2];
+						int lsb = midiData[1];
+						device->PitchBend(lsb, msb, midiEvent->deltaFrames);
 					}
 				}
 			}

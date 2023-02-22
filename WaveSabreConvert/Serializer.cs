@@ -97,20 +97,34 @@ namespace WaveSabreConvert
                 foreach (var e in midiLane.MidiEvents)
                 {
                     writer.Write(e.TimeFromLastEvent);
-                    byte note = e.Note;
+                }
+                foreach (var e in midiLane.MidiEvents)
+                {
                     switch (e.Type)
                     {
                         case Song.EventType.NoteOn:
-                            writer.Write(note);
-                            writer.Write(e.Velocity);
+                            writer.Write((byte)0);
                             break;
                         case Song.EventType.NoteOff:
-                            note = (byte)((int)note | 0x80);
-                            writer.Write(note);
+                            writer.Write((byte)1);
+                            break;
+                        case Song.EventType.CC:
+                            writer.Write((byte)2);
+                            break;
+                        case Song.EventType.PitchBend:
+                            writer.Write((byte)3);
                             break;
                         default:
                             throw new Exception("Unsupported event type");
                     }
+                }
+                foreach (var e in midiLane.MidiEvents)
+                {
+                    writer.Write(e.Note);
+                }
+                foreach (var e in midiLane.MidiEvents)
+                {
+                    writer.Write(e.Velocity);
                 }
             }
 

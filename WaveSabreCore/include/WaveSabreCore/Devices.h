@@ -5,6 +5,7 @@
 #include "Slaughter.h"
 #include "Adultery.h"
 #include "Specimen.h"
+#include "Maj7.hpp"
 
 #include "Scissor.h"
 #include "Leveller.h"

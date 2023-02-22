@@ -14,6 +14,8 @@ namespace WaveSabreCore
 		virtual void AllNotesOff();
 		virtual void NoteOn(int note, int velocity, int deltaSamples);
 		virtual void NoteOff(int note, int deltaSamples);
+		virtual void MidiCC(int ccNumber, int rawValue, int deltaSamples) {};
+		virtual void PitchBend(int lsb, int msb, int deltaSamples) {};
 
 		virtual void SetSampleRate(float sampleRate);
 		virtual void SetTempo(int tempo);

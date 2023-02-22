@@ -5,6 +5,7 @@ namespace WaveSabreConvert
 {
     public class Song
     {
+        // NB: These enum values are used as strings to reference the VST DLLs and C++ class names (Serializer.cs)
         public enum DeviceId
         {
             Falcon,
@@ -19,7 +20,8 @@ namespace WaveSabreConvert
             Twister,
             Cathedral,
             Adultery,
-            Specimen
+            Specimen,
+            Maj7,
         }
 
         public class Receive
@@ -39,6 +41,8 @@ namespace WaveSabreConvert
         {
             NoteOn,
             NoteOff,
+            CC,
+            PitchBend,
         }
 
         public class Event

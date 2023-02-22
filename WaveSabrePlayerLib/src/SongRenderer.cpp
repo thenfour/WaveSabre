@@ -34,22 +34,26 @@ namespace WaveSabrePlayerLib
 			int numEvents = readInt();
 			midiLanes[i]->numEvents = numEvents;
 			midiLanes[i]->events = new Event[numEvents];
+
 			for (int m = 0; m < numEvents; m++)
 			{
 				midiLanes[i]->events[m].TimeStamp = readInt();
-				byte note = readByte();
-				if ((note & 0x80) == 0x00)
-				{
-					midiLanes[i]->events[m].Type = (EventType)0;
-					midiLanes[i]->events[m].Note = (note & 0x7F);
-					midiLanes[i]->events[m].Velocity = readByte();
-				}
-				else
-				{
-					midiLanes[i]->events[m].Type = (EventType)1;
-					midiLanes[i]->events[m].Note = (note & 0x7F);
-					midiLanes[i]->events[m].Velocity = 0;
-				}
+			}
+
+			for (int m = 0; m < numEvents; m++)
+			{
+				byte event = readByte();
+				midiLanes[i]->events[m].Type = (EventType)event;
+			}
+
+			for (int m = 0; m < numEvents; m++)
+			{
+				midiLanes[i]->events[m].Note = readByte();
+			}
+
+			for (int m = 0; m < numEvents; m++)
+			{
+				midiLanes[i]->events[m].Velocity = readByte();
 			}
 		}
 

@@ -24,7 +24,8 @@ namespace WaveSabrePlayerLib
 			Twister,
 			Cathedral,
 			Adultery,
-			Specimen
+			Specimen,
+			Maj7,
 		};
 
 		typedef WaveSabreCore::Device *(*DeviceFactory)(DeviceId);
@@ -52,8 +53,10 @@ namespace WaveSabrePlayerLib
 	private:
 		enum class EventType
 		{
-			NoteOn,
-			NoteOff,
+			NoteOn = 0,
+			NoteOff = 1,
+			CC = 2,
+			PitchBend = 3,
 		};
 
 		typedef struct

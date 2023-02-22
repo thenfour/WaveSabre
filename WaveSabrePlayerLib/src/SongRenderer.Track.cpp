@@ -79,15 +79,23 @@ namespace WaveSabrePlayerLib
 			Event *e = &lane->events[eventIndex];
 			int samplesToEvent = accumEventTimestamp + e->TimeStamp - lastSamplePos;
 			if (samplesToEvent >= numSamples) break;
-			switch (e->Type)
-			{
-			case EventType::NoteOn:
-				for (int i = 0; i < numDevices; i++) songRenderer->devices[devicesIndicies[i]]->NoteOn(e->Note, e->Velocity, samplesToEvent);
-				break;
-
-			case EventType::NoteOff:
-				for (int i = 0; i < numDevices; i++) songRenderer->devices[devicesIndicies[i]]->NoteOff(e->Note, samplesToEvent);
-				break;
+			for (int i = 0; i < numDevices; i++) {
+				auto pd = songRenderer->devices[devicesIndicies[i]];
+				switch (e->Type)
+				{
+				case EventType::NoteOn:
+					pd->NoteOn(e->Note, e->Velocity, samplesToEvent);
+					break;
+				case EventType::NoteOff:
+					pd->NoteOff(e->Note, samplesToEvent);
+					break;
+				case EventType::CC:
+					pd->MidiCC(e->Note, e->Velocity, samplesToEvent);
+					break;
+				case EventType::PitchBend:
+					pd->PitchBend(e->Note, e->Velocity, samplesToEvent);
+					break;
+				}
 			}
 			accumEventTimestamp += e->TimeStamp;
 		}
