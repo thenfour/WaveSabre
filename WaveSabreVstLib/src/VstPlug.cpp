@@ -1,4 +1,6 @@
+#include <string>
 #include <WaveSabreVstLib/VstPlug.h>
+#include <WaveSabreVstLib/VstEditor.h>
 
 using namespace std;
 using namespace WaveSabreCore;
@@ -8,6 +10,8 @@ namespace WaveSabreVstLib
 	VstPlug::VstPlug(audioMasterCallback audioMaster, int numParams, int numInputs, int numOutputs, VstInt32 id, Device *device, bool synth)
 		: AudioEffectX(audioMaster, 1, numParams)
 	{
+		QueryPerformanceFrequency(&this->perfFreq);
+
 		this->numParams = numParams;
 		this->numInputs = numInputs;
 		this->numOutputs = numOutputs;
@@ -32,7 +36,7 @@ namespace WaveSabreVstLib
 
 	void VstPlug::processReplacing(float **inputs, float **outputs, VstInt32 sampleFrames)
 	{
-		if (device)
+		if (device && sampleFrames)
 		{
 			VstTimeInfo *ti = getTimeInfo(0);
 			if (ti)
@@ -43,7 +47,18 @@ namespace WaveSabreVstLib
 
 			MxcsrFlagGuard mxcsrFlagGuard;
 
+			LARGE_INTEGER timeStart, timeEnd;
+			QueryPerformanceCounter(&timeStart);
 			device->Run(ti ? ti->samplePos / ti->sampleRate : 0.0, inputs, outputs, sampleFrames);
+			QueryPerformanceCounter(&timeEnd);
+
+			// to calculate CPU, assume that 100% CPU usage would mean it runs at the same as realtime speed. a 3ms buffer took 3ms to process.
+			double elapsedSeconds = (double)(timeEnd.QuadPart - timeStart.QuadPart) / (double)this->perfFreq.QuadPart;
+			double frameSeconds = (double)sampleFrames / this->sampleRate;
+			mCPUUsage.Update(elapsedSeconds / frameSeconds);
+		}
+		else {
+			mCPUUsage.Clear();
 		}
 	}
 

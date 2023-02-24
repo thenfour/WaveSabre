@@ -1,13 +1,13 @@
+
 #pragma once
 
 #include <WaveSabreVstLib.h>
-using namespace WaveSabreVstLib;
+//using namespace WaveSabreVstLib;
+//
+//#include <WaveSabreCore.h>
+//using namespace WaveSabreCore;
 
-#include <WaveSabreCore.h>
-using namespace WaveSabreCore;
-
-
-class Maj7Vst : public VstPlug
+class Maj7Vst : public WaveSabreVstLib::VstPlug
 {
 public:
 	Maj7Vst(audioMasterCallback audioMaster);
@@ -17,5 +17,5 @@ public:
 	virtual bool getEffectName(char *name);
 	virtual bool getProductString(char *text);
 
-	Maj7 *GetMaj7() const;
+	WaveSabreCore::M7::Maj7 *GetMaj7() const;
 };

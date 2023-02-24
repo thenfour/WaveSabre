@@ -10,6 +10,12 @@
 #include "../imgui/imgui_internal.h"
 #include "../imgui/imfilebrowser.h"
 #include <WaveSabreCore/Helpers.h>
+#include <WaveSabreCore/Maj7Basic.hpp>
+#include "VstPlug.h"
+
+using real_t = WaveSabreCore::M7::real_t;
+
+using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
@@ -24,9 +30,13 @@ namespace WaveSabreVstLib
 		Db,
 	};
 
-	class VstEditor : public  AEffEditor //AEffGUIEditor
+	class VstEditor : public AEffEditor
 	{
 	public:
+
+		static constexpr double gNormalKnobSpeed = 0.003f;
+		static constexpr double gSlowKnobSpeed = 0.00005f;
+
 		VstEditor(AudioEffect *audioEffect, int width, int height);
 		virtual ~VstEditor();
 
@@ -73,6 +83,25 @@ namespace WaveSabreVstLib
 			}
 		};
 
+		struct ScaledFloatConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::ScaledRealParam mParam;
+
+			ScaledFloatConverter(float v_min, float v_max) :
+				mParam(mBacking, v_min, v_max, v_min)
+			{
+			}
+
+			virtual double ParamToDisplayValue(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				return (double)mParam.GetRangedValue();
+			}
+			virtual double DisplayValueToParam(double value, void* capture) {
+				mParam.SetRangedValue((float)value);
+				return (double)mParam.GetRawParamValue();
+			}
+		};
 		struct DbConverter : ImGuiKnobs::IValueConverter
 		{
 			virtual double ParamToDisplayValue(double param, void* capture) override {
@@ -155,9 +184,6 @@ namespace WaveSabreVstLib
 				r = ImGuiKnobs::Knob(name, &paramValue, 0.0f, 1.0f, 0.5f, 0.003f, 0.0001f, "%.2fHz", ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
 
 				if (r) {
-					//char b[200] = { 0 };
-					//std::sprintf(b, "freq param changed : %f", paramValue);
-					//OutputDebugStringA(b);
 					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
 				}
 				break;
@@ -194,15 +220,25 @@ namespace WaveSabreVstLib
 			return x;
 		}
 
+		std::string GetRenderedTextFromID(const char* id) {
+			auto end = ImGui::FindRenderedTextEnd(id, 0);
+			return std::string(id, end);
+		}
+
 		// for boolean types
-		bool WSImGuiParamCheckbox(VstInt32 id, const char* name) {
-			float paramValue = GetEffectX()->getParameter((VstInt32)id);
+		bool WSImGuiParamCheckbox(VstInt32 paramId, const char* id) {
+			ImGui::BeginGroup();
+			ImGui::PushID(id);
+			float paramValue = GetEffectX()->getParameter((VstInt32)paramId);
 			bool bval = ::WaveSabreCore::Helpers::ParamToBoolean(paramValue);
 			bool r = false;
-			r = ImGui::Checkbox(name, &bval);
+			ImGui::Text(GetRenderedTextFromID(id).c_str());
+			r = ImGui::Checkbox("##cb", &bval);
 			if (r) {
-				GetEffectX()->setParameterAutomated(id, ::WaveSabreCore::Helpers::BooleanToParam(bval));
+				GetEffectX()->setParameterAutomated(paramId, ::WaveSabreCore::Helpers::BooleanToParam(bval));
 			}
+			ImGui::PopID();
+			ImGui::EndGroup();
 			return r;
 		}
 
@@ -256,308 +292,77 @@ namespace WaveSabreVstLib
 
 		void WSImGuiParamVoiceMode(VstInt32 paramID, const char* ctrlLabel) {
 			static constexpr char const * const captions[] = { "Poly", "Mono" };
-
 			WSImGuiParamEnumList(paramID, ctrlLabel, 2, captions);
-
-			//float paramValue = GetEffectX()->getParameter((VstInt32)paramID);
-			//auto friendlyVal = ::WaveSabreCore::Helpers::ParamToVoiceMode(paramValue);
-			//int enumIndex = (int)friendlyVal;
-
-			//const char* elem_name = "ERROR";
-			//int elementCount = (int)std::size(captions);
-			//if ((enumIndex >= 0) && (enumIndex < elementCount)) {
-			//	elem_name = captions[enumIndex];
-			//}
-
-			//ImGui::PushID(ctrlLabel);
-			//ImGui::PushItemWidth(70);
-
-			//ImGui::BeginGroup();
-
-			//auto end = ImGui::FindRenderedTextEnd(ctrlLabel, 0);
-			//auto txt = std::string(ctrlLabel, end);
-			//ImGui::Text("%s", txt.c_str());
-			//if (ImGui::SliderInt("##slider", &enumIndex, 0, elementCount - 1, elem_name, ImGuiSliderFlags_AlwaysClamp)) {
-			//	paramValue = ::WaveSabreCore::Helpers::VoiceModeToParam((::WaveSabreCore::VoiceMode)enumIndex);
-			//	GetEffectX()->setParameterAutomated(paramID, Clamp01(paramValue));
-			//}
-			//ImGui::EndGroup();
-			//ImGui::PopItemWidth();
-			//ImGui::PopID();
 		}
 
 		void WSImGuiParamFilterType(VstInt32 paramID, const char* ctrlLabel) {
 			static constexpr char const * const captions[] = { "LP", "HP", "BP","Notch" };
 			WSImGuiParamEnumList(paramID, ctrlLabel, 4, captions);
+		}
 
-			//float paramValue = GetEffectX()->getParameter((VstInt32)paramID);
-			//auto friendlyVal = ::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
-			//int enumIndex = (int)friendlyVal;
+		// For the Maj7 synth, let's add more param styles.
+		template<typename Tenum>
+		void Maj7ImGuiParamEnumList(VstInt32 paramID, const char* ctrlLabel, int elementCount, Tenum defaultVal, const char* const* const captions) {
+			M7::real_t tempVal;
+			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0) );
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+			auto friendlyVal = p.GetEnumValue();// ParamToEnum(paramValue, elementCount); //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
+			int enumIndex = (int)friendlyVal;
 
-			//const char* elem_name = "ERROR";
-			//int elementCount = (int)std::size(captions);
+			const char* elem_name = "ERROR";
 
-			//ImGui::PushID(ctrlLabel);
-			//ImGui::PushItemWidth(70);
+			ImGui::PushID(ctrlLabel);
+			ImGui::PushItemWidth(70);
 
-			//ImGui::BeginGroup();
+			ImGui::BeginGroup();
 
-			//auto end = ImGui::FindRenderedTextEnd(ctrlLabel, 0);
-			//auto txt = std::string(ctrlLabel, end);
-			//ImGui::Text("%s", txt.c_str());
+			auto end = ImGui::FindRenderedTextEnd(ctrlLabel, 0);
+			auto txt = std::string(ctrlLabel, end);
+			ImGui::Text("%s", txt.c_str());
 
-			//if (ImGui::BeginListBox("##filterTypeListBox", CalcListBoxSize(0.25f + elementCount)))
-			//{
-			//	for (int n = 0; n < elementCount; n++)
-			//	{
-			//		const bool is_selected = (enumIndex == n);
-			//		if (ImGui::Selectable(captions[n], is_selected)) {
-			//			enumIndex = n;
-			//			paramValue = ::WaveSabreCore::Helpers::StateVariableFilterTypeToParam((::WaveSabreCore::StateVariableFilterType)enumIndex);
-			//			GetEffectX()->setParameterAutomated(paramID, Clamp01(paramValue));
-			//		}
+			if (ImGui::BeginListBox("##enumlist", CalcListBoxSize(0.2f + elementCount)))
+			{
+				for (int n = 0; n < elementCount; n++)
+				{
+					const bool is_selected = (enumIndex == n);
+					if (ImGui::Selectable(captions[n], is_selected)) {
+						p.SetEnumValue((Tenum)n);
+						GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+					}
 
-			//		// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-			//		if (is_selected)
-			//			ImGui::SetItemDefaultFocus();
-			//	}
-			//	ImGui::EndListBox();
-			//}
+					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+					if (is_selected)
+						ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndListBox();
+			}
 
-			//ImGui::EndGroup();
-			//ImGui::PopItemWidth();
-			//ImGui::PopID();
+			ImGui::EndGroup();
+			ImGui::PopItemWidth();
+			ImGui::PopID();
+		}
+
+		void Maj7ImGuiParamScaledFloat(VstInt32 paramID, const char* label, M7::real_t v_min, M7::real_t v_max, M7::real_t v_defaultScaled) {
+			WaveSabreCore::M7::real_t tempVal;
+			M7::ScaledRealParam p{ tempVal , v_min, v_max, v_defaultScaled };
+			float defaultParamVal = p.Get01Value();
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			ScaledFloatConverter conv{v_min, v_max};
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
 		}
 
 
-		//static void ImGui_ImplWin32_AddKeyEvent(ImGuiKey key, bool down, int native_keycode, int native_scancode = -1)
-		//{
-		//	ImGuiIO& io = ImGui::GetIO();
-		//	io.AddKeyEvent(key, down);
-		//	io.SetKeyEventNativeData(key, native_keycode, native_scancode); // To support legacy indexing (<1.87 user code)
-		//	IM_UNUSED(native_scancode);
-		//}
-
-		////static bool IsModDown(int mod, VstKeyCode& keyCode)
-		////{
-		////	return !!(keyCode.modifier & mod);
-		////}
-
-		////static void ImGui_ImplWin32_UpdateKeyModifiers(bool is_down, VstKeyCode& keyCode)
-		////{
-		////	ImGuiIO& io = ImGui::GetIO();
-		////	io.AddKeyEvent(ImGuiMod_Ctrl, IsModDown(MODIFIER_CONTROL, keyCode));
-		////	io.AddKeyEvent(ImGuiMod_Shift, IsModDown(MODIFIER_SHIFT, keyCode));
-		////	io.AddKeyEvent(ImGuiMod_Alt, IsModDown(MODIFIER_ALTERNATE, keyCode));
-		////	io.AddKeyEvent(ImGuiMod_Super, IsModDown(MODIFIER_COMMAND, keyCode));
-		////}
-
-		//// Map VK_xxx to ImGuiKey_xxx.
-		//static ImGuiKey ImGui_VSTKeyToImGuiKey(VstInt32 vkey)
-		//{
-		//	// todo: map VST virtual keys to ImGui keys.
-		//	//return ImGuiKey_None;
-
-		//	//	VKEY_CLEAR,
-		//	//	VKEY_PAUSE,
-		//	//	VKEY_NEXT,
-		//	//	VKEY_SELECT,
-		//	//	VKEY_PRINT,
-		//	//	VKEY_SNAPSHOT,
-		//	//	VKEY_HELP,
-		//	//	VKEY_SEPARATOR,
-		//	//	VKEY_NUMLOCK,
-		//	//	VKEY_SCROLL,
-		//	//	VKEY_EQUALS
-
-		//	switch (vkey)
-		//	{
-		//	case VKEY_TAB: return ImGuiKey_Tab;
-		//	case VKEY_LEFT: return ImGuiKey_LeftArrow;
-		//	case VKEY_RIGHT: return ImGuiKey_RightArrow;
-		//	case VKEY_UP: return ImGuiKey_UpArrow;
-		//	case VKEY_DOWN: return ImGuiKey_DownArrow;
-		//	case VKEY_PAGEUP: return ImGuiKey_PageUp;
-		//	case VKEY_PAGEDOWN: return ImGuiKey_PageDown;
-		//	case VKEY_HOME: return ImGuiKey_Home;
-		//	case VKEY_END: return ImGuiKey_End;
-		//	case VKEY_INSERT: return ImGuiKey_Insert;
-		//	case VKEY_DELETE: return ImGuiKey_Delete;
-		//	case VKEY_BACK: return ImGuiKey_Backspace;
-		//	case VKEY_SPACE: return ImGuiKey_Space;
-		//	case VKEY_ENTER: return ImGuiKey_Enter; // or VKEY_RETURN ?
-		//	case VKEY_ESCAPE: return ImGuiKey_Escape;
-		//	case VKEY_ADD: return ImGuiKey_KeypadAdd;
-		//	case VKEY_SUBTRACT: return ImGuiKey_Minus; // ImGuiKey_KeypadSubtract ?
-		//	case VKEY_F1: return ImGuiKey_F1;
-		//	case VKEY_F2: return ImGuiKey_F2;
-		//	case VKEY_F3: return ImGuiKey_F3;
-		//	case VKEY_F4: return ImGuiKey_F4;
-		//	case VKEY_F5: return ImGuiKey_F5;
-		//	case VKEY_F6: return ImGuiKey_F6;
-		//	case VKEY_F7: return ImGuiKey_F7;
-		//	case VKEY_F8: return ImGuiKey_F8;
-		//	case VKEY_F9: return ImGuiKey_F9;
-		//	case VKEY_F10: return ImGuiKey_F10;
-		//	case VKEY_F11: return ImGuiKey_F11;
-		//	case VKEY_F12: return ImGuiKey_F12;
-		//	case VKEY_NUMPAD0: return ImGuiKey_Keypad0;
-		//	case VKEY_NUMPAD1: return ImGuiKey_Keypad1;
-		//	case VKEY_NUMPAD2: return ImGuiKey_Keypad2;
-		//	case VKEY_NUMPAD3: return ImGuiKey_Keypad3;
-		//	case VKEY_NUMPAD4: return ImGuiKey_Keypad4;
-		//	case VKEY_NUMPAD5: return ImGuiKey_Keypad5;
-		//	case VKEY_NUMPAD6: return ImGuiKey_Keypad6;
-		//	case VKEY_NUMPAD7: return ImGuiKey_Keypad7;
-		//	case VKEY_NUMPAD8: return ImGuiKey_Keypad8;
-		//	case VKEY_NUMPAD9: return ImGuiKey_Keypad9;
-		//	case VKEY_DECIMAL: return ImGuiKey_Period; // ImGuiKey_KeypadDecimal?
-		//	case VKEY_DIVIDE: return ImGuiKey_KeypadDivide;  // ImGuiKey_Slash ?
-		//	case VKEY_MULTIPLY: return ImGuiKey_KeypadMultiply; // asterisk?
-		//	case VKEY_SHIFT: return ImGuiKey_LeftShift;
-		//	case VKEY_CONTROL: return ImGuiKey_LeftCtrl;
-		//	case VKEY_ALT: return ImGuiKey_LeftAlt;
-
-		//		//case VK_OEM_7: return ImGuiKey_Apostrophe;
-		//		//case VK_OEM_COMMA: return ImGuiKey_Comma;
-		//		//case VK_OEM_2: return ImGuiKey_Slash;
-		//		//case VK_OEM_1: return ImGuiKey_Semicolon;
-		//		//case VK_OEM_PLUS: return ImGuiKey_Equal;
-		//		//case VK_OEM_4: return ImGuiKey_LeftBracket;
-		//		//case VK_OEM_5: return ImGuiKey_Backslash;
-		//		//case VK_OEM_6: return ImGuiKey_RightBracket;
-		//		//case VK_OEM_3: return ImGuiKey_GraveAccent;
-		//		//case VK_CAPITAL: return ImGuiKey_CapsLock;
-		//		//case VK_SCROLL: return ImGuiKey_ScrollLock;
-		//		//case VK_NUMLOCK: return ImGuiKey_NumLock;
-		//		//case VK_SNAPSHOT: return ImGuiKey_PrintScreen;
-		//		//case VK_PAUSE: return ImGuiKey_Pause;
-		//		//case IM_VK_KEYPAD_ENTER: return ImGuiKey_KeypadEnter;
-		//		//case VK_LWIN: return ImGuiKey_LeftSuper;
-		//		//case VK_RSHIFT: return ImGuiKey_RightShift;
-		//		//case VK_RCONTROL: return ImGuiKey_RightCtrl;
-		//		//case VK_RMENU: return ImGuiKey_RightAlt;
-		//		//case VK_RWIN: return ImGuiKey_RightSuper;
-		//		//case VK_APPS: return ImGuiKey_Menu;
-		//		//case '0': return ImGuiKey_0;
-		//		//case '1': return ImGuiKey_1;
-		//		//case '2': return ImGuiKey_2;
-		//		//case '3': return ImGuiKey_3;
-		//		//case '4': return ImGuiKey_4;
-		//		//case '5': return ImGuiKey_5;
-		//		//case '6': return ImGuiKey_6;
-		//		//case '7': return ImGuiKey_7;
-		//		//case '8': return ImGuiKey_8;
-		//		//case '9': return ImGuiKey_9;
-		//		//case 'A': return ImGuiKey_A;
-		//		//case 'B': return ImGuiKey_B;
-		//		//case 'C': return ImGuiKey_C;
-		//		//case 'D': return ImGuiKey_D;
-		//		//case 'E': return ImGuiKey_E;
-		//		//case 'F': return ImGuiKey_F;
-		//		//case 'G': return ImGuiKey_G;
-		//		//case 'H': return ImGuiKey_H;
-		//		//case 'I': return ImGuiKey_I;
-		//		//case 'J': return ImGuiKey_J;
-		//		//case 'K': return ImGuiKey_K;
-		//		//case 'L': return ImGuiKey_L;
-		//		//case 'M': return ImGuiKey_M;
-		//		//case 'N': return ImGuiKey_N;
-		//		//case 'O': return ImGuiKey_O;
-		//		//case 'P': return ImGuiKey_P;
-		//		//case 'Q': return ImGuiKey_Q;
-		//		//case 'R': return ImGuiKey_R;
-		//		//case 'S': return ImGuiKey_S;
-		//		//case 'T': return ImGuiKey_T;
-		//		//case 'U': return ImGuiKey_U;
-		//		//case 'V': return ImGuiKey_V;
-		//		//case 'W': return ImGuiKey_W;
-		//		//case 'X': return ImGuiKey_X;
-		//		//case 'Y': return ImGuiKey_Y;
-		//		//case 'Z': return ImGuiKey_Z;
-		//	default: return ImGuiKey_None;
-		//	}
-		//}
-
-
-		//void onKey(bool is_key_down, VstKeyCode& keyCode) {
-		//	// Submit modifiers just in the weird case that they have changed without us getting the event below.
-		//	//ImGui_ImplWin32_UpdateKeyModifiers(is_key_down, keyCode);
-
-		//	// Obtain virtual key code
-		//	// (keypad enter doesn't have its own... VK_RETURN with KF_EXTENDED flag means keypad enter, see IM_VK_KEYPAD_ENTER definition for details, it is mapped to ImGuiKey_KeyPadEnter.)
-		//	//int vk = (int)wParam;
-		//	//if ((wParam == VK_RETURN) && (HIWORD(lParam) & KF_EXTENDED))
-		//	//	vk = IM_VK_KEYPAD_ENTER;
-
-		//	// Submit key event
-		//	const ImGuiKey key = ImGui_VSTKeyToImGuiKey(keyCode.virt);
-		//	//const int scancode = (int)LOBYTE(HIWORD(lParam));
-		//	char b[200] = { 0 };
-		//	if (key != ImGuiKey_None) {
-		//		std::sprintf(b, "sending ImGuiKey: %d (%s)", key, is_key_down ? "DOWN" : "UP");
-		//		OutputDebugStringA(b);
-
-		//		ImGui_ImplWin32_AddKeyEvent(key, is_key_down, keyCode.virt);
-		//	}
-
-		//	//ImGui::GetIO().AddKeyEvent(ImGuiMod_Super, is_key_down);
-
-		//	// NOTE: VST does not send keydowns during a setcapture drag event
-
-		//	// Submit individual left/right modifier events
-		//	if (keyCode.virt == VKEY_SHIFT)
-		//	{
-		//		// Important: Shift keys tend to get stuck when pressed together, missing key-up events are corrected in ImGui_ImplWin32_ProcessKeyEventsWorkarounds()
-		//		std::sprintf(b, " -> mod VKEY_SHIFT (%s)", is_key_down ? "DOWN" : "UP");
-		//		OutputDebugStringA(b);
-
-		//		ImGui::GetIO().AddKeyEvent(ImGuiMod_Shift, is_key_down);
-
-		//		//ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftShift, is_key_down, keyCode.virt);
-		//		//if (IsVkDown(VK_LSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftShift, is_key_down, VK_LSHIFT, scancode); }
-		//		//if (IsVkDown(VK_RSHIFT) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightShift, is_key_down, VK_RSHIFT, scancode); }
-		//	}
-		//	else if (keyCode.virt == VKEY_CONTROL)
-		//	{
-		//		std::sprintf(b, " -> mod VKEY_CONTROL (%s)", is_key_down ? "DOWN" : "UP");
-		//		OutputDebugStringA(b);
-
-		//		ImGui::GetIO().AddKeyEvent(ImGuiMod_Ctrl, is_key_down);
-		//		//ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftCtrl, is_key_down, keyCode.virt);
-		//		//if (IsVkDown(VK_LCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftCtrl, is_key_down, VK_LCONTROL, scancode); }
-		//		//if (IsVkDown(VK_RCONTROL) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightCtrl, is_key_down, VK_RCONTROL, scancode); }
-		//	}
-		//	else if (keyCode.virt == VKEY_ALT)
-		//	{
-		//		std::sprintf(b, " -> mod VKEY_ALT (%s)", is_key_down ? "DOWN" : "UP");
-		//		OutputDebugStringA(b);
-
-		//		ImGui::GetIO().AddKeyEvent(ImGuiMod_Alt, is_key_down);
-		//		//ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftAlt, is_key_down, keyCode.virt);
-		//		//if (IsVkDown(VK_LMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_LeftAlt, is_key_down, VK_LMENU, scancode); }
-		//		//if (IsVkDown(VK_RMENU) == is_key_down) { ImGui_ImplWin32_AddKeyEvent(ImGuiKey_RightAlt, is_key_down, VK_RMENU, scancode); }
-		//	}
-		//}
 
 		virtual bool onKeyDown(VstKeyCode& keyCode) override {
 			mLastKeyDown = keyCode;
-
-			//char b[200] = { 0 };
-			//std::sprintf(b, "onVSTKey Down : %d %C", keyCode.virt, (wchar_t)keyCode.character);
-			//OutputDebugStringA(b);
-			//onKey(true, keyCode);
 			return false; // return true avoids Reaper acting like you made a mistake (ding sfx)
 		}
 		virtual bool onKeyUp(VstKeyCode& keyCode) override {
 			mLastKeyUp = keyCode;
-
-			//char b[200] = { 0 };
-			//std::sprintf(b, "onVSTKey UP: %d %C", keyCode.virt, (wchar_t)keyCode.character);
-			//OutputDebugStringA(b);
-
-			//onKey(false, keyCode);
-
 			if (keyCode.character > 0) {
 				ImGui::GetIO().AddInputCharacterUTF16((unsigned short)keyCode.character);
 				return true;
@@ -570,8 +375,8 @@ namespace WaveSabreVstLib
 		VstKeyCode mLastKeyDown = {0};
 		VstKeyCode mLastKeyUp = {0};
 
-		AudioEffectX* GetEffectX() {
-			return static_cast<AudioEffectX*>(this->effect);
+		VstPlug* GetEffectX() {
+			return static_cast<VstPlug*>(this->effect);
 		}
 
 		LPDIRECT3D9              g_pD3D = NULL;

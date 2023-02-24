@@ -18,6 +18,7 @@ namespace WaveSabreCore
 	public:
 		Maj7SynthDevice(int numParams);
 
+		virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) = 0;
 		virtual void HandlePitchBend(float pbN11) = 0;
 		virtual void HandleMidiCC(int ccN, int val) = 0;
 
@@ -66,11 +67,9 @@ namespace WaveSabreCore
 			void BaseNoteOn(const NoteInfo& ni, int unisonoVoice, bool legato);
 			void BaseNoteOff();
 
-			//int Note = 0;
 			NoteInfo mNoteInfo;
 			int mUnisonVoice = 0;
 			bool mLegato;
-			//int SequenceNumber = 0; // per note, so unisono voices will get the same value here.
 		};
 
 		enum class EventType
@@ -92,15 +91,15 @@ namespace WaveSabreCore
 
 		void PushEvent(EventType et, int data1, int data2, int deltaSamples)
 		{
-			for (int i = 0; i < std::size(mEvents); ++i) {
-				auto& e = mEvents[i];
-				if (i < mEventCount && e.Type == EventType::None) {
-					::WSAssert(false, "empty events were found before mEventCount");
-				}
-				else if (i >= mEventCount && e.Type != EventType::None) {
-					::WSAssert(false, "non-empty events were found after mEventCount");
-				}
-			}
+			//for (int i = 0; i < std::size(mEvents); ++i) {
+			//	auto& e = mEvents[i];
+			//	if (i < mEventCount && e.Type == EventType::None) {
+			//		WSAssert(false, "empty events were found before mEventCount");
+			//	}
+			//	else if (i >= mEventCount && e.Type != EventType::None) {
+			//		WSAssert(false, "non-empty events were found after mEventCount");
+			//	}
+			//}
 
 			auto& e = mEvents[mEventCount];
 			e.Type = et;

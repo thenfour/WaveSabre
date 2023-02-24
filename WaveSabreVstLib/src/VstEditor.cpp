@@ -251,7 +251,7 @@ namespace WaveSabreVstLib
 		}
 
 		ImGui::SameLine();
-		ImGui::Text("%.1f FPS", ImGui::GetIO().Framerate);
+		ImGui::Text("%.1f FPS, CPU: %.2f %", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100);
 
 		this->renderImgui();
 

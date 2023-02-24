@@ -18,6 +18,12 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/Helpers.h
 	include/WaveSabreCore/Leveller.h
 	include/WaveSabreCore/Maj7.hpp
+	include/WaveSabreCore/Maj7SynthDevice.hpp
+	include/WaveSabreCore/Maj7Basic.hpp
+	include/WaveSabreCore/Maj7Envelope.hpp
+	include/WaveSabreCore/Maj7Filter.hpp
+	include/WaveSabreCore/Maj7ModMatrix.hpp
+	include/WaveSabreCore/Maj7Oscillator.hpp
 	include/WaveSabreCore/MxcsrFlagGuard.h
 	include/WaveSabreCore/ResampleBuffer.h
 	include/WaveSabreCore/SamplePlayer.h
@@ -47,6 +53,7 @@ add_library(WaveSabreCore
 	src/Helpers.cpp
 	src/Leveller.cpp
 	src/Maj7.cpp
+	src/Maj7SynthDevice.cpp
 	src/MxcsrFlagGuard.cpp
 	src/ResampleBuffer.cpp
 	src/SamplePlayer.cpp
@@ -61,6 +68,7 @@ add_library(WaveSabreCore
 
 target_link_libraries(WaveSabreCore Msacm32.lib)
 target_include_directories(WaveSabreCore PUBLIC include)
+target_compile_definitions(WaveSabreCore PUBLIC NOMINMAX)
 
 if(MSVC)
 	target_compile_options(WaveSabreCore

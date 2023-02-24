@@ -9,6 +9,7 @@ namespace WaveSabreCore
 	{
 		Polyphonic,
 		MonoLegatoTrill,
+		Count,
 	};
 
 	class SynthDevice : public Device

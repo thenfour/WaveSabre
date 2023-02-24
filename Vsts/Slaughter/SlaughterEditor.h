@@ -2,6 +2,7 @@
 #define __SLAUGHTEREDITOR_H__
 
 #include <WaveSabreVstLib.h>
+#include "SlaughterVst.h"
 using namespace WaveSabreVstLib;
 
 class SlaughterEditor : public VstEditor
@@ -16,6 +17,8 @@ public:
 
 	virtual void renderImgui()
 	{
+		ImGui::Text("CPU: %.2f", ((SlaughterVst*)this->getEffect())->GetCPUUsage01() * 100);
+
 		if (ImGui::BeginTable("mastertable", 1, ImGuiTableFlags_Borders))
 		{
 			ImGui::TableNextRow();

@@ -11,7 +11,7 @@
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Maj7SynthDevice.hpp>
 #include <WaveSabreCore/Helpers.h>
-#include <Windows.h>
+//#include <Windows.h>
 #include <cstdint>
 #include <cstdio>
 
@@ -89,10 +89,7 @@ namespace WaveSabreCore
 				++iEvent;
 			}
 
-			for (int i = 0; i < maxVoices; i++)
-			{
-				mVoices[i]->ProcessAndMix(songPosition, runningOutputs, samplesToNextEvent);
-			}
+			this->ProcessBlock(songPosition, runningOutputs, samplesToNextEvent);
 
 			// advance a virtual cursor
 			for (int i = iEvent; i < mEventCount; i++)
@@ -151,6 +148,7 @@ namespace WaveSabreCore
 		{
 			mVoices[i]->Kill();
 		}
+		//cc::log("voice mode set to %d", voiceMode);
 		this->mVoiceMode = voiceMode;
 	}
 
