@@ -195,8 +195,8 @@ void Maj7Vst::getParameterName(VstInt32 index, char* text)
 	for (int i = 0; i < std::size(nameMap); ++i) {
 		char b[200];
 		sprintf(b, "param names must be in order; %d != %d (%s)", nameMap[i].first, i, nameMap[i].second);
-		WSAssert((int)nameMap[i].first == i, b);
-		WSAssert(strlen(nameMap[i].second) < kVstMaxParamStrLen, "param name too long");
+		//WSAssert((int)nameMap[i].first == i, b);
+		//WSAssert(strlen(nameMap[i].second) < kVstMaxParamStrLen, "param name too long");
 	}
 	if (index < 0 || index >= std::size(nameMap)) return;
 	vst_strncpy(text, nameMap[index].second, kVstMaxParamStrLen);

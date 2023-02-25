@@ -2,7 +2,7 @@
 
 #include <WaveSabreCore/Helpers.h>
 #include <algorithm>
-//#include <memory>
+#include <memory>
 
 // correction for windows.h macros.
 // i cannot use NOMINMAX, because VST and Gdiplus depend on these macros. 
@@ -10,6 +10,17 @@
 #undef max
 using std::min;
 using std::max;
+//
+//template<class T>
+//const T& min(const T& a, const T& b)
+//{
+//    return (b < a) ? b : a;
+//}
+//template<class T>
+//const T& max(const T& a, const T& b)
+//{
+//    return (b > a) ? b : a;
+//}
 
 namespace WaveSabreCore
 {
@@ -18,6 +29,22 @@ namespace WaveSabreCore
         using real_t = float;
 
         static constexpr real_t FloatEpsilon = 0.000001f;
+
+        namespace fastmath
+        {
+
+            static inline float fasterlog2(float x)
+            {
+                union {
+                    float f;
+                    uint32_t i;
+                } vx = { x };
+                float y = (float)vx.i;
+                y *= 1.1920928955078125e-7f;
+                return y - 126.94269504f;
+            }
+
+        }
 
         // we may be able to save code size by calling exported functions instead of pulling in lib fns
         namespace math
@@ -28,16 +55,16 @@ namespace WaveSabreCore
                 return ::powf(x, y);
             }
             inline real_t log2(real_t x) {
-                return ::log2f(x);
+                return fastmath::fasterlog2(x);
             }
             inline real_t sqrt(real_t x) {
                 return ::sqrtf(x);
             }
             inline real_t floor(real_t x) {
-                return ::floorf(x);
+                return (real_t)::floor((double)x);
             }
             inline real_t sin(real_t x) {
-                return ::sinf(x);
+                return (real_t)Helpers::FastSin((double)x);
             }
             inline real_t max(real_t x, real_t y) {
                 return x > y ? x : y;
@@ -170,7 +197,7 @@ namespace WaveSabreCore
 
         inline float FrequencyToMIDINote(float hz)
         {
-            float ret = 12.0f * math::log2(std::max(8.0f, hz) / 440) + 69;
+            float ret = 12.0f * math::log2(max(8.0f, hz) / 440) + 69;
             return ret;
         }
 

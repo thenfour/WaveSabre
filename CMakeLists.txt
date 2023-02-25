@@ -41,6 +41,7 @@ add_subdirectory(WaveSabrePlayerLib)
 # binaries
 add_subdirectory(Tests/PlayerTest)
 add_subdirectory(WaveSabreStandAlonePlayer)
+add_subdirectory(WaveSabreExecutableMusicPlayer)
 
 # VSTs
 if(${BUILD_VST_PLUGINS} AND VSTSDK3_DIR)

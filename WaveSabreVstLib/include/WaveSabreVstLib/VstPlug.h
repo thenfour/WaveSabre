@@ -1,6 +1,7 @@
 #ifndef __WAVESABREVSTLIB_VSTPLUG_H__
 #define __WAVESABREVSTLIB_VSTPLUG_H__
 
+#undef _WIN32_WINNT
 #include "audioeffectx.h"
 #include <WaveSabreCore.h>
 

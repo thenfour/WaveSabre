@@ -1,7 +1,7 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
-#include <memory>
+//#include <memory>
 
 namespace WaveSabreCore
 {
@@ -12,7 +12,6 @@ namespace WaveSabreCore
 		struct ModulationBuffers
 		{
 			real_t* mpBuffer = nullptr;
-			//real_t* mpKRateValues = nullptr; // points to the krate portion of mpBuffer.
 			size_t mElementsAllocated = 0; // the backing buffer is allocated this big. may be bigger than blocks*blocksize.
 			size_t mBlockSize = 0;
 			size_t mBlockCount = 0; // how many blocks are we advertising.
@@ -39,14 +38,6 @@ namespace WaveSabreCore
 			real_t* GetARateBuffer(size_t iblock) {
 				return &mpBuffer[iblock * mBlockSize];
 			}
-			//template<typename T>
-			//real_t GetKRateValue(T id) const {
-			//	return mpKRateValues[(size_t)id];
-			//}
-			//template<typename T>
-			//void SetKRateValue(T id, real_t val) {
-			//	mpKRateValues[(size_t)id] = val;
-			//}
 		};
 
 

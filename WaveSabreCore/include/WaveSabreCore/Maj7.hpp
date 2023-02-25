@@ -10,7 +10,7 @@
 #include <WaveSabreCore/Maj7Filter.hpp>
 #include <WaveSabreCore/Maj7Oscillator.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
-#include <Windows.h>
+//#include <Windows.h>
 
 namespace WaveSabreCore
 {
@@ -446,6 +446,9 @@ namespace WaveSabreCore
 
 		};
 	} // namespace M7
+
+	using Maj7 = M7::Maj7;
+
 } // namespace WaveSabreCore
 
 
