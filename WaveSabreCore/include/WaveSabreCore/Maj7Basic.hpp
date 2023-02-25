@@ -210,10 +210,16 @@ namespace WaveSabreCore
 
         struct FloatN11Param : Float01RefParam
         {
-            explicit FloatN11Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
+            explicit FloatN11Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {
+
+            }
 
             real_t GetN11Value(real_t modVal = 0.0f) const {
-                return mParamValue + modVal;
+                real_t r = mParamValue + modVal;
+                return Clamp(r * 2 - 1, -1, 1);
+            }
+            void SetN11Value(real_t v) {
+                SetParamValue(v*.5f+.5f);
             }
         };
 
@@ -232,7 +238,7 @@ namespace WaveSabreCore
             static constexpr real_t gMinRealVal = 0;
             static constexpr real_t gMaxRealVal = gMaxRawVal - gMinRawVal;
 
-            real_t GetMilliseconds(real_t paramModulation) const
+            real_t GetMilliseconds(real_t paramModulation = 0.0f) const
             {
                 float param = mParamValue + paramModulation; // apply current modulation value.
                 param = Clamp(param, 0, 1);
@@ -251,7 +257,7 @@ namespace WaveSabreCore
         {
             explicit CurveParam(real_t& ref, real_t initialParamValue) : FloatN11Param(ref, initialParamValue) {}
 
-            real_t ApplyToValue(real_t x, real_t modVal) {
+            real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
                 return modCurve_xN11_kN11(x, GetN11Value() + modVal);
             }
         };
@@ -397,7 +403,7 @@ namespace WaveSabreCore
             {
                 return ParamToLinear(mParamValue + modVal);
             }
-            float ToDecibels() const // expensive (ish)
+            float GetDecibels() const // expensive (ish)
             {
                 return ParamToDecibels(mParamValue);
             }
@@ -445,14 +451,13 @@ namespace WaveSabreCore
         // when KT = 0, 0.5 = 1khz, and each 0.1 param value = +/- octave.
         struct FrequencyParam
         {
-        protected:
-            Float01Param mValue;
-            Float01Param mKTValue; // how much key tracking to apply. when 0, the frequency doesn't change based on playing note. when 1, it scales completely with the note's frequency.
-
             const float mCenterMidiNote;
             const float mCenterFrequency;
 
         public:
+            Float01Param mValue;
+            Float01Param mKTValue; // how much key tracking to apply. when 0, the frequency doesn't change based on playing note. when 1, it scales completely with the note's frequency.
+
             explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t initialValue, real_t initialKT) :
                 mValue(valRef, initialValue),
                 mKTValue(ktRef, initialKT),

@@ -136,8 +136,6 @@ namespace WaveSabreCore
 
             bool IsPlaying() const
             {
-                if (this->mStage == EnvelopeStage::Delay)
-                    return false;
                 return (this->mStage != EnvelopeStage::Idle);
             }
 
@@ -151,14 +149,6 @@ namespace WaveSabreCore
             {
                 RecalcState();
             }
-            //void SetModValues(const EnvelopeModulationValues& modValues)
-            //{
-            //    //mSpec = spec;
-            //    mModValues = modValues;
-            //    // bug: if you set the spec and the current stage becomes 0-length, 1 sample will be processed for it. nobody
-            //    // cares.
-            //    RecalcState();
-            //}
 
             float ProcessSample()
             {
@@ -226,8 +216,8 @@ namespace WaveSabreCore
                 case EnvelopeStage::Idle:
                     return;
                 case EnvelopeStage::Delay: {
-                    mStagePosIncPerSample =
-                        CalculateInc01PerSampleForMS(mDelayTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + gModDestDelayTime)));
+                    auto ms = mDelayTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + gModDestDelayTime));
+                    mStagePosIncPerSample = CalculateInc01PerSampleForMS(ms);
                     return;
                 }
                 case EnvelopeStage::Attack: {

@@ -27,52 +27,67 @@ public:
 			pMaj7->AllNotesOff();
 		}
 
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::MasterVolume, "Output volume##hc");
+		Maj7ImGuiParamVolume((VstInt32)M7::Maj7::ParamIndices::MasterVolume, "Output volume##hc", M7::Maj7::gMasterVolumeMaxDb, 0);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Unisono, "UNISONO##pitchenv");
+		Maj7ImGuiParamInt((VstInt32)M7::Maj7::ParamIndices::Unisono, "UNISONO##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1);
 		ImGui::SameLine();
-
+		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::UnisonoDetune, "UnisonDetune##mst");
+		ImGui::SameLine(0, 60);
+		Maj7ImGuiParamInt((VstInt32)M7::Maj7::ParamIndices::PitchBendRange, "PB Range##mst", -M7::Maj7::gPitchBendMaxRange, M7::Maj7::gPitchBendMaxRange, 2);
 
 		static constexpr char const* const voiceModeCaptions[] = { "Poly", "Mono" };
+		ImGui::SameLine(0, 60);
 		Maj7ImGuiParamEnumList<WaveSabreCore::VoiceMode>((VstInt32)M7::Maj7::ParamIndices::VoicingMode, "VoiceMode##mst", (int)WaveSabreCore::VoiceMode::Count, WaveSabreCore::VoiceMode::Polyphonic, voiceModeCaptions);
 
 		// ampenv
 		ImGui::SeparatorText("Amplitude Envelope");
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvDelayTime, "DelayTime##ampenv");
+		Maj7ImGuiParamEnvTime((VstInt32)M7::Maj7::ParamIndices::AmpEnvDelayTime, "DelayTime##ampenv", 0);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvAttackTime, "AttackTime##ampenv");
+		Maj7ImGuiParamEnvTime((VstInt32)M7::Maj7::ParamIndices::AmpEnvAttackTime, "AttackTime##ampenv", 0);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvAttackCurve, "AttackCurve##ampenv");
+		Maj7ImGuiParamFloatN11((VstInt32)M7::Maj7::ParamIndices::AmpEnvAttackCurve, "AttackCurve##ampenv", 0);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvHoldTime, "HoldTime##ampenv");
+		Maj7ImGuiParamEnvTime((VstInt32)M7::Maj7::ParamIndices::AmpEnvHoldTime, "HoldTime##ampenv", 0);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvDecayTime, "DecayTime##ampenv");
+		Maj7ImGuiParamEnvTime((VstInt32)M7::Maj7::ParamIndices::AmpEnvDecayTime, "DecayTime##ampenv", .4f);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvDecayCurve, "DecayCurve##ampenv");
+		Maj7ImGuiParamFloatN11((VstInt32)M7::Maj7::ParamIndices::AmpEnvDecayCurve, "DecayCurve##ampenv", 0);
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvSustainLevel, "SustainLevel##ampenv");
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvReleaseTime, "ReleaseTime##ampenv");
+		Maj7ImGuiParamEnvTime((VstInt32)M7::Maj7::ParamIndices::AmpEnvReleaseTime, "ReleaseTime##ampenv", 0);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvReleaseCurve, "ReleaseCurve##ampenv");
+		Maj7ImGuiParamFloatN11((VstInt32)M7::Maj7::ParamIndices::AmpEnvReleaseCurve, "ReleaseCurve##ampenv", 0);
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::AmpEnvLegatoRestart, "LegatoRestart##ampenv");
+		WSImGuiParamCheckbox((VstInt32)M7::Maj7::ParamIndices::AmpEnvLegatoRestart, "LegatoRestart##ampenv");
+
+		Maj7ImGuiEnvelopeGraphic("ampenvgraphic",
+			M7::Maj7::ParamIndices::AmpEnvDelayTime,
+			M7::Maj7::ParamIndices::AmpEnvAttackTime,
+			M7::Maj7::ParamIndices::AmpEnvAttackCurve,
+			M7::Maj7::ParamIndices::AmpEnvHoldTime,
+			M7::Maj7::ParamIndices::AmpEnvDecayTime,
+			M7::Maj7::ParamIndices::AmpEnvDecayCurve,
+			M7::Maj7::ParamIndices::AmpEnvSustainLevel,
+			M7::Maj7::ParamIndices::AmpEnvReleaseTime,
+			M7::Maj7::ParamIndices::AmpEnvReleaseCurve
+			);
 
 		// osc1
 		ImGui::SeparatorText("Oscillator A");
 		WSImGuiParamCheckbox((VstInt32)M7::Maj7::ParamIndices::Osc1Enabled, "Enabled");
-		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1Volume, "Volume##osc1");
+		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)M7::Maj7::ParamIndices::Osc1Volume, "Volume##osc1", M7::OscillatorNode::gVolumeMaxDb, 0);
 		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1Waveform, "Waveform##osc1");
 		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1Waveshape, "Waveshape##osc1");
-		ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1FrequencyParam, "Freq##osc1");
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((VstInt32)M7::Maj7::ParamIndices::Osc1FrequencyParam, (VstInt32)M7::Maj7::ParamIndices::Osc1FrequencyParamKT, "Freq##osc1", M7::OscillatorNode::gFrequencyCenterHz, 0.4f);
 		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1FrequencyParamKT, "KT##osc1");
-		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1PitchSemis, "PitchSemis##osc1");
+		ImGui::SameLine(); Maj7ImGuiParamInt((VstInt32)M7::Maj7::ParamIndices::Osc1PitchSemis, "PitchSemis##osc1", -M7::OscillatorNode::gPitchSemisRange, M7::OscillatorNode::gPitchSemisRange, 0);
 		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1PitchFine, "PitchFine##osc1");
 		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)M7::Maj7::ParamIndices::Osc1FreqMul, "FreqMul##osc1", -M7::OscillatorNode::gFrequencyMulMax, M7::OscillatorNode::gFrequencyMulMax, 1);
 		WSImGuiParamCheckbox((VstInt32)M7::Maj7::ParamIndices::Osc1PhaseRestart, "PhaseRestart##osc1");
 		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1PhaseOffset, "PhaseOffset##osc1");
 		ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)M7::Maj7::ParamIndices::Osc1SyncEnable, "SyncEnable##osc1");
-		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1SyncFrequency, "SyncFrequency##osc1");
+		ImGui::SameLine(); Maj7ImGuiParamFrequency((VstInt32)M7::Maj7::ParamIndices::Osc1SyncFrequency, (VstInt32)M7::Maj7::ParamIndices::Osc1SyncFrequencyKT, "SyncFrequency##osc1", M7::OscillatorNode::gSyncFrequencyCenterHz, 0.4f);
 		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1SyncFrequencyKT, "SyncFrequencyKT##osc1");
 
 		ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1FMFeedback, "FMFeedback##osc1");

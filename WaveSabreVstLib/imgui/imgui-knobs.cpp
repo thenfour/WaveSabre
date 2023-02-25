@@ -188,8 +188,8 @@ namespace ImGuiKnobs {
             // Draw input
             if (flags & ImGuiKnobFlags_CustomInput) {
                 //char textBuffer[100];
-                double displayVal = (double)conv->ParamToDisplayValue((double) * p_value, capture);
-                ImGui::Text(format, displayVal);
+                std::string displayVal = conv->ParamToDisplayString((double) * p_value, capture);
+                ImGui::Text("%s", displayVal.c_str());
                 //ImGui::InputText("###knob_custom_input", textBuffer, std::size(textBuffer));
             }
             else if (!(flags & ImGuiKnobFlags_NoInput)) {

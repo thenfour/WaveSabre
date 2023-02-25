@@ -65,9 +65,12 @@ namespace WaveSabreVstLib
 
 		struct VibratoFreqConverter : ImGuiKnobs::IValueConverter
 		{
-			virtual double ParamToDisplayValue(double param, void* capture) override {
-				return ::WaveSabreCore::Helpers::ParamToVibratoFreq((float)param);
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				char s[100] = { 0 };
+				sprintf_s(s, "%0.2f", (float)::WaveSabreCore::Helpers::ParamToVibratoFreq((float)param));
+				return s;
 			}
+
 			virtual double DisplayValueToParam(double value, void* capture) {
 				return ::WaveSabreCore::Helpers::VibratoFreqToParam((float)value);
 			}
@@ -75,9 +78,12 @@ namespace WaveSabreVstLib
 
 		struct FrequencyConverter : ImGuiKnobs::IValueConverter
 		{
-			virtual double ParamToDisplayValue(double param, void* capture) override {
-				return ::WaveSabreCore::Helpers::ParamToFrequency((float)param);
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				char s[100] = { 0 };
+				sprintf_s(s, "%0.2f", (float)::WaveSabreCore::Helpers::ParamToFrequency((float)param));
+				return s;
 			}
+
 			virtual double DisplayValueToParam(double value, void* capture) {
 				return ::WaveSabreCore::Helpers::FrequencyToParam((float)value);
 			}
@@ -93,19 +99,175 @@ namespace WaveSabreVstLib
 			{
 			}
 
-			virtual double ParamToDisplayValue(double param, void* capture) override {
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
 				mParam.SetParamValue((float)param);
-				return (double)mParam.GetRangedValue();
+				char s[100] = { 0 };
+				sprintf_s(s, "%0.2f", mParam.GetRangedValue());
+				return s;
 			}
+
 			virtual double DisplayValueToParam(double value, void* capture) {
 				mParam.SetRangedValue((float)value);
 				return (double)mParam.GetRawParamValue();
 			}
 		};
+
+		struct Maj7IntConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::IntParam mParam;
+
+			Maj7IntConverter(int v_min, int v_max) :
+				mParam(mBacking, v_min, v_max, v_min)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				char s[100] = { 0 };
+				sprintf_s(s, "%d", mParam.GetIntValue());
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				mParam.SetIntValue((int)value);
+				return (double)mParam.GetRawParamValue();
+			}
+		};
+
+		struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			float mBackingKT;
+			VstInt32 mKTParamID;
+			WaveSabreCore::M7::FrequencyParam mParam;
+
+			Maj7FrequencyConverter(M7::real_t centerFreq, VstInt32 ktParamID) :
+				mParam(mBacking, mBackingKT, centerFreq, 0.5f, 0)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.mValue.SetParamValue((float)param);
+				VstEditor* pThis = (VstEditor*)capture;
+				if (mKTParamID >= 0) {
+					mParam.mKTValue.SetParamValue(pThis->GetEffectX()->getParameter(mKTParamID));
+				}
+
+				char s[100] = { 0 };
+				if (mParam.mKTValue.Get01Value() < 0.00001f) {
+					M7::real_t hz = mParam.GetFrequency(0, 0);
+					if (hz >= 1000) {
+						sprintf_s(s, "%0.2fHz", hz);
+					}
+					if (hz >= 100) {
+						sprintf_s(s, "%0.1fHz", hz);
+					}
+					else {
+						sprintf_s(s, "%dHz", (int)(hz+0.5f));
+					}
+				}
+				else {
+					// with KT applied, the frequency doesn't really matter.
+					sprintf_s(s, "%0.0f%%", mParam.mValue.Get01Value() * 100);
+				}
+
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				return 0;
+			}
+		};
+
+		struct EnvTimeConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::EnvTimeParam mParam;
+
+			EnvTimeConverter() :
+				mParam(mBacking, 0)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				char s[100] = { 0 };
+				M7::real_t ms = mParam.GetMilliseconds();
+				if (ms > 2000)
+				{
+					sprintf_s(s, "%0.1f s", ms / 1000);
+				}
+				else if (ms > 1000) {
+					sprintf_s(s, "%0.2f s", ms / 1000);
+				}
+				else {
+					sprintf_s(s, "%0.2f ms", ms);
+				}
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				//mParam.SetRangedValue((float)value);
+				//return (double)mParam.GetRawParamValue();
+				return 0;
+			}
+		};
+
+		struct FloatN11Converter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::FloatN11Param mParam;
+
+			FloatN11Converter() :
+				mParam(mBacking, 0)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				char s[100] = { 0 };
+				sprintf_s(s, "%0.2f", mParam.GetN11Value());
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				return 0;
+			}
+		};
+
+		struct M7VolumeConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::VolumeParam mParam;
+
+			M7VolumeConverter(M7::real_t maxDb) :
+				mParam(mBacking, maxDb, maxDb)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				char s[100] = { 0 };
+				if (mParam.IsSilent()) {
+					return "-inf";
+				}
+				float db = mParam.GetDecibels();
+				sprintf_s(s, "%c%0.2fdB", db < 0 ? '-' : '+', ::fabsf(mParam.GetDecibels()));
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				return 0;
+			}
+		};
+
 		struct DbConverter : ImGuiKnobs::IValueConverter
 		{
-			virtual double ParamToDisplayValue(double param, void* capture) override {
-				return ::WaveSabreCore::Helpers::ParamToDb((float)param);
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				char s[100] = { 0 };
+				sprintf_s(s, "%0.2f", ::WaveSabreCore::Helpers::ParamToDb((float)param));
+				return s;
 			}
 			virtual double DisplayValueToParam(double value, void* capture) {
 				return ::WaveSabreCore::Helpers::DbToParam((float)value);
@@ -114,8 +276,10 @@ namespace WaveSabreVstLib
 
 		struct FilterQConverter : ImGuiKnobs::IValueConverter
 		{
-			virtual double ParamToDisplayValue(double param, void* capture) override {
-				return ::WaveSabreCore::Helpers::ParamToQ((float)param);
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				char s[100] = { 0 };
+				sprintf_s(s, "%0.2f", ::WaveSabreCore::Helpers::ParamToQ((float)param));
+				return s;
 			}
 			virtual double DisplayValueToParam(double value, void* capture) {
 				return ::WaveSabreCore::Helpers::QToParam((float)value);
@@ -355,7 +519,200 @@ namespace WaveSabreVstLib
 			}
 		}
 
+		void Maj7ImGuiParamInt(VstInt32 paramID, const char* label, int v_min, int v_max, int v_defaultScaled) {
+			WaveSabreCore::M7::real_t tempVal;
+			M7::IntParam p{ tempVal , v_min, v_max, v_defaultScaled };
+			float defaultParamVal = p.Get01Value();
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
+			Maj7IntConverter conv{ v_min, v_max };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void Maj7ImGuiParamFrequency(VstInt32 paramID, VstInt32 ktParamID, const char* label, M7::real_t centerFreq, M7::real_t defaultParamValue) {
+			M7::real_t tempVal;
+			M7::real_t tempValKT;
+			M7::FrequencyParam p{ tempVal, tempValKT, centerFreq, defaultParamValue, 0 };
+			p.mValue.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			Maj7FrequencyConverter conv{ centerFreq, ktParamID };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void Maj7ImGuiParamEnvTime(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled) {
+			WaveSabreCore::M7::real_t tempVal;
+			M7::EnvTimeParam p{ tempVal , v_defaultScaled };
+			float defaultParamVal = p.GetRawParamValue();
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			EnvTimeConverter conv{ };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled) {
+			WaveSabreCore::M7::real_t tempVal;
+			M7::FloatN11Param p{ tempVal, v_defaultScaled };
+			float defaultParamVal = p.GetRawParamValue();
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			FloatN11Converter conv{ };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void Maj7ImGuiParamVolume(VstInt32 paramID, const char* label, M7::real_t maxDb, M7::real_t v_defaultScaled) {
+			WaveSabreCore::M7::real_t tempVal;
+			M7::VolumeParam p{ tempVal, maxDb, v_defaultScaled };
+			float defaultParamVal = p.GetRawParamValue();
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			M7VolumeConverter conv{ maxDb };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertCurveParam, const M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
+		{
+			//if (invertY) {
+			//	pos.y += size.y;
+			//	size.y = -size.y;
+			//}
+			ImVec2 p = pos;
+			segments = std::max(segments, 2);
+
+			// begin point
+			dl->PathLineTo(pos);
+			//cc::log("AddCurveToPath, size=%f,%f  curveParam=%f, color=%08x, thickness=%f", size.x, size.y, param.GetRawParamValue(), color, thickness);
+			//cc::log("  line to %f, %f", pos.x, pos.y);
+
+			//segments -= 2;
+			for (int i = 0; i < segments; ++i) {
+				//float x1 = float(i) / segments; // the beginning of the line
+				float x2 = float(i + 1) / segments; // end of the line
+				//float xc = (x1 + x2) / 2.0f;
+				//float y1 = param.ApplyToValue(x1);
+				float y2 = param.ApplyToValue(invertCurveParam ? 1.0f - x2 : x2);
+				y2 = invertCurveParam ? 1.0f - y2 : y2;
+				ImVec2 e = { pos.x + size.x * x2, pos.y + y2 * size.y };
+				dl->PathLineTo(e);
+				//cc::log("  line to %f, %f", e.x, e.y);
+				//dl->AddLine();
+			}
+
+			//dl->PathLineTo({ pos.x + size.x, pos.y + size.y }); // end point
+			dl->PathStroke(color, 0, thickness);
+		}
+
+		template<typename Tenum>
+		void Maj7ImGuiEnvelopeGraphic(const char* label,
+			Tenum delayTimeParamID, Tenum attackTimeID, Tenum attackCurveID,
+			Tenum holdTimeID, Tenum decayTimeID, Tenum decayCurveID,
+			Tenum sustainLevelID, Tenum releaseTimeID, Tenum releaseCurveID)
+		{
+			static constexpr float gSegmentMaxWidth = 70;
+			static constexpr float gMaxWidth = gSegmentMaxWidth * 6;
+			static constexpr float innerHeight = 60; // excluding padding
+			static constexpr float padding = 7;
+			static constexpr float gLineThickness = 2.7f;
+			ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_PlotLines);
+			static constexpr float handleRadius = 3;
+			static constexpr int circleSegments = 7;
+
+			float delayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID), 0, 1) * gSegmentMaxWidth;
+			float attackWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)attackTimeID), 0, 1) * gSegmentMaxWidth;
+			float holdWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)holdTimeID), 0, 1) * gSegmentMaxWidth;
+			float decayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)decayTimeID), 0, 1) * gSegmentMaxWidth;
+			float sustainWidth = gSegmentMaxWidth;
+			float releaseWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)releaseTimeID), 0, 1) * gSegmentMaxWidth;
+
+			float sustainLevel = M7::Clamp(GetEffectX()->getParameter((VstInt32)sustainLevelID), 0, 1);
+			float sustainYOffset = innerHeight * (1.0f - sustainLevel);
+
+			float attackCurveRaw;
+			M7::CurveParam attackCurve{ attackCurveRaw, 0 };
+			attackCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)attackCurveID));
+
+			float decayCurveRaw;
+			M7::CurveParam decayCurve{ decayCurveRaw, 0 };
+			decayCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)decayCurveID));
+
+			float releaseCurveRaw;
+			M7::CurveParam releaseCurve{ releaseCurveRaw, 0 };
+			releaseCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)releaseCurveID));
+
+			ImVec2 originalPos = ImGui::GetCursorScreenPos();
+			ImVec2 p = originalPos;
+			p.x += padding;
+			p.y += padding;
+			// D A H D S R
+			ImDrawList* dl = ImGui::GetWindowDrawList();
+
+			// background
+			ImVec2 outerTL = originalPos;
+			ImVec2 innerTL = { outerTL.x + padding, outerTL.y + padding };
+			ImVec2 outerBottomLeft = { outerTL.x, outerTL.y + innerHeight + padding * 2 };
+			ImVec2 outerBottomRight = { outerTL.x + gMaxWidth + padding * 2, outerTL.y + innerHeight + padding * 2 };
+			ImVec2 innerBottomLeft = { innerTL.x, innerTL.y + innerHeight };
+			ImVec2 innerBottomRight = { innerBottomLeft.x + gMaxWidth, innerBottomLeft.y };
+			//dl->AddRectFilled(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
+			//dl->AddRect(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_Frame));
+			ImGui::RenderFrame(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
+			//dl->AddRectFilled(innerTL, innerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
+
+			//ImVec2 startPos = innerBottomLeft;// { innerTL.x, innerTL.y + innerHeight };
+			ImVec2 delayStart = innerBottomLeft;
+			ImVec2 delayEnd = { delayStart.x + delayWidth, delayStart.y };
+			dl->AddLine(delayStart, delayEnd, lineColor, gLineThickness);
+			//dl->PathLineTo(delayStart);
+			//dl->PathLineTo(delayEnd); // delay flat line
+
+			ImVec2 attackEnd = { delayEnd.x + attackWidth, innerTL.y };
+			AddCurveToPath(dl, delayEnd, { attackEnd.x - delayEnd.x, attackEnd.y - delayEnd.y }, false, attackCurve, lineColor, gLineThickness);
+
+			ImVec2 holdEnd = { attackEnd.x + holdWidth, attackEnd.y };
+			//dl->PathLineTo(holdEnd);
+			dl->AddLine(attackEnd, holdEnd, lineColor, gLineThickness);
+
+			ImVec2 decayEnd = { holdEnd.x + decayWidth, innerTL.y + sustainYOffset };
+			AddCurveToPath(dl, holdEnd, { decayEnd.x - holdEnd.x, decayEnd.y - holdEnd.y }, true, decayCurve, lineColor, gLineThickness);
+
+			ImVec2 sustainEnd = { decayEnd.x + sustainWidth, decayEnd.y};
+			//dl->PathLineTo(sustainEnd); // sustain flat line
+			dl->AddLine(decayEnd, sustainEnd, lineColor, gLineThickness);
+
+			ImVec2 releaseEnd = { sustainEnd.x + releaseWidth, innerBottomLeft.y };
+			AddCurveToPath(dl, sustainEnd, { releaseEnd.x - sustainEnd.x, releaseEnd.y - sustainEnd.y }, true, releaseCurve, lineColor, gLineThickness);
+
+			dl->AddCircleFilled(delayStart, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
+			dl->AddCircleFilled(delayEnd, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
+			dl->AddCircleFilled(attackEnd, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
+			dl->AddCircleFilled(holdEnd, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
+			dl->AddCircleFilled(decayEnd, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
+			dl->AddCircleFilled(sustainEnd, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
+			dl->AddCircleFilled(releaseEnd, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
+
+			//auto pathCopy = dl->_Path;
+			//dl->PathLineTo(delayStart);
+			//dl->PathFillConvex(ImGui::GetColorU32(ImGuiCol_Button));
+
+			//dl->_Path = pathCopy;
+			//dl->PathStroke(ImGui::GetColorU32(ImGuiCol_PlotHistogram), ImDrawFlags_None, gThickness);
+
+			ImGui::Dummy({ outerBottomRight.x - originalPos.x, outerBottomRight.y - originalPos.y });
+		}
 
 		virtual bool onKeyDown(VstKeyCode& keyCode) override {
 			mLastKeyDown = keyCode;

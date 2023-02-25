@@ -1,8 +1,13 @@
 #pragma once
 
-// https://github.com/altschuler/imgui-knobs
+// adaptation from https://github.com/altschuler/imgui-knobs
+
+// TODO: disabled state
+// TODO: color schemes
+// TODO: modulation indicators
 
 #include <cstdlib>
+#include <string>
 #include "imgui.h"
 
 typedef int ImGuiKnobFlags;
@@ -57,7 +62,7 @@ namespace ImGuiKnobs {
     // converts 0-1 parameter values to a display value.
     struct IValueConverter
     {
-        virtual double ParamToDisplayValue(double param, void* capture) = 0;
+        virtual std::string ParamToDisplayString(double param, void* capture) = 0;
         virtual double DisplayValueToParam(double param, void* capture) = 0;
     };
 

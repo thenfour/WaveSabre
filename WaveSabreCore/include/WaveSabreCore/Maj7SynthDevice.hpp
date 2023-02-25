@@ -135,7 +135,7 @@ namespace WaveSabreCore
 
 		// finds the physically-held note with the highest sequence ID, which can be used as a trill note in monophonic mode.
 		// returns nullptr when no suitable note.
-		NoteInfo* FindTrillNote()
+		NoteInfo* FindTrillNote(int ignoreMidiNote)
 		{
 			NoteInfo* pTrill = nullptr;
 			// figure out the last physically-held note, in order to do trilling monophonic behavior.
@@ -146,7 +146,7 @@ namespace WaveSabreCore
 			// 4. release pedal. note A is still held so it should now be playing.
 			for (auto& x : mNoteStates)
 			{
-				if (x.mIsPhysicallyHeld) {
+				if (x.mIsPhysicallyHeld && (x.MidiNoteValue != ignoreMidiNote)) {
 					if (pTrill && x.mSequence < pTrill->mSequence)
 						continue; // we're looking for the latest.
 					pTrill = &x;
@@ -185,7 +185,7 @@ namespace WaveSabreCore
 				break;
 			case VoiceMode::MonoLegatoTrill:
 				// this assumes that the trill note is the one currently playing, if exists.
-				NoteInfo* existingNote = FindTrillNote();
+				NoteInfo* existingNote = FindTrillNote(myNote.MidiNoteValue);
 				if (existingNote) {
 					existingNote->mIsMusicallyHeld = false;
 				}
@@ -196,6 +196,7 @@ namespace WaveSabreCore
 
 				for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
 				{
+					cc::log("mono note on; iuv=%d", iuv);
 					mVoices[iuv]->BaseNoteOn(myNote, iuv, !!existingNote);
 				}
 
@@ -226,7 +227,7 @@ namespace WaveSabreCore
 				break;
 			case VoiceMode::MonoLegatoTrill:
 				myNote.mIsMusicallyHeld = false;
-				auto pTrillNote = FindTrillNote();
+				auto pTrillNote = FindTrillNote(myNote.MidiNoteValue);
 				if (pTrillNote) {
 					pTrillNote->mSequence = ++mNoteSequence;
 					pTrillNote->mIsMusicallyHeld = true;

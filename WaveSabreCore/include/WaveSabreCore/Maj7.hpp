@@ -46,7 +46,7 @@ namespace WaveSabreCore
 
 			EnvTimeParam mPortamentoTime{ mParamCache[(int)ParamIndices::PortamentoTime], 0.2f };
 			CurveParam mPortamentoCurve{ mParamCache[(int)ParamIndices::PortamentoCurve], 0.0f };
-			ScaledRealParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange, 2 };
+			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange, 2 };
 			
 			ModulationSpec mModulations[gModulationCount]{
 				{ mParamCache, (int)ParamIndices::Mod1Enabled },
@@ -361,7 +361,7 @@ namespace WaveSabreCore
 					mModSourceBuffers.Reset((size_t)ModSource::Count, numSamples);// for our A-Rate mod source buffers, allocate the buffer.
 
 					real_t midiNote = (real_t)mNoteInfo.MidiNoteValue;
-					midiNote += mpOwner->mPitchBendRange.GetRangedValue() * mpOwner->mPitchBendN11;
+					midiNote += mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
 					real_t noteHz = MIDINoteToFreq(midiNote);
 
@@ -386,6 +386,8 @@ namespace WaveSabreCore
 					mModMatrix.SetKRateSourceValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
 
 					mModMatrix.ProcessBlock(mModSourceBuffers);
+					real_t baseVol = 0;
+					VolumeParam hiddenVolume{ baseVol, 0, 0 };
 
 					for (int iSample = 0; iSample < numSamples; ++iSample) {
 
@@ -405,7 +407,9 @@ namespace WaveSabreCore
 						// TODO: apply panning to oscillator outputs
 						real_t sl = s1 + s2 + s3;
 
-						sl *= mModSourceBuffers.GetARateBuffer((size_t)ModSource::AmpEnv)[iSample];
+						// apply amplitude envelope. it should be configured as a modulation tbh.
+						float ampEnvVal = mModSourceBuffers.GetARateBuffer((size_t)ModSource::AmpEnv)[iSample];
+						sl *= hiddenVolume.GetLinearGain(ampEnvVal);
 
 						outputs[0][iSample] += mFilterL.ProcessSample(sl);
 						outputs[1][iSample] += mFilterR.ProcessSample(sl);
