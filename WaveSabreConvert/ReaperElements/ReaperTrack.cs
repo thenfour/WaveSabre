@@ -191,7 +191,8 @@ namespace ReaperParser.ReaperElements
     {
         NoteOn = 144,
         NoteOff = 128,
-        MidiEnd = 176
+        CC = 176,
+        PitchBend = 224,
     };
 
     [ReaperTag("FXCHAIN")]

@@ -325,26 +325,30 @@ namespace WaveSabreConvert
                                         Type = Song.EventType.NoteOff
                                     });
                                 }
-                                else if (e.MidiEvent == ReaperNoteEvent.MidiEnd)
+                                else if (e.MidiEvent == ReaperNoteEvent.CC)
                                 {
-                                    // midi end, first close any existing notes
-                                    for (var note = 0; note < 128; note++)
+                                    events.Add(new Song.Event()
                                     {
-                                        if (activeNotes[note])
-                                        {
-                                            events.Add(new Song.Event()
-                                            {
-                                                TimeStamp = itemEnd + itemPosition - itemStart,
-                                                Note = (byte)note,
-                                                Velocity = (byte)0,
-                                                Type = Song.EventType.NoteOff
-                                            });
-                                        }
-                                    }
-                                    if (!mediaItem.Loop)
+                                        TimeStamp = eventPosition + itemPosition - itemStart,
+                                        Note = (byte)e.Note,
+                                        Velocity = (byte)e.Velocity,
+                                        Type = Song.EventType.CC,
+                                    });
+
+                                }
+                                else if (e.MidiEvent == ReaperNoteEvent.PitchBend)
+                                {
+                                    events.Add(new Song.Event()
                                     {
-                                        loop = false;
-                                    }
+                                        TimeStamp = eventPosition + itemPosition - itemStart,
+                                        Note = (byte)e.Note,
+                                        Velocity = (byte)e.Velocity,
+                                        Type = Song.EventType.PitchBend,
+                                    });
+                                }
+                                else
+                                {
+                                    Console.WriteLine($"Unknown reaper event: {e.MidiEvent}");
                                 }
                             }
                         }
