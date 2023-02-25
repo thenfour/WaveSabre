@@ -21,6 +21,8 @@ namespace WaveSabreCore
 	void Device::SetSampleRate(float sampleRate)
 	{
 		Helpers::CurrentSampleRate = (double)sampleRate;
+		Helpers::CurrentSampleRateF = sampleRate;
+		Helpers::CurrentSampleRateRecipF = 1.0f / sampleRate;
 	}
 
 	void Device::SetTempo(int tempo)

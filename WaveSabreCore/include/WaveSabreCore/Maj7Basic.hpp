@@ -66,11 +66,20 @@ namespace WaveSabreCore
             inline real_t sin(real_t x) {
                 return (real_t)Helpers::FastSin((double)x);
             }
+            inline real_t tan(real_t x) {
+                return (real_t)::tan((double)x);
+            }
             inline real_t max(real_t x, real_t y) {
                 return x > y ? x : y;
             }
             inline real_t min(real_t x, real_t y) {
                 return x < y ? x : y;
+            }
+            inline real_t tanh(real_t x) {
+                return (real_t)::tanh((double)x);
+            }
+            inline real_t tanh(real_t x, real_t y) { // used by saturation
+                return (real_t)::tanh((double)(x * y));
             }
         }
 
@@ -95,6 +104,17 @@ namespace WaveSabreCore
                 return low;
             if (x >= hi)
                 return hi;
+            return x;
+        }
+
+        // for floating point types, it's helpful to be clear that the value is inclusive.
+        template <typename T>
+        static T ClampInclusive(T x, T minInclusive, T maxInclusive)
+        {
+            if (x <= minInclusive)
+                return minInclusive;
+            if (x >= maxInclusive)
+                return maxInclusive;
             return x;
         }
 

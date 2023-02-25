@@ -1,0 +1,317 @@
+
+// "Designing Software Synthesizer Plug-Ins in C++" // https://willpirkle.com
+
+#pragma once
+
+#include "FilterOnePole.hpp"
+
+namespace WaveSabreCore
+{
+    namespace M7
+    {
+        struct MoogLadderFilter : IFilter
+        {
+            MoogLadderFilter()
+            {
+                m_LPF1.SetType(FilterType::LP);
+                m_LPF2.SetType(FilterType::LP);
+                m_LPF3.SetType(FilterType::LP);
+                m_LPF4.SetType(FilterType::LP);
+            }
+
+            // IFilter
+            virtual void SetType(FilterType type) override
+            {
+                if (m_FilterType == type)
+                    return;
+                switch (type)
+                {
+                default:
+                case FilterType::LP:
+                    m_FilterType = FilterType::LP4;
+                    Recalc();
+                    break;
+                case FilterType::BP:
+                    m_FilterType = FilterType::BP4;
+                    Recalc();
+                    break;
+                case FilterType::HP:
+                    m_FilterType = FilterType::HP4;
+                    Recalc();
+                    break;
+                case FilterType::LP2:
+                case FilterType::LP4:
+                case FilterType::BP2:
+                case FilterType::BP4:
+                case FilterType::HP2:
+                case FilterType::HP4:
+                    m_FilterType = type;
+                    Recalc();
+                    break;
+                }
+            }
+
+            virtual FilterCapabilities GetCapabilities() override
+            {
+                return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
+            }
+
+            virtual void SetCutoffFrequency(real hz) override
+            {
+                if (FloatEquals(m_cutoffHz, hz))
+                    return;
+                m_cutoffHz = hz;
+                Recalc();
+            }
+
+            virtual void SetSaturation(real amt) override
+            {
+                if (FloatEquals(m_overdrive, amt))
+                    return;
+                m_overdrive = amt;
+                Recalc();
+            }
+
+            // 0-1
+            virtual void SetResonance(real p_res)
+            {
+                if (FloatEquals(p_res, m_resonance))
+                    return;
+                m_resonance = p_res;
+                // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
+                m_k = Real(3.88) * p_res;
+                m_k = ClampInclusive(m_k, Real0, Real(3.88));
+                Recalc();
+            }
+
+            virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
+            {
+                if (FloatEquals(reso, m_resonance) && FloatEquals(m_overdrive, saturation) &&
+                    FloatEquals(m_cutoffHz, cutoffHz) && (m_FilterType == type))
+                {
+                    return;
+                }
+
+                switch (type)
+                {
+                default:
+                case FilterType::LP:
+                    m_FilterType = FilterType::LP4;
+                    break;
+                case FilterType::BP:
+                    m_FilterType = FilterType::BP4;
+                    break;
+                case FilterType::HP:
+                    m_FilterType = FilterType::HP4;
+                    break;
+                case FilterType::LP2:
+                case FilterType::LP4:
+                case FilterType::BP2:
+                case FilterType::BP4:
+                case FilterType::HP2:
+                case FilterType::HP4:
+                    m_FilterType = type;
+                    break;
+                }
+
+                m_cutoffHz = cutoffHz;
+                m_overdrive = saturation;
+                m_resonance = reso;
+                m_k = Real(3.88) * reso;
+                m_k = ClampInclusive(m_k, Real0, Real(3.88));
+                Recalc();
+            }
+
+            //virtual void ProcessInPlace(real* samples, size_t sampleCount) override
+            //{
+            //    for (size_t i = 0; i < sampleCount; ++i)
+            //    {
+            //        samples[i] = InlineProcessSample(samples[i]);
+            //    }
+            //}
+
+            virtual real ProcessSample(real x) override
+            {
+                return InlineProcessSample(x);
+            }
+            //virtual void ProcessInPlace(real* samplesL, real* samplesR, size_t sampleCount) override
+            //{
+            //    for (size_t i = 0; i < sampleCount; ++i)
+            //    {
+            //        InlineProcessSample(samplesL[i], samplesR[i]);
+            //    }
+            //}
+            //virtual void ProcessSample(real& xnL, real& xnR) override
+            //{
+            //    return InlineProcessSample(xnL, xnR);
+            //}
+
+            virtual void Reset() override
+            {
+                m_LPF1.Reset();
+                m_LPF2.Reset();
+                m_LPF3.Reset();
+                m_LPF4.Reset();
+            }
+
+            inline real InlineProcessSample(real xn)
+            {
+                real dSigma = m_LPF1.getFeedbackOutputL() + m_LPF2.getFeedbackOutputL() + m_LPF3.getFeedbackOutputL() +
+                    m_LPF4.getFeedbackOutputL();
+
+                // calculate input to first filter
+                real dU = (xn - m_k * dSigma) * m_alpha_0;
+
+                // --- cascade of 4 filters
+                real dLP1 = m_LPF1.InlineProcessSample(dU);
+                real dLP2 = m_LPF2.InlineProcessSample(dLP1);
+                real dLP3 = m_LPF3.InlineProcessSample(dLP2);
+                real dLP4 = m_LPF4.InlineProcessSample(dLP3);
+
+                // --- Oberheim variations
+                real output = m_a * dU + m_b * dLP1 + m_c * dLP2 + m_d * dLP3 + m_e * dLP4;
+
+                applyOverdrive(output, m_overdrive, Real(3.5));
+
+                return output;
+            }
+
+            //inline void InlineProcessSample(real& xnL, real& xnR)
+            //{
+            //    real dSigmaL = m_LPF1.getFeedbackOutputL() + m_LPF2.getFeedbackOutputL() + m_LPF3.getFeedbackOutputL() +
+            //        m_LPF4.getFeedbackOutputL();
+            //    real dSigmaR = m_LPF1.getFeedbackOutputR() + m_LPF2.getFeedbackOutputR() + m_LPF3.getFeedbackOutputR() +
+            //        m_LPF4.getFeedbackOutputR();
+
+            //    // calculate input to first filter
+            //    real dUL = (xnL - m_k * dSigmaL) * m_alpha_0;
+            //    real dUR = (xnR - m_k * dSigmaR) * m_alpha_0;
+
+            //    // --- cascade of 4 filters
+            //    real dLP1L = dUL, dLP1R = dUR;
+            //    m_LPF1.InlineProcessSample(dLP1L, dLP1R);
+            //    real dLP2L = dLP1L, dLP2R = dLP1R;
+            //    m_LPF2.InlineProcessSample(dLP2L, dLP2R);
+            //    real dLP3L = dLP2L, dLP3R = dLP2R;
+            //    m_LPF3.InlineProcessSample(dLP3L, dLP3R);
+            //    real dLP4L = dLP3L, dLP4R = dLP3R;
+            //    m_LPF4.InlineProcessSample(dLP4L, dLP4R);
+
+            //    // --- Oberheim variations
+            //    real outputL = m_a * dUL + m_b * dLP1L + m_c * dLP2L + m_d * dLP3L + m_e * dLP4L;
+            //    real outputR = m_a * dUR + m_b * dLP1R + m_c * dLP2R + m_d * dLP3R + m_e * dLP4R;
+
+            //    applyOverdrive(outputL, outputR, m_overdrive, Real(3.5));
+            //    xnL = outputL;
+            //    xnR = outputR;
+            //}
+
+        private:
+            void Recalc()
+            {
+                // prewarp for BZT
+                real wd = PITimes2 * m_cutoffHz;
+
+                // note: measured input to tan function, it seemed limited to (0.005699, 1.282283).
+                // input for fasttan shall be limited to (-pi/2, pi/2) according to documentation
+                real wa = (2 * Helpers::CurrentSampleRateF) * math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
+                real g = wa * Helpers::CurrentSampleRateRecipF * Real(0.5);
+
+                // G - the feedforward coeff in the VA One Pole
+                //     same for LPF, HPF
+                real G = g / (Real1 + g);
+
+                // set alphas
+                m_LPF1.m_alpha = G;
+                m_LPF2.m_alpha = G;
+                m_LPF3.m_alpha = G;
+                m_LPF4.m_alpha = G;
+
+                // set betas
+                m_LPF1.m_beta = G * G * G / (Real1 + g);
+                m_LPF2.m_beta = G * G / (Real1 + g);
+                m_LPF3.m_beta = G / (Real1 + g);
+                m_LPF4.m_beta = Real1 / (Real1 + g);
+
+                m_gamma = G * G * G * G;
+
+                m_alpha_0 = Real1 / (Real1 + m_k * m_gamma);
+
+                // Oberheim variation
+                switch (m_FilterType)
+                {
+                case FilterType::LP:
+                case FilterType::LP4:
+                    m_a = Real(0.0);
+                    m_b = Real(0.0);
+                    m_c = Real(0.0);
+                    m_d = Real(0.0);
+                    m_e = Real(1.0);
+                    break;
+                case FilterType::LP2:
+                    m_a = Real(0.0);
+                    m_b = Real(0.0);
+                    m_c = Real(1.0);
+                    m_d = Real(0.0);
+                    m_e = Real(0.0);
+                    break;
+                case FilterType::BP:
+                case FilterType::BP4:
+                    m_a = Real(0.0);
+                    m_b = Real(0.0);
+                    m_c = Real(4.0);
+                    m_d = Real(-8.0);
+                    m_e = Real(4.0);
+                    break;
+                case FilterType::BP2:
+                    m_a = Real(0.0);
+                    m_b = Real(2.0);
+                    m_c = Real(-2.0);
+                    m_d = Real(0.0);
+                    m_e = Real(0.0);
+                    break;
+                case FilterType::HP:
+                case FilterType::HP4:
+                    m_a = Real(1.0);
+                    m_b = Real(-4.0);
+                    m_c = Real(6.0);
+                    m_d = Real(-4.0);
+                    m_e = Real(1.0);
+                    break;
+                case FilterType::HP2:
+                    m_a = Real(1.0);
+                    m_b = Real(-2.0);
+                    m_c = Real(1.0);
+                    m_d = Real(0.0);
+                    m_e = Real(0.0);
+                    break;
+                }
+            }
+
+            FilterType m_FilterType = FilterType::LP4;
+            real m_cutoffHz = 10000;
+            real m_overdrive = 0;
+
+            real m_resonance = Real(-1); // cached resonance for knowing when recalc is not needed.
+
+            OnePoleFilter m_LPF1;
+            OnePoleFilter m_LPF2;
+            OnePoleFilter m_LPF3;
+            OnePoleFilter m_LPF4;
+
+            real m_k = 0;       // K, set with Q
+            real m_gamma;       // see block diagram
+            real m_alpha_0 = 1; // see block diagram
+
+            // Oberheim Xpander variations
+            real m_a = 0;
+            real m_b = 0;
+            real m_c = 0;
+            real m_d = 0;
+            real m_e = 0;
+        };
+    } // namespace M7
+} // namespace WaveSabreCore
+
+
+

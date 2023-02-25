@@ -92,6 +92,15 @@ public:
 
 		ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::Osc1FMFeedback, "FMFeedback##osc1");
 
+		ImGui::SeparatorText("Filter");
+		static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
+		Maj7ImGuiParamEnumCombo((VstInt32)M7::Maj7::ParamIndices::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((VstInt32)M7::Maj7::ParamIndices::FilterFrequency, (VstInt32)M7::Maj7::ParamIndices::FilterFrequencyKT, "Freq##filt", M7::Maj7::gFilterCenterFrequency, 0.4f);
+		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::FilterFrequencyKT, "KT##filt");
+		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::FilterQ, "Q##filt");
+		ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::Maj7::ParamIndices::FilterSaturation, "Saturation##filt");
+
+
 		ImGui::SeparatorText("Inspector");
 
 		ImGui::Text("current poly:%d", pMaj7->GetCurrentPolyphony());

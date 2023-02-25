@@ -1,5 +1,11 @@
 // TODO: multiple filters? or add a 1pole lowcut/highcut to each oscillator
 // TODO: time sync for LFOs? envelope times?
+// size-optimizations:
+// - dont inline (use cpp)
+// - vst chunk optimization:
+//   - skip params which are disabled (modulation specs!)
+//   - group params which are very likely to be the same value or rarely used
+//   - enum and bool params can be packed very tight
 
 #pragma once
 
@@ -22,6 +28,7 @@ namespace WaveSabreCore
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr real_t gMasterVolumeMaxDb = 6;
+			static constexpr real_t gFilterCenterFrequency = 1000.0f;
 
 			// BASE PARAMS & state
 			real_t mPitchBendN11 = 0;
@@ -316,7 +323,11 @@ namespace WaveSabreCore
 					mModLFO2(OscillatorIntentionLFO{}, mModMatrix, ModDestination::LFO2Waveshape, owner->mParamCache, (int)ParamIndices::LFO2Waveform),
 					mOscillator1(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc1Volume, owner->mParamCache, (int)ParamIndices::Osc1Enabled),
 					mOscillator2(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc2Volume, owner->mParamCache, (int)ParamIndices::Osc2Enabled),
-					mOscillator3(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc3Volume, owner->mParamCache, (int)ParamIndices::Osc3Enabled)
+					mOscillator3(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc3Volume, owner->mParamCache, (int)ParamIndices::Osc3Enabled),
+					mFilterType(owner->mParamCache[(int)ParamIndices::FilterType], FilterModel::Count, FilterModel::LP_Moog4),
+					mFilterQ(owner->mParamCache[(int)ParamIndices::FilterQ], 0.3f),
+					mFilterSaturation(owner->mParamCache[(int)ParamIndices::FilterSaturation], 0.1f),
+					mFilterFreq(owner->mParamCache[(int)ParamIndices::FilterFrequency], owner->mParamCache[(int)ParamIndices::FilterFrequencyKT], Maj7::gFilterCenterFrequency, 0.4f, 1.0f)
 				{}
 
 				Maj7* mpOwner;
@@ -336,6 +347,14 @@ namespace WaveSabreCore
 				OscillatorNode mOscillator1;
 				OscillatorNode mOscillator2;
 				OscillatorNode mOscillator3;
+
+
+				EnumParam<FilterModel> mFilterType; // FilterType,
+				Float01Param mFilterQ;// FilterQ,
+				Float01Param mFilterSaturation;// FilterSaturation,
+				FrequencyParam mFilterFreq;// FilterFrequency,// FilterFrequencyKT,
+				
+
 				FilterNode mFilterL;
 				FilterNode mFilterR;
 
@@ -389,6 +408,24 @@ namespace WaveSabreCore
 					real_t baseVol = 0;
 					VolumeParam hiddenVolume{ baseVol, 0, 0 };
 
+					auto filterType = this->mFilterType.GetEnumValue();
+					auto filterFreq = mFilterFreq.GetFrequency(noteHz, mModMatrix.GetKRateDestinationValue(ModDestination::FilterFrequency));
+					filterFreq = ClampInclusive(filterFreq, 0.0f, 20000.0f);
+					auto filterQ = mFilterQ.Get01Value(mModMatrix.GetKRateDestinationValue(ModDestination::FilterQ));
+					auto filterSaturation = mFilterSaturation.Get01Value(mModMatrix.GetKRateDestinationValue(ModDestination::FilterSaturation));
+					mFilterL.SetParams(
+						filterType,
+						filterFreq,
+						filterQ,
+						filterSaturation
+					);
+					mFilterR.SetParams(
+						filterType,
+						filterFreq,
+						filterQ,
+						filterSaturation
+					);
+
 					for (int iSample = 0; iSample < numSamples; ++iSample) {
 
 						real_t s1 = mOscillator1.ProcessSample(noteHz, iSample,
@@ -411,8 +448,14 @@ namespace WaveSabreCore
 						float ampEnvVal = mModSourceBuffers.GetARateBuffer((size_t)ModSource::AmpEnv)[iSample];
 						sl *= hiddenVolume.GetLinearGain(ampEnvVal);
 
+						float sr = sl;
+
+						// apply filter
+						sl = mFilterL.ProcessSample(sl);
+						sr = mFilterR.ProcessSample(sr);
+
 						outputs[0][iSample] += mFilterL.ProcessSample(sl);
-						outputs[1][iSample] += mFilterR.ProcessSample(sl);
+						outputs[1][iSample] += mFilterR.ProcessSample(sr);
 					}
 
 				}

@@ -64,6 +64,9 @@ namespace WaveSabreCore
 	{
 	public:
 		static double CurrentSampleRate;
+		static float CurrentSampleRateF;
+		static float CurrentSampleRateRecipF;
+
 		static int CurrentTempo;
 		static int RandomSeed;
 

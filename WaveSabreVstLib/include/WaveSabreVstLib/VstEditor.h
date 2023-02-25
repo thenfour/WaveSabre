@@ -139,11 +139,12 @@ namespace WaveSabreVstLib
 		{
 			float mBacking;
 			float mBackingKT;
-			VstInt32 mKTParamID;
 			WaveSabreCore::M7::FrequencyParam mParam;
+			VstInt32 mKTParamID;
 
 			Maj7FrequencyConverter(M7::real_t centerFreq, VstInt32 ktParamID) :
-				mParam(mBacking, mBackingKT, centerFreq, 0.5f, 0)
+				mParam(mBacking, mBackingKT, centerFreq, 0.5f, 0),
+				mKTParamID(ktParamID)
 			{
 			}
 
@@ -465,8 +466,8 @@ namespace WaveSabreVstLib
 		}
 
 		// For the Maj7 synth, let's add more param styles.
-		template<typename Tenum>
-		void Maj7ImGuiParamEnumList(VstInt32 paramID, const char* ctrlLabel, int elementCount, Tenum defaultVal, const char* const* const captions) {
+		template<typename Tenum, typename TparamID, typename Tcount>
+		void Maj7ImGuiParamEnumList(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions) {
 			M7::real_t tempVal;
 			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0) );
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
@@ -484,14 +485,14 @@ namespace WaveSabreVstLib
 			auto txt = std::string(ctrlLabel, end);
 			ImGui::Text("%s", txt.c_str());
 
-			if (ImGui::BeginListBox("##enumlist", CalcListBoxSize(0.2f + elementCount)))
+			if (ImGui::BeginListBox("##enumlist", CalcListBoxSize(0.2f + (int)elementCount)))
 			{
-				for (int n = 0; n < elementCount; n++)
+				for (int n = 0; n < (int)elementCount; n++)
 				{
 					const bool is_selected = (enumIndex == n);
 					if (ImGui::Selectable(captions[n], is_selected)) {
 						p.SetEnumValue((Tenum)n);
-						GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+						GetEffectX()->setParameterAutomated((VstInt32)paramID, Clamp01(tempVal));
 					}
 
 					// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -499,6 +500,43 @@ namespace WaveSabreVstLib
 						ImGui::SetItemDefaultFocus();
 				}
 				ImGui::EndListBox();
+			}
+
+			ImGui::EndGroup();
+			ImGui::PopItemWidth();
+			ImGui::PopID();
+		}
+
+		template<typename Tenum, typename TparamID, typename Tcount>
+		void Maj7ImGuiParamEnumCombo(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions) {
+			M7::real_t tempVal;
+			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0));
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+			auto friendlyVal = p.GetEnumValue();// ParamToEnum(paramValue, elementCount); //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
+			int enumIndex = (int)friendlyVal;
+
+			const char* elem_name = "ERROR";
+
+			ImGui::PushID(ctrlLabel);
+			ImGui::PushItemWidth(70);
+
+			ImGui::BeginGroup();
+
+			auto end = ImGui::FindRenderedTextEnd(ctrlLabel, 0);
+			auto txt = std::string(ctrlLabel, end);
+			ImGui::Text("%s", txt.c_str());
+
+			if (ImGui::BeginCombo("##enumlist", captions[enumIndex]))
+			{
+				for (int n = 0; n < (int)elementCount; n++)
+				{
+					const bool is_selected = (enumIndex == n);
+					if (ImGui::Selectable(captions[n], is_selected)) {
+						p.SetEnumValue((Tenum)n);
+						GetEffectX()->setParameterAutomated((VstInt32)paramID, Clamp01(tempVal));
+					}
+				}
+				ImGui::EndCombo();
 			}
 
 			ImGui::EndGroup();

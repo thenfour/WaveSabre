@@ -86,6 +86,8 @@ static __declspec(naked) double __vectorcall fpuSin(double x)
 namespace WaveSabreCore
 {
 	double Helpers::CurrentSampleRate = 44100.0;
+	float Helpers::CurrentSampleRateF = 44100.0f;
+	float Helpers::CurrentSampleRateRecipF = 1.0f/44100.0f;
 	int Helpers::CurrentTempo = 120;
 	int Helpers::RandomSeed = 1;
 

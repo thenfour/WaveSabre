@@ -35,6 +35,12 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/SynthDevice.h
 	include/WaveSabreCore/Twister.h
 	include/WaveSabreCore/Deprecated/Thunder.h
+	include/WaveSabreCore/Filters/FilterSEM12.hpp
+	include/WaveSabreCore/Filters/FilterBase.hpp
+	include/WaveSabreCore/Filters/FilterDiode.hpp
+	include/WaveSabreCore/Filters/FilterK35.hpp
+	include/WaveSabreCore/Filters/FilterMoog.hpp
+	include/WaveSabreCore/Filters/FilterOnePole.hpp
 	src/Adultery.cpp
 	src/AllPass.cpp
 	src/AllPassDelay.cpp
