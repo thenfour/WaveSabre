@@ -14,76 +14,76 @@ namespace WaveSabreCore
         {
             K35Filter()
             {
-                m_LPF1.SetType(FilterType::LP);
-                m_LPF2.SetType(FilterType::LP);
-                m_HPF1.SetType(FilterType::HP);
-                m_HPF2.SetType(FilterType::HP);
+                m_LPF1.SetParams(FilterType::LP, 0, 0, 0);
+                m_LPF2.SetParams(FilterType::LP, 0, 0, 0);
+                m_HPF1.SetParams(FilterType::HP, 0, 0, 0);
+                m_HPF2.SetParams(FilterType::HP, 0, 0, 0);
             }
 
-            virtual void SetType(FilterType type) override
-            {
-                if (m_FilterType == type)
-                {
-                    return;
-                }
-                switch (type)
-                {
-                default:
-                case FilterType::LP:
-                case FilterType::LP2:
-                case FilterType::LP4:
-                    m_FilterType = FilterType::LP;
-                    Recalc();
-                    break;
-                case FilterType::HP:
-                case FilterType::HP2:
-                case FilterType::HP4:
-                    m_FilterType = FilterType::HP;
-                    Recalc();
-                    break;
-                }
-                // not supported.
-            }
+            //virtual void SetType(FilterType type) override
+            //{
+            //    if (m_FilterType == type)
+            //    {
+            //        return;
+            //    }
+            //    switch (type)
+            //    {
+            //    default:
+            //    case FilterType::LP:
+            //    case FilterType::LP2:
+            //    case FilterType::LP4:
+            //        m_FilterType = FilterType::LP;
+            //        Recalc();
+            //        break;
+            //    case FilterType::HP:
+            //    case FilterType::HP2:
+            //    case FilterType::HP4:
+            //        m_FilterType = FilterType::HP;
+            //        Recalc();
+            //        break;
+            //    }
+            //    // not supported.
+            //}
 
-            virtual FilterCapabilities GetCapabilities() override
-            {
-                return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
-            }
+            //virtual FilterCapabilities GetCapabilities() override
+            //{
+            //    return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
+            //}
 
-            virtual void SetCutoffFrequency(real hz) override
-            {
-                if (FloatEquals(hz, m_cutoffHz))
-                {
-                    return;
-                }
-                m_cutoffHz = hz;
-                Recalc();
-            }
+            //virtual void SetCutoffFrequency(real hz) override
+            //{
+            //    if (FloatEquals(hz, m_cutoffHz))
+            //    {
+            //        return;
+            //    }
+            //    m_cutoffHz = hz;
+            //    Recalc();
+            //}
 
-            virtual void SetSaturation(real amt) override
-            {
-                if (FloatEquals(amt, m_overdrive))
-                {
-                    return;
-                }
-                m_overdrive = amt;
-                Recalc();
-            }
+            //virtual void SetSaturation(real amt) override
+            //{
+            //    if (FloatEquals(amt, m_overdrive))
+            //    {
+            //        return;
+            //    }
+            //    m_overdrive = amt;
+            //    Recalc();
+            //}
 
-            // 0-1
-            virtual void SetResonance(real res) override
-            {
-                if (FloatEquals(res, m_res))
-                {
-                    return;
-                }
-                // note: m_k must never be zero else division by zero
-                // note2 original was 1.99 but dont want self oscillation
-                m_res = res;
-                m_k = res * Real(1.95) + Real(0.01);
-                m_k = ClampInclusive(m_k, Real(0.01), Real(1.96));
-                Recalc();
-            }
+            //// 0-1
+            //virtual void SetResonance(real res) override
+            //{
+            //    if (FloatEquals(res, m_res))
+            //    {
+            //        return;
+            //    }
+            //    // note: m_k must never be zero else division by zero
+            //    // note2 original was 1.99 but dont want self oscillation
+            //    m_res = res;
+            //    m_k = res * Real(1.95) + Real(0.01);
+            //    m_k = ClampInclusive(m_k, Real(0.01), Real(1.96));
+            //    Recalc();
+            //}
 
             virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
             {
@@ -237,7 +237,8 @@ namespace WaveSabreCore
                 real wd = PITimes2 * m_cutoffHz;
                 real wa = (2 * Helpers::CurrentSampleRateF) * math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
                 real g = wa * Helpers::CurrentSampleRateRecipF * Real(0.5);
-                real G = g / (Real1 + g);
+                real oneOverOnePlusg = 1.0f / (Real1 + g);
+                real G = g * oneOverOnePlusg;
 
                 m_LPF1.m_alpha = G;
                 m_LPF2.m_alpha = G;
@@ -248,13 +249,13 @@ namespace WaveSabreCore
 
                 if (m_FilterType == FilterType::LP)
                 {
-                    m_LPF2.m_beta = (m_k - m_k * G) / (Real1 + g);
-                    m_HPF1.m_beta = -Real1 / (Real1 + g);
+                    m_LPF2.m_beta = (m_k - m_k * G) * oneOverOnePlusg;
+                    m_HPF1.m_beta = -Real1 * oneOverOnePlusg;
                 }
                 else
                 {
-                    m_HPF2.m_beta = -Real1 * G / (Real1 + g);
-                    m_LPF1.m_beta = Real1 / (Real1 + g);
+                    m_HPF2.m_beta = -Real1 * G * oneOverOnePlusg;
+                    m_LPF1.m_beta = Real1 * oneOverOnePlusg;
                 }
             }
         };

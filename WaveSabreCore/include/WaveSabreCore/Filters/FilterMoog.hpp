@@ -13,64 +13,65 @@ namespace WaveSabreCore
         {
             MoogLadderFilter()
             {
-                m_LPF1.SetType(FilterType::LP);
-                m_LPF2.SetType(FilterType::LP);
-                m_LPF3.SetType(FilterType::LP);
-                m_LPF4.SetType(FilterType::LP);
+                m_LPF1.SetParams(FilterType::LP, 0, 0, 0);
+                m_LPF2.SetParams(FilterType::LP, 0, 0, 0);
+                m_LPF3.SetParams(FilterType::LP, 0, 0, 0);
+                m_LPF4.SetParams(FilterType::LP, 0, 0, 0);
             }
 
-            // IFilter
-            virtual void SetType(FilterType type) override
-            {
-                if (m_FilterType == type)
-                    return;
-                switch (type)
-                {
-                default:
-                case FilterType::LP:
-                    m_FilterType = FilterType::LP4;
-                    Recalc();
-                    break;
-                case FilterType::BP:
-                    m_FilterType = FilterType::BP4;
-                    Recalc();
-                    break;
-                case FilterType::HP:
-                    m_FilterType = FilterType::HP4;
-                    Recalc();
-                    break;
-                case FilterType::LP2:
-                case FilterType::LP4:
-                case FilterType::BP2:
-                case FilterType::BP4:
-                case FilterType::HP2:
-                case FilterType::HP4:
-                    m_FilterType = type;
-                    Recalc();
-                    break;
-                }
-            }
 
-            virtual FilterCapabilities GetCapabilities() override
-            {
-                return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
-            }
+            //// IFilter
+            //virtual void SetType(FilterType type) override
+            //{
+            //    if (m_FilterType == type)
+            //        return;
+            //    switch (type)
+            //    {
+            //    default:
+            //    case FilterType::LP:
+            //        m_FilterType = FilterType::LP4;
+            //        Recalc();
+            //        break;
+            //    case FilterType::BP:
+            //        m_FilterType = FilterType::BP4;
+            //        Recalc();
+            //        break;
+            //    case FilterType::HP:
+            //        m_FilterType = FilterType::HP4;
+            //        Recalc();
+            //        break;
+            //    case FilterType::LP2:
+            //    case FilterType::LP4:
+            //    case FilterType::BP2:
+            //    case FilterType::BP4:
+            //    case FilterType::HP2:
+            //    case FilterType::HP4:
+            //        m_FilterType = type;
+            //        Recalc();
+            //        break;
+            //    }
+            //}
 
-            virtual void SetCutoffFrequency(real hz) override
-            {
-                if (FloatEquals(m_cutoffHz, hz))
-                    return;
-                m_cutoffHz = hz;
-                Recalc();
-            }
+            //virtual FilterCapabilities GetCapabilities() override
+            //{
+            //    return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
+            //}
 
-            virtual void SetSaturation(real amt) override
-            {
-                if (FloatEquals(m_overdrive, amt))
-                    return;
-                m_overdrive = amt;
-                Recalc();
-            }
+            //virtual void SetCutoffFrequency(real hz) override
+            //{
+            //    if (FloatEquals(m_cutoffHz, hz))
+            //        return;
+            //    m_cutoffHz = hz;
+            //    Recalc();
+            //}
+
+            //virtual void SetSaturation(real amt) override
+            //{
+            //    if (FloatEquals(m_overdrive, amt))
+            //        return;
+            //    m_overdrive = amt;
+            //    Recalc();
+            //}
 
             // 0-1
             virtual void SetResonance(real p_res)
@@ -219,7 +220,8 @@ namespace WaveSabreCore
 
                 // G - the feedforward coeff in the VA One Pole
                 //     same for LPF, HPF
-                real G = g / (Real1 + g);
+                const real oneOver1plusg = 1.0f / (Real1 + g);
+                real G = g * oneOver1plusg;
 
                 // set alphas
                 m_LPF1.m_alpha = G;
@@ -228,12 +230,13 @@ namespace WaveSabreCore
                 m_LPF4.m_alpha = G;
 
                 // set betas
-                m_LPF1.m_beta = G * G * G / (Real1 + g);
-                m_LPF2.m_beta = G * G / (Real1 + g);
-                m_LPF3.m_beta = G / (Real1 + g);
-                m_LPF4.m_beta = Real1 / (Real1 + g);
+                const real GG = G * G;
+                m_LPF1.m_beta = GG * G * oneOver1plusg;
+                m_LPF2.m_beta = GG * oneOver1plusg;
+                m_LPF3.m_beta = G * oneOver1plusg;
+                m_LPF4.m_beta = Real1 * oneOver1plusg;
 
-                m_gamma = G * G * G * G;
+                m_gamma = GG * GG;
 
                 m_alpha_0 = Real1 / (Real1 + m_k * m_gamma);
 

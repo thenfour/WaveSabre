@@ -84,36 +84,38 @@ namespace WaveSabreCore
 
         struct IFilter
         {
-            virtual void SetType(FilterType type) = 0;
-            virtual FilterCapabilities GetCapabilities() = 0;
-            virtual void SetCutoffFrequency(real hz) = 0;
-            virtual void SetSaturation(real amt)
-            {
-            } // 0-1 range
-            virtual void SetResonance(real amt)
-            {
-            }
+            //virtual void SetType(FilterType type) = 0;
+            //virtual FilterCapabilities GetCapabilities() = 0;
+            //virtual void SetCutoffFrequency(real hz) = 0;
+            //virtual void SetSaturation(real amt)
+            //{
+            //} // 0-1 range
+            //virtual void SetResonance(real amt)
+            //{
+            //}
             virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) = 0;
+
+            //virtual real GetGain01AtFrequency(real frequency) = 0;
 
             //virtual void ProcessInPlace(real* samples, size_t sampleCount) = 0;
             virtual real ProcessSample(real x) = 0;
             //virtual void ProcessInPlace(real* samplesL, real* samplesR, size_t sampleCount) = 0;
             //virtual void ProcessSample(real& l, real& r) = 0;
-            virtual void Reset() = 0; // honestly not even sure what reset really does
+            virtual void Reset() = 0;
         };
 
         struct NullFilter : IFilter
         {
-            virtual void SetType(FilterType type) override
-            {
-            }
-            virtual FilterCapabilities GetCapabilities() override
-            {
-                return FilterCapabilities::None;
-            }
-            virtual void SetCutoffFrequency(real hz) override
-            {
-            }
+            //virtual void SetType(FilterType type) override
+            //{
+            //}
+            //virtual FilterCapabilities GetCapabilities() override
+            //{
+            //    return FilterCapabilities::None;
+            //}
+            //virtual void SetCutoffFrequency(real hz) override
+            //{
+            //}
             virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
             {
             }

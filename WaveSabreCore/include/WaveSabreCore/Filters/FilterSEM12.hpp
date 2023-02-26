@@ -9,33 +9,33 @@ namespace WaveSabreCore
     {
         struct SEM12Filter : IFilter
         {
-            virtual void SetType(FilterType type) override
-            {
-            } // only LP available
+            //virtual void SetType(FilterType type) override
+            //{
+            //} // only LP available
 
-            virtual FilterCapabilities GetCapabilities()
-            {
-                return FilterCapabilities::Resonance;
-            }
+            //virtual FilterCapabilities GetCapabilities()
+            //{
+            //    return FilterCapabilities::Resonance;
+            //}
 
-            virtual void SetCutoffFrequency(real hz) override
-            {
-                if (FloatEquals(hz, m_cutoffHz))
-                    return;
-                m_cutoffHz = hz;
-                Recalc();
-            }
+            //virtual void SetCutoffFrequency(real hz) override
+            //{
+            //    if (FloatEquals(hz, m_cutoffHz))
+            //        return;
+            //    m_cutoffHz = hz;
+            //    Recalc();
+            //}
 
-            // 0-1
-            virtual void SetResonance(real p_res) override
-            {
-                if (FloatEquals(p_res, m_cachedResonance))
-                    return;
-                m_cachedResonance = p_res;
-                m_resonance = Real(24.5) * p_res * p_res * p_res * p_res + Real(0.5);
-                m_resonance = ClampInclusive(m_resonance, Real(0.5), Real(25));
-                Recalc();
-            }
+            //// 0-1
+            //virtual void SetResonance(real p_res) override
+            //{
+            //    if (FloatEquals(p_res, m_cachedResonance))
+            //        return;
+            //    m_cachedResonance = p_res;
+            //    m_resonance = Real(24.5) * p_res * p_res * p_res * p_res + Real(0.5);
+            //    m_resonance = ClampInclusive(m_resonance, Real(0.5), Real(25));
+            //    Recalc();
+            //}
 
             virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
             {

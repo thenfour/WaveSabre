@@ -10,17 +10,6 @@
 #undef max
 using std::min;
 using std::max;
-//
-//template<class T>
-//const T& min(const T& a, const T& b)
-//{
-//    return (b < a) ? b : a;
-//}
-//template<class T>
-//const T& max(const T& a, const T& b)
-//{
-//    return (b > a) ? b : a;
-//}
 
 namespace WaveSabreCore
 {
@@ -43,6 +32,18 @@ namespace WaveSabreCore
                 y *= 1.1920928955078125e-7f;
                 return y - 126.94269504f;
             }
+            static inline float fasterlog(float x)
+            {
+                //  return 0.69314718f * fasterlog2 (x);
+
+                union {
+                    float f;
+                    uint32_t i;
+                } vx = { x };
+                float y = (float)vx.i;
+                y *= 8.2629582881927490e-8f;
+                return y - 87.989971088f;
+            }
 
         }
 
@@ -57,6 +58,10 @@ namespace WaveSabreCore
             inline real_t log2(real_t x) {
                 return fastmath::fasterlog2(x);
             }
+            inline real_t log10(real_t x) {
+                return fastmath::fasterlog(x);
+            }
+            
             inline real_t sqrt(real_t x) {
                 return ::sqrtf(x);
             }
@@ -554,6 +559,387 @@ namespace WaveSabreCore
                     centerNote + param * 12; // each 1 param = 1 octave. because we're in semis land, it's just a mul.
                 return paramSemis;
             }
+        };
+
+        // you need to sync up all these enums below to correspond with ordering et al.
+        enum class ParamIndices
+        {
+            MasterVolume,
+            VoicingMode,
+            Unisono,
+            UnisonoDetune,
+            UnisonoStereoSpread,
+            OscillatorDetune,
+            OscillatorSpread,
+            FMBrightness,
+
+            Macro1,
+            Macro2,
+            Macro3,
+            Macro4,
+
+            PortamentoTime,
+            PortamentoCurve,
+            PitchBendRange,
+
+            Osc1Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
+            Osc1Volume,
+            Osc1Waveform,
+            Osc1Waveshape,
+            Osc1PhaseRestart,
+            Osc1PhaseOffset,
+            Osc1SyncEnable,
+            Osc1SyncFrequency,
+            Osc1SyncFrequencyKT,
+            Osc1FrequencyParam,
+            Osc1FrequencyParamKT,
+            Osc1PitchSemis,
+            Osc1PitchFine,
+            Osc1FreqMul,
+            Osc1FMFeedback,
+
+            Osc2Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
+            Osc2Volume,
+            Osc2Waveform,
+            Osc2Waveshape,
+            Osc2PhaseRestart,
+            Osc2PhaseOffset,
+            Osc2SyncEnable,
+            Osc2SyncFrequency,
+            Osc2SyncFrequencyKT,
+            Osc2FrequencyParam,
+            Osc2FrequencyParamKT,
+            Osc2PitchSemis,
+            Osc2PitchFine,
+            Osc2FreqMul,
+            Osc2FMFeedback,
+
+            Osc3Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
+            Osc3Volume,
+            Osc3Waveform,
+            Osc3Waveshape,
+            Osc3PhaseRestart,
+            Osc3PhaseOffset,
+            Osc3SyncEnable,
+            Osc3SyncFrequency,
+            Osc3SyncFrequencyKT,
+            Osc3FrequencyParam,
+            Osc3FrequencyParamKT,
+            Osc3PitchSemis,
+            Osc3PitchFine,
+            Osc3FreqMul,
+            Osc3FMFeedback,
+
+            AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+            AmpEnvAttackTime,
+            AmpEnvAttackCurve,
+            AmpEnvHoldTime,
+            AmpEnvDecayTime,
+            AmpEnvDecayCurve,
+            AmpEnvSustainLevel,
+            AmpEnvReleaseTime,
+            AmpEnvReleaseCurve,
+            AmpEnvLegatoRestart,
+
+            Env1DelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+            Env1AttackTime,
+            Env1AttackCurve,
+            Env1HoldTime,
+            Env1DecayTime,
+            Env1DecayCurve,
+            Env1SustainLevel,
+            Env1ReleaseTime,
+            Env1ReleaseCurve,
+            Env1LegatoRestart,
+
+            Env2DelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+            Env2AttackTime,
+            Env2AttackCurve,
+            Env2HoldTime,
+            Env2DecayTime,
+            Env2DecayCurve,
+            Env2SustainLevel,
+            Env2ReleaseTime,
+            Env2ReleaseCurve,
+            Env2LegatoRestart,
+
+            LFO1Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
+            LFO1Waveshape,
+            LFO1Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
+            LFO1PhaseOffset,
+            LFO1FrequencyParam,
+
+            LFO2Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
+            LFO2Waveshape,
+            LFO2Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
+            LFO2PhaseOffset,
+            LFO2FrequencyParam,
+
+            FilterType,
+            FilterQ,
+            FilterSaturation,
+            FilterFrequency,
+            FilterFrequencyKT,
+
+            FMAmt1to2,
+            FMAmt1to3,
+            FMAmt2to1,
+            FMAmt2to3,
+            FMAmt3to1,
+            FMAmt3to2,
+
+            Mod1Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod1Source,
+            Mod1Destination,
+            Mod1Curve,
+            Mod1Scale,
+
+            Mod2Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod2Source,
+            Mod2Destination,
+            Mod2Curve,
+            Mod2Scale,
+
+            Mod3Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod3Source,
+            Mod3Destination,
+            Mod3Curve,
+            Mod3Scale,
+
+            Mod4Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod4Source,
+            Mod4Destination,
+            Mod4Curve,
+            Mod4Scale,
+
+            Mod5Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod5Source,
+            Mod5Destination,
+            Mod5Curve,
+            Mod5Scale,
+
+            Mod6Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod6Source,
+            Mod6Destination,
+            Mod6Curve,
+            Mod6Scale,
+
+            Mod7Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod7Source,
+            Mod7Destination,
+            Mod7Curve,
+            Mod7Scale,
+
+            Mod8Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+            Mod8Source,
+            Mod8Destination,
+            Mod8Curve,
+            Mod8Scale,
+
+            NumParams,
+        };
+
+        // 
+        #define MAJ7_PARAM_VST_NAMES { \
+		    {"Master"}, \
+		    {"PolyMon"}, \
+		    {"Unisono"}, \
+		    {"UniDet"}, \
+		    {"UniSpr"}, \
+		    {"OscDet"}, \
+		    {"OscSpr"}, \
+		    {"FMBrigh"}, \
+		    {"Macro1"}, \
+		    {"Macro2"}, \
+		    {"Macro3"}, \
+		    {"Macro4"}, \
+		    {"PortTm"}, \
+		    {"PortCv"}, \
+		    {"PBRng"}, \
+		    {"O1En"}, \
+		    {"O1Vol"}, \
+		    {"O1Wave"}, \
+		    {"O1Shp"}, \
+		    {"O1PRst"}, \
+		    {"O1Poff"}, \
+		    {"O1Scen"}, \
+		    {"O1ScFq"}, \
+		    {"O1ScKt"}, \
+		    {"O1Fq"}, \
+		    {"O1FqKt"}, \
+		    {"O1Semi"}, \
+		    {"O1Fine"}, \
+		    {"O1Mul"}, \
+		    {"O1FMFb"}, \
+		    {"O2En"}, \
+		    {"O2Vol"}, \
+		    {"O2Wave"}, \
+		    {"O2Shp"}, \
+		    {"O2PRst"}, \
+		    {"O2Poff"}, \
+		    {"O2Scen"}, \
+		    {"O2ScFq"}, \
+		    {"O2ScKt"}, \
+		    {"O2Fq"}, \
+		    {"O2FqKt"}, \
+		    {"O2Semi"}, \
+		    {"O2Fine"}, \
+		    {"O2Mul"}, \
+		    {"O2FMFb"}, \
+		    {"O3En"}, \
+		    {"O3Vol"}, \
+		    {"O3Wave"}, \
+		    {"O3Shp"}, \
+		    {"O3PRst"}, \
+		    {"O3Poff"}, \
+		    {"O3Scen"}, \
+		    {"O3ScFq"}, \
+		    {"O3ScKt"}, \
+		    {"O3Fq"}, \
+		    {"O3FqKt"}, \
+		    {"O3Semi"}, \
+		    {"O3Fine"}, \
+		    {"O3Mul"}, \
+		    {"O3FMFb"}, \
+		    {"AEdlt"}, \
+		    {"AEatt"}, \
+		    {"AEatc"}, \
+		    {"AEht"}, \
+		    {"AEdt"}, \
+		    {"AEdc"}, \
+		    {"AEsl"}, \
+		    {"AErt"}, \
+		    {"AEtc"}, \
+		    {"AErst"}, \
+		    {"E1dlt"}, \
+		    {"E1att"}, \
+		    {"E1atc"}, \
+		    {"E1ht"}, \
+		    {"E1dt"}, \
+		    {"E1dc"}, \
+		    {"E1sl"}, \
+		    {"E1rt"}, \
+		    {"E1tc"}, \
+		    {"E1rst"}, \
+		    {"E2dlt"}, \
+		    {"E2att"}, \
+		    {"E2atc"}, \
+		    {"E2ht"}, \
+		    {"E2dt"}, \
+		    {"E2dc"}, \
+		    {"E2sl"}, \
+		    {"E2rt"}, \
+		    {"E2tc"}, \
+		    {"E2rst"}, \
+		    {"LFO1wav"}, \
+		    {"LFO1shp"}, \
+		    {"LFO1rst"}, \
+		    {"LFO1ph"}, \
+		    {"LFO1fr"}, \
+		    {"LFO2wav"}, \
+		    {"LFO2shp"}, \
+		    {"LFO2rst"}, \
+		    {"LFO2ph"}, \
+		    {"LFO2fr"}, \
+		    {"FLtype"}, \
+		    {"FLq"}, \
+		    {"FLsat"}, \
+		    {"FLfreq"}, \
+		    {"FLkt"}, \
+		    {"FM1to2"}, \
+		    {"FM1to3"}, \
+		    {"FM2to1"}, \
+		    {"FM2to3"}, \
+		    {"FM3to1"}, \
+		    {"FM3to2"}, \
+		    {"M1en"}, \
+		    {"M1src"}, \
+		    {"M1dest"}, \
+		    {"M1curv"}, \
+		    {"M1scale"}, \
+		    {"M2en"}, \
+		    {"M2src"}, \
+		    {"M2dest"}, \
+		    {"M2curv"}, \
+		    {"M2scale"}, \
+		    {"M3en"}, \
+		    {"M3src"}, \
+		    {"M3dest"}, \
+		    {"M3curv"}, \
+		    {"M3scale"}, \
+		    {"M4en"}, \
+		    {"M4src"}, \
+		    {"M4dest"}, \
+		    {"M4curv"}, \
+		    {"M4scale"}, \
+		    {"M5en"}, \
+		    {"M5src"}, \
+		    {"M5dest"}, \
+		    {"M5curv"}, \
+		    {"M5scale"}, \
+		    {"M6en"}, \
+		    {"M6src"}, \
+		    {"M6dest"}, \
+		    {"M6curv"}, \
+		    {"M6scale"}, \
+		    {"M7en"}, \
+		    {"M7src"}, \
+		    {"M7dest"}, \
+		    {"M7curv"}, \
+		    {"M7scale"}, \
+		    {"M8en"}, \
+		    {"M8src"}, \
+		    {"M8dest"}, \
+		    {"M8curv"}, \
+		    {"M8scale"}, \
+        }
+
+        enum class ModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+        {
+            Enabled,
+            Source,
+            Destination,
+            Curve,
+            Scale,
+        };
+        enum class LFOParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+        {
+            Waveform,
+            Waveshape,
+            Restart,
+            PhaseOffset,
+            FrequencyParam,
+        };
+        enum class EnvParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+        {
+            DelayTime,
+            AttackTime,
+            AttackCurve,
+            HoldTime,
+            DecayTime,
+            DecayCurve,
+            SustainLevel,
+            ReleaseTime,
+            ReleaseCurve,
+            LegatoRestart,
+        };
+        enum class OscParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+        {
+            Enabled,
+            Volume,
+            Waveform,
+            Waveshape,
+            PhaseRestart,
+            PhaseOffset,
+            SyncEnable,
+            SyncFrequency,
+            SyncFrequencyKT,
+            FrequencyParam,
+            FrequencyParamKT,
+            PitchSemis,
+            PitchFine,
+            FreqMul,
+            FMFeedback,
         };
 
     } // namespace M7

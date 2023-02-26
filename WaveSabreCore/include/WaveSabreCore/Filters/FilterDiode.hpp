@@ -13,45 +13,46 @@ namespace WaveSabreCore
         {
             DiodeFilter()
             {
-                m_LPF1.SetType(FilterType::LP);
-                m_LPF2.SetType(FilterType::LP);
-                m_LPF3.SetType(FilterType::LP);
-                m_LPF4.SetType(FilterType::LP);
+                m_LPF1.SetParams(FilterType::LP, 0, 0, 0);
+                m_LPF2.SetParams(FilterType::LP, 0, 0, 0);
+                m_LPF3.SetParams(FilterType::LP, 0, 0, 0);
+                m_LPF4.SetParams(FilterType::LP, 0, 0, 0);
             }
 
-            // IFilter
-            virtual void SetType(FilterType type) override
-            {
-            } // only lowpass supported
-            virtual FilterCapabilities GetCapabilities() override
-            {
-                return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
-            }
-            virtual void SetCutoffFrequency(real hz) override
-            {
-                if (FloatEquals(m_cutoffHz, hz))
-                    return;
-                m_cutoffHz = hz;
-                Recalc();
-            }
 
-            virtual void SetSaturation(real amt) override
-            {
-                if (FloatEquals(m_overdrive, amt))
-                    return;
-                m_overdrive = amt;
-                Recalc();
-            }
+            //// IFilter
+            //virtual void SetType(FilterType type) override
+            //{
+            //} // only lowpass supported
+            //virtual FilterCapabilities GetCapabilities() override
+            //{
+            //    return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
+            //}
+            //virtual void SetCutoffFrequency(real hz) override
+            //{
+            //    if (FloatEquals(m_cutoffHz, hz))
+            //        return;
+            //    m_cutoffHz = hz;
+            //    Recalc();
+            //}
 
-            // 0-1
-            virtual void SetResonance(real amt) override
-            {
-                amt *= 16;
-                if (FloatEquals(m_k, amt))
-                    return;
-                m_k = amt;
-                Recalc();
-            }
+            //virtual void SetSaturation(real amt) override
+            //{
+            //    if (FloatEquals(m_overdrive, amt))
+            //        return;
+            //    m_overdrive = amt;
+            //    Recalc();
+            //}
+
+            //// 0-1
+            //virtual void SetResonance(real amt) override
+            //{
+            //    amt *= 16;
+            //    if (FloatEquals(m_k, amt))
+            //        return;
+            //    m_k = amt;
+            //    Recalc();
+            //}
 
             virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
             {
@@ -118,12 +119,15 @@ namespace WaveSabreCore
                 // calc alphas
                 real wd = PITimes2 * m_cutoffHz;
                 real wa = (Real2 * Real(Helpers::CurrentSampleRate)) * math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
-                real g = wa * Helpers::CurrentSampleRateRecipF / Real2;
+                const real g = wa * Helpers::CurrentSampleRateRecipF / Real2;
+                const real halfg = g * 0.5f;
+                const real onePlusG = 1.0f + g;
 
-                real G4 = Real(0.5) * g / (Real1 + g);
-                real G3 = Real(0.5) * g / (Real1 + g - Real(0.5) * g * G4);
-                real G2 = Real(0.5) * g / (Real1 + g - Real(0.5) * g * G3);
-                real G1 = g / (Real1 + g - g * G2);
+                const real G4 = halfg / (onePlusG);
+                const real G3 = halfg / (onePlusG - halfg * G4);
+                const real G2 = halfg / (onePlusG - halfg * G3);
+                const real G1 = g / (onePlusG - g * G2);
+                const real G = g / (onePlusG);
                 m_gamma = G4 * G3 * G2 * G1;
 
                 m_sg1 = G4 * G3 * G2;
@@ -131,21 +135,20 @@ namespace WaveSabreCore
                 m_sg3 = G4;
                 m_sg4 = Real1;
 
-                real G = g / (Real1 + g);
 
                 m_LPF1.m_alpha = G;
                 m_LPF2.m_alpha = G;
                 m_LPF3.m_alpha = G;
                 m_LPF4.m_alpha = G;
 
-                m_LPF1.m_beta = Real1 / (Real1 + g - g * G2);
-                m_LPF2.m_beta = Real1 / (Real1 + g - Real(0.5) * g * G3);
-                m_LPF3.m_beta = Real1 / (Real1 + g - Real(0.5) * g * G4);
-                m_LPF4.m_beta = Real1 / (Real1 + g);
+                m_LPF1.m_beta = Real1 / (onePlusG - g * G2);
+                m_LPF2.m_beta = Real1 / (onePlusG - halfg * G3);
+                m_LPF3.m_beta = Real1 / (onePlusG - halfg * G4);
+                m_LPF4.m_beta = Real1 / (onePlusG);
 
                 m_LPF1.m_delta = g;
-                m_LPF2.m_delta = Real(0.5) * g;
-                m_LPF3.m_delta = Real(0.5) * g;
+                m_LPF2.m_delta = halfg;
+                m_LPF3.m_delta = halfg;
                 m_LPF4.m_delta = 0;
 
                 m_LPF1.m_gamma = Real1 + G1 * G2;

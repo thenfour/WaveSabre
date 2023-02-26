@@ -1,7 +1,6 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
-//#include <memory>
 
 namespace WaveSabreCore
 {
@@ -76,12 +75,33 @@ namespace WaveSabreCore
 
 			Count,
 		};
+
+		// size-optimize using macro
+		#define MOD_SOURCE_CAPTIONS { \
+			"None", \
+			"AmpEnv", \
+			"ModEnv1", \
+			"ModEnv2", \
+			"LFO1", \
+			"LFO2", \
+			"PitchBend", \
+			"Velocity", \
+			"NoteValue", \
+			"RandomTrigger", \
+			"SustainPedal", \
+			"Macro1", \
+			"Macro2", \
+			"Macro3", \
+			"Macro4", \
+		}
+
 		enum class ModDestination : uint8_t
 		{
 			None,
 			UnisonoDetune, // krate, 01
+			UnisonoStereoSpread, // krate, 01
 			OscillatorDetune, // krate, 01
-			StereoSpread, // krate, 01
+			OscillatorStereoSpread, // krate, 01
 			FMBrightness, // krate, 01
 
 			PortamentoTime, // krate, 01
@@ -156,6 +176,99 @@ namespace WaveSabreCore
 
 			Count,
 		};
+		enum class EnvModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		{
+			DelayTime,
+			AttackTime,
+			AttackCurve,
+			HoldTime,
+			DecayTime,
+			DecayCurve,
+			SustainLevel,
+			ReleaseTime,
+			ReleaseCurve,
+		};
+		enum class OscModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		{
+			Volume,
+			Waveshape,
+			SyncFrequency,
+			FrequencyParam,
+			FMFeedback,
+		};
+		enum class LFOModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		{
+			Waveshape,
+			FrequencyParam,
+		};
+
+		// size-optimize using macro
+		#define MOD_DEST_CAPTIONS { \
+			"None", \
+			"UnisonoDetune", \
+			"UnisonoStereoSpread", \
+			"OscillatorDetune", \
+			"OscillatorStereoSpread", \
+			"FMBrightness", \
+			"PortamentoTime", \
+			"PortamentoCurve", \
+			"Osc1Volume", \
+			"Osc1Waveshape", \
+			"Osc1SyncFrequency", \
+			"Osc1FrequencyParam", \
+			"Osc1FMFeedback", \
+			"Osc2Volume", \
+			"Osc2Waveshape", \
+			"Osc2SyncFrequency", \
+			"Osc2FrequencyParam", \
+			"Osc2FMFeedback", \
+			"Osc3Volume", \
+			"Osc3Waveshape", \
+			"Osc3SyncFrequency", \
+			"Osc3FrequencyParam", \
+			"Osc3FMFeedback", \
+			"AmpEnvDelayTime",  \
+			"AmpEnvAttackTime", \
+			"AmpEnvAttackCurve", \
+			"AmpEnvHoldTime", \
+			"AmpEnvDecayTime", \
+			"AmpEnvDecayCurve", \
+			"AmpEnvSustainLevel", \
+			"AmpEnvReleaseTime", \
+			"AmpEnvReleaseCurve", \
+			"Env1DelayTime", \
+			"Env1AttackTime", \
+			"Env1AttackCurve", \
+			"Env1HoldTime", \
+			"Env1DecayTime", \
+			"Env1DecayCurve", \
+			"Env1SustainLevel", \
+			"Env1ReleaseTime", \
+			"Env1ReleaseCurve", \
+			"Env2DelayTime", \
+			"Env2AttackTime", \
+			"Env2AttackCurve", \
+			"Env2HoldTime", \
+			"Env2DecayTime", \
+			"Env2DecayCurve", \
+			"Env2SustainLevel", \
+			"Env2ReleaseTime", \
+			"Env2ReleaseCurve", \
+			"LFO1Waveshape", \
+			"LFO1FrequencyParam", \
+			"LFO2Waveshape", \
+			"LFO2FrequencyParam", \
+			"FilterQ", \
+			"FilterSaturation", \
+			"FilterFrequency", \
+			"FMAmt1to2", \
+			"FMAmt1to3", \
+			"FMAmt2to1", \
+			"FMAmt2to3", \
+			"FMAmt3to1", \
+			"FMAmt3to2", \
+		}
+
 		struct ModSourceInfo
 		{
 			ModSource mID;
@@ -249,18 +362,12 @@ namespace WaveSabreCore
 			FloatN11Param mScale;
 
 			ModulationSpec(real_t* paramCache, int baseParamID) :
-				mEnabled(paramCache[baseParamID + gParamIDEnabled], false),
-				mSource(paramCache[baseParamID + gParamIDSource], ModSource::Count, ModSource::None),
-				mDestination(paramCache[baseParamID + gParamIDDestination], ModDestination::Count, ModDestination::None),
-				mCurve(paramCache[baseParamID + gParamIDCurve], 0),
-				mScale(paramCache[baseParamID + gParamIDScale], 1)
+				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
+				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count, ModSource::None),
+				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count, ModDestination::None),
+				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve], 0),
+				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale], 1)
 			{}
-
-			static constexpr int gParamIDEnabled = 0;
-			static constexpr int gParamIDSource = 0;
-			static constexpr int gParamIDDestination = 0;
-			static constexpr int gParamIDCurve = 0;
-			static constexpr int gParamIDScale = 0;
 		};
 
 		struct ModDestinationInfo
@@ -279,27 +386,34 @@ namespace WaveSabreCore
 			{
 				ModDestination::UnisonoDetune, // krate, 01
 				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
+				ModulationRate::KRate,
+			},
+			{
+				ModDestination::UnisonoStereoSpread, // krate, 01
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
 				ModDestination::OscillatorDetune, // krate, 01
 				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::StereoSpread, // krate, 01
+				ModulationRate::KRate,
+			},
+			{
+				ModDestination::OscillatorStereoSpread, // krate, 01
 				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
+				ModulationRate::KRate,
 			},{
 				ModDestination::FMBrightness, // krate, 01
 				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
+				ModulationRate::KRate,
 			},{
 				ModDestination::PortamentoTime, // krate, 01
 				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
+				ModulationRate::KRate,
 			},{
 				ModDestination::PortamentoCurve, // krate, N11
 				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
+				ModulationRate::KRate,
 			},{
 				ModDestination::Osc1Volume, // arate, 01
 				ModulationPolarity::Positive01,
@@ -542,6 +656,9 @@ namespace WaveSabreCore
 			// only krate indices are used; rest are never touched.
 			real_t mKRateSourceValues[(size_t)M7::ModSource::Count] = { 0 };
 
+			real_t mKRateDestinationValues[(size_t)M7::ModDestination::Count] = { 0 };
+			ModulationBuffers mDestinationBuffers;
+
 			void SetKRateSourceValue(M7::ModSource id, real_t val)
 			{
 				// things like pitch bend, etc. set these once per block.
@@ -553,9 +670,6 @@ namespace WaveSabreCore
 			{
 				return mKRateSourceValues[(size_t)id];
 			}
-
-
-			real_t mKRateDestinationValues[(size_t)M7::ModDestination::Count] = { 0 };
 
 			void SetKRateDestinationValue(M7::ModDestination id, real_t val)
 			{
@@ -577,17 +691,29 @@ namespace WaveSabreCore
 				return mKRateDestinationValues[(size_t)id];
 			}
 
-			ModulationBuffers mDestinationBuffers;
-
 			// caller passes in
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.
 			// the result will be placed 
-			void ProcessBlock(ModulationBuffers& buffers)
+			template<size_t Nspecs>
+			void ProcessBlock(ModulationBuffers& sourceBuffers, ModulationSpec (&modSpecs)[Nspecs])
 			{
-				mDestinationBuffers.Reset(buffers.mBlockCount, buffers.mBlockSize);
-				//size_t bigBufferSize = blockSize * (size_t)ModDestination::Count;
-				//destinationBuffers = std::make_unique<real_t[]>(bigBufferSize);
+				// this will zero out the destination values, make sure block size matches incoming sources
+				mDestinationBuffers.Reset((int)ModDestination::Count, sourceBuffers.mBlockSize);
+				// also zero out krate values.
+				for (auto& x : mKRateDestinationValues) {
+					x = 0;
+				}
+
+				// run mod specs
+				for (ModulationSpec& spec : modSpecs) {
+					if (!spec.mEnabled.GetBoolValue()) continue;
+					// handle the 4 cases:
+					// Krate -> Krate, 
+					// Krate -> Arate
+					// Arate -> Arate
+					// Arate -> Krate
+				}
 			}
 		};
 	} // namespace M7

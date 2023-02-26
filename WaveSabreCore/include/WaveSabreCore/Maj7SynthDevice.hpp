@@ -91,16 +91,6 @@ namespace WaveSabreCore
 
 		void PushEvent(EventType et, int data1, int data2, int deltaSamples)
 		{
-			//for (int i = 0; i < std::size(mEvents); ++i) {
-			//	auto& e = mEvents[i];
-			//	if (i < mEventCount && e.Type == EventType::None) {
-			//		WSAssert(false, "empty events were found before mEventCount");
-			//	}
-			//	else if (i >= mEventCount && e.Type != EventType::None) {
-			//		WSAssert(false, "non-empty events were found after mEventCount");
-			//	}
-			//}
-
 			auto& e = mEvents[mEventCount];
 			e.Type = et;
 			e.data1 = data1;

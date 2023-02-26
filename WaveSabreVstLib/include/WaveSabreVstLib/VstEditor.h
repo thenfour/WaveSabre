@@ -142,7 +142,7 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::FrequencyParam mParam;
 			VstInt32 mKTParamID;
 
-			Maj7FrequencyConverter(M7::real_t centerFreq, VstInt32 ktParamID) :
+			Maj7FrequencyConverter(M7::real_t centerFreq, VstInt32 ktParamID /*pass -1 if no KT*/) :
 				mParam(mBacking, mBackingKT, centerFreq, 0.5f, 0),
 				mKTParamID(ktParamID)
 			{
@@ -656,40 +656,38 @@ namespace WaveSabreVstLib
 
 		template<typename Tenum>
 		void Maj7ImGuiEnvelopeGraphic(const char* label,
-			Tenum delayTimeParamID, Tenum attackTimeID, Tenum attackCurveID,
-			Tenum holdTimeID, Tenum decayTimeID, Tenum decayCurveID,
-			Tenum sustainLevelID, Tenum releaseTimeID, Tenum releaseCurveID)
+			Tenum delayTimeParamID)
 		{
-			static constexpr float gSegmentMaxWidth = 70;
+			static constexpr float gSegmentMaxWidth = 50;
 			static constexpr float gMaxWidth = gSegmentMaxWidth * 6;
-			static constexpr float innerHeight = 60; // excluding padding
+			static constexpr float innerHeight = 45; // excluding padding
 			static constexpr float padding = 7;
 			static constexpr float gLineThickness = 2.7f;
 			ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_PlotLines);
 			static constexpr float handleRadius = 3;
 			static constexpr int circleSegments = 7;
 
-			float delayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID), 0, 1) * gSegmentMaxWidth;
-			float attackWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)attackTimeID), 0, 1) * gSegmentMaxWidth;
-			float holdWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)holdTimeID), 0, 1) * gSegmentMaxWidth;
-			float decayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)decayTimeID), 0, 1) * gSegmentMaxWidth;
+			float delayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DelayTime), 0, 1) * gSegmentMaxWidth;
+			float attackWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackTime), 0, 1) * gSegmentMaxWidth;
+			float holdWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::HoldTime), 0, 1) * gSegmentMaxWidth;
+			float decayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayTime), 0, 1) * gSegmentMaxWidth;
 			float sustainWidth = gSegmentMaxWidth;
-			float releaseWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)releaseTimeID), 0, 1) * gSegmentMaxWidth;
+			float releaseWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseTime), 0, 1) * gSegmentMaxWidth;
 
-			float sustainLevel = M7::Clamp(GetEffectX()->getParameter((VstInt32)sustainLevelID), 0, 1);
+			float sustainLevel = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::SustainLevel), 0, 1);
 			float sustainYOffset = innerHeight * (1.0f - sustainLevel);
 
 			float attackCurveRaw;
 			M7::CurveParam attackCurve{ attackCurveRaw, 0 };
-			attackCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)attackCurveID));
+			attackCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackCurve));
 
 			float decayCurveRaw;
 			M7::CurveParam decayCurve{ decayCurveRaw, 0 };
-			decayCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)decayCurveID));
+			decayCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayCurve));
 
 			float releaseCurveRaw;
 			M7::CurveParam releaseCurve{ releaseCurveRaw, 0 };
-			releaseCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)releaseCurveID));
+			releaseCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseCurve));
 
 			ImVec2 originalPos = ImGui::GetCursorScreenPos();
 			ImVec2 p = originalPos;
@@ -751,6 +749,45 @@ namespace WaveSabreVstLib
 
 			ImGui::Dummy({ outerBottomRight.x - originalPos.x, outerBottomRight.y - originalPos.y });
 		}
+
+		//template<typename Tenum>
+		//void Maj7ImGuiFilterGraphic(Tenum filterTypeParamID, Tenum filterFrequencyParamID, Tenum filterQParamID, M7::real_t centerFrequency)
+		//{
+		//	static constexpr float innerWidth = 300;
+		//	static constexpr float innerHeight = 60; // excluding padding
+		//	static constexpr float padding = 7;
+		//	static constexpr float lineThickness = 2.7f;
+		//	ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_PlotLines);
+
+		//	float filterTypeVal;
+		//	M7::EnumParam<M7::FilterModel> filterTypeParam{ filterTypeVal, M7::FilterModel::Count, M7::FilterModel::Disabled };
+		//	filterTypeParam.SetParamValue(GetEffectX()->getParameter((VstInt32)filterTypeParamID));
+		//	float freqVal;
+		//	float freqKTVal = 0;
+		//	M7::FrequencyParam freqParam{freqVal, freqKTVal, centerFrequency, GetEffectX()->getParameter((VstInt32)filterFrequencyParamID), 0 };
+		//	float filterQVal = GetEffectX()->getParameter((VstInt32)filterQParamID);
+		//	M7::FilterNode filter;
+		//	filter.SetParams(filterTypeParam.GetEnumValue(), freqParam.GetFrequency(0, 0), filterQVal, 0);
+
+		//	ImVec2 outerTL = ImGui::GetCursorScreenPos();
+		//	ImVec2 innerTL = { outerTL.x + padding, outerTL.y + padding };
+		//	ImVec2 innerBR = { innerTL.x + innerWidth, innerTL.y + innerHeight };
+		//	ImVec2 outerBR = { innerBR.x + padding, innerBR.y + padding };
+		//	ImDrawList* dl = ImGui::GetWindowDrawList();
+
+		//	// background
+		//	ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg));
+
+		//	for (int i = 0; i < innerWidth; ++i)
+		//	{
+		//		float x = float(i) / innerWidth;
+		//		float y = filter.mSelectedFilter->GetGain01AtFrequency(22000.0f / innerWidth * i);
+		//		dl->AddLine({ innerTL.x + x * innerWidth , innerBR.y }, {innerTL.x + x * innerWidth, innerTL.y + y * innerHeight}, lineColor, lineThickness);
+		//	}
+
+		//	ImGui::Dummy({ outerBR.x - outerTL.x, outerBR.y - outerTL.y });
+		//}
+
 
 		virtual bool onKeyDown(VstKeyCode& keyCode) override {
 			mLastKeyDown = keyCode;

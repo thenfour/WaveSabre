@@ -1,11 +1,26 @@
 // TODO: multiple filters? or add a 1pole lowcut/highcut to each oscillator
+// TODO: S&H to each oscillator as well. i think an "insert" stage before filter could be appropriate, with balances for all osc.
+// adding params:
+// - S&H freq
+// - LCut
+// - Highcut
+// - osc1 balance
+// - osc2 balance
+// - osc3 balance
 // TODO: time sync for LFOs? envelope times?
+// - lfo1 time basis
+// - lfo2 time basis
+// TODO: 4th oscillator & sampler engine.
+// the idea: if we are able to optimize unused params, then we benefit by including a sampler directly in Maj7.
+// because then all the routing and processing uses shared code and can even interoperate with the synths, D-50 style.
+// and if we discard data we don't use, this comes for free.
+// 
 // size-optimizations:
 // - dont inline (use cpp)
-// - vst chunk optimization:
-//   - skip params which are disabled (modulation specs!)
+// - chunk optimization:
+//   - skip params which are disabled (modulation specs!) - only for wavesabre binary export; not for VST chunk.
 //   - group params which are very likely to be the same value or rarely used
-//   - enum and bool params can be packed very tight
+//   - enum and bool params can be packed tight
 
 #pragma once
 
@@ -47,8 +62,9 @@ namespace WaveSabreCore
 			Float01Param mFMAmt3to2{ mParamCache[(int)ParamIndices::FMAmt3to2], 0.0f };
 
 			Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune], 0.0f };
+			Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread], 0.0f };
 			Float01Param mOscillatorDetune{ mParamCache[(int)ParamIndices::OscillatorDetune], 0.0f };
-			Float01Param mStereoSpread{ mParamCache[(int)ParamIndices::StereoSpread], 0.0f };
+			Float01Param mOscillatorStereoSpread{ mParamCache[(int)ParamIndices::OscillatorSpread], 0.0f };
 			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness], 0.5f };
 
 			EnvTimeParam mPortamentoTime{ mParamCache[(int)ParamIndices::PortamentoTime], 0.2f };
@@ -66,181 +82,6 @@ namespace WaveSabreCore
 				{ mParamCache, (int)ParamIndices::Mod8Enabled },
 			};
 
-			enum class ParamIndices
-			{
-				MasterVolume,
-				VoicingMode,
-				Unisono,
-				UnisonoDetune,
-				OscillatorDetune,
-				StereoSpread,
-				FMBrightness,
-
-				Macro1,
-				Macro2,
-				Macro3,
-				Macro4,
-
-				PortamentoTime,
-				PortamentoCurve,
-				PitchBendRange,
-
-				Osc1Enabled,
-				Osc1Volume,
-				Osc1Waveform,
-				Osc1Waveshape,
-				Osc1PhaseRestart,
-				Osc1PhaseOffset,
-				Osc1SyncEnable,
-				Osc1SyncFrequency,
-				Osc1SyncFrequencyKT,
-				Osc1FrequencyParam,
-				Osc1FrequencyParamKT,
-				Osc1PitchSemis,
-				Osc1PitchFine,
-				Osc1FreqMul,
-				Osc1FMFeedback,
-
-				Osc2Enabled,
-				Osc2Volume,
-				Osc2Waveform,
-				Osc2Waveshape,
-				Osc2PhaseRestart,
-				Osc2PhaseOffset,
-				Osc2SyncEnable,
-				Osc2SyncFrequency,
-				Osc2SyncFrequencyKT,
-				Osc2FrequencyParam,
-				Osc2FrequencyParamKT,
-				Osc2PitchSemis,
-				Osc2PitchFine,
-				Osc2FreqMul,
-				Osc2FMFeedback,
-
-				Osc3Enabled,
-				Osc3Volume,
-				Osc3Waveform,
-				Osc3Waveshape,
-				Osc3PhaseRestart,
-				Osc3PhaseOffset,
-				Osc3SyncEnable,
-				Osc3SyncFrequency,
-				Osc3SyncFrequencyKT,
-				Osc3FrequencyParam,
-				Osc3FrequencyParamKT,
-				Osc3PitchSemis,
-				Osc3PitchFine,
-				Osc3FreqMul,
-				Osc3FMFeedback,
-
-				AmpEnvDelayTime,
-				AmpEnvAttackTime,
-				AmpEnvAttackCurve,
-				AmpEnvHoldTime,
-				AmpEnvDecayTime,
-				AmpEnvDecayCurve,
-				AmpEnvSustainLevel,
-				AmpEnvReleaseTime,
-				AmpEnvReleaseCurve,
-				AmpEnvLegatoRestart,
-
-				Env1DelayTime,
-				Env1AttackTime,
-				Env1AttackCurve,
-				Env1HoldTime,
-				Env1DecayTime,
-				Env1DecayCurve,
-				Env1SustainLevel,
-				Env1ReleaseTime,
-				Env1ReleaseCurve,
-				Env1LegatoRestart,
-
-				Env2DelayTime,
-				Env2AttackTime,
-				Env2AttackCurve,
-				Env2HoldTime,
-				Env2DecayTime,
-				Env2DecayCurve,
-				Env2SustainLevel,
-				Env2ReleaseTime,
-				Env2ReleaseCurve,
-				Env2LegatoRestart,
-
-				LFO1Waveform,
-				LFO1Waveshape,
-				LFO1Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
-				LFO1PhaseOffset,
-				LFO1FrequencyParam,
-
-				LFO2Waveform,
-				LFO2Waveshape,
-				LFO2Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
-				LFO2PhaseOffset,
-				LFO2FrequencyParam,
-
-				FilterType,
-				FilterQ,
-				FilterSaturation,
-				FilterFrequency,
-				FilterFrequencyKT,
-
-				FMAmt1to2,
-				FMAmt1to3,
-				FMAmt2to1,
-				FMAmt2to3,
-				FMAmt3to1,
-				FMAmt3to2,
-
-				Mod1Enabled,
-				Mod1Source,
-				Mod1Destination,
-				Mod1Curve,
-				Mod1Scale,
-
-				Mod2Enabled,
-				Mod2Source,
-				Mod2Destination,
-				Mod2Curve,
-				Mod2Scale,
-
-				Mod3Enabled,
-				Mod3Source,
-				Mod3Destination,
-				Mod3Curve,
-				Mod3Scale,
-
-				Mod4Enabled,
-				Mod4Source,
-				Mod4Destination,
-				Mod4Curve,
-				Mod4Scale,
-
-				Mod5Enabled,
-				Mod5Source,
-				Mod5Destination,
-				Mod5Curve,
-				Mod5Scale,
-
-				Mod6Enabled,
-				Mod6Source,
-				Mod6Destination,
-				Mod6Curve,
-				Mod6Scale,
-
-				Mod7Enabled,
-				Mod7Source,
-				Mod7Destination,
-				Mod7Curve,
-				Mod7Scale,
-
-				Mod8Enabled,
-				Mod8Source,
-				Mod8Destination,
-				Mod8Curve,
-				Mod8Scale,
-
-				NumParams,
-			};
 
 			real_t mParamCache[(int)ParamIndices::NumParams] = {0};
 
@@ -258,6 +99,39 @@ namespace WaveSabreCore
 			}
 			virtual void HandleMidiCC(int ccN, int val) override {
 				// we don't care about this for the moment.
+			}
+
+			// TODO: size optimize chunk
+			virtual void SetChunk(void* data, int size) override
+			{
+				auto params = (float*)data;
+				// This may be different than our internal numParams value if this chunk was
+				//  saved with an earlier version of the plug for example. It's important we
+				//  don't read past the chunk data, so we set as many parameters as the
+				//  chunk contains, not the amount of parameters we have available. The
+				//  remaining parameters will retain their default values in that case, which
+				//  if we've done our job right, shouldn't change the sound with respect to
+				//  the parameters we read here.
+				auto numChunkParams = (int)((size - sizeof(int)) / sizeof(float));
+				for (int i = 0; i < numChunkParams; i++)
+					SetParam(i, params[i]);
+			}
+
+			// TODO: size optimize chunk. first output bools, then based on bools skip params.
+			// another way to size-optimize is that ALL our params are positive-valued floats.
+			// that leaves 1 free bit to specify if the value is the default value, then either 7 or 31 bits to complete the field.
+			// something like if (param.isbool)
+			virtual int GetChunk(void** data) override
+			{
+				int chunkSize = numParams * sizeof(float) + sizeof(int);
+				if (!chunkData) chunkData = new char[chunkSize];
+
+				for (int i = 0; i < numParams; i++)
+					((float*)chunkData)[i] = GetParam(i);
+				*(int*)((char*)chunkData + chunkSize - sizeof(int)) = chunkSize;
+
+				*data = chunkData;
+				return chunkSize;
 			}
 
 			void Maj7::SetParam(int index, float value)
@@ -404,7 +278,7 @@ namespace WaveSabreCore
 					mModMatrix.SetKRateSourceValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
 					mModMatrix.SetKRateSourceValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
 
-					mModMatrix.ProcessBlock(mModSourceBuffers);
+					mModMatrix.ProcessBlock(mModSourceBuffers, mpOwner->mModulations);
 					real_t baseVol = 0;
 					VolumeParam hiddenVolume{ baseVol, 0, 0 };
 
@@ -444,7 +318,7 @@ namespace WaveSabreCore
 						// TODO: apply panning to oscillator outputs
 						real_t sl = s1 + s2 + s3;
 
-						// apply amplitude envelope. it should be configured as a modulation tbh.
+						// apply amplitude envelope. it could also be configured as a modulation
 						float ampEnvVal = mModSourceBuffers.GetARateBuffer((size_t)ModSource::AmpEnv)[iSample];
 						sl *= hiddenVolume.GetLinearGain(ampEnvVal);
 
@@ -454,8 +328,8 @@ namespace WaveSabreCore
 						sl = mFilterL.ProcessSample(sl);
 						sr = mFilterR.ProcessSample(sr);
 
-						outputs[0][iSample] += mFilterL.ProcessSample(sl);
-						outputs[1][iSample] += mFilterR.ProcessSample(sr);
+						outputs[0][iSample] += sl;
+						outputs[1][iSample] += sr;
 					}
 
 				}
