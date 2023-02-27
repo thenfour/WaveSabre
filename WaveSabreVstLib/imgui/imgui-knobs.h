@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <string>
+#include <WaveSabreCore/Maj7.hpp>
 #include "imgui.h"
 
 typedef int ImGuiKnobFlags;
@@ -18,6 +19,8 @@ enum ImGuiKnobFlags_ {
     ImGuiKnobFlags_ValueTooltip = 1 << 2,
     ImGuiKnobFlags_DragHorizontal = 1 << 3,
     ImGuiKnobFlags_CustomInput = 1 << 4,
+    ImGuiKnobFlags_InvertXCurve = 1 << 5,
+    ImGuiKnobFlags_InvertYCurve = 1 << 6,
 };
 
 typedef int ImGuiKnobVariant;
@@ -30,7 +33,33 @@ enum ImGuiKnobVariant_ {
     ImGuiKnobVariant_WiperDot = 1 << 4,
     ImGuiKnobVariant_Stepped = 1 << 5,
     ImGuiKnobVariant_Space = 1 << 6,
+    ImGuiKnobVariant_M7Curve = 1 << 7,
 };
+
+
+inline static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertX, bool invertY, const WaveSabreCore::M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
+{
+    ImVec2 p = pos;
+    segments = std::max(segments, 2);
+
+    // begin point
+    if (invertX != invertY) {
+        // these variations start in the bottom left.
+        p.y += size.y;
+    }
+    dl->PathLineTo(p);
+
+    for (int i = 0; i < segments; ++i) {
+        float x2 = float(i + 1) / segments; // end of the line
+        float y2 = param.ApplyToValue(invertX ? 1.0f - x2 : x2);
+        y2 = invertY ? 1.0f - y2 : y2;
+        ImVec2 e = { pos.x + size.x * x2, pos.y + y2 * size.y };
+        dl->PathLineTo(e);
+    }
+
+    dl->PathStroke(color, 0, thickness);
+}
+
 
 namespace ImGuiKnobs {
 

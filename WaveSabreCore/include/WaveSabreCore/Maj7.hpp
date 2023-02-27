@@ -50,6 +50,7 @@ namespace WaveSabreCore
 			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr real_t gMasterVolumeMaxDb = 6;
 			static constexpr real_t gFilterCenterFrequency = 1000.0f;
+			static constexpr real_t gFilterFrequencyScale = 10.0f;
 
 			// BASE PARAMS & state
 			real_t mPitchBendN11 = 0;
@@ -207,7 +208,7 @@ namespace WaveSabreCore
 					mFilterType(owner->mParamCache[(int)ParamIndices::FilterType], FilterModel::Count, FilterModel::LP_Moog4),
 					mFilterQ(owner->mParamCache[(int)ParamIndices::FilterQ], 0.3f),
 					mFilterSaturation(owner->mParamCache[(int)ParamIndices::FilterSaturation], 0.1f),
-					mFilterFreq(owner->mParamCache[(int)ParamIndices::FilterFrequency], owner->mParamCache[(int)ParamIndices::FilterFrequencyKT], Maj7::gFilterCenterFrequency, 0.4f, 1.0f)
+					mFilterFreq(owner->mParamCache[(int)ParamIndices::FilterFrequency], owner->mParamCache[(int)ParamIndices::FilterFrequencyKT], Maj7::gFilterCenterFrequency, Maj7::gFilterFrequencyScale, 0.4f, 1.0f)
 				{}
 
 				Maj7* mpOwner;
@@ -288,10 +289,10 @@ namespace WaveSabreCore
 					VolumeParam hiddenVolume{ baseVol, 0, 0 };
 
 					auto filterType = this->mFilterType.GetEnumValue();
-					auto filterFreq = mFilterFreq.GetFrequency(noteHz, mModMatrix.GetDestinationValue(ModDestination::FilterFrequency));
+					auto filterFreq = mFilterFreq.GetFrequency(noteHz, mModMatrix.GetDestinationValue(ModDestination::FilterFrequency, 0));
 					filterFreq = ClampInclusive(filterFreq, 0.0f, 20000.0f);
-					auto filterQ = mFilterQ.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterQ));
-					auto filterSaturation = mFilterSaturation.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterSaturation));
+					auto filterQ = mFilterQ.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterQ, 0));
+					auto filterSaturation = mFilterSaturation.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterSaturation, 0));
 					mFilterL.SetParams(
 						filterType,
 						filterFreq,
@@ -342,7 +343,7 @@ namespace WaveSabreCore
 				virtual void NoteOn() override {
 					mVelocity01 = mNoteInfo.Velocity / 127.0f;
 					mNoteValue01 = mNoteInfo.MidiNoteValue / 127.0f;
-					mTriggerRandom01 = 0; // TODO
+					mTriggerRandom01 = Helpers::RandFloat(); // TODO
 					mAmpEnv.noteOn(mLegato);
 					mModEnv1.noteOn(mLegato);
 					mModEnv2.noteOn(mLegato);

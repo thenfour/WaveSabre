@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <string>
 #include <Windows.h>
+
 #include "imgui.h"
 #include "imgui_internal.h"
 
@@ -61,6 +62,7 @@ namespace ImGuiKnobs {
             float radius;
             bool value_changed;
             ImVec2 center;
+            ImRect graphic_rect;
             bool is_active;
             bool is_hovered;
             float angle_min;
@@ -92,6 +94,7 @@ namespace ImGuiKnobs {
 
                 angle_min = IMGUIKNOBS_PI * 0.75f;
                 angle_max = IMGUIKNOBS_PI * 2.25f;
+                graphic_rect = { screen_pos, ImVec2{screen_pos.x + radius*2, screen_pos.y + radius*2} };
                 center = { screen_pos[0] + radius, screen_pos[1] + radius };
                 is_active = ImGui::IsItemActive();
                 is_hovered = ImGui::IsItemHovered();
@@ -131,6 +134,14 @@ namespace ImGuiKnobs {
                     center,
                     circle_radius,
                     is_active ? color.active : (is_hovered ? color.hovered : color.base));
+            }
+
+            void draw_m7_curve(color_set bgcolor, color_set linecolor, bool invertX, bool invertY) {
+                ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
+                float val;
+                WaveSabreCore::M7::CurveParam param {val, 0 };
+                param.SetParamValue(this->t);
+                AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, param, linecolor.base, 2.0f);
             }
 
             void draw_arc(float radius, float size, float start_angle, float end_angle, color_set color, int segments, int bezier_count) {
@@ -311,6 +322,11 @@ namespace ImGuiKnobs {
             }
             break;
         }
+        case ImGuiKnobVariant_M7Curve: {
+            // assumes 0-1 range
+            knob.draw_m7_curve(detail::GetTrackColorSet(), detail::GetDotColorSet(), !!(flags & ImGuiKnobFlags_InvertXCurve), !!(flags & ImGuiKnobFlags_InvertYCurve));
+            break;
+        }
         }
 
         return knob.value_changed;
@@ -320,11 +336,6 @@ namespace ImGuiKnobs {
         const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%.3f" : format;
-
-        //if (ImGui::GetIO().KeyShift) {
-        //    ::OutputDebugStringA("SLOW MODE SHIFT");
-        //}
-
         return BaseKnob(label, ImGuiDataType_Float, p_value, v_min, v_max, v_default, ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
     }
 

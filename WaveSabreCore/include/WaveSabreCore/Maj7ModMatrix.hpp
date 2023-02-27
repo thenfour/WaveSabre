@@ -635,6 +635,7 @@ namespace WaveSabreCore
 					mElementsAllocated = desiredElements;
 				}
 				mBlockSize = blockSize;
+				memset(mpBuffer, 0, desiredElements * sizeof(mpBuffer[0]));
 				memset(mpKRateValues, 0, std::size(mpKRateValues) * sizeof(mpKRateValues[0]));
 				memset(mpARatePopulated, 0, std::size(mpARatePopulated) * sizeof(mpARatePopulated[0]));
 				memset(mpKRatePopulated, 0, std::size(mpKRatePopulated) * sizeof(mpKRatePopulated[0]));
@@ -713,7 +714,7 @@ namespace WaveSabreCore
 			}
 
 			template<typename Tmodid>
-			inline real_t GetDestinationValue(Tmodid id, size_t sample = 0) const
+			inline real_t GetDestinationValue(Tmodid id, size_t sample) const
 			{
 				return mDest.GetValue((size_t)id, sample);
 			}
@@ -732,9 +733,6 @@ namespace WaveSabreCore
 			template<size_t NmodulationSpecs>
 			void ProcessSample(ModulationSpec (&modSpecs)[NmodulationSpecs], size_t iSample)
 			{
-				float mCurveParam;
-				CurveParam cp{ mCurveParam, 0 };
-				// run mod specs
 				for (ModulationSpec& spec : modSpecs) {
 					if (!spec.mEnabled.GetBoolValue()) continue;
 					const auto& sourceInfo = gModSourceInfo[(int)spec.mSource.GetEnumValue()];
@@ -744,8 +742,7 @@ namespace WaveSabreCore
 
 					real_t sourceVal = GetSourceValue(spec.mSource.GetEnumValue(), iSample);
 					real_t destVal = GetDestinationValue(spec.mDestination.GetEnumValue(), iSample);
-					cp.SetParamValue(spec.mCurve.GetN11Value());
-					sourceVal = cp.ApplyToValue(sourceVal);
+					sourceVal = spec.mCurve.ApplyToValue(sourceVal);
 					sourceVal *= spec.mScale.GetN11Value();
 					mDest.SetARateValue((size_t)spec.mDestination.GetEnumValue(), iSample, destVal + sourceVal);
 				}

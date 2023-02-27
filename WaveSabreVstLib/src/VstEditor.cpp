@@ -236,7 +236,7 @@ namespace WaveSabreVstLib
 		ImGui::SetNextWindowPos(ImVec2{ 0, 0 });
 		ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Once);
 
-		ImGui::Begin("##main", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+		ImGui::Begin("##main", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Wavesabre")) {
@@ -249,7 +249,7 @@ namespace WaveSabreVstLib
 
 			//char effectName[kVstMaxEffectNameLen * 2 + 50];
 			//GetEffectX()->getEffectName(effectName);
-			char title[200];
+			//char title[200];
 			// i don't really know if it's kosher to do this in a menu bar.
 			ImGui::TextColored(ImColor{.5f, .5f, .5f}, "%.1f FPS, CPU: %.2f", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100);
 

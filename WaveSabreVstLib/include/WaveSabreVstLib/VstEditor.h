@@ -143,8 +143,8 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::FrequencyParam mParam;
 			VstInt32 mKTParamID;
 
-			Maj7FrequencyConverter(M7::real_t centerFreq, VstInt32 ktParamID /*pass -1 if no KT*/) :
-				mParam(mBacking, mBackingKT, centerFreq, 0.5f, 0),
+			Maj7FrequencyConverter(M7::real_t centerFreq, M7::real_t scale, VstInt32 ktParamID /*pass -1 if no KT*/) :
+				mParam(mBacking, mBackingKT, centerFreq, scale, 0.5f, 0),
 				mKTParamID(ktParamID)
 			{
 			}
@@ -160,13 +160,16 @@ namespace WaveSabreVstLib
 				if (mParam.mKTValue.Get01Value() < 0.00001f) {
 					M7::real_t hz = mParam.GetFrequency(0, 0);
 					if (hz >= 1000) {
-						sprintf_s(s, "%0.2fHz", hz);
+						sprintf_s(s, "%.0fHz", hz);
 					}
-					if (hz >= 100) {
-						sprintf_s(s, "%0.1fHz", hz);
+					else if (hz >= 100) {
+						sprintf_s(s, "%.1fHz", hz);
+					}
+					else if (hz >= 10) {
+						sprintf_s(s, "%.2fHz", hz);
 					}
 					else {
-						sprintf_s(s, "%dHz", (int)(hz+0.5f));
+						sprintf_s(s, "%.3fHz", hz);
 					}
 				}
 				else {
@@ -571,13 +574,13 @@ namespace WaveSabreVstLib
 			}
 		}
 
-		void Maj7ImGuiParamFrequency(VstInt32 paramID, VstInt32 ktParamID, const char* label, M7::real_t centerFreq, M7::real_t defaultParamValue) {
+		void Maj7ImGuiParamFrequency(VstInt32 paramID, VstInt32 ktParamID, const char* label, M7::real_t centerFreq, M7::real_t scale, M7::real_t defaultParamValue) {
 			M7::real_t tempVal;
 			M7::real_t tempValKT;
-			M7::FrequencyParam p{ tempVal, tempValKT, centerFreq, defaultParamValue, 0 };
+			M7::FrequencyParam p{ tempVal, tempValKT, centerFreq, scale, defaultParamValue, 0 };
 			p.mValue.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
-			Maj7FrequencyConverter conv{ centerFreq, ktParamID };
+			Maj7FrequencyConverter conv{ centerFreq, scale, ktParamID };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
@@ -610,6 +613,32 @@ namespace WaveSabreVstLib
 			}
 		}
 
+		enum class M7CurveRenderStyle
+		{
+			Rising,
+			Falling,
+		};
+
+		void Maj7ImGuiParamCurve(VstInt32 paramID, const char* label, M7::real_t v_defaultN11, M7CurveRenderStyle style) {
+			WaveSabreCore::M7::real_t tempVal;
+			M7::CurveParam p{ tempVal, v_defaultN11 };
+			float defaultParamVal = p.GetRawParamValue();
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			FloatN11Converter conv{ };
+			int flags = (int)ImGuiKnobFlags_CustomInput;
+			if (style == M7CurveRenderStyle::Rising) {
+				flags |= ImGuiKnobFlags_InvertYCurve;
+			}
+			else if (style == M7CurveRenderStyle::Falling) {
+				flags |= ImGuiKnobFlags_InvertYCurve | ImGuiKnobFlags_InvertXCurve;
+			}
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_M7Curve, 0, flags, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
 		void Maj7ImGuiParamVolume(VstInt32 paramID, const char* label, M7::real_t maxDb, M7::real_t v_defaultScaled) {
 			WaveSabreCore::M7::real_t tempVal;
 			M7::VolumeParam p{ tempVal, maxDb, v_defaultScaled };
@@ -623,24 +652,24 @@ namespace WaveSabreVstLib
 			}
 		}
 
-		void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertCurveParam, const M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
-		{
-			ImVec2 p = pos;
-			segments = std::max(segments, 2);
+		//static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertCurveParam, const M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
+		//{
+		//	ImVec2 p = pos;
+		//	segments = std::max(segments, 2);
 
-			// begin point
-			dl->PathLineTo(pos);
+		//	// begin point
+		//	dl->PathLineTo(pos);
 
-			for (int i = 0; i < segments; ++i) {
-				float x2 = float(i + 1) / segments; // end of the line
-				float y2 = param.ApplyToValue(invertCurveParam ? 1.0f - x2 : x2);
-				y2 = invertCurveParam ? 1.0f - y2 : y2;
-				ImVec2 e = { pos.x + size.x * x2, pos.y + y2 * size.y };
-				dl->PathLineTo(e);
-			}
+		//	for (int i = 0; i < segments; ++i) {
+		//		float x2 = float(i + 1) / segments; // end of the line
+		//		float y2 = param.ApplyToValue(invertCurveParam ? 1.0f - x2 : x2);
+		//		y2 = invertCurveParam ? 1.0f - y2 : y2;
+		//		ImVec2 e = { pos.x + size.x * x2, pos.y + y2 * size.y };
+		//		dl->PathLineTo(e);
+		//	}
 
-			dl->PathStroke(color, 0, thickness);
-		}
+		//	dl->PathStroke(color, 0, thickness);
+		//}
 
 		template<typename Tenum>
 		void Maj7ImGuiEnvelopeGraphic(const char* label,
@@ -693,7 +722,7 @@ namespace WaveSabreVstLib
 			ImVec2 innerBottomRight = { innerBottomLeft.x + gMaxWidth, innerBottomLeft.y };
 			//dl->AddRectFilled(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
 			//dl->AddRect(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_Frame));
-			ImGui::RenderFrame(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
+			ImGui::RenderFrame(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 5.0f);
 			//dl->AddRectFilled(innerTL, innerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
 
 			//ImVec2 startPos = innerBottomLeft;// { innerTL.x, innerTL.y + innerHeight };
@@ -704,21 +733,21 @@ namespace WaveSabreVstLib
 			//dl->PathLineTo(delayEnd); // delay flat line
 
 			ImVec2 attackEnd = { delayEnd.x + attackWidth, innerTL.y };
-			AddCurveToPath(dl, delayEnd, { attackEnd.x - delayEnd.x, attackEnd.y - delayEnd.y }, false, attackCurve, lineColor, gLineThickness);
+			AddCurveToPath(dl, delayEnd, { attackEnd.x - delayEnd.x, attackEnd.y - delayEnd.y }, false, false, attackCurve, lineColor, gLineThickness);
 
 			ImVec2 holdEnd = { attackEnd.x + holdWidth, attackEnd.y };
 			//dl->PathLineTo(holdEnd);
 			dl->AddLine(attackEnd, holdEnd, lineColor, gLineThickness);
 
 			ImVec2 decayEnd = { holdEnd.x + decayWidth, innerTL.y + sustainYOffset };
-			AddCurveToPath(dl, holdEnd, { decayEnd.x - holdEnd.x, decayEnd.y - holdEnd.y }, true, decayCurve, lineColor, gLineThickness);
+			AddCurveToPath(dl, holdEnd, { decayEnd.x - holdEnd.x, decayEnd.y - holdEnd.y }, true, true, decayCurve, lineColor, gLineThickness);
 
 			ImVec2 sustainEnd = { decayEnd.x + sustainWidth, decayEnd.y};
 			//dl->PathLineTo(sustainEnd); // sustain flat line
 			dl->AddLine(decayEnd, sustainEnd, lineColor, gLineThickness);
 
 			ImVec2 releaseEnd = { sustainEnd.x + releaseWidth, innerBottomLeft.y };
-			AddCurveToPath(dl, sustainEnd, { releaseEnd.x - sustainEnd.x, releaseEnd.y - sustainEnd.y }, true, releaseCurve, lineColor, gLineThickness);
+			AddCurveToPath(dl, sustainEnd, { releaseEnd.x - sustainEnd.x, releaseEnd.y - sustainEnd.y }, true, true, releaseCurve, lineColor, gLineThickness);
 
 			dl->AddCircleFilled(delayStart, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
 			dl->AddCircleFilled(delayEnd, handleRadius, ImGui::GetColorU32(ImGuiCol_PlotLinesHovered), circleSegments);
@@ -737,6 +766,8 @@ namespace WaveSabreVstLib
 
 			ImGui::Dummy({ outerBottomRight.x - originalPos.x, outerBottomRight.y - originalPos.y });
 		}
+
+
 
 		virtual bool onKeyDown(VstKeyCode& keyCode) override {
 			mLastKeyDown = keyCode;

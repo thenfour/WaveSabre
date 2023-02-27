@@ -49,7 +49,7 @@ namespace WaveSabreCore
 
             // advances to a specified stage. The point of this is to advance through 0-length stages so we don't end up with
             // >=1sample per stage.
-            void AdvanceToStage(EnvelopeStage stage, int isample)
+            void AdvanceToStage(EnvelopeStage stage, size_t isample)
             {
                 switch (stage)
                 {
@@ -139,7 +139,7 @@ namespace WaveSabreCore
                 RecalcState(0);
             }
 
-            float ProcessSample(int isample)
+            float ProcessSample(size_t isample)
             {
                 float ret = 0;
                 EnvelopeStage nextStage = EnvelopeStage::Idle;
@@ -175,7 +175,7 @@ namespace WaveSabreCore
                     break;
                 }
                 case EnvelopeStage::Sustain: {
-                    return (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel));
+                    return (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel, isample));
                 }
                 case EnvelopeStage::Release: {
                     // 0-1 => mReleaseFromValue01 - 0
@@ -197,7 +197,7 @@ namespace WaveSabreCore
             }
 
         private:
-            void RecalcState(int isample)
+            void RecalcState(size_t isample)
             {
                 switch (mStage)
                 {

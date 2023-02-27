@@ -505,16 +505,18 @@ namespace WaveSabreCore
         {
             const float mCenterMidiNote;
             const float mCenterFrequency;
+            const float mScale;
 
         public:
             Float01Param mValue;
             Float01Param mKTValue; // how much key tracking to apply. when 0, the frequency doesn't change based on playing note. when 1, it scales completely with the note's frequency.
 
-            explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t initialValue, real_t initialKT) :
+            explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT) :
                 mValue(valRef, initialValue),
                 mKTValue(ktRef, initialKT),
                 mCenterFrequency(centerFrequency),
-                mCenterMidiNote(FrequencyToMIDINote(centerFrequency))
+                mCenterMidiNote(FrequencyToMIDINote(centerFrequency)),
+                mScale(scale)
             {}
 
             // noteHz is the playing note, to support key-tracking.
@@ -537,7 +539,7 @@ namespace WaveSabreCore
                 float centerFreq = Lerp(mCenterFrequency, ktFreq, mKTValue.Get01Value());
 
                 param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)
-                param *= 10.0f; // (.3 = -2, .8 = 3)
+                param *= mScale;// 10.0f; // (.3 = -2, .8 = 3)
                 float fact = math::pow(2, param);
                 return Clamp(centerFreq * fact, 0.0f, 22050.0f);
             }
@@ -546,15 +548,13 @@ namespace WaveSabreCore
             // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
             float GetMidiNote(float playingMidiNote, float paramModulation) const
             {
-                //constexpr float oneKhzMidiNote =
-                //    83.213094853f;                   // 1000hz, in midi notes. this replicates behavior of filter modulation.
                 float ktNote = playingMidiNote + 24; // center represents playing note + 2 octaves.
 
                 float centerNote = Lerp(mCenterMidiNote, ktNote, mKTValue.Get01Value());
 
                 float param = mValue.Get01Value() + paramModulation;
 
-                param = (param - 0.5f) * 10; // rescale from 0-1 to -5 to +5 (octaves)
+                param = (param - 0.5f) * mScale;// 10; // rescale from 0-1 to -5 to +5 (octaves)
                 float paramSemis =
                     centerNote + param * 12; // each 1 param = 1 octave. because we're in semis land, it's just a mul.
                 return paramSemis;

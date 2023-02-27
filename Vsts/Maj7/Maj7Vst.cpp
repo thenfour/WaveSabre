@@ -19,7 +19,6 @@ Maj7Vst::Maj7Vst(audioMasterCallback audioMaster)
 
 void Maj7Vst::getParameterName(VstInt32 index, char* text)
 {
-
 	using vstn = const char[kVstMaxParamStrLen];
 	static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 

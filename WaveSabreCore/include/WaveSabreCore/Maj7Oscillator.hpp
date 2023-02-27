@@ -50,7 +50,11 @@ namespace WaveSabreCore
 		{
 			static constexpr real_t gVolumeMaxDb = 0;
 			static constexpr real_t gSyncFrequencyCenterHz = 1000;
+			static constexpr real_t gSyncFrequencyScale = 10;
 			static constexpr real_t gFrequencyCenterHz = 1000;
+			static constexpr real_t gFrequencyScale = 10;
+			static constexpr real_t gLFOFrequencyCenterHz = 1.0f;
+			static constexpr real_t gLFOFrequencyScale = 8;
 			static constexpr int gPitchSemisRange = 24;
 			static constexpr real_t gFrequencyMulMax = 64;
 
@@ -71,7 +75,8 @@ namespace WaveSabreCore
 
 			// LFO backing values
 			float mLFOConst1 = 1.0f;
-			float mLFOConst0 = 1.0f;
+			float mLFOConst0 = 0.0f;
+			float mLFOConstN1 = -1.0f;
 			float mLFOVolumeParamValue = 1.0f;
 			float mLFOSyncFrequencyParamValue = 1.0f;
 			float mLFOPitchSemisParamValue = 0.5f;
@@ -88,8 +93,8 @@ namespace WaveSabreCore
 				mPhaseRestart(paramCache[paramBaseID + (int)OscParamIndexOffsets::PhaseRestart], false),
 				mPhaseOffset(paramCache[paramBaseID + (int)OscParamIndexOffsets::PhaseOffset], 0),
 				mSyncEnable(paramCache[paramBaseID + (int)OscParamIndexOffsets::SyncEnable], false),
-				mSyncFrequency(paramCache[paramBaseID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[paramBaseID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFrequencyCenterHz, 0.4f, 1.0f),
-				mFrequency(paramCache[paramBaseID + (int)OscParamIndexOffsets::FrequencyParam], paramCache[paramBaseID + (int)OscParamIndexOffsets::FrequencyParamKT], gFrequencyCenterHz, 0.4f, 1.0f),
+				mSyncFrequency(paramCache[paramBaseID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[paramBaseID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFrequencyCenterHz, gSyncFrequencyScale, 0.4f, 1.0f),
+				mFrequency(paramCache[paramBaseID + (int)OscParamIndexOffsets::FrequencyParam], paramCache[paramBaseID + (int)OscParamIndexOffsets::FrequencyParamKT], gFrequencyCenterHz, gFrequencyScale, 0.4f, 1.0f),
 				mPitchSemis(paramCache[paramBaseID + (int)OscParamIndexOffsets::PitchSemis], -gPitchSemisRange, gPitchSemisRange, 0),
 				mPitchFine(paramCache[paramBaseID + (int)OscParamIndexOffsets::PitchFine], 0),
 				mFrequencyMul(paramCache[paramBaseID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax, 1.0f),
@@ -109,8 +114,8 @@ namespace WaveSabreCore
 				mPhaseRestart(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Restart], false),
 				mPhaseOffset(paramCache[paramBaseID + (int)LFOParamIndexOffsets::PhaseOffset], 0),
 				mSyncEnable(mLFOConst0, false),
-				mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOConst1, 1000.0f, 0.4f, 1.0f),
-				mFrequency(paramCache[paramBaseID + (int)LFOParamIndexOffsets::FrequencyParam], mLFOConst0, 4.0f, 0.1f, 1.0f),
+				mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOConst1, gSyncFrequencyCenterHz, gSyncFrequencyScale, 0.4f, 0),
+				mFrequency(paramCache[paramBaseID + (int)LFOParamIndexOffsets::FrequencyParam], mLFOConst0, gLFOFrequencyCenterHz, gLFOFrequencyScale, 0.1f, 0),
 				mPitchSemis(mLFOPitchSemisParamValue, -24, 24, 0),
 				mPitchFine(mLFOPitchFineParamValue, 0),
 				mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f, 1.0f),
@@ -168,7 +173,7 @@ namespace WaveSabreCore
 				mPhase += dt;
 				mPhase -= math::floor(mPhase);
 
-				mLastSample = math::sin((mPhase + (mLastSample * mFMFeedback01.Get01Value())) * 2 * math::gPI);
+				mLastSample = math::sin((mPhase + (mLastSample * mFMFeedback01.Get01Value(fmFeedbackModVal))) * 2 * math::gPI);
 
 				return mLastSample * mVolume.GetLinearGain(volumeModVal);
 			}
