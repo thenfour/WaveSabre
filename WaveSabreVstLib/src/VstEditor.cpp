@@ -11,6 +11,8 @@ using namespace std;
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 extern void* hInstance;
 
+static std::atomic_bool gIsRendering = false;
+
 namespace WaveSabreVstLib
 {
 	VstEditor::VstEditor(AudioEffect *audioEffect, int width, int height)
@@ -61,7 +63,11 @@ namespace WaveSabreVstLib
 
 			// Setup Dear ImGui context
 			IMGUI_CHECKVERSION();
-			ImGui::CreateContext();
+			mImGuiContext = ImGui::CreateContext();
+
+			// CreateContext doesn't actually set the context to the new one for multiple instances.
+			auto contextToken = PushMyImGuiContext("Initializing");
+
 			ImGuiIO& io = ImGui::GetIO();
 			(void)io;
 			io.WantCaptureKeyboard = true;// ();
@@ -75,9 +81,12 @@ namespace WaveSabreVstLib
 
 	void VstEditor::Window_Close()
 	{
+		auto contextToken = PushMyImGuiContext("Window_Close()");
+
 		ImGui_ImplDX9_Shutdown();
 		ImGui_ImplWin32_Shutdown();
 		ImGui::DestroyContext();
+		mImGuiContext = nullptr;
 
 		CleanupDeviceD3D();
 
@@ -113,6 +122,8 @@ namespace WaveSabreVstLib
 	}
 
 	void VstEditor::ResetDevice() {
+		auto contextToken = PushMyImGuiContext("ResetDevice()");
+
 		ImGui_ImplDX9_InvalidateDeviceObjects();
 		HRESULT hr = g_pd3dDevice->Reset(&g_d3dpp);
 		if (hr == D3DERR_INVALIDCALL)
@@ -127,47 +138,31 @@ namespace WaveSabreVstLib
 		{
 		case WM_SYSKEYDOWN:
 		{
-			//char b[200] = { 0 };
-			//std::sprintf(b, "windows WM_SYSKEYDOWN : %d", (int)wParam);
-			//OutputDebugStringA(b);
-			//return 0;
 			break;
 		}
 		case WM_SYSKEYUP:
 		{
-			//char b[200] = { 0 };
-			//std::sprintf(b, "windows WM_SYSKEYUP : %d", (int)wParam);
-			//OutputDebugStringA(b);
-			//return 0;
 			break;
 		}
 		case WM_KEYDOWN:
 		{
-			//char b[200] = { 0 };
-			//std::sprintf(b, "windows WM_KEYDOWN : %d", (int)wParam);
-			//OutputDebugStringA(b);
-			//return 0;
 			break;
 		}
 		case WM_KEYUP:
 		{
-			//char b[200] = { 0 };
-			//std::sprintf(b, "windows WM_KEYUP : %d", (int)wParam);
-			//OutputDebugStringA(b);
-			//return 0;
 			break;
 		}
 		case WM_CHAR:
 		{
-			//char b[200] = { 0 };
-			//std::sprintf(b, "windows WM_CHAR: %d", (int)wParam);
-			//OutputDebugStringA(b);
 			return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 		}
 		}
 
-		if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
-			return true;
+		if (mImGuiContext) {
+			auto contextToken = PushMyImGuiContext("ImGui_ImplWin32_WndProcHandler");
+			if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
+				return true;
+			}
 		}
 
 		switch (msg)
@@ -185,10 +180,10 @@ namespace WaveSabreVstLib
 				return 0;
 			break;
 		case WM_TIMER:
-			if (!mIsRendering) {
-				mIsRendering = true;
+			if (!gIsRendering) {
+				gIsRendering = true;
 				ImguiPresent();
-				mIsRendering = false;
+				gIsRendering = false;
 			}
 			return 0;
 		}
@@ -212,6 +207,8 @@ namespace WaveSabreVstLib
 
 	void VstEditor::ImguiPresent()
 	{
+		auto contextToken = PushMyImGuiContext("ImguiPresent()");
+
 		// make sure our child window is the same size as the one given to us.
 		RECT rcParent, rcWnd;
 		GetWindowRect(mParentWindow, &rcParent);
@@ -228,7 +225,6 @@ namespace WaveSabreVstLib
 			return;
 		}
 
-		// Start the Dear ImGui frame
 		ImGui_ImplDX9_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -240,18 +236,25 @@ namespace WaveSabreVstLib
 		ImGui::SetNextWindowPos(ImVec2{ 0, 0 });
 		ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Once);
 
-		char title[500];
-		GetEffectX()->getEffectName(title);
+		ImGui::Begin("##main", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
 
-		ImGui::Begin(title, 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize);
+		if (ImGui::BeginMenuBar()) {
+			if (ImGui::BeginMenu("Wavesabre")) {
+				if (ImGui::MenuItem("Toggle ImGui demo window", nullptr, showingDemo)) {
+					showingDemo = !showingDemo;
+				}
+				ImGui::EndMenu();
+			}
+			PopulateMenuBar();
 
-		if (ImGui::Button("Demo"))
-		{
-			showingDemo = !showingDemo;
+			//char effectName[kVstMaxEffectNameLen * 2 + 50];
+			//GetEffectX()->getEffectName(effectName);
+			char title[200];
+			// i don't really know if it's kosher to do this in a menu bar.
+			ImGui::TextColored(ImColor{.5f, .5f, .5f}, "%.1f FPS, CPU: %.2f", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100);
+
+			ImGui::EndMenuBar();
 		}
-
-		ImGui::SameLine();
-		ImGui::Text("%.1f FPS, CPU: %.2f %", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100);
 
 		this->renderImgui();
 

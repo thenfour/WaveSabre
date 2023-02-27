@@ -3,14 +3,14 @@
 
 #include <math.h>
 #include <Windows.h>
-
-
-void __cdecl operator delete[](void* p) {
-	free(p);
-}
-void* __cdecl operator new[](unsigned __int64 bytes) {
-	return malloc(bytes);
-}
+//
+//
+//void __cdecl operator delete[](void* p) {
+//	free(p);
+//}
+//void* __cdecl operator new[](unsigned __int64 bytes) {
+//	return malloc(bytes);
+//}
 
 namespace WaveSabreCore
 {

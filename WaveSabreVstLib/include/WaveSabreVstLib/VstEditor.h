@@ -49,6 +49,7 @@ namespace WaveSabreVstLib
 		}
 
 		virtual void renderImgui() = 0;
+		virtual void PopulateMenuBar() {}; // can override to add menu items
 
 		bool open(void* ptr) override
 		{
@@ -624,33 +625,20 @@ namespace WaveSabreVstLib
 
 		void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertCurveParam, const M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
 		{
-			//if (invertY) {
-			//	pos.y += size.y;
-			//	size.y = -size.y;
-			//}
 			ImVec2 p = pos;
 			segments = std::max(segments, 2);
 
 			// begin point
 			dl->PathLineTo(pos);
-			//cc::log("AddCurveToPath, size=%f,%f  curveParam=%f, color=%08x, thickness=%f", size.x, size.y, param.GetRawParamValue(), color, thickness);
-			//cc::log("  line to %f, %f", pos.x, pos.y);
 
-			//segments -= 2;
 			for (int i = 0; i < segments; ++i) {
-				//float x1 = float(i) / segments; // the beginning of the line
 				float x2 = float(i + 1) / segments; // end of the line
-				//float xc = (x1 + x2) / 2.0f;
-				//float y1 = param.ApplyToValue(x1);
 				float y2 = param.ApplyToValue(invertCurveParam ? 1.0f - x2 : x2);
 				y2 = invertCurveParam ? 1.0f - y2 : y2;
 				ImVec2 e = { pos.x + size.x * x2, pos.y + y2 * size.y };
 				dl->PathLineTo(e);
-				//cc::log("  line to %f, %f", e.x, e.y);
-				//dl->AddLine();
 			}
 
-			//dl->PathLineTo({ pos.x + size.x, pos.y + size.y }); // end point
 			dl->PathStroke(color, 0, thickness);
 		}
 
@@ -750,45 +738,6 @@ namespace WaveSabreVstLib
 			ImGui::Dummy({ outerBottomRight.x - originalPos.x, outerBottomRight.y - originalPos.y });
 		}
 
-		//template<typename Tenum>
-		//void Maj7ImGuiFilterGraphic(Tenum filterTypeParamID, Tenum filterFrequencyParamID, Tenum filterQParamID, M7::real_t centerFrequency)
-		//{
-		//	static constexpr float innerWidth = 300;
-		//	static constexpr float innerHeight = 60; // excluding padding
-		//	static constexpr float padding = 7;
-		//	static constexpr float lineThickness = 2.7f;
-		//	ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_PlotLines);
-
-		//	float filterTypeVal;
-		//	M7::EnumParam<M7::FilterModel> filterTypeParam{ filterTypeVal, M7::FilterModel::Count, M7::FilterModel::Disabled };
-		//	filterTypeParam.SetParamValue(GetEffectX()->getParameter((VstInt32)filterTypeParamID));
-		//	float freqVal;
-		//	float freqKTVal = 0;
-		//	M7::FrequencyParam freqParam{freqVal, freqKTVal, centerFrequency, GetEffectX()->getParameter((VstInt32)filterFrequencyParamID), 0 };
-		//	float filterQVal = GetEffectX()->getParameter((VstInt32)filterQParamID);
-		//	M7::FilterNode filter;
-		//	filter.SetParams(filterTypeParam.GetEnumValue(), freqParam.GetFrequency(0, 0), filterQVal, 0);
-
-		//	ImVec2 outerTL = ImGui::GetCursorScreenPos();
-		//	ImVec2 innerTL = { outerTL.x + padding, outerTL.y + padding };
-		//	ImVec2 innerBR = { innerTL.x + innerWidth, innerTL.y + innerHeight };
-		//	ImVec2 outerBR = { innerBR.x + padding, innerBR.y + padding };
-		//	ImDrawList* dl = ImGui::GetWindowDrawList();
-
-		//	// background
-		//	ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg));
-
-		//	for (int i = 0; i < innerWidth; ++i)
-		//	{
-		//		float x = float(i) / innerWidth;
-		//		float y = filter.mSelectedFilter->GetGain01AtFrequency(22000.0f / innerWidth * i);
-		//		dl->AddLine({ innerTL.x + x * innerWidth , innerBR.y }, {innerTL.x + x * innerWidth, innerTL.y + y * innerHeight}, lineColor, lineThickness);
-		//	}
-
-		//	ImGui::Dummy({ outerBR.x - outerTL.x, outerBR.y - outerTL.y });
-		//}
-
-
 		virtual bool onKeyDown(VstKeyCode& keyCode) override {
 			mLastKeyDown = keyCode;
 			return false; // return true avoids Reaper acting like you made a mistake (ding sfx)
@@ -824,6 +773,35 @@ namespace WaveSabreVstLib
 		HWND mParentWindow = nullptr;
 		HWND mCurrentWindow = nullptr;
 
+		ImGuiContext* mImGuiContext = nullptr;
+
+		struct GuiContextRestorer
+		{
+			ImGuiContext* mPrevContext = nullptr;
+			const char* mWhy;
+			GuiContextRestorer(ImGuiContext* newContext, const char *why) : mWhy(why) {
+
+				mPrevContext = ImGui::GetCurrentContext();
+				if (mPrevContext == newContext) {
+					return; // no change needed.
+				}
+
+				ImGui::SetCurrentContext(newContext);
+			}
+			~GuiContextRestorer()
+			{
+				auto current = ImGui::GetCurrentContext();
+				if (current == mPrevContext) {
+					return;
+				}
+				ImGui::SetCurrentContext(mPrevContext);
+			}
+		};
+
+		GuiContextRestorer PushMyImGuiContext(const char *why) {
+			return { mImGuiContext, why };
+		}
+
 		void ImguiPresent();
 
 		static LRESULT WINAPI gWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -831,7 +809,6 @@ namespace WaveSabreVstLib
 
 		ERect mDefaultRect = { 0 };
 		bool showingDemo = false;
-		bool mIsRendering = false;
 	};
 
 
