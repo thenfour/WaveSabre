@@ -49,46 +49,46 @@ namespace WaveSabreCore
 
             // advances to a specified stage. The point of this is to advance through 0-length stages so we don't end up with
             // >=1sample per stage.
-            void AdvanceToStage(EnvelopeStage stage)
+            void AdvanceToStage(EnvelopeStage stage, int isample)
             {
                 switch (stage)
                 {
                 case EnvelopeStage::Idle:
                     break;
                 case EnvelopeStage::Delay:
-                    if (FloatLessThanOrEquals(mDelayTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime)), 0))
+                    if (FloatLessThanOrEquals(mDelayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime, isample)), 0))
                     {
-                        AdvanceToStage(EnvelopeStage::Attack);
+                        AdvanceToStage(EnvelopeStage::Attack, isample);
                         return;
                     }
                     break;
                 case EnvelopeStage::Attack:
-                    if (FloatLessThanOrEquals(mAttackTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime)), 0))
+                    if (FloatLessThanOrEquals(mAttackTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime, isample)), 0))
                     {
-                        AdvanceToStage(EnvelopeStage::Hold);
+                        AdvanceToStage(EnvelopeStage::Hold, isample);
                         return;
                     }
                     break;
                 case EnvelopeStage::Hold:
-                    if (FloatLessThanOrEquals(mHoldTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime)), 0))
+                    if (FloatLessThanOrEquals(mHoldTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime, isample)), 0))
                     {
-                        AdvanceToStage(EnvelopeStage::Decay);
+                        AdvanceToStage(EnvelopeStage::Decay, isample);
                         return;
                     }
                     break;
                 case EnvelopeStage::Decay:
-                    if (FloatLessThanOrEquals(mDecayTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)), 0))
+                    if (FloatLessThanOrEquals(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime, isample)), 0))
                     {
-                        AdvanceToStage(EnvelopeStage::Decay);
+                        AdvanceToStage(EnvelopeStage::Decay, isample);
                         return;
                     }
                     break;
                 case EnvelopeStage::Sustain:
                     break;
                 case EnvelopeStage::Release:
-                    if (FloatLessThanOrEquals(mReleaseTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)), 0))
+                    if (FloatLessThanOrEquals(mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime, isample)), 0))
                     {
-                        AdvanceToStage(EnvelopeStage::Idle);
+                        AdvanceToStage(EnvelopeStage::Idle, isample);
                         return;
                     }
                     // here we must determine the value to release from, based on existing stage.
@@ -97,24 +97,24 @@ namespace WaveSabreCore
                 }
                 mStagePos01 = 0;
                 mStage = stage;
-                RecalcState();
+                RecalcState(isample);
             }
 
             void noteOn(bool isLegato)
             {
                 if (isLegato && !mLegatoRestart.GetBoolValue()) return;
                 // TODO: what if no legato restart, it's legato, but we're not actually in a playing stage?
-                AdvanceToStage(EnvelopeStage::Delay);
+                AdvanceToStage(EnvelopeStage::Delay, 0);
             }
 
             void noteOff()
             {
                 if (!IsPlaying()) return;
-                AdvanceToStage(EnvelopeStage::Release);
+                AdvanceToStage(EnvelopeStage::Release, 0);
             }
 
             void kill() {
-                AdvanceToStage(EnvelopeStage::Idle);
+                AdvanceToStage(EnvelopeStage::Idle, 0);
             }
 
             // used by debug displays
@@ -136,10 +136,10 @@ namespace WaveSabreCore
 
             void BeginBlock()
             {
-                RecalcState();
+                RecalcState(0);
             }
 
-            float ProcessSample()
+            float ProcessSample(int isample)
             {
                 float ret = 0;
                 EnvelopeStage nextStage = EnvelopeStage::Idle;
@@ -156,7 +156,7 @@ namespace WaveSabreCore
                     break;
                 }
                 case EnvelopeStage::Attack: {
-                    ret = mAttackCurve.ApplyToValue(mStagePos01, mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackCurve));// gModCurveLUT.Transfer32(mStagePos01, mpLutRow); // 0-1
+                    ret = mAttackCurve.ApplyToValue(mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackCurve, isample));// gModCurveLUT.Transfer32(mStagePos01, mpLutRow); // 0-1
                     nextStage = EnvelopeStage::Hold;
                     break;
                 }
@@ -168,19 +168,19 @@ namespace WaveSabreCore
                 case EnvelopeStage::Decay: {
                     // 0-1 => 1 - sustainlevel
                     // curve contained within the stage, not the output 0-1 range.
-                    float range = 1.0f - (mSustainLevel.Get01Value() + mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel)); // could be precalculated
-                    ret = 1.0f - mDecayCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayCurve));// gModCurveLUT.Transfer32(1.0f - mStagePos01, mpLutRow);   // 0-1
+                    float range = 1.0f - (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel, isample)); // could be precalculated
+                    ret = 1.0f - mDecayCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayCurve, isample));// gModCurveLUT.Transfer32(1.0f - mStagePos01, mpLutRow);   // 0-1
                     ret = 1.0f - range * ret;
                     nextStage = EnvelopeStage::Sustain;
                     break;
                 }
                 case EnvelopeStage::Sustain: {
-                    return (mSustainLevel.Get01Value() + mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel));
+                    return (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel));
                 }
                 case EnvelopeStage::Release: {
                     // 0-1 => mReleaseFromValue01 - 0
                     // curve contained within the stage, not the output 0-1 range.
-                    ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));// gModCurveLUT.Transfer32(1.0f - mStagePos01, mpLutRow); // 1-0
+                    ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve, isample));// gModCurveLUT.Transfer32(1.0f - mStagePos01, mpLutRow); // 1-0
                     ret = ret * mReleaseFromValue01;
                     nextStage = EnvelopeStage::Idle;
                     break;
@@ -190,14 +190,14 @@ namespace WaveSabreCore
                 mStagePos01 += mStagePosIncPerSample;
                 if (mStagePos01 >= 1.0f)
                 {
-                    AdvanceToStage(nextStage);
+                    AdvanceToStage(nextStage, isample);
                 }
                 mLastOutputLevel = ret;
                 return ret;
             }
 
         private:
-            void RecalcState()
+            void RecalcState(int isample)
             {
                 switch (mStage)
                 {
@@ -205,12 +205,12 @@ namespace WaveSabreCore
                 case EnvelopeStage::Idle:
                     return;
                 case EnvelopeStage::Delay: {
-                    auto ms = mDelayTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime));
+                    auto ms = mDelayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime, isample));
                     mStagePosIncPerSample = CalculateInc01PerSampleForMS(ms);
                     return;
                 }
                 case EnvelopeStage::Attack: {
-                    auto ms = mAttackTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime));
+                    auto ms = mAttackTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime, isample));
                     // Serial.println(String("attack param:") + mSpec.mAttackTime.GetValue() + ", mod:" + mModValues.attackTime +
                     //                " = " + ms + " ms");
                     mStagePosIncPerSample = CalculateInc01PerSampleForMS(ms);
@@ -218,12 +218,12 @@ namespace WaveSabreCore
                     return;
                 }
                 case EnvelopeStage::Hold: {
-                    mStagePosIncPerSample = CalculateInc01PerSampleForMS(mHoldTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime)));
+                    mStagePosIncPerSample = CalculateInc01PerSampleForMS(mHoldTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime, isample)));
                     return;
                 }
                 case EnvelopeStage::Decay: {
                     mStagePosIncPerSample =
-                        CalculateInc01PerSampleForMS(mDecayTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)));
+                        CalculateInc01PerSampleForMS(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime, isample)));
                     //mpLutRow = mSpec.mDecayCurve.BeginLookup(mModValues.decayCurve);
                     return;
                 }
@@ -232,7 +232,7 @@ namespace WaveSabreCore
                 }
                 case EnvelopeStage::Release: {
                     mStagePosIncPerSample =
-                        CalculateInc01PerSampleForMS(mReleaseTime.GetMilliseconds(mModMatrix.GetKRateDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
+                        CalculateInc01PerSampleForMS(mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime, isample)));
                     //mpLutRow = mSpec.mReleaseCurve.BeginLookup(mModValues.releaseCurve);
                     return;
                 }

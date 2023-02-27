@@ -15,6 +15,12 @@
 // because then all the routing and processing uses shared code and can even interoperate with the synths, D-50 style.
 // and if we discard data we don't use, this comes for free.
 // 
+// speed optimizations
+// - recalc some a-rate things less frequently
+// - cache some values like mod matrix arate source buffers
+// - mod matrix currently processes everything each sample. K-Rate should be done per buffer init.
+// (use profiler)
+// 
 // size-optimizations:
 // - dont inline (use cpp)
 // - chunk optimization:
@@ -232,8 +238,6 @@ namespace WaveSabreCore
 				FilterNode mFilterL;
 				FilterNode mFilterR;
 
-				ModulationBuffers mModSourceBuffers;
-
 				virtual void ProcessAndMix(double songPosition, float* const* const outputs, int numSamples) override
 				{
 					if (!mAmpEnv.IsPlaying()) {
@@ -251,42 +255,43 @@ namespace WaveSabreCore
 					mModEnv1.BeginBlock();
 					mModEnv2.BeginBlock();
 
-					mModSourceBuffers.Reset((size_t)ModSource::Count, numSamples);// for our A-Rate mod source buffers, allocate the buffer.
+					mModMatrix.InitBlock(numSamples);
 
 					real_t midiNote = (real_t)mNoteInfo.MidiNoteValue;
 					midiNote += mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
 					real_t noteHz = MIDINoteToFreq(midiNote);
 
+					mModMatrix.SetSourceKRateValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
+					mModMatrix.SetSourceKRateValue(ModSource::Velocity, mVelocity01);  // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::NoteValue, mNoteValue01); // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::Macro1, mpOwner->mMacro1.Get01Value());  // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::Macro2, mpOwner->mMacro2.Get01Value());  // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
+
 					// process a-rate mod source buffers.
 					for (size_t iSample = 0; iSample < numSamples; ++iSample)
 					{
-						mModSourceBuffers.GetARateBuffer((size_t)ModSource::AmpEnv)[iSample] = mAmpEnv.ProcessSample();
-						mModSourceBuffers.GetARateBuffer((size_t)ModSource::ModEnv1)[iSample] = mModEnv1.ProcessSample();
-						mModSourceBuffers.GetARateBuffer((size_t)ModSource::ModEnv2)[iSample] = mModEnv2.ProcessSample();
-						mModSourceBuffers.GetARateBuffer((size_t)ModSource::LFO1)[iSample] = mModLFO1.ProcessSample(noteHz, iSample, 0, 0, 0, 0);
-						mModSourceBuffers.GetARateBuffer((size_t)ModSource::LFO2)[iSample] = mModLFO2.ProcessSample(noteHz, iSample, 0, 0, 0, 0);
+						// can be greatly optimized
+						mModMatrix.SetSourceARateValue(ModSource::AmpEnv, iSample, mAmpEnv.ProcessSample(iSample));
+						mModMatrix.SetSourceARateValue(ModSource::ModEnv1, iSample, mModEnv1.ProcessSample(iSample));
+						mModMatrix.SetSourceARateValue(ModSource::ModEnv2, iSample, mModEnv2.ProcessSample(iSample));
+						mModMatrix.SetSourceARateValue(ModSource::LFO1, iSample, mModLFO1.ProcessSample(noteHz, iSample, 0, 0, 0, 0));
+						mModMatrix.SetSourceARateValue(ModSource::LFO2, iSample, mModLFO2.ProcessSample(noteHz, iSample, 0, 0, 0, 0));
+						mModMatrix.ProcessSample(mpOwner->mModulations, iSample);
 					}
 
-					mModMatrix.SetKRateSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
-					mModMatrix.SetKRateSourceValue(ModSource::Velocity, mVelocity01);  // krate, 01
-					mModMatrix.SetKRateSourceValue(ModSource::NoteValue, mNoteValue01); // krate, 01
-					mModMatrix.SetKRateSourceValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
-					mModMatrix.SetKRateSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
-					mModMatrix.SetKRateSourceValue(ModSource::Macro1, mpOwner->mMacro1.Get01Value());  // krate, 01
-					mModMatrix.SetKRateSourceValue(ModSource::Macro2, mpOwner->mMacro2.Get01Value());  // krate, 01
-					mModMatrix.SetKRateSourceValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
-					mModMatrix.SetKRateSourceValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
-
-					mModMatrix.ProcessBlock(mModSourceBuffers, mpOwner->mModulations);
 					real_t baseVol = 0;
 					VolumeParam hiddenVolume{ baseVol, 0, 0 };
 
 					auto filterType = this->mFilterType.GetEnumValue();
-					auto filterFreq = mFilterFreq.GetFrequency(noteHz, mModMatrix.GetKRateDestinationValue(ModDestination::FilterFrequency));
+					auto filterFreq = mFilterFreq.GetFrequency(noteHz, mModMatrix.GetDestinationValue(ModDestination::FilterFrequency));
 					filterFreq = ClampInclusive(filterFreq, 0.0f, 20000.0f);
-					auto filterQ = mFilterQ.Get01Value(mModMatrix.GetKRateDestinationValue(ModDestination::FilterQ));
-					auto filterSaturation = mFilterSaturation.Get01Value(mModMatrix.GetKRateDestinationValue(ModDestination::FilterSaturation));
+					auto filterQ = mFilterQ.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterQ));
+					auto filterSaturation = mFilterSaturation.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterSaturation));
 					mFilterL.SetParams(
 						filterType,
 						filterFreq,
@@ -319,7 +324,7 @@ namespace WaveSabreCore
 						real_t sl = s1 + s2 + s3;
 
 						// apply amplitude envelope. it could also be configured as a modulation
-						float ampEnvVal = mModSourceBuffers.GetARateBuffer((size_t)ModSource::AmpEnv)[iSample];
+						float ampEnvVal = mModMatrix.GetSourceValue(ModSource::AmpEnv, iSample);
 						sl *= hiddenVolume.GetLinearGain(ampEnvVal);
 
 						float sr = sl;

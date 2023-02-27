@@ -6,39 +6,6 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
-		// this means 1 single big allocation instead of 70 identically-sized small ones.
-		struct ModulationBuffers
-		{
-			real_t* mpBuffer = nullptr;
-			size_t mElementsAllocated = 0; // the backing buffer is allocated this big. may be bigger than blocks*blocksize.
-			size_t mBlockSize = 0;
-			size_t mBlockCount = 0; // how many blocks are we advertising.
-
-			~ModulationBuffers() {
-				delete[] mpBuffer;
-			}
-			void Reset(size_t count, size_t blockSize) {
-				size_t desiredElements = count * blockSize;
-				if (mElementsAllocated < desiredElements) {
-					delete[] mpBuffer;
-					mpBuffer = new real_t[desiredElements];
-					mElementsAllocated = desiredElements;
-				}
-				mBlockSize = blockSize;
-				mBlockCount = count;
-				//mpKRateValues = GetARateBuffer(count);
-				// zero
-				for (size_t i = 0; i < mElementsAllocated; ++i) {
-					mpBuffer[i] = 0;
-				}
-			}
-
-			real_t* GetARateBuffer(size_t iblock) {
-				return &mpBuffer[iblock * mBlockSize];
-			}
-		};
-
 
 		enum class ModulationRate : uint8_t
 		{
@@ -636,9 +603,75 @@ namespace WaveSabreCore
 				ModulationRate::ARate,
 			}
 		};
+		// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
+// this means 1 single big allocation instead of 70 identically-sized small ones.
+		struct ModMatrixBuffers
+		{
+		private:
+			static constexpr size_t gMaxEndpointCount = std::max((size_t)ModDestination::Count, (size_t)ModSource::Count);
+			const size_t gEndpointCount = false; // as in, the number of modulations. like ModSource::Count
+
+			size_t mElementsAllocated = 0; // the backing buffer is allocated this big. may be bigger than blocks*blocksize.
+			size_t mBlockSize = 0;
+			real_t* mpBuffer = nullptr;
+
+			real_t mpKRateValues[gMaxEndpointCount] = { 0 };
+			bool mpARatePopulated[gMaxEndpointCount] = { false };
+			bool mpKRatePopulated[gMaxEndpointCount] = { false };
+
+		public:
+			ModMatrixBuffers(size_t modulationEndpointCount) : gEndpointCount(modulationEndpointCount) {
+			}
+
+			~ModMatrixBuffers() {
+				delete[] mpBuffer;
+			}
+
+			void Reset(size_t blockSize) {
+				size_t desiredElements = gEndpointCount * blockSize;
+				if (mElementsAllocated < desiredElements) {
+					delete[] mpBuffer;
+					mpBuffer = new real_t[desiredElements];
+					mElementsAllocated = desiredElements;
+				}
+				mBlockSize = blockSize;
+				memset(mpKRateValues, 0, std::size(mpKRateValues) * sizeof(mpKRateValues[0]));
+				memset(mpARatePopulated, 0, std::size(mpARatePopulated) * sizeof(mpARatePopulated[0]));
+				memset(mpKRatePopulated, 0, std::size(mpKRatePopulated) * sizeof(mpKRatePopulated[0]));
+			}
+
+			void SetARateValue(size_t id, size_t iSample, real_t val) {
+				//if (id >= gEndpointCount) return; // error
+				size_t i = id * mBlockSize + iSample;
+				//if (i >= mBlockSize) return; // error
+				mpARatePopulated[id] = 1;
+				mpBuffer[i] = val;
+				//return mSource.SetSourceARateValue(iblock, iSample, val);
+			}
+
+			void SetKRateValue(size_t id, real_t val)
+			{
+				mpKRateValues[id] = val;
+				mpKRatePopulated[id] = 1;
+			}
+
+			real_t GetValue(size_t id, size_t sample) const
+			{
+				if (!mpBuffer || id >= gEndpointCount) return 0;
+				if (mpARatePopulated[id]) {
+					size_t i = id * mBlockSize + sample;
+					if (i >= mElementsAllocated) return 0;
+					return mpBuffer[i];
+				}
+				if (mpKRatePopulated[id]) return mpKRateValues[(size_t)id];
+				return 0;
+			}
+		};
+
 
 		struct ModMatrixNode
 		{
+		private:
 			// krate values are a single scalar.
 			// arate are block-sized buffers.
 			// 
@@ -653,66 +686,68 @@ namespace WaveSabreCore
 			// 2. mod matrix pulls in LFO a-rate buffer, and generates the waveshape destination buffer applying curve and accumulating multiple mods to same dest.
 			// 2. Oscillator arate Osc1Waveshape dest gets buffer from mod matrix
 
-			// only krate indices are used; rest are never touched.
-			real_t mKRateSourceValues[(size_t)M7::ModSource::Count] = { 0 };
+			ModMatrixBuffers mSource;
+			ModMatrixBuffers mDest;
 
-			real_t mKRateDestinationValues[(size_t)M7::ModDestination::Count] = { 0 };
-			ModulationBuffers mDestinationBuffers;
+		public:
+			ModMatrixNode() :
+				mSource((size_t)ModSource::Count),
+				mDest((size_t)ModDestination::Count)
+			{}
 
-			void SetKRateSourceValue(M7::ModSource id, real_t val)
+			template<typename Tmodid>
+			void SetSourceARateValue(Tmodid iblock, size_t iSample, real_t val) {
+				return mSource.SetARateValue((size_t)iblock, iSample, val);
+			}
+
+			template<typename Tmodid>
+			inline void SetSourceKRateValue(Tmodid id, real_t val)
 			{
-				// things like pitch bend, etc. set these once per block.
-				//WSAssert(M7::gModSourceInfo[(size_t)id].mRate == M7::ModulationRate::KRate, "");
-				mKRateSourceValues[(size_t)id] = val;
+				mSource.SetKRateValue((size_t)id, val);
 			}
 
-			real_t GetKRateSourceValue(M7::ModSource id)
+			template<typename Tmodid>
+			inline real_t GetSourceValue(Tmodid id, size_t sample) const
 			{
-				return mKRateSourceValues[(size_t)id];
+				return mSource.GetValue((size_t)id, sample);
 			}
 
-			void SetKRateDestinationValue(M7::ModDestination id, real_t val)
+			template<typename Tmodid>
+			inline real_t GetDestinationValue(Tmodid id, size_t sample = 0) const
 			{
-				// things like pitch bend, etc. set these once per block.
-				//WSAssert(M7::gModDestinationInfo[(size_t)id].mRate == M7::ModulationRate::KRate, "");
-				mKRateDestinationValues[(size_t)id] = val;
+				return mDest.GetValue((size_t)id, sample);
 			}
 
-			template<typename T> // because some enum values are calculated and this avoids constantly casting only to cast back.
-			// i'm assuming this doesn't bloat code size
-			inline real_t* GetARateDestinationBuffer(T id) {
-				return mDestinationBuffers.GetARateBuffer((size_t)id);
-			}
-
-			template<typename T> // because some enum values are calculated and this avoids constantly casting only to cast back.
-			// i'm assuming this doesn't bloat code size
-			inline real_t GetKRateDestinationValue(T id)
+			// call at the beginning of audio block processing to allocate & zero all buffers, preparing for source value population.
+			void InitBlock(size_t nSamples)
 			{
-				return mKRateDestinationValues[(size_t)id];
+				mSource.Reset(nSamples);
+				mDest.Reset(nSamples);
 			}
 
-			// caller passes in
+			// caller passes in:
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.
 			// the result will be placed 
-			template<size_t Nspecs>
-			void ProcessBlock(ModulationBuffers& sourceBuffers, ModulationSpec (&modSpecs)[Nspecs])
+			template<size_t NmodulationSpecs>
+			void ProcessSample(ModulationSpec (&modSpecs)[NmodulationSpecs], size_t iSample)
 			{
-				// this will zero out the destination values, make sure block size matches incoming sources
-				mDestinationBuffers.Reset((int)ModDestination::Count, sourceBuffers.mBlockSize);
-				// also zero out krate values.
-				for (auto& x : mKRateDestinationValues) {
-					x = 0;
-				}
-
+				float mCurveParam;
+				CurveParam cp{ mCurveParam, 0 };
 				// run mod specs
 				for (ModulationSpec& spec : modSpecs) {
 					if (!spec.mEnabled.GetBoolValue()) continue;
-					// handle the 4 cases:
-					// Krate -> Krate, 
-					// Krate -> Arate
-					// Arate -> Arate
-					// Arate -> Krate
+					const auto& sourceInfo = gModSourceInfo[(int)spec.mSource.GetEnumValue()];
+					if (sourceInfo.mRate == ModulationRate::Disabled) continue;
+					const auto& destInfo = gModDestinationInfo[(int)spec.mDestination.GetEnumValue()];
+					if (destInfo.mRate == ModulationRate::Disabled) continue;
+
+					real_t sourceVal = GetSourceValue(spec.mSource.GetEnumValue(), iSample);
+					real_t destVal = GetDestinationValue(spec.mDestination.GetEnumValue(), iSample);
+					cp.SetParamValue(spec.mCurve.GetN11Value());
+					sourceVal = cp.ApplyToValue(sourceVal);
+					sourceVal *= spec.mScale.GetN11Value();
+					mDest.SetARateValue((size_t)spec.mDestination.GetEnumValue(), iSample, destVal + sourceVal);
 				}
 			}
 		};

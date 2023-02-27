@@ -151,15 +151,15 @@ namespace WaveSabreCore
 				float fmFeedbackModVal = 0;
 				switch (mIntention) {
 				case OscillatorIntention::LFO:
-					waveShapeModVal = mModMatrix.GetKRateDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::Waveshape);
-					freqModVal = mModMatrix.GetKRateDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::FrequencyParam);
+					waveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::Waveshape, bufferPos);
+					freqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::FrequencyParam, bufferPos);
 					break;
 				case OscillatorIntention::Audio:
-					volumeModVal = mModMatrix.GetARateDestinationBuffer(mModDestBase + (int)OscModParamIndexOffsets::Volume)[bufferPos];
-					waveShapeModVal = mModMatrix.GetARateDestinationBuffer(mModDestBase + (int)OscModParamIndexOffsets::Waveshape)[bufferPos];
-					syncFreqModVal = mModMatrix.GetARateDestinationBuffer(mModDestBase + (int)OscModParamIndexOffsets::SyncFrequency)[bufferPos];
-					freqModVal = mModMatrix.GetARateDestinationBuffer(mModDestBase + (int)OscModParamIndexOffsets::FrequencyParam)[bufferPos];
-					fmFeedbackModVal = mModMatrix.GetARateDestinationBuffer(mModDestBase + (int)OscModParamIndexOffsets::FMFeedback)[bufferPos];
+					volumeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Volume, bufferPos);
+					waveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Waveshape, bufferPos);
+					syncFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::SyncFrequency, bufferPos);
+					freqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FrequencyParam, bufferPos);
+					fmFeedbackModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FMFeedback, bufferPos);
 					break;
 				}
 
