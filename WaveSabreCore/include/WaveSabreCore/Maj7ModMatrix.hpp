@@ -65,10 +65,12 @@ namespace WaveSabreCore
 		enum class ModDestination : uint8_t
 		{
 			None,
-			UnisonoDetune, // krate, 01
-			UnisonoStereoSpread, // krate, 01
 			OscillatorDetune, // krate, 01
+			UnisonoDetune, // krate, 01
 			OscillatorStereoSpread, // krate, 01
+			UnisonoStereoSpread, // krate, 01
+			OscillatorShapeSpread, // krate, 01
+			UnisonoShapeSpread, // krate, 01
 			FMBrightness, // krate, 01
 
 			PortamentoTime, // krate, 01
@@ -172,10 +174,12 @@ namespace WaveSabreCore
 		// size-optimize using macro
 		#define MOD_DEST_CAPTIONS { \
 			"None", \
-			"UnisonoDetune", \
-			"UnisonoStereoSpread", \
 			"OscillatorDetune", \
+			"UnisonoDetune", \
 			"OscillatorStereoSpread", \
+			"UnisonoStereoSpread", \
+			"OscillatorShapeSpread", \
+			"UnisonoShapeSpread", \
 			"FMBrightness", \
 			"PortamentoTime", \
 			"PortamentoCurve", \
@@ -351,7 +355,17 @@ namespace WaveSabreCore
 				ModulationRate::Disabled,
 			},
 			{
+				ModDestination::OscillatorDetune, // krate, 01
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
 				ModDestination::UnisonoDetune, // krate, 01
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
+				ModDestination::OscillatorStereoSpread, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
 			},
@@ -361,15 +375,16 @@ namespace WaveSabreCore
 				ModulationRate::KRate,
 			},
 			{
-				ModDestination::OscillatorDetune, // krate, 01
+				ModDestination::OscillatorShapeSpread, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
 			},
 			{
-				ModDestination::OscillatorStereoSpread, // krate, 01
+				ModDestination::UnisonoShapeSpread, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
-			},{
+			},
+{
 				ModDestination::FMBrightness, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,

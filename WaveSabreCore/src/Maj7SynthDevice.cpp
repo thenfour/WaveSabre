@@ -20,12 +20,13 @@ namespace WaveSabreCore
 	Maj7SynthDevice::Maj7SynthDevice(int numParams)
 		: Device(numParams)
 	{
-		clearEvents();
-		memset(mNoteStates, 0, sizeof(mNoteStates[0]) * maxActiveNotes);
-		for (int i = 0; i < maxActiveNotes; i++)
-		{
-			mNoteStates[i].MidiNoteValue = i;
-		}
+		AllNotesOff();
+		//clearEvents();
+		//memset(mNoteStates, 0, sizeof(mNoteStates[0]) * maxActiveNotes);
+		//for (int i = 0; i < maxActiveNotes; i++)
+		//{
+		//	mNoteStates[i].MidiNoteValue = i;
+		//}
 	}
 
 	Maj7SynthDevice::~Maj7SynthDevice()
@@ -119,10 +120,15 @@ namespace WaveSabreCore
 	{
 		for (int i = 0; i < maxVoices; i++)
 		{
+			if (!mVoices[i]) continue;
 			mVoices[i]->NoteOff();
 		}
 
 		memset(mNoteStates, 0, sizeof(mNoteStates[0]) * maxActiveNotes);
+		for (int i = 0; i < maxActiveNotes; i++)
+		{
+			mNoteStates[i].MidiNoteValue = i;
+		}
 		clearEvents();
 	}
 

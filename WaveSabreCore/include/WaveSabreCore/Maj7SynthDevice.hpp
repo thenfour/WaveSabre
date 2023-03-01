@@ -296,7 +296,7 @@ namespace WaveSabreCore
 
 		NoteInfo mNoteStates[maxActiveNotes] ; // index = midi note value
 
-		Voice* mVoices[maxVoices]; // allow child class to instantiate derived voice classes; don't template due to bloat.
+		Voice* mVoices[maxVoices] = { 0 }; // allow child class to instantiate derived voice classes; don't template due to bloat.
 		VoiceMode mVoiceMode = VoiceMode::Polyphonic;
 
 		Event mEvents[maxEvents];

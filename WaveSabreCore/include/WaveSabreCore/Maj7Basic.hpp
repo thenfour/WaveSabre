@@ -175,7 +175,7 @@ namespace WaveSabreCore
 
             inline real_t pow(real_t x, real_t y) {
                 // fasterpow is just too inaccurate.
-                //return fastmath::fastpow(x, y); // this is also not always accurate
+                //return fastmath::fastpow(x, y); // this is also not always accurate, just due to ranges. 
                 return ::powf(x, y);
             }
             inline real_t pow2(real_t y) {
@@ -280,7 +280,7 @@ namespace WaveSabreCore
         // outputs -1 to 1
         inline real_t modCurve_xN11_kN11(real_t x, real_t k)
         {
-            static constexpr real_t CornerMargin = real_t(0.77);
+            static constexpr float CornerMargin = 0.5f; // real_t(0.77);
             k *= CornerMargin;
             k = Clamp(k, -CornerMargin, CornerMargin);
             x = Clamp(x, -1, 1);
@@ -362,6 +362,16 @@ namespace WaveSabreCore
             return ret;
         }
 
+        inline std::pair<float, float> PanToFactor(float panN11)
+        {
+            // SQRT pan law
+            // -1..+1  -> 1..0
+            float normPan = (-panN11 + 1) / 2;
+            float leftChannel = math::sqrt(normPan);
+            float rightChannel = math::sqrt(1.0f - normPan);
+            return std::make_pair(leftChannel, rightChannel);
+        }
+
         // for detune & unisono, based on enabled oscillators etc, distribute a [-1,1] value among many items.
         // there could be various ways of doing this but to save space just unify.
         // if an odd number of items, then 1 = centered @ 0.0f.
@@ -388,11 +398,11 @@ namespace WaveSabreCore
                     continue;
                 }
                 float val = float(iPair + 1) / pairCount; // +1 so 1. we don't use 0; that's reserved for the odd element, and 2. so we hit +1.0f
-                ++iEnabled;
                 if (iEnabled & 1) { // is this the 1st or 2nd in the pair
                     val = -val;
                     ++ iPair;
                 }
+                ++iEnabled;
                 outp[iElement] = val;
             }
         }
@@ -635,6 +645,10 @@ namespace WaveSabreCore
                 Float01Param(ref, initialParamValue01),
                 mMaxVolumeLinearGain(DecibelsToLinear(maxDecibels))
             {}
+            explicit VolumeParam(real_t& ref, real_t maxDecibels) :
+                Float01Param(ref),
+                mMaxVolumeLinearGain(DecibelsToLinear(maxDecibels))
+            {}
 
             float GetLinearGain(float modVal = 0.0f) const
             {
@@ -752,10 +766,12 @@ namespace WaveSabreCore
             MasterVolume,
             VoicingMode,
             Unisono,
-            UnisonoDetune,
-            UnisonoStereoSpread,
             OscillatorDetune,
+            UnisonoDetune,
             OscillatorSpread,
+            UnisonoStereoSpread,
+            OscillatorShapeSpread,
+            UnisonoShapeSpread,
             FMBrightness,
 
             Macro1,
@@ -929,11 +945,13 @@ namespace WaveSabreCore
 		    {"Master"}, \
 		    {"PolyMon"}, \
 		    {"Unisono"}, \
-		    {"UniDet"}, \
-		    {"UniSpr"}, \
-		    {"OscDet"}, \
-		    {"OscSpr"}, \
-		    {"FMBrigh"}, \
+            {"OscDet"}, \
+            {"UniDet"}, \
+            {"OscSpr"}, \
+            {"UniSpr"}, \
+            {"OscShp"}, \
+            {"UniShp"}, \
+            {"FMBrigh"}, \
 		    {"Macro1"}, \
 		    {"Macro2"}, \
 		    {"Macro3"}, \

@@ -57,7 +57,7 @@ namespace WaveSabreCore
 
 		struct OscillatorNode
 		{
-			static constexpr real_t gVolumeMaxDb = 0;
+			static constexpr real_t gVolumeMaxDb = 0; // shared by amp env max db and must be 0 anyway for optimized calcs to work.
 			static constexpr real_t gSyncFrequencyCenterHz = 1000;
 			static constexpr real_t gSyncFrequencyScale = 10;
 			static constexpr real_t gFrequencyCenterHz = 1000;
@@ -69,7 +69,7 @@ namespace WaveSabreCore
 
 			// BASE PARAMS
 			BoolParam mEnabled;// Osc2Enabled,
-			VolumeParam mVolume; //	Osc2Volume,
+			//VolumeParam mVolume; //	Osc2Volume,
 			EnumParam<OscillatorWaveform> mWaveform;
 			FloatN11Param mWaveshape;//	Osc2Waveshape,
 			BoolParam mPhaseRestart;//	Osc2PhaseRestart,
@@ -96,7 +96,7 @@ namespace WaveSabreCore
 			// for Audio
 			explicit OscillatorNode(OscillatorIntentionAudio, ModMatrixNode& modMatrix, ModDestination modDestBase, real_t* paramCache, int paramBaseID) :
 				mEnabled(paramCache[paramBaseID + (int)OscParamIndexOffsets::Enabled], false),
-				mVolume(paramCache[paramBaseID + (int)OscParamIndexOffsets::Volume], gVolumeMaxDb, 1),
+				//mVolume(paramCache[paramBaseID + (int)OscParamIndexOffsets::Volume], gVolumeMaxDb, 1),
 				mWaveform(paramCache[paramBaseID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count, OscillatorWaveform::Sine),
 				mWaveshape(paramCache[paramBaseID + (int)OscParamIndexOffsets::Waveshape], 0),
 				mPhaseRestart(paramCache[paramBaseID + (int)OscParamIndexOffsets::PhaseRestart], false),
@@ -117,7 +117,7 @@ namespace WaveSabreCore
 			// for LFO, we internalize many params
 			explicit OscillatorNode(OscillatorIntentionLFO, ModMatrixNode& modMatrix, ModDestination modDestBase, real_t* paramCache, int paramBaseID) :
 				mEnabled(mLFOConst1, false),
-				mVolume(mLFOVolumeParamValue, 0, 1),
+				//mVolume(mLFOVolumeParamValue, 0, 1),
 				mWaveform(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Waveform], OscillatorWaveform::Count, OscillatorWaveform::Sine),
 				mWaveshape(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Waveshape], 0),
 				mPhaseRestart(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Restart], false),
@@ -145,7 +145,7 @@ namespace WaveSabreCore
 			int mModDestBase; // ModDestination enum value representing the 1st mod value. for LFOs that's waveshape, for audio that's volume.
 
 			float mFreqModVal = 0;
-			float mVolumeModVal = 0;
+			//float mVolumeModVal = 0;
 			float mWaveShapeModVal = 0;
 			float mSyncFreqModVal = 0;
 			float mFMFeedbackModVal = 0;
@@ -164,7 +164,7 @@ namespace WaveSabreCore
 					mFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::FrequencyParam, 0);
 					break;
 				case OscillatorIntention::Audio:
-					mVolumeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Volume, 0);
+					//mVolumeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Volume, 0);
 					mSyncFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::SyncFrequency, 0);
 					mFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FrequencyParam, 0);
 					mFMFeedbackModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FMFeedback, 0);
@@ -205,7 +205,7 @@ namespace WaveSabreCore
 
 				mLastSample = math::sin((mPhase + (mLastSample * mFMFeedback01.Get01Value(mFMFeedbackModVal))) * 2 * math::gPI);
 
-				return mLastSample * mVolume.GetLinearGain(mVolumeModVal);
+				return mLastSample;// *mVolume.GetLinearGain(mVolumeModVal);
 			}
 		};
 	} // namespace M7
