@@ -17,6 +17,7 @@ namespace WaveSabreCore
 	{
 	public:
 		Maj7SynthDevice(int numParams);
+		~Maj7SynthDevice();
 
 		virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) = 0;
 		virtual void HandlePitchBend(float pbN11) = 0;
@@ -33,17 +34,18 @@ namespace WaveSabreCore
 		void SetVoiceMode(VoiceMode voiceMode);
 		VoiceMode GetVoiceMode() const;
 
+		// zero-initialized POD for code space saving (yes it bloats)
 		struct NoteInfo
 		{
-			bool mIsPhysicallyHeld = false; // implies mIsMusicallyDown = true.
-			bool mIsMusicallyHeld = false;
-			int mSequence = 0;
-			int MidiNoteValue = 0;
-			int Velocity = 0; // need to store all trigger info so when you release in mono triller we can re-trigger the note.
-			void Clear() {
-				mIsPhysicallyHeld = false;
-				mIsMusicallyHeld = false;
-			}
+			bool mIsPhysicallyHeld;// = false; // implies mIsMusicallyDown = true.
+			bool mIsMusicallyHeld;// = false;
+			int mSequence;// = 0;
+			int MidiNoteValue;//= 0;
+			int Velocity;// = 0; // need to store all trigger info so when you release in mono triller we can re-trigger the note.
+			//void Clear() {
+			//	mIsPhysicallyHeld = false;
+			//	mIsMusicallyHeld = false;
+			//}
 		};
 
 		int GetCurrentPolyphony() const {
@@ -83,10 +85,10 @@ namespace WaveSabreCore
 
 		struct Event
 		{
-			EventType Type = EventType::None;
-			int DeltaSamples = 0;
-			int data1 = 0;
-			int data2 = 0;
+			EventType Type;// = EventType::None;
+			int DeltaSamples;// = 0;
+			int data1;// = 0;
+			int data2;// = 0;
 		};
 
 		void PushEvent(EventType et, int data1, int data2, int deltaSamples)
@@ -103,9 +105,7 @@ namespace WaveSabreCore
 
 		void clearEvents()
 		{
-			for (int i = 0; i < maxEvents; i++) {
-				mEvents[i].Type = EventType::None;
-			}
+			memset(mEvents, 0, sizeof(mEvents[0]) * maxEvents);
 			mEventCount = 0;
 		}
 
@@ -134,8 +134,10 @@ namespace WaveSabreCore
 			// 2. pedal down
 			// 3. hold note B, release note B. pedal is currently down so you hear note B.
 			// 4. release pedal. note A is still held so it should now be playing.
-			for (auto& x : mNoteStates)
+			//for (auto& x : mNoteStates)
+			for (size_t i = 0; i < maxActiveNotes; ++ i)
 			{
+				auto& x = mNoteStates[i];
 				if (x.mIsPhysicallyHeld && (x.MidiNoteValue != ignoreMidiNote)) {
 					if (pTrill && x.mSequence < pTrill->mSequence)
 						continue; // we're looking for the latest.
@@ -265,8 +267,9 @@ namespace WaveSabreCore
 			// handle pedal up.
 			mIsPedalDown = false;
 
-			for (auto& x : mNoteStates)
+			for (size_t i = 0; i < maxActiveNotes; ++i)
 			{
+				auto& x = mNoteStates[i];
 				if (x.mIsPhysicallyHeld) {
 					continue;
 				}
@@ -291,7 +294,7 @@ namespace WaveSabreCore
 
 		int mNoteSequence = 0;
 
-		NoteInfo mNoteStates[maxActiveNotes]; // index = midi note value
+		NoteInfo mNoteStates[maxActiveNotes] ; // index = midi note value
 
 		Voice* mVoices[maxVoices]; // allow child class to instantiate derived voice classes; don't template due to bloat.
 		VoiceMode mVoiceMode = VoiceMode::Polyphonic;

@@ -20,10 +20,16 @@ namespace WaveSabreCore
 	Maj7SynthDevice::Maj7SynthDevice(int numParams)
 		: Device(numParams)
 	{
+		clearEvents();
+		memset(mNoteStates, 0, sizeof(mNoteStates[0]) * maxActiveNotes);
 		for (int i = 0; i < maxActiveNotes; i++)
 		{
 			mNoteStates[i].MidiNoteValue = i;
 		}
+	}
+
+	Maj7SynthDevice::~Maj7SynthDevice()
+	{
 	}
 
 	// plays through the buffer,
@@ -115,10 +121,8 @@ namespace WaveSabreCore
 		{
 			mVoices[i]->NoteOff();
 		}
-		for (int i = 0; i < maxActiveNotes; i++)
-		{
-			mNoteStates[i].Clear();// = false;
-		}
+
+		memset(mNoteStates, 0, sizeof(mNoteStates[0]) * maxActiveNotes);
 		clearEvents();
 	}
 

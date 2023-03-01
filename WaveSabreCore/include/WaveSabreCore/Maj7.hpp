@@ -26,15 +26,15 @@
 //   for example a K-rate to K-rate (macro to filter freq) does not need to process every sample.
 // 
 // size-optimizations:
-// (profile!)
+// (profile w sizebench!)
+// - modulation spec array initialization takes a lot of space (it's not compacted; basically an unrolled loop)
 // - dont inline (use cpp)
-// - find a way to exclude filters & oscillator waveforms
+// - use fixed-point in oscillators. there's absolutely no reason to be using chonky floating point instructions there.
+// - find a way to exclude filters & oscillator waveforms selectively
 // - chunk optimization:
 //   - skip params which are disabled (modulation specs!) - only for wavesabre binary export; not for VST chunk.
 //   - group params which are very likely to be the same value or rarely used
 //   - enum and bool params can be packed tight
-
-
 
 // Pitch params in order of processing:
 // x                                  Units        Level
@@ -158,7 +158,7 @@ namespace WaveSabreCore
 
 			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange, 2 };
 			
-			ModulationSpec mModulations[gModulationCount]{
+			ModulationSpec mModulations[gModulationCount] {
 				{ mParamCache, (int)ParamIndices::Mod1Enabled },
 				{ mParamCache, (int)ParamIndices::Mod2Enabled },
 				{ mParamCache, (int)ParamIndices::Mod3Enabled },
