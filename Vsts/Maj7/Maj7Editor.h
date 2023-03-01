@@ -145,11 +145,23 @@ public:
 
 		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Output volume##hc", M7::Maj7::gMasterVolumeMaxDb, 0);
 		ImGui::SameLine();
-		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "UNISONO##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1);
+		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1);
+
 		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoDetune, "UnisonDetune##mst");
+		WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoDetune, "UniDetune##mst");
+		ImGui::SameLine();
+		WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorDetune, "OscDetune##mst");
+		ImGui::SameLine();
+		WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoStereoSpread, "UniSpread##mst");
+		ImGui::SameLine();
+		WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorSpread, "OscSpread##mst");
+
 		ImGui::SameLine(0, 60);
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", -M7::Maj7::gPitchBendMaxRange, M7::Maj7::gPitchBendMaxRange, 2);
+		ImGui::SameLine();
+		Maj7ImGuiParamEnvTime((VstInt32)M7::ParamIndices::PortamentoTime, "Port time##mst", 0.4f);
+		ImGui::SameLine();
+		Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "Port curve##mst", 0.0f, M7CurveRenderStyle::Rising);
 
 		static constexpr char const* const voiceModeCaptions[] = { "Poly", "Mono" };
 		ImGui::SameLine(0, 60);
@@ -176,9 +188,10 @@ public:
 			auto colorModToken = mCyanColors.Push();
 			ImGui::PushID("FM");
 			if (ImGui::CollapsingHeader("FM")) {
-				WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "Osc A Feedback##osc1");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "Osc B Feedback##osc2");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "Osc C Feedback##osc2");
+				WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "Osc A FB##osc1");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "Osc B FB##osc2");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "Osc C FB##osc2");
+				ImGui::SameLine(0, 60);	WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
 			}
 			ImGui::PopID();
 		}

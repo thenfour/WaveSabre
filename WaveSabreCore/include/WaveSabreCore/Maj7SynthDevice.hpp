@@ -57,7 +57,7 @@ namespace WaveSabreCore
 		struct Voice
 		{
 			// child classes must implement
-			virtual void ProcessAndMix(double songPosition, float* const* const outputs, int numSamples) = 0;
+			//virtual void ProcessAndMix(double songPosition, float* const* const outputs, int numSamples, const float* oscDetuneSemis, const float* unisonoDetuneSemis) = 0;
 			virtual void NoteOn() = 0; // unisonoVoice is only valid for legato=false.
 			virtual void NoteOff() = 0;
 			virtual void Kill() = 0; // forcibly (non-musically) kill the note, bypass envelopes. used for AllNotesOff or change of voice mode etc.
@@ -286,7 +286,7 @@ namespace WaveSabreCore
 		static constexpr int maxEvents = 64;
 		static constexpr int maxActiveNotes = 128; // should always be 128 for all midi notes.
 
-		int mVoicesUnisono = 1;
+		int mVoicesUnisono = 1; // # of voices to double.
 		bool mIsPedalDown = false;
 
 		int mNoteSequence = 0;

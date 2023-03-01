@@ -1,4 +1,5 @@
 // TODO: multiple filters? or add a 1pole lowcut/highcut to each oscillator
+// TODO: wave shape divergence per unison
 // TODO: S&H to each oscillator as well. i think an "insert" stage before filter could be appropriate, with balances for all osc.
 // adding params:
 // - S&H freq
@@ -10,23 +11,46 @@
 // TODO: time sync for LFOs? envelope times?
 // - lfo1 time basis
 // - lfo2 time basis
-// TODO: 4th oscillator & sampler engine.
+// TODO: sampler engine & GM.DLS
 // the idea: if we are able to optimize unused params, then we benefit by including a sampler directly in Maj7.
 // because then all the routing and processing uses shared code and can even interoperate with the synths, D-50 style.
 // and if we discard data we don't use, this comes for free.
 // 
 // speed optimizations
-// - recalc some a-rate things less frequently
-// - cache some values like mod matrix arate source buffers
-// - mod matrix currently processes everything each sample. K-Rate should be done per buffer init.
 // (use profiler)
+// - some things may be calculated at the synth level, not voice level. think portamento time/curve params?
+// - recalc some a-rate things less frequently / reduce some things to k-rate. frequencies are calculated every sample...
+// - cache some values like mod matrix arate source buffers
+// - precalc curve in like 1024 x 1024 steps
+// - mod matrix currently processes every mod spec each sample. K-Rate should be done per buffer init.
+//   for example a K-rate to K-rate (macro to filter freq) does not need to process every sample.
 // 
 // size-optimizations:
+// (profile!)
 // - dont inline (use cpp)
+// - find a way to exclude filters & oscillator waveforms
 // - chunk optimization:
 //   - skip params which are disabled (modulation specs!) - only for wavesabre binary export; not for VST chunk.
 //   - group params which are very likely to be the same value or rarely used
 //   - enum and bool params can be packed tight
+
+
+
+// Pitch params in order of processing:
+// x                                  Units        Level
+// --------------------------------------------------------
+// - midi note                        note         voice @ note on
+// - portamento time / curve          note         voice @ block process                           
+// - pitch bend / pitch bend range    note         voice       <-- used for modulation source                          
+// - osc pitch semis                  note         oscillator                  
+// - osc fine (semis)                 note         oscillator                   
+// - osc sync freq / kt (Hz)          hz           oscillator                        
+// - osc freq / kt (Hz)               hz           oscillator                   
+// - osc mul (Hz)                     hz           oscillator             
+// - osc detune (semis)               hz+semis     oscillator                         
+// - unisono detune (semis)           hz+semis     oscillator                             
+
+
 
 #pragma once
 
@@ -37,12 +61,69 @@
 #include <WaveSabreCore/Maj7Filter.hpp>
 #include <WaveSabreCore/Maj7Oscillator.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
-//#include <Windows.h>
 
 namespace WaveSabreCore
 {
 	namespace M7
 	{
+		// this does not operate on frequencies, it operates on target midi note value (0-127).
+		struct PortamentoCalc
+		{
+		private:
+			EnvTimeParam mTime;
+			CurveParam mCurve;
+
+			bool mEngaged = false;
+
+			float mSourceNote = 0; // float because you portamento can initiate between notes
+			float mTargetNote = 0;
+			float mCurrentNote = 0;
+			float mSlideCursorSamples = 0;
+
+		public:
+
+			PortamentoCalc(float& timeParamBacking, float& curveParamBacking) :
+				mTime(timeParamBacking, 0.2f),
+				mCurve(curveParamBacking, 0)
+			{}
+
+			// advances cursor; call this at the end of buffer processing. next buffer will call
+			// GetCurrentMidiNote() then.
+			void Advance(size_t nSamples, float timeMod, float curveMod) {
+				if (!mEngaged) {
+					return;
+				}
+				mSlideCursorSamples += nSamples;
+				float durationSamples = MillisecondsToSamples(mTime.GetMilliseconds(timeMod));
+				float t = mSlideCursorSamples / durationSamples;
+				if (t >= 1) {
+					NoteOn(mTargetNote, true); // disengages
+					return;
+				}
+				t = mCurve.ApplyToValue(t, curveMod);
+				mCurrentNote = Lerp(mSourceNote, mTargetNote, t);
+			}
+
+			float GetCurrentMidiNote() const
+			{
+				return mCurrentNote;
+			}
+
+			void NoteOn(float targetNote, bool instant)
+			{
+				if (instant) {
+					mCurrentNote = mSourceNote = mTargetNote = targetNote;
+					mEngaged = false;
+					return;
+				}
+				mEngaged = true;
+				mSourceNote = mCurrentNote;
+				mTargetNote = targetNote;
+				mSlideCursorSamples = 0;
+				return;
+			}
+		};
+
 		struct Maj7 : public Maj7SynthDevice
 		{
 			static constexpr size_t gModulationCount = 8;
@@ -54,6 +135,7 @@ namespace WaveSabreCore
 
 			// BASE PARAMS & state
 			real_t mPitchBendN11 = 0;
+			bool mOscEnabled[4] = { false, false, false, false };
 
 			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb, .5f };
 			Float01Param mMacro1{ mParamCache[(int)ParamIndices::Macro1], 0.0f };
@@ -74,8 +156,6 @@ namespace WaveSabreCore
 			Float01Param mOscillatorStereoSpread{ mParamCache[(int)ParamIndices::OscillatorSpread], 0.0f };
 			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness], 0.5f };
 
-			EnvTimeParam mPortamentoTime{ mParamCache[(int)ParamIndices::PortamentoTime], 0.2f };
-			CurveParam mPortamentoCurve{ mParamCache[(int)ParamIndices::PortamentoCurve], 0.0f };
 			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange, 2 };
 			
 			ModulationSpec mModulations[gModulationCount]{
@@ -89,14 +169,24 @@ namespace WaveSabreCore
 				{ mParamCache, (int)ParamIndices::Mod8Enabled },
 			};
 
-
 			real_t mParamCache[(int)ParamIndices::NumParams] = {0};
+
+			// these values are at the device level (not voice level), but yet they can be modulated by voice-level things.
+			// for exmaple you could map Velocity to unisono detune. Well it should be clear that this doesn't make much sense,
+			// except for maybe monophonic mode? So they are evaluated at the voice level but ultimately stored here.
+			real_t mUnisonoDetuneMod = 0;
+			real_t mUnisonoStereoSpreadMod = 0;
+			real_t mOscillatorDetuneMod = 0;
+			real_t mOscillatorStereoSpreadMod = 0;
+			real_t mFMBrightnessMod = 0;
+			real_t mPortamentoTimeMod = 0;
+			real_t mPortamentoCurveMod = 0;
 
 			Maj7() :
 				Maj7SynthDevice((int)ParamIndices::NumParams)
 			{
-				for (auto& v : mVoices) {
-					v = new Maj7Voice(this);
+				for (size_t i = 0; i < std::size(mVoices); ++ i) {
+					mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
 				}
 			}
 
@@ -176,14 +266,51 @@ namespace WaveSabreCore
 				return mParamCache[index];
 			}
 
-			//
-
 			virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) override
 			{
-				for (auto* v : mVoices)
-				{
-					v->ProcessAndMix(songPosition, outputs, numSamples);
+				// calculate osc & unisono detune
+				//Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune], 0.0f };
+				//Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread], 0.0f };
+				//Float01Param mOscillatorDetune{ mParamCache[(int)ParamIndices::OscillatorDetune], 0.0f };
+				//Float01Param mOscillatorStereoSpread{ mParamCache[(int)ParamIndices::OscillatorSpread], 0.0f };
+				// detune are +/- 1 semitone. how are they distributed?
+				// depends how they are enabled.
+				// if 1 is enabled, no detuning.
+				// if 2 are enabled, they diverge
+				// if 3 are enabled, add a center.
+				// if 4 are enabled, 2 diverge fully, 2 diverge half.
+				//float detunePos = math::pow(2, mOscillatorDetune.Get01Value() / 12.0f) - 1.0f; // BipolarDistribute will distribute + and - this value. later add 1 to it to make relative to current note.
+				//float detuneNeg = 1.0f - (detunePos - 1.0f);
+				mOscEnabled[0] = BoolParam{ mParamCache[(int)ParamIndices::Osc1Enabled] }.GetBoolValue();
+				mOscEnabled[1] = BoolParam{ mParamCache[(int)ParamIndices::Osc2Enabled] }.GetBoolValue();
+				mOscEnabled[2] = BoolParam{ mParamCache[(int)ParamIndices::Osc3Enabled] }.GetBoolValue();
+				mOscEnabled[3] = false;
+
+				float oscDetune[4] = { 0 };
+				BipolarDistribute(4, mOscEnabled, oscDetune);
+
+				bool unisonoEnabled[gUnisonoVoiceMax] = { false };
+				for (size_t i = 0; i < mVoicesUnisono; ++i) {
+					unisonoEnabled[i] = true;
 				}
+				float unisonoDetune[gUnisonoVoiceMax] = { 0 };
+				BipolarDistribute(gUnisonoVoiceMax, unisonoEnabled, unisonoDetune);
+
+				// scale down per param & mod
+				float unisonoDetuneAmt = mUnisonoDetune.Get01Value(mUnisonoDetuneMod);
+				for (size_t i = 0; i < mVoicesUnisono; ++i) {
+					unisonoDetune[i] *= unisonoDetuneAmt;
+				}
+				float oscDetuneAmt = mOscillatorDetune.Get01Value(mOscillatorDetuneMod);
+				for (auto& f : oscDetune) {
+					f *= oscDetuneAmt;
+				}
+
+				for (auto* v : mMaj7Voice)
+				{
+					v->ProcessAndMix(songPosition, outputs, numSamples, oscDetune, unisonoDetune);
+				}
+
 				// apply post FX.
 				real_t masterGain = mMasterVolume.GetLinearGain();
 				for (size_t iSample = 0; iSample < numSamples; ++iSample)
@@ -191,12 +318,15 @@ namespace WaveSabreCore
 					outputs[0][iSample] *= masterGain;
 					outputs[1][iSample] *= masterGain;
 				}
+
+				// todo: DC filter + limiter
 			}
 
 			struct Maj7Voice : public Maj7SynthDevice::Voice
 			{
 				Maj7Voice(Maj7* owner) :
 					mpOwner(owner),
+					mPortamento(owner->mParamCache[(int)ParamIndices::PortamentoTime], owner->mParamCache[(int)ParamIndices::PortamentoCurve]),
 					mAmpEnv(mModMatrix, ModDestination::AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::AmpEnvDelayTime),
 					mModEnv1(mModMatrix, ModDestination::Env1DelayTime, owner->mParamCache, (int)ParamIndices::Env1DelayTime),
 					mModEnv2(mModMatrix, ModDestination::Env2DelayTime, owner->mParamCache, (int)ParamIndices::Env2DelayTime),
@@ -214,8 +344,9 @@ namespace WaveSabreCore
 				Maj7* mpOwner;
 
 				real_t mVelocity01 = 0;
-				real_t mNoteValue01 = 0;
+				//real_t mNoteValue01 = 0;
 				real_t mTriggerRandom01 = 0;
+				PortamentoCalc mPortamento;
 
 				EnvelopeNode mAmpEnv;
 				EnvelopeNode mModEnv1;
@@ -239,13 +370,11 @@ namespace WaveSabreCore
 				FilterNode mFilterL;
 				FilterNode mFilterR;
 
-				virtual void ProcessAndMix(double songPosition, float* const* const outputs, int numSamples) override
+				void ProcessAndMix(double songPosition, float* const* const outputs, int numSamples, const float* oscDetuneSemis, const float* unisonoDetuneSemis)
 				{
 					if (!mAmpEnv.IsPlaying()) {
 						return;
 					}
-
-					// parameters are stored in their respective objects already; no need to copy params everywhere.
 
 					// at this point run the graph.
 					// 1. run signals which produce A-Rate outputs, so we can use those buffers to modulate nodes which have A-Rate destinations
@@ -258,20 +387,23 @@ namespace WaveSabreCore
 
 					mModMatrix.InitBlock(numSamples);
 
-					real_t midiNote = (real_t)mNoteInfo.MidiNoteValue;
+					real_t midiNote = mPortamento.GetCurrentMidiNote();
 					midiNote += mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
 					real_t noteHz = MIDINoteToFreq(midiNote);
 
 					mModMatrix.SetSourceKRateValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
 					mModMatrix.SetSourceKRateValue(ModSource::Velocity, mVelocity01);  // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::NoteValue, mNoteValue01); // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::NoteValue, midiNote / 127.0f); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro1, mpOwner->mMacro1.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro2, mpOwner->mMacro2.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
+
+					mModLFO1.BeginBlock(0, 1.0f);
+					mModLFO2.BeginBlock(0, 1.0f);
 
 					// process a-rate mod source buffers.
 					for (size_t iSample = 0; iSample < numSamples; ++iSample)
@@ -280,8 +412,8 @@ namespace WaveSabreCore
 						mModMatrix.SetSourceARateValue(ModSource::AmpEnv, iSample, mAmpEnv.ProcessSample(iSample));
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv1, iSample, mModEnv1.ProcessSample(iSample));
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv2, iSample, mModEnv2.ProcessSample(iSample));
-						mModMatrix.SetSourceARateValue(ModSource::LFO1, iSample, mModLFO1.ProcessSample(noteHz, iSample, 0, 0, 0, 0));
-						mModMatrix.SetSourceARateValue(ModSource::LFO2, iSample, mModLFO2.ProcessSample(noteHz, iSample, 0, 0, 0, 0));
+						mModMatrix.SetSourceARateValue(ModSource::LFO1, iSample, mModLFO1.ProcessSample(iSample, 0, 0, 0, 0));
+						mModMatrix.SetSourceARateValue(ModSource::LFO2, iSample, mModLFO2.ProcessSample(iSample, 0, 0, 0, 0));
 						mModMatrix.ProcessSample(mpOwner->mModulations, iSample);
 					}
 
@@ -306,17 +438,43 @@ namespace WaveSabreCore
 						filterSaturation
 					);
 
+					// set device-level modded values
+					mpOwner->mUnisonoDetuneMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoDetune, 0);
+					mpOwner->mUnisonoStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoStereoSpread, 0);
+					mpOwner->mOscillatorDetuneMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorDetune, 0);
+					mpOwner->mOscillatorStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorStereoSpread, 0);
+					mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness, 0);
+					mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime, 0);
+					mpOwner->mPortamentoCurveMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve, 0);
+
+					float myUnisonoDetune = unisonoDetuneSemis[this->mUnisonVoice];
+					//float oscDetuneFactors[4];
+					OscillatorNode* posc[3] = {
+						&mOscillator1, &mOscillator2, &mOscillator3
+					};
+					for (size_t i = 0; i < std::size(posc); ++i)
+					{
+						if (!mpOwner->mOscEnabled[i]) continue;
+						float semis = myUnisonoDetune + oscDetuneSemis[i];
+						//oscDetuneFactors[i] = SemisToFrequencyMul(semis);
+						posc[i]->BeginBlock(midiNote, SemisToFrequencyMul(semis));
+					}
+
+					//mOscillator1.BeginBlock(midiNote, oscDetuneFactors[0]);
+					//mOscillator2.BeginBlock(midiNote, oscDetuneFactors[1]);
+					//mOscillator3.BeginBlock(midiNote, oscDetuneFactors[2]);
+
 					for (int iSample = 0; iSample < numSamples; ++iSample) {
 
-						real_t s1 = mOscillator1.ProcessSample(noteHz, iSample,
+						real_t s1 = mOscillator1.ProcessSample(iSample,
 							mOscillator2.GetLastSample(), mpOwner->mFMAmt2to1.Get01Value(),
 							mOscillator3.GetLastSample(), mpOwner->mFMAmt3to1.Get01Value()
 						);
-						real_t s2 = mOscillator2.ProcessSample(noteHz, iSample,
+						real_t s2 = mOscillator2.ProcessSample(iSample,
 							s1, mpOwner->mFMAmt1to2.Get01Value(),
 							mOscillator3.GetLastSample(), mpOwner->mFMAmt3to2.Get01Value()
 						);
-						real_t s3 = mOscillator3.ProcessSample(noteHz, iSample,
+						real_t s3 = mOscillator3.ProcessSample(iSample,
 							s1, mpOwner->mFMAmt1to3.Get01Value(),
 							s2, mpOwner->mFMAmt2to3.Get01Value()
 						);
@@ -338,15 +496,19 @@ namespace WaveSabreCore
 						outputs[1][iSample] += sr;
 					}
 
+					mPortamento.Advance(numSamples,
+						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime, 0),
+						mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve, 0)
+						);
 				}
 
 				virtual void NoteOn() override {
 					mVelocity01 = mNoteInfo.Velocity / 127.0f;
-					mNoteValue01 = mNoteInfo.MidiNoteValue / 127.0f;
-					mTriggerRandom01 = Helpers::RandFloat(); // TODO
+					mTriggerRandom01 = Helpers::RandFloat();
 					mAmpEnv.noteOn(mLegato);
 					mModEnv1.noteOn(mLegato);
 					mModEnv2.noteOn(mLegato);
+					mPortamento.NoteOn((float)mNoteInfo.MidiNoteValue, !mLegato);
 				}
 
 				virtual void NoteOff() override {
@@ -366,6 +528,8 @@ namespace WaveSabreCore
 				}
 			};
 
+
+			struct Maj7Voice* mMaj7Voice[maxVoices] = { 0 };
 
 		};
 	} // namespace M7

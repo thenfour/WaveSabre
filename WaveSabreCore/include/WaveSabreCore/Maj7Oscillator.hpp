@@ -10,6 +10,7 @@ namespace WaveSabreCore
 		enum class OscillatorWaveform : uint8_t
 		{
 			Sine,
+			Saw,
 
 			// white noise
 
@@ -31,6 +32,14 @@ namespace WaveSabreCore
             "HP_Moog2", \
             "HP_Moog4", \
         }
+
+		struct IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
+			virtual float NaiveSampleSlope(float phase01) = 0; // return slope at phase
+			virtual float SetParams(float freq, float phaseOffset, float waveshape, float syncmasterFreq) = 0;
+			//virtual float SetParams(float freq, float phaseOffset, float waveshape, float syncmasterFreq) = 0;
+		};
 
 		enum class OscillatorIntention
 		{
@@ -128,54 +137,75 @@ namespace WaveSabreCore
 
 			// state
 			real_t mPhase = 0;
+			real_t mPhaseIncrement = 0;
 			real_t mLastSample = 0;
 
 			OscillatorIntention mIntention;
 			ModMatrixNode& mModMatrix;
 			int mModDestBase; // ModDestination enum value representing the 1st mod value. for LFOs that's waveshape, for audio that's volume.
 
-			void BeginBlock(real_t* params)
-			{
-			}
+			float mFreqModVal = 0;
+			float mVolumeModVal = 0;
+			float mWaveShapeModVal = 0;
+			float mSyncFreqModVal = 0;
+			float mFMFeedbackModVal = 0;
 
 			real_t GetLastSample() const {
 				return mLastSample;
 			}
 
-			real_t ProcessSample(real_t noteHz, size_t bufferPos, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount)
+			void BeginBlock(real_t midiNote, float detuneFreqMul)
+			{
+				if (!mEnabled.GetBoolValue()) {
+					return;
+				}
+				switch (mIntention) {
+				case OscillatorIntention::LFO:
+					mFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::FrequencyParam, 0);
+					break;
+				case OscillatorIntention::Audio:
+					mVolumeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Volume, 0);
+					mSyncFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::SyncFrequency, 0);
+					mFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FrequencyParam, 0);
+					mFMFeedbackModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FMFeedback, 0);
+					break;
+				}
+				// - osc pitch semis                  note         oscillator                  
+				// - osc fine (semis)                 note         oscillator                   
+				// - osc sync freq / kt (Hz)          hz           oscillator                        
+				// - osc freq / kt (Hz)               hz           oscillator                   
+				// - osc mul (Hz)                     hz           oscillator             
+				// - osc detune (semis)               hz+semis     oscillator                         
+				// - unisono detune (semis)           hz+semis     oscillator                             
+				midiNote += mPitchSemis.GetIntValue() + mPitchFine.GetN11Value();
+				float noteHz = MIDINoteToFreq(midiNote);
+				float freq = mFrequency.GetFrequency(noteHz, mFreqModVal);
+				freq *= mFrequencyMul.GetRangedValue();
+				freq *= detuneFreqMul;
+				mPhaseIncrement = freq / (real_t)Helpers::CurrentSampleRate;
+			}
+
+			real_t ProcessSample(size_t bufferPos, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount)
 			{
 				if (!mEnabled.GetBoolValue()) {
 					mLastSample = 0;
 					return 0;
 				}
-				//return Helpers::RandFloat();
-				float volumeModVal = 0;
-				float waveShapeModVal = 0;
-				float syncFreqModVal = 0;
-				float freqModVal = 0;
-				float fmFeedbackModVal = 0;
 				switch (mIntention) {
 				case OscillatorIntention::LFO:
-					waveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::Waveshape, bufferPos);
-					freqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::FrequencyParam, bufferPos);
+					mWaveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::Waveshape, bufferPos);
 					break;
 				case OscillatorIntention::Audio:
-					volumeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Volume, bufferPos);
-					waveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Waveshape, bufferPos);
-					syncFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::SyncFrequency, bufferPos);
-					freqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FrequencyParam, bufferPos);
-					fmFeedbackModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FMFeedback, bufferPos);
+					mWaveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Waveshape, bufferPos);
 					break;
 				}
 
-				float freq = mFrequency.GetFrequency(noteHz, freqModVal);
-				float dt = freq / (real_t)Helpers::CurrentSampleRate;
-				mPhase += dt;
+				mPhase += mPhaseIncrement;
 				mPhase -= math::floor(mPhase);
 
-				mLastSample = math::sin((mPhase + (mLastSample * mFMFeedback01.Get01Value(fmFeedbackModVal))) * 2 * math::gPI);
+				mLastSample = math::sin((mPhase + (mLastSample * mFMFeedback01.Get01Value(mFMFeedbackModVal))) * 2 * math::gPI);
 
-				return mLastSample * mVolume.GetLinearGain(volumeModVal);
+				return mLastSample * mVolume.GetLinearGain(mVolumeModVal);
 			}
 		};
 	} // namespace M7

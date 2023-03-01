@@ -11,6 +11,12 @@
 using std::min;
 using std::max;
 
+#ifdef __cplusplus
+#define cast_uint32_t static_cast<uint32_t>
+#else
+#define cast_uint32_t (uint32_t)
+#endif
+
 namespace WaveSabreCore
 {
     namespace M7
@@ -22,6 +28,51 @@ namespace WaveSabreCore
         namespace fastmath
         {
 
+            static inline float fastpow2(float p)
+            {
+                float offset = (p < 0) ? 1.0f : 0.0f;
+                float clipp = (p < -126) ? -126.0f : p;
+                int w = (int)clipp;
+                float z = clipp - w + offset;
+                union {
+                    uint32_t i;
+                    float f;
+                } v = { cast_uint32_t((1 << 23) * (clipp + 121.2740575f + 27.7280233f / (4.84252568f - z) - 1.49012907f * z)) };
+
+                return v.f;
+            }
+
+            static inline float fastlog2(float x)
+            {
+                union {
+                    float f;
+                    uint32_t i;
+                } vx = { x };
+                union {
+                    uint32_t i;
+                    float f;
+                } mx = { (vx.i & 0x007FFFFF) | 0x3f000000 };
+                float y = (float)vx.i;
+                y *= 1.1920928955078125e-7f;
+
+                return y - 124.22551499f - 1.498030302f * mx.f - 1.72587999f / (0.3520887068f + mx.f);
+            }
+
+            static inline float fastpow(float x, float p)
+            {
+                return fastpow2(p * fastlog2(x));
+            }
+
+            static inline float fasterpow2(float p)
+            {
+                float clipp = (p < -126) ? -126.0f : p;
+                union {
+                    uint32_t i;
+                    float f;
+                } v = { cast_uint32_t((1 << 23) * (clipp + 126.94269504f)) };
+                return v.f;
+            }
+
             static inline float fasterlog2(float x)
             {
                 union {
@@ -32,6 +83,7 @@ namespace WaveSabreCore
                 y *= 1.1920928955078125e-7f;
                 return y - 126.94269504f;
             }
+
             static inline float fasterlog(float x)
             {
                 //  return 0.69314718f * fasterlog2 (x);
@@ -45,6 +97,75 @@ namespace WaveSabreCore
                 return y - 87.989971088f;
             }
 
+            static inline float fasterpow(float x, float p)
+            {
+                return fasterpow2(p * fasterlog2(x));
+            }
+
+            static inline float fasterexp(float p)
+            {
+                return fasterpow2(1.442695040f * p);
+            }
+
+            static inline float fastertanh(float p)
+            {
+                return -1.0f + 2.0f / (1.0f + fasterexp(-2.0f * p));
+            }
+
+            static inline float fastersin(float x)
+            {
+                return (float)Helpers::FastSin((double)x);
+                //static const float fouroverpi = 1.2732395447351627f;
+                //static const float fouroverpisq = 0.40528473456935109f;
+                //static const float q = 0.77633023248007499f;
+                //union {
+                //    float f;
+                //    uint32_t i;
+                //} p = { 0.22308510060189463f };
+
+                //union {
+                //    float f;
+                //    uint32_t i;
+                //} vx = { x };
+                //uint32_t sign = vx.i & 0x80000000;
+                //vx.i &= 0x7FFFFFFF;
+
+                //float qpprox = fouroverpi * x - fouroverpisq * x * vx.f;
+
+                //p.i |= sign;
+
+                //return qpprox * (q + p.f * qpprox);
+            }
+
+            static inline float fastercos(float x)
+            {
+                return (float)Helpers::FastCos((double)x);
+                //static const float twooverpi = 0.63661977236758134f;
+                //static const float p = 0.54641335845679634f;
+
+                //union {
+                //    float f;
+                //    uint32_t i;
+                //} vx = { x };
+                //vx.i &= 0x7FFFFFFF;
+
+                //float qpprox = 1.0f - twooverpi * vx.f;
+
+                //return qpprox + p * qpprox * (1.0f - qpprox * qpprox);
+            }
+
+            static inline float fastertanfull(float x)
+            {
+                static const float twopi = 6.2831853071795865f;
+                static const float invtwopi = 0.15915494309189534f;
+
+                int k = (int)(x * invtwopi);
+                float half = (x < 0) ? -0.5f : 0.5f;
+                float xnew = x - (half + k) * twopi;
+
+                return fastersin(xnew) / fastercos(xnew);
+            }
+
         }
 
         // we may be able to save code size by calling exported functions instead of pulling in lib fns
@@ -53,7 +174,12 @@ namespace WaveSabreCore
             static constexpr real_t gPI = 3.1415926535897932385f;
 
             inline real_t pow(real_t x, real_t y) {
+                // fasterpow is just too inaccurate.
+                //return fastmath::fastpow(x, y); // this is also not always accurate
                 return ::powf(x, y);
+            }
+            inline real_t pow2(real_t y) {
+                return fastmath::fastpow2(y);
             }
             inline real_t log2(real_t x) {
                 return fastmath::fasterlog2(x);
@@ -63,7 +189,7 @@ namespace WaveSabreCore
             }
             
             inline real_t sqrt(real_t x) {
-                return ::sqrtf(x);
+                return ::sqrtf(x); // TODO: is fasterpow(x, 0.5) faster?
             }
             inline real_t floor(real_t x) {
                 return (real_t)::floor((double)x);
@@ -72,7 +198,7 @@ namespace WaveSabreCore
                 return (real_t)Helpers::FastSin((double)x);
             }
             inline real_t tan(real_t x) {
-                return (real_t)::tan((double)x);
+                return fastmath::fastertanfull(x);
             }
             inline real_t max(real_t x, real_t y) {
                 return x > y ? x : y;
@@ -81,10 +207,10 @@ namespace WaveSabreCore
                 return x < y ? x : y;
             }
             inline real_t tanh(real_t x) {
-                return (real_t)::tanh((double)x);
+                return fastmath::fastertanh(x);
             }
             inline real_t tanh(real_t x, real_t y) { // used by saturation
-                return (real_t)::tanh((double)(x * y));
+                return tanh(x * y);
             }
         }
 
@@ -202,6 +328,11 @@ namespace WaveSabreCore
             return gain <= gMinGainLinear;
         }
 
+        inline float MillisecondsToSamples(float ms)
+        {
+            static constexpr float oneOver1000 = 1.0f / 1000.0f; // obsessive optimization?
+            return (ms * Helpers::CurrentSampleRateF) * oneOver1000;
+        }
 
 
         // don't use a LUT because we want to support pitch bend and glides and stuff. using a LUT + interpolation would be
@@ -210,7 +341,12 @@ namespace WaveSabreCore
         {
             // float a = 440;
             // return (a / 32.0f) * fast::pow(2.0f, (((float)x - 9.0f) / 12.0f));
-            return 440 * math::pow(2.0f, ((x - 69) / 12));
+            return 440 * math::pow2((x - 69) / 12);
+        }
+
+        inline float SemisToFrequencyMul(float x)
+        {
+            return math::pow2(x / 12.0f);
         }
 
         // let MidiNoteToFrequency = function(midiNote) {
@@ -226,6 +362,40 @@ namespace WaveSabreCore
             return ret;
         }
 
+        // for detune & unisono, based on enabled oscillators etc, distribute a [-1,1] value among many items.
+        // there could be various ways of doing this but to save space just unify.
+        // if an odd number of items, then 1 = centered @ 0.0f.
+        // then, the remaining even # of items gets + and - respectively, distributed between 0 - 1.
+        static void BipolarDistribute(size_t count, const bool* enabled, float* outp)
+        {
+            size_t enabledCount = 0;
+            // get enabled count first
+            for (size_t i = 0; i < count; ++i) {
+                if (enabled[i]) enabledCount++;
+            }
+            size_t pairCount = enabledCount / 2; // chops off the odd one.
+            size_t iPair = 0;
+            size_t iEnabled = 0;
+            for (size_t iElement = 0; iElement < count; ++iElement) {
+                if (!enabled[iElement]) {
+                    // no calc needed; for disabled elements ignore.
+                    continue;
+                }
+                if (iPair >= pairCount) {
+                    // past the expected # of pairs; this means it's centered. there should only ever be 1 of these elements (the odd one)
+                    outp[iElement] = 0;
+                    ++ iEnabled;
+                    continue;
+                }
+                float val = float(iPair + 1) / pairCount; // +1 so 1. we don't use 0; that's reserved for the odd element, and 2. so we hit +1.0f
+                ++iEnabled;
+                if (iEnabled & 1) { // is this the 1st or 2nd in the pair
+                    val = -val;
+                    ++ iPair;
+                }
+                outp[iElement] = val;
+            }
+        }
 
         // raw param values are stored in a huge array. the various sub-objects (osc, filters, envelopes)
         // will refer to param values in that array using this. sub classes of this class can do whatever
@@ -236,7 +406,8 @@ namespace WaveSabreCore
             real_t& mParamValue;
 
         public:
-            explicit Float01RefParam(real_t& ref) : mParamValue(ref) {}
+            explicit Float01RefParam(real_t& ref) : mParamValue(ref)
+            {}
             explicit Float01RefParam(real_t& ref, real_t initialValue) : mParamValue(ref) {
                 mParamValue = initialValue;
             }
@@ -254,7 +425,8 @@ namespace WaveSabreCore
         // overkill? maybe but no judging plz
         struct Float01Param : Float01RefParam
         {
-            explicit Float01Param(real_t& ref, real_t initialValue = 0) : Float01RefParam(ref, initialValue) {}
+            explicit Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
+            explicit Float01Param(real_t& ref) : Float01RefParam(ref) {}
             real_t Get01Value(real_t modVal = 0.0f) const {
                 return mParamValue + modVal;
             }
@@ -263,7 +435,8 @@ namespace WaveSabreCore
         struct FloatN11Param : Float01RefParam
         {
             explicit FloatN11Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {
-
+            }
+            explicit FloatN11Param(real_t& ref) : Float01RefParam(ref) {
             }
 
             real_t GetN11Value(real_t modVal = 0.0f) const {
@@ -280,6 +453,7 @@ namespace WaveSabreCore
         struct EnvTimeParam : Float01RefParam
         {
             explicit EnvTimeParam(real_t& ref, real_t initialParamValue) : Float01RefParam(ref, initialParamValue) {}
+            explicit EnvTimeParam(real_t& ref) : Float01RefParam(ref) {}
 
             static constexpr real_t gCenterValue = 375; // the MS at 0.5 param value.
             static constexpr int gRangeLog2 = 10;      // must be even for below calculations to work
@@ -308,6 +482,7 @@ namespace WaveSabreCore
         struct CurveParam : FloatN11Param
         {
             explicit CurveParam(real_t& ref, real_t initialParamValue) : FloatN11Param(ref, initialParamValue) {}
+            explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
 
             real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
                 return modCurve_xN11_kN11(x, GetN11Value() + modVal);
@@ -327,6 +502,12 @@ namespace WaveSabreCore
                 mMaxValueInclusive(maxValueInclusive)
             {
                 SetIntValue(initialValue);
+            }
+            explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive) :
+                Float01Param(ref),
+                mMinValueInclusive(minValueInclusive),
+                mMaxValueInclusive(maxValueInclusive)
+            {
             }
 
             int GetDiscreteValueCount() const {
@@ -357,6 +538,8 @@ namespace WaveSabreCore
         {
             explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, (int)maxValue, (int)initialValue)
             {}
+            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, (int)maxValue)
+            {}
             T GetEnumValue() const {
                 return (T)GetIntValue();
             }
@@ -367,7 +550,9 @@ namespace WaveSabreCore
 
         struct BoolParam : IntParam
         {
-            explicit BoolParam(real_t& ref, bool initialValue = false) : IntParam(ref, 0, 1, initialValue ? 1 : 0)
+            explicit BoolParam(real_t& ref, bool initialValue) : IntParam(ref, 0, 1, initialValue ? 1 : 0)
+            {}
+            explicit BoolParam(real_t& ref) : IntParam(ref, 0, 1)
             {}
 
             bool GetBoolValue() const {
