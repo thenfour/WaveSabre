@@ -84,18 +84,21 @@ namespace WaveSabreCore
 			Osc1SyncFrequency, // arate, 01
 			Osc1FrequencyParam, // arate, 01
 			Osc1FMFeedback, // arate, 01
+			Osc1Phase, // krate, N11
 
 			Osc2Volume,
 			Osc2Waveshape,
 			Osc2SyncFrequency,
 			Osc2FrequencyParam,
 			Osc2FMFeedback,
+			Osc2Phase,
 
 			Osc3Volume,
 			Osc3Waveshape,
 			Osc3SyncFrequency,
 			Osc3FrequencyParam,
 			Osc3FMFeedback,
+			Osc3Phase,
 
 			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
 			AmpEnvDelayTime, 
@@ -166,6 +169,7 @@ namespace WaveSabreCore
 			SyncFrequency,
 			FrequencyParam,
 			FMFeedback,
+			Phase,
 		};
 		enum class LFOModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
@@ -190,16 +194,19 @@ namespace WaveSabreCore
 			"Osc1SyncFrequency", \
 			"Osc1FrequencyParam", \
 			"Osc1FMFeedback", \
+			"Osc1Phase", \
 			"Osc2Volume", \
 			"Osc2Waveshape", \
 			"Osc2SyncFrequency", \
 			"Osc2FrequencyParam", \
 			"Osc2FMFeedback", \
+			"Osc2Phase", \
 			"Osc3Volume", \
 			"Osc3Waveshape", \
 			"Osc3SyncFrequency", \
 			"Osc3FrequencyParam", \
 			"Osc3FMFeedback", \
+			"Osc3Phase", \
 			"AmpEnvDelayTime",  \
 			"AmpEnvAttackTime", \
 			"AmpEnvAttackCurve", \
@@ -414,11 +421,18 @@ namespace WaveSabreCore
 				ModDestination::Osc1FrequencyParam, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+			{
 				ModDestination::Osc1FMFeedback, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+			{
+				ModDestination::Osc1Phase, // krate, N11
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
 				ModDestination::Osc2Volume,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
@@ -438,7 +452,13 @@ namespace WaveSabreCore
 				ModDestination::Osc2FMFeedback,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+			{
+				ModDestination::Osc2Phase, // krate, N11
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
 				ModDestination::Osc3Volume,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
@@ -458,7 +478,13 @@ namespace WaveSabreCore
 				ModDestination::Osc3FMFeedback,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+			{
+				ModDestination::Osc3Phase, // krate, N11
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
 				ModDestination::AmpEnvDelayTime,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
@@ -621,7 +647,7 @@ namespace WaveSabreCore
 			}
 		};
 		// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
-// this means 1 single big allocation instead of 70 identically-sized small ones.
+		// this means 1 single big allocation instead of 70 identically-sized small ones.
 		struct ModMatrixBuffers
 		{
 		private:

@@ -372,6 +372,45 @@ namespace WaveSabreCore
             return std::make_pair(leftChannel, rightChannel);
         }
 
+        inline float Fract(float x) {
+            return x - math::floor(x);
+        }
+
+        // where t1, t2, and x are periodic values [0,1).
+        // and t1 is "before" t2,
+        // return true if x falls between t1 and t2.
+        // so if t2 < t1, it means a cycle wrap.
+        inline bool DoesEncounter(float t1, float t2, float x) {
+            if (t1 < t2) {
+                return (t1 < x&& x <= t2);
+            }
+            return (x <= t2 || x > t1);
+        }
+
+        // AA correction polynomial to be added THIS sample.
+        // x is 0-1 samples after the discontinuity.
+        inline float BlepBefore(float x) {
+            return x * x;
+        }
+
+        // AA correction polynomial to be added NEXT sample.
+        // x is 0-1 samples after the discontinuity.
+        inline float BlepAfter(float x) {
+            x = 1.0f - x;
+            return -x * x;
+        }
+
+        inline float BlampBefore(float x) {
+            static constexpr float OneThird = 1.0f / 3.0f;
+            return x * x * x * OneThird;
+        }
+
+        inline float BlampAfter(float x) {
+            static constexpr float NegOneThird = -1.0f / 3.0f;
+            x = x - 1.0f;
+            return NegOneThird * x * x * x;
+        }
+
         // for detune & unisono, based on enabled oscillators etc, distribute a [-1,1] value among many items.
         // there could be various ways of doing this but to save space just unify.
         // if an odd number of items, then 1 = centered @ 0.0f.

@@ -498,6 +498,7 @@ namespace WaveSabreCore
 					OscillatorNode* posc[gOscillatorCount] = {
 						&mOscillator1, &mOscillator2, &mOscillator3
 					};
+					std::pair<float, float> mOscPanGains[gOscillatorCount];
 					for (size_t i = 0; i < std::size(posc); ++i)
 					{
 						if (!mpOwner->mOscEnabled[i]) {
@@ -505,6 +506,8 @@ namespace WaveSabreCore
 						}
 						float semis = myUnisonoDetune + mpOwner->mOscDetuneAmts[i];
 						posc[i]->BeginBlock(midiNote, SemisToFrequencyMul(semis));
+						float pan = myUnisonoPan + mpOwner->mOscPanAmts[i];
+						mOscPanGains[i] = PanToFactor(pan);
 					}
 
 					// process volume every 16 samples
@@ -519,21 +522,19 @@ namespace WaveSabreCore
 								}
 								VolumeParam ampParam{ mpOwner->mParamCache[(int)gOscVolumeParams[i]], OscillatorNode::gVolumeMaxDb };
 								float ampLinear = ampParam.GetLinearGain(mModMatrix.GetDestinationValue(gModDestOscVolumes[i], iSample));
-								float pan = myUnisonoPan + mpOwner->mOscPanAmts[i];
-								auto gains = PanToFactor(pan);
-								oscGains[i][0] = gains.first * ampLinear;
-								oscGains[i][1] = gains.second * ampLinear;
+								oscGains[i][0] = mOscPanGains[i].first * ampLinear;
+								oscGains[i][1] = mOscPanGains[i].second * ampLinear;
 							}
 
 						}
 
 						real_t s1 = mOscillator1.ProcessSample(iSample,
-							mOscillator2.GetLastSample(), mpOwner->mFMAmt2to1.Get01Value(),
-							mOscillator3.GetLastSample(), mpOwner->mFMAmt3to1.Get01Value()
+							mOscillator2.GetSample(), mpOwner->mFMAmt2to1.Get01Value(),
+							mOscillator3.GetSample(), mpOwner->mFMAmt3to1.Get01Value()
 						);
 						real_t s2 = mOscillator2.ProcessSample(iSample,
 							s1, mpOwner->mFMAmt1to2.Get01Value(),
-							mOscillator3.GetLastSample(), mpOwner->mFMAmt3to2.Get01Value()
+							mOscillator3.GetSample(), mpOwner->mFMAmt3to2.Get01Value()
 						);
 						real_t s3 = mOscillator3.ProcessSample(iSample,
 							s1, mpOwner->mFMAmt1to3.Get01Value(),
@@ -563,6 +564,9 @@ namespace WaveSabreCore
 					mAmpEnv.noteOn(mLegato);
 					mModEnv1.noteOn(mLegato);
 					mModEnv2.noteOn(mLegato);
+					mOscillator1.NoteOn(mLegato);
+					mOscillator2.NoteOn(mLegato);
+					mOscillator3.NoteOn(mLegato);
 					mPortamento.NoteOn((float)mNoteInfo.MidiNoteValue, !mLegato);
 				}
 
