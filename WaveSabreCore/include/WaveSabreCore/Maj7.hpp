@@ -146,10 +146,10 @@ namespace WaveSabreCore
 			float mUnisonoDetuneAmts[gUnisonoVoiceMax] = { 0 };
 
 			float mOscPanAmts[gOscillatorCount] = { 0 };
-			float mUnisonoPanAmts[gUnisonoVoiceMax];
+			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
 
 			float mOscShapeAmts[gOscillatorCount] = { 0 };
-			float mUnisonoShapeAmts[gUnisonoVoiceMax];
+			float mUnisonoShapeAmts[gUnisonoVoiceMax] = { 0 };
 
 			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb, .5f };
 			Float01Param mMacro1{ mParamCache[(int)ParamIndices::Macro1], 0.0f };
@@ -431,8 +431,8 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceKRateValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
 
-					mModLFO1.BeginBlock(0, 1.0f);
-					mModLFO2.BeginBlock(0, 1.0f);
+					mModLFO1.BeginBlock(0, 0, 1.0f, 0);
+					mModLFO2.BeginBlock(0, 0, 1.0f, 0);
 
 					// process a-rate mod source buffers.
 					for (size_t iSample = 0; iSample < numSamples; ++iSample)
@@ -479,6 +479,7 @@ namespace WaveSabreCore
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
+					float myUnisonoShape = mpOwner->mUnisonoShapeAmts[this->mUnisonVoice];
 					float ampEnvParam = mModMatrix.GetSourceValue(ModSource::AmpEnv, 0);
 
 					float oscGains[gOscillatorCount][2] = { 0 };// [osc index, channel]
@@ -499,18 +500,29 @@ namespace WaveSabreCore
 						&mOscillator1, &mOscillator2, &mOscillator3
 					};
 					std::pair<float, float> mOscPanGains[gOscillatorCount];
+					float globalFMScale = mpOwner->mFMBrightness.Get01Value(mpOwner->mFMBrightnessMod);
 					for (size_t i = 0; i < std::size(posc); ++i)
 					{
 						if (!mpOwner->mOscEnabled[i]) {
 							continue;
 						}
 						float semis = myUnisonoDetune + mpOwner->mOscDetuneAmts[i];
-						posc[i]->BeginBlock(midiNote, SemisToFrequencyMul(semis));
+						posc[i]->BeginBlock(midiNote, myUnisonoShape + mpOwner->mOscShapeAmts[i], SemisToFrequencyMul(semis), globalFMScale);
 						float pan = myUnisonoPan + mpOwner->mOscPanAmts[i];
 						mOscPanGains[i] = PanToFactor(pan);
 					}
 
-					// process volume every 16 samples
+					float FMScales[] = {
+						mpOwner->mFMAmt2to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to1, 0))* globalFMScale,
+						mpOwner->mFMAmt3to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to1, 0))* globalFMScale,
+						mpOwner->mFMAmt1to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to2, 0))* globalFMScale,
+						mpOwner->mFMAmt3to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to2, 0))* globalFMScale,
+						mpOwner->mFMAmt1to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to3, 0))* globalFMScale,
+						mpOwner->mFMAmt2to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to3, 0))* globalFMScale,
+					};
+
+
+					// process volume every N samples
 					static const int gQuasaiARateSampleMask = 0x7;
 
 					for (int iSample = 0; iSample < numSamples; ++iSample) {
@@ -529,16 +541,16 @@ namespace WaveSabreCore
 						}
 
 						real_t s1 = mOscillator1.ProcessSample(iSample,
-							mOscillator2.GetSample(), mpOwner->mFMAmt2to1.Get01Value(),
-							mOscillator3.GetSample(), mpOwner->mFMAmt3to1.Get01Value()
+							mOscillator2.GetSample(), FMScales[0],
+							mOscillator3.GetSample(), FMScales[1]
 						);
 						real_t s2 = mOscillator2.ProcessSample(iSample,
-							s1, mpOwner->mFMAmt1to2.Get01Value(),
-							mOscillator3.GetSample(), mpOwner->mFMAmt3to2.Get01Value()
+							s1, FMScales[2],
+							mOscillator3.GetSample(), FMScales[3]
 						);
 						real_t s3 = mOscillator3.ProcessSample(iSample,
-							s1, mpOwner->mFMAmt1to3.Get01Value(),
-							s2, mpOwner->mFMAmt2to3.Get01Value()
+							s1, FMScales[4],
+							s2, FMScales[5]
 						);
 
 						real_t sl = s1 * oscGains[0][0] + s2 * oscGains[1][0] + s3 * oscGains[2][0];

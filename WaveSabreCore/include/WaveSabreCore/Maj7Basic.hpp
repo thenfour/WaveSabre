@@ -171,7 +171,8 @@ namespace WaveSabreCore
         // we may be able to save code size by calling exported functions instead of pulling in lib fns
         namespace math
         {
-            static constexpr real_t gPI = 3.1415926535897932385f;
+            static constexpr real_t gPI = 3.14159265358979323846264338327950288f;
+            static constexpr real_t gPITimes2 = gPI * 2;
 
             inline real_t pow(real_t x, real_t y) {
                 // fasterpow is just too inaccurate.
@@ -196,6 +197,9 @@ namespace WaveSabreCore
             }
             inline real_t sin(real_t x) {
                 return (real_t)Helpers::FastSin((double)x);
+            }
+            inline real_t cos(real_t x) {
+                return (real_t)Helpers::FastCos((double)x);
             }
             inline real_t tan(real_t x) {
                 return fastmath::fastertanfull(x);

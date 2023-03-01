@@ -210,10 +210,24 @@ public:
 			if (ImGui::BeginTabItem("FM")) {
 				//ImGui::PushID("FM");
 				//if (ImGui::CollapsingHeader("FM")) {
-				WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "Osc A FB##osc1");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "Osc B FB##osc2");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "Osc C FB##osc2");
+				//WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "Osc A FB##osc1");
+				//ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "Osc B FB##osc2");
+				//ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "Osc C FB##osc2");
+				//ImGui::SameLine(0, 60);	WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
+
+				WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
 				ImGui::SameLine(0, 60);	WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
+
+				WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
+
+				WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
+
 				ImGui::EndTabItem();
 			}
 			//ImGui::PopID();
@@ -290,7 +304,8 @@ public:
 			auto color = ImColor::HSV(0, 0, .3f);
 			if (pv->IsPlaying()) {
 				auto& ns = pMaj7->mNoteStates[pv->mNoteInfo.MidiNoteValue];
-				std::sprintf(txt, "%d:%d %c%c #%d", (int)i, ns.MidiNoteValue, ns.mIsPhysicallyHeld ? 'P' : ' ', ns.mIsMusicallyHeld ? 'M':' ', ns.mSequence);
+				std::sprintf(txt, "%d u:%d", (int)i, pv->mUnisonVoice);
+				//std::sprintf(txt, "%d u:%d %d %c%c #%d", (int)i, pv->mUnisonVoice, ns.MidiNoteValue, ns.mIsPhysicallyHeld ? 'P' : ' ', ns.mIsMusicallyHeld ? 'M' : ' ', ns.mSequence);
 				color = ImColor::HSV(2/7.0f, .8f, .7f);
 			}
 			else {

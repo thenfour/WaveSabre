@@ -10,25 +10,16 @@ namespace WaveSabreCore
 		enum class OscillatorWaveform : uint8_t
 		{
 			SawClip,
-			Sine,
+			Pulse,
+			SineTrunc,
 			WhiteNoiseSH,
 			Count,
 		};
 		// size-optimize using macro
 		#define OSCILLATOR_WAVEFORM_CAPTIONS { \
-            "Disabled", \
-            "LP_OnePole", \
-            "LP_SEM12", \
-            "LP_Diode", \
-            "LP_K35", \
-            "LP_Moog2", \
-            "LP_Moog4", \
-            "BP_Moog2", \
-            "BP_Moog4", \
-            "HP_OnePole", \
-            "HP_K35", \
-            "HP_Moog2", \
-            "HP_Moog4", \
+            "SawClip", \
+            "SineThroaty", \
+            "WhiteNoiseSH", \
         }
 
 		/////////////////////////////////////////////////////////////////////////////
@@ -43,19 +34,17 @@ namespace WaveSabreCore
 			float mFrequency = 0;
 			float mPhase = 0; // phase cursor 0-1
 			float mPhaseIncrement = 0;
-			//float mSyncMasterFrequency = 0;
 
 			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
 			virtual float NaiveSampleSlope(float phase01) = 0; // return slope at phase			
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) = 0;// returns blep before and blep after discontinuity.
 
 			// override if you need to adjust things
-			virtual void SetParams(float freq, float phaseOffset, float waveshape/*, float syncmasterFreq*/)
+			virtual void SetParams(float freq, float phaseOffset, float waveshape)
 			{
 				mFrequency = freq;
 				mPhaseOffset = Fract(phaseOffset);
 				mShape = waveshape;
-				//mSyncMasterFrequency = syncmasterFreq;
 				mPhaseIncrement = mFrequency * Helpers::CurrentSampleRateRecipF;
 			}
 
@@ -100,7 +89,6 @@ namespace WaveSabreCore
 				return phase01 * 2 - 1;
 			}
 
-			// returns Y value at specified phase. instance / stateless.
 			virtual float NaiveSampleSlope(float phase01) override
 			{
 				if (phase01 < mShape) {
@@ -167,6 +155,85 @@ namespace WaveSabreCore
 		};
 
 		/////////////////////////////////////////////////////////////////////////////
+		struct SineTruncWaveform :IOscillatorWaveform
+		{
+			// returns Y value at specified phase. instance / stateless.
+			virtual float NaiveSample(float phase01) override
+			{
+				if (phase01 < this->mShape) {
+					float rad = phase01 / mShape * math::gPITimes2;
+					float s = math::sin(rad);
+					float b = .5f - math::cos(rad) * .5f;
+					s = s * b * 1.5f;
+					return s;
+				}
+				else {
+					return 0;
+				}
+			}
+
+			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual void SetParams(float freq, float phaseOffset, float waveshape) override
+			{
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape);
+
+				mShape = Lerp(1, 0.1f, waveshape);
+
+				mDCOffset = 0;
+				mScale = 1.0f;
+			}
+
+			// samples is 0<samples<1
+			// assume this.phase is currently 0<t<1
+			// this.phase may not be on a sample boundary.
+			// returns blep before and blep after discontinuity.
+			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			{
+				float phaseToAdvance = samples * mPhaseIncrement;
+				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+
+				std::pair<float, float> bleps{ 0.0f,0.0f };
+				this->mPhase = newPhase;
+				return bleps;
+			}
+		};
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct WhiteNoiseWaveform :IOscillatorWaveform
+		{
+			// TODO: waveshape -> S&H
+
+			// returns Y value at specified phase. instance / stateless.
+			virtual float NaiveSample(float phase01) override
+			{
+				return Helpers::RandFloat()*2-1;
+			}
+
+			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual void SetParams(float freq, float phaseOffset, float waveshape) override
+			{
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape);
+
+				mShape = Lerp(1, 0.1f, waveshape);
+			}
+
+			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			{
+				return { 0.0f , 0.0f };
+			}
+		};
+
+		/////////////////////////////////////////////////////////////////////////////
 		enum class OscillatorIntention
 		{
 			LFO,
@@ -222,8 +289,7 @@ namespace WaveSabreCore
 			// for Audio
 			explicit OscillatorNode(OscillatorIntentionAudio, ModMatrixNode& modMatrix, ModDestination modDestBase, real_t* paramCache, int paramBaseID) :
 				mEnabled(paramCache[paramBaseID + (int)OscParamIndexOffsets::Enabled], false),
-				//mVolume(paramCache[paramBaseID + (int)OscParamIndexOffsets::Volume], gVolumeMaxDb, 1),
-				mWaveform(paramCache[paramBaseID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count, OscillatorWaveform::Sine),
+				mWaveform(paramCache[paramBaseID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count, OscillatorWaveform::SineTrunc),
 				mWaveshape(paramCache[paramBaseID + (int)OscParamIndexOffsets::Waveshape], 0),
 				mPhaseRestart(paramCache[paramBaseID + (int)OscParamIndexOffsets::PhaseRestart], false),
 				mPhaseOffset(paramCache[paramBaseID + (int)OscParamIndexOffsets::PhaseOffset], 0),
@@ -243,8 +309,7 @@ namespace WaveSabreCore
 			// for LFO, we internalize many params
 			explicit OscillatorNode(OscillatorIntentionLFO, ModMatrixNode& modMatrix, ModDestination modDestBase, real_t* paramCache, int paramBaseID) :
 				mEnabled(mLFOConst1, false),
-				//mVolume(mLFOVolumeParamValue, 0, 1),
-				mWaveform(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Waveform], OscillatorWaveform::Count, OscillatorWaveform::Sine),
+				mWaveform(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Waveform], OscillatorWaveform::Count, OscillatorWaveform::SineTrunc),
 				mWaveshape(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Waveshape], 0),
 				mPhaseRestart(paramCache[paramBaseID + (int)LFOParamIndexOffsets::Restart], false),
 				mPhaseOffset(paramCache[paramBaseID + (int)LFOParamIndexOffsets::PhaseOffset], 0),
@@ -267,9 +332,11 @@ namespace WaveSabreCore
 			float mCurrentSample = 0;
 			float mOutSample = 0;
 			float mPrevSample = 0;
+			float mFMFeedbackAmt = 0; // adjusted for global FM scale
 
 			SawClipWaveform mSawClip;
-			IOscillatorWaveform* mpSlaveWave = &mSawClip;
+			SineTruncWaveform mSineTrunc;
+			IOscillatorWaveform* mpSlaveWave = &mSineTrunc;
 
 			OscillatorIntention mIntention;
 			ModMatrixNode& mModMatrix;
@@ -285,7 +352,7 @@ namespace WaveSabreCore
 				return mOutSample;
 			}
 
-			void BeginBlock(real_t midiNote, float detuneFreqMul)
+			void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale)
 			{
 				if (!mEnabled.GetBoolValue()) {
 					return;
@@ -296,12 +363,13 @@ namespace WaveSabreCore
 					mWaveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)LFOModParamIndexOffsets::Waveshape, 0);
 					break;
 				case OscillatorIntention::Audio:
-					//mVolumeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Volume, 0);
 					mSyncFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::SyncFrequency, 0);
 					mFreqModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FrequencyParam, 0);
 					mFMFeedbackModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::FMFeedback, 0);
 					mWaveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Waveshape, 0);
 					mPhaseModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Phase, 0);
+
+					mFMFeedbackAmt = mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale;
 					break;
 				}
 
@@ -319,7 +387,7 @@ namespace WaveSabreCore
 				freq *= detuneFreqMul;
 				mPhaseIncrement = freq / (real_t)Helpers::CurrentSampleRate;
 				float slaveFreq = mSyncEnable.GetBoolValue() ? mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
-				mpSlaveWave->SetParams(slaveFreq, mPhaseOffset.GetN11Value(mPhaseModVal), mWaveshape.Get01Value(mWaveShapeModVal));// , mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal));
+				mpSlaveWave->SetParams(slaveFreq, mPhaseOffset.GetN11Value(mPhaseModVal), mWaveshape.Get01Value(voiceShapeMod + mWaveShapeModVal));
 			}
 
 			void NoteOn(bool legato)
@@ -347,6 +415,8 @@ namespace WaveSabreCore
 
 				// Push master phase forward by full sample.
 				mPhase = Fract(mPhase + mPhaseIncrement);
+				
+				float phaseMod = mPrevSample * mFMFeedbackAmt + signal1 * signal1PMAmount + signal2 * signal2PMAmount;
 
 				if (mPhase >= mPhaseIncrement || !mSyncEnable.GetBoolValue()) // did not cross cycle. advance 1 sample
 				{
@@ -371,7 +441,7 @@ namespace WaveSabreCore
 				}
 
 				// current sample will be used on next sample (this is the 1-sample delay)
-				mCurrentSample += mpSlaveWave->NaiveSample(mpSlaveWave->mPhase);
+				mCurrentSample += mpSlaveWave->NaiveSample(mpSlaveWave->mPhase + phaseMod);
 				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale;
 
 				return mOutSample;
