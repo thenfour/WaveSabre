@@ -444,7 +444,7 @@ namespace WaveSabreCore
 
         struct FloatN11Param : Float01RefParam
         {
-            explicit FloatN11Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {
+            explicit FloatN11Param(real_t& ref, real_t initialValueN11) : Float01RefParam(ref, initialValueN11*.5f+.5f) {
             }
             explicit FloatN11Param(real_t& ref) : Float01RefParam(ref) {
             }
@@ -491,7 +491,7 @@ namespace WaveSabreCore
         // paramvalue N11
         struct CurveParam : FloatN11Param
         {
-            explicit CurveParam(real_t& ref, real_t initialParamValue) : FloatN11Param(ref, initialParamValue) {}
+            explicit CurveParam(real_t& ref, real_t initialValueN11) : FloatN11Param(ref, initialValueN11) {}
             explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
 
             real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
@@ -569,7 +569,7 @@ namespace WaveSabreCore
                 return mParamValue > 0.5f;
             }
             void SetBoolValue(bool b) {
-                mParamValue = b ? 0.0f : 1.0f;
+                mParamValue = b ? 1.0f : 0.0f;
             }
         };
 

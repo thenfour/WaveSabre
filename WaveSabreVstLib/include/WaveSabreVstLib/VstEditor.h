@@ -512,7 +512,7 @@ namespace WaveSabreVstLib
 		}
 
 		template<typename Tenum, typename TparamID, typename Tcount>
-		void Maj7ImGuiParamEnumCombo(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions) {
+		void Maj7ImGuiParamEnumCombo(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions, float width = 120) {
 			M7::real_t tempVal;
 			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0));
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
@@ -522,7 +522,7 @@ namespace WaveSabreVstLib
 			const char* elem_name = "ERROR";
 
 			ImGui::PushID(ctrlLabel);
-			ImGui::PushItemWidth(70);
+			ImGui::PushItemWidth(width);
 
 			ImGui::BeginGroup();
 

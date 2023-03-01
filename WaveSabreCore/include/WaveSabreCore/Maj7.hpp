@@ -1,5 +1,4 @@
 // TODO: multiple filters? or add a 1pole lowcut/highcut to each oscillator
-// TODO: wave shape divergence per unison
 // TODO: S&H to each oscillator as well. i think an "insert" stage before filter could be appropriate, with balances for all osc.
 // adding params:
 // - S&H freq
@@ -61,6 +60,10 @@
 #include <WaveSabreCore/Maj7Filter.hpp>
 #include <WaveSabreCore/Maj7Oscillator.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
+
+//#include <Windows.h>
+//#undef min
+//#undef max
 
 namespace WaveSabreCore
 {
@@ -213,8 +216,6 @@ namespace WaveSabreCore
 				};
 
 				for (size_t i = 0; i < gOscillatorCount; ++i) {
-					// 0 1 2 3 4 5 6 7
-					//                 8 - 3 = 5
 					auto& m = mModulations[gModulationCount - gOscillatorCount + i];
 					m.mEnabled.SetBoolValue(true);
 					m.mCurve.SetN11Value(0);
@@ -222,6 +223,9 @@ namespace WaveSabreCore
 					m.mDestination.SetEnumValue(gOscVolumeModDests[i]);
 					m.mScale.SetN11Value(1.0f);
 				}
+
+				mMasterVolume.SetLinearValue(1.0f);
+				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
 			}
 
 			virtual void HandlePitchBend(float pbN11) override
@@ -361,16 +365,15 @@ namespace WaveSabreCore
 					mOscillator1(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc1Volume, owner->mParamCache, (int)ParamIndices::Osc1Enabled),
 					mOscillator2(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc2Volume, owner->mParamCache, (int)ParamIndices::Osc2Enabled),
 					mOscillator3(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc3Volume, owner->mParamCache, (int)ParamIndices::Osc3Enabled),
-					mFilterType(owner->mParamCache[(int)ParamIndices::FilterType], FilterModel::Count, FilterModel::LP_Moog4),
-					mFilterQ(owner->mParamCache[(int)ParamIndices::FilterQ], 0.3f),
-					mFilterSaturation(owner->mParamCache[(int)ParamIndices::FilterSaturation], 0.1f),
+					mFilterType(owner->mParamCache[(int)ParamIndices::FilterType], FilterModel::Count, FilterModel::Disabled),
+					mFilterQ(owner->mParamCache[(int)ParamIndices::FilterQ], 0.35f),
+					mFilterSaturation(owner->mParamCache[(int)ParamIndices::FilterSaturation], 0.06f),
 					mFilterFreq(owner->mParamCache[(int)ParamIndices::FilterFrequency], owner->mParamCache[(int)ParamIndices::FilterFrequencyKT], Maj7::gFilterCenterFrequency, Maj7::gFilterFrequencyScale, 0.4f, 1.0f)
 				{}
 
 				Maj7* mpOwner;
 
 				real_t mVelocity01 = 0;
-				//real_t mNoteValue01 = 0;
 				real_t mTriggerRandom01 = 0;
 				PortamentoCalc mPortamento;
 

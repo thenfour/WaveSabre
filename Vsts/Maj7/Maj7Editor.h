@@ -117,6 +117,10 @@ public:
 	};
 
 	ColorMod mModulationsColors{ 0.15f, 0.6f, 0.65f, 0.9f, 0.0f };
+	ColorMod mModulationDisabledColors{ 0.15f, 0.0f, 0.65f, 0.6f, 0.0f };
+
+	ColorMod mOscColors{ 0, 1, 1, 0.9f, 0.0f };
+	ColorMod mOscDisabledColors{ 0, 0, .6f, 0.9f, 0.0f };
 
 	ColorMod mCyanColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
 	ColorMod mPinkColors{ 0.40f, 0.6f, 0.75f, 0.9f, 0.0f };
@@ -127,6 +131,7 @@ public:
 	virtual void renderImgui() override
 	{
 		mModulationsColors.EnsureInitialized();
+		mModulationDisabledColors.EnsureInitialized();
 		mPinkColors.EnsureInitialized();
 		mCyanColors.EnsureInitialized();
 		//ImGuiStyle& style = ImGui::GetStyle();
@@ -173,32 +178,47 @@ public:
 		Maj7ImGuiParamEnumList<WaveSabreCore::VoiceMode>((VstInt32)M7::ParamIndices::VoicingMode, "VoiceMode##mst", (int)WaveSabreCore::VoiceMode::Count, WaveSabreCore::VoiceMode::Polyphonic, voiceModeCaptions);
 
 		// osc1
-		Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled);
-		Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled);
-		Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled);
+		if (ImGui::BeginTabBar("osc", ImGuiTabBarFlags_None))
+		{
+			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled);
+			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled);
+			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled);
+			ImGui::EndTabBar();
+		}
 
 		// filter
-		ImGui::PushID("Filter");
-		if (ImGui::CollapsingHeader("Filter")) {
-			static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
-			Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((VstInt32)M7::ParamIndices::FilterFrequency, (VstInt32)M7::ParamIndices::FilterFrequencyKT, "Freq##filt", M7::Maj7::gFilterCenterFrequency, M7::Maj7::gFilterFrequencyScale, 0.4f);
-			ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterFrequencyKT, "KT##filt");
-			ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterQ, "Q##filt");
-			ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterSaturation, "Saturation##filt");
-		}
-		ImGui::PopID();
+		if (ImGui::BeginTabBar("filter", ImGuiTabBarFlags_None))
+		{
+			if (ImGui::BeginTabItem("Filter")) {
+				//ImGui::PushID("Filter");
+			//if (ImGui::CollapsingHeader("Filter")) {
+				static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
+				Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
+				ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((VstInt32)M7::ParamIndices::FilterFrequency, (VstInt32)M7::ParamIndices::FilterFrequencyKT, "Freq##filt", M7::Maj7::gFilterCenterFrequency, M7::Maj7::gFilterFrequencyScale, 0.4f);
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterFrequencyKT, "KT##filt");
+				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterQ, "Q##filt");
+				ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterSaturation, "Saturation##filt");
 
+				ImGui::EndTabItem();
+			}
+			ImGui::EndTabBar();
+		}
+		//ImGui::PopID();
+
+		if (ImGui::BeginTabBar("FM", ImGuiTabBarFlags_None))
 		{
 			auto colorModToken = mCyanColors.Push();
-			ImGui::PushID("FM");
-			if (ImGui::CollapsingHeader("FM")) {
+			if (ImGui::BeginTabItem("FM")) {
+				//ImGui::PushID("FM");
+				//if (ImGui::CollapsingHeader("FM")) {
 				WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "Osc A FB##osc1");
 				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "Osc B FB##osc2");
 				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "Osc C FB##osc2");
 				ImGui::SameLine(0, 60);	WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
+				ImGui::EndTabItem();
 			}
-			ImGui::PopID();
+			//ImGui::PopID();
+			ImGui::EndTabBar();
 		}
 
 		// modulation shapes
@@ -291,8 +311,14 @@ public:
 
 	void Oscillator(const char* labelWithID, int enabledParamID)
 	{
-		ImGui::PushID(labelWithID);
-		if (ImGui::CollapsingHeader(labelWithID)) {
+		float enabledBacking;
+		M7::BoolParam bp{ enabledBacking };
+		bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
+		//ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
+		//auto token = cm.Push();
+
+		//ImGui::PushID(labelWithID);
+		if (ImGui::BeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::OscillatorNode::gVolumeMaxDb, 0);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform");
@@ -307,8 +333,9 @@ public:
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::OscillatorNode::gSyncFrequencyCenterHz, M7::OscillatorNode::gSyncFrequencyScale, 0.4f);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT");
+			ImGui::EndTabItem();
 		}
-		ImGui::PopID();
+		//ImGui::PopID();
 	}
 
 	void LFO(const char* labelWithID, int waveformParamID)
@@ -359,10 +386,14 @@ public:
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
 		static constexpr char const* const modDestinationCaptions[] = MOD_DEST_CAPTIONS;
 
+		float enabledBacking;
+		M7::BoolParam bp{ enabledBacking };
+		bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
+		ColorMod& cm = bp.GetBoolValue() ? mModulationsColors : mModulationDisabledColors;
+		auto token = cm.Push();
+
 		if (ImGui::BeginTabItem(labelWithID))
 		{
-			//ImGui::PushID(labelWithID);
-			//if (ImGui::CollapsingHeader(labelWithID)) {
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
 			ImGui::SameLine();
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
@@ -372,10 +403,8 @@ public:
 			Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale, "Scale", 1);
 			ImGui::SameLine();
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising);
-			//}
 			ImGui::EndTabItem();
 		}
-		//ImGui::PopID();
 	}
 
 
