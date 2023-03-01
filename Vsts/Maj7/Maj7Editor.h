@@ -124,9 +124,6 @@ public:
 
 	ColorMod mCyanColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
 	ColorMod mPinkColors{ 0.40f, 0.6f, 0.75f, 0.9f, 0.0f };
-	// other nice variations: disabled = saturation 0
-	// muted cyan = H 0.922
-	// pink = H 0.4
 
 	virtual void renderImgui() override
 	{
@@ -134,6 +131,8 @@ public:
 		mModulationDisabledColors.EnsureInitialized();
 		mPinkColors.EnsureInitialized();
 		mCyanColors.EnsureInitialized();
+		mOscColors.EnsureInitialized();
+		mOscDisabledColors.EnsureInitialized();
 		//ImGuiStyle& style = ImGui::GetStyle();
 		//static ImVec4 newColors[ImGuiCol_COUNT];
 		//static bool colorsInitialized = false;
@@ -314,8 +313,8 @@ public:
 		float enabledBacking;
 		M7::BoolParam bp{ enabledBacking };
 		bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
-		//ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
-		//auto token = cm.Push();
+		ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
+		auto token = cm.Push();
 
 		//ImGui::PushID(labelWithID);
 		if (ImGui::BeginTabItem(labelWithID)) {

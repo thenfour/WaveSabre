@@ -205,6 +205,8 @@ namespace WaveSabreCore
 
 				mLastSample = math::sin((mPhase + (mLastSample * mFMFeedback01.Get01Value(mFMFeedbackModVal))) * 2 * math::gPI);
 
+				//return 1.0f;
+
 				return mLastSample;// *mVolume.GetLinearGain(mVolumeModVal);
 			}
 		};

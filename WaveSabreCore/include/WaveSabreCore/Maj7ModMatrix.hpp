@@ -34,6 +34,7 @@ namespace WaveSabreCore
 			Velocity, // krate, 01
 			NoteValue, // krate, 01
 			RandomTrigger, // krate, 01
+			UnisonoVoice, // krate, 01
 			SustainPedal, // krate, 01
 			Macro1, // krate, 01
 			Macro2, // krate, 01
@@ -55,6 +56,7 @@ namespace WaveSabreCore
 			"Velocity", \
 			"NoteValue", \
 			"RandomTrigger", \
+			"UnisonoVoice", \
 			"SustainPedal", \
 			"Macro1", \
 			"Macro2", \

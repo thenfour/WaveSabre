@@ -424,6 +424,7 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceKRateValue(ModSource::Velocity, mVelocity01);  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::NoteValue, midiNote / 127.0f); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::UnisonoVoice, float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro1, mpOwner->mMacro1.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro2, mpOwner->mMacro2.Get01Value());  // krate, 01
@@ -480,7 +481,7 @@ namespace WaveSabreCore
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 					float ampEnvParam = mModMatrix.GetSourceValue(ModSource::AmpEnv, 0);
 
-					float oscGains[gOscillatorCount][2];// [osc index, channel]
+					float oscGains[gOscillatorCount][2] = { 0 };// [osc index, channel]
 
 					// first just set left channel to gain, right channel to pan
 					static const ModDestination gModDestOscVolumes[gOscillatorCount] = {
@@ -503,16 +504,28 @@ namespace WaveSabreCore
 							continue;
 						}
 						float semis = myUnisonoDetune + mpOwner->mOscDetuneAmts[i];
-						posc[i]->BeginBlock(midiNote, SemisToFrequencyMul(semis));						
-						VolumeParam ampParam{ mpOwner->mParamCache[(int)gOscVolumeParams[i]], OscillatorNode::gVolumeMaxDb };
-						float ampLinear = ampParam.GetLinearGain(mModMatrix.GetDestinationValue(gModDestOscVolumes[i], 0));
-						float pan = myUnisonoPan + mpOwner->mOscPanAmts[i];
-						auto gains = PanToFactor(pan);
-						oscGains[i][0] = gains.first * ampLinear;
-						oscGains[i][1] = gains.second * ampLinear;
+						posc[i]->BeginBlock(midiNote, SemisToFrequencyMul(semis));
 					}
 
+					// process volume every 16 samples
+					static const int gQuasaiARateSampleMask = 0x7;
+
 					for (int iSample = 0; iSample < numSamples; ++iSample) {
+						if ((iSample & gQuasaiARateSampleMask) == 0) {
+							for (size_t i = 0; i < std::size(posc); ++i)
+							{
+								if (!mpOwner->mOscEnabled[i]) {
+									continue;
+								}
+								VolumeParam ampParam{ mpOwner->mParamCache[(int)gOscVolumeParams[i]], OscillatorNode::gVolumeMaxDb };
+								float ampLinear = ampParam.GetLinearGain(mModMatrix.GetDestinationValue(gModDestOscVolumes[i], iSample));
+								float pan = myUnisonoPan + mpOwner->mOscPanAmts[i];
+								auto gains = PanToFactor(pan);
+								oscGains[i][0] = gains.first * ampLinear;
+								oscGains[i][1] = gains.second * ampLinear;
+							}
+
+						}
 
 						real_t s1 = mOscillator1.ProcessSample(iSample,
 							mOscillator2.GetLastSample(), mpOwner->mFMAmt2to1.Get01Value(),
