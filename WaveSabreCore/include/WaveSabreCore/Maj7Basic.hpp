@@ -494,7 +494,7 @@ namespace WaveSabreCore
             explicit Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
             explicit Float01Param(real_t& ref) : Float01RefParam(ref) {}
             real_t Get01Value(real_t modVal = 0.0f) const {
-                return mParamValue + modVal;
+                return Clamp(mParamValue + modVal, 0, 1);
             }
         };
 

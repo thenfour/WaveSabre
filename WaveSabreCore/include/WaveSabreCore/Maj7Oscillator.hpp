@@ -314,10 +314,11 @@ namespace WaveSabreCore
 		/////////////////////////////////////////////////////////////////////////////
 		struct WhiteNoiseWaveform :IOscillatorWaveform
 		{
+			float mCurrentLevel = 0;
 			// returns Y value at specified phase. instance / stateless.
 			virtual float NaiveSample(float phase01) override
 			{
-				return math::randN11();// Helpers::RandFloat() * 2 - 1;
+				return mCurrentLevel;// math::randN11();// Helpers::RandFloat() * 2 - 1;
 			}
 
 			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
@@ -335,7 +336,21 @@ namespace WaveSabreCore
 
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
-				return { 0.0f , 0.0f };
+				float phaseToAdvance = samples * mPhaseIncrement;
+				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+
+				if (newPhase < this->mPhase) {
+					mCurrentLevel = math::randN11();
+				}
+
+				// this effectively doubles the frequency which feels more comfy both for LFO and audio osc.
+				if (newPhase > 0.5f && this->mPhase <= 0.5f) {
+					mCurrentLevel = math::randN11();
+				}
+
+				std::pair<float, float> bleps{ 0.0f,0.0f };
+				this->mPhase = newPhase;
+				return bleps;
 			}
 		};
 
