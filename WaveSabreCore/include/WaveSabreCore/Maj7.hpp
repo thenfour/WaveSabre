@@ -214,21 +214,6 @@ namespace WaveSabreCore
 					mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
 				}
 
-				//static constexpr ModDestination gOscVolumeModDests[gOscillatorCount] = {
-				//	ModDestination::Osc1Volume,
-				//	ModDestination::Osc2Volume,
-				//	ModDestination::Osc3Volume,
-				//};
-
-				//for (size_t i = 0; i < gOscillatorCount; ++i) {
-				//	auto& m = mModulations[gModulationCount - gOscillatorCount + i];
-				//	m.mEnabled.SetBoolValue(true);
-				//	m.mCurve.SetN11Value(0);
-				//	m.mSource.SetEnumValue(ModSource::AmpEnv);
-				//	m.mDestination.SetEnumValue(gOscVolumeModDests[i]);
-				//	m.mScale.SetN11Value(1.0f);
-				//}
-
 				mFMBrightness.SetParamValue(0.5f);
 
 				mParamCache[(int)ParamIndices::Osc1Volume] = 1;
@@ -339,17 +324,6 @@ namespace WaveSabreCore
 					ModSource::Osc2AmpEnv,
 					ModSource::Osc3AmpEnv,
 				};
-
-				//float b1, b2, b3;
-				//IntParam p1{ b1, 0, 2 };
-				//IntParam p2{ b2, 0, 2 };
-				//IntParam p3{ b3, 0, 2 };
-				//p1.SetIntValue(0);
-				//p2.SetIntValue(1);
-				//p3.SetIntValue(2);
-				//int i1 = p1.GetIntValue();
-				//int i2 = p2.GetIntValue();
-				//int i3 = p3.GetIntValue();
 
 				mOscAmpEnvSources[0] = ampEnvSources[mOsc1AmpEnvelopeSource.GetIntValue()];
 				mOscAmpEnvSources[1] = ampEnvSources[mOsc2AmpEnvelopeSource.GetIntValue()];
@@ -575,33 +549,30 @@ namespace WaveSabreCore
 						info.mOutputGain[1] = outputVolLin * panGains.second;
 					}
 
-					// process volume every N samples
-					//static const int gEnvelopeRateSampleMask = 0x3;
-
 					for (int iSample = 0; iSample < numSamples; ++iSample) {
-						//if ((iSample & gEnvelopeRateSampleMask) == 0) {
-							for (size_t i = 0; i < gOscillatorCount; ++i)
-							{
-								if (!mpOwner->mOscEnabled[i]) {
-									continue;
-								}
-								auto& info = oscInfo[i];
-								float hiddenVolumeBacking = mModMatrix.GetSourceValue(info.mAmpEnvSource, iSample);
-								VolumeParam hiddenAmpParam{ hiddenVolumeBacking, 0 };
-								info.mAmpEnvGain = hiddenAmpParam.GetLinearGain(0);
+						for (size_t i = 0; i < gOscillatorCount; ++i)
+						{
+							if (!mpOwner->mOscEnabled[i]) {
+								continue;
 							}
+							auto& info = oscInfo[i];
+							float hiddenVolumeBacking = mModMatrix.GetSourceValue(info.mAmpEnvSource, iSample);
+							VolumeParam hiddenAmpParam{ hiddenVolumeBacking, 0 };
+							info.mAmpEnvGain = hiddenAmpParam.GetLinearGain(0);
+						}
 
-						//}
+						float osc2LastSample = mOscillator2.GetSample() * oscInfo[1].mAmpEnvGain;
+						float osc3LastSample = mOscillator3.GetSample() * oscInfo[2].mAmpEnvGain;
 
 						real_t s1 = mOscillator1.ProcessSample(iSample,
-							mOscillator2.GetSample(), FMScales[0],
-							mOscillator3.GetSample(), FMScales[1]
+							osc2LastSample, FMScales[0],
+							osc3LastSample, FMScales[1]
 						);
 						s1 *= oscInfo[0].mAmpEnvGain;
 
 						real_t s2 = mOscillator2.ProcessSample(iSample,
 							s1, FMScales[2],
-							mOscillator3.GetSample(), FMScales[3]
+							osc3LastSample, FMScales[3]
 						);
 						s2 *= oscInfo[1].mAmpEnvGain;
 
@@ -625,7 +596,7 @@ namespace WaveSabreCore
 					mPortamento.Advance(numSamples,
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime, 0),
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve, 0)
-						);
+					);
 				}
 
 				virtual void NoteOn() override {
