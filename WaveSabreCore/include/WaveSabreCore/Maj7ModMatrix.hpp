@@ -393,12 +393,31 @@ namespace WaveSabreCore
 			CurveParam mCurve;
 			FloatN11Param mScale;
 
+			// you may ask why aux (aka sidechain) is necessary.
+			// it's because we don't allow modulation of the modulation scale params, so it's a way of modulating the modulation itself.
+			// now, because all mods are just added together you can absolutely just create a 2nd modulation mapped to the same param.
+			// it's just a huge pain in the butt, plus you have to then make sure you get the scales lined up. modulation values are added
+			// while aux values are used to scale the mod val, which doesn't have a true analog via normal modulations.
+			BoolParam mAuxEnabled;
+			EnumParam<ModSource> mAuxSource;
+			Float01Param mAuxAttenuation;
+			CurveParam mAuxCurve;
+
+			BoolParam mInvert;
+			BoolParam mAuxInvert;
+
 			ModulationSpec(real_t* paramCache, int baseParamID) :
 				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
 				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count, ModSource::None),
 				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count, ModDestination::None),
 				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
-				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale])
+				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale]),
+				mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled], false),
+				mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count, ModSource::None),
+				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
+				mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
+				mInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::Invert]),
+				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
 			{
 			}
 		};
@@ -905,6 +924,19 @@ namespace WaveSabreCore
 				mDest.Reset(nSamples);
 			}
 
+			static float InvertValue(float val, const BoolParam& invertParam, const ModSourceInfo& sourceInfo)
+			{
+				if (invertParam.GetBoolValue()) {
+					switch (sourceInfo.mPolarity) {
+					case ModulationPolarity::N11:
+						return -val;
+					case ModulationPolarity::Positive01:
+						return 1.0f - val;
+					}
+				}
+				return val;
+			}
+
 			// caller passes in:
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.
@@ -920,9 +952,27 @@ namespace WaveSabreCore
 					if (destInfo.mRate == ModulationRate::Disabled) continue;
 
 					real_t sourceVal = GetSourceValue(spec.mSource.GetEnumValue(), iSample);
-					real_t destVal = GetDestinationValue(spec.mDestination.GetEnumValue(), iSample);
+					sourceVal = InvertValue(sourceVal, spec.mInvert, sourceInfo);
 					sourceVal = spec.mCurve.ApplyToValue(sourceVal);
 					sourceVal *= spec.mScale.GetN11Value();
+
+					if (spec.mAuxEnabled.GetBoolValue())
+					{
+						// attenuate the value
+						const auto& auxSourceInfo = gModSourceInfo[(int)spec.mAuxSource.GetEnumValue()];
+						if (auxSourceInfo.mRate != ModulationRate::Disabled) {
+							float auxVal = GetSourceValue(spec.mAuxSource.GetEnumValue(), iSample);
+							auxVal = InvertValue(auxVal, spec.mAuxInvert, auxSourceInfo);
+							auxVal = spec.mAuxCurve.ApplyToValue(auxVal);
+							// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
+							// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
+							float auxAtten = spec.mAuxAttenuation.Get01Value();
+							float auxScale = Lerp(1, 1.0f - auxAtten, auxVal);
+							sourceVal *= auxScale;
+						}
+					}
+
+					real_t destVal = GetDestinationValue(spec.mDestination.GetEnumValue(), iSample);
 					mDest.SetARateValue((size_t)spec.mDestination.GetEnumValue(), iSample, destVal + sourceVal);
 				}
 			}

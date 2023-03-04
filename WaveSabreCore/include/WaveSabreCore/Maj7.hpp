@@ -7,7 +7,7 @@
 // - osc1 balance
 // - osc2 balance
 // - osc3 balance
-// TODO: time sync for LFOs? envelope times?
+// TODO: time sync for LFOs? it's more complex than i expected, because of the difference between live play & playback.
 // - lfo1 time basis
 // - lfo2 time basis
 // TODO: sampler engine & GM.DLS
@@ -250,6 +250,8 @@ namespace WaveSabreCore
 				{
 					m.mCurve.SetN11Value(0);
 					m.mScale.SetN11Value(1);
+					m.mAuxCurve.SetN11Value(0);
+					m.mAuxAttenuation.SetParamValue(1);
 				}
 
 				mMasterVolume.SetLinearValue(1.0f);
