@@ -64,22 +64,39 @@ public:
 		struct Token
 		{
 			ImVec4 mOldColors[ImGuiCol_COUNT];
+			bool isSet;
+			//Token(ImVec4* newColors) {
+			//	memcpy(mOldColors, ImGui::GetStyle().Colors, sizeof(mOldColors));
+			//	memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
+			//	isSet = true;
+			//}
 			Token(ImVec4* newColors) {
-				memcpy(mOldColors, ImGui::GetStyle().Colors, sizeof(mOldColors));
-				memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
+				isSet = !!newColors;
+				if (isSet) {
+					memcpy(mOldColors, ImGui::GetStyle().Colors, sizeof(mOldColors));
+					memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
+				}
 			}
+			//Token() {
+			//}
 			~Token() {
-				//ImGui::PopStyleColor(ImGuiCol_COUNT);
-				memcpy(ImGui::GetStyle().Colors, mOldColors, sizeof(mOldColors));
+				if (isSet) {
+					memcpy(ImGui::GetStyle().Colors, mOldColors, sizeof(mOldColors));
+				}
+			}
+			void Poke() {
+				// NOP; hint that the object should remain alive.
 			}
 		};
 		Token Push()
 		{
-			//for (size_t i = 0; i < ImGuiCol_COUNT; ++i) {
-			//	ImGui::PushStyleColor((ImGuiCol)i, mNewColors[i]);
-			//}
 			return { mNewColors };
 		}
+
+		//static Token Nop()
+		//{
+		//	return {};
+		//}
 
 		void EnsureInitialized() {
 			if (mInitialized) return;
@@ -179,9 +196,9 @@ public:
 		// osc1
 		if (ImGui::BeginTabBar("osc", ImGuiTabBarFlags_None))
 		{
-			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled);
-			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled);
-			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled);
+			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, 0);
+			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, 1);
+			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, 2);
 			ImGui::EndTabBar();
 		}
 
@@ -237,12 +254,6 @@ public:
 		// modulation shapes
 		if (ImGui::BeginTabBar("envelopetabs", ImGuiTabBarFlags_None))
 		{
-			auto ampEnvColorModToken = mPinkColors.Push();
-			if (ImGui::BeginTabItem("Amp env"))
-			{
-				Envelope("Amplitude Envelope", (int)M7::ParamIndices::AmpEnvDelayTime);
-				ImGui::EndTabItem();
-			}
 			auto modColorModToken = mModulationsColors.Push();
 			if (ImGui::BeginTabItem("Mod env 1"))
 			{
@@ -316,14 +327,16 @@ public:
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)color);
 			ImGui::Button(txt);
 			ImGui::PopStyleColor(3);
-			ImGui::SameLine(); ImGui::ProgressBar(pv->mAmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp env");
+			ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc1AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp1");
+			ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc2AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp2");
+			ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc3AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp3");
 			ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetSample()), ImVec2{ 50, 0 }, "Osc1");
 			ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetSample()), ImVec2{ 50, 0 }, "Osc2");
 			ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetSample()), ImVec2{ 50, 0 }, "Osc3");
 		}
 	}
 
-	void Oscillator(const char* labelWithID, int enabledParamID)
+	void Oscillator(const char* labelWithID, int enabledParamID, int oscID)
 	{
 		float enabledBacking;
 		M7::BoolParam bp{ enabledBacking };
@@ -331,7 +344,6 @@ public:
 		ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
 		auto token = cm.Push();
 
-		//ImGui::PushID(labelWithID);
 		if (ImGui::BeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::OscillatorNode::gVolumeMaxDb, 0);
@@ -347,9 +359,26 @@ public:
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::OscillatorNode::gSyncFrequencyCenterHz, M7::OscillatorNode::gSyncFrequencyScale, 0.4f);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT");
+
+			static constexpr char const* const oscAmpEnvSourceCaptions[M7::Maj7::gOscillatorCount] = { "Osc 1", "Osc 2", "Osc 3" };
+			Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource, "Amp env", M7::Maj7::gOscillatorCount, oscID, oscAmpEnvSourceCaptions);
+
+			M7::IntParam ampSourceParam{ pMaj7->mParamCache[enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource], 0, M7::Maj7::gOscillatorCount - 1 };
+			M7::ParamIndices ampEnvSources[M7::Maj7::gOscillatorCount] = {
+				M7::ParamIndices::Osc1AmpEnvDelayTime,
+				M7::ParamIndices::Osc2AmpEnvDelayTime,
+				M7::ParamIndices::Osc3AmpEnvDelayTime,
+			};
+			auto ampEnvSource = ampEnvSources[ampSourceParam.GetIntValue()];
+
+			ImGui::SameLine();
+
+			{
+				ColorMod::Token ampEnvColorModToken{ (ampSourceParam.GetIntValue() != oscID) ? mPinkColors.mNewColors : nullptr };
+				Envelope("Amplitude Envelope", (int)ampEnvSource);
+			}
 			ImGui::EndTabItem();
 		}
-		//ImGui::PopID();
 	}
 
 	void LFO(const char* labelWithID, int waveformParamID)

@@ -25,7 +25,9 @@ namespace WaveSabreCore
 		enum class ModSource : uint8_t
 		{
 			None,
-			AmpEnv, // arate, 01
+			Osc1AmpEnv, // arate, 01
+			Osc2AmpEnv, // arate, 01
+			Osc3AmpEnv, // arate, 01
 			ModEnv1, // arate, 01
 			ModEnv2, // arate, 01
 			LFO1, // arate, N11
@@ -47,7 +49,9 @@ namespace WaveSabreCore
 		// size-optimize using macro
 		#define MOD_SOURCE_CAPTIONS { \
 			"None", \
-			"AmpEnv", \
+			"Osc1AmpEnv", \
+			"Osc2AmpEnv", \
+			"Osc3AmpEnv", \
 			"ModEnv1", \
 			"ModEnv2", \
 			"LFO1", \
@@ -86,12 +90,33 @@ namespace WaveSabreCore
 			Osc1FMFeedback, // arate, 01
 			Osc1Phase, // krate, N11
 
+			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
+			Osc1AmpEnvDelayTime,
+			Osc1AmpEnvAttackTime,
+			Osc1AmpEnvAttackCurve,
+			Osc1AmpEnvHoldTime,
+			Osc1AmpEnvDecayTime,
+			Osc1AmpEnvDecayCurve,
+			Osc1AmpEnvSustainLevel,
+			Osc1AmpEnvReleaseTime,
+			Osc1AmpEnvReleaseCurve,
+
 			Osc2Volume,
 			Osc2Waveshape,
 			Osc2SyncFrequency,
 			Osc2FrequencyParam,
 			Osc2FMFeedback,
 			Osc2Phase,
+
+			Osc2AmpEnvDelayTime,
+			Osc2AmpEnvAttackTime,
+			Osc2AmpEnvAttackCurve,
+			Osc2AmpEnvHoldTime,
+			Osc2AmpEnvDecayTime,
+			Osc2AmpEnvDecayCurve,
+			Osc2AmpEnvSustainLevel,
+			Osc2AmpEnvReleaseTime,
+			Osc2AmpEnvReleaseCurve,
 
 			Osc3Volume,
 			Osc3Waveshape,
@@ -100,16 +125,15 @@ namespace WaveSabreCore
 			Osc3FMFeedback,
 			Osc3Phase,
 
-			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
-			AmpEnvDelayTime, 
-			AmpEnvAttackTime,
-			AmpEnvAttackCurve,
-			AmpEnvHoldTime,
-			AmpEnvDecayTime,
-			AmpEnvDecayCurve,
-			AmpEnvSustainLevel,
-			AmpEnvReleaseTime,
-			AmpEnvReleaseCurve,
+			Osc3AmpEnvDelayTime,
+			Osc3AmpEnvAttackTime,
+			Osc3AmpEnvAttackCurve,
+			Osc3AmpEnvHoldTime,
+			Osc3AmpEnvDecayTime,
+			Osc3AmpEnvDecayCurve,
+			Osc3AmpEnvSustainLevel,
+			Osc3AmpEnvReleaseTime,
+			Osc3AmpEnvReleaseCurve,
 
 			Env1DelayTime, // krate, 01
 			Env1AttackTime, // krate, 01
@@ -195,27 +219,45 @@ namespace WaveSabreCore
 			"Osc1FrequencyParam", \
 			"Osc1FMFeedback", \
 			"Osc1Phase", \
-			"Osc2Volume", \
+			"Osc1AmpEnvDelayTime",  \
+			"Osc1AmpEnvAttackTime", \
+			"Osc1AmpEnvAttackCurve", \
+			"Osc1AmpEnvHoldTime", \
+			"Osc1AmpEnvDecayTime", \
+			"Osc1AmpEnvDecayCurve", \
+			"Osc1AmpEnvSustainLevel", \
+			"Osc1AmpEnvReleaseTime", \
+			"Osc1AmpEnvReleaseCurve", \
+		"Osc2Volume", \
 			"Osc2Waveshape", \
 			"Osc2SyncFrequency", \
 			"Osc2FrequencyParam", \
 			"Osc2FMFeedback", \
 			"Osc2Phase", \
+			"Osc2AmpEnvDelayTime",  \
+			"Osc2AmpEnvAttackTime", \
+			"Osc2AmpEnvAttackCurve", \
+			"Osc2AmpEnvHoldTime", \
+			"Osc2AmpEnvDecayTime", \
+			"Osc2AmpEnvDecayCurve", \
+			"Osc2AmpEnvSustainLevel", \
+			"Osc2AmpEnvReleaseTime", \
+			"Osc2AmpEnvReleaseCurve", \
 			"Osc3Volume", \
 			"Osc3Waveshape", \
 			"Osc3SyncFrequency", \
 			"Osc3FrequencyParam", \
 			"Osc3FMFeedback", \
 			"Osc3Phase", \
-			"AmpEnvDelayTime",  \
-			"AmpEnvAttackTime", \
-			"AmpEnvAttackCurve", \
-			"AmpEnvHoldTime", \
-			"AmpEnvDecayTime", \
-			"AmpEnvDecayCurve", \
-			"AmpEnvSustainLevel", \
-			"AmpEnvReleaseTime", \
-			"AmpEnvReleaseCurve", \
+			"Osc3AmpEnvDelayTime",  \
+			"Osc3AmpEnvAttackTime", \
+			"Osc3AmpEnvAttackCurve", \
+			"Osc3AmpEnvHoldTime", \
+			"Osc3AmpEnvDecayTime", \
+			"Osc3AmpEnvDecayCurve", \
+			"Osc3AmpEnvSustainLevel", \
+			"Osc3AmpEnvReleaseTime", \
+			"Osc3AmpEnvReleaseCurve", \
 			"Env1DelayTime", \
 			"Env1AttackTime", \
 			"Env1AttackCurve", \
@@ -262,7 +304,17 @@ namespace WaveSabreCore
 			ModulationRate::Disabled,
 			},
 			{
-			ModSource::AmpEnv, // arate, 01
+			ModSource::Osc1AmpEnv, // arate, 01
+			ModulationPolarity::Positive01,
+			ModulationRate::ARate,
+			},
+			{
+			ModSource::Osc2AmpEnv, // arate, 01
+			ModulationPolarity::Positive01,
+			ModulationRate::ARate,
+			},
+			{
+			ModSource::Osc3AmpEnv, // arate, 01
 			ModulationPolarity::Positive01,
 			ModulationRate::ARate,
 			},
@@ -393,15 +445,17 @@ namespace WaveSabreCore
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
 			},
-{
+			{
 				ModDestination::FMBrightness, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
-			},{
+			},
+			{
 				ModDestination::PortamentoTime, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
-			},{
+			},
+			{
 				ModDestination::PortamentoCurve, // krate, N11
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
@@ -432,6 +486,46 @@ namespace WaveSabreCore
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
 			},
+
+			{
+				ModDestination::Osc1AmpEnvDelayTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},{
+				ModDestination::Osc1AmpEnvAttackTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},{
+				ModDestination::Osc1AmpEnvAttackCurve,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},{
+				ModDestination::Osc1AmpEnvHoldTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},{
+				ModDestination::Osc1AmpEnvDecayTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},{
+				ModDestination::Osc1AmpEnvDecayCurve,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},{
+				ModDestination::Osc1AmpEnvSustainLevel,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},{
+				ModDestination::Osc1AmpEnvReleaseTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Osc1AmpEnvReleaseCurve,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+
 			{
 				ModDestination::Osc2Volume,
 				ModulationPolarity::Positive01,
@@ -459,6 +553,45 @@ namespace WaveSabreCore
 				ModulationRate::KRate,
 			},
 			{
+				ModDestination::Osc2AmpEnvDelayTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			}, {
+				ModDestination::Osc2AmpEnvAttackTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			}, {
+				ModDestination::Osc2AmpEnvAttackCurve,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			}, {
+				ModDestination::Osc2AmpEnvHoldTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			}, {
+				ModDestination::Osc2AmpEnvDecayTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			}, {
+				ModDestination::Osc2AmpEnvDecayCurve,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			}, {
+				ModDestination::Osc2AmpEnvSustainLevel,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			}, {
+				ModDestination::Osc2AmpEnvReleaseTime,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Osc2AmpEnvReleaseCurve,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+
+			{
 				ModDestination::Osc3Volume,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
@@ -485,42 +618,44 @@ namespace WaveSabreCore
 				ModulationRate::KRate,
 			},
 			{
-				ModDestination::AmpEnvDelayTime,
+				ModDestination::Osc3AmpEnvDelayTime,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
-				ModDestination::AmpEnvAttackTime,
+				ModDestination::Osc3AmpEnvAttackTime,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
-				ModDestination::AmpEnvAttackCurve,
+				ModDestination::Osc3AmpEnvAttackCurve,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
-				ModDestination::AmpEnvHoldTime,
+				ModDestination::Osc3AmpEnvHoldTime,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
-				ModDestination::AmpEnvDecayTime,
+				ModDestination::Osc3AmpEnvDecayTime,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
-				ModDestination::AmpEnvDecayCurve,
+				ModDestination::Osc3AmpEnvDecayCurve,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
-				ModDestination::AmpEnvSustainLevel,
+				ModDestination::Osc3AmpEnvSustainLevel,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
-				ModDestination::AmpEnvReleaseTime,
+				ModDestination::Osc3AmpEnvReleaseTime,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
-				ModDestination::AmpEnvReleaseCurve,
+			},
+			{
+				ModDestination::Osc3AmpEnvReleaseCurve,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+	{
 				ModDestination::Env1DelayTime, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,

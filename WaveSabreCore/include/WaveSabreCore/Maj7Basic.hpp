@@ -190,7 +190,7 @@ namespace WaveSabreCore
             }
             
             inline real_t sqrt(real_t x) {
-                return ::sqrtf(x); // TODO: is fasterpow(x, 0.5) faster?
+                return fastmath::fastpow(x, 0.5f); // avoids bringing in lib fn, and also probably much faster
             }
             inline real_t floor(real_t x) {
                 return (real_t)::floor((double)x);
@@ -366,14 +366,21 @@ namespace WaveSabreCore
             return ret;
         }
 
+        inline std::pair<float, float> PanToLRVolumeParams(float panN11)
+        {
+            // -1..+1  -> 1..0
+            panN11 = Clamp(panN11, -1, 1);
+            float leftVol = (-panN11 + 1) / 2;
+            return { leftVol, 1 - leftVol };
+        }
+
         inline std::pair<float, float> PanToFactor(float panN11)
         {
             // SQRT pan law
-            // -1..+1  -> 1..0
-            float normPan = (-panN11 + 1) / 2;
-            float leftChannel = math::sqrt(normPan);
-            float rightChannel = math::sqrt(1.0f - normPan);
-            return std::make_pair(leftChannel, rightChannel);
+            auto volumes = PanToLRVolumeParams(panN11);
+            float leftChannel = math::sqrt(volumes.first);
+            float rightChannel = math::sqrt(volumes.second);
+            return { leftChannel, rightChannel };
         }
 
         inline float Fract(float x) {
@@ -546,20 +553,23 @@ namespace WaveSabreCore
         struct IntParam : Float01Param
         {
         protected:
-            int mMinValueInclusive;
-            int mMaxValueInclusive;
+            const int mMinValueInclusive;
+            const int mMaxValueInclusive;
+            const float mHalfMinusMinVal; // precalc to avoid an add
         public:
             explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue) :
                 Float01Param(ref),
                 mMinValueInclusive(minValueInclusive),
-                mMaxValueInclusive(maxValueInclusive)
+                mMaxValueInclusive(maxValueInclusive),
+                mHalfMinusMinVal(0.5f - minValueInclusive)
             {
                 SetIntValue(initialValue);
             }
             explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive) :
                 Float01Param(ref),
                 mMinValueInclusive(minValueInclusive),
-                mMaxValueInclusive(maxValueInclusive)
+                mMaxValueInclusive(maxValueInclusive),
+                mHalfMinusMinVal(0.5f - minValueInclusive)
             {
             }
 
@@ -578,8 +588,8 @@ namespace WaveSabreCore
             }
             void SetIntValue(int val) {
                 int c = GetDiscreteValueCount();
-                real_t p = real_t(val);
-                p -= mMinValueInclusive;
+                real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
+                p += mHalfMinusMinVal;
                 p /= c;
                 mParamValue = p;
             }
@@ -589,9 +599,9 @@ namespace WaveSabreCore
         template <typename T>
         struct EnumParam : IntParam
         {
-            explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, (int)maxValue, (int)initialValue)
+            explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, (int)maxValue - 1, (int)initialValue)
             {}
-            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, (int)maxValue)
+            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, (int)maxValue - 1)
             {}
             T GetEnumValue() const {
                 return (T)GetIntValue();
@@ -841,6 +851,18 @@ namespace WaveSabreCore
             Osc1PitchFine,
             Osc1FreqMul,
             Osc1FMFeedback,
+            Osc1AmpEnvelopeSource,
+
+            Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+            Osc1AmpEnvAttackTime,
+            Osc1AmpEnvAttackCurve,
+            Osc1AmpEnvHoldTime,
+            Osc1AmpEnvDecayTime,
+            Osc1AmpEnvDecayCurve,
+            Osc1AmpEnvSustainLevel,
+            Osc1AmpEnvReleaseTime,
+            Osc1AmpEnvReleaseCurve,
+            Osc1AmpEnvLegatoRestart,
 
             Osc2Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc2Volume,
@@ -857,6 +879,18 @@ namespace WaveSabreCore
             Osc2PitchFine,
             Osc2FreqMul,
             Osc2FMFeedback,
+            Osc2AmpEnvelopeSource,
+
+            Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+            Osc2AmpEnvAttackTime,
+            Osc2AmpEnvAttackCurve,
+            Osc2AmpEnvHoldTime,
+            Osc2AmpEnvDecayTime,
+            Osc2AmpEnvDecayCurve,
+            Osc2AmpEnvSustainLevel,
+            Osc2AmpEnvReleaseTime,
+            Osc2AmpEnvReleaseCurve,
+            Osc2AmpEnvLegatoRestart,
 
             Osc3Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc3Volume,
@@ -873,17 +907,18 @@ namespace WaveSabreCore
             Osc3PitchFine,
             Osc3FreqMul,
             Osc3FMFeedback,
+            Osc3AmpEnvelopeSource,
 
-            AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
-            AmpEnvAttackTime,
-            AmpEnvAttackCurve,
-            AmpEnvHoldTime,
-            AmpEnvDecayTime,
-            AmpEnvDecayCurve,
-            AmpEnvSustainLevel,
-            AmpEnvReleaseTime,
-            AmpEnvReleaseCurve,
-            AmpEnvLegatoRestart,
+            Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+            Osc3AmpEnvAttackTime,
+            Osc3AmpEnvAttackCurve,
+            Osc3AmpEnvHoldTime,
+            Osc3AmpEnvDecayTime,
+            Osc3AmpEnvDecayCurve,
+            Osc3AmpEnvSustainLevel,
+            Osc3AmpEnvReleaseTime,
+            Osc3AmpEnvReleaseCurve,
+            Osc3AmpEnvLegatoRestart,
 
             Env1DelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Env1AttackTime,
@@ -1002,7 +1037,7 @@ namespace WaveSabreCore
 		    {"PortTm"}, \
 		    {"PortCv"}, \
 		    {"PBRng"}, \
-		    {"O1En"}, \
+            {"O1En"}, \
 		    {"O1Vol"}, \
 		    {"O1Wave"}, \
 		    {"O1Shp"}, \
@@ -1017,6 +1052,17 @@ namespace WaveSabreCore
 		    {"O1Fine"}, \
 		    {"O1Mul"}, \
 		    {"O1FMFb"}, \
+            {"AES1"}, \
+		    {"AE1dlt"}, \
+		    {"AE1att"}, \
+		    {"AE1atc"}, \
+		    {"AE1ht"}, \
+		    {"AE1dt"}, \
+		    {"AE1dc"}, \
+		    {"AE1sl"}, \
+		    {"AE1rt"}, \
+		    {"AE1tc"}, \
+		    {"AE2rst"}, \
 		    {"O2En"}, \
 		    {"O2Vol"}, \
 		    {"O2Wave"}, \
@@ -1032,6 +1078,17 @@ namespace WaveSabreCore
 		    {"O2Fine"}, \
 		    {"O2Mul"}, \
 		    {"O2FMFb"}, \
+            {"AES2"}, \
+		    {"AE2dlt"}, \
+		    {"AE2att"}, \
+		    {"AE2atc"}, \
+		    {"AE2ht"}, \
+		    {"AE2dt"}, \
+		    {"AE2dc"}, \
+		    {"AE2sl"}, \
+		    {"AE2rt"}, \
+		    {"AE2tc"}, \
+		    {"AE2rst"}, \
 		    {"O3En"}, \
 		    {"O3Vol"}, \
 		    {"O3Wave"}, \
@@ -1047,16 +1104,17 @@ namespace WaveSabreCore
 		    {"O3Fine"}, \
 		    {"O3Mul"}, \
 		    {"O3FMFb"}, \
-		    {"AEdlt"}, \
-		    {"AEatt"}, \
-		    {"AEatc"}, \
-		    {"AEht"}, \
-		    {"AEdt"}, \
-		    {"AEdc"}, \
-		    {"AEsl"}, \
-		    {"AErt"}, \
-		    {"AEtc"}, \
-		    {"AErst"}, \
+            {"AES3"}, \
+		    {"AE3dlt"}, \
+		    {"AE3att"}, \
+		    {"AE3atc"}, \
+		    {"AE3ht"}, \
+		    {"AE3dt"}, \
+		    {"AE3dc"}, \
+		    {"AE3sl"}, \
+		    {"AE3rt"}, \
+		    {"AE3tc"}, \
+		    {"AE3rst"}, \
 		    {"E1dlt"}, \
 		    {"E1att"}, \
 		    {"E1atc"}, \
@@ -1186,6 +1244,8 @@ namespace WaveSabreCore
             PitchFine,
             FreqMul,
             FMFeedback,
+            AmpEnvSource,
+            AmpEnvDelayTime,
         };
 
     } // namespace M7

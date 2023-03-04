@@ -6,7 +6,7 @@
 #include "Filters/FilterK35.hpp"
 #include "Filters/FilterMoog.hpp"
 #include "Filters/FilterOnePole.hpp"
-#include "Filters/FilterSEM12.hpp"
+//#include "Filters/FilterSEM12.hpp"
 // TODO: comb, notch, butterworth, ??
 
 namespace WaveSabreCore
@@ -17,7 +17,7 @@ namespace WaveSabreCore
 		{
 			Disabled = 0,
 			LP_OnePole,
-			LP_SEM12,
+			//LP_SEM12,
 			LP_Diode,
 			LP_K35,
 			LP_Moog2,
@@ -35,7 +35,6 @@ namespace WaveSabreCore
         #define FILTER_MODEL_CAPTIONS { \
             "Disabled", \
             "LP_OnePole", \
-            "LP_SEM12", \
             "LP_Diode", \
             "LP_K35", \
             "LP_Moog2", \
@@ -56,7 +55,7 @@ namespace WaveSabreCore
 			K35Filter mK35;
 			MoogLadderFilter mMoog;
 			OnePoleFilter mOnePole;
-			SEM12Filter mSem12;
+			//SEM12Filter mSem12;
 
 			IFilter* mSelectedFilter = &mMoog;
             FilterModel mSelectedModel = FilterModel::LP_Moog4;
@@ -74,10 +73,10 @@ namespace WaveSabreCore
                     ft = FilterType::LP;
                     mSelectedFilter = &mOnePole;
                     break;
-                case FilterModel::LP_SEM12:
-                    ft = FilterType::LP;
-                    mSelectedFilter = &mSem12;
-                    break;
+                //case FilterModel::LP_SEM12:
+                //    ft = FilterType::LP;
+                //    mSelectedFilter = &mSem12;
+                //    break;
                 case FilterModel::LP_Diode:
                     ft = FilterType::LP;
                     mSelectedFilter = &mDiode;
