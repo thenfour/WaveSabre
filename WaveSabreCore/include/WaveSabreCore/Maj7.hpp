@@ -226,6 +226,12 @@ namespace WaveSabreCore
 
 				mPitchBendRange.SetIntValue(2);
 
+				for (auto& m : mModulations)
+				{
+					m.mCurve.SetN11Value(0);
+					m.mScale.SetN11Value(1);
+				}
+
 				mMasterVolume.SetLinearValue(1.0f);
 				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
 			}
@@ -609,6 +615,8 @@ namespace WaveSabreCore
 					mOsc3AmpEnv.noteOn(mLegato);
 					mModEnv1.noteOn(mLegato);
 					mModEnv2.noteOn(mLegato);
+					mModLFO1.NoteOn(mLegato);
+					mModLFO2.NoteOn(mLegato);
 					mOscillator1.NoteOn(mLegato);
 					mOscillator2.NoteOn(mLegato);
 					mOscillator3.NoteOn(mLegato);

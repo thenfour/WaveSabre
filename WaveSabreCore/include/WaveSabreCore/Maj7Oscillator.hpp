@@ -361,8 +361,8 @@ namespace WaveSabreCore
 			static constexpr real_t gSyncFrequencyScale = 10;
 			static constexpr real_t gFrequencyCenterHz = 1000;
 			static constexpr real_t gFrequencyScale = 10;
-			static constexpr real_t gLFOFrequencyCenterHz = 1.0f;
-			static constexpr real_t gLFOFrequencyScale = 8;
+			static constexpr real_t gLFOFrequencyCenterHz = 3.0f;
+			static constexpr real_t gLFOFrequencyScale = 6;
 			static constexpr int gPitchSemisRange = 24;
 			static constexpr real_t gFrequencyMulMax = 64;
 
@@ -424,13 +424,15 @@ namespace WaveSabreCore
 				mFrequency(paramCache[paramBaseID + (int)LFOParamIndexOffsets::FrequencyParam], mLFOConst0, gLFOFrequencyCenterHz, gLFOFrequencyScale, 0.1f, 0),
 				mPitchSemis(mLFOPitchSemisParamValue, -24, 24, 0),
 				mPitchFine(mLFOPitchFineParamValue, 0),
-				mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f, 1.0f),
+				mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f),
 				mFMFeedback01(mLFOFMFeedbackParamValue, 0),
 
 				mIntention(OscillatorIntention::LFO),
 				mModMatrix(modMatrix),
 				mModDestBase((int)modDestBase)
-			{}
+			{
+				mFrequencyMul.SetRangedValue(1.0f);
+			}
 
 			// state
 			float mPhase = 0;
@@ -439,6 +441,7 @@ namespace WaveSabreCore
 			float mOutSample = 0;
 			float mPrevSample = 0;
 			float mFMFeedbackAmt = 0; // adjusted for global FM scale
+			float mCurrentFreq = 0;
 
 			SawClipWaveform mSawClipWaveform;
 			SineClipWaveform mSineClipWaveform;
@@ -513,6 +516,8 @@ namespace WaveSabreCore
 				float freq = mFrequency.GetFrequency(noteHz, mFreqModVal);
 				freq *= mFrequencyMul.GetRangedValue();
 				freq *= detuneFreqMul;
+				freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
+				mCurrentFreq = freq;
 				mPhaseIncrement = freq / (real_t)Helpers::CurrentSampleRate;
 				float slaveFreq = mSyncEnable.GetBoolValue() ? mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
 				mpSlaveWave->SetParams(slaveFreq, mPhaseOffset.GetN11Value(mPhaseModVal), mWaveshape.Get01Value(voiceShapeMod + mWaveShapeModVal), Helpers::CurrentSampleRateF);

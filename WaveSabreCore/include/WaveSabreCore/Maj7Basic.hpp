@@ -652,6 +652,13 @@ namespace WaveSabreCore
             {
                 SetRangedValue(initialRangedValue);
             }
+            explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive) :
+                Float01Param(ref),
+                mMinValueInclusive(minValueInclusive),
+                mMaxValueInclusive(maxValueInclusive)
+            {
+                //SetRangedValue(initialRangedValue);
+            }
 
             real_t GetRange() const {
                 return mMaxValueInclusive - mMinValueInclusive;

@@ -397,9 +397,10 @@ namespace WaveSabreCore
 				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
 				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count, ModSource::None),
 				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count, ModDestination::None),
-				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve], 0),
-				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale], 1)
-			{}
+				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
+				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale])
+			{
+			}
 		};
 
 		struct ModDestinationInfo
