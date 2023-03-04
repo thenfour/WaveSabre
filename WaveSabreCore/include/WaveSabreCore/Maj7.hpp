@@ -137,11 +137,17 @@ namespace WaveSabreCore
 			static constexpr real_t gFilterCenterFrequency = 1000.0f;
 			static constexpr real_t gFilterFrequencyScale = 10.0f;
 
+			static constexpr real_t gLFOLPCenterFrequency = 20.0f;
+			static constexpr real_t gLFOLPFrequencyScale = 7.0f;
+
 			// BASE PARAMS & state
+			float mAlways0 = 0;
 			real_t mPitchBendN11 = 0;
 			bool mOscEnabled[gOscillatorCount] = { false, false, false };
 			ModSource mOscAmpEnvSources[gOscillatorCount];
 			bool mDeviceModSourceValuesSetThisFrame = false;
+			float mLFO1LPCutoff = 0.0f;
+			float mLFO2LPCutoff = 0.0f;
 
 			float mOscDetuneAmts[gOscillatorCount] = { 0 };
 			float mUnisonoDetuneAmts[gUnisonoVoiceMax] = { 0 };
@@ -179,6 +185,9 @@ namespace WaveSabreCore
 
 			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness], 0.5f };
 
+			FrequencyParam mLFO1FilterLP { mParamCache[(int)ParamIndices::LFO1Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
+			FrequencyParam mLFO2FilterLP { mParamCache[(int)ParamIndices::LFO2Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
+
 			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange };
 			
 			ModulationSpec mModulations[gModulationCount] {
@@ -193,6 +202,14 @@ namespace WaveSabreCore
 			};
 
 			real_t mParamCache[(int)ParamIndices::NumParams] = {0};
+
+			// these are not REALLY lfos, they are used to track phase at the device level, for when an LFO's phase should be synced between all voices.
+			// that would happen only when all of the following are satisfied:
+			// 1. the LFO is not triggered by notes.
+			// 2. the LFO has no modulations on its phase or frequency
+			ModMatrixNode mNullModMatrix;
+			OscillatorNode mModLFO1Phase{ OscillatorIntentionLFO{}, mNullModMatrix, ModDestination::LFO1Waveshape, mParamCache, (int)ParamIndices::LFO1Waveform };
+			OscillatorNode mModLFO2Phase{ OscillatorIntentionLFO{}, mNullModMatrix, ModDestination::LFO2Waveshape, mParamCache, (int)ParamIndices::LFO2Waveform };
 
 			// these values are at the device level (not voice level), but yet they can be modulated by voice-level things.
 			// for exmaple you could map Velocity to unisono detune. Well it should be clear that this doesn't make much sense,
@@ -213,6 +230,9 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < std::size(mVoices); ++ i) {
 					mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
 				}
+
+				mLFO1FilterLP.mValue.SetParamValue(0.5f);
+				mLFO2FilterLP.mValue.SetParamValue(0.5f);
 
 				mFMBrightness.SetParamValue(0.5f);
 
@@ -337,6 +357,9 @@ namespace WaveSabreCore
 				mOscAmpEnvSources[1] = ampEnvSources[mOsc2AmpEnvelopeSource.GetIntValue()];
 				mOscAmpEnvSources[2] = ampEnvSources[mOsc3AmpEnvelopeSource.GetIntValue()];
 
+				mLFO1LPCutoff = mLFO1FilterLP.GetFrequency(0, 0);
+				mLFO2LPCutoff = mLFO2FilterLP.GetFrequency(0, 0);
+
 				// scale down per param & mod
 				float unisonoDetuneAmt = mUnisonoDetune.Get01Value(mUnisonoDetuneMod);
 				float unisonoStereoSpreadAmt = mUnisonoStereoSpread.Get01Value(mUnisonoStereoSpreadMod);
@@ -363,10 +386,15 @@ namespace WaveSabreCore
 
 				// apply post FX.
 				real_t masterGain = mMasterVolume.GetLinearGain();
+				mModLFO1Phase.BeginBlock(0, 0, 1, 0);
+				mModLFO2Phase.BeginBlock(0, 0, 1, 0);
 				for (size_t iSample = 0; iSample < numSamples; ++iSample)
 				{
 					outputs[0][iSample] *= masterGain;
 					outputs[1][iSample] *= masterGain;
+
+					mModLFO1Phase.ProcessSample(iSample, 0, 0, 0, 0, true);
+					mModLFO2Phase.ProcessSample(iSample, 0, 0, 0, 0, true);
 				}
 			}
 
@@ -389,7 +417,8 @@ namespace WaveSabreCore
 					mFilterQ(owner->mParamCache[(int)ParamIndices::FilterQ], 0.35f),
 					mFilterSaturation(owner->mParamCache[(int)ParamIndices::FilterSaturation], 0.06f),
 					mFilterFreq(owner->mParamCache[(int)ParamIndices::FilterFrequency], owner->mParamCache[(int)ParamIndices::FilterFrequencyKT], Maj7::gFilterCenterFrequency, Maj7::gFilterFrequencyScale, 0.4f, 1.0f)
-				{}
+				{
+				}
 
 				Maj7* mpOwner;
 
@@ -399,8 +428,11 @@ namespace WaveSabreCore
 
 				EnvelopeNode mModEnv1;
 				EnvelopeNode mModEnv2;
+
 				OscillatorNode mModLFO1;
 				OscillatorNode mModLFO2;
+				FilterNode mLFOFilter1;
+				FilterNode mLFOFilter2;
 
 				ModMatrixNode mModMatrix;
 
@@ -456,8 +488,21 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceKRateValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
 
+					if (!mModLFO1.mPhaseRestart.GetBoolValue()) {
+						// sync phase with device-level. TODO: also check that modulations aren't creating per-voice variation?
+						mModLFO1.SetPhase(mpOwner->mModLFO1Phase.mPhase);
+					}
+
+					if (!mModLFO2.mPhaseRestart.GetBoolValue()) {
+						// sync phase with device-level
+						mModLFO2.SetPhase(mpOwner->mModLFO2Phase.mPhase);
+					}
+
 					mModLFO1.BeginBlock(0, 0, 1.0f, 0);
 					mModLFO2.BeginBlock(0, 0, 1.0f, 0);
+
+					mLFOFilter1.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO1LPCutoff, 0, 0);
+					mLFOFilter2.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO2LPCutoff, 0, 0);
 
 					// process a-rate mod source buffers.
 					for (size_t iSample = 0; iSample < numSamples; ++iSample)
@@ -467,8 +512,12 @@ namespace WaveSabreCore
 						mModMatrix.SetSourceARateValue(ModSource::Osc3AmpEnv, iSample, mOsc3AmpEnv.ProcessSample(iSample));
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv1, iSample, mModEnv1.ProcessSample(iSample));
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv2, iSample, mModEnv2.ProcessSample(iSample));
-						mModMatrix.SetSourceARateValue(ModSource::LFO1, iSample, mModLFO1.ProcessSample(iSample, 0, 0, 0, 0));
-						mModMatrix.SetSourceARateValue(ModSource::LFO2, iSample, mModLFO2.ProcessSample(iSample, 0, 0, 0, 0));
+						float l1 = mModLFO1.ProcessSample(iSample, 0, 0, 0, 0, false);
+						l1 = mLFOFilter1.ProcessSample(l1);
+						mModMatrix.SetSourceARateValue(ModSource::LFO1, iSample, l1);
+						float l2 = mModLFO2.ProcessSample(iSample, 0, 0, 0, 0, false);
+						l2 = mLFOFilter2.ProcessSample(l2);
+						mModMatrix.SetSourceARateValue(ModSource::LFO2, iSample, l2);
 						mModMatrix.ProcessSample(mpOwner->mModulations, iSample);
 					}
 
@@ -574,19 +623,19 @@ namespace WaveSabreCore
 
 						real_t s1 = mOscillator1.ProcessSample(iSample,
 							osc2LastSample, FMScales[0],
-							osc3LastSample, FMScales[1]
+							osc3LastSample, FMScales[1], false
 						);
 						s1 *= oscInfo[0].mAmpEnvGain;
 
 						real_t s2 = mOscillator2.ProcessSample(iSample,
 							s1, FMScales[2],
-							osc3LastSample, FMScales[3]
+							osc3LastSample, FMScales[3], false
 						);
 						s2 *= oscInfo[1].mAmpEnvGain;
 
 						real_t s3 = mOscillator3.ProcessSample(iSample,
 							s1, FMScales[4],
-							s2, FMScales[5]
+							s2, FMScales[5], false
 						);
 						s3 *= oscInfo[2].mAmpEnvGain;
 

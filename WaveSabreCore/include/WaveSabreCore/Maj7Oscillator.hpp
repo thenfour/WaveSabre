@@ -465,6 +465,13 @@ namespace WaveSabreCore
 				return mOutSample;
 			}
 
+			// used by LFOs to just hard-set the phase. nothing fancy.
+			void SetPhase(float phase01)
+			{
+				mPhase = phase01;
+				mpSlaveWave->mPhase = phase01;
+			}
+
 			void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale)
 			{
 				if (!mEnabled.GetBoolValue()) {
@@ -532,10 +539,10 @@ namespace WaveSabreCore
 				}
 			}
 
-			real_t ProcessSample(size_t bufferPos, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount)
+			real_t ProcessSample(size_t bufferPos, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, bool forceSilence)
 			{
 				if (!mEnabled.GetBoolValue()) {
-					mCurrentSample = 0;
+					mOutSample = mCurrentSample = 0;
 					return 0;
 				}
 
@@ -549,6 +556,11 @@ namespace WaveSabreCore
 
 				// Push master phase forward by full sample.
 				mPhase = Fract(mPhase + mPhaseIncrement);
+
+				if (forceSilence) {
+					mOutSample = mCurrentSample = 0;
+					return 0;
+				}
 				
 				float phaseMod = mPrevSample * mFMFeedbackAmt + signal1 * signal1PMAmount + signal2 * signal2PMAmount;
 

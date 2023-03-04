@@ -784,6 +784,14 @@ namespace WaveSabreCore
                 mScale(scale)
             {}
 
+            explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/) :
+                mValue(valRef),
+                mKTValue(ktRef),
+                mCenterFrequency(centerFrequency),
+                mCenterMidiNote(FrequencyToMIDINote(centerFrequency)),
+                mScale(scale)
+            {}
+
             // noteHz is the playing note, to support key-tracking.
             float GetFrequency(float noteHz, float paramModulation) const
             {
@@ -960,12 +968,14 @@ namespace WaveSabreCore
             LFO1Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
             LFO1PhaseOffset,
             LFO1FrequencyParam,
+            LFO1Sharpness,
 
             LFO2Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
             LFO2Waveshape,
             LFO2Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
             LFO2PhaseOffset,
             LFO2FrequencyParam,
+            LFO2Sharpness,
 
             FilterType,
             FilterQ,
@@ -1153,11 +1163,13 @@ namespace WaveSabreCore
 		    {"LFO1rst"}, \
 		    {"LFO1ph"}, \
 		    {"LFO1fr"}, \
+		    {"LFO1lp"}, \
 		    {"LFO2wav"}, \
 		    {"LFO2shp"}, \
 		    {"LFO2rst"}, \
 		    {"LFO2ph"}, \
 		    {"LFO2fr"}, \
+		    {"LFO2lp"}, \
 		    {"FLtype"}, \
 		    {"FLq"}, \
 		    {"FLsat"}, \
@@ -1226,6 +1238,7 @@ namespace WaveSabreCore
             Restart,
             PhaseOffset,
             FrequencyParam,
+            Sharpness,
         };
         enum class EnvParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
         {

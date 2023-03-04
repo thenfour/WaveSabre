@@ -397,6 +397,10 @@ public:
 		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::OscillatorNode::gLFOFrequencyCenterHz, M7::OscillatorNode::gLFOFrequencyScale, 0.4f);
 		ImGui::SameLine(0, 60); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase");
 		ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
+
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::Maj7::gLFOLPCenterFrequency, M7::Maj7::gLFOLPFrequencyScale, 0.5f);
+		//mLFO2FilterLP(owner->mParamCache[(int)ParamIndices::LFO2Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale)
+
 		//}
 		ImGui::PopID();
 	}
