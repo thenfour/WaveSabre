@@ -216,6 +216,12 @@ namespace WaveSabreCore
             inline real_t tanh(real_t x, real_t y) { // used by saturation
                 return tanh(x * y);
             }
+            inline float rand01() {
+                return float(::rand()) / RAND_MAX;
+            }
+            inline float randN11() {
+                return rand01() * 2 - 1;
+            }
         }
 
         inline bool FloatEquals(real_t f1, real_t f2, real_t eps = FloatEpsilon)

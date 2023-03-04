@@ -24,7 +24,7 @@ namespace WaveSabreCore
                 mModMatrix(modMatrix),
                 mModDestBase((int)modDestIDDelayTime),
                 mDelayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DelayTime], 0),
-                mAttackTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackTime], 0),
+                mAttackTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackTime], 0.05f),
                 mAttackCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackCurve], 0),
                 mHoldTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::HoldTime], 0),
                 mDecayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DecayTime], 0.5f),
@@ -32,7 +32,7 @@ namespace WaveSabreCore
                 mSustainLevel(paramCache[paramBaseID + (int)EnvParamIndexOffsets::SustainLevel], 0.4f),
                 mReleaseTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseTime], 0.2f),
                 mReleaseCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseCurve], 0),
-                mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart], false)
+                mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart], true) // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
             {
             }
 
@@ -79,7 +79,7 @@ namespace WaveSabreCore
                 case EnvelopeStage::Decay:
                     if (FloatLessThanOrEquals(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime, isample)), 0))
                     {
-                        AdvanceToStage(EnvelopeStage::Decay, isample);
+                        AdvanceToStage(EnvelopeStage::Sustain, isample);
                         return;
                     }
                     break;
@@ -175,7 +175,9 @@ namespace WaveSabreCore
                     break;
                 }
                 case EnvelopeStage::Sustain: {
-                    return (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel, isample));
+                    float ret = (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel, isample));
+                    mLastOutputLevel = ret;
+                    return ret;
                 }
                 case EnvelopeStage::Release: {
                     // 0-1 => mReleaseFromValue01 - 0

@@ -179,7 +179,7 @@ namespace WaveSabreCore
 
 			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness], 0.5f };
 
-			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange, 2 };
+			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange };
 			
 			ModulationSpec mModulations[gModulationCount] {
 				{ mParamCache, (int)ParamIndices::Mod1Enabled },
@@ -223,6 +223,8 @@ namespace WaveSabreCore
 				mOsc1AmpEnvelopeSource.SetIntValue(0);
 				mOsc2AmpEnvelopeSource.SetIntValue(1);
 				mOsc3AmpEnvelopeSource.SetIntValue(2);
+
+				mPitchBendRange.SetIntValue(2);
 
 				mMasterVolume.SetLinearValue(1.0f);
 				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
@@ -601,7 +603,7 @@ namespace WaveSabreCore
 
 				virtual void NoteOn() override {
 					mVelocity01 = mNoteInfo.Velocity / 127.0f;
-					mTriggerRandom01 = Helpers::RandFloat();
+					mTriggerRandom01 = math::rand01();
 					mOsc1AmpEnv.noteOn(mLegato);
 					mOsc2AmpEnv.noteOn(mLegato);
 					mOsc3AmpEnv.noteOn(mLegato);
@@ -629,8 +631,23 @@ namespace WaveSabreCore
 					mModEnv2.kill();
 				}
 
+				bool OscillatorIsPlaying(int iOsc, ParamIndices enabledParam, ParamIndices ampSrcParam) const {
+					bool enabled = BoolParam{ mpOwner->mParamCache[(int)enabledParam] }.GetBoolValue();
+					int ampEnvSrcIndex = IntParam{ mpOwner->mParamCache[(int)ampSrcParam], 0, gOscillatorCount - 1 }.GetIntValue();
+					const EnvelopeNode* ampEnvs[gOscillatorCount] = {
+						&mOsc1AmpEnv,
+						&mOsc2AmpEnv,
+						&mOsc3AmpEnv,
+					};
+					auto ampEnvSrc = ampEnvs[ampEnvSrcIndex];
+					return (ampEnvSrc->IsPlaying());
+				}
+
 				virtual bool IsPlaying() override {
-					return mOsc1AmpEnv.IsPlaying() || mOsc2AmpEnv.IsPlaying() || mOsc3AmpEnv.IsPlaying();
+					return
+						OscillatorIsPlaying(0, ParamIndices::Osc1Enabled, ParamIndices::Osc1AmpEnvelopeSource)
+						|| OscillatorIsPlaying(1, ParamIndices::Osc2Enabled, ParamIndices::Osc2AmpEnvelopeSource)
+						|| OscillatorIsPlaying(2, ParamIndices::Osc3Enabled, ParamIndices::Osc3AmpEnvelopeSource);
 				}
 			};
 

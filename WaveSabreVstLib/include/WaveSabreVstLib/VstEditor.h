@@ -5,6 +5,9 @@
 #include "ImageManager.h"
 #include "NoTextCOptionMenu.h"
 #include <d3d9.h>
+
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "../imgui/imgui.h"
 #include "../imgui/imgui-knobs.h"
 #include "../imgui/imgui_internal.h"
@@ -722,7 +725,7 @@ namespace WaveSabreVstLib
 			ImVec2 innerBottomRight = { innerBottomLeft.x + gMaxWidth, innerBottomLeft.y };
 			//dl->AddRectFilled(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
 			//dl->AddRect(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_Frame));
-			ImGui::RenderFrame(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 5.0f);
+			ImGui::RenderFrame(outerTL, outerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f);
 			//dl->AddRectFilled(innerTL, innerBottomRight, ImGui::GetColorU32(ImGuiCol_FrameBg));
 
 			//ImVec2 startPos = innerBottomLeft;// { innerTL.x, innerTL.y + innerHeight };
