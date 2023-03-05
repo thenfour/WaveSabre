@@ -36,7 +36,8 @@ namespace WaveSabreCore
 
 			float mFrequency = 0;
 			float mPhase = 0; // phase cursor 0-1
-			float mPhaseIncrement = 0;
+			float mDTDT = 0; // to glide to a new frequency smoothly over a block.
+			float mPhaseIncrement = 0; // dt
 			float mSampleRate = 0;
 
 			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
@@ -44,13 +45,14 @@ namespace WaveSabreCore
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) = 0;// returns blep before and blep after discontinuity.
 
 			// override if you need to adjust things
-			virtual void SetParams(float freq, float phaseOffsetN11, float waveshape, float sampleRate)
+			virtual void SetParams(float freq, float phaseOffsetN11, float waveshape, float sampleRate, int samplesInBlock)
 			{
 				mFrequency = freq;
 				mPhaseOffset = Fract(phaseOffsetN11);
 				mShape = waveshape;
 				mSampleRate = sampleRate;
-				mPhaseIncrement = mFrequency / sampleRate;
+				float newPhaseInc = mFrequency / sampleRate;
+				mDTDT = (newPhaseInc - mPhaseIncrement) / samplesInBlock;
 			}
 
 			// process discontinuity due to restarting phase right now.
@@ -124,9 +126,9 @@ namespace WaveSabreCore
 				return 1;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
 				waveshape = 1 - waveshape;
 				waveshape = 1 - (waveshape * waveshape);
@@ -144,6 +146,7 @@ namespace WaveSabreCore
 			// returns blep before and blep after discontinuity.
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
+				mPhaseIncrement += mDTDT * samples;
 				float phaseToAdvance = samples * mPhaseIncrement;
 				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
@@ -198,9 +201,9 @@ namespace WaveSabreCore
 				//);
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
 				mEdge1 = (0.75f - mShape * .25f);
 				mEdge2 = (0.75f + mShape * .25f);
@@ -212,6 +215,7 @@ namespace WaveSabreCore
 
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
+				mPhaseIncrement += mDTDT * samples;
 				float phaseToAdvance = samples * mPhaseIncrement;
 				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
@@ -241,13 +245,14 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 			}
 
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
+				mPhaseIncrement += mDTDT * samples;
 				float phaseToAdvance = samples * mPhaseIncrement;
 				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
@@ -286,9 +291,9 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
 				mShape = Lerp(1, 0.1f, waveshape);
 
@@ -302,6 +307,7 @@ namespace WaveSabreCore
 			// returns blep before and blep after discontinuity.
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
+				mPhaseIncrement += mDTDT * samples;
 				float phaseToAdvance = samples * mPhaseIncrement;
 				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
@@ -327,15 +333,16 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
 				mShape = Lerp(1, 0.1f, waveshape);
 			}
 
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
+				mPhaseIncrement += mDTDT * samples;
 				float phaseToAdvance = samples * mPhaseIncrement;
 				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
@@ -451,7 +458,8 @@ namespace WaveSabreCore
 
 			// state
 			float mPhase = 0;
-			float mPhaseIncrement = 0;
+			float mPhaseIncrement = 0; // DT
+			float mDTDT = 0; // to smooth frequency changes without having expensive recalc frequency every sample, just linearly adjust phaseincrement (DT) every sample over the block.
 			float mCurrentSample = 0;
 			float mOutSample = 0;
 			float mPrevSample = 0;
@@ -487,7 +495,7 @@ namespace WaveSabreCore
 				mpSlaveWave->mPhase = phase01;
 			}
 
-			void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale)
+			void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale, int samplesInBlock)
 			{
 				if (!mEnabled.GetBoolValue()) {
 					return;
@@ -540,9 +548,10 @@ namespace WaveSabreCore
 				freq *= detuneFreqMul;
 				freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
 				mCurrentFreq = freq;
-				mPhaseIncrement = freq / (real_t)Helpers::CurrentSampleRate;
+				float newDT = freq / (real_t)Helpers::CurrentSampleRate;
+				mDTDT = (newDT - mPhaseIncrement) / samplesInBlock;
 				float slaveFreq = mSyncEnable.GetBoolValue() ? mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
-				mpSlaveWave->SetParams(slaveFreq, mPhaseOffset.GetN11Value(mPhaseModVal), mWaveshape.Get01Value(voiceShapeMod + mWaveShapeModVal), Helpers::CurrentSampleRateF);
+				mpSlaveWave->SetParams(slaveFreq, mPhaseOffset.GetN11Value(mPhaseModVal), mWaveshape.Get01Value(voiceShapeMod + mWaveShapeModVal), Helpers::CurrentSampleRateF, samplesInBlock);
 			}
 
 			void NoteOn(bool legato)
@@ -570,6 +579,7 @@ namespace WaveSabreCore
 				// mSlaveWave holds the slave phase, bound by sync frequency.
 
 				// Push master phase forward by full sample.
+				mPhaseIncrement += mDTDT;
 				mPhase = Fract(mPhase + mPhaseIncrement);
 
 				if (forceSilence) {

@@ -341,4 +341,8 @@ namespace WaveSabreCore
 	{
 		return (float)voiceMode / 1.0f;
 	}
+
+
 }
+
+//thread_local size_t cc::gLogIndent = 0;

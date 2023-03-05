@@ -10,7 +10,7 @@
 
 
 
-//
+
 //#ifdef _DEBUG
 //#include <Windows.h>
 //#undef max
@@ -33,16 +33,29 @@
 //
 //namespace cc
 //{
+//	extern thread_local size_t gLogIndent;
 //	template <typename ...Args>
-//	static void log(const std::string& format, Args && ...args)
+//	inline static void log(const std::string& format, Args && ...args)
 //	{
-//		std::string fmt = std::string("[%x:%x] ") + format + "\r\n";
+//		std::string fmt = std::string("[%x:%x] ") + std::string(gLogIndent, ' ') + std::string(gLogIndent, ' ') + format + "\r\n";
 //		auto size = std::snprintf(nullptr, 0, fmt.c_str(), GetCurrentProcessId(), GetCurrentThreadId(), std::forward<Args>(args)...);
 //		std::string output(size + 2, '\0');// to ensure the null-terminator
 //		output.resize(size);// so the reported length is correct.
 //		std::sprintf(&output[0], fmt.c_str(), GetCurrentProcessId(), GetCurrentThreadId(), std::forward<Args>(args)...);
 //		OutputDebugStringA(output.c_str());
 //	}
+//	struct LogScope {
+//		inline LogScope(const std::string& msg) {
+//			log("{ %s", msg.c_str());
+//			gLogIndent++;
+//		}
+//		inline LogScope() : LogScope("") { }
+//		inline ~LogScope() {
+//			gLogIndent--;
+//			log("}");
+//		}
+//	};
+//
 //
 //}
 //#else
@@ -55,7 +68,7 @@
 //	}
 //}
 //#endif
-//
+
 
 
 namespace WaveSabreCore

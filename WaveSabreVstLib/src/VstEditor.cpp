@@ -33,6 +33,7 @@ namespace WaveSabreVstLib
 
 	void VstEditor::Window_Open(HWND parentWindow)
 	{
+		//cc::LogScope ls("Window_Open");
 		static constexpr wchar_t const* const className = L"wavesabre vst";
 		WNDCLASSEXW wc = { sizeof(wc), CS_HREDRAW | CS_VREDRAW, gWndProc, 0L, 0L, (HINSTANCE)::hInstance, NULL, NULL, NULL, NULL, className, NULL };
 		::RegisterClassExW(&wc);
@@ -63,10 +64,13 @@ namespace WaveSabreVstLib
 
 			// Setup Dear ImGui context
 			IMGUI_CHECKVERSION();
+			auto oldContext = ImGui::GetCurrentContext();
 			mImGuiContext = ImGui::CreateContext();
 
+			//cc::log("Created context %p, overwriting %p", mImGuiContext, oldContext);
+
 			// CreateContext doesn't actually set the context to the new one for multiple instances.
-			auto contextToken = PushMyImGuiContext("Initializing");
+			auto contextToken = PushMyImGuiContext("PushMyImGuiContext: Initializing");
 
 			ImGuiIO& io = ImGui::GetIO();
 			(void)io;
@@ -81,12 +85,18 @@ namespace WaveSabreVstLib
 
 	void VstEditor::Window_Close()
 	{
-		auto contextToken = PushMyImGuiContext("Window_Close()");
+		//cc::LogScope ls ("Window_Close");
+		auto contextToken = PushMyImGuiContext("PushMyImGuiContext: Window_Close()");
 
 		ImGui_ImplDX9_Shutdown();
 		ImGui_ImplWin32_Shutdown();
+
+		//cc::log("Destrying imguicontext mImGuiContext=%p current_context=%p", mImGuiContext, ImGui::GetCurrentContext());
+
 		ImGui::DestroyContext();
 		mImGuiContext = nullptr;
+
+		//cc::log(" -> and now context=%p", ImGui::GetCurrentContext());
 
 		CleanupDeviceD3D();
 
@@ -122,7 +132,7 @@ namespace WaveSabreVstLib
 	}
 
 	void VstEditor::ResetDevice() {
-		auto contextToken = PushMyImGuiContext("ResetDevice()");
+		auto contextToken = PushMyImGuiContext("PushMyImGuiContext: ResetDevice()");
 
 		ImGui_ImplDX9_InvalidateDeviceObjects();
 		HRESULT hr = g_pd3dDevice->Reset(&g_d3dpp);
@@ -159,7 +169,7 @@ namespace WaveSabreVstLib
 		}
 
 		if (mImGuiContext) {
-			auto contextToken = PushMyImGuiContext("ImGui_ImplWin32_WndProcHandler");
+			auto contextToken = PushMyImGuiContext("PushMyImGuiContext: ImGui_ImplWin32_WndProcHandler");
 			if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
 				return true;
 			}
@@ -207,7 +217,7 @@ namespace WaveSabreVstLib
 
 	void VstEditor::ImguiPresent()
 	{
-		auto contextToken = PushMyImGuiContext("ImguiPresent()");
+		auto contextToken = PushMyImGuiContext("PushMyImGuiContext: ImguiPresent()");
 
 		// make sure our child window is the same size as the one given to us.
 		RECT rcParent, rcWnd;

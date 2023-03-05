@@ -811,23 +811,32 @@ namespace WaveSabreVstLib
 
 		struct GuiContextRestorer
 		{
+			//cc::LogScope mls;
 			ImGuiContext* mPrevContext = nullptr;
+			bool pushed = false;
 			const char* mWhy;
-			GuiContextRestorer(ImGuiContext* newContext, const char *why) : mWhy(why) {
-
+			GuiContextRestorer(ImGuiContext* newContext, const char *why) : mWhy(why)/*, mls(why)*/ {
 				mPrevContext = ImGui::GetCurrentContext();
+				//cc::log("pushing context; %p  ==>  %p", mPrevContext);
 				if (mPrevContext == newContext) {
+					//cc::log("  -> no change needed");
 					return; // no change needed.
 				}
-
+				pushed = true;
 				ImGui::SetCurrentContext(newContext);
 			}
 			~GuiContextRestorer()
 			{
 				auto current = ImGui::GetCurrentContext();
-				if (current == mPrevContext) {
+				if (!pushed) {
+					//cc::log("popping context; ignoring because it was not pushed. mPrevContext=%p, currentcontext=%p", mPrevContext, current);
 					return;
 				}
+				if (current == mPrevContext) {
+					//cc::log("popping context; no need to change context because it's already correct. mPrevContext=%p, currentcontext=%p", mPrevContext, current);
+					return;
+				}
+				//cc::log("popping context; currentcontext=%p  ==>  mPrevContext=%p", current, mPrevContext);
 				ImGui::SetCurrentContext(mPrevContext);
 			}
 		};

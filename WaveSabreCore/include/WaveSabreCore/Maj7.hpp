@@ -388,8 +388,8 @@ namespace WaveSabreCore
 
 				// apply post FX.
 				real_t masterGain = mMasterVolume.GetLinearGain();
-				mModLFO1Phase.BeginBlock(0, 0, 1, 0);
-				mModLFO2Phase.BeginBlock(0, 0, 1, 0);
+				mModLFO1Phase.BeginBlock(0, 0, 1, 0, numSamples);
+				mModLFO2Phase.BeginBlock(0, 0, 1, 0, numSamples);
 				for (size_t iSample = 0; iSample < numSamples; ++iSample)
 				{
 					outputs[0][iSample] *= masterGain;
@@ -500,8 +500,8 @@ namespace WaveSabreCore
 						mModLFO2.SetPhase(mpOwner->mModLFO2Phase.mPhase);
 					}
 
-					mModLFO1.BeginBlock(0, 0, 1.0f, 0);
-					mModLFO2.BeginBlock(0, 0, 1.0f, 0);
+					mModLFO1.BeginBlock(0, 0, 1.0f, 0, numSamples);
+					mModLFO2.BeginBlock(0, 0, 1.0f, 0, numSamples);
 
 					mLFOFilter1.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO1LPCutoff, 0, 0);
 					mLFOFilter2.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO2LPCutoff, 0, 0);
@@ -595,7 +595,7 @@ namespace WaveSabreCore
 						}
 						auto& info = oscInfo[i];
 						float semis = myUnisonoDetune + mpOwner->mOscDetuneAmts[i];
-						info.mNode.BeginBlock(midiNote, myUnisonoShape + mpOwner->mOscShapeAmts[i], SemisToFrequencyMul(semis), globalFMScale);
+						info.mNode.BeginBlock(midiNote, myUnisonoShape + mpOwner->mOscShapeAmts[i], SemisToFrequencyMul(semis), globalFMScale, numSamples);
 
 						float volumeMod = mModMatrix.GetDestinationValue(info.mModDestVolume, 0);
 						VolumeParam outputVolParam{ mpOwner->mParamCache[(int)info.mOutputVolumeParamID], OscillatorNode::gVolumeMaxDb };
