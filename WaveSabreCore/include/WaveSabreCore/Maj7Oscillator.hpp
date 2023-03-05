@@ -35,9 +35,9 @@ namespace WaveSabreCore
 			float mScale = 1; // same here; way easier to just scale in post than to try and get everything scaled correctly during generation.
 
 			float mFrequency = 0;
-			float mPhase = 0; // phase cursor 0-1
-			float mDTDT = 0; // to glide to a new frequency smoothly over a block.
-			float mPhaseIncrement = 0; // dt
+			double mPhase = 0; // phase cursor 0-1
+			double mDTDT = 0; // to glide to a new frequency smoothly over a block.
+			double mPhaseIncrement = 0; // dt
 			float mSampleRate = 0;
 
 			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
@@ -51,28 +51,31 @@ namespace WaveSabreCore
 				mPhaseOffset = Fract(phaseOffsetN11);
 				mShape = waveshape;
 				mSampleRate = sampleRate;
-				float newPhaseInc = mFrequency / sampleRate;
+
+				double newPhaseInc = (double)mFrequency / sampleRate;
 				mDTDT = (newPhaseInc - mPhaseIncrement) / samplesInBlock;
+				//mPhaseIncrement = newPhaseInc;
+				//mDTDT = 0;
 			}
 
 			// process discontinuity due to restarting phase right now.
 			// returns blep before and blep after discontinuity.
 			virtual std::pair<float, float> OSC_RESTART(float samplesBeforeNext)
 			{
-				float sampleBefore = this->NaiveSample(this->mPhase);
-				float newPhase = this->mPhaseOffset;
+				float sampleBefore = this->NaiveSample((float)this->mPhase);
+				double newPhase = this->mPhaseOffset;
 
 				// fix bleps
-				float sampleAfter = NaiveSample(newPhase);
+				float sampleAfter = NaiveSample((float)newPhase);
 				float blepScale = (sampleAfter - sampleBefore) * .5f; // full sample scale is 2; *.5 to bring 0-1
 
 				float blepBefore = blepScale * BlepBefore(samplesBeforeNext); // blep the phase restart.
 				float blepAfter = blepScale * BlepAfter(samplesBeforeNext);
 
 				// fix blamps.
-				float slopeBefore = NaiveSampleSlope(mPhase);
-				float slopeAfter = NaiveSampleSlope(newPhase);
-				float blampScale = this->mPhaseIncrement * (slopeAfter - slopeBefore);
+				float slopeBefore = NaiveSampleSlope((float)mPhase);
+				float slopeAfter = NaiveSampleSlope((float)newPhase);
+				float blampScale = float(this->mPhaseIncrement * (slopeAfter - slopeBefore));
 				blepBefore += blampScale * BlampBefore(samplesBeforeNext);
 				blepAfter += blampScale * BlampAfter(samplesBeforeNext);
 
@@ -81,22 +84,22 @@ namespace WaveSabreCore
 				return std::make_pair(blepBefore, blepAfter);
 			}
 
-			void OSC_ACCUMULATE_BLEP(std::pair<float, float>& bleps, float newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
+			void OSC_ACCUMULATE_BLEP(std::pair<float, float>& bleps, double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
 				if (!DoesEncounter(mPhase, newPhase, edge))
 					return;
-				float samplesSinceEdge = Fract(newPhase - edge) / this->mPhaseIncrement;
+				float samplesSinceEdge = float(Fract(newPhase - edge) / this->mPhaseIncrement);
 				float samplesFromEdgeToNextSample = Fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
 				bleps.first = blepScale * BlepBefore(samplesFromEdgeToNextSample);
 				bleps.second = blepScale * BlepAfter(samplesFromEdgeToNextSample);
 			}
 
-			void OSC_ACCUMULATE_BLAMP(std::pair<float, float>& bleps, float newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
+			void OSC_ACCUMULATE_BLAMP(std::pair<float, float>& bleps, double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
-				if (!DoesEncounter(mPhase, newPhase, edge))
+				if (!DoesEncounter((mPhase), (newPhase), edge))
 					return;
 
-				float samplesSinceEdge = Fract(newPhase - edge) / this->mPhaseIncrement;
+				float samplesSinceEdge = float(Fract(newPhase - edge) / float(this->mPhaseIncrement));
 				float samplesFromEdgeToNextSample = Fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
 
 				bleps.first += blampScale * BlampBefore(samplesFromEdgeToNextSample);
@@ -147,11 +150,11 @@ namespace WaveSabreCore
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				mPhaseIncrement += mDTDT * samples;
-				float phaseToAdvance = samples * mPhaseIncrement;
-				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				double phaseToAdvance = samples * mPhaseIncrement;
+				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
 				std::pair<float, float> bleps{ 0.0f,0.0f };
-				float blampScale = mPhaseIncrement;
+				float blampScale = float(mPhaseIncrement);
 				float blepScale = -(1.0f - mShape);
 
 				OSC_ACCUMULATE_BLEP(bleps, newPhase, 0/*edge*/, blepScale, samples, samplesTillNextSample);
@@ -216,12 +219,12 @@ namespace WaveSabreCore
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				mPhaseIncrement += mDTDT * samples;
-				float phaseToAdvance = samples * mPhaseIncrement;
-				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				double phaseToAdvance = samples * mPhaseIncrement;
+				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
 				std::pair<float, float> bleps{ 0.0f,0.0f };
 
-				float scale = mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1);//OSC_GENERAL_SLOPE(this.shape);
+				float scale = float(mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1));
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge1, scale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge2, scale, samples, samplesTillNextSample);
 
@@ -253,8 +256,8 @@ namespace WaveSabreCore
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				mPhaseIncrement += mDTDT * samples;
-				float phaseToAdvance = samples * mPhaseIncrement;
-				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				double phaseToAdvance = samples * mPhaseIncrement;
+				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
 				std::pair<float, float> bleps{ 0.0f,0.0f };
 
@@ -308,8 +311,8 @@ namespace WaveSabreCore
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				mPhaseIncrement += mDTDT * samples;
-				float phaseToAdvance = samples * mPhaseIncrement;
-				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				double phaseToAdvance = samples * mPhaseIncrement;
+				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
 				std::pair<float, float> bleps{ 0.0f,0.0f };
 				this->mPhase = newPhase;
@@ -343,8 +346,8 @@ namespace WaveSabreCore
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				mPhaseIncrement += mDTDT * samples;
-				float phaseToAdvance = samples * mPhaseIncrement;
-				float newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				double phaseToAdvance = samples * mPhaseIncrement;
+				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
 				if (newPhase < this->mPhase) {
 					mCurrentLevel = math::randN11();
@@ -457,9 +460,9 @@ namespace WaveSabreCore
 			}
 
 			// state
-			float mPhase = 0;
-			float mPhaseIncrement = 0; // DT
-			float mDTDT = 0; // to smooth frequency changes without having expensive recalc frequency every sample, just linearly adjust phaseincrement (DT) every sample over the block.
+			double mPhase = 0;
+			double mPhaseIncrement = 0; // DT
+			double mDTDT = 0; // to smooth frequency changes without having expensive recalc frequency every sample, just linearly adjust phaseincrement (DT) every sample over the block.
 			float mCurrentSample = 0;
 			float mOutSample = 0;
 			float mPrevSample = 0;
@@ -489,7 +492,7 @@ namespace WaveSabreCore
 			}
 
 			// used by LFOs to just hard-set the phase. nothing fancy.
-			void SetPhase(float phase01)
+			void SetPhase(double phase01)
 			{
 				mPhase = phase01;
 				mpSlaveWave->mPhase = phase01;
@@ -512,7 +515,7 @@ namespace WaveSabreCore
 					mWaveShapeModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Waveshape, 0);
 					mPhaseModVal = mModMatrix.GetDestinationValue(mModDestBase + (int)OscModParamIndexOffsets::Phase, 0);
 
-					mFMFeedbackAmt = mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale;
+					mFMFeedbackAmt = mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
 					break;
 				}
 
@@ -548,8 +551,12 @@ namespace WaveSabreCore
 				freq *= detuneFreqMul;
 				freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
 				mCurrentFreq = freq;
-				float newDT = freq / (real_t)Helpers::CurrentSampleRate;
+
+				double newDT = (double)freq / Helpers::CurrentSampleRate;
 				mDTDT = (newDT - mPhaseIncrement) / samplesInBlock;
+				//mDTDT = 0;
+				//mPhaseIncrement = newDT;
+
 				float slaveFreq = mSyncEnable.GetBoolValue() ? mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
 				mpSlaveWave->SetParams(slaveFreq, mPhaseOffset.GetN11Value(mPhaseModVal), mWaveshape.Get01Value(voiceShapeMod + mWaveShapeModVal), Helpers::CurrentSampleRateF, samplesInBlock);
 			}
@@ -596,7 +603,7 @@ namespace WaveSabreCore
 					mCurrentSample += bleps.second;
 				}
 				else {
-					float x = mPhase / mPhaseIncrement; // sample overshoot, in samples.
+					float x = float(mPhase / mPhaseIncrement); // sample overshoot, in samples.
 
 					auto bleps = mpSlaveWave->OSC_ADVANCE(1 - x, x); // the amount before the cycle boundary
 					mPrevSample += bleps.first;
@@ -612,7 +619,7 @@ namespace WaveSabreCore
 				}
 
 				// current sample will be used on next sample (this is the 1-sample delay)
-				mCurrentSample += mpSlaveWave->NaiveSample(mpSlaveWave->mPhase + phaseMod);
+				mCurrentSample += mpSlaveWave->NaiveSample(float(mpSlaveWave->mPhase + phaseMod));
 				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale;
 
 				return mOutSample;

@@ -195,6 +195,9 @@ namespace WaveSabreCore
             inline real_t floor(real_t x) {
                 return (real_t)::floor((double)x);
             }
+            inline double floord(double x) {
+                return ::floor(x);
+            }
             inline real_t sin(real_t x) {
                 return (real_t)Helpers::FastSin((double)x);
             }
@@ -393,11 +396,15 @@ namespace WaveSabreCore
             return x - math::floor(x);
         }
 
+        inline double Fract(double x) {
+            return x - math::floord(x);
+        }
+
         // where t1, t2, and x are periodic values [0,1).
         // and t1 is "before" t2,
         // return true if x falls between t1 and t2.
         // so if t2 < t1, it means a cycle wrap.
-        inline bool DoesEncounter(float t1, float t2, float x) {
+        inline bool DoesEncounter(double t1, double t2, float x) {
             if (t1 < t2) {
                 return (t1 < x&& x <= t2);
             }
@@ -872,7 +879,6 @@ namespace WaveSabreCore
             Osc1PitchFine,
             Osc1FreqMul,
             Osc1FMFeedback,
-            Osc1AmpEnvelopeSource,
 
             Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc1AmpEnvAttackTime,
@@ -900,7 +906,6 @@ namespace WaveSabreCore
             Osc2PitchFine,
             Osc2FreqMul,
             Osc2FMFeedback,
-            Osc2AmpEnvelopeSource,
 
             Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc2AmpEnvAttackTime,
@@ -928,7 +933,6 @@ namespace WaveSabreCore
             Osc3PitchFine,
             Osc3FreqMul,
             Osc3FMFeedback,
-            Osc3AmpEnvelopeSource,
 
             Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc3AmpEnvAttackTime,
@@ -1123,7 +1127,6 @@ namespace WaveSabreCore
 		    {"O1Fine"}, \
 		    {"O1Mul"}, \
 		    {"O1FMFb"}, \
-            {"AES1"}, \
 		    {"AE1dlt"}, \
 		    {"AE1att"}, \
 		    {"AE1atc"}, \
@@ -1149,7 +1152,6 @@ namespace WaveSabreCore
 		    {"O2Fine"}, \
 		    {"O2Mul"}, \
 		    {"O2FMFb"}, \
-            {"AES2"}, \
 		    {"AE2dlt"}, \
 		    {"AE2att"}, \
 		    {"AE2atc"}, \
@@ -1175,7 +1177,6 @@ namespace WaveSabreCore
 		    {"O3Fine"}, \
 		    {"O3Mul"}, \
 		    {"O3FMFb"}, \
-            {"AES3"}, \
 		    {"AE3dlt"}, \
 		    {"AE3att"}, \
 		    {"AE3atc"}, \
@@ -1372,7 +1373,7 @@ namespace WaveSabreCore
             PitchFine,
             FreqMul,
             FMFeedback,
-            AmpEnvSource,
+            //AmpEnvSource,
             AmpEnvDelayTime,
         };
 

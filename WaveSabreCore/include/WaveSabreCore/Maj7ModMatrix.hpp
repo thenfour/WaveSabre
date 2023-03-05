@@ -1,4 +1,4 @@
-#pragma once
+		#pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
 
@@ -84,6 +84,7 @@ namespace WaveSabreCore
 
 			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
 			Osc1Volume, // arate, 01
+			Osc1PreFMVolume,
 			Osc1Waveshape, // arate, 01
 			Osc1SyncFrequency, // arate, 01
 			Osc1FrequencyParam, // arate, 01
@@ -102,6 +103,7 @@ namespace WaveSabreCore
 			Osc1AmpEnvReleaseCurve,
 
 			Osc2Volume,
+			Osc2PreFMVolume,
 			Osc2Waveshape,
 			Osc2SyncFrequency,
 			Osc2FrequencyParam,
@@ -119,6 +121,7 @@ namespace WaveSabreCore
 			Osc2AmpEnvReleaseCurve,
 
 			Osc3Volume,
+			Osc3PreFMVolume,
 			Osc3Waveshape,
 			Osc3SyncFrequency,
 			Osc3FrequencyParam,
@@ -189,6 +192,7 @@ namespace WaveSabreCore
 		enum class OscModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
 			Volume,
+			PreFMVolume,
 			Waveshape,
 			SyncFrequency,
 			FrequencyParam,
@@ -214,6 +218,7 @@ namespace WaveSabreCore
 			"PortamentoTime", \
 			"PortamentoCurve", \
 			"Osc1Volume", \
+			"Osc1PreFMVolume", \
 			"Osc1Waveshape", \
 			"Osc1SyncFrequency", \
 			"Osc1FrequencyParam", \
@@ -229,6 +234,7 @@ namespace WaveSabreCore
 			"Osc1AmpEnvReleaseTime", \
 			"Osc1AmpEnvReleaseCurve", \
 		"Osc2Volume", \
+			"Osc2PreFMVolume", \
 			"Osc2Waveshape", \
 			"Osc2SyncFrequency", \
 			"Osc2FrequencyParam", \
@@ -244,6 +250,7 @@ namespace WaveSabreCore
 			"Osc2AmpEnvReleaseTime", \
 			"Osc2AmpEnvReleaseCurve", \
 			"Osc3Volume", \
+			"Osc3PreFMVolume", \
 			"Osc3Waveshape", \
 			"Osc3SyncFrequency", \
 			"Osc3FrequencyParam", \
@@ -385,6 +392,17 @@ namespace WaveSabreCore
 			},
 		};
 
+		// some modulation specs are for internal purposes / locked into certain behavior.
+		enum ModulationSpecType
+		{
+			General,
+
+			// osc amplification is done pre-FM. so it's not like modulating the output volume, it's before the signal
+			// is fed to other oscillators. so
+			// 1. the destination here is locked to a hidden osc volume param
+			OscAmp,
+		};
+
 		struct ModulationSpec
 		{
 			BoolParam mEnabled;
@@ -392,6 +410,7 @@ namespace WaveSabreCore
 			EnumParam<ModDestination> mDestination;
 			CurveParam mCurve;
 			FloatN11Param mScale;
+			ModulationSpecType mType;
 
 			// you may ask why aux (aka sidechain) is necessary.
 			// it's because we don't allow modulation of the modulation scale params, so it's a way of modulating the modulation itself.
@@ -406,7 +425,7 @@ namespace WaveSabreCore
 			BoolParam mInvert;
 			BoolParam mAuxInvert;
 
-			ModulationSpec(real_t* paramCache, int baseParamID) :
+			ModulationSpec(real_t* paramCache, int baseParamID, ModulationSpecType type) :
 				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
 				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count, ModSource::None),
 				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count, ModDestination::None),
@@ -417,7 +436,8 @@ namespace WaveSabreCore
 				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
 				mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
 				mInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::Invert]),
-				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
+				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert]),
+				mType(type)
 			{
 			}
 		};
@@ -479,11 +499,18 @@ namespace WaveSabreCore
 				ModDestination::PortamentoCurve, // krate, N11
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
-			},{
+			},
+			{
 				ModDestination::Osc1Volume, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+			{
+				ModDestination::Osc1PreFMVolume, // arate, 01
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
 				ModDestination::Osc1Waveshape, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
@@ -548,6 +575,11 @@ namespace WaveSabreCore
 
 			{
 				ModDestination::Osc2Volume,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Osc2PreFMVolume, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
 			},{
@@ -615,7 +647,13 @@ namespace WaveSabreCore
 				ModDestination::Osc3Volume,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+			{
+				ModDestination::Osc3PreFMVolume, // arate, 01
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+{
 				ModDestination::Osc3Waveshape,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,

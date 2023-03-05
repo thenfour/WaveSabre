@@ -90,6 +90,9 @@ public:
 		};
 		Token Push()
 		{
+			if (!this->mInitialized) {
+				return { nullptr };
+			}
 			return { mNewColors };
 		}
 
@@ -131,6 +134,16 @@ public:
 			mTextDisabledValue(textDisabledVal)
 		{
 		}
+
+		// really just for the NOP color
+		ColorMod() :
+			mHueAdd(0),
+			mSaturationMul(1),
+			mValueMul(1),
+			mTextValue(.8f),
+			mTextDisabledValue(.4f)
+		{
+		}
 	};
 
 	ColorMod mModulationsColors{ 0.15f, 0.6f, 0.65f, 0.9f, 0.0f };
@@ -141,6 +154,8 @@ public:
 
 	ColorMod mCyanColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
 	ColorMod mPinkColors{ 0.40f, 0.6f, 0.75f, 0.9f, 0.0f };
+
+	ColorMod mNopColors;
 
 	virtual void renderImgui() override
 	{
@@ -280,14 +295,14 @@ public:
 
 		if (ImGui::BeginTabBar("modspectabs", ImGuiTabBarFlags_None))
 		{
-			ModulationSection("Mod 1", (int)M7::ParamIndices::Mod1Enabled);
-			ModulationSection("Mod 2", (int)M7::ParamIndices::Mod2Enabled);
-			ModulationSection("Mod 3", (int)M7::ParamIndices::Mod3Enabled);
-			ModulationSection("Mod 4", (int)M7::ParamIndices::Mod4Enabled);
-			ModulationSection("Mod 5", (int)M7::ParamIndices::Mod5Enabled);
-			ModulationSection("Mod 6", (int)M7::ParamIndices::Mod6Enabled);
-			ModulationSection("Mod 7", (int)M7::ParamIndices::Mod7Enabled);
-			ModulationSection("Mod 8", (int)M7::ParamIndices::Mod8Enabled);
+			ModulationSection("Mod 1", this->pMaj7->mModulations[0], (int)M7::ParamIndices::Mod1Enabled);
+			ModulationSection("Mod 2", this->pMaj7->mModulations[1], (int)M7::ParamIndices::Mod2Enabled);
+			ModulationSection("Mod 3", this->pMaj7->mModulations[2], (int)M7::ParamIndices::Mod3Enabled);
+			ModulationSection("Mod 4", this->pMaj7->mModulations[3], (int)M7::ParamIndices::Mod4Enabled);
+			ModulationSection("Mod 5", this->pMaj7->mModulations[4], (int)M7::ParamIndices::Mod5Enabled);
+			ModulationSection("Mod 6", this->pMaj7->mModulations[5], (int)M7::ParamIndices::Mod6Enabled);
+			ModulationSection("Mod 7", this->pMaj7->mModulations[6], (int)M7::ParamIndices::Mod7Enabled);
+			ModulationSection("Mod 8", this->pMaj7->mModulations[7], (int)M7::ParamIndices::Mod8Enabled);
 			ImGui::EndTabBar();
 		}
 
@@ -365,21 +380,21 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::OscillatorNode::gSyncFrequencyCenterHz, M7::OscillatorNode::gSyncFrequencyScale, 0.4f);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT");
 
-			static constexpr char const* const oscAmpEnvSourceCaptions[M7::Maj7::gOscillatorCount] = { "Amp Env 1", "Amp Env 2", "Amp Env 3" };
-			Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource, "Amp env", M7::Maj7::gOscillatorCount, oscID, oscAmpEnvSourceCaptions);
+			//static constexpr char const* const oscAmpEnvSourceCaptions[M7::Maj7::gOscillatorCount] = { "Amp Env 1", "Amp Env 2", "Amp Env 3" };
+			//Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource, "Amp env", M7::Maj7::gOscillatorCount, oscID, oscAmpEnvSourceCaptions);
 
-			M7::IntParam ampSourceParam{ pMaj7->mParamCache[enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource], 0, M7::Maj7::gOscillatorCount - 1 };
+			//M7::IntParam ampSourceParam{ pMaj7->mParamCache[enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource], 0, M7::Maj7::gOscillatorCount - 1 };
 			M7::ParamIndices ampEnvSources[M7::Maj7::gOscillatorCount] = {
 				M7::ParamIndices::Osc1AmpEnvDelayTime,
 				M7::ParamIndices::Osc2AmpEnvDelayTime,
 				M7::ParamIndices::Osc3AmpEnvDelayTime,
 			};
-			auto ampEnvSource = ampEnvSources[ampSourceParam.GetIntValue()];
+			auto ampEnvSource = ampEnvSources[oscID];// ampSourceParam.GetIntValue()];
 
-			ImGui::SameLine();
+			//ImGui::SameLine();
 
 			{
-				ColorMod::Token ampEnvColorModToken{ (ampSourceParam.GetIntValue() != oscID) ? mPinkColors.mNewColors : nullptr };
+				//ColorMod::Token ampEnvColorModToken{ (ampSourceParam.GetIntValue() != oscID) ? mPinkColors.mNewColors : nullptr };
 				Envelope("Amplitude Envelope", (int)ampEnvSource);
 			}
 			ImGui::EndTabItem();
@@ -435,24 +450,29 @@ public:
 		ImGui::PopID();
 	}
 
-	void ModulationSection(const char* labelWithID, int enabledParamID)
+	void ModulationSection(const char* labelWithID, M7::ModulationSpec& spec, int enabledParamID)
 	{
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
 		static constexpr char const* const modDestinationCaptions[] = MOD_DEST_CAPTIONS;
 
-		float enabledBacking;
-		M7::BoolParam bp{ enabledBacking };
-		bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
-		ColorMod& cm = bp.GetBoolValue() ? mModulationsColors : mModulationDisabledColors;
+		//float enabledBacking;
+		//M7::BoolParam bp{ enabledBacking };
+		//bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
+		bool isLocked = spec.mType != M7::ModulationSpecType::General;
+		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mPinkColors : mModulationsColors) : mModulationDisabledColors;
 		auto token = cm.Push();
 
 		if (ImGui::BeginTabItem(labelWithID))
 		{
+			ImGui::BeginDisabled(isLocked);
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
+			ImGui::EndDisabled();
 			ImGui::SameLine();
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
 			ImGui::SameLine();
+			ImGui::BeginDisabled(isLocked);
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination, "Dest", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptions);
+			ImGui::EndDisabled();
 			ImGui::SameLine();
 			Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale, "Scale", 1);
 			ImGui::SameLine();
@@ -461,6 +481,8 @@ public:
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising);
 
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
+			ColorMod& cmaux = spec.mAuxEnabled.GetBoolValue() ? mNopColors : mModulationDisabledColors;
+			auto auxToken = cmaux.Push();
 			ImGui::SameLine();
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "Aux Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
 			ImGui::SameLine();
