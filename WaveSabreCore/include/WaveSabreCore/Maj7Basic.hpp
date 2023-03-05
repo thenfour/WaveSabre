@@ -290,7 +290,7 @@ namespace WaveSabreCore
         // outputs -1 to 1
         inline real_t modCurve_xN11_kN11(real_t x, real_t k)
         {
-            static constexpr float CornerMargin = 0.5f; // real_t(0.77);
+            static constexpr float CornerMargin = 0.6f; // .77 is quite sharp, 0.5 is mild and usable but maybe should be sharper
             k *= CornerMargin;
             k = Clamp(k, -CornerMargin, CornerMargin);
             x = Clamp(x, -1, 1);

@@ -38,7 +38,7 @@ namespace WaveSabreVstLib
 	public:
 
 		static constexpr double gNormalKnobSpeed = 0.003f;
-		static constexpr double gSlowKnobSpeed = 0.00005f;
+		static constexpr double gSlowKnobSpeed = 0.00002f;
 
 		VstEditor(AudioEffect *audioEffect, int width, int height);
 		virtual ~VstEditor();
@@ -166,13 +166,13 @@ namespace WaveSabreVstLib
 						sprintf_s(s, "%.0fHz", hz);
 					}
 					else if (hz >= 100) {
-						sprintf_s(s, "%.1fHz", hz);
-					}
-					else if (hz >= 10) {
 						sprintf_s(s, "%.2fHz", hz);
 					}
-					else {
+					else if (hz >= 10) {
 						sprintf_s(s, "%.3fHz", hz);
+					}
+					else {
+						sprintf_s(s, "%.4fHz", hz);
 					}
 				}
 				else {
@@ -235,7 +235,7 @@ namespace WaveSabreVstLib
 			virtual std::string ParamToDisplayString(double param, void* capture) override {
 				mParam.SetParamValue((float)param);
 				char s[100] = { 0 };
-				sprintf_s(s, "%0.2f", mParam.GetN11Value());
+				sprintf_s(s, "%0.3f", mParam.GetN11Value());
 				return s;
 			}
 
