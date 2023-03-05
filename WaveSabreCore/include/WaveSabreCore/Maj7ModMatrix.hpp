@@ -175,13 +175,24 @@ namespace WaveSabreCore
 			FMAmt3to1, // arate, 01
 			FMAmt3to2, // arate, 01
 
-				// TODO: aux params
-				// TODO: aux width
-				// TODO: osc aux sends
-
-				//FilterQ, // krate, 01
-				//FilterSaturation, // krate, 01
-				//FilterFrequency, // krate, 01
+			// aux param 1 is not a mod destination. just keeps things slightly more compact and there's ALWAYS 1 param like this anyway so it's not necessary.
+			// typically param 1 is an enum like FilterType or DistortionType.
+			Aux1Param2,
+			Aux1Param3,
+			Aux1Param4,
+			Aux1Param5,
+			Aux2Param2,
+				Aux2Param3,
+				Aux2Param4,
+				Aux2Param5,
+			Aux3Param2,
+				Aux3Param3,
+				Aux3Param4,
+				Aux3Param5,
+			Aux4Param2,
+				Aux4Param3,
+				Aux4Param4,
+				Aux4Param5,
 
 			Count,
 		};
@@ -306,6 +317,22 @@ namespace WaveSabreCore
 			"FMAmt2to3", \
 			"FMAmt3to1", \
 			"FMAmt3to2", \
+			"Aux1Param2", \
+			"Aux1Param3", \
+			"Aux1Param4", \
+			"Aux1Param5", \
+			"Aux2Param2", \
+			"Aux2Param3", \
+			"Aux2Param4", \
+			"Aux2Param5", \
+			"Aux3Param2", \
+			"Aux3Param3", \
+			"Aux3Param4", \
+			"Aux3Param5", \
+			"Aux4Param2", \
+			"Aux4Param3", \
+			"Aux4Param4", \
+			"Aux4Param5", \
 		}
 
 		struct ModSourceInfo
@@ -852,11 +879,99 @@ namespace WaveSabreCore
 				ModDestination::FMAmt3to1, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
+			},
+			{
 				ModDestination::FMAmt3to2, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			}
+			},
+
+			{
+				ModDestination::Aux1Param2,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux1Param3,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux1Param4,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux1Param5,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+
+			{
+				ModDestination::Aux2Param2,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux2Param3,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux2Param4,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux2Param5,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+
+
+			{
+				ModDestination::Aux3Param2,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux3Param3,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux3Param4,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux3Param5,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+
+			{
+				ModDestination::Aux4Param2,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux4Param3,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux4Param4,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+			{
+				ModDestination::Aux4Param5,
+				ModulationPolarity::Positive01,
+				ModulationRate::ARate,
+			},
+
+
 		};
 		// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
 		// this means 1 single big allocation instead of 70 identically-sized small ones.

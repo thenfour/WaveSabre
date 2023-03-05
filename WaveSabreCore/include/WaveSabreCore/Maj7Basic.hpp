@@ -715,31 +715,6 @@ namespace WaveSabreCore
             { // expensive
                 mParamValue = DecibelsToParam(db);
             }
-
-            //// useful for adding a modulation signal to a volume.
-            //VolumeParam AddParam(float rhs) const
-            //{
-            //    return FromParamValue(mParamValue + rhs);
-            //}
-
-            //static VolumeParam FromLinear(float f)
-            //{
-            //    VolumeParam ret;
-            //    ret.SetLinearValue(f);
-            //    return ret;
-            //}
-            //static VolumeParam FromParamValue(float f)
-            //{
-            //    VolumeParam ret;
-            //    ret.mParamValue = f;
-            //    return ret;
-            //}
-            //static VolumeParam FromDecibels(float f)
-            //{
-            //    VolumeParam ret;
-            //    ret.SetDecibels(f);
-            //    return ret;
-            //}
         };
 
         // value 0.3 = unity, and each 0.1 param value = 1 octave transposition, when KT = 1.
@@ -1429,12 +1404,13 @@ namespace WaveSabreCore
             Count,
         };
 
-        enum class FilterAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+        enum class FilterAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
         {
             Enabled,
             Link,
             AuxType,
             FilterType, // filter type
+            // FROM here, must be identical to FilterAuxModIndexOffsets (param2 - 5)
             Q, // filter Q
             Saturation, // filter saturation
             Freq, // filter freq
@@ -1442,7 +1418,22 @@ namespace WaveSabreCore
             Count,
         };
 
+        enum class FilterAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+        {
+            Q, // filter Q
+            Saturation, // filter saturation
+            Freq, // filter freq
+            FreqKT, // filter KT
+            Count,
+        };
         static_assert((int)FilterAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
+        #define FILTER_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::FilterAuxModIndexOffsets::Count] { \
+            " (Filter Q)", \
+			" (Filter Saturation)", \
+			" (Filter Frequency)", \
+            " (n/a)", \
+        }
+
 
         enum class AuxLink : uint8_t
         {
@@ -1495,11 +1486,11 @@ namespace WaveSabreCore
 
         struct IAuxEffect
         {
-            float* mpAuxParams;
-            explicit IAuxEffect(float* auxParams) : mpAuxParams(auxParams)
-            {}
+            //float* mpAuxParams;
+            //explicit IAuxEffect(float* auxParams) : mpAuxParams(auxParams)
+            //{}
             virtual ~IAuxEffect() {}
-            virtual void AuxBeginBlock(float noteHz, int nSamples) = 0;
+            virtual void AuxBeginBlock(float noteHz, int nSamples, struct ModMatrixNode& modMatrix) = 0;
             virtual float AuxProcessSample(float inp) = 0;
         };
 

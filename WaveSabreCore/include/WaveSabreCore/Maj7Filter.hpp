@@ -1,6 +1,7 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include "Maj7ModMatrix.hpp"
 // TODO: find a way to only include filters which are actually used in the song.
 #include "Filters/FilterDiode.hpp"
 #include "Filters/FilterK35.hpp"
@@ -142,23 +143,25 @@ namespace WaveSabreCore
             Float01Param mFilterQParam;// FilterQ,
             Float01Param mFilterSaturationParam;// FilterSaturation,
             FrequencyParam mFilterFreqParam;// FilterFrequency,// FilterFrequencyKT,
+            int mModDestParam2ID;
 
-            FilterAuxNode(float* auxParams) :
-                IAuxEffect(auxParams),
+            FilterAuxNode(float* auxParams, int modDestParam2ID) :
+                //IAuxEffect(auxParams),
                 mFilterTypeParam(auxParams[(int)FilterAuxParamIndexOffsets::FilterType], FilterModel::Count),
                 mFilterQParam(auxParams[(int)FilterAuxParamIndexOffsets::Q]),
                 mFilterSaturationParam(auxParams[(int)FilterAuxParamIndexOffsets::Saturation]),
-                mFilterFreqParam(auxParams[(int)FilterAuxParamIndexOffsets::Freq], auxParams[(int)FilterAuxParamIndexOffsets::FreqKT], gFilterCenterFrequency, gFilterFrequencyScale)
+                mFilterFreqParam(auxParams[(int)FilterAuxParamIndexOffsets::Freq], auxParams[(int)FilterAuxParamIndexOffsets::FreqKT], gFilterCenterFrequency, gFilterFrequencyScale),
+                mModDestParam2ID(modDestParam2ID)
             {}
 
-            virtual void AuxBeginBlock(float noteHz, int nSamples) override
+            virtual void AuxBeginBlock(float noteHz, int nSamples, ModMatrixNode& modMatrix) override
             {
                 mFilter.SetParams(
                     // TODO: apply mods
                     mFilterTypeParam.GetEnumValue(),
-                    mFilterFreqParam.GetFrequency(noteHz, 0),
-                    mFilterQParam.Get01Value(0),
-                    mFilterSaturationParam.Get01Value(0)
+                    mFilterFreqParam.GetFrequency(noteHz, modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq, 0)),
+                    mFilterQParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q, 0)),
+                    mFilterSaturationParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Saturation, 0))
                 );
             }
 

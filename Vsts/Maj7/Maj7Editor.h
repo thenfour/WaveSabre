@@ -450,10 +450,66 @@ public:
 		ImGui::PopID();
 	}
 
+	// fills the labels with the names of the mod destination params for a given aux.
+	// labels points to the 4 modulateable params
+	void FillAuxParamNames(std::string* labels, int iaux, M7::ParamIndices enabledID, M7::ModDestination param2, M7::AuxLink selfLink)
+	{
+		float paramValues[(int)M7::AuxParamIndexOffsets::Count] = {
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Enabled),
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Link),
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Type),
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param1),
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param2),
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param3),
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param4),
+			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param5),
+		};
+		M7::AuxNode a{ selfLink, paramValues, (int)param2 };
+		if (a.IsLinkedExternally()) {
+			labels[0] += " (shadowed)";
+			labels[1] += " (shadowed)";
+			labels[2] += " (shadowed)";
+			labels[3] += " (shadowed)";
+			return;
+		}
+		switch (a.mEffectType.GetEnumValue())
+		{
+		case M7::AuxEffectType::BigFilter:
+		{
+			FILTER_AUX_MOD_SUFFIXES(suffixes);
+			labels[0] += suffixes[0];
+			labels[1] += suffixes[1];
+			labels[2] += suffixes[2];
+			labels[3] += suffixes[3];
+			break;
+		}
+		default:
+		{
+			labels[0] += " (n/a)";
+			labels[1] += " (n/a)";
+			labels[2] += " (n/a)";
+			labels[3] += " (n/a)";
+			break;
+		}
+		}
+	}
+
 	void ModulationSection(const char* labelWithID, M7::ModulationSpec& spec, int enabledParamID)
 	{
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
-		static constexpr char const* const modDestinationCaptions[] = MOD_DEST_CAPTIONS;
+		std::string modDestinationCaptions[(size_t)M7::ModDestination::Count] = MOD_DEST_CAPTIONS;
+		char const* modDestinationCaptionsCstr[(size_t)M7::ModDestination::Count];
+
+		// fix dynamic aux destination names
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux1Param2], 0, M7::ParamIndices::Aux1Enabled, M7::ModDestination::Aux1Param2, M7::AuxLink::Aux1);
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux2Param2], 1, M7::ParamIndices::Aux2Enabled, M7::ModDestination::Aux2Param2, M7::AuxLink::Aux2);
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux3Param2], 2, M7::ParamIndices::Aux3Enabled, M7::ModDestination::Aux3Param2, M7::AuxLink::Aux3);
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux4Param2], 3, M7::ParamIndices::Aux4Enabled, M7::ModDestination::Aux4Param2, M7::AuxLink::Aux4);
+
+		for (size_t i = 0; i < (size_t)M7::ModDestination::Count; ++i)
+		{
+			modDestinationCaptionsCstr[i] = modDestinationCaptions[i].c_str();
+		}
 
 		bool isLocked = spec.mType != M7::ModulationSpecType::General;
 		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mPinkColors : mModulationsColors) : mModulationDisabledColors;
@@ -468,7 +524,7 @@ public:
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
 			ImGui::SameLine();
 			ImGui::BeginDisabled(isLocked);
-			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination, "Dest", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptions);
+			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination, "Dest", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
 			ImGui::EndDisabled();
 			ImGui::SameLine();
 			Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale, "Scale", 1);
@@ -477,17 +533,17 @@ public:
 			ImGui::SameLine();
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising);
 
-			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
+			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "SC Enable");
 			ColorMod& cmaux = spec.mAuxEnabled.GetBoolValue() ? mNopColors : mModulationDisabledColors;
 			auto auxToken = cmaux.Push();
 			ImGui::SameLine();
-			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "Aux Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
+			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "SC Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
 			ImGui::SameLine();
-			WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "Aux atten");
+			WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "SC atten");
 			ImGui::SameLine();
-			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "AuxInvert");
+			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "SCInvert");
 			ImGui::SameLine();
-			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "Aux Curve", 0, M7CurveRenderStyle::Rising);
+			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "SC Curve", 0, M7CurveRenderStyle::Rising);
 			ImGui::EndTabItem();
 
 		}
