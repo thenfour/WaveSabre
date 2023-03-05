@@ -78,65 +78,69 @@ namespace WaveSabreCore
 			OscillatorShapeSpread, // krate, 01
 			UnisonoShapeSpread, // krate, 01
 			FMBrightness, // krate, 01
+			AuxWidth, // N11
 
 			PortamentoTime, // krate, 01
 			PortamentoCurve, // krate, N11
 
 			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
-			Osc1Volume, // arate, 01
-			Osc1PreFMVolume,
-			Osc1Waveshape, // arate, 01
-			Osc1SyncFrequency, // arate, 01
-			Osc1FrequencyParam, // arate, 01
-			Osc1FMFeedback, // arate, 01
-			Osc1Phase, // krate, N11
+			Osc1Volume, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1Waveshape, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1SyncFrequency, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1FrequencyParam, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1FMFeedback, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1Phase, // krate, N11 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
-			Osc1AmpEnvDelayTime,
-			Osc1AmpEnvAttackTime,
-			Osc1AmpEnvAttackCurve,
-			Osc1AmpEnvHoldTime,
-			Osc1AmpEnvDecayTime,
-			Osc1AmpEnvDecayCurve,
-			Osc1AmpEnvSustainLevel,
-			Osc1AmpEnvReleaseTime,
-			Osc1AmpEnvReleaseCurve,
+			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by 
+			Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvAttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvAttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvHoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvDecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvDecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvSustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc2Volume,
-			Osc2PreFMVolume,
-			Osc2Waveshape,
-			Osc2SyncFrequency,
-			Osc2FrequencyParam,
-			Osc2FMFeedback,
-			Osc2Phase,
+			Osc2Volume, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc2AmpEnvDelayTime,
-			Osc2AmpEnvAttackTime,
-			Osc2AmpEnvAttackCurve,
-			Osc2AmpEnvHoldTime,
-			Osc2AmpEnvDecayTime,
-			Osc2AmpEnvDecayCurve,
-			Osc2AmpEnvSustainLevel,
-			Osc2AmpEnvReleaseTime,
-			Osc2AmpEnvReleaseCurve,
+			Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvAttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvAttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvHoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvDecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvDecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvSustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc3Volume,
-			Osc3PreFMVolume,
-			Osc3Waveshape,
-			Osc3SyncFrequency,
-			Osc3FrequencyParam,
-			Osc3FMFeedback,
-			Osc3Phase,
+			Osc3Volume, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc3AmpEnvDelayTime,
-			Osc3AmpEnvAttackTime,
-			Osc3AmpEnvAttackCurve,
-			Osc3AmpEnvHoldTime,
-			Osc3AmpEnvDecayTime,
-			Osc3AmpEnvDecayCurve,
-			Osc3AmpEnvSustainLevel,
-			Osc3AmpEnvReleaseTime,
-			Osc3AmpEnvReleaseCurve,
+			Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvAttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvAttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvHoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvDecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvDecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvSustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
 			Env1DelayTime, // krate, 01
 			Env1AttackTime, // krate, 01
@@ -148,15 +152,15 @@ namespace WaveSabreCore
 			Env1ReleaseTime, // krate, 01
 			Env1ReleaseCurve, // krate, N11
 
-			Env2DelayTime,
-			Env2AttackTime,
-			Env2AttackCurve,
-			Env2HoldTime,
-			Env2DecayTime,
-			Env2DecayCurve,
-			Env2SustainLevel,
-			Env2ReleaseTime,
-			Env2ReleaseCurve,
+			Env2DelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2AttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2AttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2HoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2DecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2DecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2SustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2ReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2ReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
 			LFO1Waveshape,
 			LFO1FrequencyParam,
@@ -202,6 +206,7 @@ namespace WaveSabreCore
 			FrequencyParam,
 			FMFeedback,
 			Phase,
+			AuxMix,
 		};
 		enum class LFOModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
@@ -219,6 +224,7 @@ namespace WaveSabreCore
 			"OscillatorShapeSpread", \
 			"UnisonoShapeSpread", \
 			"FMBrightness", \
+			"AuxWidth", \
 			"PortamentoTime", \
 			"PortamentoCurve", \
 			"Osc1Volume", \
@@ -228,6 +234,7 @@ namespace WaveSabreCore
 			"Osc1FrequencyParam", \
 			"Osc1FMFeedback", \
 			"Osc1Phase", \
+			"Osc1AuxMix", \
 			"Osc1AmpEnvDelayTime",  \
 			"Osc1AmpEnvAttackTime", \
 			"Osc1AmpEnvAttackCurve", \
@@ -244,6 +251,7 @@ namespace WaveSabreCore
 			"Osc2FrequencyParam", \
 			"Osc2FMFeedback", \
 			"Osc2Phase", \
+			"Osc2AuxMix", \
 			"Osc2AmpEnvDelayTime",  \
 			"Osc2AmpEnvAttackTime", \
 			"Osc2AmpEnvAttackCurve", \
@@ -260,6 +268,7 @@ namespace WaveSabreCore
 			"Osc3FrequencyParam", \
 			"Osc3FMFeedback", \
 			"Osc3Phase", \
+			"Osc3AuxMix", \
 			"Osc3AmpEnvDelayTime",  \
 			"Osc3AmpEnvAttackTime", \
 			"Osc3AmpEnvAttackCurve", \
@@ -492,6 +501,11 @@ namespace WaveSabreCore
 				ModulationRate::KRate,
 			},
 			{
+				ModDestination::AuxWidth,
+				ModulationPolarity::N11,
+				ModulationRate::KRate,
+			},
+			{
 				ModDestination::PortamentoTime, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
@@ -531,6 +545,11 @@ namespace WaveSabreCore
 			},
 			{
 				ModDestination::Osc1Phase, // krate, N11
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
+				ModDestination::Osc1AuxMix, // krate, N11
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
 			},
@@ -606,6 +625,11 @@ namespace WaveSabreCore
 				ModulationRate::KRate,
 			},
 			{
+				ModDestination::Osc2AuxMix, // krate, N11
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
 				ModDestination::Osc2AmpEnvDelayTime,
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
@@ -673,6 +697,11 @@ namespace WaveSabreCore
 			},
 			{
 				ModDestination::Osc3Phase, // krate, N11
+				ModulationPolarity::Positive01,
+				ModulationRate::KRate,
+			},
+			{
+				ModDestination::Osc3AuxMix, // krate, N11
 				ModulationPolarity::Positive01,
 				ModulationRate::KRate,
 			},

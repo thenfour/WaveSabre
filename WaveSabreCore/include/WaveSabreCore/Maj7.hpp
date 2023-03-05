@@ -314,6 +314,11 @@ namespace WaveSabreCore
 			real_t mPortamentoTimeMod = 0;
 			real_t mPortamentoCurveMod = 0;
 
+			float mAuxWidthMod = 0;
+			float mOsc1AuxMixMod = 0;
+			float mOsc2AuxMixMod = 0;
+			float mOsc3AuxMixMod = 0;
+
 			Maj7() :
 				Maj7SynthDevice((int)ParamIndices::NumParams)
 			{
@@ -491,7 +496,7 @@ namespace WaveSabreCore
 
 				// when aux width is 0, they are both mono. it means pan of 0 for both aux routes.
 				// when aux width is +1, auxroute 0 becomes -1 and auxroute 1 becomes +1, fully separating the channels
-				auto auxGains = PanToFactor(mAuxWidth.GetN11Value());
+				auto auxGains = PanToFactor(mAuxWidth.GetN11Value(mAuxWidthMod));
 				mAuxOutputGains[1] = auxGains.first;// auxPanVolParam.GetLinearGain();
 				mAuxOutputGains[0] = auxGains.second;// auxPanVolParam.GetLinearGain();
 
@@ -505,10 +510,16 @@ namespace WaveSabreCore
 					ParamIndices::Osc3AuxMix,
 				};
 
+				float auxPanMods[gOscillatorCount] = {
+					mOsc1AuxMixMod,
+					mOsc2AuxMixMod,
+					mOsc3AuxMixMod,
+				};
+
 				for (size_t i = 0; i < gOscillatorCount; ++ i) {
 					// for the moment mOscDetuneAmts[i] is just a generic spread value.
 					mOscShapeAmts[i] = mOscDetuneAmts[i] * oscShapeSpreadAmt;
-					mOscAuxPanAmts[i] = FloatN11Param{mParamCache[(int)auxPanParams[i]]}.GetN11Value() + mOscDetuneAmts[i] * oscStereoSpreadAmt;
+					mOscAuxPanAmts[i] = FloatN11Param{mParamCache[(int)auxPanParams[i]]}.GetN11Value(auxPanMods[i]) + mOscDetuneAmts[i] * oscStereoSpreadAmt;
 					mOscDetuneAmts[i] *= oscDetuneAmt;
 				}
 
@@ -665,6 +676,10 @@ namespace WaveSabreCore
 						mpOwner->mOscillatorDetuneMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorDetune, 0);
 						mpOwner->mUnisonoDetuneMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoDetune, 0);
 						mpOwner->mOscillatorStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorStereoSpread, 0);
+						mpOwner->mAuxWidthMod = mModMatrix.GetDestinationValue(ModDestination::AuxWidth, 0);
+						mpOwner->mOsc1AuxMixMod = mModMatrix.GetDestinationValue(ModDestination::Osc1AuxMix, 0);
+						mpOwner->mOsc2AuxMixMod = mModMatrix.GetDestinationValue(ModDestination::Osc2AuxMix, 0);
+						mpOwner->mOsc3AuxMixMod = mModMatrix.GetDestinationValue(ModDestination::Osc3AuxMix, 0);
 						mpOwner->mUnisonoStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoStereoSpread, 0);
 						mpOwner->mOscillatorShapeSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorShapeSpread, 0);
 						mpOwner->mUnisonoShapeSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoShapeSpread, 0);
