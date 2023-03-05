@@ -257,10 +257,10 @@ public:
 				break;
 			}
 
-			AuxEffectTab("Aux Effect 1", (int)M7::ParamIndices::Aux1Enabled, 0, auxTabColors, auxTabDisabledColors);
-			AuxEffectTab("Aux Effect 2", (int)M7::ParamIndices::Aux2Enabled, 1, auxTabColors, auxTabDisabledColors);
-			AuxEffectTab("Aux Effect 3", (int)M7::ParamIndices::Aux3Enabled, 2, auxTabColors, auxTabDisabledColors);
-			AuxEffectTab("Aux Effect 4", (int)M7::ParamIndices::Aux4Enabled, 3, auxTabColors, auxTabDisabledColors);
+			AuxEffectTab("Aux1", 0, auxTabColors, auxTabDisabledColors);
+			AuxEffectTab("Aux2", 1, auxTabColors, auxTabDisabledColors);
+			AuxEffectTab("Aux3", 2, auxTabColors, auxTabDisabledColors);
+			AuxEffectTab("Aux4", 3, auxTabColors, auxTabDisabledColors);
 			ImGui::EndTabBar();
 		}
 
@@ -450,21 +450,75 @@ public:
 		ImGui::PopID();
 	}
 
+	struct AuxInfo
+	{
+		int mIndex;
+		M7::ParamIndices mEnabledParamID;
+		M7::AuxLink mSelfLink;
+		M7::ModDestination mModParam2ID;
+	};
+
+	static constexpr AuxInfo gAuxInfo[M7::Maj7::gAuxNodeCount] = {
+		{0, M7::ParamIndices::Aux1Enabled, M7::AuxLink::Aux1,M7::ModDestination::Aux1Param2 },
+		{1, M7::ParamIndices::Aux2Enabled, M7::AuxLink::Aux2,M7::ModDestination::Aux2Param2 },
+		{2, M7::ParamIndices::Aux3Enabled, M7::AuxLink::Aux3,M7::ModDestination::Aux3Param2 },
+		{3, M7::ParamIndices::Aux4Enabled, M7::AuxLink::Aux4,M7::ModDestination::Aux4Param2 },
+	};
+
+	M7::AuxNode GetDummyAuxNode(float (&paramValues)[(int)M7::AuxParamIndexOffsets::Count], int iaux)
+	{
+		auto& auxInfo = gAuxInfo[iaux];
+		float tempParamValues[(int)M7::AuxParamIndexOffsets::Count] = {
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled),
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link),
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type),
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param1),
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param2),
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param3),
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param4),
+			GetEffectX()->getParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param5),
+		};
+		for (size_t i = 0; i < std::size(paramValues); ++i)
+		{
+			paramValues[i] = tempParamValues[i];
+		}
+		return { auxInfo.mSelfLink, paramValues, (int)auxInfo.mModParam2ID };
+	}
+
+	std::string GetAuxName(int iaux, std::string idsuffix)
+	{
+		// (link:Aux1)
+		// (Filter)
+		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
+		M7::AuxNode a = GetDummyAuxNode(paramValues, iaux);
+		auto ret = std::string{ "Aux " } + std::to_string(iaux + 1);
+		if (a.IsLinkedExternally()) {
+			ret += " (*Aux ";
+			ret += std::to_string(a.mLink.GetIntValue() + 1);
+			ret += ")###";
+			ret += idsuffix;
+			return ret;
+		}
+		switch (a.mEffectType.GetEnumValue())
+		{
+		case M7::AuxEffectType::BigFilter:
+			ret += " (Filter)";
+			break;
+		default:
+			break;
+		}
+		ret += "###";
+		ret += idsuffix;
+		return ret;
+	}
+
 	// fills the labels with the names of the mod destination params for a given aux.
 	// labels points to the 4 modulateable params
-	void FillAuxParamNames(std::string* labels, int iaux, M7::ParamIndices enabledID, M7::ModDestination param2, M7::AuxLink selfLink)
+	void FillAuxParamNames(std::string* labels, int iaux)
 	{
-		float paramValues[(int)M7::AuxParamIndexOffsets::Count] = {
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Enabled),
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Link),
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Type),
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param1),
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param2),
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param3),
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param4),
-			GetEffectX()->getParameter((int)enabledID + (int)M7::AuxParamIndexOffsets::Param5),
-		};
-		M7::AuxNode a{ selfLink, paramValues, (int)param2 };
+		auto& auxInfo = gAuxInfo[iaux];
+		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
+		M7::AuxNode a = GetDummyAuxNode(paramValues, iaux);
 		if (a.IsLinkedExternally()) {
 			labels[0] += " (shadowed)";
 			labels[1] += " (shadowed)";
@@ -501,10 +555,10 @@ public:
 		char const* modDestinationCaptionsCstr[(size_t)M7::ModDestination::Count];
 
 		// fix dynamic aux destination names
-		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux1Param2], 0, M7::ParamIndices::Aux1Enabled, M7::ModDestination::Aux1Param2, M7::AuxLink::Aux1);
-		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux2Param2], 1, M7::ParamIndices::Aux2Enabled, M7::ModDestination::Aux2Param2, M7::AuxLink::Aux2);
-		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux3Param2], 2, M7::ParamIndices::Aux3Enabled, M7::ModDestination::Aux3Param2, M7::AuxLink::Aux3);
-		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux4Param2], 3, M7::ParamIndices::Aux4Enabled, M7::ModDestination::Aux4Param2, M7::AuxLink::Aux4);
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux1Param2], 0);
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux2Param2], 1);
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux3Param2], 2);
+		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux4Param2], 3);
 
 		for (size_t i = 0; i < (size_t)M7::ModDestination::Count; ++i)
 		{
@@ -549,77 +603,161 @@ public:
 		}
 	}
 
-	void AuxFilter(int enabledParamID)
+	void AuxFilter(const AuxInfo& auxInfo)
 	{
 		static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
-		Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, enabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, 0.4f);
-		ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "KT##filt");
-		ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::Q, "Q##filt");
-		ImGui::SameLine(0, 60); WSImGuiParamKnob(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
-
-
-
-		//// filter
-		//if (ImGui::BeginTabBar("filter", ImGuiTabBarFlags_None))
-		//{
-		//	if (ImGui::BeginTabItem("Filter")) {
-		//		//ImGui::PushID("Filter");
-		//	//if (ImGui::CollapsingHeader("Filter")) {
-		//		static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
-		//		Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-		//		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((VstInt32)M7::ParamIndices::FilterFrequency, (VstInt32)M7::ParamIndices::FilterFrequencyKT, "Freq##filt", M7::Maj7::gFilterCenterFrequency, M7::Maj7::gFilterFrequencyScale, 0.4f);
-		//		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterFrequencyKT, "KT##filt");
-		//		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterQ, "Q##filt");
-		//		ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterSaturation, "Saturation##filt");
-
-		//		ImGui::EndTabItem();
-		//	}
-		//	ImGui::EndTabBar();
-		//}
-		////ImGui::PopID();
-
+		Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, 0.4f);
+		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "KT##filt");
+		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Q, "Q##filt");
+		ImGui::SameLine(0, 60); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
 	}
 
-	void AuxEffectTab(const char* labelWithID, int enabledParamID, int auxIndex, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[])
+	void AuxEffectTab(const char* idSuffix, int iaux, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[])
 	{
 		AUX_LINK_CAPTIONS(auxLinkCaptions);
 		AUX_EFFECT_TYPE_CAPTIONS(auxEffectTypeCaptions);
+		auto& auxInfo = gAuxInfo[iaux];
+		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
+		M7::AuxNode a = GetDummyAuxNode(paramValues, iaux);
 
-		float enabledBacking;
-		M7::BoolParam bp{ enabledBacking };
-		bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
-		bool enabled = bp.GetBoolValue();
-		ColorMod& cm = enabled ? *auxTabColors[auxIndex] : *auxTabDisabledColors[auxIndex];
+		ColorMod& cm = a.mEnabledParam.GetBoolValue() ? *auxTabColors[iaux] : *auxTabDisabledColors[iaux];
 		auto token = cm.Push();
 
-		if (ImGui::BeginTabItem(labelWithID))
+		std::string labelWithID = GetAuxName(iaux, idSuffix);
+
+		if (ImGui::BeginTabItem(labelWithID.c_str()))
 		{
-			ImGui::PushID(auxIndex);
-			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, "Enabled");
+			ImGui::PushID(iaux);
+			WSImGuiParamCheckbox((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, "Enabled");
 
-			ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::AuxParamIndexOffsets::Link, "Link", (int)M7::AuxLink::Count, (M7::AuxLink)auxIndex, auxLinkCaptions);
+			ImGui::SameLine(); Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, "Link", (int)M7::AuxLink::Count, auxInfo.mSelfLink, auxLinkCaptions);
 
-			float effectTypeBacking = GetEffectX()->getParameter(enabledParamID + (int)M7::AuxParamIndexOffsets::Type);
-			M7::AuxEffectType effectType = M7::EnumParam<M7::AuxEffectType>{ effectTypeBacking, M7::AuxEffectType::Count }.GetEnumValue();
+			ImGui::SameLine();
+			ImGui::BeginGroup();
 
-			float linkedToBacking = GetEffectX()->getParameter(enabledParamID + (int)M7::AuxParamIndexOffsets::Link);
-			M7::AuxLink linkedTo = M7::EnumParam<M7::AuxLink>{ linkedToBacking, M7::AuxLink::Count }.GetEnumValue();
-
-			ColorMod& cm = ((int)linkedTo == auxIndex) ? mNopColors : *auxTabDisabledColors[auxIndex];
-			auto colorToken = cm.Push();
-
-			ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::AuxParamIndexOffsets::Type, "Effect", (int)M7::AuxEffectType::Count, M7::AuxEffectType::None, auxEffectTypeCaptions);
-
-			switch (effectType)
-			{
-			default:
-				ImGui::TextUnformatted("Nothing to see.");
-				break;
-			case M7::AuxEffectType::BigFilter:
-				AuxFilter(enabledParamID);
-				break;
+			if (ImGui::Button("Swap with...")) {
+				ImGui::OpenPopup("selectAuxSwap");
 			}
+
+			//ImGui::SameLine();
+			if (ImGui::Button("Copy from...")) {
+				ImGui::OpenPopup("selectAuxCopyFrom");
+			}
+			ImGui::EndGroup();
+
+			if (ImGui::BeginPopup("selectAuxSwap"))
+			{
+				for (int n = 0; n < (int)M7::Maj7::gAuxNodeCount; n++)
+				{
+					ImGui::PushID(n);
+					if (ImGui::Selectable(GetAuxName(n, "").c_str()))
+					{
+						// modulations: don't copy modulations because we can't guarantee you expect them to be clobbered, and there's a finite number so just avoid the headache.
+						auto& srcAuxInfo = gAuxInfo[n];
+						float srcParamValues[(int)M7::AuxParamIndexOffsets::Count];
+						M7::AuxNode srcNode = GetDummyAuxNode(srcParamValues, n);
+
+						// copy from SRC to THIS
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, srcParamValues[(int)M7::AuxParamIndexOffsets::Enabled]);
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, srcParamValues[(int)M7::AuxParamIndexOffsets::Type]);
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, srcParamValues[(int)M7::AuxParamIndexOffsets::Link]);
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param1, srcParamValues[(int)M7::AuxParamIndexOffsets::Param1]);
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param2, srcParamValues[(int)M7::AuxParamIndexOffsets::Param2]);
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param3, srcParamValues[(int)M7::AuxParamIndexOffsets::Param3]);
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param4, srcParamValues[(int)M7::AuxParamIndexOffsets::Param4]);
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param5, srcParamValues[(int)M7::AuxParamIndexOffsets::Param5]);
+
+						// copy from THIS to SRC
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, paramValues[(int)M7::AuxParamIndexOffsets::Enabled]);
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, paramValues[(int)M7::AuxParamIndexOffsets::Type]);
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, paramValues[(int)M7::AuxParamIndexOffsets::Link]);
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param1, paramValues[(int)M7::AuxParamIndexOffsets::Param1]);
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param2, paramValues[(int)M7::AuxParamIndexOffsets::Param2]);
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param3, paramValues[(int)M7::AuxParamIndexOffsets::Param3]);
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param4, paramValues[(int)M7::AuxParamIndexOffsets::Param4]);
+						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param5, paramValues[(int)M7::AuxParamIndexOffsets::Param5]);
+
+						auto srcLink = srcNode.mLink.GetEnumValue();
+						auto origLink = a.mLink.GetEnumValue();
+
+						// if source links to itself, then we should now link to ourself.
+						if (srcLink == srcNode.mLinkToSelf) {
+							a.mLink.SetEnumValue(a.mLinkToSelf);
+							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mLink.GetRawParamValue());
+						}
+						else if (srcLink == a.mLinkToSelf) {
+							// if you are swapping ORIG with SRC and SRC links to ORIG, now ORIG will need to point to SRC
+							a.mLink.SetEnumValue(srcNode.mLinkToSelf);
+							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mLink.GetRawParamValue());
+						}
+
+						// if we linked to ourself, then source should now link to itself
+						if (origLink == a.mLinkToSelf) {
+							srcNode.mLink.SetEnumValue(srcNode.mLinkToSelf);
+							GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, srcNode.mLink.GetRawParamValue());
+						}
+						else if (origLink == srcNode.mLinkToSelf) {
+							// similar logic as above.
+							srcNode.mLink.SetEnumValue(a.mLinkToSelf);
+							GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, srcNode.mLink.GetRawParamValue());
+						}
+					}
+					ImGui::PopID();
+				}
+				ImGui::EndPopup();
+			}
+
+			if (ImGui::BeginPopup("selectAuxCopyFrom"))
+			{
+				for (int n = 0; n < (int)M7::Maj7::gAuxNodeCount; n++)
+				{
+					ImGui::PushID(n);
+					if (ImGui::Selectable(GetAuxName(n, "").c_str()))
+					{
+						// modulations: don't copy modulations because we can't guarantee you expect them to be clobbered, and there's a finite number so just avoid the headache.
+						auto& srcAuxInfo = gAuxInfo[n];
+						float srcParamValues[(int)M7::AuxParamIndexOffsets::Count];
+						M7::AuxNode srcNode = GetDummyAuxNode(srcParamValues, n);
+
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled));
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type));
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link));
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param1, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param1));
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param2, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param2));
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param3, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param3));
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param4, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param4));
+						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param5, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param5));
+
+						// if the original aux was linking to itself, then we should now link to ourself.
+						if (!srcNode.IsLinkedExternally()) {
+							a.mLink.SetEnumValue(a.mLinkToSelf);
+							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mLink.GetRawParamValue());
+						}
+					}
+					ImGui::PopID();
+				}
+				ImGui::EndPopup();
+			}
+
+
+			{
+				ColorMod& cm = (a.IsLinkedExternally()) ? *auxTabDisabledColors[auxInfo.mIndex] : mNopColors;
+				auto colorToken = cm.Push();
+
+				ImGui::SameLine(); Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, "Effect", (int)M7::AuxEffectType::Count, M7::AuxEffectType::None, auxEffectTypeCaptions);
+
+				switch (a.mEffectType.GetEnumValue())
+				{
+				default:
+					ImGui::TextUnformatted("Nothing to see.");
+					break;
+				case M7::AuxEffectType::BigFilter:
+					AuxFilter(auxInfo);
+					break;
+				}
+			}
+
 
 			ImGui::PopID();
 			ImGui::EndTabItem();
