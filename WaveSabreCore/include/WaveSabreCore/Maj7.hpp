@@ -69,6 +69,90 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
+		struct AuxNode
+		{
+			AuxLink mLinkToSelf;
+			BoolParam mEnabledParam;
+			EnumParam<AuxLink> mLink;
+			EnumParam<AuxEffectType> mEffectType;
+			float* mParamCache;
+			int mParamIndexOffset;
+
+			AuxLink mCurrentEffectLink;
+			AuxEffectType mCurrentEffectType = AuxEffectType::None;
+			IAuxEffect* mpCurrentEffect = nullptr;
+
+			AuxNode(AuxLink selfLink, float* paramCache, int paramIndexOffset) :
+				mLinkToSelf(selfLink),
+				mEnabledParam(paramCache[paramIndexOffset + (int)AuxParamIndexOffsets::Enabled]),
+				mLink(paramCache[paramIndexOffset + (int)AuxParamIndexOffsets::Link], AuxLink::Count),
+				mEffectType(paramCache[paramIndexOffset + (int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
+				mCurrentEffectLink(selfLink),
+				mParamCache(paramCache),
+				mParamIndexOffset(paramIndexOffset)
+			{
+			}
+
+			virtual ~AuxNode()
+			{
+				delete mpCurrentEffect;
+			}
+
+			// nullptr is a valid return val for safe null effect.
+			IAuxEffect* CreateEffect() const
+			{
+				// ASSERT: not linked.
+				switch (mEffectType.GetEnumValue())
+				{
+				case AuxEffectType::None:
+					break;
+				case AuxEffectType::BigFilter:
+					return new FilterAuxNode(&mParamCache[mParamIndexOffset]);
+				}
+				return nullptr;
+			}
+
+			bool IsLinkedExternally() const
+			{
+				return (mLinkToSelf != mLink.GetEnumValue());
+			}
+
+			// pass in aux nodes due to linking.
+			// for simplicity to avoid circular refs, disable if you link to a linked aux
+			void BeginBlock(int nSamples, AuxNode* allAuxNodes[], float noteHz) {
+				if (!mEnabledParam.GetBoolValue()) return;
+				auto link = mLink.GetEnumValue();
+				AuxNode* srcNode = this;
+				if (IsLinkedExternally())
+				{
+					srcNode = allAuxNodes[(int)link];
+					if (srcNode->IsLinkedExternally())
+					{
+						return; // no chaining; needlessly vexing
+					}
+				}
+				auto effectType = srcNode->mEffectType.GetEnumValue();
+
+				// ensure correct engine set up.
+				if (mCurrentEffectLink != link || mCurrentEffectType != effectType) {
+					delete mpCurrentEffect;
+					mpCurrentEffect = srcNode->CreateEffect();
+					mCurrentEffectLink = link;
+					mCurrentEffectType = effectType;
+				}
+				if (!mpCurrentEffect) return;
+
+				return mpCurrentEffect->AuxBeginBlock(noteHz, nSamples);
+			}
+
+			float ProcessSample(float inp) {
+				if (!mEnabledParam.GetBoolValue()) return inp;
+				if (!mpCurrentEffect) return inp;
+				return mpCurrentEffect->AuxProcessSample(inp);
+			}
+		};
+
+
 		// this does not operate on frequencies, it operates on target midi note value (0-127).
 		struct PortamentoCalc
 		{
@@ -133,9 +217,8 @@ namespace WaveSabreCore
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr size_t gOscillatorCount = 3;
+			static constexpr size_t gAuxNodeCount = 4;
 			static constexpr real_t gMasterVolumeMaxDb = 6;
-			static constexpr real_t gFilterCenterFrequency = 1000.0f;
-			static constexpr real_t gFilterFrequencyScale = 10.0f;
 
 			static constexpr real_t gLFOLPCenterFrequency = 20.0f;
 			static constexpr real_t gLFOLPFrequencyScale = 7.0f;
@@ -152,7 +235,9 @@ namespace WaveSabreCore
 			float mOscDetuneAmts[gOscillatorCount] = { 0 };
 			float mUnisonoDetuneAmts[gUnisonoVoiceMax] = { 0 };
 
-			float mOscPanAmts[gOscillatorCount] = { 0 };
+			float mAuxOutputGains[2] = {0}; // precalc'd L/R gains based on aux panning/width [outputchannel]
+
+			float mOscAuxPanAmts[gOscillatorCount] = { 0 };
 			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
 
 			float mOscShapeAmts[gOscillatorCount] = { 0 };
@@ -171,10 +256,6 @@ namespace WaveSabreCore
 			Float01Param mFMAmt3to1{ mParamCache[(int)ParamIndices::FMAmt3to1], 0.0f };
 			Float01Param mFMAmt3to2{ mParamCache[(int)ParamIndices::FMAmt3to2], 0.0f };
 
-			//IntParam mOsc1AmpEnvelopeSource{ mParamCache[(int)ParamIndices::Osc1AmpEnvelopeSource], 0, gOscillatorCount - 1 };
-			//IntParam mOsc2AmpEnvelopeSource{ mParamCache[(int)ParamIndices::Osc2AmpEnvelopeSource], 0, gOscillatorCount - 1 };
-			//IntParam mOsc3AmpEnvelopeSource{ mParamCache[(int)ParamIndices::Osc3AmpEnvelopeSource], 0, gOscillatorCount - 1 };
-
 			Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune], 0.0f };
 			Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread], 0.0f };
 			Float01Param mOscillatorDetune{ mParamCache[(int)ParamIndices::OscillatorDetune], 0.0f };
@@ -189,7 +270,10 @@ namespace WaveSabreCore
 			FrequencyParam mLFO2FilterLP { mParamCache[(int)ParamIndices::LFO2Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
 
 			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange };
-			
+
+			EnumParam<AuxRoute> mAuxRoutingParam{ mParamCache[(int)ParamIndices::AuxRouting], AuxRoute::Count, AuxRoute::TwoTwo };
+			FloatN11Param mAuxWidth{ mParamCache[(int)ParamIndices::AuxWidth], 1 };
+
 			ModulationSpec mModulations[gModulationCount] {
 				{ mParamCache, (int)ParamIndices::Mod1Enabled, ModulationSpecType::General },
 				{ mParamCache, (int)ParamIndices::Mod2Enabled, ModulationSpecType::General },
@@ -245,6 +329,32 @@ namespace WaveSabreCore
 				mParamCache[(int)ParamIndices::Osc1Volume] = 1;
 				mParamCache[(int)ParamIndices::Osc2Volume] = 1;
 				mParamCache[(int)ParamIndices::Osc3Volume] = 1;
+
+				// make by default aux nodes link mostly to self; set up filters as default
+				AuxNode a1{ AuxLink::Aux1, mParamCache, (int)ParamIndices::Aux1Enabled };
+				a1.mLink.SetEnumValue(a1.mLinkToSelf);
+				AuxNode a2{ AuxLink::Aux2, mParamCache, (int)ParamIndices::Aux2Enabled };
+				a2.mLink.SetEnumValue(a2.mLinkToSelf);
+				a2.mEffectType.SetEnumValue(AuxEffectType::BigFilter);
+				a2.mEnabledParam.SetBoolValue(true);
+				AuxNode a3{ AuxLink::Aux3, mParamCache, (int)ParamIndices::Aux3Enabled };
+				a3.mLink.SetEnumValue(a3.mLinkToSelf);
+				AuxNode a4{ AuxLink::Aux4, mParamCache, (int)ParamIndices::Aux4Enabled };
+				a4.mLink.SetEnumValue(AuxLink::Aux2);
+				a4.mEnabledParam.SetBoolValue(true);
+				//a4.mEffectType.SetEnumValue(AuxEffectType::BigFilter);
+
+				FilterAuxNode f2{ mParamCache + (int)ParamIndices::Aux2Enabled };
+				f2.mFilterFreqParam.mValue.SetParamValue(0.4f);
+				f2.mFilterFreqParam.mKTValue.SetParamValue(1.0f);
+				f2.mFilterQParam.SetParamValue(0.15f);
+				f2.mFilterSaturationParam.SetParamValue(0.15f);
+				//FilterAuxNode f4{ mParamCache + (int)ParamIndices::Aux2Enabled };
+
+				mParamCache[(int)ParamIndices::AuxWidth] = 1.0f;
+				mParamCache[(int)ParamIndices::Osc1AuxMix] = 0.5f;
+				mParamCache[(int)ParamIndices::Osc2AuxMix] = 0.5f;
+				mParamCache[(int)ParamIndices::Osc3AuxMix] = 0.5f;
 
 				mOscPreFMAmpModulations[0]->mEnabled.SetBoolValue(true);
 				mOscPreFMAmpModulations[0]->mSource.SetEnumValue(ModSource::Osc1AmpEnv);
@@ -366,16 +476,6 @@ namespace WaveSabreCore
 				}
 				BipolarDistribute(gUnisonoVoiceMax, unisonoEnabled, mUnisonoDetuneAmts);
 
-				//ModSource ampEnvSources[gOscillatorCount] = {
-				//	ModSource::Osc1AmpEnv,
-				//	ModSource::Osc2AmpEnv,
-				//	ModSource::Osc3AmpEnv,
-				//};
-
-				//mOscAmpEnvSources[0] = ampEnvSources[mOsc1AmpEnvelopeSource.GetIntValue()];
-				//mOscAmpEnvSources[1] = ampEnvSources[mOsc2AmpEnvelopeSource.GetIntValue()];
-				//mOscAmpEnvSources[2] = ampEnvSources[mOsc3AmpEnvelopeSource.GetIntValue()];
-
 				mLFO1LPCutoff = mLFO1FilterLP.GetFrequency(0, 0);
 				mLFO2LPCutoff = mLFO2FilterLP.GetFrequency(0, 0);
 
@@ -389,12 +489,26 @@ namespace WaveSabreCore
 					mUnisonoDetuneAmts[i] *= unisonoDetuneAmt;
 				}
 
+				// when aux width is 0, they are both mono. it means pan of 0 for both aux routes.
+				// when aux width is +1, auxroute 0 becomes -1 and auxroute 1 becomes +1, fully separating the channels
+				auto auxGains = PanToFactor(mAuxWidth.GetN11Value());
+				mAuxOutputGains[1] = auxGains.first;// auxPanVolParam.GetLinearGain();
+				mAuxOutputGains[0] = auxGains.second;// auxPanVolParam.GetLinearGain();
+
 				float oscDetuneAmt = mOscillatorDetune.Get01Value(mOscillatorDetuneMod);
 				float oscStereoSpreadAmt = mOscillatorStereoSpread.Get01Value(mOscillatorStereoSpreadMod);
 				float oscShapeSpreadAmt = mOscillatorShapeSpread.Get01Value(mOscillatorShapeSpreadMod);
+
+				ParamIndices auxPanParams[gOscillatorCount] = {
+					ParamIndices::Osc1AuxMix,
+					ParamIndices::Osc2AuxMix,
+					ParamIndices::Osc3AuxMix,
+				};
+
 				for (size_t i = 0; i < gOscillatorCount; ++ i) {
+					// for the moment mOscDetuneAmts[i] is just a generic spread value.
 					mOscShapeAmts[i] = mOscDetuneAmts[i] * oscShapeSpreadAmt;
-					mOscPanAmts[i] = mOscDetuneAmts[i] * oscStereoSpreadAmt;
+					mOscAuxPanAmts[i] = FloatN11Param{mParamCache[(int)auxPanParams[i]]}.GetN11Value() + mOscDetuneAmts[i] * oscStereoSpreadAmt;
 					mOscDetuneAmts[i] *= oscDetuneAmt;
 				}
 
@@ -432,10 +546,14 @@ namespace WaveSabreCore
 					mOscillator1(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc1Volume, owner->mParamCache, (int)ParamIndices::Osc1Enabled),
 					mOscillator2(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc2Volume, owner->mParamCache, (int)ParamIndices::Osc2Enabled),
 					mOscillator3(OscillatorIntentionAudio{}, mModMatrix, ModDestination::Osc3Volume, owner->mParamCache, (int)ParamIndices::Osc3Enabled),
-					mFilterType(owner->mParamCache[(int)ParamIndices::FilterType], FilterModel::Count, FilterModel::Disabled),
-					mFilterQ(owner->mParamCache[(int)ParamIndices::FilterQ], 0.35f),
-					mFilterSaturation(owner->mParamCache[(int)ParamIndices::FilterSaturation], 0.06f),
-					mFilterFreq(owner->mParamCache[(int)ParamIndices::FilterFrequency], owner->mParamCache[(int)ParamIndices::FilterFrequencyKT], Maj7::gFilterCenterFrequency, Maj7::gFilterFrequencyScale, 0.4f, 1.0f)
+					mAux1(AuxLink::Aux1, owner->mParamCache, (int)ParamIndices::Aux1Enabled),
+					mAux2(AuxLink::Aux2, owner->mParamCache, (int)ParamIndices::Aux2Enabled),
+					mAux3(AuxLink::Aux3, owner->mParamCache, (int)ParamIndices::Aux3Enabled),
+					mAux4(AuxLink::Aux4, owner->mParamCache, (int)ParamIndices::Aux4Enabled)
+					//mFilterType(owner->mParamCache[(int)ParamIndices::FilterType], FilterModel::Count, FilterModel::Disabled),
+					//mFilterQ(owner->mParamCache[(int)ParamIndices::FilterQ], 0.35f),
+					//mFilterSaturation(owner->mParamCache[(int)ParamIndices::FilterSaturation], 0.06f),
+					//mFilterFreq(owner->mParamCache[(int)ParamIndices::FilterFrequency], owner->mParamCache[(int)ParamIndices::FilterFrequencyKT], Maj7::gFilterCenterFrequency, Maj7::gFilterFrequencyScale, 0.4f, 1.0f)
 				{
 				}
 
@@ -463,14 +581,16 @@ namespace WaveSabreCore
 				EnvelopeNode mOsc2AmpEnv;
 				EnvelopeNode mOsc3AmpEnv;
 
-				EnumParam<FilterModel> mFilterType; // FilterType,
-				Float01Param mFilterQ;// FilterQ,
-				Float01Param mFilterSaturation;// FilterSaturation,
-				FrequencyParam mFilterFreq;// FilterFrequency,// FilterFrequencyKT,
-				
-
-				FilterNode mFilterL;
-				FilterNode mFilterR;
+				AuxNode mAux1;
+				AuxNode mAux2;
+				AuxNode mAux3;
+				AuxNode mAux4;
+				AuxNode* mAllAuxNodes[gAuxNodeCount] = {
+					&mAux1,
+					&mAux2,
+					&mAux3,
+					&mAux4,
+				};
 
 				void ProcessAndMix(double songPosition, float* const* const outputs, int numSamples)
 				{
@@ -540,24 +660,6 @@ namespace WaveSabreCore
 						mModMatrix.ProcessSample(mpOwner->mModulations, iSample);
 					}
 
-					auto filterType = this->mFilterType.GetEnumValue();
-					auto filterFreq = mFilterFreq.GetFrequency(noteHz, mModMatrix.GetDestinationValue(ModDestination::FilterFrequency, 0));
-					filterFreq = ClampInclusive(filterFreq, 0.0f, 20000.0f);
-					auto filterQ = mFilterQ.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterQ, 0));
-					auto filterSaturation = mFilterSaturation.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FilterSaturation, 0));
-					mFilterL.SetParams(
-						filterType,
-						filterFreq,
-						filterQ,
-						filterSaturation
-					);
-					mFilterR.SetParams(
-						filterType,
-						filterFreq,
-						filterQ,
-						filterSaturation
-					);
-
 					// set device-level modded values.
 					if (!mpOwner->mDeviceModSourceValuesSetThisFrame) {
 						mpOwner->mOscillatorDetuneMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorDetune, 0);
@@ -619,11 +721,16 @@ namespace WaveSabreCore
 						VolumeParam outputVolParam{ mpOwner->mParamCache[(int)info.mOutputVolumeParamID], OscillatorNode::gVolumeMaxDb };
 
 						// treat panning as added to modulation value
-						float panParam = myUnisonoPan + mpOwner->mOscPanAmts[i]; // -1 would mean full Left, 1 is full Right.
+						float panParam = myUnisonoPan + mpOwner->mOscAuxPanAmts[i]; // -1 would mean full Left, 1 is full Right.
 						auto panGains = PanToFactor(panParam);
 						float outputVolLin = outputVolParam.GetLinearGain(0);
 						info.mOutputGain[0] = outputVolLin * panGains.first;
 						info.mOutputGain[1] = outputVolLin * panGains.second;
+					}
+
+					auto auxRouting = mpOwner->mAuxRoutingParam.GetEnumValue();
+					for (size_t i = 0; i < gAuxNodeCount; ++i) {
+						mAllAuxNodes[i]->BeginBlock(numSamples, mAllAuxNodes, noteHz);
 					}
 
 					for (int iSample = 0; iSample < numSamples; ++iSample)
@@ -663,12 +770,36 @@ namespace WaveSabreCore
 						real_t sl = s1 * oscInfo[0].mOutputGain[0] + s2 * oscInfo[1].mOutputGain[0] + s3 * oscInfo[2].mOutputGain[0];
 						real_t sr = s1 * oscInfo[0].mOutputGain[1] + s2 * oscInfo[1].mOutputGain[1] + s3 * oscInfo[2].mOutputGain[1];
 
-						// apply filter
-						sl = mFilterL.ProcessSample(sl);
-						sr = mFilterR.ProcessSample(sr);
+						// send through aux
+						switch (auxRouting) {
+						case AuxRoute::FourZero:
+							// L = aux1 -> aux2 -> aux3 -> aux4 -> *
+							// R = *
+							sl = mAux1.ProcessSample(sl);
+							sl = mAux2.ProcessSample(sl);
+							sl = mAux3.ProcessSample(sl);
+							sl = mAux4.ProcessSample(sl);
+							break;
+						case AuxRoute::ThreeOne:
+							// L = aux1 -> aux2 -> aux3 -> *
+							// R = aux4 -> *
+							sl = mAux1.ProcessSample(sl);
+							sl = mAux2.ProcessSample(sl);
+							sl = mAux3.ProcessSample(sl);
+							sr = mAux4.ProcessSample(sr);
+							break;
+						case AuxRoute::TwoTwo:
+							// L = aux1 -> aux2 -> *
+							// R = aux3 -> aux4 -> *
+							sl = mAux1.ProcessSample(sl);
+							sl = mAux2.ProcessSample(sl);
+							sr = mAux3.ProcessSample(sr);
+							sr = mAux4.ProcessSample(sr);
+							break;
+						}
 
-						outputs[0][iSample] += sl;
-						outputs[1][iSample] += sr;
+						outputs[0][iSample] += sl * mpOwner->mAuxOutputGains[0] + sr * mpOwner->mAuxOutputGains[1];
+						outputs[1][iSample] += sl * mpOwner->mAuxOutputGains[1] + sr * mpOwner->mAuxOutputGains[0];
 					}
 
 					mPortamento.Advance(numSamples,

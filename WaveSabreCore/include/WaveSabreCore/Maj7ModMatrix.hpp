@@ -164,16 +164,20 @@ namespace WaveSabreCore
 			LFO2Waveshape, // krate, 01
 			LFO2FrequencyParam, // krate, 01
 
-			FilterQ, // krate, 01
-			FilterSaturation, // krate, 01
-			FilterFrequency, // krate, 01
-
 			FMAmt1to2, // arate, 01
 			FMAmt1to3, // arate, 01
 			FMAmt2to1, // arate, 01
 			FMAmt2to3, // arate, 01
 			FMAmt3to1, // arate, 01
 			FMAmt3to2, // arate, 01
+
+				// TODO: aux params
+				// TODO: aux width
+				// TODO: osc aux sends
+
+				//FilterQ, // krate, 01
+				//FilterSaturation, // krate, 01
+				//FilterFrequency, // krate, 01
 
 			Count,
 		};
@@ -287,9 +291,6 @@ namespace WaveSabreCore
 			"LFO1FrequencyParam", \
 			"LFO2Waveshape", \
 			"LFO2FrequencyParam", \
-			"FilterQ", \
-			"FilterSaturation", \
-			"FilterFrequency", \
 			"FMAmt1to2", \
 			"FMAmt1to3", \
 			"FMAmt2to1", \
@@ -801,19 +802,8 @@ namespace WaveSabreCore
 				ModDestination::LFO2FrequencyParam, // krate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,
-			},{
-				ModDestination::FilterQ, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::FilterSaturation, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::FilterFrequency, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
+			},
+{
 				ModDestination::FMAmt1to2, // arate, 01
 				ModulationPolarity::Positive01,
 				ModulationRate::ARate,

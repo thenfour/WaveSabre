@@ -33,25 +33,6 @@ public:
 
 	struct ColorMod
 	{
-		//bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//if (b1 || b2 || b3 || b4 || b5)
-		//{
-		//	float h, s, v;
-		//	for (size_t i = 0; i < ImGuiCol_COUNT; ++i) {
-		//		ImVec4 color = style.Colors[i];
-		//		ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-		//		auto newcolor = ImColor::HSV(h + colorHueVarAmt, s * colorSaturationVarAmt, v * colorValueVarAmt);
-		//		newColors[i] = newcolor.Value;
-		//	}
-		//	newColors[ImGuiCol_Text] = ImColor::HSV(0, 0, colorTextVal);
-		//	newColors[ImGuiCol_TextDisabled] = ImColor::HSV(0, 0, colorTextDisabledVal);
-		//}
-
-
 		float mHueAdd;
 		float mSaturationMul;
 		float mValueMul;
@@ -65,11 +46,6 @@ public:
 		{
 			ImVec4 mOldColors[ImGuiCol_COUNT];
 			bool isSet;
-			//Token(ImVec4* newColors) {
-			//	memcpy(mOldColors, ImGui::GetStyle().Colors, sizeof(mOldColors));
-			//	memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
-			//	isSet = true;
-			//}
 			Token(ImVec4* newColors) {
 				isSet = !!newColors;
 				if (isSet) {
@@ -77,15 +53,10 @@ public:
 					memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
 				}
 			}
-			//Token() {
-			//}
 			~Token() {
 				if (isSet) {
 					memcpy(ImGui::GetStyle().Colors, mOldColors, sizeof(mOldColors));
 				}
-			}
-			void Poke() {
-				// NOP; hint that the object should remain alive.
 			}
 		};
 		Token Push()
@@ -95,11 +66,6 @@ public:
 			}
 			return { mNewColors };
 		}
-
-		//static Token Nop()
-		//{
-		//	return {};
-		//}
 
 		void EnsureInitialized() {
 			if (mInitialized) return;
@@ -149,6 +115,11 @@ public:
 	ColorMod mModulationsColors{ 0.15f, 0.6f, 0.65f, 0.9f, 0.0f };
 	ColorMod mModulationDisabledColors{ 0.15f, 0.0f, 0.65f, 0.6f, 0.0f };
 
+	ColorMod mAuxLeftColors{ 0.1f, 1, 1, .9f, 0.5f };
+	ColorMod mAuxRightColors{ 0.4f, 1, 1, .9f, 0.5f };
+	ColorMod mAuxLeftDisabledColors{ 0.1f, 0.25f, .4f, .5f, 0.1f };
+	ColorMod mAuxRightDisabledColors{ 0.4f, 0.25f, .4f, .5f, 0.1f };
+
 	ColorMod mOscColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mOscDisabledColors{ 0, 0, .6f, 0.9f, 0.0f };
 
@@ -165,21 +136,28 @@ public:
 		mCyanColors.EnsureInitialized();
 		mOscColors.EnsureInitialized();
 		mOscDisabledColors.EnsureInitialized();
-		//ImGuiStyle& style = ImGui::GetStyle();
-		//static ImVec4 newColors[ImGuiCol_COUNT];
-		//static bool colorsInitialized = false;
-		//if (!colorsInitialized) {
-		//	colorsInitialized = true;
-		//	for (size_t i = 0; i < ImGuiCol_COUNT; ++i) {
-		//		ImVec4 color = style.Colors[i];
-		//		float h, s, v;
-		//		ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-		//		auto newcolor = ImColor::HSV(h, s, v);
-		//		newColors[i] = newcolor.Value;
-		//	}
-		//}
+		mAuxLeftColors.EnsureInitialized();
+		mAuxRightColors.EnsureInitialized();
+		mAuxLeftDisabledColors.EnsureInitialized();
+		mAuxRightDisabledColors.EnsureInitialized();
 
-		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Output volume##hc", M7::Maj7::gMasterVolumeMaxDb, 0);
+		//// color explorer
+		//static float colorHueVarAmt = 0;
+		//static float colorSaturationVarAmt = 1;
+		//static float colorValueVarAmt = 1;
+		//static float colorTextVal = 0.9f;
+		//static float colorTextDisabledVal = 0.5f;
+		//bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+		//ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+		//ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+		//ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+		//ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+		//ColorMod xyz{ colorHueVarAmt , colorSaturationVarAmt, colorValueVarAmt, colorTextVal, colorTextDisabledVal };
+		//xyz.EnsureInitialized();
+		//auto xyzt = xyz.Push();
+
+
+		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, 0.5f);
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1);
 
@@ -200,13 +178,17 @@ public:
 		ImGui::SameLine(0, 60);
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", -M7::Maj7::gPitchBendMaxRange, M7::Maj7::gPitchBendMaxRange, 2);
 		ImGui::SameLine();
-		Maj7ImGuiParamEnvTime((VstInt32)M7::ParamIndices::PortamentoTime, "Port time##mst", 0.4f);
+		Maj7ImGuiParamEnvTime((VstInt32)M7::ParamIndices::PortamentoTime, "Port##mst", 0.4f);
 		ImGui::SameLine();
-		Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "Port curve##mst", 0.0f, M7CurveRenderStyle::Rising);
+		Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "##portcurvemst", 0.0f, M7CurveRenderStyle::Rising);
 
 		static constexpr char const* const voiceModeCaptions[] = { "Poly", "Mono" };
 		ImGui::SameLine(0, 60);
 		Maj7ImGuiParamEnumList<WaveSabreCore::VoiceMode>((VstInt32)M7::ParamIndices::VoicingMode, "VoiceMode##mst", (int)WaveSabreCore::VoiceMode::Count, WaveSabreCore::VoiceMode::Polyphonic, voiceModeCaptions);
+
+		AUX_ROUTE_CAPTIONS(auxRouteCaptions);
+		ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::AuxRouting, "AuxRoute", (int)M7::AuxRoute::Count, M7::AuxRoute::TwoTwo, auxRouteCaptions, 100);
+		ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)M7::ParamIndices::AuxWidth, "AuxWidth", 1);
 
 		// osc1
 		if (ImGui::BeginTabBar("osc", ImGuiTabBarFlags_None))
@@ -217,36 +199,10 @@ public:
 			ImGui::EndTabBar();
 		}
 
-		// filter
-		if (ImGui::BeginTabBar("filter", ImGuiTabBarFlags_None))
-		{
-			if (ImGui::BeginTabItem("Filter")) {
-				//ImGui::PushID("Filter");
-			//if (ImGui::CollapsingHeader("Filter")) {
-				static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
-				Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-				ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((VstInt32)M7::ParamIndices::FilterFrequency, (VstInt32)M7::ParamIndices::FilterFrequencyKT, "Freq##filt", M7::Maj7::gFilterCenterFrequency, M7::Maj7::gFilterFrequencyScale, 0.4f);
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterFrequencyKT, "KT##filt");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterQ, "Q##filt");
-				ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterSaturation, "Saturation##filt");
-
-				ImGui::EndTabItem();
-			}
-			ImGui::EndTabBar();
-		}
-		//ImGui::PopID();
-
 		if (ImGui::BeginTabBar("FM", ImGuiTabBarFlags_None))
 		{
 			auto colorModToken = mCyanColors.Push();
-			if (ImGui::BeginTabItem("FM")) {
-				//ImGui::PushID("FM");
-				//if (ImGui::CollapsingHeader("FM")) {
-				//WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "Osc A FB##osc1");
-				//ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "Osc B FB##osc2");
-				//ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "Osc C FB##osc2");
-				//ImGui::SameLine(0, 60);	WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
-
+			if (ImGui::BeginTabItem("Phase Modulation")) {
 				WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
 				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
 				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
@@ -262,7 +218,49 @@ public:
 
 				ImGui::EndTabItem();
 			}
-			//ImGui::PopID();
+			ImGui::EndTabBar();
+		}
+
+		// aux
+		if (ImGui::BeginTabBar("aux", ImGuiTabBarFlags_None))
+		{
+			float routingBacking = GetEffectX()->getParameter((int)M7::ParamIndices::AuxRouting);
+			M7::AuxRoute routing = M7::EnumParam<M7::AuxRoute>{ routingBacking, M7::AuxRoute::Count }.GetEnumValue();
+
+			ColorMod* auxTabColors[M7::Maj7::gAuxNodeCount] = {
+				&mAuxLeftColors,
+				&mAuxLeftColors,
+				&mAuxLeftColors,
+				&mAuxLeftColors,
+			};
+
+			ColorMod* auxTabDisabledColors[M7::Maj7::gAuxNodeCount] = {
+				&mAuxLeftDisabledColors,
+				&mAuxLeftDisabledColors,
+				&mAuxLeftDisabledColors,
+				&mAuxLeftDisabledColors,
+			};
+
+			switch (routing) {
+			case M7::AuxRoute::FourZero:
+				break;
+			case M7::AuxRoute::ThreeOne:
+				auxTabColors[3] = &mAuxRightColors;
+				auxTabDisabledColors[3] = &mAuxRightDisabledColors;
+				break;
+			case M7::AuxRoute::TwoTwo:
+				auxTabColors[2] = &mAuxRightColors;
+				auxTabColors[3] = &mAuxRightColors;
+
+				auxTabDisabledColors[2] = &mAuxRightDisabledColors;
+				auxTabDisabledColors[3] = &mAuxRightDisabledColors;
+				break;
+			}
+
+			AuxEffectTab("Aux Effect 1", (int)M7::ParamIndices::Aux1Enabled, 0, auxTabColors, auxTabDisabledColors);
+			AuxEffectTab("Aux Effect 2", (int)M7::ParamIndices::Aux2Enabled, 1, auxTabColors, auxTabDisabledColors);
+			AuxEffectTab("Aux Effect 3", (int)M7::ParamIndices::Aux3Enabled, 2, auxTabColors, auxTabDisabledColors);
+			AuxEffectTab("Aux Effect 4", (int)M7::ParamIndices::Aux4Enabled, 3, auxTabColors, auxTabDisabledColors);
 			ImGui::EndTabBar();
 		}
 
@@ -380,6 +378,8 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::OscillatorNode::gSyncFrequencyCenterHz, M7::OscillatorNode::gSyncFrequencyScale, 0.4f);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT");
 
+			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Aux pan", 0);
+
 			//static constexpr char const* const oscAmpEnvSourceCaptions[M7::Maj7::gOscillatorCount] = { "Amp Env 1", "Amp Env 2", "Amp Env 3" };
 			//Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource, "Amp env", M7::Maj7::gOscillatorCount, oscID, oscAmpEnvSourceCaptions);
 
@@ -455,9 +455,6 @@ public:
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
 		static constexpr char const* const modDestinationCaptions[] = MOD_DEST_CAPTIONS;
 
-		//float enabledBacking;
-		//M7::BoolParam bp{ enabledBacking };
-		//bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
 		bool isLocked = spec.mType != M7::ModulationSpecType::General;
 		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mPinkColors : mModulationsColors) : mModulationDisabledColors;
 		auto token = cm.Push();
@@ -493,6 +490,83 @@ public:
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "Aux Curve", 0, M7CurveRenderStyle::Rising);
 			ImGui::EndTabItem();
 
+		}
+	}
+
+	void AuxFilter(int enabledParamID)
+	{
+		static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
+		Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, enabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, 0.4f);
+		ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "KT##filt");
+		ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::Q, "Q##filt");
+		ImGui::SameLine(0, 60); WSImGuiParamKnob(enabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
+
+
+
+		//// filter
+		//if (ImGui::BeginTabBar("filter", ImGuiTabBarFlags_None))
+		//{
+		//	if (ImGui::BeginTabItem("Filter")) {
+		//		//ImGui::PushID("Filter");
+		//	//if (ImGui::CollapsingHeader("Filter")) {
+		//		static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
+		//		Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
+		//		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((VstInt32)M7::ParamIndices::FilterFrequency, (VstInt32)M7::ParamIndices::FilterFrequencyKT, "Freq##filt", M7::Maj7::gFilterCenterFrequency, M7::Maj7::gFilterFrequencyScale, 0.4f);
+		//		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterFrequencyKT, "KT##filt");
+		//		ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterQ, "Q##filt");
+		//		ImGui::SameLine(0, 60); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FilterSaturation, "Saturation##filt");
+
+		//		ImGui::EndTabItem();
+		//	}
+		//	ImGui::EndTabBar();
+		//}
+		////ImGui::PopID();
+
+	}
+
+	void AuxEffectTab(const char* labelWithID, int enabledParamID, int auxIndex, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[])
+	{
+		AUX_LINK_CAPTIONS(auxLinkCaptions);
+		AUX_EFFECT_TYPE_CAPTIONS(auxEffectTypeCaptions);
+
+		float enabledBacking;
+		M7::BoolParam bp{ enabledBacking };
+		bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
+		bool enabled = bp.GetBoolValue();
+		ColorMod& cm = enabled ? *auxTabColors[auxIndex] : *auxTabDisabledColors[auxIndex];
+		auto token = cm.Push();
+
+		if (ImGui::BeginTabItem(labelWithID))
+		{
+			ImGui::PushID(auxIndex);
+			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, "Enabled");
+
+			ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::AuxParamIndexOffsets::Link, "Link", (int)M7::AuxLink::Count, (M7::AuxLink)auxIndex, auxLinkCaptions);
+
+			float effectTypeBacking = GetEffectX()->getParameter(enabledParamID + (int)M7::AuxParamIndexOffsets::Type);
+			M7::AuxEffectType effectType = M7::EnumParam<M7::AuxEffectType>{ effectTypeBacking, M7::AuxEffectType::Count }.GetEnumValue();
+
+			float linkedToBacking = GetEffectX()->getParameter(enabledParamID + (int)M7::AuxParamIndexOffsets::Link);
+			M7::AuxLink linkedTo = M7::EnumParam<M7::AuxLink>{ linkedToBacking, M7::AuxLink::Count }.GetEnumValue();
+
+			ColorMod& cm = ((int)linkedTo == auxIndex) ? mNopColors : *auxTabDisabledColors[auxIndex];
+			auto colorToken = cm.Push();
+
+			ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::AuxParamIndexOffsets::Type, "Effect", (int)M7::AuxEffectType::Count, M7::AuxEffectType::None, auxEffectTypeCaptions);
+
+			switch (effectType)
+			{
+			default:
+				ImGui::TextUnformatted("Nothing to see.");
+				break;
+			case M7::AuxEffectType::BigFilter:
+				AuxFilter(enabledParamID);
+				break;
+			}
+
+			ImGui::PopID();
+			ImGui::EndTabItem();
 		}
 	}
 

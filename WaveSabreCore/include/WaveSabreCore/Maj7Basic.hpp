@@ -25,6 +25,9 @@ namespace WaveSabreCore
 
         static constexpr real_t FloatEpsilon = 0.000001f;
 
+        static constexpr real_t gFilterCenterFrequency = 1000.0f;
+        static constexpr real_t gFilterFrequencyScale = 10.0f;
+
         namespace fastmath
         {
 
@@ -115,43 +118,11 @@ namespace WaveSabreCore
             static inline float fastersin(float x)
             {
                 return (float)Helpers::FastSin((double)x);
-                //static const float fouroverpi = 1.2732395447351627f;
-                //static const float fouroverpisq = 0.40528473456935109f;
-                //static const float q = 0.77633023248007499f;
-                //union {
-                //    float f;
-                //    uint32_t i;
-                //} p = { 0.22308510060189463f };
-
-                //union {
-                //    float f;
-                //    uint32_t i;
-                //} vx = { x };
-                //uint32_t sign = vx.i & 0x80000000;
-                //vx.i &= 0x7FFFFFFF;
-
-                //float qpprox = fouroverpi * x - fouroverpisq * x * vx.f;
-
-                //p.i |= sign;
-
-                //return qpprox * (q + p.f * qpprox);
             }
 
             static inline float fastercos(float x)
             {
                 return (float)Helpers::FastCos((double)x);
-                //static const float twooverpi = 0.63661977236758134f;
-                //static const float p = 0.54641335845679634f;
-
-                //union {
-                //    float f;
-                //    uint32_t i;
-                //} vx = { x };
-                //vx.i &= 0x7FFFFFFF;
-
-                //float qpprox = 1.0f - twooverpi * vx.f;
-
-                //return qpprox + p * qpprox * (1.0f - qpprox * qpprox);
             }
 
             static inline float fastertanfull(float x)
@@ -879,6 +850,7 @@ namespace WaveSabreCore
             Osc1PitchFine,
             Osc1FreqMul,
             Osc1FMFeedback,
+            Osc1AuxMix,
 
             Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc1AmpEnvAttackTime,
@@ -906,6 +878,7 @@ namespace WaveSabreCore
             Osc2PitchFine,
             Osc2FreqMul,
             Osc2FMFeedback,
+            Osc2AuxMix,
 
             Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc2AmpEnvAttackTime,
@@ -933,6 +906,7 @@ namespace WaveSabreCore
             Osc3PitchFine,
             Osc3FreqMul,
             Osc3FMFeedback,
+            Osc3AuxMix,
 
             Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc3AmpEnvAttackTime,
@@ -981,11 +955,44 @@ namespace WaveSabreCore
             LFO2FrequencyParam,
             LFO2Sharpness,
 
-            FilterType,
-            FilterQ,
-            FilterSaturation,
-            FilterFrequency,
-            FilterFrequencyKT,
+            AuxRouting,
+            AuxWidth, // N11 to invert
+
+                Aux1Enabled,
+                Aux1Link,
+                Aux1Type,
+                Aux1Param1, // filter type
+                Aux1Param2, // filter Q
+                Aux1Param3, // filter saturation
+                Aux1Param4, // filter freq
+                Aux1Param5, // filter KT
+
+                Aux2Enabled,
+                Aux2Link,
+                Aux2Type,
+                Aux2Param1, // filter type
+                Aux2Param2, // filter Q
+                Aux2Param3, // filter saturation
+                Aux2Param4, // filter freq
+                Aux2Param5, // filter KT
+
+                Aux3Enabled,
+                Aux3Link,
+                Aux3Type,
+                Aux3Param1, // filter type
+                Aux3Param2, // filter Q
+                Aux3Param3, // filter saturation
+                Aux3Param4, // filter freq
+                Aux3Param5, // filter KT
+
+                Aux4Enabled,
+                Aux4Link,
+                Aux4Type,
+                Aux4Param1, // filter type
+                Aux4Param2, // filter Q
+                Aux4Param3, // filter saturation
+                Aux4Param4, // filter freq
+                Aux4Param5, // filter KT
 
             FMAmt1to2,
             FMAmt1to3,
@@ -1127,6 +1134,7 @@ namespace WaveSabreCore
 		    {"O1Fine"}, \
 		    {"O1Mul"}, \
 		    {"O1FMFb"}, \
+		    {"O1Xmix"}, \
 		    {"AE1dlt"}, \
 		    {"AE1att"}, \
 		    {"AE1atc"}, \
@@ -1152,6 +1160,7 @@ namespace WaveSabreCore
 		    {"O2Fine"}, \
 		    {"O2Mul"}, \
 		    {"O2FMFb"}, \
+		    {"O2Xmix"}, \
 		    {"AE2dlt"}, \
 		    {"AE2att"}, \
 		    {"AE2atc"}, \
@@ -1177,6 +1186,7 @@ namespace WaveSabreCore
 		    {"O3Fine"}, \
 		    {"O3Mul"}, \
 		    {"O3FMFb"}, \
+		    {"O3Xmix"}, \
 		    {"AE3dlt"}, \
 		    {"AE3att"}, \
 		    {"AE3atc"}, \
@@ -1219,11 +1229,40 @@ namespace WaveSabreCore
 		    {"LFO2ph"}, \
 		    {"LFO2fr"}, \
 		    {"LFO2lp"}, \
-		    {"FLtype"}, \
-		    {"FLq"}, \
-		    {"FLsat"}, \
-		    {"FLfreq"}, \
-		    {"FLkt"}, \
+            {"XRout"}, \
+            {"XWidth"}, \
+            {"X1En"}, \
+            {"X1Link"}, \
+            {"X1Type"}, \
+            {"X1P1"}, \
+            {"X1P2"}, \
+            {"X1P3"}, \
+            {"X1P4"}, \
+            {"X1P5"}, \
+            {"X2En"}, \
+            {"X2Link"}, \
+            {"X2Type"}, \
+            {"X2P1"}, \
+            {"X2P2"}, \
+            {"X2P3"}, \
+            {"X2P4"}, \
+            {"X2P5"}, \
+            {"X3En"}, \
+            {"X3Link"}, \
+            {"X3Type"}, \
+            {"X31"}, \
+            {"X32"}, \
+            {"X33"}, \
+            {"X34"}, \
+            {"X35"}, \
+            {"X4En"}, \
+            {"X4Link"}, \
+            {"X4Type"}, \
+            {"X41"}, \
+            {"X42"}, \
+            {"X43"}, \
+            {"X44"}, \
+            {"X45"}, \
 		    {"FM1to2"}, \
 		    {"FM1to3"}, \
 		    {"FM2to1"}, \
@@ -1373,8 +1412,95 @@ namespace WaveSabreCore
             PitchFine,
             FreqMul,
             FMFeedback,
-            //AmpEnvSource,
+            AuxMix,
             AmpEnvDelayTime,
+        };
+
+        enum class AuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & FilterAuxParamIndexOffsets
+        {
+            Enabled,
+            Link,
+            Type,
+            Param1, // filter type
+            Param2, // filter Q
+            Param3, // filter saturation
+            Param4, // filter freq
+            Param5, // filter KT
+            Count,
+        };
+
+        enum class FilterAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+        {
+            Enabled,
+            Link,
+            AuxType,
+            FilterType, // filter type
+            Q, // filter Q
+            Saturation, // filter saturation
+            Freq, // filter freq
+            FreqKT, // filter KT
+            Count,
+        };
+
+        static_assert((int)FilterAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
+
+        enum class AuxLink : uint8_t
+        {
+            // THESE ARE USED AS INDICES 0-3
+            Aux1,
+            Aux2,
+            Aux3,
+            Aux4,
+            Count,
+        };
+        #define AUX_LINK_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxLink::Count] { \
+            "Aux 1", \
+			"Aux 2", \
+			"Aux 3", \
+            "Aux 4", \
+        }
+
+        enum class AuxRoute : uint8_t
+        {
+            // A -- aux1 - aux2 --------------- L
+            // B ---------------- aux3 - aux4 - R
+            TwoTwo,
+
+            // A -- aux1 - aux2 - aux3 -------- L
+            // B ----------------------- aux4 - R
+            ThreeOne,
+
+            // A -- aux1 - aux2 - aux3 - aux4 - L
+            // B -------------------------------R
+            FourZero,
+
+            Count,
+        };
+        #define AUX_ROUTE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxRoute::Count] { \
+            "TwoTwo", \
+			"ThreeOne", \
+			"FourZero", \
+        }
+
+        enum class AuxEffectType : uint8_t
+        {
+            None,
+            BigFilter,
+            Count,
+        };
+        #define AUX_EFFECT_TYPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxEffectType::Count] { \
+            "None", \
+			"BigFilter", \
+        }
+
+        struct IAuxEffect
+        {
+            float* mpAuxParams;
+            explicit IAuxEffect(float* auxParams) : mpAuxParams(auxParams)
+            {}
+            virtual ~IAuxEffect() {}
+            virtual void AuxBeginBlock(float noteHz, int nSamples) = 0;
+            virtual float AuxProcessSample(float inp) = 0;
         };
 
     } // namespace M7

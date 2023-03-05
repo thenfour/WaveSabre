@@ -126,11 +126,49 @@ namespace WaveSabreCore
                 mSelectedModel = ctype;
             }
 
-			real_t ProcessSample(real_t inputSample)
+            float ProcessSample(float inputSample)
 			{
 				return mSelectedFilter->ProcessSample(inputSample);
 			}
-		};
+
+		}; // FilterNode
+
+
+        struct FilterAuxNode : IAuxEffect
+        {
+            FilterNode mFilter;
+
+            EnumParam<FilterModel> mFilterTypeParam; // FilterType,
+            Float01Param mFilterQParam;// FilterQ,
+            Float01Param mFilterSaturationParam;// FilterSaturation,
+            FrequencyParam mFilterFreqParam;// FilterFrequency,// FilterFrequencyKT,
+
+            FilterAuxNode(float* auxParams) :
+                IAuxEffect(auxParams),
+                mFilterTypeParam(auxParams[(int)FilterAuxParamIndexOffsets::FilterType], FilterModel::Count),
+                mFilterQParam(auxParams[(int)FilterAuxParamIndexOffsets::Q]),
+                mFilterSaturationParam(auxParams[(int)FilterAuxParamIndexOffsets::Saturation]),
+                mFilterFreqParam(auxParams[(int)FilterAuxParamIndexOffsets::Freq], auxParams[(int)FilterAuxParamIndexOffsets::FreqKT], gFilterCenterFrequency, gFilterFrequencyScale)
+            {}
+
+            virtual void AuxBeginBlock(float noteHz, int nSamples) override
+            {
+                mFilter.SetParams(
+                    // TODO: apply mods
+                    mFilterTypeParam.GetEnumValue(),
+                    mFilterFreqParam.GetFrequency(noteHz, 0),
+                    mFilterQParam.Get01Value(0),
+                    mFilterSaturationParam.Get01Value(0)
+                );
+            }
+
+            virtual float AuxProcessSample(float inputSample) override
+            {
+                return mFilter.ProcessSample(inputSample);
+            }
+
+        };
+
 	} // namespace M7
 
 
