@@ -1465,12 +1465,17 @@ namespace WaveSabreCore
             // B -------------------------------R
             FourZero,
 
+            // A -- aux1 - aux2 - aux3 - aux4 - L
+            // B -^                             R
+            SerialMono,
+
             Count,
         };
         #define AUX_ROUTE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxRoute::Count] { \
             "TwoTwo", \
 			"ThreeOne", \
 			"FourZero", \
+			"Serial (mono)", \
         }
 
         enum class AuxEffectType : uint8_t

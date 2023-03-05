@@ -242,6 +242,8 @@ public:
 			};
 
 			switch (routing) {
+			default:
+			case M7::AuxRoute::SerialMono:
 			case M7::AuxRoute::FourZero:
 				break;
 			case M7::AuxRoute::ThreeOne:

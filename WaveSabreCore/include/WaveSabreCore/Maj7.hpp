@@ -102,6 +102,9 @@ namespace WaveSabreCore
 			// nullptr is a valid return val for safe null effect.
 			IAuxEffect* CreateEffect() const
 			{
+				if (!mEnabledParam.GetBoolValue()) {
+					return nullptr;
+				}
 				// ASSERT: not linked.
 				switch (mEffectType.GetEnumValue())
 				{
@@ -791,6 +794,16 @@ namespace WaveSabreCore
 							sl = mAux2.ProcessSample(sl);
 							sl = mAux3.ProcessSample(sl);
 							sl = mAux4.ProcessSample(sl);
+							break;
+						case AuxRoute::SerialMono:
+							// L = aux1 -> aux2 -> aux3 -> aux4 -> *
+							// R = 
+							// for the sake of being pleasant this swaps l/r channels as well for continuity with other settings
+							sl = mAux1.ProcessSample(sl);
+							sl = mAux2.ProcessSample(sl);
+							sl = mAux3.ProcessSample(sl);
+							sr = mAux4.ProcessSample(sl);
+							sl = 0;
 							break;
 						case AuxRoute::ThreeOne:
 							// L = aux1 -> aux2 -> aux3 -> *
