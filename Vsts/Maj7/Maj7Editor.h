@@ -416,7 +416,6 @@ public:
 		ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
 
 		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::Maj7::gLFOLPCenterFrequency, M7::Maj7::gLFOLPFrequencyScale, 0.5f);
-		//mLFO2FilterLP(owner->mParamCache[(int)ParamIndices::LFO2Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale)
 
 		//}
 		ImGui::PopID();
@@ -506,6 +505,9 @@ public:
 		case M7::AuxEffectType::BigFilter:
 			ret += " (Filter)";
 			break;
+		case M7::AuxEffectType::Distortion:
+			ret += " (Distortion)";
+			break;
 		default:
 			break;
 		}
@@ -528,15 +530,19 @@ public:
 			labels[3] += " (shadowed)";
 			return;
 		}
+		char const* const* suffixes;
 		switch (a.mEffectType.GetEnumValue())
 		{
 		case M7::AuxEffectType::BigFilter:
 		{
-			FILTER_AUX_MOD_SUFFIXES(suffixes);
-			labels[0] += suffixes[0];
-			labels[1] += suffixes[1];
-			labels[2] += suffixes[2];
-			labels[3] += suffixes[3];
+			FILTER_AUX_MOD_SUFFIXES(xsuffixes);
+			suffixes = xsuffixes;
+			break;
+		}
+		case M7::AuxEffectType::Distortion:
+		{
+			DISTORTION_AUX_MOD_SUFFIXES(xsuffixes);
+			suffixes = xsuffixes;
 			break;
 		}
 		default:
@@ -545,9 +551,14 @@ public:
 			labels[1] += " (n/a)";
 			labels[2] += " (n/a)";
 			labels[3] += " (n/a)";
-			break;
+			return;
 		}
-		}
+		} // switch
+
+		labels[0] += suffixes[0];
+		labels[1] += suffixes[1];
+		labels[2] += suffixes[2];
+		labels[3] += suffixes[3];
 	}
 
 	void ModulationSection(const char* labelWithID, M7::ModulationSpec& spec, int enabledParamID)
@@ -615,6 +626,31 @@ public:
 		ImGui::SameLine(0, 60); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
 	}
 
+	void AuxDistortion(const AuxInfo& auxInfo)
+	{
+		DISTORTION_STYLE_NAMES(styleNames);
+		Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::DistortionStyle, "Style##aux", (int)M7::DistortionStyle::Count, M7::DistortionStyle::Sine, styleNames);
+		ImGui::SameLine(); Maj7ImGuiParamVolume((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Drive, "Input vol##hc", M7::gDistortionAuxDriveMaxDb, 0.5f);
+		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Threshold, "Threshold##aux");
+		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Shape, "Shape##aux");
+		
+		ImGui::SameLine();
+		ImGuiContext& g = *GImGui;
+		const ImVec2 size = { 90,60 };
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const ImVec2 padding = g.Style.FramePadding;
+		const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size + padding * 2.0f);
+		
+		ImGui::ItemSize(bb);
+		if (!ImGui::ItemAdd(bb, window->GetID(auxInfo.mIndex))) {
+			return;
+		}
+
+		AuxDistortionGraphic(bb, auxInfo.mIndex);
+
+		ImGui::SameLine(); Maj7ImGuiParamVolume((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::OutputVolume, "Output vol##hc", 0, 0.5f);
+	}
+
 	void AuxEffectTab(const char* idSuffix, int iaux, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[])
 	{
 		AUX_LINK_CAPTIONS(auxLinkCaptions);
@@ -635,15 +671,22 @@ public:
 
 			ImGui::SameLine(); Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, "Link", (int)M7::AuxLink::Count, auxInfo.mSelfLink, auxLinkCaptions);
 
+
+			{
+				ColorMod& cm = (a.IsLinkedExternally()) ? *auxTabDisabledColors[auxInfo.mIndex] : mNopColors;
+				auto colorToken = cm.Push();
+
+				ImGui::SameLine(); Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, "Effect", (int)M7::AuxEffectType::Count, M7::AuxEffectType::None, auxEffectTypeCaptions);
+			}
+
 			ImGui::SameLine();
 			ImGui::BeginGroup();
 
-			if (ImGui::Button("Swap with...")) {
+			if (ImGui::SmallButton("Swap with...")) {
 				ImGui::OpenPopup("selectAuxSwap");
 			}
 
-			//ImGui::SameLine();
-			if (ImGui::Button("Copy from...")) {
+			if (ImGui::SmallButton("Copy from...")) {
 				ImGui::OpenPopup("selectAuxCopyFrom");
 			}
 			ImGui::EndGroup();
@@ -742,12 +785,9 @@ public:
 				ImGui::EndPopup();
 			}
 
-
 			{
 				ColorMod& cm = (a.IsLinkedExternally()) ? *auxTabDisabledColors[auxInfo.mIndex] : mNopColors;
 				auto colorToken = cm.Push();
-
-				ImGui::SameLine(); Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, "Effect", (int)M7::AuxEffectType::Count, M7::AuxEffectType::None, auxEffectTypeCaptions);
 
 				switch (a.mEffectType.GetEnumValue())
 				{
@@ -756,6 +796,9 @@ public:
 					break;
 				case M7::AuxEffectType::BigFilter:
 					AuxFilter(auxInfo);
+					break;
+				case M7::AuxEffectType::Distortion:
+					AuxDistortion(auxInfo);
 					break;
 				}
 			}
@@ -873,6 +916,54 @@ public:
 				ImGui::PopID();
 			}
 			ImGui::EndPopup();
+		}
+	} // waveform param
+
+	void AuxDistortionGraphic(ImRect bb, int iaux)
+	{
+		float innerHeight = bb.GetHeight() - 4;
+
+		ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
+		ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
+
+		auto drawList = ImGui::GetWindowDrawList();
+
+		auto sampleToY = [&](float sample) {
+			float c = outerBR.y - float(bb.GetHeight()) * 0.5f;
+			float h = float(innerHeight) * 0.5f * sample;
+			return c - h;
+		};
+
+		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
+		M7::AuxNode an = GetDummyAuxNode(paramValues, iaux);
+		auto pdist = an.CreateEffect();
+		if (pdist == nullptr)
+		{
+			//ImGui::Text("Error creating distortion node."); its normal when aux is disabled.
+			return;
+		}
+		size_t nSamples = (size_t)bb.GetWidth();
+		M7::ModMatrixNode mm;
+		pdist->AuxBeginBlock(0, (int)nSamples, mm);
+
+		std::vector<float> wave;
+		wave.reserve(nSamples);
+		float maxRectify = 0.001f;
+		for (size_t iSample = 0; iSample < nSamples; ++iSample)
+		{
+			float s = M7::Fract(float(iSample) / nSamples) * 2 - 1;
+			s = pdist->AuxProcessSample(s);
+			maxRectify = std::max(maxRectify, std::abs(s));
+			wave.push_back(s);
+		}
+
+		ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f); // background
+		float centerY = sampleToY(0);
+		drawList->AddLine({ outerTL.x, centerY }, { outerBR.x, centerY }, ImGui::GetColorU32(ImGuiCol_PlotLines), 2.0f);// center line
+		for (size_t iSample = 0; iSample < nSamples; ++iSample)
+		{
+			float s = wave[iSample] / maxRectify;
+			drawList->AddLine({ outerTL.x + iSample, centerY }, { outerTL.x + iSample, sampleToY(s) }, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
 		}
 	}
 

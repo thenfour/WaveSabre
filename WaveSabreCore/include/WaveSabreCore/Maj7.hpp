@@ -1,15 +1,4 @@
-// TODO: multiple filters? or add a 1pole lowcut/highcut to each oscillator
-// TODO: S&H to each oscillator as well. i think an "insert" stage before filter could be appropriate, with balances for all osc.
-// adding params:
-// - S&H freq
-// - LCut
-// - Highcut
-// - osc1 balance
-// - osc2 balance
-// - osc3 balance
 // TODO: time sync for LFOs? it's more complex than i expected, because of the difference between live play & playback.
-// - lfo1 time basis
-// - lfo2 time basis
 // TODO: sampler engine & GM.DLS
 // the idea: if we are able to optimize unused params, then we benefit by including a sampler directly in Maj7.
 // because then all the routing and processing uses shared code and can even interoperate with the synths, D-50 style.
@@ -58,6 +47,8 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7Envelope.hpp>
 #include <WaveSabreCore/Maj7Filter.hpp>
+#include <WaveSabreCore/Maj7Distortion.hpp>
+#include <WaveSabreCore/Maj7Bitcrush.hpp>
 #include <WaveSabreCore/Maj7Oscillator.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
 
@@ -112,6 +103,8 @@ namespace WaveSabreCore
 					break;
 				case AuxEffectType::BigFilter:
 					return new FilterAuxNode(mParamCache_Offset, mModDestParam2ID);
+				case AuxEffectType::Distortion:
+					return new DistortionAuxNode(mParamCache_Offset, mModDestParam2ID);
 				}
 				return nullptr;
 			}
@@ -889,13 +882,6 @@ namespace WaveSabreCore
 
 					auto penv = GetEnvelopeForModulation(preFMAmpMod);
 					if (!penv) return false;
-					//int ampEnvSrcIndex = IntParam{ mpOwner->mParamCache[(int)ampSrcParam], 0, gOscillatorCount - 1 }.GetIntValue();
-					//const EnvelopeNode* ampEnvs[gOscillatorCount] = {
-					//	&mOsc1AmpEnv,
-					//	&mOsc2AmpEnv,
-					//	&mOsc3AmpEnv,
-					//};
-					//auto ampEnvSrc = ampEnvs[ampEnvSrcIndex];
 					return penv->IsPlaying();
 				}
 
@@ -906,7 +892,6 @@ namespace WaveSabreCore
 						|| OscillatorIsPlaying(2, ParamIndices::Osc3Enabled, mpOwner->mOscPreFMAmpModulations[2]);
 				}
 			};
-
 
 			struct Maj7Voice* mMaj7Voice[maxVoices] = { 0 };
 

@@ -333,13 +333,6 @@ namespace WaveSabreCore
             return math::pow2(x / 12.0f);
         }
 
-        // let MidiNoteToFrequency = function(midiNote) {
-        //   return 440 * Math.pow(2, (midiNote - 69) / 12);
-        // };
-        // let FrequencyToMidiNote = (hz) => {
-        //   return 12.0 * Math.log2(Math.max(8, hz) / 440) + 69;
-        // };
-
         inline float FrequencyToMIDINote(float hz)
         {
             float ret = 12.0f * math::log2(max(8.0f, hz) / 440) + 69;
@@ -1404,11 +1397,12 @@ namespace WaveSabreCore
             Count,
         };
 
+        // FILTER AUX INFO  ------------------------------------------------------------
         enum class FilterAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
         {
-            Enabled,
-            Link,
-            AuxType,
+            unused__Enabled,
+            unused__Link,
+            unused__AuxType,
             FilterType, // filter type
             // FROM here, must be identical to FilterAuxModIndexOffsets (param2 - 5)
             Q, // filter Q
@@ -1434,7 +1428,39 @@ namespace WaveSabreCore
             " (n/a)", \
         }
 
+        // DISTORTION AUX INFO  ------------------------------------------------------------
+        enum class DistortionAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
+        {
+            unused__Enabled,
+            unused__Link,
+            unused__AuxType,
+            DistortionStyle, // param 1
+            // FROM here, must be identical to DistortionAuxModIndexOffsets (param2 - 5)
+            Drive, // param 2
+            Threshold, // param 3
+            Shape, // param 4
+            OutputVolume, // param 5
+            Count,
+        };
 
+        enum class DistortionAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+        {
+            Drive, // param 2
+            Threshold, // param 3
+            Shape, // param 4
+            OutputVolume, // param 5
+            Count,
+        };
+        static_assert((int)DistortionAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
+#define DISTORTION_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::DistortionAuxModIndexOffsets::Count] { \
+            " (Dist gain)", \
+			" (Dist threshold)", \
+			" (Dist shape)", \
+            " (n/a)", \
+        }
+
+
+        // ------------------------------------------------------------
         enum class AuxLink : uint8_t
         {
             // THESE ARE USED AS INDICES 0-3
@@ -1482,11 +1508,13 @@ namespace WaveSabreCore
         {
             None,
             BigFilter,
+            Distortion,
             Count,
         };
         #define AUX_EFFECT_TYPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxEffectType::Count] { \
             "None", \
 			"BigFilter", \
+			"Distortion", \
         }
 
         struct IAuxEffect
