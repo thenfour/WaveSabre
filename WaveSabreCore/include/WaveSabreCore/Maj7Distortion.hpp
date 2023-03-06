@@ -167,7 +167,7 @@ namespace WaveSabreCore
                     s *= mLiveInputMul;
                     s /= mLiveThreshold;
                     s = Clamp(s, -1, 1);
-                    s = modCurve_xN11_kN11(s, mLiveShape * 2 - 1);
+                    s = modCurve_xN11_kN11(s, mLiveShape * 2 - 1); // invokes 4 pow() calls; i'd like to find an alternative although this sounds pretty dope
                     break;
                 }
                 case DistortionStyle::Hyperbolic:

@@ -105,6 +105,8 @@ namespace WaveSabreCore
 					return new FilterAuxNode(mParamCache_Offset, mModDestParam2ID);
 				case AuxEffectType::Distortion:
 					return new DistortionAuxNode(mParamCache_Offset, mModDestParam2ID);
+				case AuxEffectType::Bitcrush:
+					return new BitcrushAuxNode(mParamCache_Offset, mModDestParam2ID);
 				}
 				return nullptr;
 			}
@@ -340,7 +342,7 @@ namespace WaveSabreCore
 				a2.mEffectType.SetEnumValue(AuxEffectType::BigFilter);
 				a2.mEnabledParam.SetBoolValue(true);
 				AuxNode a3{ AuxLink::Aux3, mParamCache + (int)ParamIndices::Aux3Enabled, 0 };
-				a3.mLink.SetEnumValue(a3.mLinkToSelf);
+				a3.mLink.SetEnumValue(a1.mLinkToSelf);
 				AuxNode a4{ AuxLink::Aux4, mParamCache + (int)ParamIndices::Aux4Enabled, 0 };
 				a4.mLink.SetEnumValue(AuxLink::Aux2);
 				a4.mEnabledParam.SetBoolValue(true);

@@ -508,6 +508,9 @@ public:
 		case M7::AuxEffectType::Distortion:
 			ret += " (Distortion)";
 			break;
+		case M7::AuxEffectType::Bitcrush:
+			ret += " (Bitcrush)";
+			break;
 		default:
 			break;
 		}
@@ -542,6 +545,12 @@ public:
 		case M7::AuxEffectType::Distortion:
 		{
 			DISTORTION_AUX_MOD_SUFFIXES(xsuffixes);
+			suffixes = xsuffixes;
+			break;
+		}
+		case M7::AuxEffectType::Bitcrush:
+		{
+			BITCRUSH_AUX_MOD_SUFFIXES(xsuffixes);
 			suffixes = xsuffixes;
 			break;
 		}
@@ -624,6 +633,12 @@ public:
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "KT##filt");
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Q, "Q##filt");
 		ImGui::SameLine(0, 60); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
+	}
+
+	void AuxBitcrush(const AuxInfo& auxInfo)
+	{
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gBitcrushFreqCenterFreq, M7::gBitcrushFreqRange, 0.4f);
+		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "KT##filt");
 	}
 
 	void AuxDistortion(const AuxInfo& auxInfo)
@@ -799,6 +814,9 @@ public:
 					break;
 				case M7::AuxEffectType::Distortion:
 					AuxDistortion(auxInfo);
+					break;
+				case M7::AuxEffectType::Bitcrush:
+					AuxBitcrush(auxInfo);
 					break;
 				}
 			}
