@@ -2,6 +2,7 @@
 #include <WaveSabreCore/Helpers.h>
 
 #include <math.h>
+#include <algorithm>
 
 namespace WaveSabreCore
 {
@@ -38,8 +39,8 @@ namespace WaveSabreCore
 		float attackScalar = envCoeff / attack;
 		float releaseScalar = envCoeff / release;
 
-		float thresholdScalar = Helpers::DbToScalar(threshold);
-
+		thresholdScalar = Helpers::DbToScalar(threshold);
+		outputPeak = 0;
 		for (int i = 0; i < numSamples; i++)
 		{
 			leftBuffer.WriteSample(inputs[0][i] * inputGainScalar);
@@ -48,7 +49,7 @@ namespace WaveSabreCore
 			float inputRight = inputs[inputChannelOffset + 1][i] * inputGainScalar;
 			float inputLeftLevel = fabsf(inputLeft);
 			float inputRightLevel = fabsf(inputRight);
-			float inputLevel = inputLeftLevel >= inputRightLevel ? inputLeftLevel : inputRightLevel;
+			inputLevel = inputLeftLevel >= inputRightLevel ? inputLeftLevel : inputRightLevel;
 
 			if (inputLevel > peak)
 			{
@@ -61,11 +62,16 @@ namespace WaveSabreCore
 				if (peak < inputLevel) peak = inputLevel;
 			}
 
-			float gainScalar = outputGainScalar;
-			if (peak > thresholdScalar) gainScalar *= (thresholdScalar + (peak - thresholdScalar) / ratio) / peak;
+			gainScalar = outputGainScalar;
+			if (peak > thresholdScalar) {
+				atten = (thresholdScalar + (peak - thresholdScalar) / ratio) / peak;
+				gainScalar *= atten;
+			}
 
 			outputs[0][i] = leftBuffer.ReadSample() * gainScalar;
+			outputPeak = std::max(outputPeak, fabsf(outputs[0][i]));
 			outputs[1][i] = rightBuffer.ReadSample() * gainScalar;
+			outputPeak = std::max(outputPeak, fabsf(outputs[1][i]));
 		}
 	}
 

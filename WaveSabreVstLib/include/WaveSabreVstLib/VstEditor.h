@@ -40,7 +40,7 @@ namespace WaveSabreVstLib
 		static constexpr double gNormalKnobSpeed = 0.003f;
 		static constexpr double gSlowKnobSpeed = 0.00002f;
 
-		VstEditor(AudioEffect *audioEffect, int width, int height);
+		VstEditor(AudioEffect* audioEffect, int width, int height);
 		virtual ~VstEditor();
 
 		virtual void Window_Open(HWND parent);
@@ -58,7 +58,7 @@ namespace WaveSabreVstLib
 		bool open(void* ptr) override
 		{
 			AEffEditor::open(ptr);
-			Window_Open((HWND)ptr); 
+			Window_Open((HWND)ptr);
 			return true;
 		}
 
@@ -350,7 +350,7 @@ namespace WaveSabreVstLib
 				}
 				break;
 			}
-			
+
 			case ParamBehavior::Frequency:
 			{
 				static FrequencyConverter conv;
@@ -417,11 +417,11 @@ namespace WaveSabreVstLib
 
 		ImVec2 CalcListBoxSize(float items)
 		{
-			return { 0.0f, ImGui::GetTextLineHeightWithSpacing() * items + ImGui::GetStyle().FramePadding.y * 2.0f};
+			return { 0.0f, ImGui::GetTextLineHeightWithSpacing() * items + ImGui::GetStyle().FramePadding.y * 2.0f };
 		}
 
 		//template<typename Tenum>
-		void WSImGuiParamEnumList(VstInt32 paramID, const char* ctrlLabel, int elementCount, const char * const * const captions) {
+		void WSImGuiParamEnumList(VstInt32 paramID, const char* ctrlLabel, int elementCount, const char* const* const captions) {
 			//const char* captions[] = { "LP", "HP", "BP","Notch" };
 
 			float paramValue = GetEffectX()->getParameter((VstInt32)paramID);
@@ -464,12 +464,12 @@ namespace WaveSabreVstLib
 		}
 
 		void WSImGuiParamVoiceMode(VstInt32 paramID, const char* ctrlLabel) {
-			static constexpr char const * const captions[] = { "Poly", "Mono" };
+			static constexpr char const* const captions[] = { "Poly", "Mono" };
 			WSImGuiParamEnumList(paramID, ctrlLabel, 2, captions);
 		}
 
 		void WSImGuiParamFilterType(VstInt32 paramID, const char* ctrlLabel) {
-			static constexpr char const * const captions[] = { "LP", "HP", "BP","Notch" };
+			static constexpr char const* const captions[] = { "LP", "HP", "BP","Notch" };
 			WSImGuiParamEnumList(paramID, ctrlLabel, 4, captions);
 		}
 
@@ -477,7 +477,7 @@ namespace WaveSabreVstLib
 		template<typename Tenum, typename TparamID, typename Tcount>
 		void Maj7ImGuiParamEnumList(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions) {
 			M7::real_t tempVal;
-			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0) );
+			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0));
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 			auto friendlyVal = p.GetEnumValue();// ParamToEnum(paramValue, elementCount); //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
 			int enumIndex = (int)friendlyVal;
@@ -758,7 +758,7 @@ namespace WaveSabreVstLib
 			ImVec2 decayEnd = { holdEnd.x + decayWidth, innerTL.y + sustainYOffset };
 			AddCurveToPath(dl, holdEnd, { decayEnd.x - holdEnd.x, decayEnd.y - holdEnd.y }, true, true, decayCurve, lineColor, gLineThickness);
 
-			ImVec2 sustainEnd = { decayEnd.x + sustainWidth, decayEnd.y};
+			ImVec2 sustainEnd = { decayEnd.x + sustainWidth, decayEnd.y };
 			//dl->PathLineTo(sustainEnd); // sustain flat line
 			dl->AddLine(decayEnd, sustainEnd, lineColor, gLineThickness);
 
@@ -800,8 +800,8 @@ namespace WaveSabreVstLib
 
 	protected:
 
-		VstKeyCode mLastKeyDown = {0};
-		VstKeyCode mLastKeyUp = {0};
+		VstKeyCode mLastKeyDown = { 0 };
+		VstKeyCode mLastKeyUp = { 0 };
 
 		VstPlug* GetEffectX() {
 			return static_cast<VstPlug*>(this->effect);
@@ -828,7 +828,7 @@ namespace WaveSabreVstLib
 			ImGuiContext* mPrevContext = nullptr;
 			bool pushed = false;
 			const char* mWhy;
-			GuiContextRestorer(ImGuiContext* newContext, const char *why) : mWhy(why)/*, mls(why)*/ {
+			GuiContextRestorer(ImGuiContext* newContext, const char* why) : mWhy(why)/*, mls(why)*/ {
 				mPrevContext = ImGui::GetCurrentContext();
 				//cc::log("pushing context; %p  ==>  %p", mPrevContext);
 				if (mPrevContext == newContext) {
@@ -853,6 +853,133 @@ namespace WaveSabreVstLib
 				ImGui::SetCurrentContext(mPrevContext);
 			}
 		};
+
+		// stolen from ImGui::ColorEdit4
+		ImColor ColorFromHTML(const char* buf)
+		{
+			int i[4] = { 0 };
+			const char* p = buf;
+			while (*p == '#' || ImCharIsBlankA(*p))
+				p++;
+			i[0] = i[1] = i[2] = 0;
+			i[3] = 0xFF; // alpha default to 255 is not parsed by scanf (e.g. inputting #FFFFFF omitting alpha)
+			int r = sscanf(p, "%02X%02X%02X", (unsigned int*)&i[0], (unsigned int*)&i[1], (unsigned int*)&i[2]);
+			float f[4] = { 0 };
+			for (int n = 0; n < 4; n++)
+				f[n] = i[n] / 255.0f;
+			return ImColor{ f[0], f[1], f[2], f[3] };
+		}
+
+		enum class VUMeterFlags
+		{
+			InputIsLinear = 1,
+			InputIsDecibels = 2,
+			AttenuationMode = 4,
+			LevelMode = 8,
+			NoText = 16,
+			NoForeground = 32,
+		};
+
+		struct VUMeterColors
+		{
+			ImColor background;
+			ImColor foreground;
+			ImColor text;
+			ImColor tick;
+			ImColor clipTick;
+		};
+
+		void VUMeter(float inpVal, VUMeterFlags flags)
+		{
+			float inpdb = inpVal;
+
+			if ((int)flags & (int)VUMeterFlags::InputIsLinear) {
+				inpdb = M7::LinearToDecibels(::fabsf(inpVal));
+			}
+			bool clip = inpdb > 0;
+
+			VUMeterColors colors;
+			if ((int)flags & (int)VUMeterFlags::LevelMode)
+			{
+				colors.background = ColorFromHTML("2b321c");
+				colors.foreground = ColorFromHTML("6c9b0a");
+				colors.text = ColorFromHTML("ffffff");
+				colors.tick = ColorFromHTML("00ffff");
+				colors.clipTick = ColorFromHTML("ff0000");
+			} else if ((int)flags & (int)VUMeterFlags::AttenuationMode)
+			{
+				colors.background = ColorFromHTML("462e2e");
+				colors.foreground = ColorFromHTML("ed4d4d");
+				colors.text = ColorFromHTML("ffffff");
+				colors.tick = ColorFromHTML("00ffff");
+				colors.clipTick = ColorFromHTML("ff0000");
+			}
+			colors.text.Value.w = 0.25f;
+			colors.tick.Value.w = 0.35f;
+			colors.clipTick.Value.w = 0.8f;
+
+			ImVec2 size = { 44, 300 };
+			ImRect bb;
+			bb.Min = ImGui::GetCursorPos();
+			bb.Max = bb.Min + size;
+			ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
+
+			auto DbToY = [&](float db) {
+				// let's show a range of -60 to 0 db.
+				float x = (db + 60) / 60;
+				x = Clamp01(x);
+				return M7::Lerp(bb.Max.y, bb.Min.y, x);
+			};
+
+			auto* dl = ImGui::GetWindowDrawList();
+			float levelY = DbToY(inpdb);
+
+			ImRect forebb = bb;
+			if ((int)flags & (int)VUMeterFlags::LevelMode)
+			{
+				forebb.Min.y = levelY;
+			}
+			if ((int)flags & (int)VUMeterFlags::AttenuationMode)
+			{
+				forebb.Max.y = levelY;
+			}
+
+			if (!((int)flags & (int)VUMeterFlags::NoForeground)) {
+				dl->AddRectFilled(forebb.Min, forebb.Max, colors.foreground);
+			}
+
+			// draw thresh
+			ImRect threshbb = bb;
+			threshbb.Min.y = threshbb.Max.y = levelY;
+			float tickHeight = clip ? 40 : 2;
+			//threshbb.Min.y -= tickHeight * .5f;
+			threshbb.Max.y += tickHeight;
+			dl->AddRectFilled(threshbb.Min, threshbb.Max, clip ? colors.clipTick : colors.tick);
+
+			// draw plot lines
+			auto drawTick = [&](float tickdb, const char* txt) {
+				//float ticklin = M7::DecibelsToLinear(db);
+				ImRect tickbb = forebb;
+				tickbb.Min.y = DbToY(tickdb);
+				tickbb.Max.y = tickbb.Min.y;
+				dl->AddLine(tickbb.Min, tickbb.Max, colors.text);
+				if (!((int)flags & (int)VUMeterFlags::NoText)) {
+					dl->AddText({ tickbb.Min.x, tickbb.Min.y }, colors.text, txt);
+				}
+			};
+
+			drawTick(-3, "-3db");
+			drawTick(-6, "-6db");
+			drawTick(-9, "-9db");
+			drawTick(-12, "-12db");
+			drawTick(-18, "-18db");
+			drawTick(-24, "-24db");
+			drawTick(-30, "-30db");
+			drawTick(-40, "-40db");
+			drawTick(-50, "-50db");
+
+			ImGui::Dummy(size);
+		}
 
 		GuiContextRestorer PushMyImGuiContext(const char *why) {
 			return { mImGuiContext, why };

@@ -10,8 +10,9 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 	return new SmasherVst(audioMaster);
 }
 
-SmasherVst::SmasherVst(audioMasterCallback audioMaster)
-	: VstPlug(audioMaster, (int)Smasher::ParamIndices::NumParams, 4, 2, 'Smsh', new Smasher())
+SmasherVst::SmasherVst(audioMasterCallback audioMaster) :
+	VstPlug(audioMaster, (int)Smasher::ParamIndices::NumParams, 4, 2, 'Smsh', new Smasher()),
+	mpSmasher(static_cast<Smasher*>(this->getDevice()))
 {
 	setEditor(new SmasherEditor(this));
 }

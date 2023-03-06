@@ -30,18 +30,25 @@ namespace WaveSabreCore
 		virtual void SetParam(int index, float value);
 		virtual float GetParam(int index) const;
 
+		float gainScalar; // compression gain
+		float inputLevel;  // input peak level
+		float peak; // peak used for compression trig
+		float outputPeak; // level
+		float atten;
+		float thresholdScalar;
+
 	private:
 		const static float lookaheadMs;
 
 		bool sidechain;
+		float threshold; // DB
 		float inputGain;
-		float threshold, ratio;
+		float ratio;
 		float attack, release;
 		float outputGain;
 
 		DelayBuffer leftBuffer;
 		DelayBuffer rightBuffer;
-		float peak;
 	};
 }
 

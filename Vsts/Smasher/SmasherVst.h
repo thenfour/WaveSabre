@@ -7,6 +7,7 @@ using namespace WaveSabreVstLib;
 class SmasherVst : public VstPlug
 {
 public:
+	class Smasher* mpSmasher;
 	SmasherVst(audioMasterCallback audioMaster);
 
 	virtual void getParameterName(VstInt32 index, char *text);
