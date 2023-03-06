@@ -128,6 +128,47 @@ public:
 
 	ColorMod mNopColors;
 
+	bool BeginTabBar2(const char* str_id, ImGuiTabBarFlags flags, float columns)
+	{
+		tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
+		ImGuiContext& g = *GImGui;
+		ImGuiWindow* window = g.CurrentWindow;
+		ImGuiID id = window->GetID(str_id);
+		ImGuiTabBar* tab_bar = g.TabBars.GetOrAddByKey(id);
+		// only change to original is shrinking workrect max and adding X cursor pos for side-by-side.
+		ImRect tab_bar_bb = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x / columns), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
+		tab_bar->ID = id;
+		return ImGui::BeginTabBarEx(tab_bar, tab_bar_bb, flags | ImGuiTabBarFlags_IsFocused);
+	}
+
+	ImU32 tabBarStoredSeparatorColor;
+
+	bool WSBeginTabItem(const char* label, bool* p_open = 0, ImGuiTabItemFlags flags = 0)
+	{
+		if (ImGui::BeginTabItem(label, p_open, flags)) {
+			tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
+			return true;
+		}
+		return false;
+	}
+
+	void EndTabBarWithColoredSeparator()
+	{
+		ImGuiContext& g = *GImGui;
+		ImGuiWindow* window = g.CurrentWindow;
+		ImGuiTabBar* tab_bar = g.CurrentTabBar;
+		const ImU32 col = tabBarStoredSeparatorColor;// ImGui::GetColorU32(ImGuiCol_PlotHistogram);
+		const float y = tab_bar->BarRect.Max.y - 1.0f;
+		{
+			const float separator_min_x = tab_bar->BarRect.Min.x - M7::math::floor(window->WindowPadding.x * 0.5f);
+			const float separator_max_x = tab_bar->BarRect.Max.x + M7::math::floor(window->WindowPadding.x * 0.5f);
+			window->DrawList->AddLine(ImVec2(separator_min_x, y), ImVec2(separator_max_x, y), col, 2.6f);
+		}
+
+		ImGui::EndTabBar();
+	}
+
+
 	virtual void renderImgui() override
 	{
 		mModulationsColors.EnsureInitialized();
@@ -196,33 +237,41 @@ public:
 			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, 0);
 			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, 1);
 			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, 2);
-			ImGui::EndTabBar();
+			EndTabBarWithColoredSeparator();
 		}
 
-		if (ImGui::BeginTabBar("FM", ImGuiTabBarFlags_None))
+		ImGui::BeginTable("##fmaux", 2);
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+
+		//ImGui::BeginGroup();
+		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 2.2f))
 		{
 			auto colorModToken = mCyanColors.Push();
-			if (ImGui::BeginTabItem("Phase Modulation")) {
-				WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
-				ImGui::SameLine(0, 60);	WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
+			if (WSBeginTabItem("Phase Mod Matrix")) {
+				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
+				ImGui::SameLine(0, 60);	Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
 
-				WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
+				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
 
-				WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
-				ImGui::SameLine(); WSImGuiParamKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
-
+				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
 				ImGui::EndTabItem();
 			}
-			ImGui::EndTabBar();
+			EndTabBarWithColoredSeparator();
 		}
+		//ImGui::EndGroup();
+
+		ImGui::TableNextColumn();
 
 		// aux
-		if (ImGui::BeginTabBar("aux", ImGuiTabBarFlags_None))
+		//ImGui::SameLine();
+		if (BeginTabBar2("aux", ImGuiTabBarFlags_None, 2.2f))
 		{
 			float routingBacking = GetEffectX()->getParameter((int)M7::ParamIndices::AuxRouting);
 			M7::AuxRoute routing = M7::EnumParam<M7::AuxRoute>{ routingBacking, M7::AuxRoute::Count }.GetEnumValue();
@@ -263,34 +312,38 @@ public:
 			AuxEffectTab("Aux2", 1, auxTabColors, auxTabDisabledColors);
 			AuxEffectTab("Aux3", 2, auxTabColors, auxTabDisabledColors);
 			AuxEffectTab("Aux4", 3, auxTabColors, auxTabDisabledColors);
-			ImGui::EndTabBar();
+
+			EndTabBarWithColoredSeparator();
 		}
+
+		ImGui::EndTable();
+
 
 		// modulation shapes
 		if (ImGui::BeginTabBar("envelopetabs", ImGuiTabBarFlags_None))
 		{
 			auto modColorModToken = mModulationsColors.Push();
-			if (ImGui::BeginTabItem("Mod env 1"))
+			if (WSBeginTabItem("Mod env 1"))
 			{
 				Envelope("Modulation Envelope 1", (int)M7::ParamIndices::Env1DelayTime);
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("Mod env 2"))
+			if (WSBeginTabItem("Mod env 2"))
 			{
 				Envelope("Modulation Envelope 2", (int)M7::ParamIndices::Env2DelayTime);
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("LFO 1"))
+			if (WSBeginTabItem("LFO 1"))
 			{
 				LFO("LFO 1", (int)M7::ParamIndices::LFO1Waveform);
 				ImGui::EndTabItem();
 			}
-			if (ImGui::BeginTabItem("LFO 2"))
+			if (WSBeginTabItem("LFO 2"))
 			{
 				LFO("LFO 2", (int)M7::ParamIndices::LFO2Waveform);
 				ImGui::EndTabItem();
 			}
-			ImGui::EndTabBar();
+			EndTabBarWithColoredSeparator();
 		}
 
 		if (ImGui::BeginTabBar("modspectabs", ImGuiTabBarFlags_None))
@@ -303,12 +356,12 @@ public:
 			ModulationSection("Mod 6", this->pMaj7->mModulations[5], (int)M7::ParamIndices::Mod6Enabled);
 			ModulationSection("Mod 7", this->pMaj7->mModulations[6], (int)M7::ParamIndices::Mod7Enabled);
 			ModulationSection("Mod 8", this->pMaj7->mModulations[7], (int)M7::ParamIndices::Mod8Enabled);
-			ImGui::EndTabBar();
+			EndTabBarWithColoredSeparator();
 		}
 
 		if (ImGui::BeginTabBar("macroknobs", ImGuiTabBarFlags_None))
 		{
-			if (ImGui::BeginTabItem("Macros"))
+			if (WSBeginTabItem("Macros"))
 			{
 				WSImGuiParamKnob((int)M7::ParamIndices::Macro1, "Macro 1");
 				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro2, "Macro 2");
@@ -316,7 +369,7 @@ public:
 				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro4, "Macro 4");
 				ImGui::EndTabItem();
 			}
-			ImGui::EndTabBar();
+			EndTabBarWithColoredSeparator();
 		}
 
 		ImGui::SeparatorText("Inspector");
@@ -359,7 +412,7 @@ public:
 		ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
 		auto token = cm.Push();
 
-		if (ImGui::BeginTabItem(labelWithID)) {
+		if (WSBeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::OscillatorNode::gVolumeMaxDb, 0);
 
@@ -591,7 +644,7 @@ public:
 		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mPinkColors : mModulationsColors) : mModulationDisabledColors;
 		auto token = cm.Push();
 
-		if (ImGui::BeginTabItem(labelWithID))
+		if (WSBeginTabItem(labelWithID))
 		{
 			ImGui::BeginDisabled(isLocked);
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
@@ -637,7 +690,7 @@ public:
 
 	void AuxBitcrush(const AuxInfo& auxInfo)
 	{
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gBitcrushFreqCenterFreq, M7::gBitcrushFreqRange, 0.4f);
+		Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gBitcrushFreqCenterFreq, M7::gBitcrushFreqRange, 0.4f);
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "KT##filt");
 	}
 
@@ -679,18 +732,17 @@ public:
 
 		std::string labelWithID = GetAuxName(iaux, idSuffix);
 
-		if (ImGui::BeginTabItem(labelWithID.c_str()))
+		if (WSBeginTabItem(labelWithID.c_str()))
 		{
 			ImGui::PushID(iaux);
-			WSImGuiParamCheckbox((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, "Enabled");
 
-			ImGui::SameLine(); Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, "Link", (int)M7::AuxLink::Count, auxInfo.mSelfLink, auxLinkCaptions);
-
+			Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, "Link", (int)M7::AuxLink::Count, auxInfo.mSelfLink, auxLinkCaptions);
 
 			{
 				ColorMod& cm = (a.IsLinkedExternally()) ? *auxTabDisabledColors[auxInfo.mIndex] : mNopColors;
 				auto colorToken = cm.Push();
 
+				ImGui::SameLine(); WSImGuiParamCheckbox((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, "Enabled");
 				ImGui::SameLine(); Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, "Effect", (int)M7::AuxEffectType::Count, M7::AuxEffectType::None, auxEffectTypeCaptions);
 			}
 
@@ -954,7 +1006,7 @@ public:
 
 		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
 		M7::AuxNode an = GetDummyAuxNode(paramValues, iaux);
-		auto pdist = an.CreateEffect();
+		auto pdist = an.CreateEffect(nullptr);
 		if (pdist == nullptr)
 		{
 			//ImGui::Text("Error creating distortion node."); its normal when aux is disabled.

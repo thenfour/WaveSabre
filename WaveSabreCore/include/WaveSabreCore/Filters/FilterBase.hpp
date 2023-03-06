@@ -35,11 +35,11 @@ namespace WaveSabreCore
             if (overdrive_modded > Real(0.01) && overdrive_modded < Real1)
             {
                 // interpolate here so we have possibility of pure linear Processing
-                pio_input = pio_input * (Real1 - overdrive_modded) + overdrive_modded * math::tanh(pio_input, p_tanh_factor);
+                pio_input = pio_input * (Real1 - overdrive_modded) + overdrive_modded * math::tanh(pio_input * p_tanh_factor);
             }
             else if (overdrive_modded >= Real1)
             {
-                pio_input = math::tanh(overdrive_modded * pio_input, p_tanh_factor);
+                pio_input = math::tanh(overdrive_modded * pio_input * p_tanh_factor);
             }
         }
 

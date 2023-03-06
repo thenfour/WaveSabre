@@ -27,6 +27,9 @@ namespace WaveSabreCore
 
         static constexpr real_t gFilterCenterFrequency = 1000.0f;
         static constexpr real_t gFilterFrequencyScale = 10.0f;
+        static constexpr float MIN_DECIBEL_GAIN = -60.0f;
+
+        static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
 
         namespace fastmath
         {
@@ -176,7 +179,7 @@ namespace WaveSabreCore
                 return (real_t)Helpers::FastCos((double)x);
             }
             inline real_t tan(real_t x) {
-                return fastmath::fastertanfull(x);
+                return ::tanf(x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
             }
             inline real_t max(real_t x, real_t y) {
                 return x > y ? x : y;
@@ -187,9 +190,9 @@ namespace WaveSabreCore
             inline real_t tanh(real_t x) {
                 return fastmath::fastertanh(x);
             }
-            inline real_t tanh(real_t x, real_t y) { // used by saturation
-                return tanh(x * y);
-            }
+            //inline real_t tanh(real_t x, real_t y) { // used by saturation
+            //    return tanh(x * y);
+            //}
             inline float rand01() {
                 return float(::rand()) / RAND_MAX;
             }
@@ -283,8 +286,6 @@ namespace WaveSabreCore
             return -modCurve_x01_k01(x + 1, 1 + k);
         }
 
-        static constexpr float MIN_DECIBEL_GAIN = -60.0f;
-
         /**
          * Converts a linear value to decibels.  Returns <= aMinDecibels if the linear
          * value is 0.
@@ -304,8 +305,6 @@ namespace WaveSabreCore
                 return 0.0f;
             return lin;
         }
-
-        static const float gMinGainLinear = DecibelsToLinear(MIN_DECIBEL_GAIN);
 
         inline bool IsSilentGain(float gain)
         {

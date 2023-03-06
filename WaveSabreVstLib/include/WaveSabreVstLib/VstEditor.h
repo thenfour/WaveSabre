@@ -557,8 +557,20 @@ namespace WaveSabreVstLib
 			float defaultParamVal = p.Get01Value();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
-			ScaledFloatConverter conv{v_min, v_max};
+			ScaledFloatConverter conv{ v_min, v_max };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void Maj7ImGuiParamFMKnob(VstInt32 paramID, const char* label) {
+			WaveSabreCore::M7::real_t tempVal;
+			M7::Float01Param p{ tempVal };
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+			const float v_default = 0;
+			const float size = ImGui::GetTextLineHeight()* 2.5f;// default is 3.25f;
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, size, ImGuiKnobFlags_NoInput, 10, nullptr, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
