@@ -27,9 +27,17 @@ public:
 			if (ImGui::MenuItem("Panic", nullptr, false)) {
 				pMaj7->AllNotesOff();
 			}
+			ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector);
 			ImGui::EndMenu();
 		}
 	}
+
+	virtual std::string GetMenuBarStatusText() override 
+	{
+		std::string ret = " Voices:";
+		ret += std::to_string(pMaj7->GetCurrentPolyphony());
+		return ret;
+	};
 
 	struct ColorMod
 	{
@@ -128,19 +136,28 @@ public:
 
 	ColorMod mNopColors;
 
-	bool BeginTabBar2(const char* str_id, ImGuiTabBarFlags flags, float columns)
+	bool mShowingInspector = false;
+
+	bool BeginTabBar2(const char* str_id, ImGuiTabBarFlags flags, float columns = 1)
 	{
 		tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
 		ImGuiContext& g = *GImGui;
 		ImGuiWindow* window = g.CurrentWindow;
 		ImGuiID id = window->GetID(str_id);
 		ImGuiTabBar* tab_bar = g.TabBars.GetOrAddByKey(id);
-		// only change to original is shrinking workrect max and adding X cursor pos for side-by-side.
+		// Copied from imgui with changes:
+		// 1. shrinking workrect max for column support
+		// 2. adding X cursor pos for side-by-side positioning
+		// 3. pushing empty separator color so BeginTabBarEx doesn't display a separator line (we'll do it later).
 		ImRect tab_bar_bb = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x / columns), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
 		tab_bar->ID = id;
-		return ImGui::BeginTabBarEx(tab_bar, tab_bar_bb, flags | ImGuiTabBarFlags_IsFocused);
+		ImGui::PushStyleColor(ImGuiCol_TabActive, {});// : ImGuiCol_TabUnfocusedActive
+		bool ret = ImGui::BeginTabBarEx(tab_bar, tab_bar_bb, flags | ImGuiTabBarFlags_IsFocused);
+		ImGui::PopStyleColor(1);
+		return ret;
 	}
 
+	ImRect tabBarBB;
 	ImU32 tabBarStoredSeparatorColor;
 
 	bool WSBeginTabItem(const char* label, bool* p_open = 0, ImGuiTabItemFlags flags = 0)
@@ -157,15 +174,31 @@ public:
 		ImGuiContext& g = *GImGui;
 		ImGuiWindow* window = g.CurrentWindow;
 		ImGuiTabBar* tab_bar = g.CurrentTabBar;
-		const ImU32 col = tabBarStoredSeparatorColor;// ImGui::GetColorU32(ImGuiCol_PlotHistogram);
+		const ImU32 col = tabBarStoredSeparatorColor;
 		const float y = tab_bar->BarRect.Max.y - 1.0f;
-		{
-			const float separator_min_x = tab_bar->BarRect.Min.x - M7::math::floor(window->WindowPadding.x * 0.5f);
-			const float separator_max_x = tab_bar->BarRect.Max.x + M7::math::floor(window->WindowPadding.x * 0.5f);
-			window->DrawList->AddLine(ImVec2(separator_min_x, y), ImVec2(separator_max_x, y), col, 2.6f);
-		}
+
+		const float separator_min_x = tab_bar->BarRect.Min.x - M7::math::floor(window->WindowPadding.x * 0.5f);
+		const float separator_max_x = tab_bar->BarRect.Max.x + M7::math::floor(window->WindowPadding.x * 0.5f);
+
+		ImRect body_bb;
+		body_bb.Min = { separator_min_x, y };
+		body_bb.Max = { separator_max_x, window->DC.CursorPos.y };
+
+		ImColor c2 = { col };
+		float h, s, v;
+		ImGui::ColorConvertRGBtoHSV(c2.Value.x, c2.Value.y, c2.Value.z, h, s, v);
+		auto halfAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.5f);
+		auto lowAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.15f);
+
+		//window->DrawList->AddLine(ImVec2(separator_min_x, y), ImVec2(separator_max_x, y), col, 1.0f);
+
+		ImGui::GetBackgroundDrawList()->AddRectFilled(body_bb.Min, body_bb.Max, lowAlpha, 6, ImDrawFlags_RoundCornersAll);
+		ImGui::GetBackgroundDrawList()->AddRect(body_bb.Min, body_bb.Max, halfAlpha, 6, ImDrawFlags_RoundCornersAll);
 
 		ImGui::EndTabBar();
+
+		// add some bottom margin.
+		ImGui::Dummy({0, 7});
 	}
 
 
@@ -181,6 +214,15 @@ public:
 		mAuxRightColors.EnsureInitialized();
 		mAuxLeftDisabledColors.EnsureInitialized();
 		mAuxRightDisabledColors.EnsureInitialized();
+
+		{
+			auto& style = ImGui::GetStyle();
+			style.FramePadding.x = 7;
+			style.FramePadding.y = 5;
+			style.ItemSpacing.x = 6;
+			style.TabRounding = 5;
+			style.WindowPadding.x = 10;
+		}
 
 		//// color explorer
 		//static float colorHueVarAmt = 0;
@@ -232,7 +274,7 @@ public:
 		ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)M7::ParamIndices::AuxWidth, "AuxWidth", 1);
 
 		// osc1
-		if (ImGui::BeginTabBar("osc", ImGuiTabBarFlags_None))
+		if (BeginTabBar2("osc", ImGuiTabBarFlags_None))
 		{
 			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, 0);
 			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, 1);
@@ -320,7 +362,7 @@ public:
 
 
 		// modulation shapes
-		if (ImGui::BeginTabBar("envelopetabs", ImGuiTabBarFlags_None))
+		if (BeginTabBar2("envelopetabs", ImGuiTabBarFlags_None))
 		{
 			auto modColorModToken = mModulationsColors.Push();
 			if (WSBeginTabItem("Mod env 1"))
@@ -346,7 +388,7 @@ public:
 			EndTabBarWithColoredSeparator();
 		}
 
-		if (ImGui::BeginTabBar("modspectabs", ImGuiTabBarFlags_None))
+		if (BeginTabBar2("modspectabs", ImGuiTabBarFlags_None))
 		{
 			ModulationSection("Mod 1", this->pMaj7->mModulations[0], (int)M7::ParamIndices::Mod1Enabled);
 			ModulationSection("Mod 2", this->pMaj7->mModulations[1], (int)M7::ParamIndices::Mod2Enabled);
@@ -359,7 +401,7 @@ public:
 			EndTabBarWithColoredSeparator();
 		}
 
-		if (ImGui::BeginTabBar("macroknobs", ImGuiTabBarFlags_None))
+		if (BeginTabBar2("macroknobs", ImGuiTabBarFlags_None))
 		{
 			if (WSBeginTabItem("Macros"))
 			{
@@ -372,35 +414,36 @@ public:
 			EndTabBarWithColoredSeparator();
 		}
 
-		ImGui::SeparatorText("Inspector");
+		if (mShowingInspector)
+		{
+			ImGui::SeparatorText("Inspector");
 
-		ImGui::Text("current poly:%d", pMaj7->GetCurrentPolyphony());
-
-		for (size_t i = 0; i < std::size(pMaj7->mVoices); ++ i) {
-			auto pv = (M7::Maj7::Maj7Voice*)pMaj7->mVoices[i];
-			char txt[200];
-			if (i & 0x1) ImGui::SameLine();
-			auto color = ImColor::HSV(0, 0, .3f);
-			if (pv->IsPlaying()) {
-				auto& ns = pMaj7->mNoteStates[pv->mNoteInfo.MidiNoteValue];
-				std::sprintf(txt, "%d u:%d", (int)i, pv->mUnisonVoice);
-				//std::sprintf(txt, "%d u:%d %d %c%c #%d", (int)i, pv->mUnisonVoice, ns.MidiNoteValue, ns.mIsPhysicallyHeld ? 'P' : ' ', ns.mIsMusicallyHeld ? 'M' : ' ', ns.mSequence);
-				color = ImColor::HSV(2/7.0f, .8f, .7f);
+			for (size_t i = 0; i < std::size(pMaj7->mVoices); ++i) {
+				auto pv = (M7::Maj7::Maj7Voice*)pMaj7->mVoices[i];
+				char txt[200];
+				if (i & 0x1) ImGui::SameLine();
+				auto color = ImColor::HSV(0, 0, .3f);
+				if (pv->IsPlaying()) {
+					auto& ns = pMaj7->mNoteStates[pv->mNoteInfo.MidiNoteValue];
+					std::sprintf(txt, "%d u:%d", (int)i, pv->mUnisonVoice);
+					//std::sprintf(txt, "%d u:%d %d %c%c #%d", (int)i, pv->mUnisonVoice, ns.MidiNoteValue, ns.mIsPhysicallyHeld ? 'P' : ' ', ns.mIsMusicallyHeld ? 'M' : ' ', ns.mSequence);
+					color = ImColor::HSV(2 / 7.0f, .8f, .7f);
+				}
+				else {
+					std::sprintf(txt, "%d:off", (int)i);
+				}
+				ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)color);
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)color);
+				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)color);
+				ImGui::Button(txt);
+				ImGui::PopStyleColor(3);
+				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc1AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp1");
+				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc2AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp2");
+				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc3AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp3");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetSample()), ImVec2{ 50, 0 }, "Osc1");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetSample()), ImVec2{ 50, 0 }, "Osc2");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetSample()), ImVec2{ 50, 0 }, "Osc3");
 			}
-			else {
-				std::sprintf(txt, "%d:off", (int)i);
-			}
-			ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)color);
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)color);
-			ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)color);
-			ImGui::Button(txt);
-			ImGui::PopStyleColor(3);
-			ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc1AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp1");
-			ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc2AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp2");
-			ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc3AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp3");
-			ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetSample()), ImVec2{ 50, 0 }, "Osc1");
-			ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetSample()), ImVec2{ 50, 0 }, "Osc2");
-			ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetSample()), ImVec2{ 50, 0 }, "Osc3");
 		}
 	}
 

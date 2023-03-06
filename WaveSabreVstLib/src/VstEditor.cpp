@@ -246,7 +246,7 @@ namespace WaveSabreVstLib
 		ImGui::SetNextWindowPos(ImVec2{ 0, 0 });
 		ImGui::SetNextWindowSize(io.DisplaySize, ImGuiCond_Once);
 
-		ImGui::Begin("##main", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+		ImGui::Begin("##main", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
 
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("Wavesabre")) {
@@ -261,7 +261,7 @@ namespace WaveSabreVstLib
 			//GetEffectX()->getEffectName(effectName);
 			//char title[200];
 			// i don't really know if it's kosher to do this in a menu bar.
-			ImGui::TextColored(ImColor{.5f, .5f, .5f}, "%.1f FPS, CPU: %.2f", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100);
+			ImGui::TextColored(ImColor{.5f, .5f, .5f}, "%.1f FPS, CPU: %.2f %s", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100, this->GetMenuBarStatusText().c_str());
 
 			ImGui::EndMenuBar();
 		}
@@ -279,7 +279,7 @@ namespace WaveSabreVstLib
 		g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
 		g_pd3dDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
 		g_pd3dDevice->SetRenderState(D3DRS_SCISSORTESTENABLE, FALSE);
-		static constexpr ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+		static constexpr ImVec4 clear_color{};// ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 		static constexpr D3DCOLOR clear_col_dx = D3DCOLOR_RGBA((int)(clear_color.x * clear_color.w * 255.0f), (int)(clear_color.y * clear_color.w * 255.0f), (int)(clear_color.z * clear_color.w * 255.0f), (int)(clear_color.w * 255.0f));
 		g_pd3dDevice->Clear(0, NULL, D3DCLEAR_TARGET | D3DCLEAR_ZBUFFER, clear_col_dx, 1.0f, 0);
 		if (g_pd3dDevice->BeginScene() >= 0)

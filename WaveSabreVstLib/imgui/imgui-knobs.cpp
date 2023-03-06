@@ -59,23 +59,33 @@ namespace ImGuiKnobs {
 
         template<typename DataType>
         struct knob {
-            float radius;
-            bool value_changed;
+            float radius = false;
+            bool value_changed = false;
             ImVec2 center;
             ImRect graphic_rect;
-            bool is_active;
-            bool is_hovered;
-            float angle_min;
-            float angle_max;
-            float t;
-            float angle;
-            float angle_cos;
-            float angle_sin;
+            bool is_active = false;
+            bool is_hovered = false;
+            float angle_min = 0;
+            float angle_max = 0;
+            float t = 0;
+            float angle = 0;
+            float angle_cos = 0;
+            float angle_sin = 0;
 
-            knob(const char* _label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, float speed, float _radius, const char* format, ImGuiKnobFlags flags) {
-                radius = _radius;
-                t = ((float)*p_value - v_min) / (v_max - v_min);
+            knob(const char* _label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, float speed, float _radius, const char* format, ImGuiKnobFlags flags)
+            {
                 auto screen_pos = ImGui::GetCursorScreenPos();
+
+                if (flags & ImGuiKnobFlags_NoKnob)
+                {
+                    center = screen_pos;
+                    graphic_rect.Min = graphic_rect.Max = screen_pos;
+                    return;
+                }
+
+                radius = _radius;
+
+                t = ((float)*p_value - v_min) / (v_max - v_min);
 
                 // Handle dragging
                 ImGui::InvisibleButton(_label, { radius * 2.0f, radius * 2.0f });
@@ -187,7 +197,9 @@ namespace ImGuiKnobs {
             }
 
             // Draw knob
-            knob<DataType> k(label, data_type, p_value, v_min, v_max, v_default, speed, width * 0.5f, format, flags);
+            //if (!(flags & ImGuiKnobFlags_NoKnob)) {
+                knob<DataType> k(label, data_type, p_value, v_min, v_max, v_default, speed, width * 0.5f, format, flags);
+            //}
 
             // Draw tooltip
             if (flags & ImGuiKnobFlags_ValueTooltip && (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) || ImGui::IsItemActive())) {

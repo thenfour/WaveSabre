@@ -21,6 +21,7 @@ enum ImGuiKnobFlags_ {
     ImGuiKnobFlags_CustomInput = 1 << 4,
     ImGuiKnobFlags_InvertXCurve = 1 << 5,
     ImGuiKnobFlags_InvertYCurve = 1 << 6,
+    ImGuiKnobFlags_NoKnob = 1 << 7,
 };
 
 typedef int ImGuiKnobVariant;

@@ -53,6 +53,7 @@ namespace WaveSabreVstLib
 
 		virtual void renderImgui() = 0;
 		virtual void PopulateMenuBar() {}; // can override to add menu items
+		virtual std::string GetMenuBarStatusText() { return {}; };
 
 		bool open(void* ptr) override
 		{
@@ -569,8 +570,8 @@ namespace WaveSabreVstLib
 			M7::Float01Param p{ tempVal };
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 			const float v_default = 0;
-			const float size = ImGui::GetTextLineHeight()* 2.5f;// default is 3.25f;
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, size, ImGuiKnobFlags_NoInput, 10, nullptr, this))
+			//const float size = ImGui::GetTextLineHeight()* 2.5f;// default is 3.25f;
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_NoKnob, 10, nullptr, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
