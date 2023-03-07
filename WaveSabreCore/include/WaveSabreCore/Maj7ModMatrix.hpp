@@ -1,4 +1,4 @@
-		#pragma once
+#pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
 
@@ -6,7 +6,6 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-
 		enum class ModulationRate : uint8_t
 		{
 			Disabled,
@@ -28,6 +27,7 @@ namespace WaveSabreCore
 			Osc1AmpEnv, // arate, 01
 			Osc2AmpEnv, // arate, 01
 			Osc3AmpEnv, // arate, 01
+			Sampler1AmpEnv,
 			ModEnv1, // arate, 01
 			ModEnv2, // arate, 01
 			LFO1, // arate, N11
@@ -44,6 +44,7 @@ namespace WaveSabreCore
 			Macro4, // krate, 01
 
 			Count,
+			Invalid,
 		};
 
 		// size-optimize using macro
@@ -52,6 +53,7 @@ namespace WaveSabreCore
 			"Osc1AmpEnv", \
 			"Osc2AmpEnv", \
 			"Osc3AmpEnv", \
+			"Sampler1AmpEnv", \
 			"ModEnv1", \
 			"ModEnv2", \
 			"LFO1", \
@@ -89,58 +91,77 @@ namespace WaveSabreCore
 			Osc1Waveshape, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1SyncFrequency, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1FrequencyParam, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1FMFeedback, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1Phase, // krate, N11 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
 			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by 
-			Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvAttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvAttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvHoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvDecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvDecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvSustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AmpEnvReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc1AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
 			Osc2Volume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvAttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvAttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvHoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvDecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvDecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvSustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AmpEnvReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc2AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
 			Osc3Volume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvAttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvAttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvHoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvDecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvDecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvSustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AmpEnvReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc3AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+
+			Sampler1Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+
+			Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
 			Env1DelayTime, // krate, 01
 			Env1AttackTime, // krate, 01
@@ -152,15 +173,15 @@ namespace WaveSabreCore
 			Env1ReleaseTime, // krate, 01
 			Env1ReleaseCurve, // krate, N11
 
-			Env2DelayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2AttackTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2AttackCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2HoldTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2DecayTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2DecayCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2SustainLevel, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2ReleaseTime, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Env2ReleaseCurve, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Env2DelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2AttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2AttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2HoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2DecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2DecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2SustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2ReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Env2ReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
 			LFO1Waveshape,
 			LFO1FrequencyParam,
@@ -195,6 +216,7 @@ namespace WaveSabreCore
 				Aux4Param5,
 
 			Count,
+				Invalid,
 		};
 		enum class EnvModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
@@ -215,10 +237,21 @@ namespace WaveSabreCore
 			Waveshape,
 			SyncFrequency,
 			FrequencyParam,
+			PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			FMFeedback,
 			Phase,
 			AuxMix,
 		};
+
+		enum class SamplerModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		{
+			Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+		};
+
 		enum class LFOModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
 			Waveshape,
@@ -243,6 +276,7 @@ namespace WaveSabreCore
 			"Osc1Waveshape", \
 			"Osc1SyncFrequency", \
 			"Osc1FrequencyParam", \
+			"Osc1PitchFine", \
 			"Osc1FMFeedback", \
 			"Osc1Phase", \
 			"Osc1AuxMix", \
@@ -260,6 +294,7 @@ namespace WaveSabreCore
 			"Osc2Waveshape", \
 			"Osc2SyncFrequency", \
 			"Osc2FrequencyParam", \
+			"Osc2PitchFine", \
 			"Osc2FMFeedback", \
 			"Osc2Phase", \
 			"Osc2AuxMix", \
@@ -277,6 +312,7 @@ namespace WaveSabreCore
 			"Osc3Waveshape", \
 			"Osc3SyncFrequency", \
 			"Osc3FrequencyParam", \
+			"Osc3PitchFine", \
 			"Osc3FMFeedback", \
 			"Osc3Phase", \
 			"Osc3AuxMix", \
@@ -289,6 +325,20 @@ namespace WaveSabreCore
 			"Osc3AmpEnvSustainLevel", \
 			"Osc3AmpEnvReleaseTime", \
 			"Osc3AmpEnvReleaseCurve", \
+			"Sampler1Volume", \
+		"Sampler1HiddenVolume", \
+			"Sampler1PitchFine", \
+		"Sampler1FrequencyParam", \
+		"Sampler1AuxMix", \
+		"Sampler1AmpEnvDelayTime",  \
+			"Sampler1AmpEnvAttackTime", \
+			"Sampler1AmpEnvAttackCurve", \
+			"Sampler1AmpEnvHoldTime", \
+			"Sampler1AmpEnvDecayTime", \
+			"Sampler1AmpEnvDecayCurve", \
+			"Sampler1AmpEnvSustainLevel", \
+			"Sampler1AmpEnvReleaseTime", \
+			"Sampler1AmpEnvReleaseCurve", \
 			"Env1DelayTime", \
 			"Env1AttackTime", \
 			"Env1AttackCurve", \
@@ -335,99 +385,12 @@ namespace WaveSabreCore
 			"Aux4Param5", \
 		}
 
-		struct ModSourceInfo
-		{
-			ModSource mID;
-			ModulationPolarity mPolarity;
-			ModulationRate mRate;
-		};
-		static constexpr ModSourceInfo gModSourceInfo[] = {
-			{
-			ModSource::None, // arate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::Disabled,
-			},
-			{
-			ModSource::Osc1AmpEnv, // arate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::ARate,
-			},
-			{
-			ModSource::Osc2AmpEnv, // arate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::ARate,
-			},
-			{
-			ModSource::Osc3AmpEnv, // arate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::ARate,
-			},
-			{
-			ModSource::ModEnv1, // arate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::ARate,
-			},
-			{
-			ModSource::ModEnv2, // arate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::ARate,
-			},
-			{
-			ModSource::LFO1, // arate, N11
-			ModulationPolarity::N11,
-			ModulationRate::ARate,
-			},
-			{
-			ModSource::LFO2, // arate, N11
-			ModulationPolarity::N11,
-			ModulationRate::ARate,
-			},
-			{
-			ModSource::PitchBend, // krate, N11
-			ModulationPolarity::N11,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::Velocity, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::NoteValue, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::RandomTrigger, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::SustainPedal, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::Macro1, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::Macro2, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::Macro3, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-			{
-			ModSource::Macro4, // krate, 01
-			ModulationPolarity::Positive01,
-			ModulationRate::KRate,
-			},
-		};
+		//struct ModSourceInfo
+		//{
+		//	ModSource mID;
+		//	ModulationPolarity mPolarity;
+		//	ModulationRate mRate;
+		//};
 
 		// some modulation specs are for internal purposes / locked into certain behavior.
 		enum ModulationSpecType
@@ -479,500 +442,6 @@ namespace WaveSabreCore
 			}
 		};
 
-		struct ModDestinationInfo
-		{
-			ModDestination mID;
-			ModulationPolarity mPolarity;
-			ModulationRate mRate;
-		};
-
-		static constexpr ModDestinationInfo gModDestinationInfo[] = {
-			{
-				ModDestination::None, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::Disabled,
-			},
-			{
-				ModDestination::OscillatorDetune, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::UnisonoDetune, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::OscillatorStereoSpread, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::UnisonoStereoSpread, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::OscillatorShapeSpread, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::UnisonoShapeSpread, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::FMBrightness, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::AuxWidth,
-				ModulationPolarity::N11,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::PortamentoTime, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::PortamentoCurve, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::Osc1Volume, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc1PreFMVolume, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc1Waveshape, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1SyncFrequency, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1FrequencyParam, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc1FMFeedback, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc1Phase, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::Osc1AuxMix, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-
-			{
-				ModDestination::Osc1AmpEnvDelayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1AmpEnvAttackTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1AmpEnvAttackCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1AmpEnvHoldTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1AmpEnvDecayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1AmpEnvDecayCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1AmpEnvSustainLevel,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc1AmpEnvReleaseTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc1AmpEnvReleaseCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-
-			{
-				ModDestination::Osc2Volume,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc2PreFMVolume, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc2Waveshape,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc2SyncFrequency,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc2FrequencyParam,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc2FMFeedback,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc2Phase, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::Osc2AuxMix, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::Osc2AmpEnvDelayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			}, {
-				ModDestination::Osc2AmpEnvAttackTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			}, {
-				ModDestination::Osc2AmpEnvAttackCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			}, {
-				ModDestination::Osc2AmpEnvHoldTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			}, {
-				ModDestination::Osc2AmpEnvDecayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			}, {
-				ModDestination::Osc2AmpEnvDecayCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			}, {
-				ModDestination::Osc2AmpEnvSustainLevel,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			}, {
-				ModDestination::Osc2AmpEnvReleaseTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc2AmpEnvReleaseCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-
-			{
-				ModDestination::Osc3Volume,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc3PreFMVolume, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-{
-				ModDestination::Osc3Waveshape,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3SyncFrequency,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3FrequencyParam,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3FMFeedback,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc3Phase, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::Osc3AuxMix, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::KRate,
-			},
-			{
-				ModDestination::Osc3AmpEnvDelayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3AmpEnvAttackTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3AmpEnvAttackCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3AmpEnvHoldTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3AmpEnvDecayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3AmpEnvDecayCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3AmpEnvSustainLevel,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Osc3AmpEnvReleaseTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Osc3AmpEnvReleaseCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-	{
-				ModDestination::Env1DelayTime, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1AttackTime, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1AttackCurve, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1HoldTime, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1DecayTime, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1DecayCurve, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1SustainLevel, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1ReleaseTime, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env1ReleaseCurve, // krate, N11
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2DelayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2AttackTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2AttackCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2HoldTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2DecayTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2DecayCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2SustainLevel,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2ReleaseTime,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::Env2ReleaseCurve,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::LFO1Waveshape,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::LFO1FrequencyParam,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::LFO2Waveshape, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::LFO2FrequencyParam, // krate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-{
-				ModDestination::FMAmt1to2, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::FMAmt1to3, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::FMAmt2to1, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::FMAmt2to3, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},{
-				ModDestination::FMAmt3to1, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::FMAmt3to2, // arate, 01
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-
-			{
-				ModDestination::Aux1Param2,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux1Param3,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux1Param4,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux1Param5,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-
-			{
-				ModDestination::Aux2Param2,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux2Param3,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux2Param4,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux2Param5,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-
-
-			{
-				ModDestination::Aux3Param2,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux3Param3,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux3Param4,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux3Param5,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-
-			{
-				ModDestination::Aux4Param2,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux4Param3,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux4Param4,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-			{
-				ModDestination::Aux4Param5,
-				ModulationPolarity::Positive01,
-				ModulationRate::ARate,
-			},
-
-
-		};
 		// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
 		// this means 1 single big allocation instead of 70 identically-sized small ones.
 		struct ModMatrixBuffers
@@ -1096,10 +565,50 @@ namespace WaveSabreCore
 				mDest.Reset(nSamples);
 			}
 
-			static float InvertValue(float val, const BoolParam& invertParam, const ModSourceInfo& sourceInfo)
+			static constexpr ModulationRate GetRate(ModSource m)
+			{
+				switch (m)
+				{
+				case ModSource::Osc1AmpEnv:
+				case ModSource::Osc2AmpEnv:
+				case ModSource::Osc3AmpEnv:
+				case ModSource::Sampler1AmpEnv:
+				case ModSource::ModEnv1:
+				case ModSource::ModEnv2:
+				case ModSource::LFO1:
+				case ModSource::LFO2:
+					return ModulationRate::ARate;
+				case ModSource::PitchBend:
+				case ModSource::Velocity:
+				case ModSource::NoteValue:
+				case ModSource::RandomTrigger:
+				case ModSource::UnisonoVoice:
+				case ModSource::SustainPedal:
+				case ModSource::Macro1:
+				case ModSource::Macro2:
+				case ModSource::Macro3:
+				case ModSource::Macro4:
+					return ModulationRate::KRate;
+				}
+
+				return ModulationRate::Disabled;
+			}
+
+			static constexpr ModulationPolarity GetPolarity(ModSource m)
+			{
+				switch (m)
+				{
+				case ModSource::LFO1:
+				case ModSource::LFO2:
+				case ModSource::PitchBend:
+					return ModulationPolarity::N11;
+				}
+				return ModulationPolarity::Positive01;
+			}
+			static float InvertValue(float val, const BoolParam& invertParam, const ModSource modSource)
 			{
 				if (invertParam.GetBoolValue()) {
-					switch (sourceInfo.mPolarity) {
+					switch (GetPolarity(modSource)) {
 					case ModulationPolarity::N11:
 						return -val;
 					case ModulationPolarity::Positive01:
@@ -1108,6 +617,7 @@ namespace WaveSabreCore
 				}
 				return val;
 			}
+
 
 			// caller passes in:
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
@@ -1118,23 +628,26 @@ namespace WaveSabreCore
 			{
 				for (ModulationSpec& spec : modSpecs) {
 					if (!spec.mEnabled.GetBoolValue()) continue;
-					const auto& sourceInfo = gModSourceInfo[(int)spec.mSource.GetEnumValue()];
-					if (sourceInfo.mRate == ModulationRate::Disabled) continue;
-					const auto& destInfo = gModDestinationInfo[(int)spec.mDestination.GetEnumValue()];
-					if (destInfo.mRate == ModulationRate::Disabled) continue;
+					auto modSource = spec.mSource.GetEnumValue();
+					auto srcRate = GetRate(modSource);
+					if (srcRate == ModulationRate::Disabled) continue;
+					auto modDest = spec.mDestination.GetEnumValue();
+					auto destRate = GetRate(modSource);
+					if (destRate == ModulationRate::Disabled) continue;
 
 					real_t sourceVal = GetSourceValue(spec.mSource.GetEnumValue(), iSample);
-					sourceVal = InvertValue(sourceVal, spec.mInvert, sourceInfo);
+					sourceVal = InvertValue(sourceVal, spec.mInvert, modSource);
 					sourceVal = spec.mCurve.ApplyToValue(sourceVal);
 					sourceVal *= spec.mScale.GetN11Value();
 
 					if (spec.mAuxEnabled.GetBoolValue())
 					{
 						// attenuate the value
-						const auto& auxSourceInfo = gModSourceInfo[(int)spec.mAuxSource.GetEnumValue()];
-						if (auxSourceInfo.mRate != ModulationRate::Disabled) {
+						//const auto& auxSourceInfo = gModSourceInfo[(int)spec.mAuxSource.GetEnumValue()];
+						auto auxSource = spec.mAuxSource.GetEnumValue();
+						if (auxSource != ModSource::None) {
 							float auxVal = GetSourceValue(spec.mAuxSource.GetEnumValue(), iSample);
-							auxVal = InvertValue(auxVal, spec.mAuxInvert, auxSourceInfo);
+							auxVal = InvertValue(auxVal, spec.mAuxInvert, auxSource);
 							auxVal = spec.mAuxCurve.ApplyToValue(auxVal);
 							// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 							// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66

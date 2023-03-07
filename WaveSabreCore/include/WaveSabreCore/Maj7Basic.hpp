@@ -1,13 +1,15 @@
 #pragma once
 
 #include <WaveSabreCore/Helpers.h>
-#include <algorithm>
 #include <memory>
 
 // correction for windows.h macros.
 // i cannot use NOMINMAX, because VST and Gdiplus depend on these macros. 
 #undef min
 #undef max
+
+#include <algorithm>
+
 using std::min;
 using std::max;
 
@@ -179,7 +181,7 @@ namespace WaveSabreCore
                 return (real_t)Helpers::FastCos((double)x);
             }
             inline real_t tan(real_t x) {
-                return ::tanf(x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
+                return (float)::tan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
             }
             inline real_t max(real_t x, real_t y) {
                 return x > y ? x : y;
@@ -571,13 +573,15 @@ namespace WaveSabreCore
             }
         };
 
-        // relies on assumptions about the enum:
+        // in order to ease backwards compatibility, we assume each enum < 2000 elements.
+        // that way when you add a new enum value at the end, it doesn't break all values.
         template <typename T>
         struct EnumParam : IntParam
         {
-            explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, (int)maxValue - 1, (int)initialValue)
+            static constexpr size_t MaxItems = 2023;
+            explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, MaxItems, (int)initialValue)
             {}
-            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, (int)maxValue - 1)
+            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, MaxItems)
             {}
             T GetEnumValue() const {
                 return (T)GetIntValue();
@@ -1064,7 +1068,34 @@ namespace WaveSabreCore
                 Mod8Invert,
                 Mod8AuxInvert,
 
-            NumParams,
+                Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
+                Sampler1Volume,
+                Sampler1LegatoTrig,
+                Sampler1Reverse,
+                Sampler1LoopMode,
+                Sampler1LoopSource,
+                Sampler1LoopStart,
+                Sampler1LoopLength,
+                Sampler1TuneSemis,
+                Sampler1TuneFine,
+                Sampler1FreqParam,
+                Sampler1FreqKT,
+                Sampler1InterpolationType,
+                Sampler1AuxMix,
+
+                Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+                Sampler1AmpEnvAttackTime,
+                Sampler1AmpEnvAttackCurve,
+                Sampler1AmpEnvHoldTime,
+                Sampler1AmpEnvDecayTime,
+                Sampler1AmpEnvDecayCurve,
+                Sampler1AmpEnvSustainLevel,
+                Sampler1AmpEnvReleaseTime,
+                Sampler1AmpEnvReleaseCurve,
+                Sampler1AmpEnvLegatoRestart,
+
+                NumParams,
+                Invalid,
         };
 
         // 
@@ -1324,7 +1355,50 @@ namespace WaveSabreCore
             {"M8Acrv"}, \
             {"M8inv"}, \
             {"M8Ainv"}, \
+            {"S1En"}, \
+            {"S1Vol"}, \
+            {"S1LTrig"}, \
+            {"S1Rev"}, \
+            {"S1LMode"}, \
+            {"S1LSrc"}, \
+            {"S1Lbeg"}, \
+            {"S1Llen"}, \
+            {"S1TunS"}, \
+            {"S1TunF"}, \
+            {"S1Frq"}, \
+            {"S1FrqKT"}, \
+            {"S1Intrp"}, \
+            {"S1AxMix"}, \
+		    {"S1Edlt"}, \
+		    {"S1Eatt"}, \
+		    {"S1Eatc"}, \
+		    {"S1Eht"}, \
+		    {"S1Edt"}, \
+		    {"S1Edc"}, \
+		    {"S1Esl"}, \
+		    {"S1Ert"}, \
+		    {"S1Etc"}, \
+		    {"S1Erst"}, \
         }
+
+        enum class SamplerParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+        {
+            Enabled,
+            Volume,
+            LegatoTrig,
+            Reverse,
+            LoopMode,
+            LoopSource,
+            LoopStart,
+            LoopLength,
+            TuneSemis,
+            TuneFine,
+            FreqParam,
+            FreqKT,
+            InterpolationType,
+            AuxMix,
+            AmpEnvDelayTime,
+        };
 
         enum class ModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
         {

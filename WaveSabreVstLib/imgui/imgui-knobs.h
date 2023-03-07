@@ -11,6 +11,16 @@
 #include <WaveSabreCore/Maj7.hpp>
 #include "imgui.h"
 
+// correction for windows.h macros.
+// i cannot use NOMINMAX, because VST and Gdiplus depend on these macros. 
+#undef min
+#undef max
+
+#include <algorithm>
+
+using std::min;
+using std::max;
+
 typedef int ImGuiKnobFlags;
 
 enum ImGuiKnobFlags_ {
