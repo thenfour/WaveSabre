@@ -855,25 +855,25 @@ namespace WaveSabreVstLib
 		};
 
 		// stolen from ImGui::ColorEdit4
-		ImColor ColorFromHTML(const char* buf)
+		static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
 		{
-			int i[4] = { 0 };
+			int i[3] = { 0 };
 			const char* p = buf;
 			while (*p == '#' || ImCharIsBlankA(*p))
 				p++;
 			i[0] = i[1] = i[2] = 0;
-			i[3] = 0xFF; // alpha default to 255 is not parsed by scanf (e.g. inputting #FFFFFF omitting alpha)
 			int r = sscanf(p, "%02X%02X%02X", (unsigned int*)&i[0], (unsigned int*)&i[1], (unsigned int*)&i[2]);
-			float f[4] = { 0 };
-			for (int n = 0; n < 4; n++)
+			float f[3] = { 0 };
+			for (int n = 0; n < 3; n++)
 				f[n] = i[n] / 255.0f;
-			return ImColor{ f[0], f[1], f[2], f[3] };
+			return ImColor{ f[0], f[1], f[2], alpha };
 		}
 
 		enum class VUMeterFlags
 		{
+			None = 0,
 			InputIsLinear = 1,
-			InputIsDecibels = 2,
+			//InputIsDecibels = 2,
 			AttenuationMode = 4,
 			LevelMode = 8,
 			NoText = 16,
@@ -887,16 +887,13 @@ namespace WaveSabreVstLib
 			ImColor text;
 			ImColor tick;
 			ImColor clipTick;
+			ImColor peak;
 		};
 
-		void VUMeter(float inpVal, VUMeterFlags flags)
+		void VUMeter(float rmsLevel, float* peakLevel, VUMeterFlags flags)
 		{
-			float inpdb = inpVal;
-
-			if ((int)flags & (int)VUMeterFlags::InputIsLinear) {
-				inpdb = M7::LinearToDecibels(::fabsf(inpVal));
-			}
-			bool clip = inpdb > 0;
+			float rmsDB = M7::LinearToDecibels(::fabsf(rmsLevel));
+			bool clip = rmsDB > 0;
 
 			VUMeterColors colors;
 			if ((int)flags & (int)VUMeterFlags::LevelMode)
@@ -906,13 +903,16 @@ namespace WaveSabreVstLib
 				colors.text = ColorFromHTML("ffffff");
 				colors.tick = ColorFromHTML("00ffff");
 				colors.clipTick = ColorFromHTML("ff0000");
+				colors.peak = ColorFromHTML("ffff00");
+
 			} else if ((int)flags & (int)VUMeterFlags::AttenuationMode)
 			{
 				colors.background = ColorFromHTML("462e2e");
 				colors.foreground = ColorFromHTML("ed4d4d");
 				colors.text = ColorFromHTML("ffffff");
 				colors.tick = ColorFromHTML("00ffff");
-				colors.clipTick = ColorFromHTML("ff0000");
+				colors.clipTick = colors.foreground;// don't bother with clipping for attenuation ColorFromHTML("ff0000");
+				colors.peak = ColorFromHTML("ffff00");
 			}
 			colors.text.Value.w = 0.25f;
 			colors.tick.Value.w = 0.35f;
@@ -932,7 +932,7 @@ namespace WaveSabreVstLib
 			};
 
 			auto* dl = ImGui::GetWindowDrawList();
-			float levelY = DbToY(inpdb);
+			float levelY = DbToY(rmsDB);
 
 			ImRect forebb = bb;
 			if ((int)flags & (int)VUMeterFlags::LevelMode)
@@ -948,13 +948,23 @@ namespace WaveSabreVstLib
 				dl->AddRectFilled(forebb.Min, forebb.Max, colors.foreground);
 			}
 
-			// draw thresh
+			// draw thumb
 			ImRect threshbb = bb;
 			threshbb.Min.y = threshbb.Max.y = levelY;
-			float tickHeight = clip ? 40 : 2;
-			//threshbb.Min.y -= tickHeight * .5f;
+			float tickHeight = clip ? 40.0f : 4.0f;
 			threshbb.Max.y += tickHeight;
 			dl->AddRectFilled(threshbb.Min, threshbb.Max, clip ? colors.clipTick : colors.tick);
+
+			// draw peak
+			if (peakLevel != nullptr) {
+				float peakDb = M7::LinearToDecibels(*peakLevel);
+				float peakY = DbToY(peakDb);
+				ImRect threshbb = bb;
+				threshbb.Min.y = threshbb.Max.y = peakY;
+				float tickHeight = clip ? 40.0f : 4.0f;
+				threshbb.Max.y += tickHeight;
+				dl->AddRectFilled(threshbb.Min, threshbb.Max, colors.peak);
+			}
 
 			// draw plot lines
 			auto drawTick = [&](float tickdb, const char* txt) {

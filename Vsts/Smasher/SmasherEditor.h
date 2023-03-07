@@ -1,12 +1,65 @@
 #ifndef __SMASHEREDITOR_H__
 #define __SMASHEREDITOR_H__
 
+#include <queue>
+
 #include <WaveSabreVstLib.h>
 using namespace WaveSabreVstLib;
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
 #include "SmasherVst.h"
+
+
+template<size_t window_size>
+struct MovingRMS {
+	std::array<float, window_size> samples;
+	int next_sample_index;
+	float sum_squared;
+
+	MovingRMS() {
+		reset();
+	}
+
+	void addSample(float sample) {
+		sum_squared -= samples[next_sample_index] * samples[next_sample_index];
+		samples[next_sample_index] = sample;
+		sum_squared += sample * sample;
+		next_sample_index = (next_sample_index + 1) % window_size;
+	}
+
+	float getRMS() const {
+		return ::sqrtf(sum_squared / window_size);
+	}
+
+	void reset() {
+		for (int i = 0; i < window_size; i++) {
+			samples[i] = 0.0;
+		}
+		next_sample_index = 0;
+		sum_squared = 0.0;
+	}
+};
+
+
+struct SoftPeaks
+{
+	static constexpr size_t gBufferSize = 10;
+	std::deque<float> mSamples;
+	void Add(float sample) {
+		mSamples.push_back(::fabsf(sample));
+		if (mSamples.size() > gBufferSize) {
+			mSamples.pop_front();
+		}
+	}
+	float Check() {
+		float ret = 0;
+		for (auto s : mSamples) {
+			ret = std::max(ret, s);
+		}
+		return ret;
+	}
+};
 
 class SmasherEditor : public VstEditor
 {
@@ -20,8 +73,80 @@ public:
 	{
 	}
 
+	SoftPeaks mInputPeak;
+	SoftPeaks mOutputPeak;
+	MovingRMS<8> mInputRMS;
+	MovingRMS<8> mOutputRMS;
+
+	static constexpr ImVec2 gHistViewSize = { 550, 150 };
+	static constexpr float gPixelsPerSample = 6;
+	static constexpr int gSamplesInHist = (int)(gHistViewSize.x / gPixelsPerSample);
+	std::deque<float> mInputHist;
+	std::deque<float> mAttenHist;
+	std::deque<float> mOutputHist;
+
+	void HistoryView()
+	{
+		ImRect bb;
+		bb.Min = ImGui::GetCursorPos();
+		bb.Max = bb.Min + gHistViewSize;
+
+		ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
+		ImColor attenLineColor = ColorFromHTML("ff8080", 0.7f);
+		ImColor inpLineColor = ColorFromHTML("808080", 0.5f);
+		ImColor outpLineColor = ColorFromHTML("8080ff", 0.5f);
+
+		auto DbToY = [&](float db) {
+			// let's show a range of -30 to 0 db.
+			float x = (db + 30) / 30;
+			x = Clamp01(x);
+			return M7::Lerp(bb.Max.y, bb.Min.y, x);
+		};
+		auto SampleToX = [&](int sample) {
+			float sx = (float)sample;
+			sx /= gSamplesInHist; // 0,1
+			return M7::Lerp(bb.Min.x, bb.Max.x, sx);
+		};
+
+		auto* dl = ImGui::GetWindowDrawList();
+
+		ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
+
+		// assumes that all 3 plot sources have same # of elements
+		for (int isample = 0; isample < ((signed)mInputHist.size()) - 1; ++isample)
+		{
+			dl->AddLine({ SampleToX(isample), DbToY(M7::LinearToDecibels(mInputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::LinearToDecibels(mInputHist[isample + 1])) }, inpLineColor, 1.5);
+			dl->AddLine({ SampleToX(isample), DbToY(M7::LinearToDecibels(mOutputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::LinearToDecibels(mOutputHist[isample + 1])) }, outpLineColor, 1.5);
+			dl->AddLine({ SampleToX(isample), DbToY(M7::LinearToDecibels(mAttenHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::LinearToDecibels(mAttenHist[isample + 1])) }, attenLineColor, 2.5);
+		}
+
+		ImGui::Dummy(gHistViewSize);
+	}
+
 	virtual void renderImgui() override
 	{
+		mInputRMS.addSample(mpSmasherVST->mpSmasher->inputLevel);
+		mOutputRMS.addSample(mpSmasherVST->mpSmasher->outputPeak);
+		mInputPeak.Add(mpSmasherVST->mpSmasher->inputLevel);
+		mOutputPeak.Add(mpSmasherVST->mpSmasher->outputPeak);
+		float inputPeakLevel = mInputPeak.Check();
+		float outputPeakLevel = mOutputPeak.Check();
+		float inputRMSlevel = mInputRMS.getRMS();
+		float outputRMSlevel = mOutputRMS.getRMS();
+
+		mInputHist.push_back(inputRMSlevel);
+		mAttenHist.push_back(mpSmasherVST->mpSmasher->atten);
+		mOutputHist.push_back(outputRMSlevel);
+		if (mInputHist.size() > gSamplesInHist) {
+			mInputHist.pop_front();
+		}
+		if (mAttenHist.size() > gSamplesInHist) {
+			mAttenHist.pop_front();
+		}
+		if (mOutputHist.size() > gSamplesInHist) {
+			mOutputHist.pop_front();
+		}
+
 		ImGui::BeginGroup();
 
 		WSImGuiParamKnob((VstInt32)Smasher::ParamIndices::InputGain, "INPUT GAIN");
@@ -40,12 +165,14 @@ public:
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)Smasher::ParamIndices::OutputGain, "OUTPUT GAIN");
 
+		HistoryView();
+
 		ImGui::EndGroup();
 
-		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->inputLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
-		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->thresholdScalar, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText | (int)VUMeterFlags::NoForeground));
-		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->atten, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
-		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->outputPeak, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
+		ImGui::SameLine(); VUMeter(inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->thresholdScalar, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText | (int)VUMeterFlags::NoForeground));
+		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->atten, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
+		ImGui::SameLine(); VUMeter(outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
 
 	}
 
