@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iostream>
+#include <fstream>
+#include <exception>
 #include <WaveSabreVstLib.h>
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Maj7.hpp>
@@ -18,6 +21,28 @@ public:
 		mMaj7VST((Maj7Vst*)audioEffect),
 		pMaj7(((Maj7Vst*)audioEffect)->GetMaj7())
 	{
+	}
+
+	enum class StatusStyle
+	{
+		NoStyle,
+		Green,
+		Warning,
+		Error,
+	};
+
+	struct SourceStatusText
+	{
+		std::string mStatus = "Ready.";
+		StatusStyle mStatusStyle = StatusStyle::NoStyle;
+	};
+
+	SourceStatusText mSourceStatusText[M7::Maj7::gSourceCount];
+
+	bool SetStatus(size_t isrc, StatusStyle style, const std::string& str) {
+		mSourceStatusText[isrc].mStatusStyle = style;
+		mSourceStatusText[isrc].mStatus = str;
+		return false;
 	}
 
 	virtual void PopulateMenuBar() override
@@ -131,6 +156,9 @@ public:
 	ColorMod mOscColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mOscDisabledColors{ 0, 0, .6f, 0.9f, 0.0f };
 
+	ColorMod mSamplerColors{ 0.1f, 1, 1, 0.9f, 0.0f };
+	ColorMod mSamplerDisabledColors{ 0.1f, 0, .6f, 0.9f, 0.0f };
+
 	ColorMod mCyanColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
 	ColorMod mPinkColors{ 0.40f, 0.6f, 0.75f, 0.9f, 0.0f };
 
@@ -214,6 +242,8 @@ public:
 		mAuxRightColors.EnsureInitialized();
 		mAuxLeftDisabledColors.EnsureInitialized();
 		mAuxRightDisabledColors.EnsureInitialized();
+		mSamplerDisabledColors.EnsureInitialized();
+		mSamplerColors.EnsureInitialized();
 
 		{
 			auto& style = ImGui::GetStyle();
@@ -279,6 +309,10 @@ public:
 			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, 0);
 			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, 1);
 			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, 2);
+			Sampler("Sampler 1", pMaj7->mSampler1Device, 3);
+			Sampler("Sampler 2", pMaj7->mSampler1Device, 4);
+			Sampler("Sampler 3", pMaj7->mSampler1Device, 5);
+			Sampler("Sampler 4", pMaj7->mSampler1Device, 6);
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -1079,5 +1113,202 @@ public:
 			drawList->AddLine({ outerTL.x + iSample, centerY }, { outerTL.x + iSample, sampleToY(s) }, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
 		}
 	}
+
+	bool LoadSample(const char* path, M7::SamplerDevice& sampler, size_t isrc)
+	{
+		std::ifstream input(path, std::ios::in | std::ios::binary | std::ios::ate);
+		if (!input.is_open()) return SetStatus(isrc, StatusStyle::Error, "Could not open file.");
+		auto inputSize = input.tellg();
+		auto inputBuf = std::make_unique<char[]>(inputSize);// new unsigned char[(unsigned int)inputSize];
+		input.seekg(0, std::ios::beg);
+		input.read((char*)inputBuf.get(), inputSize);
+		input.close();
+
+		if (*((unsigned int*)inputBuf.get()) != 0x46464952) return SetStatus(isrc, StatusStyle::Error, "Input file missing RIFF header.");
+		if (*((unsigned int*)(inputBuf.get() + 4)) != (unsigned int)inputSize - 8) return SetStatus(isrc, StatusStyle::Error, "Input file contains invalid RIFF header.");
+		if (*((unsigned int*)(inputBuf.get() + 8)) != 0x45564157) return SetStatus(isrc, StatusStyle::Error, "Input file missing WAVE chunk.");
+
+		if (*((unsigned int*)(inputBuf.get() + 12)) != 0x20746d66) return SetStatus(isrc, StatusStyle::Error, "Input file missing format sub-chunk.");
+		if (*((unsigned int*)(inputBuf.get() + 16)) != 16) return SetStatus(isrc, StatusStyle::Error, "Input file is not a PCM waveform.");
+		auto inputFormat = (LPWAVEFORMATEX)(inputBuf.get() + 20);
+		if (inputFormat->wFormatTag != WAVE_FORMAT_PCM) return SetStatus(isrc, StatusStyle::Error, "Input file is not a PCM waveform.");
+		if (inputFormat->nChannels != 1) return SetStatus(isrc, StatusStyle::Error, "Input file is not mono.");
+		if (inputFormat->nSamplesPerSec != Specimen::SampleRate) return SetStatus(isrc, StatusStyle::Error, ("Input file is not " + std::to_string(Specimen::SampleRate) + "hz.").c_str());
+		if (inputFormat->wBitsPerSample != sizeof(short) * 8) return SetStatus(isrc, StatusStyle::Error, "Input file is not 16-bit.");
+
+		int chunkPos = 36;
+		int chunkSizeBytes;
+		while (true)
+		{
+			if (chunkPos >= (int)inputSize)  return SetStatus(isrc, StatusStyle::Error, "Input file missing data sub-chunk.");
+			chunkSizeBytes = *((unsigned int*)(inputBuf.get() + chunkPos + 4));
+			if (*((unsigned int*)(inputBuf.get() + chunkPos)) == 0x61746164) break;
+			else chunkPos += 8 + chunkSizeBytes;
+		}
+		int rawDataLength = chunkSizeBytes / 2;
+
+		auto rawData = std::make_unique<short[]>(rawDataLength);
+
+		memcpy(rawData.get(), inputBuf.get() + chunkPos + 8, chunkSizeBytes);
+
+		auto compressedData = std::make_unique<char[]>(chunkSizeBytes);// new char[chunkSizeBytes];
+
+		int waveFormatSize = 0;
+		acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
+		auto waveFormatBuf = std::make_unique<char[]>(waveFormatSize);
+		auto waveFormat = (WAVEFORMATEX*)waveFormatBuf.get();// (new char[waveFormatSize]);
+		memset(waveFormat, 0, waveFormatSize);
+		waveFormat->wFormatTag = WAVE_FORMAT_GSM610;
+		waveFormat->nSamplesPerSec = Specimen::SampleRate;
+
+		ACMFORMATCHOOSE formatChoose;
+		memset(&formatChoose, 0, sizeof(formatChoose));
+		formatChoose.cbStruct = sizeof(formatChoose);
+		formatChoose.pwfx = waveFormat;
+		formatChoose.cbwfx = waveFormatSize;
+		formatChoose.pwfxEnum = waveFormat;
+		formatChoose.fdwEnum = ACM_FORMATENUMF_WFORMATTAG | ACM_FORMATENUMF_NSAMPLESPERSEC;
+
+		if (acmFormatChoose(&formatChoose))  return SetStatus(isrc, StatusStyle::Error, "acmFormatChoose failed");
+
+		acmDriverEnum(driverEnumCallback, (DWORD_PTR)waveFormat, NULL);
+		HACMDRIVER driver = NULL;
+		if (acmDriverOpen(&driver, driverId, 0))  return SetStatus(isrc, StatusStyle::Error, "acmDriverOpen failed");
+
+		HACMSTREAM stream = NULL;
+		if (acmStreamOpen(&stream, driver, inputFormat, waveFormat, NULL, NULL, NULL, ACM_STREAMOPENF_NONREALTIME))  return SetStatus(isrc, StatusStyle::Error, "acmStreamOpen failed");
+
+		ACMSTREAMHEADER streamHeader;
+		memset(&streamHeader, 0, sizeof(streamHeader));
+		streamHeader.cbStruct = sizeof(streamHeader);
+		streamHeader.pbSrc = (LPBYTE)rawData.get();
+		streamHeader.cbSrcLength = chunkSizeBytes;
+		streamHeader.pbDst = (LPBYTE)compressedData.get();
+		streamHeader.cbDstLength = chunkSizeBytes;
+		if (acmStreamPrepareHeader(stream, &streamHeader, 0))  return SetStatus(isrc, StatusStyle::Error, "acmStreamPrepareHeader failed");
+		if (acmStreamConvert(stream, &streamHeader, 0)) return SetStatus(isrc, StatusStyle::Error, "acmStreamConvert failed");
+
+		acmStreamClose(stream, 0);
+		acmDriverClose(driver, 0);
+
+		sampler.LoadSample(compressedData.get(), streamHeader.cbDstLengthUsed, chunkSizeBytes, waveFormat);
+
+		return SetStatus(isrc, StatusStyle::Green, "Sample loaded successfully.");
+	}
+
+	static BOOL __stdcall driverEnumCallback(HACMDRIVERID driverId, DWORD_PTR dwInstance, DWORD fdwSupport)
+	{
+		ACMDRIVERDETAILS driverDetails;
+		driverDetails.cbStruct = sizeof(driverDetails);
+		acmDriverDetails(driverId, &driverDetails, 0);
+
+		HACMDRIVER driver = NULL;
+		acmDriverOpen(&driver, driverId, 0);
+
+		int waveFormatSize = 0;
+		acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
+		auto waveFormatBuf = std::make_unique<uint8_t[]>(waveFormatSize);
+		//WAVEFORMATEX waveFormat = { 0 };
+		auto pWaveFormat = (WAVEFORMATEX*)waveFormatBuf.get();
+		//auto waveFormat = (WAVEFORMATEX *)(new char[waveFormatSize]);
+		//memset(waveFormat, 0, waveFormatSize);
+		ACMFORMATDETAILS formatDetails;
+		memset(&formatDetails, 0, sizeof(formatDetails));
+		formatDetails.cbStruct = sizeof(formatDetails);
+		formatDetails.pwfx = pWaveFormat;
+		formatDetails.cbwfx = waveFormatSize;
+		formatDetails.dwFormatTag = WAVE_FORMAT_UNKNOWN;
+		acmFormatEnum(driver, &formatDetails, formatEnumCallback, dwInstance, NULL);
+
+		//delete [] (char *)waveFormat;
+
+		return 1;
+	}
+
+	static BOOL __stdcall formatEnumCallback(HACMDRIVERID __driverId, LPACMFORMATDETAILS formatDetails, DWORD_PTR dwInstance, DWORD fdwSupport)
+	{
+		auto waveFormat = (WAVEFORMATEX*)dwInstance;
+
+		if (!memcmp(waveFormat, formatDetails->pwfx, sizeof(WAVEFORMATEX)))
+		{
+			driverId = __driverId;
+			foundWaveFormat = formatDetails->pwfx;
+		}
+
+		return 1;
+	}
+
+	static HACMDRIVERID driverId;
+	static WAVEFORMATEX* foundWaveFormat;
+
+
+	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc)
+	{
+		ColorMod& cm = sampler.mEnabledParam.GetBoolValue() ? mSamplerColors : mSamplerDisabledColors;
+		auto token = cm.Push();
+
+		if (WSBeginTabItem(labelWithID)) {
+			WSImGuiParamCheckbox((int)sampler.mEnabledParamID, "Enabled");
+			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mVolumeParamID, "Volume", 0, 0);
+
+			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, 0.4f);
+			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mFreqKTParamID, "KT");
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0);
+			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneFine, "FineTune", 0);
+
+			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::AuxMix, "Aux pan", 0);
+
+			static constexpr char const* const interpModeNames[] = { "Nearest", "Linear" };
+			static constexpr char const* const loopModeNames[] = { "Disabled", "Repeat", "Pingpong" };
+
+			if (ImGui::Button("load sample")) {
+				OPENFILENAME ofn = { 0 };
+				TCHAR szFile[MAX_PATH] = { 0 };
+				ofn.lStructSize = sizeof(ofn);
+				ofn.hwndOwner = this->mCurrentWindow;
+				ofn.lpstrFilter = TEXT("All Files (*.*)\0*.*\0");
+				ofn.lpstrFile = szFile;
+				ofn.nMaxFile = MAX_PATH;
+				ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST;
+				if (GetOpenFileName(&ofn))
+				{
+					// User selected a file, do something with it...
+					MessageBox(mCurrentWindow, szFile, TEXT("Selected File"), MB_OK);
+					mSourceStatusText[isrc].mStatus.clear();
+					LoadSample(szFile, sampler, isrc);
+				}
+			}
+
+			if (!sampler.mSample) {
+				ImGui::Text("No sample loaded");
+			}
+			else {
+				auto* p = sampler.mSample;
+				ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%)\r\n%d Samples", p->UncompressedSize, p->CompressedSize, (p->CompressedSize * 100) / p->UncompressedSize, p->SampleLength);
+			}
+
+			switch (mSourceStatusText[isrc].mStatusStyle)
+			{
+			case StatusStyle::NoStyle:
+				ImGui::Text("%s", mSourceStatusText[isrc].mStatus.c_str());
+				break;
+			case StatusStyle::Error:
+				ImGui::TextColored(ImColor::HSV(0 / 7.0f, 0.6f, 0.6f), "%s", mSourceStatusText[isrc].mStatus.c_str());
+				break;
+			case StatusStyle::Warning:
+				ImGui::TextColored(ImColor::HSV(1 / 7.0f, 0.6f, 0.6f), "%s", mSourceStatusText[isrc].mStatus.c_str());
+				break;
+			case StatusStyle::Green:
+				ImGui::TextColored(ImColor::HSV(2 / 7.0f, 0.6f, 0.6f), "%s", mSourceStatusText[isrc].mStatus.c_str());
+				break;
+			}
+
+			{
+				//ColorMod::Token ampEnvColorModToken{ (ampSourceParam.GetIntValue() != oscID) ? mPinkColors.mNewColors : nullptr };
+				Envelope("Amplitude Envelope", (int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::AmpEnvDelayTime);
+			}
+			ImGui::EndTabItem();
+		} // if begin tab item
+	} // sampler()
 
 }; // class maj7editor

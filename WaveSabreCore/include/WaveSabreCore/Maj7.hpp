@@ -69,7 +69,6 @@ namespace WaveSabreCore
 			EnumParam<AuxLink> mLink;
 			EnumParam<AuxEffectType> mEffectType;
 			float* mParamCache_Offset;
-			//int mParamIndexOffset;
 			int mModDestParam2ID;
 
 			AuxLink mCurrentEffectLink;
@@ -227,7 +226,7 @@ namespace WaveSabreCore
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr size_t gOscillatorCount = 3;
-			static constexpr size_t gSamplerCount = 0;
+			static constexpr size_t gSamplerCount = 4;
 			static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
 			static constexpr size_t gAuxNodeCount = 4;
 			static constexpr real_t gMasterVolumeMaxDb = 6;
@@ -238,21 +237,16 @@ namespace WaveSabreCore
 			// BASE PARAMS & state
 			float mAlways0 = 0;
 			real_t mPitchBendN11 = 0;
-			//bool mSourceEnabled[gSourceCount] = { false, false, false, false };
-			//ModSource mSourceAmpEnvSources[gSourceCount];
 			bool mDeviceModSourceValuesSetThisFrame = false;
 			float mLFO1LPCutoff = 0.0f;
 			float mLFO2LPCutoff = 0.0f;
 
-			//float mSourceDetuneAmts[gSourceCount] = { 0 };
 			float mUnisonoDetuneAmts[gUnisonoVoiceMax] = { 0 };
 
 			float mAuxOutputGains[2] = {0}; // precalc'd L/R gains based on aux panning/width [outputchannel]
 
-			//float mSourceAuxPanAmts[gSourceCount] = { 0 };
 			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
 
-			//float mOscShapeAmts[gOscillatorCount] = { 0 };
 			float mUnisonoShapeAmts[gUnisonoVoiceMax] = { 0 };
 
 			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb, .5f };
@@ -287,22 +281,15 @@ namespace WaveSabreCore
 			FloatN11Param mAuxWidth{ mParamCache[(int)ParamIndices::AuxWidth], 1 };
 
 			ModulationSpec mModulations[gModulationCount] {
-				{ mParamCache, (int)ParamIndices::Mod1Enabled, ModulationSpecType::General },
-				{ mParamCache, (int)ParamIndices::Mod2Enabled, ModulationSpecType::General },
-				{ mParamCache, (int)ParamIndices::Mod3Enabled, ModulationSpecType::General },
-				{ mParamCache, (int)ParamIndices::Mod4Enabled, ModulationSpecType::General },
-				{ mParamCache, (int)ParamIndices::Mod5Enabled, ModulationSpecType::OscAmp },
-				{ mParamCache, (int)ParamIndices::Mod6Enabled, ModulationSpecType::OscAmp },
-				{ mParamCache, (int)ParamIndices::Mod7Enabled, ModulationSpecType::OscAmp },
-				{ mParamCache, (int)ParamIndices::Mod8Enabled, ModulationSpecType::OscAmp },
+				{ mParamCache, (int)ParamIndices::Mod1Enabled },
+				{ mParamCache, (int)ParamIndices::Mod2Enabled },
+				{ mParamCache, (int)ParamIndices::Mod3Enabled },
+				{ mParamCache, (int)ParamIndices::Mod4Enabled },
+				{ mParamCache, (int)ParamIndices::Mod5Enabled },
+				{ mParamCache, (int)ParamIndices::Mod6Enabled },
+				{ mParamCache, (int)ParamIndices::Mod7Enabled },
+				{ mParamCache, (int)ParamIndices::Mod8Enabled },
 			};
-
-			//ModulationSpec* mOscPreFMAmpModulations[gSourceCount] = {
-			//	&mModulations[gModulationCount - 4], // sampler1
-			//	& mModulations[gModulationCount - 3],
-			//	&mModulations[gModulationCount - 2], // osc2
-			//	&mModulations[gModulationCount - 1], // osc1
-			//};
 
 			real_t mParamCache[(int)ParamIndices::NumParams] = {0};
 
@@ -320,13 +307,19 @@ namespace WaveSabreCore
 			OscillatorDevice mOsc1Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 3], ParamIndices::Osc1Enabled, ModSource::Osc1AmpEnv, ModDestination::Osc1Volume };
 			OscillatorDevice mOsc2Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 2], ParamIndices::Osc2Enabled, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume };
 			OscillatorDevice mOsc3Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 1], ParamIndices::Osc3Enabled, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume };
-			//SamplerDevice mSampler1Device;
+			SamplerDevice mSampler1Device{ mParamCache, &mModulations[gModulationCount - 4], ParamIndices::Sampler1Enabled, ModSource::Sampler1AmpEnv, ModDestination::Sampler1Volume };
+			SamplerDevice mSampler2Device{ mParamCache, &mModulations[gModulationCount - 5], ParamIndices::Sampler2Enabled, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume };
+			SamplerDevice mSampler3Device{ mParamCache, &mModulations[gModulationCount - 6], ParamIndices::Sampler3Enabled, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume };
+			SamplerDevice mSampler4Device{ mParamCache, &mModulations[gModulationCount - 7], ParamIndices::Sampler4Enabled, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume };
 
 			ISoundSourceDevice* mSources[gSourceCount] = {
 				&mOsc1Device,
 				&mOsc2Device,
 				&mOsc3Device,
-				//&mSampler1Device,
+				&mSampler1Device,
+				&mSampler2Device,
+				&mSampler3Device,
+				&mSampler4Device,
 			};
 
 			// these values are at the device level (not voice level), but yet they can be modulated by voice-level things.
@@ -343,13 +336,9 @@ namespace WaveSabreCore
 			real_t mPortamentoCurveMod = 0;
 
 			float mAuxWidthMod = 0;
-			//float mOsc1AuxMixMod = 0;
-			//float mOsc2AuxMixMod = 0;
-			//float mOsc3AuxMixMod = 0;
 
 			Maj7() :
-				Maj7SynthDevice((int)ParamIndices::NumParams)//,
-				//mSampler1(mParamCache, ParamIndices::Sampler1Enabled)
+				Maj7SynthDevice((int)ParamIndices::NumParams)
 			{
 				for (size_t i = 0; i < std::size(mVoices); ++ i) {
 					mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
@@ -396,29 +385,6 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					mSources[i]->InitDevice();
 				}
-
-				//mParamCache[(int)ParamIndices::Osc1Volume] = 1;
-				//mParamCache[(int)ParamIndices::Osc2Volume] = 1;
-				//mParamCache[(int)ParamIndices::Osc3Volume] = 1;
-
-				//mParamCache[(int)ParamIndices::Osc1AuxMix] = 0.5f;
-				//mParamCache[(int)ParamIndices::Osc2AuxMix] = 0.5f;
-				//mParamCache[(int)ParamIndices::Osc3AuxMix] = 0.5f;
-
-				//mOscPreFMAmpModulations[0]->mEnabled.SetBoolValue(true);
-				//mOscPreFMAmpModulations[0]->mSource.SetEnumValue(ModSource::Osc1AmpEnv);
-				//mOscPreFMAmpModulations[0]->mDestination.SetEnumValue(ModDestination::Osc1PreFMVolume);
-				//mOscPreFMAmpModulations[0]->mScale.SetN11Value(1);
-
-				//mOscPreFMAmpModulations[1]->mEnabled.SetBoolValue(true);
-				//mOscPreFMAmpModulations[1]->mSource.SetEnumValue(ModSource::Osc2AmpEnv);
-				//mOscPreFMAmpModulations[1]->mDestination.SetEnumValue(ModDestination::Osc2PreFMVolume);
-				//mOscPreFMAmpModulations[1]->mScale.SetN11Value(1);
-
-				//mOscPreFMAmpModulations[2]->mEnabled.SetBoolValue(true);
-				//mOscPreFMAmpModulations[2]->mSource.SetEnumValue(ModSource::Osc3AmpEnv);
-				//mOscPreFMAmpModulations[2]->mDestination.SetEnumValue(ModDestination::Osc3PreFMVolume);
-				//mOscPreFMAmpModulations[2]->mScale.SetN11Value(1);
 
 				mMasterVolume.SetLinearValue(1.0f);
 				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
@@ -504,11 +470,6 @@ namespace WaveSabreCore
 			{
 				mDeviceModSourceValuesSetThisFrame = false;
 
-				//mSourceEnabled[0] = BoolParam{ mParamCache[(int)ParamIndices::Osc1Enabled] }.GetBoolValue();
-				//mSourceEnabled[1] = BoolParam{ mParamCache[(int)ParamIndices::Osc2Enabled] }.GetBoolValue();
-				//mSourceEnabled[2] = BoolParam{ mParamCache[(int)ParamIndices::Osc3Enabled] }.GetBoolValue();
-				//mSourceEnabled[2] = BoolParam{ mParamCache[(int)ParamIndices::Sampler1Enabled] }.GetBoolValue();
-
 				bool sourceEnabled[gSourceCount];
 
 				for (size_t i = 0; i < gSourceCount; ++i) {
@@ -547,20 +508,6 @@ namespace WaveSabreCore
 				float oscStereoSpreadAmt = mOscillatorStereoSpread.Get01Value(mOscillatorStereoSpreadMod);
 				float oscShapeSpreadAmt = mOscillatorShapeSpread.Get01Value(mOscillatorShapeSpreadMod);
 
-				//ParamIndices auxPanParams[gSourceCount] = {
-				//	ParamIndices::Osc1AuxMix,
-				//	ParamIndices::Osc2AuxMix,
-				//	ParamIndices::Osc3AuxMix,
-				//	ParamIndices::Sampler1AuxMix,
-				//};
-
-				//float sourceAuxPanMods[gSourceCount] = {
-				//	mOsc1AuxMixMod,
-				//	mOsc2AuxMixMod,
-				//	mOsc3AuxMixMod,
-				//	mSampler1Auxmixmod,
-				//};
-
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					auto* src = mSources[i];
 					// for the moment mOscDetuneAmts[i] is just a generic spread value.
@@ -597,6 +544,9 @@ namespace WaveSabreCore
 					mOsc2AmpEnv(mModMatrix, ModDestination::Osc2AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc2AmpEnvDelayTime),
 					mOsc3AmpEnv(mModMatrix, ModDestination::Osc3AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc3AmpEnvDelayTime),
 					mSampler1AmpEnv(mModMatrix, ModDestination::Sampler1AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler1AmpEnvDelayTime),
+					mSampler2AmpEnv(mModMatrix, ModDestination::Sampler2AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler2AmpEnvDelayTime),
+					mSampler3AmpEnv(mModMatrix, ModDestination::Sampler3AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler3AmpEnvDelayTime),
+					mSampler4AmpEnv(mModMatrix, ModDestination::Sampler4AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler4AmpEnvDelayTime),
 					mModEnv1(mModMatrix, ModDestination::Env1DelayTime, owner->mParamCache, (int)ParamIndices::Env1DelayTime),
 					mModEnv2(mModMatrix, ModDestination::Env2DelayTime, owner->mParamCache, (int)ParamIndices::Env2DelayTime),
 					mModLFO1(&owner->mLFO1Device, mModMatrix, nullptr),
@@ -604,6 +554,10 @@ namespace WaveSabreCore
 					mOscillator1(&owner->mOsc1Device, mModMatrix, &mOsc1AmpEnv),
 					mOscillator2(&owner->mOsc2Device, mModMatrix, &mOsc2AmpEnv),
 					mOscillator3(&owner->mOsc3Device, mModMatrix, &mOsc3AmpEnv),
+					mSampler1(&owner->mSampler1Device, mModMatrix, &mSampler1AmpEnv),
+					mSampler2(&owner->mSampler2Device, mModMatrix, &mSampler2AmpEnv),
+					mSampler3(&owner->mSampler3Device, mModMatrix, &mSampler3AmpEnv),
+					mSampler4(&owner->mSampler4Device, mModMatrix, &mSampler4AmpEnv),
 					mAux1(AuxLink::Aux1, owner->mParamCache + (int)ParamIndices::Aux1Enabled, (int)ModDestination::Aux1Param2),
 					mAux2(AuxLink::Aux2, owner->mParamCache + (int)ParamIndices::Aux2Enabled, (int)ModDestination::Aux2Param2),
 					mAux3(AuxLink::Aux3, owner->mParamCache + (int)ParamIndices::Aux3Enabled, (int)ModDestination::Aux3Param2),
@@ -630,18 +584,27 @@ namespace WaveSabreCore
 				OscillatorNode mOscillator1;
 				OscillatorNode mOscillator2;
 				OscillatorNode mOscillator3;
-				//SamplerVoice mSampler1;
+				SamplerVoice mSampler1;
+				SamplerVoice mSampler2;
+				SamplerVoice mSampler3;
+				SamplerVoice mSampler4;
 
 				EnvelopeNode mOsc1AmpEnv;
 				EnvelopeNode mOsc2AmpEnv;
 				EnvelopeNode mOsc3AmpEnv;
 				EnvelopeNode mSampler1AmpEnv;
+				EnvelopeNode mSampler2AmpEnv;
+				EnvelopeNode mSampler3AmpEnv;
+				EnvelopeNode mSampler4AmpEnv;
 
 				ISoundSourceDevice::Voice* mSourceVoices[gSourceCount] = {
 					&mOscillator1,
 					&mOscillator2,
 					&mOscillator3,
-					//&mSampler1,
+					&mSampler1,
+					&mSampler2,
+					&mSampler3,
+					&mSampler4,
 				};
 
 				AuxNode mAux1;
@@ -714,10 +677,6 @@ namespace WaveSabreCore
 						{
 							mModMatrix.SetSourceARateValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, iSample, srcVoice->mpAmpEnv->ProcessSample(iSample));
 						}
-						//mModMatrix.SetSourceARateValue(ModSource::Osc1AmpEnv, iSample, mOsc1AmpEnv.ProcessSample(iSample));
-						//mModMatrix.SetSourceARateValue(ModSource::Osc2AmpEnv, iSample, mOsc2AmpEnv.ProcessSample(iSample));
-						//mModMatrix.SetSourceARateValue(ModSource::Osc3AmpEnv, iSample, mOsc3AmpEnv.ProcessSample(iSample));
-						//mModMatrix.SetSourceARateValue(ModSource::Sampler1AmpEnv, iSample, mSampler1AmpEnv.ProcessSample(iSample));
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv1, iSample, mModEnv1.ProcessSample(iSample));
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv2, iSample, mModEnv2.ProcessSample(iSample));
 						float l1 = mModLFO1.ProcessSample(iSample, 0, 0, 0, 0, false);
@@ -743,15 +702,6 @@ namespace WaveSabreCore
 						mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime, 0);
 						mpOwner->mPortamentoCurveMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve, 0);
 
-						//for (auto& srcVoice : mSourceVoices)
-						//{
-						//	srcVoice->mpSrcDevice->mAuxPanDeviceModAmt = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModID, 0);
-						//}
-
-						//mpOwner->mOsc1AuxMixMod = mModMatrix.GetDestinationValue(ModDestination::Osc1AuxMix, 0);
-						//mpOwner->mOsc2AuxMixMod = mModMatrix.GetDestinationValue(ModDestination::Osc2AuxMix, 0);
-						//mpOwner->mOsc3AuxMixMod = mModMatrix.GetDestinationValue(ModDestination::Osc3AuxMix, 0);
-
 						mpOwner->mDeviceModSourceValuesSetThisFrame = true;
 					}
 
@@ -769,46 +719,6 @@ namespace WaveSabreCore
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 					float myUnisonoShape = mpOwner->mUnisonoShapeAmts[this->mUnisonVoice];
 
-					//struct OscInfo
-					//{
-					//	OscillatorNode& mNode;
-					//	ModSource mAmpEnvSource;
-					//	ModDestination mModDestVolume;
-					//	ModDestination mModDestVolumePreFM;
-					//	ParamIndices mOutputVolumeParamID;
-
-					//	// calculated
-					//	float mOutputGain[2] = { 0 }; // linear output volume gain calculated from output VolumeParam + panning
-					//	float mAmpEnvGain = { 0 }; // linear gain calculated frequently from osc ampenv
-					//};
-					//OscInfo oscInfo[gOscillatorCount] = {
-					//	{ mOscillator1, mpOwner->mOscAmpEnvSources[0], ModDestination::Osc1Volume, ModDestination::Osc1PreFMVolume, ParamIndices::Osc1Volume },
-					//	{ mOscillator2, mpOwner->mOscAmpEnvSources[1], ModDestination::Osc2Volume, ModDestination::Osc2PreFMVolume, ParamIndices::Osc2Volume },
-					//	{ mOscillator3, mpOwner->mOscAmpEnvSources[2], ModDestination::Osc3Volume, ModDestination::Osc3PreFMVolume, ParamIndices::Osc3Volume },
-					//};
-
-					// begin oscillator blocks
-					// and precalc some panning
-					//for (size_t i = 0; i < gOscillatorCount; ++i)
-					//{
-					//	if (!mpOwner->mOscEnabled[i]) {
-					//		continue;
-					//	}
-					//	auto& info = oscInfo[i];
-					//	float semis = myUnisonoDetune + mpOwner->mOscDetuneAmts[i];
-					//	info.mNode.BeginBlock(midiNote, myUnisonoShape + mpOwner->mOscShapeAmts[i], SemisToFrequencyMul(semis), globalFMScale, numSamples);
-
-					//	float volumeMod = mModMatrix.GetDestinationValue(info.mModDestVolume, 0);
-					//	VolumeParam outputVolParam{ mpOwner->mParamCache[(int)info.mOutputVolumeParamID], OscillatorNode::gVolumeMaxDb };
-
-					//	// treat panning as added to modulation value
-					//	float panParam = myUnisonoPan + mpOwner->mOscAuxPanAmts[i]; // -1 would mean full Left, 1 is full Right.
-					//	auto panGains = PanToFactor(panParam);
-					//	float outputVolLin = outputVolParam.GetLinearGain(0);
-					//	info.mOutputGain[0] = outputVolLin * panGains.first;
-					//	info.mOutputGain[1] = outputVolLin * panGains.second;
-					//}
-					
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
@@ -837,17 +747,6 @@ namespace WaveSabreCore
 
 					for (int iSample = 0; iSample < numSamples; ++iSample)
 					{
-						//for (size_t i = 0; i < gOscillatorCount; ++i)
-						//{
-						//	if (!mpOwner->mOscEnabled[i]) {
-						//		continue;
-						//	}
-						//	auto& info = oscInfo[i];
-						//	float hiddenVolumeBacking = mModMatrix.GetDestinationValue(info.mModDestVolumePreFM, iSample);
-						//	VolumeParam hiddenAmpParam{ hiddenVolumeBacking, 0 };
-						//	info.mAmpEnvGain = hiddenAmpParam.GetLinearGain(0);
-						//}
-
 						for (size_t i = 0; i < gSourceCount; ++i)
 						{
 							if (!mSourceVoices[i]->mpSrcDevice->mEnabledParam.GetBoolValue()) {
@@ -882,10 +781,13 @@ namespace WaveSabreCore
 						);
 						sourceValues[2] *= mOscillator3.mAmpEnvGain;
 
-						//sourceValues[3] = mSampler1.ProcessSample(iSample);
+						sourceValues[3] = mSampler1.ProcessSample(iSample) * mSampler1.mAmpEnvGain;
+						sourceValues[4] = mSampler2.ProcessSample(iSample) * mSampler2.mAmpEnvGain;
+						sourceValues[5] = mSampler3.ProcessSample(iSample) * mSampler3.mAmpEnvGain;
+						sourceValues[6] = mSampler4.ProcessSample(iSample) * mSampler4.mAmpEnvGain;
 
-						float sl = 0;// s1* oscInfo[0].mOutputGain[0] + s2 * oscInfo[1].mOutputGain[0] + s3 * oscInfo[2].mOutputGain[0];
-						float sr = 0;// s1* oscInfo[0].mOutputGain[1] + s2 * oscInfo[1].mOutputGain[1] + s3 * oscInfo[2].mOutputGain[1];
+						float sl = 0;
+						float sr = 0;
 
 						for (size_t i = 0; i < gSourceCount; ++i) {
 							sl += sourceValues[i] * mSourceVoices[i]->mOutputGain[0];
@@ -893,12 +795,13 @@ namespace WaveSabreCore
 						}
 
 						// send through aux
+						sl = mAux1.ProcessSample(sl, mAllAuxNodes);
+						sl = mAux2.ProcessSample(sl, mAllAuxNodes);
+
 						switch (auxRouting) {
 						case AuxRoute::FourZero:
 							// L = aux1 -> aux2 -> aux3 -> aux4 -> *
 							// R = *
-							sl = mAux1.ProcessSample(sl, mAllAuxNodes);
-							sl = mAux2.ProcessSample(sl, mAllAuxNodes);
 							sl = mAux3.ProcessSample(sl, mAllAuxNodes);
 							sl = mAux4.ProcessSample(sl, mAllAuxNodes);
 							break;
@@ -906,8 +809,6 @@ namespace WaveSabreCore
 							// L = aux1 -> aux2 -> aux3 -> aux4 -> *
 							// R = 
 							// for the sake of being pleasant this swaps l/r channels as well for continuity with other settings
-							sl = mAux1.ProcessSample(sl, mAllAuxNodes);
-							sl = mAux2.ProcessSample(sl, mAllAuxNodes);
 							sl = mAux3.ProcessSample(sl, mAllAuxNodes);
 							sr = mAux4.ProcessSample(sl, mAllAuxNodes);
 							sl = 0;
@@ -915,16 +816,12 @@ namespace WaveSabreCore
 						case AuxRoute::ThreeOne:
 							// L = aux1 -> aux2 -> aux3 -> *
 							// R = aux4 -> *
-							sl = mAux1.ProcessSample(sl, mAllAuxNodes);
-							sl = mAux2.ProcessSample(sl, mAllAuxNodes);
 							sl = mAux3.ProcessSample(sl, mAllAuxNodes);
 							sr = mAux4.ProcessSample(sr, mAllAuxNodes);
 							break;
 						case AuxRoute::TwoTwo:
 							// L = aux1 -> aux2 -> *
 							// R = aux3 -> aux4 -> *
-							sl = mAux1.ProcessSample(sl, mAllAuxNodes);
-							sl = mAux2.ProcessSample(sl, mAllAuxNodes);
 							sr = mAux3.ProcessSample(sr, mAllAuxNodes);
 							sr = mAux4.ProcessSample(sr, mAllAuxNodes);
 							break;
@@ -975,36 +872,6 @@ namespace WaveSabreCore
 					mModEnv2.kill();
 				}
 
-				//const EnvelopeNode* GetEnvelopeForModulation(ModulationSpec* m) const
-				//{
-				//	switch (m->mSource.GetEnumValue())
-				//	{
-				//	case ModSource::Osc1AmpEnv:
-				//		return &mOsc1AmpEnv;
-				//	case ModSource::Osc2AmpEnv:
-				//		return &mOsc2AmpEnv;
-				//	case ModSource::Osc3AmpEnv:
-				//		return &mOsc3AmpEnv;
-				//	case ModSource::Sampler1AmpEnv:
-				//		return &mSampler1AmpEnv;
-				//	case ModSource::ModEnv1:
-				//		return &mModEnv1;
-				//	case ModSource::ModEnv2:
-				//		return &mModEnv2;
-				//	}
-				//	return nullptr;
-				//}
-
-				//bool SourceIsPlaying(ISoundSourceDevice::Voice* srcVoice) const {// ParamIndices enabledParam, ModulationSpec* preFMAmpMod) const {
-				//	//bool enabled = BoolParam{ mpOwner->mParamCache[(int)enabledParam] }.GetBoolValue();
-				//	//if (!enabled) return false;
-
-				//	//auto penv = GetEnvelopeForModulation(src->mAmpEnvModulation);
-				//	//if (!penv) return false;
-				//	//return penv->IsPlaying();
-				//	return srcVoice->mAmpEnv.IsPlaying();
-				//}
-
 				virtual bool IsPlaying() override {
 					for (auto& srcVoice : mSourceVoices)
 					{
@@ -1014,12 +881,6 @@ namespace WaveSabreCore
 							return true;
 					}
 					return false;
-					//return
-					//	SourceIsPlaying(ParamIndices::Osc1Enabled, mpOwner->mOscPreFMAmpModulations[0])
-					//	|| SourceIsPlaying(ParamIndices::Osc2Enabled, mpOwner->mOscPreFMAmpModulations[1])
-					//	|| SourceIsPlaying(ParamIndices::Osc3Enabled, mpOwner->mOscPreFMAmpModulations[2])
-					//	|| SourceIsPlaying(ParamIndices::Sampler1Enabled, mpOwner->mOscPreFMAmpModulations[2])
-					//	;
 				}
 			};
 

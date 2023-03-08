@@ -166,7 +166,8 @@ namespace WaveSabreCore
             }
             
             inline real_t sqrt(real_t x) {
-                return fastmath::fastpow(x, 0.5f); // avoids bringing in lib fn, and also probably much faster
+                //return fastmath::fastpow(x, 0.5f); // probably faster ?
+                return (float)::sqrt((double)x); // size optimization.
             }
             inline real_t floor(real_t x) {
                 return (real_t)::floor((double)x);
@@ -1072,6 +1073,7 @@ namespace WaveSabreCore
                 Sampler1Volume,
                 Sampler1LegatoTrig,
                 Sampler1Reverse,
+                Sampler1SampleStart,
                 Sampler1LoopMode,
                 Sampler1LoopSource,
                 Sampler1LoopStart,
@@ -1093,6 +1095,87 @@ namespace WaveSabreCore
                 Sampler1AmpEnvReleaseTime,
                 Sampler1AmpEnvReleaseCurve,
                 Sampler1AmpEnvLegatoRestart,
+
+                    Sampler2Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
+                    Sampler2Volume,
+                    Sampler2LegatoTrig,
+                    Sampler2Reverse,
+                Sampler2SampleStart,
+                    Sampler2LoopMode,
+                    Sampler2LoopSource,
+                    Sampler2LoopStart,
+                    Sampler2LoopLength,
+                    Sampler2TuneSemis,
+                    Sampler2TuneFine,
+                    Sampler2FreqParam,
+                    Sampler2FreqKT,
+                    Sampler2InterpolationType,
+                    Sampler2AuxMix,
+                           
+                    Sampler2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+                    Sampler2AmpEnvAttackTime,
+                    Sampler2AmpEnvAttackCurve,
+                    Sampler2AmpEnvHoldTime,
+                    Sampler2AmpEnvDecayTime,
+                    Sampler2AmpEnvDecayCurve,
+                    Sampler2AmpEnvSustainLevel,
+                    Sampler2AmpEnvReleaseTime,
+                    Sampler2AmpEnvReleaseCurve,
+                    Sampler2AmpEnvLegatoRestart,
+
+                Sampler3Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
+                Sampler3Volume,
+                Sampler3LegatoTrig,
+                Sampler3Reverse,
+                Sampler3SampleStart,
+                Sampler3LoopMode,
+                Sampler3LoopSource,
+                Sampler3LoopStart,
+                Sampler3LoopLength,
+                Sampler3TuneSemis,
+                Sampler3TuneFine,
+                Sampler3FreqParam,
+                Sampler3FreqKT,
+                Sampler3InterpolationType,
+                Sampler3AuxMix,
+                       
+                Sampler3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+                Sampler3AmpEnvAttackTime,
+                Sampler3AmpEnvAttackCurve,
+                Sampler3AmpEnvHoldTime,
+                Sampler3AmpEnvDecayTime,
+                Sampler3AmpEnvDecayCurve,
+                Sampler3AmpEnvSustainLevel,
+                Sampler3AmpEnvReleaseTime,
+                Sampler3AmpEnvReleaseCurve,
+                Sampler3AmpEnvLegatoRestart,
+
+                Sampler4Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
+                Sampler4Volume,
+                Sampler4LegatoTrig,
+                Sampler4Reverse,
+                    Sampler4SampleStart,
+                Sampler4LoopMode,
+                Sampler4LoopSource,
+                Sampler4LoopStart,
+                Sampler4LoopLength,
+                Sampler4TuneSemis,
+                Sampler4TuneFine,
+                Sampler4FreqParam,
+                Sampler4FreqKT,
+                Sampler4InterpolationType,
+                Sampler4AuxMix,
+                       
+                Sampler4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+                Sampler4AmpEnvAttackTime,
+                Sampler4AmpEnvAttackCurve,
+                Sampler4AmpEnvHoldTime,
+                Sampler4AmpEnvDecayTime,
+                Sampler4AmpEnvDecayCurve,
+                Sampler4AmpEnvSustainLevel,
+                Sampler4AmpEnvReleaseTime,
+                Sampler4AmpEnvReleaseCurve,
+                Sampler4AmpEnvLegatoRestart,
 
                 NumParams,
                 Invalid,
@@ -1359,6 +1442,7 @@ namespace WaveSabreCore
             {"S1Vol"}, \
             {"S1LTrig"}, \
             {"S1Rev"}, \
+{"S1strt"}, \
             {"S1LMode"}, \
             {"S1LSrc"}, \
             {"S1Lbeg"}, \
@@ -1379,6 +1463,81 @@ namespace WaveSabreCore
 		    {"S1Ert"}, \
 		    {"S1Etc"}, \
 		    {"S1Erst"}, \
+            {"S2En"}, \
+            {"S2Vol"}, \
+            {"S2LTrig"}, \
+            {"S2Rev"}, \
+{"S2strt"}, \
+            {"S2LMode"}, \
+            {"S2LSrc"}, \
+            {"S2Lbeg"}, \
+            {"S2Llen"}, \
+            {"S2TunS"}, \
+            {"S2TunF"}, \
+            {"S2Frq"}, \
+            {"S2FrqKT"}, \
+            {"S2Intrp"}, \
+            {"S2AxMix"}, \
+            {"S2Edlt"}, \
+            {"S2Eatt"}, \
+            {"S2Eatc"}, \
+            {"S2Eht"}, \
+            {"S2Edt"}, \
+            {"S2Edc"}, \
+            {"S2Esl"}, \
+            {"S2Ert"}, \
+            {"S2Etc"}, \
+            {"S2Erst"}, \
+            {"S3En"}, \
+            {"S3Vol"}, \
+            {"S3LTrig"}, \
+            {"S3Rev"}, \
+{"S3strt"}, \
+            {"S3LMode"}, \
+            {"S3LSrc"}, \
+            {"S3Lbeg"}, \
+            {"S3Llen"}, \
+            {"S3TunS"}, \
+            {"S3TunF"}, \
+            {"S3Frq"}, \
+            {"S3FrqKT"}, \
+            {"S3Intrp"}, \
+            {"S3AxMix"}, \
+            {"S3Edlt"}, \
+            {"S3Eatt"}, \
+            {"S3Eatc"}, \
+            {"S3Eht"}, \
+            {"S3Edt"}, \
+            {"S3Edc"}, \
+            {"S3Esl"}, \
+            {"S3Ert"}, \
+            {"S3Etc"}, \
+            {"S3Erst"}, \
+            {"S4En"}, \
+            {"S4Vol"}, \
+            {"S4LTrig"}, \
+            {"S4Rev"}, \
+{"S4strt"}, \
+            {"S4LMode"}, \
+            {"S4LSrc"}, \
+            {"S4Lbeg"}, \
+            {"S4Llen"}, \
+            {"S4TunS"}, \
+            {"S4TunF"}, \
+            {"S4Frq"}, \
+            {"S4FrqKT"}, \
+            {"S4Intrp"}, \
+            {"S4AxMix"}, \
+            {"S4Edlt"}, \
+            {"S4Eatt"}, \
+            {"S4Eatc"}, \
+            {"S4Eht"}, \
+            {"S4Edt"}, \
+            {"S4Edc"}, \
+            {"S4Esl"}, \
+            {"S4Ert"}, \
+            {"S4Etc"}, \
+            {"S4Erst"}, \
         }
 
         enum class SamplerParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
@@ -1387,6 +1546,7 @@ namespace WaveSabreCore
             Volume,
             LegatoTrig,
             Reverse,
+            SampleStart,
             LoopMode,
             LoopSource,
             LoopStart,

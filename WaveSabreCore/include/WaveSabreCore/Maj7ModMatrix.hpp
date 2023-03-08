@@ -28,6 +28,9 @@ namespace WaveSabreCore
 			Osc2AmpEnv, // arate, 01
 			Osc3AmpEnv, // arate, 01
 			Sampler1AmpEnv,
+			Sampler2AmpEnv,
+			Sampler3AmpEnv,
+			Sampler4AmpEnv,
 			ModEnv1, // arate, 01
 			ModEnv2, // arate, 01
 			LFO1, // arate, N11
@@ -48,12 +51,15 @@ namespace WaveSabreCore
 		};
 
 		// size-optimize using macro
-		#define MOD_SOURCE_CAPTIONS { \
+#define MOD_SOURCE_CAPTIONS { \
 			"None", \
 			"Osc1AmpEnv", \
 			"Osc2AmpEnv", \
 			"Osc3AmpEnv", \
 			"Sampler1AmpEnv", \
+			"Sampler2AmpEnv", \
+			"Sampler3AmpEnv", \
+			"Sampler4AmpEnv", \
 			"ModEnv1", \
 			"ModEnv2", \
 			"LFO1", \
@@ -147,22 +153,6 @@ namespace WaveSabreCore
 			Osc3AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Osc3AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
-			Sampler1Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler1HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler1PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler1FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler1AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
-
-			Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-			Sampler1AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
-
 			Env1DelayTime, // krate, 01
 			Env1AttackTime, // krate, 01
 			Env1AttackCurve, // krate, N11
@@ -203,20 +193,88 @@ namespace WaveSabreCore
 			Aux1Param4,
 			Aux1Param5,
 			Aux2Param2,
-				Aux2Param3,
-				Aux2Param4,
-				Aux2Param5,
+			Aux2Param3,
+			Aux2Param4,
+			Aux2Param5,
 			Aux3Param2,
-				Aux3Param3,
-				Aux3Param4,
-				Aux3Param5,
+			Aux3Param3,
+			Aux3Param4,
+			Aux3Param5,
 			Aux4Param2,
-				Aux4Param3,
-				Aux4Param4,
-				Aux4Param5,
+			Aux4Param3,
+			Aux4Param4,
+			Aux4Param5,
+
+
+			Sampler1Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler1AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+
+			Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler1AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+
+
+			Sampler2Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler2HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler2PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler2FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler2AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+
+			Sampler2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler2AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+
+
+			Sampler3Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler3HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler3PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler3FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler3AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+
+			Sampler3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler3AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+
+
+			Sampler4Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler4HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler4PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler4FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			Sampler4AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+
+			Sampler4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Sampler4AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
 			Count,
-				Invalid,
+			Invalid,
 		};
 		enum class EnvModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
@@ -259,7 +317,7 @@ namespace WaveSabreCore
 		};
 
 		// size-optimize using macro
-		#define MOD_DEST_CAPTIONS { \
+#define MOD_DEST_CAPTIONS { \
 			"None", \
 			"OscillatorDetune", \
 			"UnisonoDetune", \
@@ -325,20 +383,6 @@ namespace WaveSabreCore
 			"Osc3AmpEnvSustainLevel", \
 			"Osc3AmpEnvReleaseTime", \
 			"Osc3AmpEnvReleaseCurve", \
-			"Sampler1Volume", \
-		"Sampler1HiddenVolume", \
-			"Sampler1PitchFine", \
-		"Sampler1FrequencyParam", \
-		"Sampler1AuxMix", \
-		"Sampler1AmpEnvDelayTime",  \
-			"Sampler1AmpEnvAttackTime", \
-			"Sampler1AmpEnvAttackCurve", \
-			"Sampler1AmpEnvHoldTime", \
-			"Sampler1AmpEnvDecayTime", \
-			"Sampler1AmpEnvDecayCurve", \
-			"Sampler1AmpEnvSustainLevel", \
-			"Sampler1AmpEnvReleaseTime", \
-			"Sampler1AmpEnvReleaseCurve", \
 			"Env1DelayTime", \
 			"Env1AttackTime", \
 			"Env1AttackCurve", \
@@ -383,6 +427,62 @@ namespace WaveSabreCore
 			"Aux4Param3", \
 			"Aux4Param4", \
 			"Aux4Param5", \
+			"Sampler1Volume", \
+		"Sampler1HiddenVolume", \
+			"Sampler1PitchFine", \
+		"Sampler1FrequencyParam", \
+		"Sampler1AuxMix", \
+		"Sampler1AmpEnvDelayTime",  \
+			"Sampler1AmpEnvAttackTime", \
+			"Sampler1AmpEnvAttackCurve", \
+			"Sampler1AmpEnvHoldTime", \
+			"Sampler1AmpEnvDecayTime", \
+			"Sampler1AmpEnvDecayCurve", \
+			"Sampler1AmpEnvSustainLevel", \
+			"Sampler1AmpEnvReleaseTime", \
+			"Sampler1AmpEnvReleaseCurve", \
+"Sampler2Volume", \
+"Sampler2HiddenVolume", \
+"Sampler2PitchFine", \
+"Sampler2FrequencyParam", \
+"Sampler2AuxMix", \
+"Sampler2AmpEnvDelayTime", \
+"Sampler2AmpEnvAttackTime", \
+"Sampler2AmpEnvAttackCurve", \
+"Sampler2AmpEnvHoldTime", \
+"Sampler2AmpEnvDecayTime", \
+"Sampler2AmpEnvDecayCurve", \
+"Sampler2AmpEnvSustainLevel", \
+"Sampler2AmpEnvReleaseTime", \
+"Sampler2AmpEnvReleaseCurve", \
+"Sampler3Volume", \
+"Sampler3HiddenVolume", \
+"Sampler3PitchFine", \
+"Sampler3FrequencyParam", \
+"Sampler3AuxMix", \
+"Sampler3AmpEnvDelayTime", \
+"Sampler3AmpEnvAttackTime", \
+"Sampler3AmpEnvAttackCurve", \
+"Sampler3AmpEnvHoldTime", \
+"Sampler3AmpEnvDecayTime", \
+"Sampler3AmpEnvDecayCurve", \
+"Sampler3AmpEnvSustainLevel", \
+"Sampler3AmpEnvReleaseTime", \
+"Sampler3AmpEnvReleaseCurve", \
+"Sampler4Volume", \
+"Sampler4HiddenVolume", \
+"Sampler4PitchFine", \
+"Sampler4FrequencyParam", \
+"Sampler4AuxMix", \
+"Sampler4AmpEnvDelayTime", \
+"Sampler4AmpEnvAttackTime", \
+"Sampler4AmpEnvAttackCurve", \
+"Sampler4AmpEnvHoldTime", \
+"Sampler4AmpEnvDecayTime", \
+"Sampler4AmpEnvDecayCurve", \
+"Sampler4AmpEnvSustainLevel", \
+"Sampler4AmpEnvReleaseTime", \
+"Sampler4AmpEnvReleaseCurve", \
 		}
 
 		//struct ModSourceInfo
@@ -400,7 +500,7 @@ namespace WaveSabreCore
 			// osc amplification is done pre-FM. so it's not like modulating the output volume, it's before the signal
 			// is fed to other oscillators. so
 			// 1. the destination here is locked to a hidden osc volume param
-			OscAmp,
+			SourceAmp,
 		};
 
 		struct ModulationSpec
@@ -410,7 +510,7 @@ namespace WaveSabreCore
 			EnumParam<ModDestination> mDestination;
 			CurveParam mCurve;
 			FloatN11Param mScale;
-			ModulationSpecType mType;
+			ModulationSpecType mType = ModulationSpecType::General;
 
 			// you may ask why aux (aka sidechain) is necessary.
 			// it's because we don't allow modulation of the modulation scale params, so it's a way of modulating the modulation itself.
@@ -425,7 +525,7 @@ namespace WaveSabreCore
 			BoolParam mInvert;
 			BoolParam mAuxInvert;
 
-			ModulationSpec(real_t* paramCache, int baseParamID, ModulationSpecType type) :
+			ModulationSpec(real_t* paramCache, int baseParamID) :
 				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
 				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count, ModSource::None),
 				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count, ModDestination::None),
@@ -436,8 +536,7 @@ namespace WaveSabreCore
 				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
 				mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
 				mInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::Invert]),
-				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert]),
-				mType(type)
+				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
 			{
 			}
 		};
@@ -456,7 +555,7 @@ namespace WaveSabreCore
 
 			real_t mpKRateValues[gMaxEndpointCount] = { 0 };
 			bool mpARatePopulated[gMaxEndpointCount] = { false };
-			bool mpKRatePopulated[gMaxEndpointCount] = { false };
+			//bool mpKRatePopulated[gMaxEndpointCount] = { false }; // because krate is fallback anyway, and gets reset to 0 each block, this is not necessary.
 
 		public:
 			ModMatrixBuffers(size_t modulationEndpointCount) : gEndpointCount(modulationEndpointCount) {
@@ -477,7 +576,7 @@ namespace WaveSabreCore
 				memset(mpBuffer, 0, desiredElements * sizeof(mpBuffer[0]));
 				memset(mpKRateValues, 0, std::size(mpKRateValues) * sizeof(mpKRateValues[0]));
 				memset(mpARatePopulated, 0, std::size(mpARatePopulated) * sizeof(mpARatePopulated[0]));
-				memset(mpKRatePopulated, 0, std::size(mpKRatePopulated) * sizeof(mpKRatePopulated[0]));
+				//memset(mpKRatePopulated, 0, std::size(mpKRatePopulated) * sizeof(mpKRatePopulated[0]));
 			}
 
 			void SetARateValue(size_t id, size_t iSample, real_t val) {
@@ -492,19 +591,21 @@ namespace WaveSabreCore
 			void SetKRateValue(size_t id, real_t val)
 			{
 				mpKRateValues[id] = val;
-				mpKRatePopulated[id] = 1;
+				//mpKRatePopulated[id] = 1;
 			}
 
-			real_t GetValue(size_t id, size_t sample) const
+			__declspec(noinline) // size optimization saves ~1kb of minified
+				real_t GetValue(size_t id, size_t sample) const
 			{
-				if (!mpBuffer || id >= gEndpointCount) return 0;
+				//if (!mpBuffer || id >= gEndpointCount) return 0;
 				if (mpARatePopulated[id]) {
 					size_t i = id * mBlockSize + sample;
 					if (i >= mElementsAllocated) return 0;
 					return mpBuffer[i];
 				}
-				if (mpKRatePopulated[id]) return mpKRateValues[(size_t)id];
-				return 0;
+				//if (mpKRatePopulated[id]) 
+				return mpKRateValues[(size_t)id];
+				//return 0;
 			}
 		};
 
@@ -624,7 +725,7 @@ namespace WaveSabreCore
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.
 			// the result will be placed 
 			template<size_t NmodulationSpecs>
-			void ProcessSample(ModulationSpec (&modSpecs)[NmodulationSpecs], size_t iSample)
+			void ProcessSample(ModulationSpec(&modSpecs)[NmodulationSpecs], size_t iSample)
 			{
 				for (ModulationSpec& spec : modSpecs) {
 					if (!spec.mEnabled.GetBoolValue()) continue;

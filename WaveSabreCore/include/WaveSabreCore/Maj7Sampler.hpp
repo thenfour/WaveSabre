@@ -9,117 +9,132 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		//////////////////////////////////////////////////////////////////////////////////////////////////
-		//struct SamplerDevice : ISoundSourceDevice
-		//{
-		//	BoolParam mLegatoTrig;
-		//	BoolParam mReverse;
-		//	EnumParam<LoopMode> mLoopMode;
-		//	EnumParam<LoopBoundaryMode> mLoopSource;
-		//	EnumParam<InterpolationMode> mInterpolationMode;
+		////////////////////////////////////////////////////////////////////////////////////////////////
+		struct SamplerDevice : ISoundSourceDevice
+		{
+			BoolParam mLegatoTrig;
+			BoolParam mReverse;
+			EnumParam<LoopMode> mLoopMode;
+			EnumParam<LoopBoundaryMode> mLoopSource;
+			EnumParam<InterpolationMode> mInterpolationMode;
 
-		//	Float01Param mLoopStart;
-		//	Float01Param mLoopLength;
+			Float01Param mSampleStart;
+			Float01Param mLoopStart;
+			Float01Param mLoopLength; // 0-1 ?
 
-		//	GsmSample* mSample = nullptr;
+			int mSampleLoopStart = 0; // in samples
+			int mSampleLoopLength = 0; // in samples
 
-		//	explicit SamplerDevice(real_t* paramCache, ParamIndices paramBaseID)
-		//	{
-		//	}
+			GsmSample* mSample = nullptr;
 
-		//	// called when loading chunk, or by VST
-		//	void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr)
-		//	{
-		//		if (mSample) delete mSample;
+			explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
+				ParamIndices baseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
+			) :
+				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID,
+					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Enabled)),
+					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Volume)),
+					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::AuxMix)),
+					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneSemis)),
+					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneFine)),
+					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqParam)),
+					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqKT)),
+					ampEnvModSourceID,
+					modDestBaseID,
+					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::Volume)),
+					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::AuxMix)),
+					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::HiddenVolume))
+				),
+				mLegatoTrig(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LegatoTrig], true),
+				mReverse(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::Reverse], false),
+				mSampleStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleStart], 0),
+				mLoopMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopMode], LoopMode::NumLoopModes, LoopMode::Repeat),
+				mLoopSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopSource], LoopBoundaryMode::NumLoopBoundaryModes, LoopBoundaryMode::FromSample),
+				mInterpolationMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::InterpolationType], InterpolationMode::NumInterpolationModes, InterpolationMode::Linear),
+				mLoopStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopStart], 0),
+				mLoopLength(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength], 1)
+			{}
 
-		//		mSample = new GsmSample(compressedDataPtr, compressedSize, uncompressedSize, waveFormatPtr);
+			// called when loading chunk, or by VST
+			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr)
+			{
+				if (mSample) delete mSample;
 
-		//		mLoopStart.SetParamValue(0);
-		//		mLoopLength.SetParamValue(mSample->SampleLength);
-		//	}
+				mSample = new GsmSample(compressedDataPtr, compressedSize, uncompressedSize, waveFormatPtr);
 
-		//}; // struct SamplerDevice
+				mSampleLoopStart = 0;
+				mSampleLoopLength = mSample->SampleLength;
+				//mLoopStart.SetParamValue(0);
+				//mLoopLength.SetParamValue(mSample->SampleLength);
+			}
 
-		//////////////////////////////////////////////////////////////////////////////////////////////////
-		//struct SamplerVoice : ISoundSourceDevice::Voice
-		//{
-		//	void BeginBlock(SamplerDevice& sampler, ModMatrixNode& modMatrix, float midiNote, float voiceShapeMod, float detuneFreqMul, int samplesInBlock)
-		//	{
-		//		//if (!mEnabled.GetBoolValue()) {
-		//		//	return;
-		//		//}
+		}; // struct SamplerDevice
 
-		//		//samplePlayer.SampleStart = specimen->sampleStart;
-		//		//samplePlayer.LoopStart = specimen->loopStart;
-		//		//samplePlayer.LoopLength = specimen->loopLength;
-		//		//samplePlayer.LoopMode = specimen->loopMode;
-		//		//samplePlayer.LoopBoundaryMode = specimen->loopBoundaryMode;
-		//		//samplePlayer.InterpolationMode = specimen->interpolationMode;
-		//		//samplePlayer.Reverse = specimen->reverse;
+		////////////////////////////////////////////////////////////////////////////////////////////////
+		struct SamplerVoice : ISoundSourceDevice::Voice
+		{
+			SamplerDevice* mpSamplerDevice;
+			SamplePlayer mSamplePlayer;
 
-		//		//samplePlayer.RunPrep();
+			SamplerVoice(SamplerDevice* pDevice, ModMatrixNode& modMatrix, EnvelopeNode* pAmpEnv) :
+				ISoundSourceDevice::Voice(pDevice, modMatrix, pAmpEnv),
+				mpSamplerDevice(pDevice)
+			{
+			}
 
-		//		//float amp = Helpers::VolumeToScalar(specimen->masterLevel);
-		//		//float panLeft = Helpers::PanToScalarLeft(Pan);
-		//		//float panRight = Helpers::PanToScalarRight(Pan);
+			void ConfigPlayer()
+			{
+				mSamplePlayer.SampleStart = mpSamplerDevice->mSampleStart.Get01Value();
+				mSamplePlayer.LoopStart = mpSamplerDevice->mLoopStart.Get01Value();
+				mSamplePlayer.LoopLength = mpSamplerDevice->mLoopLength.Get01Value();
+				mSamplePlayer.LoopMode = mpSamplerDevice->mLoopMode.GetEnumValue();
+				mSamplePlayer.LoopBoundaryMode = mpSamplerDevice->mLoopSource.GetEnumValue();
+				mSamplePlayer.InterpolationMode = mpSamplerDevice->mInterpolationMode.GetEnumValue();
+				mSamplePlayer.Reverse = mpSamplerDevice->mReverse.GetBoolValue();
+			}
 
-		//		//for (int i = 0; i < numSamples; i++)
-		//		//{
-		//		//	calcPitch();
+			virtual void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale, int samplesInBlock) override
+			{
+				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
+					return;
+				}
+				if (!mpSamplerDevice->mSample) {
+					return;
+				}
 
-		//		//	filter.SetFreq(Helpers::Clamp(specimen->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (specimen->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
+				ConfigPlayer();
+				mSamplePlayer.RunPrep();
+			}
 
-		//		//	float sample = samplePlayer.Next();
-		//		//	if (!samplePlayer.IsActive)
-		//		//	{
-		//		//		IsOn = false;
-		//		//		break;
-		//		//	}
+			virtual void NoteOn(bool legato) override
+			{
+				if (!mpSamplerDevice->mSample) {
+					return;
+				}
+				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
+					return;
+				}
+				if (legato && !mpSamplerDevice->mLegatoTrig.GetBoolValue()) {
+					return;
+				}
 
-		//		//	sample = filter.Next(sample) * ampEnv.GetValue() * velocity * amp;
-		//		//	outputs[0][i] += sample * panLeft;
-		//		//	outputs[1][i] += sample * panRight;
+				mSamplePlayer.SampleData = mpSamplerDevice->mSample->SampleData;
+				mSamplePlayer.SampleLength = mpSamplerDevice->mSample->SampleLength;
+				mSamplePlayer.SampleLoopStart = mpSamplerDevice->mSampleLoopStart; // used for boundary mode from sample
+				mSamplePlayer.SampleLoopLength = mpSamplerDevice->mSampleLoopLength; // used for boundary mode from sample
 
-		//		//	modEnv.Next();
-		//		//	ampEnv.Next();
-		//		//	if (ampEnv.State == EnvelopeState::Finished)
-		//		//	{
-		//		//		IsOn = false;
-		//		//		break;
-		//		//	}
-		//		//}
+				ConfigPlayer();
+				mSamplePlayer.InitPos();
 
-		//	}
+			}
 
-		//	void NoteOn(SamplerDevice& sampler, ModMatrixNode& modMatrix, bool legato)
-		//	{
-		//		//if (!specimen->sample) return;
+			float ProcessSample(size_t iSample)
+			{
+				// TODO: calculate rate.
+				mSamplePlayer.SetPlayRate(1);
+				return mSamplePlayer.Next();
+			}
 
-		//		//samplePlayer.SampleData = specimen->sample->SampleData;
-		//		//samplePlayer.SampleLength = specimen->sample->SampleLength;
-		//		//samplePlayer.SampleLoopStart = specimen->sampleLoopStart;
-		//		//samplePlayer.SampleLoopLength = specimen->sampleLoopLength;
-
-		//		//samplePlayer.SampleStart = specimen->sampleStart;
-		//		//samplePlayer.LoopStart = specimen->loopStart;
-		//		//samplePlayer.LoopLength = specimen->loopLength;
-		//		//samplePlayer.LoopMode = specimen->loopMode;
-		//		//samplePlayer.LoopBoundaryMode = specimen->loopBoundaryMode;
-		//		//samplePlayer.InterpolationMode = specimen->interpolationMode;
-		//		//samplePlayer.Reverse = specimen->reverse;
-
-		//		//calcPitch();
-		//		//samplePlayer.InitPos();
-
-		//		//this->velocity = (float)velocity / 128.0f;
-		//	}
-
-		//	float ProcessSample(SamplerDevice& sampler, ModMatrixNode& modMatrix, size_t iSample)
-		//	{
-		//		return 0;
-		//	}
-
-		//}; // struct SamplerVoice
+		}; // struct SamplerVoice
 
 	} // namespace M7
 

@@ -125,6 +125,7 @@ namespace WaveSabreCore
 				mAmpEnvModulation->mSource.SetEnumValue(mAmpEnvModSourceID);
 				mAmpEnvModulation->mDestination.SetEnumValue(mHiddenVolumeModDestID);
 				mAmpEnvModulation->mScale.SetN11Value(1);
+				mAmpEnvModulation->mType = ModulationSpecType::SourceAmp;
 			}
 
 			struct Voice

@@ -24,6 +24,11 @@ namespace WaveSabreCore
 		IsActive = false;
 	}
 
+	void SamplePlayer::SetPlayRate(double ratio)
+	{
+		this->sampleDelta = reverse ? -ratio : ratio;
+	}
+
 	void SamplePlayer::CalcPitch(double note)
 	{
 		double freqDelta = Helpers::Exp2(note / 12.0);
