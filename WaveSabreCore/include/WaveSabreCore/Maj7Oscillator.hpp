@@ -26,6 +26,8 @@ namespace WaveSabreCore
 			ParamIndices mTuneFineParamID;
 			ParamIndices mFreqParamID;
 			ParamIndices mFreqKTParamID;
+			ParamIndices mKeyRangeMinParamID;
+			ParamIndices mKeyRangeMaxParamID;
 
 			ModSource mAmpEnvModSourceID;
 			ModDestination mModDestBaseID;
@@ -40,6 +42,9 @@ namespace WaveSabreCore
 			IntParam mPitchSemisParam;
 			FloatN11Param mPitchFineParam;
 
+			IntParam mKeyRangeMin;
+			IntParam mKeyRangeMax;
+
 			ModulationSpec* mAmpEnvModulation;
 
 			// device-level values set at the beginning of block processing
@@ -48,25 +53,22 @@ namespace WaveSabreCore
 			float mShapeDeviceModAmt = 0;
 
 			// LFO backing values (they don't have params)
-			//float mLFOConst1 = 1.0f;
-			//float mLFOConst0 = 0.0f;
-			//float mLFOConstN1 = -1.0f;
 			float mLFOVolumeParamValue = 1.0f;
 			float mLFOAuxPanBacking = 0;
 			float mLFOPitchSemisParamValue = 0.5f;
 			float mLFOPitchFineParamValue = 0.5f;
-			//float mLFOFrequencyMulParamValue = 0.5f;
-			//float mLFOFMFeedbackParamValue = 0.0f;
 			float mLFOEnabledBacking = 1;
 			float mLFOVolumeBacking = 1;
 			float mLFOFreqKTBacking = 0;
+			float mLFOKeyRangeMinBacking = 0;
+			float mLFOKeyRangeMaxBacking = 0;
 
 			virtual ~ISoundSourceDevice()
 			{}
 
 			ISoundSourceDevice(float* paramCache, ModulationSpec* ampEnvModulation,
 				ParamIndices baseParamID, ParamIndices enabledParamID, ParamIndices volumeParamID, ParamIndices auxPanParamID,
-				ParamIndices tuneSemisParamID, ParamIndices tuneFineParamID, ParamIndices freqParamID, ParamIndices freqKTParamID,
+				ParamIndices tuneSemisParamID, ParamIndices tuneFineParamID, ParamIndices freqParamID, ParamIndices freqKTParamID, ParamIndices keyRangeMinParamID, ParamIndices keyRangeMaxParamID,
 				ModSource ampEnvModSourceID, ModDestination modDestBaseID, ModDestination volumeModDestID, ModDestination auxPanModDestID, ModDestination hiddenVolumeModDestID
 			) :
 
@@ -77,18 +79,22 @@ namespace WaveSabreCore
 				mAuxPanParamID(auxPanParamID),
 				mTuneSemisParamID(tuneSemisParamID),
 				mTuneFineParamID(tuneFineParamID), mFreqParamID(freqParamID), mFreqKTParamID(freqKTParamID),
+				mKeyRangeMinParamID(keyRangeMinParamID),
+				mKeyRangeMaxParamID(keyRangeMaxParamID),
 				mAmpEnvModSourceID(ampEnvModSourceID),
 				mVolumeModDestID(volumeModDestID),
 				mAuxPanModDestID(auxPanModDestID),
 				mModDestBaseID(modDestBaseID),
 				mHiddenVolumeModDestID(hiddenVolumeModDestID),
+
 				mEnabledParam(paramCache[(int)enabledParamID], false),
 				mVolumeParam(paramCache[(int)volumeParamID], 0, 1),
 				mAuxPanParam(paramCache[(int)auxPanParamID], 0),
-
 				mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 				mPitchSemisParam(paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
-				mPitchFineParam(paramCache[(int)tuneFineParamID], 0)
+				mPitchFineParam(paramCache[(int)tuneFineParamID], 0),
+				mKeyRangeMin(paramCache[(int)keyRangeMinParamID], 0, 127, 0),
+				mKeyRangeMax(paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 			{
 			}
 
@@ -106,6 +112,8 @@ namespace WaveSabreCore
 				mTuneFineParamID(ParamIndices::Invalid),
 				mFreqParamID(freqParamID),
 				mFreqKTParamID(ParamIndices::Invalid),
+				mKeyRangeMinParamID(ParamIndices::Invalid),
+				mKeyRangeMaxParamID(ParamIndices::Invalid),
 				mAmpEnvModSourceID(ModSource::Invalid),
 				mVolumeModDestID(ModDestination::Invalid),
 				mAuxPanModDestID(ModDestination::Invalid),
@@ -116,7 +124,9 @@ namespace WaveSabreCore
 				mAuxPanParam(mLFOAuxPanBacking, 0),
 				mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFrequencyCenterHz, gLFOFrequencyScale, 0.4f, 0),
 				mPitchSemisParam(mLFOPitchSemisParamValue, -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
-				mPitchFineParam(mLFOPitchFineParamValue, 0)
+				mPitchFineParam(mLFOPitchFineParamValue, 0),
+				mKeyRangeMin(mLFOKeyRangeMinBacking, 0, 127, 0),
+				mKeyRangeMax(mLFOKeyRangeMaxBacking, 0, 127, 127)
 			{
 			}
 
@@ -127,6 +137,8 @@ namespace WaveSabreCore
 				mAmpEnvModulation->mScale.SetN11Value(1);
 				mAmpEnvModulation->mType = ModulationSpecType::SourceAmp;
 			}
+
+			virtual void BeginBlock(int samplesInBlock) = 0;
 
 			struct Voice
 			{
@@ -148,6 +160,7 @@ namespace WaveSabreCore
 				float mAmpEnvGain = { 0 }; // linear gain calculated frequently from osc ampenv
 
 				virtual void NoteOn(bool legato) = 0;
+				virtual void NoteOff() = 0;
 				virtual void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale, int samplesInBlock) = 0;
 			};
 		};
@@ -562,6 +575,8 @@ namespace WaveSabreCore
 					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::PitchFine)),
 					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParam)),
 					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParamKT)),
+					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMin)),
+					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMax)),
 					ampEnvModSourceID,
 					modDestBaseID,
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::Volume)),
@@ -598,6 +613,11 @@ namespace WaveSabreCore
 				mIntention(OscillatorIntention::LFO)
 			{
 				mFrequencyMul.SetRangedValue(1.0f);
+			}
+
+			virtual void BeginBlock(int samplesInBlock) override
+			{
+				//
 			}
 
 		};
@@ -724,6 +744,8 @@ namespace WaveSabreCore
 					mPhase = Fract(mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal));
 				}
 			}
+
+			virtual void NoteOff() override {}
 
 			real_t ProcessSample(size_t bufferPos, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, bool forceSilence)
 			{

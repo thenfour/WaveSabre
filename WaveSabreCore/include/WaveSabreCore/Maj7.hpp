@@ -514,6 +514,7 @@ namespace WaveSabreCore
 					src->mShapeDeviceModAmt = sourceModDistribution[i] * oscShapeSpreadAmt;
 					src->mAuxPanDeviceModAmt = sourceModDistribution[i] * oscStereoSpreadAmt;
 					src->mDetuneDeviceModAmt = sourceModDistribution[i] * oscDetuneAmt;
+					src->BeginBlock(numSamples);
 				}
 
 				for (auto* v : mMaj7Voice)
@@ -843,6 +844,10 @@ namespace WaveSabreCore
 
 					for (auto& srcVoice : mSourceVoices)
 					{
+						if (srcVoice->mpSrcDevice->mKeyRangeMin.GetIntValue() > mNoteInfo.MidiNoteValue)
+							continue;
+						if (srcVoice->mpSrcDevice->mKeyRangeMax.GetIntValue() < mNoteInfo.MidiNoteValue)
+							continue;
 						srcVoice->mpAmpEnv->noteOn(mLegato);
 						srcVoice->NoteOn(mLegato);
 					}
@@ -857,7 +862,7 @@ namespace WaveSabreCore
 					for (auto& srcVoice : mSourceVoices)
 					{
 						srcVoice->mpAmpEnv->noteOff();
-						srcVoice->NoteOn(mLegato);
+						srcVoice->NoteOff();
 					}
 					mModEnv1.noteOff();
 					mModEnv2.noteOff();

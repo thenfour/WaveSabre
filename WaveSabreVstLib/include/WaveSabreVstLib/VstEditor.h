@@ -38,7 +38,7 @@ namespace WaveSabreVstLib
 	public:
 
 		static constexpr double gNormalKnobSpeed = 0.003f;
-		static constexpr double gSlowKnobSpeed = 0.00002f;
+		static constexpr double gSlowKnobSpeed = 0.00001f;
 
 		VstEditor(AudioEffect* audioEffect, int width, int height);
 		virtual ~VstEditor();
@@ -978,15 +978,13 @@ namespace WaveSabreVstLib
 				}
 			};
 
-			drawTick(-3, "-3db");
-			drawTick(-6, "-6db");
-			drawTick(-9, "-9db");
-			drawTick(-12, "-12db");
-			drawTick(-18, "-18db");
-			drawTick(-24, "-24db");
-			drawTick(-30, "-30db");
-			drawTick(-40, "-40db");
-			drawTick(-50, "-50db");
+			drawTick(-5, "3db");
+			drawTick(-10, "6db");
+			drawTick(-15, "12db");
+			drawTick(-20, "18db");
+			drawTick(-30, "30db");
+			drawTick(-40, "40db");
+			drawTick(-50, "50db");
 
 			ImGui::Dummy(size);
 		}

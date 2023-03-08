@@ -809,6 +809,8 @@ namespace WaveSabreCore
 
             Osc1Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc1Volume,
+            Osc1KeyrangeMin,
+            Osc1KeyrangeMax,
             Osc1Waveform,
             Osc1Waveshape,
             Osc1PhaseRestart,
@@ -837,6 +839,8 @@ namespace WaveSabreCore
 
             Osc2Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc2Volume,
+            Osc2KeyrangeMin,
+            Osc2KeyrangeMax,
             Osc2Waveform,
             Osc2Waveshape,
             Osc2PhaseRestart,
@@ -865,6 +869,8 @@ namespace WaveSabreCore
 
             Osc3Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc3Volume,
+            Osc3KeyrangeMin,
+            Osc3KeyrangeMax,
             Osc3Waveform,
             Osc3Waveshape,
             Osc3PhaseRestart,
@@ -1071,6 +1077,9 @@ namespace WaveSabreCore
 
                 Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler1Volume,
+                Sampler1KeyrangeMin,
+                Sampler1KeyrangeMax,
+                Sampler1BaseNote,
                 Sampler1LegatoTrig,
                 Sampler1Reverse,
                 Sampler1SampleStart,
@@ -1083,6 +1092,7 @@ namespace WaveSabreCore
                 Sampler1FreqParam,
                 Sampler1FreqKT,
                 Sampler1InterpolationType,
+                Sampler1ReleaseExitsLoop,
                 Sampler1AuxMix,
 
                 Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
@@ -1098,7 +1108,10 @@ namespace WaveSabreCore
 
                     Sampler2Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                     Sampler2Volume,
-                    Sampler2LegatoTrig,
+                Sampler2KeyrangeMin,
+                Sampler2KeyrangeMax,
+                Sampler2BaseNote,
+                Sampler2LegatoTrig,
                     Sampler2Reverse,
                 Sampler2SampleStart,
                     Sampler2LoopMode,
@@ -1110,7 +1123,8 @@ namespace WaveSabreCore
                     Sampler2FreqParam,
                     Sampler2FreqKT,
                     Sampler2InterpolationType,
-                    Sampler2AuxMix,
+                Sampler2ReleaseExitsLoop,
+                Sampler2AuxMix,
                            
                     Sampler2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                     Sampler2AmpEnvAttackTime,
@@ -1125,7 +1139,10 @@ namespace WaveSabreCore
 
                 Sampler3Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler3Volume,
-                Sampler3LegatoTrig,
+                    Sampler3KeyrangeMin,
+                    Sampler3KeyrangeMax,
+                    Sampler3BaseNote,
+                    Sampler3LegatoTrig,
                 Sampler3Reverse,
                 Sampler3SampleStart,
                 Sampler3LoopMode,
@@ -1137,6 +1154,7 @@ namespace WaveSabreCore
                 Sampler3FreqParam,
                 Sampler3FreqKT,
                 Sampler3InterpolationType,
+                Sampler3ReleaseExitsLoop,
                 Sampler3AuxMix,
                        
                 Sampler3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
@@ -1152,6 +1170,9 @@ namespace WaveSabreCore
 
                 Sampler4Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler4Volume,
+                Sampler4KeyrangeMin,
+                Sampler4KeyrangeMax,
+                Sampler4BaseNote,
                 Sampler4LegatoTrig,
                 Sampler4Reverse,
                     Sampler4SampleStart,
@@ -1164,7 +1185,8 @@ namespace WaveSabreCore
                 Sampler4FreqParam,
                 Sampler4FreqKT,
                 Sampler4InterpolationType,
-                Sampler4AuxMix,
+                    Sampler4ReleaseExitsLoop,
+                    Sampler4AuxMix,
                        
                 Sampler4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                 Sampler4AmpEnvAttackTime,
@@ -1202,6 +1224,8 @@ namespace WaveSabreCore
 		    {"PBRng"}, \
             {"O1En"}, \
 		    {"O1Vol"}, \
+		    {"O1KRmin"}, \
+		    {"O1KRmax"}, \
 		    {"O1Wave"}, \
 		    {"O1Shp"}, \
 		    {"O1PRst"}, \
@@ -1228,6 +1252,8 @@ namespace WaveSabreCore
 		    {"AE2rst"}, \
 		    {"O2En"}, \
 		    {"O2Vol"}, \
+		    {"O2KRmin"}, \
+		    {"O2KRmax"}, \
 		    {"O2Wave"}, \
 		    {"O2Shp"}, \
 		    {"O2PRst"}, \
@@ -1254,6 +1280,8 @@ namespace WaveSabreCore
 		    {"AE2rst"}, \
 		    {"O3En"}, \
 		    {"O3Vol"}, \
+		    {"O3KRmin"}, \
+		    {"O3KRmax"}, \
 		    {"O3Wave"}, \
 		    {"O3Shp"}, \
 		    {"O3PRst"}, \
@@ -1440,6 +1468,9 @@ namespace WaveSabreCore
             {"M8Ainv"}, \
             {"S1En"}, \
             {"S1Vol"}, \
+            {"S1KRmin"}, \
+            {"S1KRmax"}, \
+            {"S1base"}, \
             {"S1LTrig"}, \
             {"S1Rev"}, \
 {"S1strt"}, \
@@ -1452,6 +1483,7 @@ namespace WaveSabreCore
             {"S1Frq"}, \
             {"S1FrqKT"}, \
             {"S1Intrp"}, \
+            {"S1RelX"}, \
             {"S1AxMix"}, \
 		    {"S1Edlt"}, \
 		    {"S1Eatt"}, \
@@ -1465,6 +1497,9 @@ namespace WaveSabreCore
 		    {"S1Erst"}, \
             {"S2En"}, \
             {"S2Vol"}, \
+            {"S2KRmin"}, \
+            {"S2KRmax"}, \
+            {"S2base"}, \
             {"S2LTrig"}, \
             {"S2Rev"}, \
 {"S2strt"}, \
@@ -1477,6 +1512,7 @@ namespace WaveSabreCore
             {"S2Frq"}, \
             {"S2FrqKT"}, \
             {"S2Intrp"}, \
+            {"S2RelX"}, \
             {"S2AxMix"}, \
             {"S2Edlt"}, \
             {"S2Eatt"}, \
@@ -1490,6 +1526,9 @@ namespace WaveSabreCore
             {"S2Erst"}, \
             {"S3En"}, \
             {"S3Vol"}, \
+            {"S3KRmin"}, \
+            {"S3KRmax"}, \
+            {"S3base"}, \
             {"S3LTrig"}, \
             {"S3Rev"}, \
 {"S3strt"}, \
@@ -1502,6 +1541,7 @@ namespace WaveSabreCore
             {"S3Frq"}, \
             {"S3FrqKT"}, \
             {"S3Intrp"}, \
+            {"S3RelX"}, \
             {"S3AxMix"}, \
             {"S3Edlt"}, \
             {"S3Eatt"}, \
@@ -1515,6 +1555,9 @@ namespace WaveSabreCore
             {"S3Erst"}, \
             {"S4En"}, \
             {"S4Vol"}, \
+            {"S4KRmin"}, \
+            {"S4KRmax"}, \
+            {"S4base"}, \
             {"S4LTrig"}, \
             {"S4Rev"}, \
 {"S4strt"}, \
@@ -1527,6 +1570,7 @@ namespace WaveSabreCore
             {"S4Frq"}, \
             {"S4FrqKT"}, \
             {"S4Intrp"}, \
+            {"S4RelX"}, \
             {"S4AxMix"}, \
             {"S4Edlt"}, \
             {"S4Eatt"}, \
@@ -1544,6 +1588,9 @@ namespace WaveSabreCore
         {
             Enabled,
             Volume,
+            KeyRangeMin,
+            KeyRangeMax,
+            BaseNote,
             LegatoTrig,
             Reverse,
             SampleStart,
@@ -1556,6 +1603,7 @@ namespace WaveSabreCore
             FreqParam,
             FreqKT,
             InterpolationType,
+            ReleaseExitsLoop,
             AuxMix,
             AmpEnvDelayTime,
         };
@@ -1600,6 +1648,8 @@ namespace WaveSabreCore
         {
             Enabled,
             Volume,
+            KeyRangeMin,
+            KeyRangeMax,
             Waveform,
             Waveshape,
             PhaseRestart,

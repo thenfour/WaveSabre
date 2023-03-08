@@ -11,10 +11,52 @@
 using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
 
+template<typename T>
+struct ComPtr
+{
+private:
+	T* mp = nullptr;
+	void Release() {
+		if (mp) {
+			mp->Release();
+			mp = nullptr;
+		}
+	}
+public:
+	~ComPtr() {
+		Release();
+	}
+	void Set(T* p, bool incrRef) {
+		Release();
+		if (p) {
+			mp = p;
+			if (incrRef) {
+				mp->AddRef();
+			}
+		}
+	}
+	T** GetReceivePtr() { // many COM Calls return an interface with a reference for the caller. this receives the object and assumes a ref has already been added to keep.
+		Release();
+		return &mp;
+	}
+	T* get() {
+		return mp;
+	}
+	T* operator ->() {
+		return mp;
+	}
+	bool operator !() {
+		return !!mp;
+	}
+};
+
 class Maj7Editor : public VstEditor
 {
 	Maj7Vst* mMaj7VST;
 	M7::Maj7* pMaj7;
+	static constexpr int gSamplerWaveformWidth = 700;
+	static constexpr int gSamplerWaveformHeight = 100;
+
 public:
 	Maj7Editor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1100, 900),
@@ -35,6 +77,8 @@ public:
 	{
 		std::string mStatus = "Ready.";
 		StatusStyle mStatusStyle = StatusStyle::NoStyle;
+
+		//int mSampleLoadSeq = -1;
 	};
 
 	SourceStatusText mSourceStatusText[M7::Maj7::gSourceCount];
@@ -53,6 +97,7 @@ public:
 				pMaj7->AllNotesOff();
 			}
 			ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector);
+			ImGui::MenuItem("Show color expl", nullptr, &mShowingColorExp);
 			ImGui::EndMenu();
 		}
 	}
@@ -63,6 +108,20 @@ public:
 		ret += std::to_string(pMaj7->GetCurrentPolyphony());
 		return ret;
 	};
+
+	// always returns a voice. ideally we would look at envelope states to determine the most suitable, but let's just keep it simple and increase max poly
+	M7::Maj7::Maj7Voice* FindRunningVoice() {
+		M7::Maj7::Maj7Voice* playingVoiceToReturn = nullptr;// pMaj7->mMaj7Voice[0];
+		for (auto* v : pMaj7->mMaj7Voice) {
+			if (!v->IsPlaying())
+				continue;
+			if (!playingVoiceToReturn || (v->mNoteInfo.mSequence > playingVoiceToReturn->mNoteInfo.mSequence))
+			{
+				playingVoiceToReturn = v;
+			}
+		}
+		return playingVoiceToReturn;
+	}
 
 	struct ColorMod
 	{
@@ -78,13 +137,29 @@ public:
 		struct Token
 		{
 			ImVec4 mOldColors[ImGuiCol_COUNT];
-			bool isSet;
+			bool isSet = false;
 			Token(ImVec4* newColors) {
 				isSet = !!newColors;
 				if (isSet) {
 					memcpy(mOldColors, ImGui::GetStyle().Colors, sizeof(mOldColors));
 					memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
 				}
+			}
+			Token(Token&& rhs)
+			{
+				isSet = rhs.isSet;
+				rhs.isSet = false;
+				memcpy(mOldColors, rhs.mOldColors, sizeof(mOldColors));
+			}
+			Token& operator =(Token&& rhs)
+			{
+				isSet = rhs.isSet;
+				rhs.isSet = false;
+				memcpy(mOldColors, rhs.mOldColors, sizeof(mOldColors));
+				return *this;
+			}
+			Token() {
+
 			}
 			~Token() {
 				if (isSet) {
@@ -154,10 +229,10 @@ public:
 	ColorMod mAuxRightDisabledColors{ 0.4f, 0.25f, .4f, .5f, 0.1f };
 
 	ColorMod mOscColors{ 0, 1, 1, 0.9f, 0.0f };
-	ColorMod mOscDisabledColors{ 0, 0, .6f, 0.9f, 0.0f };
+	ColorMod mOscDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
-	ColorMod mSamplerColors{ 0.1f, 1, 1, 0.9f, 0.0f };
-	ColorMod mSamplerDisabledColors{ 0.1f, 0, .6f, 0.9f, 0.0f };
+	ColorMod mSamplerColors{ 0.55f, 0.8f, .9f, 1.0f, 0.5f };
+	ColorMod mSamplerDisabledColors{ 0.55f, 0.15f, .6f, 0.5f, 0.2f };
 
 	ColorMod mCyanColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
 	ColorMod mPinkColors{ 0.40f, 0.6f, 0.75f, 0.9f, 0.0f };
@@ -165,6 +240,7 @@ public:
 	ColorMod mNopColors;
 
 	bool mShowingInspector = false;
+	bool mShowingColorExp = false;
 
 	bool BeginTabBar2(const char* str_id, ImGuiTabBarFlags flags, float columns = 1)
 	{
@@ -254,20 +330,23 @@ public:
 			style.WindowPadding.x = 10;
 		}
 
-		//// color explorer
-		//static float colorHueVarAmt = 0;
-		//static float colorSaturationVarAmt = 1;
-		//static float colorValueVarAmt = 1;
-		//static float colorTextVal = 0.9f;
-		//static float colorTextDisabledVal = 0.5f;
-		//bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-		//ColorMod xyz{ colorHueVarAmt , colorSaturationVarAmt, colorValueVarAmt, colorTextVal, colorTextDisabledVal };
-		//xyz.EnsureInitialized();
-		//auto xyzt = xyz.Push();
+		// color explorer
+		ColorMod::Token colorExplorerToken;
+		if (mShowingColorExp) {
+			static float colorHueVarAmt = 0;
+			static float colorSaturationVarAmt = 1;
+			static float colorValueVarAmt = 1;
+			static float colorTextVal = 0.9f;
+			static float colorTextDisabledVal = 0.5f;
+			bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+			ColorMod xyz{ colorHueVarAmt , colorSaturationVarAmt, colorValueVarAmt, colorTextVal, colorTextDisabledVal };
+			xyz.EnsureInitialized();
+			colorExplorerToken = std::move(xyz.Push());
+		}
 
 
 		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, 0.5f);
@@ -310,9 +389,9 @@ public:
 			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, 1);
 			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, 2);
 			Sampler("Sampler 1", pMaj7->mSampler1Device, 3);
-			Sampler("Sampler 2", pMaj7->mSampler1Device, 4);
-			Sampler("Sampler 3", pMaj7->mSampler1Device, 5);
-			Sampler("Sampler 4", pMaj7->mSampler1Device, 6);
+			Sampler("Sampler 2", pMaj7->mSampler2Device, 4);
+			Sampler("Sampler 3", pMaj7->mSampler3Device, 5);
+			Sampler("Sampler 4", pMaj7->mSampler4Device, 6);
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -523,8 +602,10 @@ public:
 			};
 			auto ampEnvSource = ampEnvSources[oscID];// ampSourceParam.GetIntValue()];
 
-			//ImGui::SameLine();
+			Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMin, "KeyRangeMin", 0, 127, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMax, "KeyRangeMax", 0, 127, 127);
 
+			ImGui::SameLine();
 			{
 				//ColorMod::Token ampEnvColorModToken{ (ampSourceParam.GetIntValue() != oscID) ? mPinkColors.mNewColors : nullptr };
 				Envelope("Amplitude Envelope", (int)ampEnvSource);
@@ -1133,7 +1214,7 @@ public:
 		auto inputFormat = (LPWAVEFORMATEX)(inputBuf.get() + 20);
 		if (inputFormat->wFormatTag != WAVE_FORMAT_PCM) return SetStatus(isrc, StatusStyle::Error, "Input file is not a PCM waveform.");
 		if (inputFormat->nChannels != 1) return SetStatus(isrc, StatusStyle::Error, "Input file is not mono.");
-		if (inputFormat->nSamplesPerSec != Specimen::SampleRate) return SetStatus(isrc, StatusStyle::Error, ("Input file is not " + std::to_string(Specimen::SampleRate) + "hz.").c_str());
+		//if (inputFormat->nSamplesPerSec != Specimen::SampleRate) return SetStatus(isrc, StatusStyle::Error, ("Input file is not " + std::to_string(Specimen::SampleRate) + "hz.").c_str());
 		if (inputFormat->wBitsPerSample != sizeof(short) * 8) return SetStatus(isrc, StatusStyle::Error, "Input file is not 16-bit.");
 
 		int chunkPos = 36;
@@ -1159,7 +1240,7 @@ public:
 		auto waveFormat = (WAVEFORMATEX*)waveFormatBuf.get();// (new char[waveFormatSize]);
 		memset(waveFormat, 0, waveFormatSize);
 		waveFormat->wFormatTag = WAVE_FORMAT_GSM610;
-		waveFormat->nSamplesPerSec = Specimen::SampleRate;
+		waveFormat->nSamplesPerSec = inputFormat->nSamplesPerSec;// Specimen::SampleRate;
 
 		ACMFORMATCHOOSE formatChoose;
 		memset(&formatChoose, 0, sizeof(formatChoose));
@@ -1208,10 +1289,7 @@ public:
 		int waveFormatSize = 0;
 		acmMetrics(NULL, ACM_METRIC_MAX_SIZE_FORMAT, &waveFormatSize);
 		auto waveFormatBuf = std::make_unique<uint8_t[]>(waveFormatSize);
-		//WAVEFORMATEX waveFormat = { 0 };
 		auto pWaveFormat = (WAVEFORMATEX*)waveFormatBuf.get();
-		//auto waveFormat = (WAVEFORMATEX *)(new char[waveFormatSize]);
-		//memset(waveFormat, 0, waveFormatSize);
 		ACMFORMATDETAILS formatDetails;
 		memset(&formatDetails, 0, sizeof(formatDetails));
 		formatDetails.cbStruct = sizeof(formatDetails);
@@ -1219,9 +1297,6 @@ public:
 		formatDetails.cbwfx = waveFormatSize;
 		formatDetails.dwFormatTag = WAVE_FORMAT_UNKNOWN;
 		acmFormatEnum(driver, &formatDetails, formatEnumCallback, dwInstance, NULL);
-
-		//delete [] (char *)waveFormat;
-
 		return 1;
 	}
 
@@ -1246,6 +1321,9 @@ public:
 	{
 		ColorMod& cm = sampler.mEnabledParam.GetBoolValue() ? mSamplerColors : mSamplerDisabledColors;
 		auto token = cm.Push();
+		static constexpr char const* const interpModeNames[] = { "Nearest", "Linear" };
+		static constexpr char const* const loopModeNames[] = { "Disabled", "Repeat", "Pingpong" };
+		static constexpr char const* const loopBoundaryModeNames[] = { "FromSample", "Manual" };
 
 		if (WSBeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox((int)sampler.mEnabledParamID, "Enabled");
@@ -1255,11 +1333,24 @@ public:
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mFreqKTParamID, "KT");
 			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneFine, "FineTune", 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::BaseNote, "BaseNote", 0, 127, 60);
+
+			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LegatoTrig, "LegatoTrig");
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMin, "KeyRangeMin", 0, 127, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMax, "KeyRangeMax", 0, 127, 127);
+
+			ImGui::SameLine(0, 60); Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopMode, "LoopMode##mst", (int)WaveSabreCore::LoopMode::NumLoopModes, WaveSabreCore::LoopMode::Repeat, loopModeNames);
+			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopSource, "LoopSrc##mst", (int)WaveSabreCore::LoopBoundaryMode::NumLoopBoundaryModes, WaveSabreCore::LoopBoundaryMode::FromSample, loopBoundaryModeNames);
+			ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::ReleaseExitsLoop, "Rel");
+			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::InterpolationType, "Interpolation##mst", (int)WaveSabreCore::InterpolationMode::NumInterpolationModes, WaveSabreCore::InterpolationMode::Linear, interpModeNames);
 
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::AuxMix, "Aux pan", 0);
 
-			static constexpr char const* const interpModeNames[] = { "Nearest", "Linear" };
-			static constexpr char const* const loopModeNames[] = { "Disabled", "Repeat", "Pingpong" };
+			ImGui::BeginGroup();
+			WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::Reverse, "Reverse");
+			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::SampleStart, "SampleStart");
+			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopStart, "LoopBeg");
+			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopLength, "LoopLen");
 
 			if (ImGui::Button("load sample")) {
 				OPENFILENAME ofn = { 0 };
@@ -1278,6 +1369,9 @@ public:
 					LoadSample(szFile, sampler, isrc);
 				}
 			}
+			ImGui::EndGroup();
+
+			ImGui::SameLine(); SamplerWaveformDisplay(sampler, isrc);
 
 			if (!sampler.mSample) {
 				ImGui::Text("No sample loaded");
@@ -1310,5 +1404,89 @@ public:
 			ImGui::EndTabItem();
 		} // if begin tab item
 	} // sampler()
+
+
+
+	void WaveformGraphic(size_t isrc, float height, const std::vector<std::pair<float, float>>& peaks, float startPos01, float loopStart01, float loopLen01, float cursor)
+	{
+		ImGuiContext& g = *GImGui;
+		size_t nSamples = peaks.size();
+		const ImVec2 size = { (float)nSamples, height };
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+		const ImVec2 padding = g.Style.FramePadding;
+		const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size + padding * 2.0f);
+
+		ImGui::ItemSize(bb);
+		if (!ImGui::ItemAdd(bb, window->GetID((int)isrc))) {
+			return;
+		}
+
+		float innerHeight = bb.GetHeight() - 4;
+
+		ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
+		ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
+
+		auto drawList = ImGui::GetWindowDrawList();
+
+		auto sampleToY = [&](float sample) {
+			float c = outerBR.y - float(bb.GetHeight()) * 0.5f;
+			float h = float(innerHeight) * 0.5f * sample;
+			return c - h;
+		};
+
+		ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f); // background
+		float centerY = sampleToY(0);
+		drawList->AddLine({ outerTL.x, centerY }, { outerBR.x, centerY }, ImGui::GetColorU32(ImGuiCol_PlotLines), 2.0f);// center line
+		for (size_t iSample = 0; iSample < nSamples; ++iSample)
+		{
+			auto minY = sampleToY(peaks[iSample].first) - 0.5f;
+			auto maxY = sampleToY(peaks[iSample].second) + 0.5f;
+			drawList->AddLine({ outerTL.x + iSample, minY }, { outerTL.x + iSample, maxY }, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
+		}
+
+		auto drawCursor = [&](float t01, ImU32 color) {
+			float x = M7::Lerp(bb.Min.x, bb.Max.x, t01);
+			x = M7::Clamp(x, bb.Min.x, bb.Max.x);
+			drawList->AddLine({ x, bb.Min.y }, { x, bb.Max.y }, color, 1.5f);
+		};
+
+		drawCursor(loopStart01, ColorFromHTML("a03030"));
+		drawCursor(loopStart01 + loopLen01, ColorFromHTML("a03030"));
+
+		drawCursor(startPos01, ColorFromHTML("30a030"));
+		drawCursor(cursor, ColorFromHTML("3030aa"));
+	}
+
+	// TODO: cache this image in a texture.
+	void SamplerWaveformDisplay(M7::SamplerDevice& sampler, size_t isrc)
+	{
+		auto sourceInfo = this->mSourceStatusText[isrc];
+		//ImGuiIO& io = ImGui::GetIO();
+		//ImGui::Image(io.Fonts->TexID, { gSamplerWaveformWidth, gSamplerWaveformHeight });
+		if (!sampler.mSample) return;
+
+		std::vector<std::pair<float, float>> peaks;
+		peaks.resize(gSamplerWaveformWidth);
+		for (size_t i = 0; i < gSamplerWaveformWidth; ++i) {
+			size_t sampleBegin = size_t((i * sampler.mSample->SampleLength) / gSamplerWaveformWidth);
+			size_t sampleEnd = size_t(((i + 1) * sampler.mSample->SampleLength) / gSamplerWaveformWidth);
+			sampleEnd = std::max(sampleEnd, sampleBegin + 1);
+			peaks[i].first = 0;
+			peaks[i].second = 0;
+			for (size_t s = sampleBegin; s < sampleEnd; ++s) {
+				peaks[i].first = std::min(peaks[i].first, sampler.mSample->SampleData[s]);
+				peaks[i].second = std::max(peaks[i].second, sampler.mSample->SampleData[s]);
+			}
+		}
+
+		auto runningVoice = FindRunningVoice();
+		float cursor = 0;
+		if (runningVoice) {
+			M7::SamplerVoice* sv = static_cast<M7::SamplerVoice*>(runningVoice->mSourceVoices[isrc]);
+			cursor = (float)sv->mSamplePlayer.samplePos;
+			cursor /= sampler.mSample->SampleLength;
+		}
+		WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampler.mSampleStart.Get01Value(), sampler.mLoopStart.Get01Value(), sampler.mLoopLength.Get01Value(), cursor);
+	}
 
 }; // class maj7editor

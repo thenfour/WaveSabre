@@ -52,9 +52,10 @@ namespace WaveSabreCore
 		float *SampleData;
 		int SampleLength;
 		int SampleLoopStart, SampleLoopLength;
+		double samplePos;
 
 	private:
-		double samplePos, sampleDelta;
+		double sampleDelta;
 		int roundedLoopStart, roundedLoopLength, roundedLoopEnd;
 		bool reverse;
 	};
