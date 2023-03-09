@@ -191,7 +191,8 @@ namespace WaveSabreCore
                 return x < y ? x : y;
             }
             inline real_t tanh(real_t x) {
-                return fastmath::fastertanh(x);
+                return (float)::tanh((double)x);
+                //return fastmath::fastertanh(x); // tanh is used for saturation and the fast version adds weird high frequency content. try it on a LP filter and see what i mean.
             }
             //inline real_t tanh(real_t x, real_t y) { // used by saturation
             //    return tanh(x * y);
@@ -802,6 +803,9 @@ namespace WaveSabreCore
             Macro2,
             Macro3,
             Macro4,
+            Macro5,
+            Macro6,
+            Macro7,
 
             PortamentoTime,
             PortamentoCurve,
@@ -1075,6 +1079,78 @@ namespace WaveSabreCore
                 Mod8Invert,
                 Mod8AuxInvert,
 
+                Mod9Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod9Source,
+                Mod9Destination,
+                Mod9Curve,
+                Mod9Scale,
+                Mod9AuxEnabled,
+                Mod9AuxSource,
+                Mod9AuxAttenuation,
+                Mod9AuxCurve,
+                Mod9Invert,
+                Mod9AuxInvert,
+
+                Mod10Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod10Source,
+                Mod10Destination,
+                Mod10Curve,
+                Mod10Scale,
+                Mod10AuxEnabled,
+                Mod10AuxSource,
+                Mod10AuxAttenuation,
+                Mod10AuxCurve,
+                Mod10Invert,
+                Mod10AuxInvert,
+
+                Mod11Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod11Source,
+                Mod11Destination,
+                Mod11Curve,
+                Mod11Scale,
+                Mod11AuxEnabled,
+                Mod11AuxSource,
+                Mod11AuxAttenuation,
+                Mod11AuxCurve,
+                Mod11Invert,
+                Mod11AuxInvert,
+
+                Mod12Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod12Source,
+                Mod12Destination,
+                Mod12Curve,
+                Mod12Scale,
+                Mod12AuxEnabled,
+                Mod12AuxSource,
+                Mod12AuxAttenuation,
+                Mod12AuxCurve,
+                Mod12Invert,
+                Mod12AuxInvert,
+
+                Mod13Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod13Source,
+                Mod13Destination,
+                Mod13Curve,
+                Mod13Scale,
+                Mod13AuxEnabled,
+                Mod13AuxSource,
+                Mod13AuxAttenuation,
+                Mod13AuxCurve,
+                Mod13Invert,
+                Mod13AuxInvert,
+
+                Mod14Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod14Source,
+                Mod14Destination,
+                Mod14Curve,
+                Mod14Scale,
+                Mod14AuxEnabled,
+                Mod14AuxSource,
+                Mod14AuxAttenuation,
+                Mod14AuxCurve,
+                Mod14Invert,
+                Mod14AuxInvert,
+
                 Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler1Volume,
                 Sampler1KeyrangeMin,
@@ -1219,6 +1295,9 @@ namespace WaveSabreCore
 		    {"Macro2"}, \
 		    {"Macro3"}, \
 		    {"Macro4"}, \
+		    {"Macro5"}, \
+		    {"Macro6"}, \
+		    {"Macro7"}, \
 		    {"PortTm"}, \
 		    {"PortCv"}, \
 		    {"PBRng"}, \
@@ -1466,6 +1545,72 @@ namespace WaveSabreCore
             {"M8Acrv"}, \
             {"M8inv"}, \
             {"M8Ainv"}, \
+            {"M9en"}, \
+            {"M9src"}, \
+            {"M9dest"}, \
+            {"M9curv"}, \
+            {"M9scale"}, \
+            {"M9Aen"}, \
+            {"M9Asrc"}, \
+            {"M9Aatt"}, \
+            {"M9Acrv"}, \
+            {"M9inv"}, \
+            {"M9Ainv"}, \
+            {"M10en"}, \
+            {"M10src"}, \
+            {"M10dest"}, \
+            {"M10curv"}, \
+            {"M10scle"}, \
+            {"M10Aen"}, \
+            {"M10Asrc"}, \
+            {"M10Aatt"}, \
+            {"M10Acrv"}, \
+            {"M10inv"}, \
+            {"M10Ainv"}, \
+            {"M11en"}, \
+            {"M11src"}, \
+            {"M11dest"}, \
+            {"M11curv"}, \
+            {"M11scle"}, \
+            {"M11Aen"}, \
+            {"M11Asrc"}, \
+            {"M11Aatt"}, \
+            {"M11Acrv"}, \
+            {"M11inv"}, \
+            {"M11Ainv"}, \
+            {"M12en"}, \
+            {"M12src"}, \
+            {"M12dest"}, \
+            {"M12curv"}, \
+            {"M12scle"}, \
+            {"M12Aen"}, \
+            {"M12Asrc"}, \
+            {"M12Aatt"}, \
+            {"M12Acrv"}, \
+            {"M12inv"}, \
+            {"M12Ainv"}, \
+            {"M13en"}, \
+            {"M13src"}, \
+            {"M13dest"}, \
+            {"M13curv"}, \
+            {"M13scle"}, \
+            {"M13Aen"}, \
+            {"M13Asrc"}, \
+            {"M13Aatt"}, \
+            {"M13Acrv"}, \
+            {"M13inv"}, \
+            {"M13Ainv"}, \
+            {"M14en"}, \
+            {"M14src"}, \
+            {"M14dest"}, \
+            {"M14curv"}, \
+            {"M14scle"}, \
+            {"M14Aen"}, \
+            {"M14Asrc"}, \
+            {"M14Aatt"}, \
+            {"M14Acrv"}, \
+            {"M14inv"}, \
+            {"M14Ainv"}, \
             {"S1En"}, \
             {"S1Vol"}, \
             {"S1KRmin"}, \
@@ -1473,7 +1618,7 @@ namespace WaveSabreCore
             {"S1base"}, \
             {"S1LTrig"}, \
             {"S1Rev"}, \
-{"S1strt"}, \
+            {"S1strt"}, \
             {"S1LMode"}, \
             {"S1LSrc"}, \
             {"S1Lbeg"}, \
@@ -1502,7 +1647,7 @@ namespace WaveSabreCore
             {"S2base"}, \
             {"S2LTrig"}, \
             {"S2Rev"}, \
-{"S2strt"}, \
+            {"S2strt"}, \
             {"S2LMode"}, \
             {"S2LSrc"}, \
             {"S2Lbeg"}, \
@@ -1531,7 +1676,7 @@ namespace WaveSabreCore
             {"S3base"}, \
             {"S3LTrig"}, \
             {"S3Rev"}, \
-{"S3strt"}, \
+            {"S3strt"}, \
             {"S3LMode"}, \
             {"S3LSrc"}, \
             {"S3Lbeg"}, \
@@ -1560,7 +1705,7 @@ namespace WaveSabreCore
             {"S4base"}, \
             {"S4LTrig"}, \
             {"S4Rev"}, \
-{"S4strt"}, \
+            {"S4strt"}, \
             {"S4LMode"}, \
             {"S4LSrc"}, \
             {"S4Lbeg"}, \

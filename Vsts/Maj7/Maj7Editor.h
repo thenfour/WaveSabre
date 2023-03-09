@@ -511,6 +511,13 @@ public:
 			ModulationSection("Mod 6", this->pMaj7->mModulations[5], (int)M7::ParamIndices::Mod6Enabled);
 			ModulationSection("Mod 7", this->pMaj7->mModulations[6], (int)M7::ParamIndices::Mod7Enabled);
 			ModulationSection("Mod 8", this->pMaj7->mModulations[7], (int)M7::ParamIndices::Mod8Enabled);
+			ModulationSection("Mod 9", this->pMaj7->mModulations[8], (int)M7::ParamIndices::Mod9Enabled);
+			ModulationSection("Mod 10", this->pMaj7->mModulations[9], (int)M7::ParamIndices::Mod10Enabled);
+			ModulationSection("Mod 11", this->pMaj7->mModulations[10], (int)M7::ParamIndices::Mod11Enabled);
+			ModulationSection("Mod 12", this->pMaj7->mModulations[11], (int)M7::ParamIndices::Mod12Enabled);
+			ModulationSection("Mod 13", this->pMaj7->mModulations[12], (int)M7::ParamIndices::Mod13Enabled);
+			ModulationSection("Mod 14", this->pMaj7->mModulations[13], (int)M7::ParamIndices::Mod14Enabled);
+
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -522,6 +529,9 @@ public:
 				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro2, "Macro 2");
 				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro3, "Macro 3");
 				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro4, "Macro 4");
+				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro5, "Macro 5");
+				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro6, "Macro 6");
+				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro7, "Macro 7");
 				ImGui::EndTabItem();
 			}
 			EndTabBarWithColoredSeparator();

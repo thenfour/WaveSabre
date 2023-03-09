@@ -45,6 +45,9 @@ namespace WaveSabreCore
 			Macro2, // krate, 01
 			Macro3, // krate, 01
 			Macro4, // krate, 01
+			Macro5, // krate, 01
+			Macro6, // krate, 01
+			Macro7, // krate, 01
 
 			Count,
 			Invalid,
@@ -74,6 +77,9 @@ namespace WaveSabreCore
 			"Macro2", \
 			"Macro3", \
 			"Macro4", \
+			"Macro5", \
+			"Macro6", \
+			"Macro7", \
 		}
 
 		enum class ModDestination : uint8_t
@@ -689,6 +695,9 @@ namespace WaveSabreCore
 				case ModSource::Macro2:
 				case ModSource::Macro3:
 				case ModSource::Macro4:
+				case ModSource::Macro5:
+				case ModSource::Macro6:
+				case ModSource::Macro7:
 					return ModulationRate::KRate;
 				}
 

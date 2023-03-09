@@ -222,7 +222,7 @@ namespace WaveSabreCore
 
 		struct Maj7 : public Maj7SynthDevice
 		{
-			static constexpr size_t gModulationCount = 8;
+			static constexpr size_t gModulationCount = 14;
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr size_t gOscillatorCount = 3;
@@ -289,6 +289,12 @@ namespace WaveSabreCore
 				{ mParamCache, (int)ParamIndices::Mod6Enabled },
 				{ mParamCache, (int)ParamIndices::Mod7Enabled },
 				{ mParamCache, (int)ParamIndices::Mod8Enabled },
+				{ mParamCache, (int)ParamIndices::Mod9Enabled },
+				{ mParamCache, (int)ParamIndices::Mod10Enabled },
+				{ mParamCache, (int)ParamIndices::Mod11Enabled },
+				{ mParamCache, (int)ParamIndices::Mod12Enabled },
+				{ mParamCache, (int)ParamIndices::Mod13Enabled },
+				{ mParamCache, (int)ParamIndices::Mod14Enabled },
 			};
 
 			real_t mParamCache[(int)ParamIndices::NumParams] = {0};
