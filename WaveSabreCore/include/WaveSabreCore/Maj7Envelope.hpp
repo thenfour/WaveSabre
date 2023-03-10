@@ -23,17 +23,31 @@ namespace WaveSabreCore
             explicit EnvelopeNode(ModMatrixNode& modMatrix, ModDestination modDestIDDelayTime, real_t* paramCache, int paramBaseID) :
                 mModMatrix(modMatrix),
                 mModDestBase((int)modDestIDDelayTime),
-                mDelayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DelayTime], 0),
-                mAttackTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackTime], 0.05f),
-                mAttackCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackCurve], 0.5f),
-                mHoldTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::HoldTime], 0),
-                mDecayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DecayTime], 0.5f),
-                mDecayCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DecayCurve], -0.5f),
-                mSustainLevel(paramCache[paramBaseID + (int)EnvParamIndexOffsets::SustainLevel], 0.4f),
-                mReleaseTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseTime], 0.2f),
-                mReleaseCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseCurve], -0.5f),
-                mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart], true) // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
+                mDelayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DelayTime]),
+                mAttackTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackTime]),
+                mAttackCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackCurve]),
+                mHoldTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::HoldTime]),
+                mDecayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DecayTime]),
+                mDecayCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DecayCurve]),
+                mSustainLevel(paramCache[paramBaseID + (int)EnvParamIndexOffsets::SustainLevel]),
+                mReleaseTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseTime]),
+                mReleaseCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseCurve]),
+                mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart]) // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
             {
+            }
+
+            void LoadDefaults()
+            {
+                mDelayTime.SetParamValue(0);
+                mAttackTime.SetParamValue(0.05f);
+                mAttackCurve.SetN11Value(0.5f);
+                mHoldTime.SetParamValue(0);
+                mDecayTime.SetParamValue(0.5f);
+                mDecayCurve.SetN11Value(-0.5f);
+                mSustainLevel.SetParamValue(0.4f);
+                mReleaseTime.SetParamValue(0.2f);
+                mReleaseCurve.SetN11Value(-0.5f);
+                mLegatoRestart.SetBoolValue(true); // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
             }
 
             enum class EnvelopeStage : uint8_t
@@ -250,7 +264,7 @@ namespace WaveSabreCore
             real_t mReleaseFromValue01 = 0; // when release stage begins, what value is it releasing from?
 
             ModMatrixNode& mModMatrix;
-            int mModDestBase;// delay time
+            const int mModDestBase;// delay time
 
         };
 

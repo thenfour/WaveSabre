@@ -17,7 +17,6 @@ public:
 	virtual bool getEffectName(char *name);
 	virtual bool getProductString(char *text);
 
-	// TODO: return all params for VST. Maj7::SetChunk / GetChunk operate on different, optimized, format which would clobber disabled params. that's annoying for DAW work but great for size-optimizing.
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		if (GetMaj7()) GetMaj7()->SetChunk(data, byteSize);
@@ -26,6 +25,7 @@ public:
 
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
+		// return a more compatible chunk than the minified one by the WaveSabre device.
 		return GetMaj7() ? GetMaj7()->GetChunk(data) : 0;
 	}
 

@@ -15,6 +15,13 @@
 #include <cstdint>
 #include <cstdio>
 
+void __cdecl operator delete[](void* p) {
+	free(p);
+}
+void* __cdecl operator new[](unsigned __int64 bytes) {
+	return malloc(bytes);
+}
+
 namespace WaveSabreCore
 {
 	Maj7SynthDevice::Maj7SynthDevice(int numParams)

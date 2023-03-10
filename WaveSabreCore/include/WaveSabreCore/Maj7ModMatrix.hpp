@@ -27,6 +27,7 @@ namespace WaveSabreCore
 			Osc1AmpEnv, // arate, 01
 			Osc2AmpEnv, // arate, 01
 			Osc3AmpEnv, // arate, 01
+			Osc4AmpEnv,
 			Sampler1AmpEnv,
 			Sampler2AmpEnv,
 			Sampler3AmpEnv,
@@ -59,6 +60,7 @@ namespace WaveSabreCore
 			"Osc1AmpEnv", \
 			"Osc2AmpEnv", \
 			"Osc3AmpEnv", \
+			"Osc4AmpEnv", \
 			"Sampler1AmpEnv", \
 			"Sampler2AmpEnv", \
 			"Sampler3AmpEnv", \
@@ -159,6 +161,26 @@ namespace WaveSabreCore
 			Osc3AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Osc3AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
+			Osc4Volume, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
+
+			Osc4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvAttackCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvHoldTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvDecayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvDecayCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvSustainLevel, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+			Osc4AmpEnvReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
+
 			Env1DelayTime, // krate, 01
 			Env1AttackTime, // krate, 01
 			Env1AttackCurve, // krate, N11
@@ -186,11 +208,17 @@ namespace WaveSabreCore
 			LFO2FrequencyParam, // krate, 01
 
 			FMAmt1to2, // arate, 01
-			FMAmt1to3, // arate, 01
-			FMAmt2to1, // arate, 01
-			FMAmt2to3, // arate, 01
-			FMAmt3to1, // arate, 01
-			FMAmt3to2, // arate, 01
+				FMAmt1to3, // arate, 01
+				FMAmt1to4, // arate, 01
+				FMAmt2to1, // arate, 01
+				FMAmt2to3, // arate, 01
+				FMAmt2to4, // arate, 01
+				FMAmt3to1, // arate, 01
+				FMAmt3to2, // arate, 01
+				FMAmt3to4, // arate, 01
+				FMAmt4to1, // arate, 01
+				FMAmt4to2, // arate, 01
+				FMAmt4to3, // arate, 01
 
 			// aux param 1 is not a mod destination. just keeps things slightly more compact and there's ALWAYS 1 param like this anyway so it's not necessary.
 			// typically param 1 is an enum like FilterType or DistortionType.
@@ -389,7 +417,25 @@ namespace WaveSabreCore
 			"Osc3AmpEnvSustainLevel", \
 			"Osc3AmpEnvReleaseTime", \
 			"Osc3AmpEnvReleaseCurve", \
-			"Env1DelayTime", \
+			"Osc4Volume", \
+			"Osc4PreFMVolume", \
+			"Osc4Waveshape", \
+			"Osc4SyncFrequency", \
+			"Osc4FrequencyParam", \
+			"Osc4PitchFine", \
+			"Osc4FMFeedback", \
+			"Osc4Phase", \
+			"Osc4AuxMix", \
+			"Osc4AmpEnvDelayTime", \
+			"Osc4AmpEnvAttackTime", \
+			"Osc4AmpEnvAttackCurve", \
+			"Osc4AmpEnvHoldTime", \
+			"Osc4AmpEnvDecayTime", \
+			"Osc4AmpEnvDecayCurve", \
+			"Osc4AmpEnvSustainLevel", \
+			"Osc4AmpEnvReleaseTime", \
+			"Osc4AmpEnvReleaseCurve", \
+		"Env1DelayTime", \
 			"Env1AttackTime", \
 			"Env1AttackCurve", \
 			"Env1HoldTime", \
@@ -413,10 +459,16 @@ namespace WaveSabreCore
 			"LFO2FrequencyParam", \
 			"FMAmt1to2", \
 			"FMAmt1to3", \
+			"FMAmt1to4", \
 			"FMAmt2to1", \
 			"FMAmt2to3", \
+			"FMAmt2to4", \
 			"FMAmt3to1", \
 			"FMAmt3to2", \
+			"FMAmt3to4", \
+			"FMAmt1to4", \
+			"FMAmt2to4", \
+			"FMAmt3to4", \
 			"Aux1Param2", \
 			"Aux1Param3", \
 			"Aux1Param4", \
@@ -532,18 +584,34 @@ namespace WaveSabreCore
 			BoolParam mAuxInvert;
 
 			ModulationSpec(real_t* paramCache, int baseParamID) :
-				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
-				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count, ModSource::None),
-				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count, ModDestination::None),
+				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
+				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
+				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
 				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
 				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale]),
-				mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled], false),
-				mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count, ModSource::None),
+				mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled]),
+				mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
 				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
 				mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
 				mInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::Invert]),
 				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
 			{
+				//LoadDefaults();
+			}
+
+			void LoadDefaults()
+			{
+				//mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
+				mSource.SetEnumValue(ModSource::None);
+				mDestination.SetEnumValue(ModDestination::None);
+				mCurve.SetN11Value(0);
+				mScale.SetN11Value(0.6f);
+					//mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled], false),
+				mAuxSource.SetEnumValue(ModSource::None);
+				mAuxCurve.SetN11Value(0);
+				mAuxAttenuation.SetParamValue(1);
+				//mInvert.SetBoolValue(false);
+				//mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
 			}
 		};
 
@@ -679,7 +747,11 @@ namespace WaveSabreCore
 				case ModSource::Osc1AmpEnv:
 				case ModSource::Osc2AmpEnv:
 				case ModSource::Osc3AmpEnv:
+				case ModSource::Osc4AmpEnv:
 				case ModSource::Sampler1AmpEnv:
+				case ModSource::Sampler2AmpEnv:
+				case ModSource::Sampler3AmpEnv:
+				case ModSource::Sampler4AmpEnv:
 				case ModSource::ModEnv1:
 				case ModSource::ModEnv2:
 				case ModSource::LFO1:

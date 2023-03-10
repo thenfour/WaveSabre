@@ -10,6 +10,10 @@
 #include <WaveSabreVstLib.h>
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Maj7.hpp>
+
+#define _7ZIP_ST
+
+#include "LzmaEnc.h"
 #include "Maj7Vst.h"
 
 using namespace WaveSabreVstLib;
@@ -53,6 +57,12 @@ public:
 		return !!mp;
 	}
 };
+//
+//// the "default param cache
+//static inline void NewPatch(M7::Maj7* pmaj7)
+//{
+//	//
+//}
 
 class Maj7Editor : public VstEditor
 {
@@ -106,8 +116,76 @@ public:
 			}
 			ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector);
 			ImGui::MenuItem("Show color expl", nullptr, &mShowingColorExp);
+			if (ImGui::MenuItem("Copy as param cache")) {
+				CopyParamCache(false);
+			}
+			if (ImGui::MenuItem("Copy as DIFF param cache")) {
+				CopyParamCache(true);
+			}
+			if (ImGui::MenuItem("Optimized serialize & report")) {
+				void* data;
+				int size = pMaj7->GetChunk(&data);
+
+				std::vector<uint8_t> compressedData;
+				compressedData.resize(size);
+				std::vector<uint8_t> encodedProps;
+				encodedProps.resize(size);
+				SizeT compressedSize = size;
+				SizeT encodedPropsSize = size;
+
+				//class MyAlloc : public ISzAlloc
+				//{
+				//public:
+				//	virtual void* Alloc(size_t size) { return malloc(size); }
+				//	virtual void Free(void* ptr) { free(ptr); }
+				//};
+
+				//MyAlloc alloc;
+
+				ISzAlloc alloc;
+				alloc.Alloc = [](ISzAllocPtr p, SizeT s) {
+					return malloc(s);
+				};
+				alloc.Free = [](ISzAllocPtr p, void* addr) {
+					free(addr);
+				};
+
+				CLzmaEncProps props;
+				LzmaEncProps_Init(&props);
+				props.level = 5;
+
+				int lzresult = LzmaEncode(&compressedData[0], &compressedSize, (const Byte*)data, size, &props, encodedProps.data(), &encodedPropsSize, 0, nullptr, &alloc, &alloc);
+
+				delete[] data;
+				std::string s = "Minified chunk = ";
+				s += std::to_string(size);
+				s += " bytes. LZMA compressed this to ";
+				s += std::to_string(compressedSize);
+				s += " bytes";
+				::MessageBoxA(mCurrentWindow, s.c_str() , "WaveSabre - Maj7", MB_OK);
+			}
 			ImGui::EndMenu();
 		}
+	}
+
+	void CopyParamCache(bool diff)
+	{
+		using vstn = const char[kVstMaxParamStrLen];
+		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+		std::stringstream ss;
+		ss << "#include <WaveSabreCore/Maj7.hpp>" << std::endl;
+		ss << "namespace WaveSabreCore {" << std::endl;
+		ss << "  namespace M7 {" << std::endl;
+		ss << "    const float Maj7::gDefaultParamCache[(int)ParamIndices::NumParams] = {" << std::endl;
+		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
+			ss << std::setprecision(20) << "      " << (GetEffectX()->getParameter((VstInt32)i) - pMaj7->mDefaultParamCache[i]) << ", // " << paramNames[i] << std::endl;
+		}
+		ss << "    };" << std::endl;
+		ss << "  } // namespace M7" << std::endl;
+		ss << "} // namespace WaveSabreCore" << std::endl;
+		ImGui::SetClipboardText(ss.str().c_str());
+
+		::MessageBoxA(mCurrentWindow, "Copied. Replace the contents of maj7.cpp with this.", "WaveSabre Maj7", MB_OK);
 	}
 
 	virtual std::string GetMenuBarStatusText() override 
@@ -393,9 +471,13 @@ public:
 		// osc1
 		if (BeginTabBar2("osc", ImGuiTabBarFlags_None))
 		{
+			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
 			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, 0);
 			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, 1);
 			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, 2);
+			Oscillator("Oscillator D", (int)M7::ParamIndices::Osc4Enabled, 3);
+
+			static_assert(M7::Maj7::gSamplerCount == 4, "sampler count");
 			Sampler("Sampler 1", pMaj7->mSampler1Device, 3);
 			Sampler("Sampler 2", pMaj7->mSampler2Device, 4);
 			Sampler("Sampler 3", pMaj7->mSampler3Device, 5);
@@ -411,19 +493,29 @@ public:
 		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 2.2f))
 		{
 			auto colorModToken = mCyanColors.Push();
+			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
 			if (WSBeginTabItem("Phase Mod Matrix")) {
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to1, "4-1");
 				ImGui::SameLine(0, 60);	Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
 
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to2, "4-2");
 
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to3, "4-3");
+
+				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to4, "1-4");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to4, "2-4");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to4, "3-4");
+				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc4FMFeedback, "FB4");
+
 				ImGui::EndTabItem();
 			}
 			EndTabBarWithColoredSeparator();
@@ -525,6 +617,8 @@ public:
 			ModulationSection("Mod 12", this->pMaj7->mModulations[11], (int)M7::ParamIndices::Mod12Enabled);
 			ModulationSection("Mod 13", this->pMaj7->mModulations[12], (int)M7::ParamIndices::Mod13Enabled);
 			ModulationSection("Mod 14", this->pMaj7->mModulations[13], (int)M7::ParamIndices::Mod14Enabled);
+			ModulationSection("Mod 15", this->pMaj7->mModulations[14], (int)M7::ParamIndices::Mod15Enabled);
+			ModulationSection("Mod 16", this->pMaj7->mModulations[15], (int)M7::ParamIndices::Mod16Enabled);
 
 			EndTabBarWithColoredSeparator();
 		}
@@ -568,12 +662,15 @@ public:
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)color);
 				ImGui::Button(txt);
 				ImGui::PopStyleColor(3);
+				static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
 				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc1AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp1");
 				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc2AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp2");
 				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc3AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp3");
+				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc4AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp4");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetSample()), ImVec2{ 50, 0 }, "Osc1");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetSample()), ImVec2{ 50, 0 }, "Osc2");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetSample()), ImVec2{ 50, 0 }, "Osc3");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator4.GetSample()), ImVec2{ 50, 0 }, "Osc4");
 			}
 		}
 	}
@@ -613,10 +710,12 @@ public:
 			//Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource, "Amp env", M7::Maj7::gOscillatorCount, oscID, oscAmpEnvSourceCaptions);
 
 			//M7::IntParam ampSourceParam{ pMaj7->mParamCache[enabledParamID + (int)M7::OscParamIndexOffsets::AmpEnvSource], 0, M7::Maj7::gOscillatorCount - 1 };
+			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
 			M7::ParamIndices ampEnvSources[M7::Maj7::gOscillatorCount] = {
 				M7::ParamIndices::Osc1AmpEnvDelayTime,
 				M7::ParamIndices::Osc2AmpEnvDelayTime,
 				M7::ParamIndices::Osc3AmpEnvDelayTime,
+				M7::ParamIndices::Osc4AmpEnvDelayTime,
 			};
 			auto ampEnvSource = ampEnvSources[oscID];// ampSourceParam.GetIntValue()];
 

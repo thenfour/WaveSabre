@@ -4,7 +4,7 @@
 
 namespace WaveSabreCore
 {
-	GsmSample::GsmSample(char *data, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormat)
+	GsmSample::GsmSample(const char *data, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormat)
 		: CompressedSize(compressedSize)
 		, UncompressedSize(uncompressedSize)
 	{

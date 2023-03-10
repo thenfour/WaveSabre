@@ -6,22 +6,15 @@
 // - do not process LFO & ENV when not in use
 // - recalc some a-rate things less frequently / reduce some things to k-rate. frequencies are calculated every sample...
 // - cache some values like mod matrix arate source buffers
-// - precalc curves; they are rarely modulated. in like 1024 x 1024 steps
+// - LUTs: curves (bilinear), sin, cos, tanh
 // - mod matrix currently processes every mod spec each sample. K-Rate should be done per buffer init.
 //   for example a K-rate to K-rate (macro to filter freq) does not need to process every sample.
-// - don't send Krate back to parent for every voice. just do once.
 // 
 // size-optimizations:
 // (profile w sizebench!)
-// - modulation spec array initialization takes a lot of space (it's not compacted; basically an unrolled loop)
-// - modulation info (src + dest) contains so much redundant info. instead keep a standalone list of N11 params and ARate params (or do we even need rate?)
 // - dont inline (use cpp)
+// - don't put GetChunk() in size-optimized code. it's not used in WS runtime.
 // - use fixed-point in oscillators. there's absolutely no reason to be using chonky floating point instructions there.
-// - find a way to exclude filters & oscillator waveforms selectively. or just don't include them. some are unreasonably large.
-// - chunk optimization:
-//   - skip params which are disabled (modulation specs!) - only for wavesabre binary export; not for VST chunk.
-//   - group params which are very likely to be the same value or rarely used
-//   - enum and bool params can be packed tight
 
 // Pitch params in order of processing:
 // x                                  Units        Level
@@ -40,6 +33,8 @@
 
 
 #pragma once
+
+#include <type_traits>
 
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7SynthDevice.hpp>
@@ -62,14 +57,15 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
+
 		struct AuxNode
 		{
 			AuxLink mLinkToSelf;
 			BoolParam mEnabledParam;
 			EnumParam<AuxLink> mLink;
 			EnumParam<AuxEffectType> mEffectType;
-			float* mParamCache_Offset;
-			int mModDestParam2ID;
+			float* const mParamCache_Offset;
+			const int mModDestParam2ID;
 
 			AuxLink mCurrentEffectLink;
 			AuxEffectType mCurrentEffectType = AuxEffectType::None;
@@ -84,6 +80,16 @@ namespace WaveSabreCore
 				mParamCache_Offset(paramCache_Offset),
 				mModDestParam2ID(modDestParam2ID)
 			{
+			}
+
+			void LoadDefaults()
+			{
+				//mEnabledParam(paramCache_Offset[(int)AuxParamIndexOffsets::Enabled]),
+				mLink.SetEnumValue(mLinkToSelf);// (paramCache_Offset[(int)AuxParamIndexOffsets::Link], AuxLink::Count),
+				mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
+				delete mpCurrentEffect;
+				mpCurrentEffect = nullptr;
+				mCurrentEffectType = AuxEffectType::None;
 			}
 
 			virtual ~AuxNode()
@@ -222,10 +228,10 @@ namespace WaveSabreCore
 
 		struct Maj7 : public Maj7SynthDevice
 		{
-			static constexpr size_t gModulationCount = 14;
+			static constexpr size_t gModulationCount = 16;
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;
-			static constexpr size_t gOscillatorCount = 3;
+			static constexpr size_t gOscillatorCount = 4;
 			static constexpr size_t gSamplerCount = 4;
 			static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
 			static constexpr size_t gAuxNodeCount = 4;
@@ -249,36 +255,45 @@ namespace WaveSabreCore
 
 			float mUnisonoShapeAmts[gUnisonoVoiceMax] = { 0 };
 
-			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb, .5f };
-			Float01Param mMacro1{ mParamCache[(int)ParamIndices::Macro1], 0.0f };
-			Float01Param mMacro2{ mParamCache[(int)ParamIndices::Macro2], 0.0f };
-			Float01Param mMacro3{ mParamCache[(int)ParamIndices::Macro3], 0.0f };
-			Float01Param mMacro4{ mParamCache[(int)ParamIndices::Macro4], 0.0f };
+			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb };
+			Float01Param mMacro1{ mParamCache[(int)ParamIndices::Macro1] };
+			Float01Param mMacro2{ mParamCache[(int)ParamIndices::Macro2] };
+			Float01Param mMacro3{ mParamCache[(int)ParamIndices::Macro3] };
+			Float01Param mMacro4{ mParamCache[(int)ParamIndices::Macro4] };
+			Float01Param mMacro5{ mParamCache[(int)ParamIndices::Macro5] };
+			Float01Param mMacro6{ mParamCache[(int)ParamIndices::Macro6] };
+			Float01Param mMacro7{ mParamCache[(int)ParamIndices::Macro7] };
 
-			Float01Param mFMAmt1to2{ mParamCache[(int)ParamIndices::FMAmt1to2], 0.0f };
-			Float01Param mFMAmt1to3{ mParamCache[(int)ParamIndices::FMAmt1to3], 0.0f };
-			Float01Param mFMAmt2to1{ mParamCache[(int)ParamIndices::FMAmt2to1], 0.0f };
-			Float01Param mFMAmt2to3{ mParamCache[(int)ParamIndices::FMAmt2to3], 0.0f };
-			Float01Param mFMAmt3to1{ mParamCache[(int)ParamIndices::FMAmt3to1], 0.0f };
-			Float01Param mFMAmt3to2{ mParamCache[(int)ParamIndices::FMAmt3to2], 0.0f };
+			Float01Param mFMAmt1to2{ mParamCache[(int)ParamIndices::FMAmt1to2] };
+			Float01Param mFMAmt1to3{ mParamCache[(int)ParamIndices::FMAmt1to3] };
+			Float01Param mFMAmt1to4{ mParamCache[(int)ParamIndices::FMAmt1to4] };
+			Float01Param mFMAmt2to1{ mParamCache[(int)ParamIndices::FMAmt2to1] };
+			Float01Param mFMAmt2to3{ mParamCache[(int)ParamIndices::FMAmt2to3] };
+			Float01Param mFMAmt2to4{ mParamCache[(int)ParamIndices::FMAmt2to4] };
+			Float01Param mFMAmt3to1{ mParamCache[(int)ParamIndices::FMAmt3to1] };
+			Float01Param mFMAmt3to2{ mParamCache[(int)ParamIndices::FMAmt3to2] };
+			Float01Param mFMAmt3to4{ mParamCache[(int)ParamIndices::FMAmt3to4] };
+			Float01Param mFMAmt4to1{ mParamCache[(int)ParamIndices::FMAmt4to1] };
+			Float01Param mFMAmt4to2{ mParamCache[(int)ParamIndices::FMAmt4to2] };
+			Float01Param mFMAmt4to3{ mParamCache[(int)ParamIndices::FMAmt4to3] };
 
-			Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune], 0.0f };
-			Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread], 0.0f };
-			Float01Param mOscillatorDetune{ mParamCache[(int)ParamIndices::OscillatorDetune], 0.0f };
-			Float01Param mOscillatorStereoSpread{ mParamCache[(int)ParamIndices::OscillatorSpread], 0.0f };
+			Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune] };
+			Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread] };
+			Float01Param mOscillatorDetune{ mParamCache[(int)ParamIndices::OscillatorDetune] };
+			Float01Param mOscillatorStereoSpread{ mParamCache[(int)ParamIndices::OscillatorSpread] };
 
-			Float01Param mUnisonoShapeSpread{ mParamCache[(int)ParamIndices::UnisonoShapeSpread], 0.0f };
-			Float01Param mOscillatorShapeSpread{ mParamCache[(int)ParamIndices::OscillatorShapeSpread], 0.0f };
+			Float01Param mUnisonoShapeSpread{ mParamCache[(int)ParamIndices::UnisonoShapeSpread] };
+			Float01Param mOscillatorShapeSpread{ mParamCache[(int)ParamIndices::OscillatorShapeSpread] };
 
-			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness], 0.5f };
+			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness] };
 
 			FrequencyParam mLFO1FilterLP { mParamCache[(int)ParamIndices::LFO1Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
 			FrequencyParam mLFO2FilterLP { mParamCache[(int)ParamIndices::LFO2Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
 
 			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange };
 
-			EnumParam<AuxRoute> mAuxRoutingParam{ mParamCache[(int)ParamIndices::AuxRouting], AuxRoute::Count, AuxRoute::TwoTwo };
-			FloatN11Param mAuxWidth{ mParamCache[(int)ParamIndices::AuxWidth], 1 };
+			EnumParam<AuxRoute> mAuxRoutingParam{ mParamCache[(int)ParamIndices::AuxRouting], AuxRoute::Count };
+			FloatN11Param mAuxWidth{ mParamCache[(int)ParamIndices::AuxWidth] };
 
 			ModulationSpec mModulations[gModulationCount] {
 				{ mParamCache, (int)ParamIndices::Mod1Enabled },
@@ -295,9 +310,12 @@ namespace WaveSabreCore
 				{ mParamCache, (int)ParamIndices::Mod12Enabled },
 				{ mParamCache, (int)ParamIndices::Mod13Enabled },
 				{ mParamCache, (int)ParamIndices::Mod14Enabled },
+				{ mParamCache, (int)ParamIndices::Mod15Enabled },
+				{ mParamCache, (int)ParamIndices::Mod16Enabled },
 			};
 
-			real_t mParamCache[(int)ParamIndices::NumParams] = {0};
+			float mParamCache[(int)ParamIndices::NumParams];
+			float mDefaultParamCache[(int)ParamIndices::NumParams];
 
 			// these are not REALLY lfos, they are used to track phase at the device level, for when an LFO's phase should be synced between all voices.
 			// that would happen only when all of the following are satisfied:
@@ -310,18 +328,20 @@ namespace WaveSabreCore
 			OscillatorNode mModLFO1Phase{ &mLFO1Device, mNullModMatrix, nullptr };
 			OscillatorNode mModLFO2Phase{ &mLFO2Device, mNullModMatrix, nullptr };
 
-			OscillatorDevice mOsc1Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 3], ParamIndices::Osc1Enabled, ModSource::Osc1AmpEnv, ModDestination::Osc1Volume };
-			OscillatorDevice mOsc2Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 2], ParamIndices::Osc2Enabled, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume };
-			OscillatorDevice mOsc3Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 1], ParamIndices::Osc3Enabled, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume };
+			OscillatorDevice mOsc1Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 8], ParamIndices::Osc1Enabled, ModSource::Osc1AmpEnv, ModDestination::Osc1Volume };
+			OscillatorDevice mOsc2Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 7], ParamIndices::Osc2Enabled, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume };
+			OscillatorDevice mOsc3Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 6], ParamIndices::Osc3Enabled, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume };
+			OscillatorDevice mOsc4Device{ OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 5], ParamIndices::Osc4Enabled, ModSource::Osc4AmpEnv, ModDestination::Osc4Volume };
 			SamplerDevice mSampler1Device{ mParamCache, &mModulations[gModulationCount - 4], ParamIndices::Sampler1Enabled, ModSource::Sampler1AmpEnv, ModDestination::Sampler1Volume };
-			SamplerDevice mSampler2Device{ mParamCache, &mModulations[gModulationCount - 5], ParamIndices::Sampler2Enabled, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume };
-			SamplerDevice mSampler3Device{ mParamCache, &mModulations[gModulationCount - 6], ParamIndices::Sampler3Enabled, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume };
-			SamplerDevice mSampler4Device{ mParamCache, &mModulations[gModulationCount - 7], ParamIndices::Sampler4Enabled, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume };
+			SamplerDevice mSampler2Device{ mParamCache, &mModulations[gModulationCount - 3], ParamIndices::Sampler2Enabled, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume };
+			SamplerDevice mSampler3Device{ mParamCache, &mModulations[gModulationCount - 2], ParamIndices::Sampler3Enabled, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume };
+			SamplerDevice mSampler4Device{ mParamCache, &mModulations[gModulationCount - 1], ParamIndices::Sampler4Enabled, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume };
 
 			ISoundSourceDevice* mSources[gSourceCount] = {
 				&mOsc1Device,
 				&mOsc2Device,
 				&mOsc3Device,
+				&mOsc4Device,
 				&mSampler1Device,
 				&mSampler2Device,
 				&mSampler3Device,
@@ -350,6 +370,34 @@ namespace WaveSabreCore
 					mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
 				}
 
+				LoadDefaults();
+			}
+
+			void LoadDefaults()
+			{
+				for (int i = 0; i < numParams; ++i) {
+					mParamCache[i] = 0;
+				}
+
+				mLFO1Device.LoadDefaults();
+				mLFO2Device.LoadDefaults();
+				mOsc1Device.LoadDefaults();
+				mOsc2Device.LoadDefaults();
+				mOsc3Device.LoadDefaults();
+				mOsc4Device.LoadDefaults();
+				mSampler1Device.LoadDefaults();
+				mSampler2Device.LoadDefaults();
+				mSampler3Device.LoadDefaults();
+				mSampler4Device.LoadDefaults();
+
+				for (auto& m : mModulations) {
+					m.LoadDefaults();
+				}
+
+				//for (size_t i = 0; i < std::size(mVoices); ++i) {
+				//	mMaj7Voice[i]->LoadDefaults();
+				//}
+
 				mLFO1FilterLP.mValue.SetParamValue(0.5f);
 				mLFO2FilterLP.mValue.SetParamValue(0.5f);
 
@@ -357,26 +405,30 @@ namespace WaveSabreCore
 
 				// make by default aux nodes link mostly to self; set up filters as default
 				AuxNode a1{ AuxLink::Aux1, mParamCache + (int)ParamIndices::Aux1Enabled, 0 };
-				a1.mLink.SetEnumValue(a1.mLinkToSelf);
 				AuxNode a2{ AuxLink::Aux2, mParamCache + (int)ParamIndices::Aux2Enabled, 0 };
+				AuxNode a3{ AuxLink::Aux3, mParamCache + (int)ParamIndices::Aux3Enabled, 0 };
+				AuxNode a4{ AuxLink::Aux4, mParamCache + (int)ParamIndices::Aux4Enabled, 0 };
+				a1.LoadDefaults();
+				a2.LoadDefaults();
+				a3.LoadDefaults();
+				a4.LoadDefaults();
+
+				a1.mLink.SetEnumValue(a1.mLinkToSelf);
 				a2.mLink.SetEnumValue(a2.mLinkToSelf);
 				a2.mEffectType.SetEnumValue(AuxEffectType::BigFilter);
 				a2.mEnabledParam.SetBoolValue(true);
-				AuxNode a3{ AuxLink::Aux3, mParamCache + (int)ParamIndices::Aux3Enabled, 0 };
 				a3.mLink.SetEnumValue(a1.mLinkToSelf);
-				AuxNode a4{ AuxLink::Aux4, mParamCache + (int)ParamIndices::Aux4Enabled, 0 };
 				a4.mLink.SetEnumValue(AuxLink::Aux2);
 				a4.mEnabledParam.SetBoolValue(true);
-				//a4.mEffectType.SetEnumValue(AuxEffectType::BigFilter);
 
 				FilterAuxNode f2{ mParamCache + (int)ParamIndices::Aux2Enabled, 0 };
 				f2.mFilterFreqParam.mValue.SetParamValue(0.4f);
 				f2.mFilterFreqParam.mKTValue.SetParamValue(1.0f);
 				f2.mFilterQParam.SetParamValue(0.15f);
 				f2.mFilterSaturationParam.SetParamValue(0.15f);
-				//FilterAuxNode f4{ mParamCache + (int)ParamIndices::Aux2Enabled };
 
-				mParamCache[(int)ParamIndices::AuxWidth] = 1.0f;
+				mAuxWidth.SetN11Value(1);
+				mAuxRoutingParam.SetEnumValue(AuxRoute::TwoTwo);
 
 				mPitchBendRange.SetIntValue(2);
 
@@ -392,52 +444,148 @@ namespace WaveSabreCore
 					mSources[i]->InitDevice();
 				}
 
+				EnvelopeNode mOsc1AmpEnv(mNullModMatrix, ModDestination::Osc1AmpEnvDelayTime, mParamCache, (int)ParamIndices::Osc1AmpEnvDelayTime);
+				EnvelopeNode mOsc2AmpEnv(mNullModMatrix, ModDestination::Osc2AmpEnvDelayTime, mParamCache, (int)ParamIndices::Osc2AmpEnvDelayTime);
+				EnvelopeNode mOsc3AmpEnv(mNullModMatrix, ModDestination::Osc3AmpEnvDelayTime, mParamCache, (int)ParamIndices::Osc3AmpEnvDelayTime);
+				EnvelopeNode mOsc4AmpEnv(mNullModMatrix, ModDestination::Osc4AmpEnvDelayTime, mParamCache, (int)ParamIndices::Osc4AmpEnvDelayTime);
+				EnvelopeNode mSampler1AmpEnv(mNullModMatrix, ModDestination::Sampler1AmpEnvDelayTime, mParamCache, (int)ParamIndices::Sampler1AmpEnvDelayTime);
+				EnvelopeNode mSampler2AmpEnv(mNullModMatrix, ModDestination::Sampler2AmpEnvDelayTime, mParamCache, (int)ParamIndices::Sampler2AmpEnvDelayTime);
+				EnvelopeNode mSampler3AmpEnv(mNullModMatrix, ModDestination::Sampler3AmpEnvDelayTime, mParamCache, (int)ParamIndices::Sampler3AmpEnvDelayTime);
+				EnvelopeNode mSampler4AmpEnv(mNullModMatrix, ModDestination::Sampler4AmpEnvDelayTime, mParamCache, (int)ParamIndices::Sampler4AmpEnvDelayTime);
+				EnvelopeNode mModEnv1(mNullModMatrix, ModDestination::Env1DelayTime, mParamCache, (int)ParamIndices::Env1DelayTime);
+				EnvelopeNode mModEnv2(mNullModMatrix, ModDestination::Env2DelayTime, mParamCache, (int)ParamIndices::Env2DelayTime);
+
+				mOsc1AmpEnv.LoadDefaults();
+				mOsc2AmpEnv.LoadDefaults();
+				mOsc3AmpEnv.LoadDefaults();
+				mOsc4AmpEnv.LoadDefaults();
+				mSampler1AmpEnv.LoadDefaults();
+				mSampler2AmpEnv.LoadDefaults();
+				mSampler3AmpEnv.LoadDefaults();
+				mSampler4AmpEnv.LoadDefaults();
+				mModEnv1.LoadDefaults();
+				mModEnv2.LoadDefaults();
+
 				mMasterVolume.SetLinearValue(1.0f);
 				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
+
+				memcpy(mDefaultParamCache, mParamCache, sizeof(mParamCache));
 			}
 
 			virtual void HandlePitchBend(float pbN11) override
 			{
 				mPitchBendN11 = pbN11;
 			}
+
 			virtual void HandleMidiCC(int ccN, int val) override {
 				// we don't care about this for the moment.
 			}
 
-			// TODO: size optimize chunk
+			// minified
 			virtual void SetChunk(void* data, int size) override
 			{
-				auto params = (float*)data;
-				// This may be different than our internal numParams value if this chunk was
-				//  saved with an earlier version of the plug for example. It's important we
-				//  don't read past the chunk data, so we set as many parameters as the
-				//  chunk contains, not the amount of parameters we have available. The
-				//  remaining parameters will retain their default values in that case, which
-				//  if we've done our job right, shouldn't change the sound with respect to
-				//  the parameters we read here.
-				auto numChunkParams = (int)((size - sizeof(int)) / sizeof(float));
-				for (int i = 0; i < numChunkParams; i++)
-					SetParam(i, params[i]);
+				LoadDefaults();
+				Deserializer ds{ (const uint8_t*)data, (size_t)size };
+				for (int i = 0; i < numParams; ++i) {
+					float f = mDefaultParamCache[i] + ds.ReadFloat();
+					SetParam(i, f);
+				}
+				static_assert(gSamplerCount == 4, "sampler count");
+				mSampler1Device.Deserialize(ds);
+				mSampler2Device.Deserialize(ds);
+				mSampler3Device.Deserialize(ds);
+				mSampler4Device.Deserialize(ds);
 			}
 
-			// TODO: size optimize chunk. first output bools, then based on bools skip params.
-			// another way to size-optimize is that ALL our params are positive-valued floats.
-			// that leaves 1 free bit to specify if the value is the default value, then either 7 or 31 bits to complete the field.
-			// something like if (param.isbool)
+			// minified
 			virtual int GetChunk(void** data) override
 			{
-				int chunkSize = numParams * sizeof(float) + sizeof(int);
-				if (!chunkData) chunkData = new char[chunkSize];
+				// the base chunk is our big param dump, with sampler data appended. each sampler will append its data; we won't think too much about that data here.
+				// the base chunk is a diff of default params, because that's way more compressible. the alternative would be to meticulously
+				// serialize some optimal fields based on whether an object is in use or not.
+				// if we just do diffs against defaults, then it's going to be almost all zeroes.
+				// the DAW can also attempt to optimize by finding unused elements and setting them to defaults.
+				//     0.20000000298023223877, // PortTm
+				//     0.40000000596046447754, // O1ScFq
+				//     0.0000001
+				Serializer s;
+				for (int i = 0; i < numParams; ++i) {
+					double f = mParamCache[i];
+					f -= mDefaultParamCache[i];
+					static constexpr double eps = 0.0000001;
+					double af = f < 0 ? -f : f;
+					if (af < eps) {
+						f = 0;
+					}
+					s.WriteFloat((float)f);
+				}
 
-				for (int i = 0; i < numParams; i++)
-					((float*)chunkData)[i] = GetParam(i);
-				*(int*)((char*)chunkData + chunkSize - sizeof(int)) = chunkSize;
+				static_assert(gSamplerCount == 4, "sampler count");
+				mSampler1Device.Serialize(s);
+				mSampler2Device.Serialize(s);
+				mSampler3Device.Serialize(s);
+				mSampler4Device.Serialize(s);
 
-				*data = chunkData;
-				return chunkSize;
+				auto ret = s.DetachBuffer();
+				*data = ret.first;
+				return (int)ret.second;
 			}
 
-			void Maj7::SetParam(int index, float value)
+			bool IsEnvelopeInUse(/*EnvelopeNode& env,*/ ModSource modSource) const
+			{
+				// an envelope is in use if it's used as a modulation source, AND the modulation is enabled,
+				// AND the modulation destination is not some disabled thing. The VAST majority of these "disabled destinations" would just be the hidden volume / pre-fm volume source param,
+				// so to simplify the logic just check for that.
+				for (auto& m : mModulations) {
+					if (!m.mEnabled.GetBoolValue()) {
+						continue;
+					}
+					if ((m.mSource.GetEnumValue() == modSource) || (m.mAuxEnabled.GetBoolValue() && (m.mAuxSource.GetEnumValue() == modSource))) {
+						// it's referenced by aux or main source. check that the destination is enabled.
+						auto dest = m.mDestination.GetEnumValue();
+						bool isHiddenVolumeDest = false;
+						for (auto& src : mSources)
+						{
+							if (src->mHiddenVolumeModDestID == dest) {
+								isHiddenVolumeDest = true;
+								// the mod spec is modulating from this env to a hidden volume control; likely a built-in modulationspec for osc vol.
+								// if that source is enabled, then consider this used.
+								// otherwise keep looking.
+								if (src->mEnabledParam.GetBoolValue()) {
+									return true;
+								}
+							}
+						}
+
+						if (!isHiddenVolumeDest) {
+							// it's modulating something other than a built-in volume control; assume the use cares about this.
+							// here's where ideally we'd check deeper but rather just assume it's in use. after all the user explicitly set this mod.
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+
+			bool IsLFOInUse(ModSource modSource) const
+			{
+				// an LFO is in use if it's used as a modulation source, AND the modulation is enabled.
+				// that's it. we don't nede to be any more specific than that because there are no default modspecs that contain lfos.
+				// therefore if it's enabled we assume the user means it.
+				for (auto& m : mModulations) {
+					if (!m.mEnabled.GetBoolValue()) {
+						continue;
+					}
+					if ((m.mSource.GetEnumValue() == modSource) || (m.mAuxEnabled.GetBoolValue() && (m.mAuxSource.GetEnumValue() == modSource))) {
+						// it's referenced by aux or main source.
+						return true;
+					}
+				}
+				return false;
+			}
+
+
+			void SetParam(int index, float value)
 			{
 				if (index < 0) return;
 				if (index >= (int)ParamIndices::NumParams) return;
@@ -465,7 +613,7 @@ namespace WaveSabreCore
 				mParamCache[index] = value;
 			}
 
-			float Maj7::GetParam(int index) const
+			float GetParam(int index) const
 			{
 				if (index < 0) return 0;
 				if (index >= (int)ParamIndices::NumParams) return 0;
@@ -537,8 +685,8 @@ namespace WaveSabreCore
 					outputs[0][iSample] *= masterGain;
 					outputs[1][iSample] *= masterGain;
 
-					mModLFO1Phase.ProcessSample(iSample, 0, 0, 0, 0, true);
-					mModLFO2Phase.ProcessSample(iSample, 0, 0, 0, 0, true);
+					mModLFO1Phase.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, true);
+					mModLFO2Phase.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, true);
 				}
 
 				for (size_t i = 0; i < gSourceCount; ++i) {
@@ -555,6 +703,7 @@ namespace WaveSabreCore
 					mOsc1AmpEnv(mModMatrix, ModDestination::Osc1AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc1AmpEnvDelayTime),
 					mOsc2AmpEnv(mModMatrix, ModDestination::Osc2AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc2AmpEnvDelayTime),
 					mOsc3AmpEnv(mModMatrix, ModDestination::Osc3AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc3AmpEnvDelayTime),
+					mOsc4AmpEnv(mModMatrix, ModDestination::Osc4AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc4AmpEnvDelayTime),
 					mSampler1AmpEnv(mModMatrix, ModDestination::Sampler1AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler1AmpEnvDelayTime),
 					mSampler2AmpEnv(mModMatrix, ModDestination::Sampler2AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler2AmpEnvDelayTime),
 					mSampler3AmpEnv(mModMatrix, ModDestination::Sampler3AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler3AmpEnvDelayTime),
@@ -566,6 +715,7 @@ namespace WaveSabreCore
 					mOscillator1(&owner->mOsc1Device, mModMatrix, &mOsc1AmpEnv),
 					mOscillator2(&owner->mOsc2Device, mModMatrix, &mOsc2AmpEnv),
 					mOscillator3(&owner->mOsc3Device, mModMatrix, &mOsc3AmpEnv),
+					mOscillator4(&owner->mOsc4Device, mModMatrix, &mOsc4AmpEnv),
 					mSampler1(&owner->mSampler1Device, mModMatrix, &mSampler1AmpEnv),
 					mSampler2(&owner->mSampler2Device, mModMatrix, &mSampler2AmpEnv),
 					mSampler3(&owner->mSampler3Device, mModMatrix, &mSampler3AmpEnv),
@@ -596,6 +746,7 @@ namespace WaveSabreCore
 				OscillatorNode mOscillator1;
 				OscillatorNode mOscillator2;
 				OscillatorNode mOscillator3;
+				OscillatorNode mOscillator4;
 				SamplerVoice mSampler1;
 				SamplerVoice mSampler2;
 				SamplerVoice mSampler3;
@@ -604,6 +755,7 @@ namespace WaveSabreCore
 				EnvelopeNode mOsc1AmpEnv;
 				EnvelopeNode mOsc2AmpEnv;
 				EnvelopeNode mOsc3AmpEnv;
+				EnvelopeNode mOsc4AmpEnv;
 				EnvelopeNode mSampler1AmpEnv;
 				EnvelopeNode mSampler2AmpEnv;
 				EnvelopeNode mSampler3AmpEnv;
@@ -613,6 +765,7 @@ namespace WaveSabreCore
 					&mOscillator1,
 					&mOscillator2,
 					&mOscillator3,
+					&mOscillator4,
 					&mSampler1,
 					&mSampler2,
 					&mSampler3,
@@ -644,7 +797,11 @@ namespace WaveSabreCore
 					mOsc1AmpEnv.BeginBlock(); // tells envelopes to recalc state based on mod values and changed settings
 					mOsc2AmpEnv.BeginBlock();
 					mOsc3AmpEnv.BeginBlock();
+					mOsc4AmpEnv.BeginBlock();
 					mSampler1AmpEnv.BeginBlock();
+					mSampler2AmpEnv.BeginBlock();
+					mSampler3AmpEnv.BeginBlock();
+					mSampler4AmpEnv.BeginBlock();
 					mModEnv1.BeginBlock();
 					mModEnv2.BeginBlock();
 
@@ -665,6 +822,9 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceKRateValue(ModSource::Macro2, mpOwner->mMacro2.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::Macro5, mpOwner->mMacro5.Get01Value());  // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::Macro6, mpOwner->mMacro6.Get01Value());  // krate, 01
+					mModMatrix.SetSourceKRateValue(ModSource::Macro7, mpOwner->mMacro7.Get01Value());  // krate, 01
 
 					if (!mModLFO1.mpOscDevice->mPhaseRestart.GetBoolValue()) {
 						// sync phase with device-level. TODO: also check that modulations aren't creating per-voice variation?
@@ -691,10 +851,10 @@ namespace WaveSabreCore
 						}
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv1, iSample, mModEnv1.ProcessSample(iSample));
 						mModMatrix.SetSourceARateValue(ModSource::ModEnv2, iSample, mModEnv2.ProcessSample(iSample));
-						float l1 = mModLFO1.ProcessSample(iSample, 0, 0, 0, 0, false);
+						float l1 = mModLFO1.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, false);
 						l1 = mLFOFilter1.ProcessSample(l1);
 						mModMatrix.SetSourceARateValue(ModSource::LFO1, iSample, l1);
-						float l2 = mModLFO2.ProcessSample(iSample, 0, 0, 0, 0, false);
+						float l2 = mModLFO2.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, false);
 						l2 = mLFOFilter2.ProcessSample(l2);
 						mModMatrix.SetSourceARateValue(ModSource::LFO2, iSample, l2);
 
@@ -719,12 +879,18 @@ namespace WaveSabreCore
 
 					float globalFMScale = mpOwner->mFMBrightness.Get01Value(mpOwner->mFMBrightnessMod) * 2;
 					float FMScales[] = {
-						mpOwner->mFMAmt2to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to1, 0)) * globalFMScale,
-						mpOwner->mFMAmt3to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to1, 0)) * globalFMScale,
-						mpOwner->mFMAmt1to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to2, 0)) * globalFMScale,
-						mpOwner->mFMAmt3to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to2, 0)) * globalFMScale,
-						mpOwner->mFMAmt1to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to3, 0)) * globalFMScale,
-						mpOwner->mFMAmt2to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to3, 0)) * globalFMScale,
+						mpOwner->mFMAmt2to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to1, 0))* globalFMScale,
+						mpOwner->mFMAmt3to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to1, 0))* globalFMScale,
+						mpOwner->mFMAmt4to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt4to1, 0))* globalFMScale,
+						mpOwner->mFMAmt1to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to2, 0))* globalFMScale,
+						mpOwner->mFMAmt3to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to2, 0))* globalFMScale,
+						mpOwner->mFMAmt4to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt4to2, 0))* globalFMScale,
+						mpOwner->mFMAmt1to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to3, 0))* globalFMScale,
+						mpOwner->mFMAmt2to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to3, 0))* globalFMScale,
+						mpOwner->mFMAmt4to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt4to3, 0))* globalFMScale,
+						mpOwner->mFMAmt1to4.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to4, 0))* globalFMScale,
+						mpOwner->mFMAmt2to4.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to4, 0))* globalFMScale,
+						mpOwner->mFMAmt3to4.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to4, 0)) * globalFMScale,
 					};
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
@@ -772,31 +938,46 @@ namespace WaveSabreCore
 
 						float osc2LastSample = mOscillator2.GetSample() * mOscillator2.mAmpEnvGain;
 						float osc3LastSample = mOscillator3.GetSample() * mOscillator3.mAmpEnvGain;
+						float osc4LastSample = mOscillator4.GetSample() * mOscillator4.mAmpEnvGain;
 
 						float sourceValues[gSourceCount] = { 0 };
 
 						sourceValues[0] = mOscillator1.ProcessSample(iSample,
 							osc2LastSample, FMScales[0],
-							osc3LastSample, FMScales[1], false
+							osc3LastSample, FMScales[1],
+							osc4LastSample, FMScales[2],
+							false
 						);
 						sourceValues[0] *= mOscillator1.mAmpEnvGain;
 
 						sourceValues[1] = mOscillator2.ProcessSample(iSample,
-							sourceValues[0], FMScales[2],
-							osc3LastSample, FMScales[3], false
+							sourceValues[0], FMScales[3],
+							osc3LastSample, FMScales[4],
+							osc4LastSample, FMScales[5],
+							false
 						);
 						sourceValues[1] *= mOscillator2.mAmpEnvGain;
 
 						sourceValues[2] = mOscillator3.ProcessSample(iSample,
-							sourceValues[0], FMScales[4],
-							sourceValues[1], FMScales[5], false
+							sourceValues[0], FMScales[6],
+							sourceValues[1], FMScales[7],
+							osc4LastSample, FMScales[8],
+							false
 						);
 						sourceValues[2] *= mOscillator3.mAmpEnvGain;
 
-						sourceValues[3] = mSampler1.ProcessSample(iSample) * mSampler1.mAmpEnvGain;
-						sourceValues[4] = mSampler2.ProcessSample(iSample) * mSampler2.mAmpEnvGain;
-						sourceValues[5] = mSampler3.ProcessSample(iSample) * mSampler3.mAmpEnvGain;
-						sourceValues[6] = mSampler4.ProcessSample(iSample) * mSampler4.mAmpEnvGain;
+						sourceValues[3] = mOscillator4.ProcessSample(iSample,
+							sourceValues[0], FMScales[9],
+							sourceValues[1], FMScales[10],
+							sourceValues[2], FMScales[11],
+							false
+						);
+						sourceValues[3] *= mOscillator4.mAmpEnvGain;
+
+						sourceValues[4] = mSampler1.ProcessSample(iSample) * mSampler1.mAmpEnvGain;
+						sourceValues[5] = mSampler2.ProcessSample(iSample) * mSampler2.mAmpEnvGain;
+						sourceValues[6] = mSampler3.ProcessSample(iSample) * mSampler3.mAmpEnvGain;
+						sourceValues[7] = mSampler4.ProcessSample(iSample) * mSampler4.mAmpEnvGain;
 
 						float sl = 0;
 						float sr = 0;

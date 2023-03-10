@@ -23,8 +23,11 @@ namespace WaveSabreCore
 		virtual void SetParam(int index, float value);
 		virtual float GetParam(int index) const;
 
-		virtual void SetChunk(void *data, int size);
-		virtual int GetChunk(void **data);
+		//virtual void SetChunkForVST(void* data, int size) { SetChunkMinified(data, size); }
+		//virtual int GetChunkForVST(void** data) { return GetChunkMinified(data); }
+
+		virtual void SetChunk(void* data, int size);
+		virtual int GetChunk(void** data);
 
 	protected:
 		virtual void clearOutputs(float **outputs, int numSamples);

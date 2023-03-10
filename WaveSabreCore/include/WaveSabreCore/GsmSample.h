@@ -30,7 +30,7 @@ namespace WaveSabreCore
 	class GsmSample : public ISampleSource
 	{
 	public:
-		GsmSample(char *data, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormat);
+		GsmSample(const char *data, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormat);
 		~GsmSample();
 
 		char *WaveFormatData;

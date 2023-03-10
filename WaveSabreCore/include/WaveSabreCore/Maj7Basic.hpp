@@ -575,8 +575,13 @@ namespace WaveSabreCore
             }
         };
 
-        // in order to ease backwards compatibility, we assume each enum < 2000 elements.
-        // that way when you add a new enum value at the end, it doesn't break all values.
+        // so i had this idea:
+        //   "in order to ease backwards compatibility, we assume each enum < 2000 elements.
+        //      that way when you add a new enum value at the end, it doesn't break all values." 
+        // that's fine but has some side-effects i don't want:
+        // - it means the param range in the DAW is impossible to use. not that these enum values are automated much but worth mentioning.
+        // - it feels deceptive that the range is advertised as huge, but the real range is small. for serialization of enums for example this just feels like spaghetti where assumptions are incompatible.
+        // that being said it's still practical.
         template <typename T>
         struct EnumParam : IntParam
         {
@@ -785,6 +790,196 @@ namespace WaveSabreCore
             }
         };
 
+        template<typename T, typename = std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T>>>
+        struct Bitfield
+        {
+            T mVal = 0;
+            Bitfield() {}
+            explicit Bitfield(T val) : mVal(val) {}
+
+            template<size_t bit>
+            bool ReadBit() {
+                return !!(mVal & (1 << bit));
+            }
+            bool ReadBit(size_t bit) {
+                return !!(mVal & (1 << bit));
+            }
+            template<size_t firstBit, size_t numBits>
+            T ReadBits() {
+                return (mVal >> firstBit) & ((1 << numBits) - 1);
+            }
+            template<size_t firstBit, size_t numBits, typename Tenum>
+            Tenum ReadEnum() {
+                static_assert(std::is_enum_v<Tenum>, "Tenum must be an enumeration type");
+                return (Tenum)ExtractBits(firstBit, numBits);
+            }
+
+            template<size_t bit>
+            void WriteBit(bool b)
+            {
+                T mask = 1 << bit;
+                if (b) { mVal |= mask; }
+                else { mVal &= ~mask; }
+            }
+
+            void WriteBit(size_t bit, bool b)
+            {
+                T mask = 1 << bit;
+                if (b) { mVal |= mask; }
+                else { mVal &= ~mask; }
+            }
+
+            template<size_t firstBit, size_t numBits>
+            T WriteValue(T valueToWrite)
+            {
+                static_assert(firstBit + numBits <= sizeof(T) * 8, "Bits out of range");
+                static constexpr T mask = (1 << numBits) - 1;
+                T encodedVal = valueToWrite & mask;
+                encodedVal <<= firstBit;
+                //T maskedVal = mVal & ~(mask << shift); assume the space is already vacant.
+                T result = (mVal | encodedVal);
+                mVal = result;
+                return result;
+            }
+
+            template<size_t firstBit, size_t numBits, typename Tenum>
+            void WriteEnum(Tenum valueToWrite)
+            {
+                static_assert(std::is_enum_v<Tenum>, "Tenum must be an enumeration type");
+                WriteValue<firstBit, numBits>(static_cast<std::underlying_type_t<Tenum>>(valueToWrite));
+            }
+        };
+
+        using ByteBitfield = Bitfield<uint8_t>;
+        using WordBitfield = Bitfield<uint16_t>;
+
+        struct Serializer
+        {
+            uint8_t* mBuffer = nullptr;
+            size_t mAllocatedSize = 0;
+            size_t mSize = 0;
+
+            Serializer() {}
+            ~Serializer() {
+                delete[] mBuffer;
+            }
+
+            std::pair<uint8_t*, size_t> DetachBuffer()
+            {
+                std::pair<uint8_t*, size_t> ret{ mBuffer, mSize };
+                mBuffer = nullptr;
+                mAllocatedSize = mSize = 0;
+                return ret;
+            }
+
+            uint8_t* GrowBy(size_t n)
+            {
+                size_t newSize = mSize + n;
+                if (mAllocatedSize < newSize) {
+                    size_t newAllocatedSize = newSize * 2 + 100;
+                    uint8_t* newBuffer = new uint8_t[newAllocatedSize];
+                    memcpy(newBuffer, mBuffer, mSize);
+                    delete[] mBuffer;
+                    mBuffer = newBuffer;
+                    mAllocatedSize = newAllocatedSize;
+                }
+                auto ret = mBuffer + mSize;
+                mSize = newSize;
+                return ret;
+            }
+
+            void WriteUByte(uint8_t b) {
+                *GrowBy(sizeof(b)) = b;
+            }
+            void WriteSByte(int8_t b) {
+                auto p = (int8_t*)GrowBy(sizeof(b));
+                *p = b;
+            }
+            void WriteUWord(uint16_t b) {
+                auto p = (uint16_t*)GrowBy(sizeof(b));
+                *p = b;
+            }
+            void WriteSWord(int16_t b) {
+                auto p = (int16_t*)GrowBy(sizeof(b));
+                *p = b;
+            }
+            void WriteFloat(float f) {
+                auto p = (float*)(GrowBy(sizeof(f)));
+                *p = f;
+            }
+            void WriteUInt32(uint32_t f) {
+                auto p = (uint32_t*)(GrowBy(sizeof(f)));
+                *p = f;
+            }
+            void WriteBuffer(const uint8_t* buf, size_t n)
+            {
+                auto p = GrowBy(n);
+                memcpy(p, buf, n);
+            }
+        };
+
+        // attaches to some buffer
+        struct Deserializer
+        {
+            const uint8_t* mpData;
+            const uint8_t* mpCursor;
+            const uint8_t* mpEnd;
+            size_t mSize;
+            explicit Deserializer(const uint8_t* p, size_t n) :
+                mpData(p),
+                mpCursor(p),
+                mSize(n),
+                mpEnd(p + n)
+            {}
+            int8_t ReadSByte() {
+                int8_t ret = *((int8_t*)mpCursor);
+                mpCursor += sizeof(ret);
+                return ret;
+            }
+            uint8_t ReadUByte() {
+                uint8_t ret = *((uint8_t*)mpCursor);
+                mpCursor += sizeof(ret);
+                return ret;
+            }
+
+            int16_t ReadSWord() {
+                int16_t ret = *((int16_t*)mpCursor);
+                mpCursor += sizeof(ret);
+                return ret;
+            }
+            uint16_t ReadUWord() {
+                uint16_t ret = *((uint16_t*)mpCursor);
+                mpCursor += sizeof(ret);
+                return ret;
+            }
+
+            uint32_t ReadUInt32() {
+                uint32_t ret = *((uint32_t*)mpCursor);
+                mpCursor += sizeof(ret);
+                return ret;
+            }
+
+            float ReadFloat() {
+                float ret = *((float*)mpCursor);
+                mpCursor += sizeof(ret);
+                return ret;
+            }
+
+            // returns a new cursor in the out buffer 
+            void ReadBuffer(void* out, size_t numbytes) {
+                memcpy(out, mpCursor, numbytes);
+                mpCursor += numbytes;
+            }
+
+            ByteBitfield ReadByteBitfield() {
+                return ByteBitfield{ ReadUByte() };
+            }
+            WordBitfield ReadWordBitfield() {
+                return WordBitfield{ ReadUWord() };
+            }
+        };
+
+
         // you need to sync up all these enums below to correspond with ordering et al.
         enum class ParamIndices
         {
@@ -901,6 +1096,36 @@ namespace WaveSabreCore
             Osc3AmpEnvReleaseCurve,
             Osc3AmpEnvLegatoRestart,
 
+                Osc4Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
+                Osc4Volume,
+                Osc4KeyrangeMin,
+                Osc4KeyrangeMax,
+                Osc4Waveform,
+                Osc4Waveshape,
+                Osc4PhaseRestart,
+                Osc4PhaseOffset,
+                Osc4SyncEnable,
+                Osc4SyncFrequency,
+                Osc4SyncFrequencyKT,
+                Osc4FrequencyParam,
+                Osc4FrequencyParamKT,
+                Osc4PitchSemis,
+                Osc4PitchFine,
+                Osc4FreqMul,
+                Osc4FMFeedback,
+                Osc4AuxMix,
+                   
+                Osc4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
+                Osc4AmpEnvAttackTime,
+                Osc4AmpEnvAttackCurve,
+                Osc4AmpEnvHoldTime,
+                Osc4AmpEnvDecayTime,
+                Osc4AmpEnvDecayCurve,
+                Osc4AmpEnvSustainLevel,
+                Osc4AmpEnvReleaseTime,
+                Osc4AmpEnvReleaseCurve,
+                Osc4AmpEnvLegatoRestart,
+
             Env1DelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Env1AttackTime,
             Env1AttackCurve,
@@ -977,11 +1202,17 @@ namespace WaveSabreCore
                 Aux4Param5, // filter KT
 
             FMAmt1to2,
-            FMAmt1to3,
-            FMAmt2to1,
+                FMAmt1to3,
+                FMAmt1to4,
+                FMAmt2to1,
             FMAmt2to3,
-            FMAmt3to1,
+                FMAmt2to4,
+                FMAmt3to1,
             FMAmt3to2,
+                FMAmt3to4,
+                FMAmt4to1,
+                FMAmt4to2,
+                FMAmt4to3,
 
             Mod1Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod1Source,
@@ -1150,6 +1381,30 @@ namespace WaveSabreCore
                 Mod14AuxCurve,
                 Mod14Invert,
                 Mod14AuxInvert,
+
+                Mod15Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod15Source,
+                Mod15Destination,
+                Mod15Curve,
+                Mod15Scale,
+                Mod15AuxEnabled,
+                Mod15AuxSource,
+                Mod15AuxAttenuation,
+                Mod15AuxCurve,
+                Mod15Invert,
+                Mod15AuxInvert,
+
+                Mod16Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod16Source,
+                Mod16Destination,
+                Mod16Curve,
+                Mod16Scale,
+                Mod16AuxEnabled,
+                Mod16AuxSource,
+                Mod16AuxAttenuation,
+                Mod16AuxCurve,
+                Mod16Invert,
+                Mod16AuxInvert,
 
                 Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler1Volume,
@@ -1393,6 +1648,34 @@ namespace WaveSabreCore
 		    {"AE3rt"}, \
 		    {"AE3tc"}, \
 		    {"AE3rst"}, \
+            {"O4En"}, \
+            {"O4Vol"}, \
+            {"O4KRmin"}, \
+            {"O4KRmax"}, \
+            {"O4Wave"}, \
+            {"O4Shp"}, \
+            {"O4PRst"}, \
+            {"O4Poff"}, \
+            {"O4Scen"}, \
+            {"O4ScFq"}, \
+            {"O4ScKt"}, \
+            {"O4Fq"}, \
+            {"O4FqKt"}, \
+            {"O4Semi"}, \
+            {"O4Fine"}, \
+            {"O4Mul"}, \
+            {"O4FMFb"}, \
+            {"O4Xmix"}, \
+            {"AE4dlt"}, \
+            {"AE4att"}, \
+            {"AE4atc"}, \
+            {"AE4ht"}, \
+            {"AE4dt"}, \
+            {"AE4dc"}, \
+            {"AE4sl"}, \
+            {"AE4rt"}, \
+            {"AE4tc"}, \
+            {"AE4rst"}, \
 		    {"E1dlt"}, \
 		    {"E1att"}, \
 		    {"E1atc"}, \
@@ -1461,10 +1744,16 @@ namespace WaveSabreCore
             {"X45"}, \
 		    {"FM1to2"}, \
 		    {"FM1to3"}, \
+		    {"FM1to4"}, \
 		    {"FM2to1"}, \
 		    {"FM2to3"}, \
+		    {"FM2to4"}, \
 		    {"FM3to1"}, \
 		    {"FM3to2"}, \
+		    {"FM3to4"}, \
+		    {"FM4to1"}, \
+		    {"FM4to2"}, \
+		    {"FM4to3"}, \
 		    {"M1en"}, \
 		    {"M1src"}, \
 		    {"M1dest"}, \
@@ -1619,6 +1908,28 @@ namespace WaveSabreCore
             {"M14Acrv"}, \
             {"M14inv"}, \
             {"M14Ainv"}, \
+            {"M15en"}, \
+            {"M15src"}, \
+            {"M15dest"}, \
+            {"M15curv"}, \
+            {"M15scle"}, \
+            {"M15Aen"}, \
+            {"M15Asrc"}, \
+            {"M15Aatt"}, \
+            {"M15Acrv"}, \
+            {"M15inv"}, \
+            {"M15Ainv"}, \
+            {"M16en"}, \
+            {"M16src"}, \
+            {"M16dest"}, \
+            {"M16curv"}, \
+            {"M16scle"}, \
+            {"M16Aen"}, \
+            {"M16Asrc"}, \
+            {"M16Aatt"}, \
+            {"M16Acrv"}, \
+            {"M16inv"}, \
+            {"M16Ainv"}, \
             {"S1En"}, \
             {"S1Vol"}, \
             {"S1KRmin"}, \

@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 		printf("Rendering...\n");
 		wavWriter.Write(fileName, progressCallback, nullptr);
 
-		printf("\n\nWAV file written to \"%s\". Enjoy.\n", fileName);
+		printf("\n\nWAV file written to \"%s\"\n", fileName);
 	}
 	else
 	{
@@ -66,19 +66,15 @@ int main(int argc, char **argv)
 
 		if (preRender)
 		{
-			printf("Prerender activated.\n");
-			printf("Rendering...\n");
-
+			printf("Prerender running...\n\n");
 			player = new PreRenderPlayer(&song, numRenderThreads, progressCallback, nullptr);
-
-			printf("\n\n");
 		}
 		else
 		{
 			player = new RealtimePlayer(&song, numRenderThreads);
 		}
 
-		printf("Realtime player activated. Press ESC to quit.\n");
+		printf("Playing... ESC to quit.\n");
 		player->Play();
 		while (!GetAsyncKeyState(VK_ESCAPE))
 		{
@@ -92,10 +88,8 @@ int main(int argc, char **argv)
 			Sleep(10);
 		}
 		printf("\n");
-
 		delete player;
 	}
-
-	//free(buffer);
 	return 0;
 }
+
