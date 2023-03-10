@@ -540,6 +540,11 @@ namespace WaveSabreCore
 					mModLFO1Phase.ProcessSample(iSample, 0, 0, 0, 0, true);
 					mModLFO2Phase.ProcessSample(iSample, 0, 0, 0, 0, true);
 				}
+
+				for (size_t i = 0; i < gSourceCount; ++i) {
+					auto* src = mSources[i];
+					src->EndBlock();
+				}
 			}
 
 			struct Maj7Voice : public Maj7SynthDevice::Voice

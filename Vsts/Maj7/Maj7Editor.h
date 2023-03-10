@@ -3,6 +3,10 @@
 #include <iostream>
 #include <fstream>
 #include <exception>
+#include <Shlwapi.h>
+
+#pragma comment(lib, "shlwapi.lib")
+
 #include <WaveSabreVstLib.h>
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Maj7.hpp>
@@ -56,6 +60,9 @@ class Maj7Editor : public VstEditor
 	M7::Maj7* pMaj7;
 	static constexpr int gSamplerWaveformWidth = 700;
 	static constexpr int gSamplerWaveformHeight = 100;
+	std::vector<std::pair<std::string, int>> mGmDlsOptions;
+	bool mShowingGmDlsList = false;
+	char mGmDlsFilter[100] = { 0 };
 
 public:
 	Maj7Editor(AudioEffect* audioEffect) :
@@ -63,6 +70,7 @@ public:
 		mMaj7VST((Maj7Vst*)audioEffect),
 		pMaj7(((Maj7Vst*)audioEffect)->GetMaj7())
 	{
+		mGmDlsOptions = LoadGmDlsOptions();
 	}
 
 	enum class StatusStyle
@@ -1282,7 +1290,7 @@ public:
 		acmStreamClose(stream, 0);
 		acmDriverClose(driver, 0);
 
-		sampler.LoadSample(compressedData.get(), streamHeader.cbDstLengthUsed, chunkSizeBytes, waveFormat);
+		sampler.LoadSample(compressedData.get(), streamHeader.cbDstLengthUsed, chunkSizeBytes, waveFormat, ::PathFindFileNameA(path));
 
 		return SetStatus(isrc, StatusStyle::Green, "Sample loaded successfully.");
 	}
@@ -1327,6 +1335,26 @@ public:
 	static WAVEFORMATEX* foundWaveFormat;
 
 
+	std::vector<std::pair<std::string, int>> autocomplete(std::string input, const std::vector<std::pair<std::string, int>>& entries) {
+		std::vector<std::pair<std::string, int>> suggestions;
+		std::transform(input.begin(), input.end(), input.begin(), ::tolower); // convert input to lowercase
+		for (auto entry : entries) {
+			std::string lowercaseEntry = entry.first;
+			std::transform(lowercaseEntry.begin(), lowercaseEntry.end(), lowercaseEntry.begin(), ::tolower); // convert entry to lowercase
+			int inputIndex = 0, entryIndex = 0;
+			while (inputIndex < input.size() && entryIndex < lowercaseEntry.size()) {
+				if (input[inputIndex] == lowercaseEntry[entryIndex]) {
+					inputIndex++;
+				}
+				entryIndex++;
+			}
+			if (inputIndex == input.size()) {
+				suggestions.push_back(entry);
+			}
+		}
+		return suggestions;
+	}
+
 	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc)
 	{
 		ColorMod& cm = sampler.mEnabledParam.GetBoolValue() ? mSamplerColors : mSamplerDisabledColors;
@@ -1361,8 +1389,12 @@ public:
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::SampleStart, "SampleStart");
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopStart, "LoopBeg");
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopLength, "LoopLen");
+			ImGui::EndGroup();
 
-			if (ImGui::Button("load sample")) {
+			ImGui::SameLine();
+			SamplerWaveformDisplay(sampler, isrc);
+
+			if (ImGui::SmallButton("Load from file ...")) {
 				OPENFILENAME ofn = { 0 };
 				TCHAR szFile[MAX_PATH] = { 0 };
 				ofn.lStructSize = sizeof(ofn);
@@ -1373,24 +1405,59 @@ public:
 				ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST;
 				if (GetOpenFileName(&ofn))
 				{
-					// User selected a file, do something with it...
-					MessageBox(mCurrentWindow, szFile, TEXT("Selected File"), MB_OK);
 					mSourceStatusText[isrc].mStatus.clear();
 					LoadSample(szFile, sampler, isrc);
 				}
 			}
-			ImGui::EndGroup();
 
-			ImGui::SameLine(); SamplerWaveformDisplay(sampler, isrc);
+			if (!mShowingGmDlsList)
+			{
+				ImGui::SameLine();
+				if (ImGui::SmallButton("Load Gm.Dls sample...")) {
+					mShowingGmDlsList = true;
+				}
+			}
+			else
+			{
+				ImGui::InputText("sampleFilter", mGmDlsFilter, std::size(mGmDlsFilter));
+				ImGui::BeginListBox("sample");
+				int sampleIndex = (int)GetEffectX()->getParameter((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::GmDlsIndex);
+				auto matches = (std::strlen(mGmDlsFilter) > 0) ? autocomplete(mGmDlsFilter, mGmDlsOptions) : mGmDlsOptions;
+				for (auto& x : matches) {
+					bool isSelected = sampleIndex == x.second;
+					if (ImGui::Selectable(x.first.c_str(), &isSelected)) {
+						if (isSelected) {
+							sampler.LoadGmDlsSample(x.second);
+						}
+					}
+				}
+				ImGui::EndListBox();
+				if (ImGui::SmallButton("Close")) {
+					mShowingGmDlsList = false;
+				}
+			}
 
+			//ImGui::SameLine();
 			if (!sampler.mSample) {
 				ImGui::Text("No sample loaded");
 			}
+			else if (sampler.mSampleSource.GetEnumValue() == M7::SampleSource::Embed) {
+				auto* p = static_cast<WaveSabreCore::GsmSample*>(sampler.mSample);
+				ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%) / %d Samples / path:%s", p->UncompressedSize, p->CompressedSize, (p->CompressedSize * 100) / p->UncompressedSize, p->SampleLength, sampler.mSamplePath);
+			}
+			else if (sampler.mSampleSource.GetEnumValue() == M7::SampleSource::GmDls) {
+				auto* p = static_cast<M7::GmDlsSample*>(sampler.mSample);
+				const char* name = "(none)";
+				if (p->mSampleIndex >= 0 && p->mSampleIndex < GmDls::NumSamples) {
+					name = mGmDlsOptions[p->mSampleIndex].first.c_str();
+				}
+				ImGui::Text("GmDls : %s (%d)", name, p->mSampleIndex);
+			}
 			else {
-				auto* p = sampler.mSample;
-				ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%)\r\n%d Samples", p->UncompressedSize, p->CompressedSize, (p->CompressedSize * 100) / p->UncompressedSize, p->SampleLength);
+				ImGui::Text("--");
 			}
 
+			ImGui::SameLine();
 			switch (mSourceStatusText[isrc].mStatusStyle)
 			{
 			case StatusStyle::NoStyle:
@@ -1402,6 +1469,7 @@ public:
 			case StatusStyle::Warning:
 				ImGui::TextColored(ImColor::HSV(1 / 7.0f, 0.6f, 0.6f), "%s", mSourceStatusText[isrc].mStatus.c_str());
 				break;
+			default:
 			case StatusStyle::Green:
 				ImGui::TextColored(ImColor::HSV(2 / 7.0f, 0.6f, 0.6f), "%s", mSourceStatusText[isrc].mStatus.c_str());
 				break;
@@ -1454,14 +1522,21 @@ public:
 			drawList->AddLine({ outerTL.x + iSample, minY }, { outerTL.x + iSample, maxY }, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
 		}
 
-		auto drawCursor = [&](float t01, ImU32 color) {
+		auto GetX = [&](float t01) {
 			float x = M7::Lerp(bb.Min.x, bb.Max.x, t01);
 			x = M7::Clamp(x, bb.Min.x, bb.Max.x);
-			drawList->AddLine({ x, bb.Min.y }, { x, bb.Max.y }, color, 1.5f);
+			return x;
+		};
+
+		auto drawCursor = [&](float t01, ImU32 color) {
+			auto x = GetX(t01);
+			drawList->AddLine({ x, bb.Min.y }, { x, bb.Max.y }, color, 3.5f);
 		};
 
 		drawCursor(loopStart01, ColorFromHTML("a03030"));
 		drawCursor(loopStart01 + loopLen01, ColorFromHTML("a03030"));
+		drawList->AddRectFilled({ GetX(loopStart01), bb.Min.y }, { GetX(loopStart01 + loopLen01), bb.Max.y }, ColorFromHTML("a03030", 0.4f));
+		drawList->AddRectFilled({ GetX(loopStart01), bb.Max.y - 10 }, { GetX(loopStart01 + loopLen01), bb.Max.y }, ColorFromHTML("a03030", 0.8f));
 
 		drawCursor(startPos01, ColorFromHTML("30a030"));
 		drawCursor(cursor, ColorFromHTML("3030aa"));
@@ -1475,17 +1550,19 @@ public:
 		//ImGui::Image(io.Fonts->TexID, { gSamplerWaveformWidth, gSamplerWaveformHeight });
 		if (!sampler.mSample) return;
 
+		auto sampleData = sampler.mSample->GetSampleData();
+
 		std::vector<std::pair<float, float>> peaks;
 		peaks.resize(gSamplerWaveformWidth);
 		for (size_t i = 0; i < gSamplerWaveformWidth; ++i) {
-			size_t sampleBegin = size_t((i * sampler.mSample->SampleLength) / gSamplerWaveformWidth);
-			size_t sampleEnd = size_t(((i + 1) * sampler.mSample->SampleLength) / gSamplerWaveformWidth);
+			size_t sampleBegin = size_t((i * sampler.mSample->GetSampleLength()) / gSamplerWaveformWidth);
+			size_t sampleEnd = size_t(((i + 1) * sampler.mSample->GetSampleLength()) / gSamplerWaveformWidth);
 			sampleEnd = std::max(sampleEnd, sampleBegin + 1);
 			peaks[i].first = 0;
 			peaks[i].second = 0;
 			for (size_t s = sampleBegin; s < sampleEnd; ++s) {
-				peaks[i].first = std::min(peaks[i].first, sampler.mSample->SampleData[s]);
-				peaks[i].second = std::max(peaks[i].second, sampler.mSample->SampleData[s]);
+				peaks[i].first = std::min(peaks[i].first, sampleData[s]);
+				peaks[i].second = std::max(peaks[i].second, sampleData[s]);
 			}
 		}
 
@@ -1494,7 +1571,7 @@ public:
 		if (runningVoice) {
 			M7::SamplerVoice* sv = static_cast<M7::SamplerVoice*>(runningVoice->mSourceVoices[isrc]);
 			cursor = (float)sv->mSamplePlayer.samplePos;
-			cursor /= sampler.mSample->SampleLength;
+			cursor /= sampler.mSample->GetSampleLength();
 		}
 		WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampler.mSampleStart.Get01Value(), sampler.mLoopStart.Get01Value(), sampler.mLoopLength.Get01Value(), cursor);
 	}

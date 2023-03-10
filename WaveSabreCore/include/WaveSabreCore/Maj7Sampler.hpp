@@ -2,13 +2,125 @@
 
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
+#include <WaveSabreCore/GmDls.h>
 #include <WaveSabreCore/Specimen.h>
+#include "Adultery.h"
 #include "Maj7Oscillator.hpp"
 
 namespace WaveSabreCore
 {
 	namespace M7
 	{
+		enum class SampleSource
+		{
+			GmDls,
+			Embed,
+			Count,
+		};
+
+		struct MutexHold
+		{
+			HANDLE mMutex;
+			MutexHold(HANDLE hMutex) : mMutex(hMutex)
+			{
+				WaitForSingleObject(mMutex, INFINITE);
+			}
+			~MutexHold() {
+				ReleaseMutex(mMutex);
+			}
+		};
+
+		struct GmDlsSample : ISampleSource
+		{
+			size_t mSampleIndex;
+			int mSampleLength = 0;
+			int mSampleLoopStart = 0;
+			int mSampleLoopLength = 0;
+			float* mSampleData = nullptr;
+
+			GmDlsSample(size_t sampleIndex)
+			{
+				if (sampleIndex >= GmDls::NumSamples) return;
+				mSampleIndex = sampleIndex;
+				auto gmDls = GmDls::Load();
+
+				// Seek to wave pool chunk's data
+				auto ptr = gmDls + GmDls::WaveListOffset;
+
+				// Walk wave pool entries
+				for (int i = 0; i <= sampleIndex; i++)
+				{
+					// Walk wave list
+					auto waveListTag = *((unsigned int*)ptr); // Should be 'LIST'
+					ptr += 4;
+					auto waveListSize = *((unsigned int*)ptr);
+					ptr += 4;
+
+					// Skip entries until we've reached the index we're looking for
+					if (i != sampleIndex)
+					{
+						ptr += waveListSize;
+						continue;
+					}
+
+					// Walk wave entry
+					auto wave = ptr;
+					auto waveTag = *((unsigned int*)wave); // Should be 'wave'
+					wave += 4;
+
+					// Read fmt chunk
+					Adultery::Fmt fmt;
+					memcpy(&fmt, wave, sizeof(fmt));
+					wave += fmt.size + 8; // size field doesn't account for tag or length fields
+
+					// Read wsmp chunk
+					Adultery::Wsmp wsmp;
+					memcpy(&wsmp, wave, sizeof(wsmp));
+					wave += wsmp.size + 8; // size field doesn't account for tag or length fields
+
+					// Read data chunk
+					auto dataChunkTag = *((unsigned int*)wave); // Should be 'data'
+					wave += 4;
+					auto dataChunkSize = *((unsigned int*)wave);
+					wave += 4;
+
+					// Data format is assumed to be mono 16-bit signed PCM
+					mSampleLength = dataChunkSize / 2;
+					mSampleData = new float[mSampleLength];
+					for (int j = 0; j < mSampleLength; j++)
+					{
+						auto sample = *((short*)wave);
+						wave += 2;
+						mSampleData[j] = (float)((double)sample / 32768.0);
+					}
+
+					if (wsmp.loopCount)
+					{
+						mSampleLoopStart = wsmp.loopStart;
+						mSampleLoopLength = wsmp.loopLength;
+					}
+					else
+					{
+						mSampleLoopStart = 0;
+						mSampleLoopLength = mSampleLength;
+					}
+
+					delete[] gmDls;
+				}
+			}
+
+			~GmDlsSample() {
+				delete[] mSampleData;
+			}
+
+			virtual const float* GetSampleData() const override { return mSampleData; }
+			virtual int GetSampleLength() const override { return mSampleLength; }
+			virtual int GetSampleLoopStart() const override { return mSampleLoopStart; }
+			virtual int GetSampleLoopLength() const override { return mSampleLoopLength; }
+			virtual int GetSampleRate() const override { return 44100; }
+
+		}; // struct GmDlsSample
+
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		struct SamplerDevice : ISoundSourceDevice
 		{
@@ -18,20 +130,24 @@ namespace WaveSabreCore
 			EnumParam<LoopMode> mLoopMode;
 			EnumParam<LoopBoundaryMode> mLoopSource;
 			EnumParam<InterpolationMode> mInterpolationMode;
+			EnumParam<SampleSource> mSampleSource;
 
+			IntParam mGmDlsIndex;
 			IntParam mBaseNote;
 
 			Float01Param mSampleStart;
 			Float01Param mLoopStart;
 			Float01Param mLoopLength; // 0-1 ?
 
-			int mSampleLoopStart = 0; // in samples
-			int mSampleLoopLength = 0; // in samples
-			float mSampleOriginalSR = 0;
+			//int mSampleLoopStart = 0; // in samples
+			//int mSampleLoopLength = 0; // in samples
+			//float mSampleOriginalSR = 0;
 			int mSampleLoadSequence = 0; // just an ID to let the VST editor know when the sample data has changed
 
-			GsmSample* mSample = nullptr;
+			ISampleSource* mSample = nullptr;
 			float mSampleRateCorrectionFactor = 0;
+			HANDLE mMutex;
+			char mSamplePath[MAX_PATH] = { 0 };
 
 			explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
 				ParamIndices baseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
@@ -61,24 +177,53 @@ namespace WaveSabreCore
 				mInterpolationMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::InterpolationType], InterpolationMode::NumInterpolationModes, InterpolationMode::Linear),
 				mLoopStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopStart], 0),
 				mLoopLength(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength], 1),
-				mBaseNote(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], 0, 127, 60)
-			{}
+				mBaseNote(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], 0, 127, 60),
+				mSampleSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleSource], SampleSource::Count, SampleSource::Embed),
+				mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], -1, WaveSabreCore::GmDls::NumSamples, -1)
+			{
+				mMutex = ::CreateMutex(0, 0, 0);
+			}
+
+			virtual ~SamplerDevice()
+			{
+				CloseHandle(mMutex);
+			}
 
 			// called when loading chunk, or by VST
-			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr)
+			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char *path)
 			{
-				if (mSample) delete mSample;
-
-				mSample = new GsmSample(compressedDataPtr, compressedSize, uncompressedSize, waveFormatPtr);
+				auto token = MutexHold{ mMutex };
+				//WaitForSingleObject(mMutex, INFINITE);
+				if (mSample) {
+					delete mSample;
+				}
+				mSampleSource.SetEnumValue(SampleSource::Embed);
 				mSampleLoadSequence++;
+				mSample = new GsmSample(compressedDataPtr, compressedSize, uncompressedSize, waveFormatPtr);
+				strcpy_s(mSamplePath, path);
+			}
 
-				mSampleLoopStart = 0;
-				mSampleLoopLength = mSample->SampleLength;
-				mSampleOriginalSR = (float)waveFormatPtr->nSamplesPerSec;
+			void LoadGmDlsSample(int sampleIndex)
+			{
+				auto token = MutexHold{ mMutex };
+				if (mSample) {
+					delete mSample;
+				}
+				mSample = nullptr;
+				if (sampleIndex < 0 || sampleIndex >= GmDls::NumSamples) {
+					return;
+				}
+
+				mSampleSource.SetEnumValue(SampleSource::GmDls);
+				mGmDlsIndex.SetIntValue(sampleIndex);
+				mSampleLoadSequence++;
+				mSample = new GmDlsSample(sampleIndex);
 			}
 
 			virtual void BeginBlock(int samplesInBlock) override
 			{
+				WaitForSingleObject(mMutex, INFINITE);
+				//auto token = MutexHold{ mMutex };
 				// base note + original samplerate gives us a "native frequency" of the sample.
 				// so let's say the sample is 22.05khz, base midi note 60 (261hz).
 				// and you are requested to play it back at "1000hz" (or, midi note 88.7)
@@ -90,9 +235,17 @@ namespace WaveSabreCore
 				// or, play_hz * (base_sr / (base_hz * play_sr))
 				//               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 				// i don't know play_hz yet at this stage, let's simplify & precalculate the rest
+				if (!mSample) {
+					return;
+				}
 				float base_hz = MIDINoteToFreq((float)mBaseNote.GetIntValue());
-				mSampleRateCorrectionFactor = mSampleOriginalSR / (2 * base_hz * Helpers::CurrentSampleRateF);// WHY * 2? because it corresponds more naturally to other synth octave ranges.
+				mSampleRateCorrectionFactor = mSample->GetSampleRate() / (2 * base_hz * Helpers::CurrentSampleRateF);// WHY * 2? because it corresponds more naturally to other synth octave ranges.
 			}
+
+			virtual void EndBlock() override {
+				ReleaseMutex(mMutex);
+			}
+
 		}; // struct SamplerDevice
 
 		////////////////////////////////////////////////////////////////////////////////////////////////
@@ -137,10 +290,12 @@ namespace WaveSabreCore
 					return;
 				}
 
-				mSamplePlayer.SampleData = mpSamplerDevice->mSample->SampleData;
-				mSamplePlayer.SampleLength = mpSamplerDevice->mSample->SampleLength;
-				mSamplePlayer.SampleLoopStart = mpSamplerDevice->mSampleLoopStart; // used for boundary mode from sample
-				mSamplePlayer.SampleLoopLength = mpSamplerDevice->mSampleLoopLength; // used for boundary mode from sample
+				auto token = MutexHold{ mpSamplerDevice->mMutex };
+
+				mSamplePlayer.SampleData = mpSamplerDevice->mSample->GetSampleData();
+				mSamplePlayer.SampleLength = mpSamplerDevice->mSample->GetSampleLength();
+				mSamplePlayer.SampleLoopStart = mpSamplerDevice->mSample->GetSampleLoopStart(); // used for boundary mode from sample
+				mSamplePlayer.SampleLoopLength = mpSamplerDevice->mSample->GetSampleLoopLength(); // used for boundary mode from sample
 				mNoteIsOn = true;
 
 				ConfigPlayer();
@@ -179,7 +334,7 @@ namespace WaveSabreCore
 
 			float ProcessSample(size_t iSample)
 			{
-				return mSamplePlayer.Next();
+				return Clamp(mSamplePlayer.Next(), -1, 1); // clamp addresses craz glitch when changing samples.
 			}
 
 		}; // struct SamplerVoice

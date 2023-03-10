@@ -5,6 +5,8 @@
 #include "ImageManager.h"
 #include "NoTextCOptionMenu.h"
 #include <d3d9.h>
+#include <string>
+#include <vector>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
@@ -22,6 +24,97 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
+	static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions()
+	{
+		std::vector<std::pair<std::string, int>> mOptions;
+		mOptions.push_back({ "(no sample)", -1 });
+		//optionNames.insert(pair<int, string>(noSampleOption.second, noSampleOption.first));
+
+		// Read gm.dls file
+		auto gmDls = GmDls::Load();
+
+		// Seek to wave pool chunk's data
+		auto ptr = gmDls + GmDls::WaveListOffset;
+
+		// Walk wave pool entries
+		for (int i = 0; i < GmDls::NumSamples; i++)
+		{
+			// Walk wave list
+			auto waveListTag = *((unsigned int*)ptr); // Should be 'LIST'
+			ptr += 4;
+			auto waveListSize = *((unsigned int*)ptr);
+			ptr += 4;
+
+			// Walk wave entry
+			auto wave = ptr;
+			auto waveTag = *((unsigned int*)wave); // Should be 'wave'
+			wave += 4;
+
+			// Skip fmt chunk
+			auto fmtChunkTag = *((unsigned int*)wave); // Should be 'fmt '
+			wave += 4;
+			auto fmtChunkSize = *((unsigned int*)wave);
+			wave += 4;
+			wave += fmtChunkSize;
+
+			// Skip wsmp chunk
+			auto wsmpChunkTag = *((unsigned int*)wave); // Should be 'wsmp'
+			wave += 4;
+			auto wsmpChunkSize = *((unsigned int*)wave);
+			wave += 4;
+			wave += wsmpChunkSize;
+
+			// Skip data chunk
+			auto dataChunkTag = *((unsigned int*)wave); // Should be 'data'
+			wave += 4;
+			auto dataChunkSize = *((unsigned int*)wave);
+			wave += 4;
+			wave += dataChunkSize;
+
+			// Walk info list
+			auto infoList = wave;
+			auto infoListTag = *((unsigned int*)infoList); // Should be 'LIST'
+			infoList += 4;
+			auto infoListSize = *((unsigned int*)infoList);
+			infoList += 4;
+
+			// Walk info entry
+			auto info = infoList;
+			auto infoTag = *((unsigned int*)info); // Should be 'INFO'
+			info += 4;
+
+			// Skip copyright chunk
+			auto icopChunkTag = *((unsigned int*)info); // Should be 'ICOP'
+			info += 4;
+			auto icopChunkSize = *((unsigned int*)info);
+			info += 4;
+			// This size appears to be the size minus null terminator, yet each entry has a null terminator
+			//  anyways, so they all seem to end in 00 00. Not sure why.
+			info += icopChunkSize + 1;
+
+			// Read name (finally :D)
+			auto nameChunkTag = *((unsigned int*)info); // Should be 'INAM'
+			info += 4;
+			auto nameChunkSize = *((unsigned int*)info);
+			info += 4;
+
+			// Insert name into appropriate group
+			auto name = std::string((char*)info);
+			//OutputDebugStringA(name.c_str());
+			//auto groupKey = string(1, name[0]);
+
+			mOptions.push_back({ name, i });
+
+			//options[groupKey].push_back(pair<string, int>(name, i));
+			//optionNames.insert(pair<int, string>(i, name));
+
+			ptr += waveListSize;
+		}
+
+		delete[] gmDls;
+		return mOptions;
+	}
+
 	// making this an enum keeps the core from getting bloated. if we for example have some kind of behavior class passed in from the core, then those details will pollute core.
 	enum class ParamBehavior
 	{

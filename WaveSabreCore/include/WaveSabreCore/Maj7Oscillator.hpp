@@ -139,6 +139,7 @@ namespace WaveSabreCore
 			}
 
 			virtual void BeginBlock(int samplesInBlock) = 0;
+			virtual void EndBlock() = 0;
 
 			struct Voice
 			{
@@ -162,6 +163,7 @@ namespace WaveSabreCore
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;
 				virtual void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale, int samplesInBlock) = 0;
+				//virtual void EndBlock() = 0;
 			};
 		};
 
@@ -615,10 +617,8 @@ namespace WaveSabreCore
 				mFrequencyMul.SetRangedValue(1.0f);
 			}
 
-			virtual void BeginBlock(int samplesInBlock) override
-			{
-				//
-			}
+			virtual void BeginBlock(int samplesInBlock) override {}
+			virtual void EndBlock() override {}
 
 		};
 

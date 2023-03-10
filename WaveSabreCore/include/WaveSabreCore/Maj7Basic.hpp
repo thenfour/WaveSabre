@@ -1158,6 +1158,8 @@ namespace WaveSabreCore
                 Sampler1BaseNote,
                 Sampler1LegatoTrig,
                 Sampler1Reverse,
+                Sampler1Source, // gmdls or own sample
+                Sampler1GmDlsIndex,
                 Sampler1SampleStart,
                 Sampler1LoopMode,
                 Sampler1LoopSource,
@@ -1189,7 +1191,9 @@ namespace WaveSabreCore
                 Sampler2BaseNote,
                 Sampler2LegatoTrig,
                     Sampler2Reverse,
-                Sampler2SampleStart,
+                    Sampler2Source, // gmdls or own sample
+                    Sampler2GmDlsIndex,
+                    Sampler2SampleStart,
                     Sampler2LoopMode,
                     Sampler2LoopSource,
                     Sampler2LoopStart,
@@ -1220,7 +1224,9 @@ namespace WaveSabreCore
                     Sampler3BaseNote,
                     Sampler3LegatoTrig,
                 Sampler3Reverse,
-                Sampler3SampleStart,
+                    Sampler3Source, // gmdls or own sample
+                    Sampler3GmDlsIndex,
+                    Sampler3SampleStart,
                 Sampler3LoopMode,
                 Sampler3LoopSource,
                 Sampler3LoopStart,
@@ -1251,6 +1257,8 @@ namespace WaveSabreCore
                 Sampler4BaseNote,
                 Sampler4LegatoTrig,
                 Sampler4Reverse,
+                    Sampler4Source, // gmdls or own sample
+                    Sampler4GmDlsIndex,
                     Sampler4SampleStart,
                 Sampler4LoopMode,
                 Sampler4LoopSource,
@@ -1618,6 +1626,8 @@ namespace WaveSabreCore
             {"S1base"}, \
             {"S1LTrig"}, \
             {"S1Rev"}, \
+            {"S1src"}, \
+            {"S1gmidx"}, \
             {"S1strt"}, \
             {"S1LMode"}, \
             {"S1LSrc"}, \
@@ -1647,6 +1657,8 @@ namespace WaveSabreCore
             {"S2base"}, \
             {"S2LTrig"}, \
             {"S2Rev"}, \
+            {"S2src"}, \
+            {"S2gmidx"}, \
             {"S2strt"}, \
             {"S2LMode"}, \
             {"S2LSrc"}, \
@@ -1676,6 +1688,8 @@ namespace WaveSabreCore
             {"S3base"}, \
             {"S3LTrig"}, \
             {"S3Rev"}, \
+            {"S3src"}, \
+            {"S3gmidx"}, \
             {"S3strt"}, \
             {"S3LMode"}, \
             {"S3LSrc"}, \
@@ -1705,6 +1719,8 @@ namespace WaveSabreCore
             {"S4base"}, \
             {"S4LTrig"}, \
             {"S4Rev"}, \
+            {"S4src"}, \
+            {"S4gmidx"}, \
             {"S4strt"}, \
             {"S4LMode"}, \
             {"S4LSrc"}, \
@@ -1738,6 +1754,8 @@ namespace WaveSabreCore
             BaseNote,
             LegatoTrig,
             Reverse,
+            SampleSource,
+            GmDlsIndex,
             SampleStart,
             LoopMode,
             LoopSource,

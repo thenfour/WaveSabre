@@ -14,7 +14,20 @@
 
 namespace WaveSabreCore
 {
-	class GsmSample
+
+	struct ISampleSource
+	{
+		virtual ~ISampleSource()
+		{}
+
+		virtual const float* GetSampleData() const = 0;
+		virtual int GetSampleLength() const = 0;
+		virtual int GetSampleLoopStart() const = 0;
+		virtual int GetSampleLoopLength() const = 0;
+		virtual int GetSampleRate() const = 0;
+	};
+
+	class GsmSample : public ISampleSource
 	{
 	public:
 		GsmSample(char *data, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormat);
@@ -27,6 +40,18 @@ namespace WaveSabreCore
 		float *SampleData;
 
 		int SampleLength;
+		int mSampleRate;
+
+		virtual const float* GetSampleData() const override
+		{
+			return SampleData;
+		}
+		virtual int GetSampleLength() const override {
+			return SampleLength;
+		}
+		virtual int GetSampleLoopStart() const override { return 0; }
+		virtual int GetSampleLoopLength() const override { return SampleLength; }
+		virtual int GetSampleRate() const override { return mSampleRate; }
 
 	private:
 		static BOOL __stdcall driverEnumCallback(HACMDRIVERID driverId, DWORD_PTR dwInstance, DWORD fdwSupport);

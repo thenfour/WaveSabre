@@ -49,7 +49,7 @@ namespace WaveSabreCore
 
 		WaveSabreCore::InterpolationMode InterpolationMode;
 
-		float *SampleData;
+		const float *SampleData;
 		int SampleLength;
 		int SampleLoopStart, SampleLoopLength;
 		double samplePos;

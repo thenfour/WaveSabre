@@ -11,6 +11,33 @@ namespace WaveSabreCore
 	class Adultery : public SynthDevice
 	{
 	public:
+
+		typedef struct
+		{
+			char tag[4];
+			unsigned int size;
+			short wChannels;
+			int dwSamplesPerSec;
+			int dwAvgBytesPerSec;
+			short wBlockAlign;
+		} Fmt;
+
+		typedef struct
+		{
+			char tag[4];
+			unsigned int size;
+			unsigned short unityNote;
+			short fineTune;
+			int gain;
+			int attenuation;
+			unsigned int fulOptions;
+			unsigned int loopCount;
+			unsigned int loopSize;
+			unsigned int loopType;
+			unsigned int loopStart;
+			unsigned int loopLength;
+		} Wsmp;
+
 		enum class ParamIndices
 		{
 			SampleIndex,
