@@ -146,9 +146,19 @@ namespace WaveSabreCore
 			HANDLE mMutex;
 			char mSamplePath[MAX_PATH] = { 0 };
 
+			void Reset()
+			{
+				if (mSample) {
+					delete mSample;
+					mSample = nullptr;
+				}
+			}
+
 			void Deserialize(Deserializer& ds)
 			{
 				auto token = MutexHold{ mMutex };
+				int sampleSource = ds.ReadUByte();
+				mSampleSource.SetIntValue(sampleSource);
 				if (mSampleSource.GetEnumValue() != SampleSource::Embed) {
 					return;
 				}
@@ -180,6 +190,8 @@ namespace WaveSabreCore
 			{
 				auto token = MutexHold{ mMutex };
 				// params are already serialized. just serialize the non-param stuff (just sample data).
+				// indicate sample source
+				s.WriteUByte(mSampleSource.GetIntValue());
 				if (mSampleSource.GetEnumValue() != SampleSource::Embed) {
 					return;
 				}
@@ -234,28 +246,6 @@ namespace WaveSabreCore
 				mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], -1, WaveSabreCore::GmDls::NumSamples)
 			{
 				mMutex = ::CreateMutex(0, 0, 0);
-				//LoadDefaults();
-			}
-
-			void LoadDefaults()
-			{
-				auto token = MutexHold{ mMutex };
-				if (mSample) {
-					delete mSample;
-					mSample = nullptr;
-				}
-				mLegatoTrig.SetBoolValue(true);
-				//mReverse(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::Reverse], false),
-				mReleaseExitsLoop.SetBoolValue(true);
-				//mSampleStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleStart], 0),
-				mLoopMode.SetEnumValue(LoopMode::Repeat);
-				mLoopSource.SetEnumValue(LoopBoundaryMode::FromSample);
-				mInterpolationMode.SetEnumValue(InterpolationMode::Linear);
-				//mLoopStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopStart], 0),
-				mLoopLength.SetParamValue(1);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength], 1),
-				mBaseNote.SetIntValue(60);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], 0, 127, 60),
-				mSampleSource.SetEnumValue(SampleSource::Embed);
-				mGmDlsIndex.SetIntValue(-1);
 			}
 
 			virtual ~SamplerDevice()
@@ -267,7 +257,6 @@ namespace WaveSabreCore
 			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char *path)
 			{
 				auto token = MutexHold{ mMutex };
-				//WaitForSingleObject(mMutex, INFINITE);
 				if (mSample) {
 					delete mSample;
 				}

@@ -9,6 +9,7 @@ namespace WaveSabreCore
     {
         struct EnvelopeNode
         {
+            const int mParamBaseID;
             EnvTimeParam mDelayTime;//;{ 0 };
             EnvTimeParam mAttackTime;//;{ 0 };
             CurveParam mAttackCurve;//;{ 0 };
@@ -19,8 +20,11 @@ namespace WaveSabreCore
             EnvTimeParam mReleaseTime;//;{ 0.2f };
             CurveParam mReleaseCurve;//;{ 0 };
             BoolParam mLegatoRestart;// { false };
+            
+            ModSource mMyModSource; // not used by this object, but useful for mappings.
 
-            explicit EnvelopeNode(ModMatrixNode& modMatrix, ModDestination modDestIDDelayTime, real_t* paramCache, int paramBaseID) :
+            explicit EnvelopeNode(ModMatrixNode& modMatrix, ModDestination modDestIDDelayTime, real_t* paramCache, int paramBaseID, ModSource myModSource) :
+                mParamBaseID(paramBaseID),
                 mModMatrix(modMatrix),
                 mModDestBase((int)modDestIDDelayTime),
                 mDelayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DelayTime]),
@@ -32,22 +36,9 @@ namespace WaveSabreCore
                 mSustainLevel(paramCache[paramBaseID + (int)EnvParamIndexOffsets::SustainLevel]),
                 mReleaseTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseTime]),
                 mReleaseCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseCurve]),
-                mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart]) // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
+                mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart]), // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
+                mMyModSource(myModSource)
             {
-            }
-
-            void LoadDefaults()
-            {
-                mDelayTime.SetParamValue(0);
-                mAttackTime.SetParamValue(0.05f);
-                mAttackCurve.SetN11Value(0.5f);
-                mHoldTime.SetParamValue(0);
-                mDecayTime.SetParamValue(0.5f);
-                mDecayCurve.SetN11Value(-0.5f);
-                mSustainLevel.SetParamValue(0.4f);
-                mReleaseTime.SetParamValue(0.2f);
-                mReleaseCurve.SetN11Value(-0.5f);
-                mLegatoRestart.SetBoolValue(true); // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
             }
 
             enum class EnvelopeStage : uint8_t

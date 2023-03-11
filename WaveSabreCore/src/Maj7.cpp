@@ -1,495 +1,134 @@
 #include <WaveSabreCore/Maj7.hpp>
 namespace WaveSabreCore {
     namespace M7 {
-        //const float Maj7::gDefaultParamCache[(int)ParamIndices::NumParams] = {
-        //  0.70794576406478881836, // Master
-        //  0, // PolyMon
-        //  0, // Unisono
-        //  0, // OscDet
-        //  0, // UniDet
-        //  0, // OscSpr
-        //  0, // UniSpr
-        //  0, // OscShp
-        //  0, // UniShp
-        //  0.5, // FMBrigh
-        //  0, // Macro1
-        //  0, // Macro2
-        //  0, // Macro3
-        //  0, // Macro4
-        //  0, // Macro5
-        //  0, // Macro6
-        //  0, // Macro7
-        //  0.20000000298023223877, // PortTm
-        //  0.5, // PortCv
-        //  0.54081630706787109375, // PBRng
-        //  1, // O1En
-        //  1, // O1Vol
-        //  0.00390625, // O1KRmin
-        //  0.99609375, // O1KRmax
-        //  0.001235177856869995594, // O1Wave
-        //  0, // O1Shp
-        //  0.25, // O1PRst
-        //  0.5, // O1Poff
-        //  0.25, // O1Scen
-        //  0.40000000596046447754, // O1ScFq
-        //  1, // O1ScKt
-        //  0.40000000596046447754, // O1Fq
-        //  1, // O1FqKt
-        //  0.5, // O1Semi
-        //  0.5, // O1Fine
-        //  0.015625, // O1Mul
-        //  0, // O1FMFb
-        //  0.5, // O1Xmix
-        //  0, // AE1dlt
-        //  0.050000000745058059692, // AE1att
-        //  0.75, // AE1atc
-        //  0, // AE1ht
-        //  0.5, // AE1dt
-        //  0.25, // AE1dc
-        //  0.40000000596046447754, // AE1sl
-        //  0.20000000298023223877, // AE1rt
-        //  0.25, // AE1tc
-        //  0.75, // AE2rst
-        //  0.25, // O2En
-        //  1, // O2Vol
-        //  0.00390625, // O2KRmin
-        //  0.99609375, // O2KRmax
-        //  0.001235177856869995594, // O2Wave
-        //  0, // O2Shp
-        //  0.25, // O2PRst
-        //  0.5, // O2Poff
-        //  0.25, // O2Scen
-        //  0.40000000596046447754, // O2ScFq
-        //  1, // O2ScKt
-        //  0.40000000596046447754, // O2Fq
-        //  1, // O2FqKt
-        //  0.5, // O2Semi
-        //  0.5, // O2Fine
-        //  0.015625, // O2Mul
-        //  0, // O2FMFb
-        //  0.5, // O2Xmix
-        //  0, // AE2dlt
-        //  0.050000000745058059692, // AE2att
-        //  0.75, // AE2atc
-        //  0, // AE2ht
-        //  0.5, // AE2dt
-        //  0.25, // AE2dc
-        //  0.40000000596046447754, // AE2sl
-        //  0.20000000298023223877, // AE2rt
-        //  0.25, // AE2tc
-        //  0.75, // AE2rst
-        //  0.25, // O3En
-        //  1, // O3Vol
-        //  0.00390625, // O3KRmin
-        //  0.99609375, // O3KRmax
-        //  0.001235177856869995594, // O3Wave
-        //  0, // O3Shp
-        //  0.25, // O3PRst
-        //  0.5, // O3Poff
-        //  0.25, // O3Scen
-        //  0.40000000596046447754, // O3ScFq
-        //  1, // O3ScKt
-        //  0.40000000596046447754, // O3Fq
-        //  1, // O3FqKt
-        //  0.5, // O3Semi
-        //  0.5, // O3Fine
-        //  0.015625, // O3Mul
-        //  0, // O3FMFb
-        //  0.5, // O3Xmix
-        //  0, // AE3dlt
-        //  0.050000000745058059692, // AE3att
-        //  0.75, // AE3atc
-        //  0, // AE3ht
-        //  0.5, // AE3dt
-        //  0.25, // AE3dc
-        //  0.40000000596046447754, // AE3sl
-        //  0.20000000298023223877, // AE3rt
-        //  0.25, // AE3tc
-        //  0.75, // AE3rst
-        //  0.25, // O4En
-        //  1, // O4Vol
-        //  0.00390625, // O4KRmin
-        //  0.99609375, // O4KRmax
-        //  0.001235177856869995594, // O4Wave
-        //  0, // O4Shp
-        //  0.25, // O4PRst
-        //  0.5, // O4Poff
-        //  0.25, // O4Scen
-        //  0.40000000596046447754, // O4ScFq
-        //  1, // O4ScKt
-        //  0.40000000596046447754, // O4Fq
-        //  1, // O4FqKt
-        //  0.5, // O4Semi
-        //  0.5, // O4Fine
-        //  0.015625, // O4Mul
-        //  0, // O4FMFb
-        //  0.5, // O4Xmix
-        //  0, // AE4dlt
-        //  0.050000000745058059692, // AE4att
-        //  0.75, // AE4atc
-        //  0, // AE4ht
-        //  0.5, // AE4dt
-        //  0.25, // AE4dc
-        //  0.40000000596046447754, // AE4sl
-        //  0.20000000298023223877, // AE4rt
-        //  0.25, // AE4tc
-        //  0.75, // AE4rst
-        //  0, // E1dlt
-        //  0.050000000745058059692, // E1att
-        //  0.75, // E1atc
-        //  0, // E1ht
-        //  0.5, // E1dt
-        //  0.25, // E1dc
-        //  0.40000000596046447754, // E1sl
-        //  0.20000000298023223877, // E1rt
-        //  0.25, // E1tc
-        //  0.75, // E1rst
-        //  0, // E2dlt
-        //  0.050000000745058059692, // E2att
-        //  0.75, // E2atc
-        //  0, // E2ht
-        //  0.5, // E2dt
-        //  0.25, // E2dc
-        //  0.40000000596046447754, // E2sl
-        //  0.20000000298023223877, // E2rt
-        //  0.25, // E2tc
-        //  0.75, // E2rst
-        //  0.001235177856869995594, // LFO1wav
-        //  0, // LFO1shp
-        //  0.25, // LFO1rst
-        //  0.5, // LFO1ph
-        //  0.40000000596046447754, // LFO1fr
-        //  0.5, // LFO1lp
-        //  0.001235177856869995594, // LFO2wav
-        //  0, // LFO2shp
-        //  0.25, // LFO2rst
-        //  0.5, // LFO2ph
-        //  0.40000000596046447754, // LFO2fr
-        //  0.5, // LFO2lp
-        //  0, // XRout
-        //  1, // XWidth
-        //  0, // X1En
-        //  0.0002470355830155313015, // X1Link
-        //  0, // X1Type
-        //  0, // X1P1
-        //  0, // X1P2
-        //  0, // X1P3
-        //  0, // X1P4
-        //  0, // X1P5
-        //  1, // X2En
-        //  0.00074110669083893299103, // X2Link
-        //  0.00074110669083893299103, // X2Type
-        //  0, // X2P1
-        //  0.15000000596046447754, // X2P2
-        //  0.15000000596046447754, // X2P3
-        //  0.40000000596046447754, // X2P4
-        //  1, // X2P5
-        //  0, // X3En
-        //  0.0002470355830155313015, // X3Link
-        //  0, // X3Type
-        //  0, // X31
-        //  0, // X32
-        //  0, // X33
-        //  0, // X34
-        //  0, // X35
-        //  1, // X4En
-        //  0.00074110669083893299103, // X4Link
-        //  0, // X4Type
-        //  0, // X41
-        //  0, // X42
-        //  0, // X43
-        //  0, // X44
-        //  0, // X45
-        //  0, // FM1to2
-        //  0, // FM1to3
-        //  0, // FM1to4
-        //  0, // FM2to1
-        //  0, // FM2to3
-        //  0, // FM2to4
-        //  0, // FM3to1
-        //  0, // FM3to2
-        //  0, // FM3to4
-        //  0, // FM4to1
-        //  0, // FM4to2
-        //  0, // FM4to3
-        //  0, // M1en
-        //  0, // M1src
-        //  0, // M1dest
-        //  0.5, // M1curv
-        //  1, // M1scale
-        //  0, // M1Aen
-        //  0, // M1Asrc
-        //  1, // M1Aatt
-        //  0.5, // M1Acrv
-        //  0, // M1inv
-        //  0, // M1Ainv
-        //  0, // M2en
-        //  0, // M2src
-        //  0, // M2dest
-        //  0.5, // M2curv
-        //  1, // M2scale
-        //  0, // M2Aen
-        //  0, // M2Asrc
-        //  1, // M2Aatt
-        //  0.5, // M2Acrv
-        //  0, // M2inv
-        //  0, // M2Ainv
-        //  0, // M3en
-        //  0, // M3src
-        //  0, // M3dest
-        //  0.5, // M3curv
-        //  1, // M3scale
-        //  0, // M3Aen
-        //  0, // M3Asrc
-        //  1, // M3Aatt
-        //  0.5, // M3Acrv
-        //  0, // M3inv
-        //  0, // M3Ainv
-        //  0, // M4en
-        //  0, // M4src
-        //  0, // M4dest
-        //  0.5, // M4curv
-        //  1, // M4scale
-        //  0, // M4Aen
-        //  0, // M4Asrc
-        //  1, // M4Aatt
-        //  0.5, // M4Acrv
-        //  0, // M4inv
-        //  0, // M4Ainv
-        //  0, // M5en
-        //  0, // M5src
-        //  0, // M5dest
-        //  0.5, // M5curv
-        //  1, // M5scale
-        //  0, // M5Aen
-        //  0, // M5Asrc
-        //  1, // M5Aatt
-        //  0.5, // M5Acrv
-        //  0, // M5inv
-        //  0, // M5Ainv
-        //  0, // M6en
-        //  0, // M6src
-        //  0, // M6dest
-        //  0.5, // M6curv
-        //  1, // M6scale
-        //  0, // M6Aen
-        //  0, // M6Asrc
-        //  1, // M6Aatt
-        //  0.5, // M6Acrv
-        //  0, // M6inv
-        //  0, // M6Ainv
-        //  1, // M7en
-        //  0.00074110669083893299103, // M7src
-        //  0.0061758891679346561432, // M7dest
-        //  0.5, // M7curv
-        //  1, // M7scale
-        //  0, // M7Aen
-        //  0, // M7Asrc
-        //  1, // M7Aatt
-        //  0.5, // M7Acrv
-        //  0, // M7inv
-        //  0, // M7Ainv
-        //  1, // M8en
-        //  0.001235177856869995594, // M8src
-        //  0.015069169923663139343, // M8dest
-        //  0.5, // M8curv
-        //  1, // M8scale
-        //  0, // M8Aen
-        //  0, // M8Asrc
-        //  1, // M8Aatt
-        //  0.5, // M8Acrv
-        //  0, // M8inv
-        //  0, // M8Ainv
-        //  1, // M9en
-        //  0.001729249022901058197, // M9src
-        //  0.023962451145052909851, // M9dest
-        //  0.5, // M9curv
-        //  1, // M9scale
-        //  0, // M9Aen
-        //  0, // M9Asrc
-        //  1, // M9Aatt
-        //  0.5, // M9Acrv
-        //  0, // M9inv
-        //  0, // M9Ainv
-        //  1, // M10en
-        //  0.0022233200725167989731, // M10src
-        //  0.032855730503797531128, // M10dest
-        //  0.5, // M10curv
-        //  1, // M10scle
-        //  0, // M10Aen
-        //  0, // M10Asrc
-        //  1, // M10Aatt
-        //  0.5, // M10Acrv
-        //  0, // M10inv
-        //  0, // M10Ainv
-        //  1, // M11en
-        //  0.002717391354963183403, // M11src
-        //  0.066452570259571075439, // M11dest
-        //  0.5, // M11curv
-        //  1, // M11scle
-        //  0, // M11Aen
-        //  0, // M11Asrc
-        //  1, // M11Aatt
-        //  0.5, // M11Acrv
-        //  0, // M11inv
-        //  0, // M11Ainv
-        //  1, // M12en
-        //  0.0032114624045789241791, // M12src
-        //  0.073369562625885009766, // M12dest
-        //  0.5, // M12curv
-        //  1, // M12scle
-        //  0, // M12Aen
-        //  0, // M12Asrc
-        //  1, // M12Aatt
-        //  0.5, // M12Acrv
-        //  0, // M12inv
-        //  0, // M12Ainv
-        //  1, // M13en
-        //  0.003705533687025308609, // M13src
-        //  0.080286562442779541016, // M13dest
-        //  0.5, // M13curv
-        //  1, // M13scle
-        //  0, // M13Aen
-        //  0, // M13Asrc
-        //  1, // M13Aatt
-        //  0.5, // M13Acrv
-        //  0, // M13inv
-        //  0, // M13Ainv
-        //  1, // M14en
-        //  0.0041996049694716930389, // M14src
-        //  0.087203554809093475342, // M14dest
-        //  0.5, // M14curv
-        //  1, // M14scle
-        //  0, // M14Aen
-        //  0, // M14Asrc
-        //  1, // M14Aatt
-        //  0.5, // M14Acrv
-        //  0, // M14inv
-        //  0, // M14Ainv
-        //  0.25, // S1En
-        //  1, // S1Vol
-        //  0.00390625, // S1KRmin
-        //  0.99609375, // S1KRmax
-        //  0.47265625, // S1base
-        //  0.75, // S1LTrig
-        //  0.25, // S1Rev
-        //  0.00074110669083893299103, // S1src
-        //  0.0010060361819341778755, // S1gmidx
-        //  0, // S1strt
-        //  0.00074110669083893299103, // S1LMode
-        //  0.0002470355830155313015, // S1LSrc
-        //  0, // S1Lbeg
-        //  1, // S1Llen
-        //  0.5, // S1TunS
-        //  0.5, // S1TunF
-        //  0.40000000596046447754, // S1Frq
-        //  1, // S1FrqKT
-        //  0.00074110669083893299103, // S1Intrp
-        //  0.75, // S1RelX
-        //  0.5, // S1AxMix
-        //  0, // S1Edlt
-        //  0.050000000745058059692, // S1Eatt
-        //  0.75, // S1Eatc
-        //  0, // S1Eht
-        //  0.5, // S1Edt
-        //  0.25, // S1Edc
-        //  0.40000000596046447754, // S1Esl
-        //  0.20000000298023223877, // S1Ert
-        //  0.25, // S1Etc
-        //  0.75, // S1Erst
-        //  0.25, // S2En
-        //  1, // S2Vol
-        //  0.00390625, // S2KRmin
-        //  0.99609375, // S2KRmax
-        //  0.47265625, // S2base
-        //  0.75, // S2LTrig
-        //  0.25, // S2Rev
-        //  0.00074110669083893299103, // S2src
-        //  0.0010060361819341778755, // S2gmidx
-        //  0, // S2strt
-        //  0.00074110669083893299103, // S2LMode
-        //  0.0002470355830155313015, // S2LSrc
-        //  0, // S2Lbeg
-        //  1, // S2Llen
-        //  0.5, // S2TunS
-        //  0.5, // S2TunF
-        //  0.40000000596046447754, // S2Frq
-        //  1, // S2FrqKT
-        //  0.00074110669083893299103, // S2Intrp
-        //  0.75, // S2RelX
-        //  0.5, // S2AxMix
-        //  0, // S2Edlt
-        //  0.050000000745058059692, // S2Eatt
-        //  0.75, // S2Eatc
-        //  0, // S2Eht
-        //  0.5, // S2Edt
-        //  0.25, // S2Edc
-        //  0.40000000596046447754, // S2Esl
-        //  0.20000000298023223877, // S2Ert
-        //  0.25, // S2Etc
-        //  0.75, // S2Erst
-        //  0.25, // S3En
-        //  1, // S3Vol
-        //  0.00390625, // S3KRmin
-        //  0.99609375, // S3KRmax
-        //  0.47265625, // S3base
-        //  0.75, // S3LTrig
-        //  0.25, // S3Rev
-        //  0.00074110669083893299103, // S3src
-        //  0.0010060361819341778755, // S3gmidx
-        //  0, // S3strt
-        //  0.00074110669083893299103, // S3LMode
-        //  0.0002470355830155313015, // S3LSrc
-        //  0, // S3Lbeg
-        //  1, // S3Llen
-        //  0.5, // S3TunS
-        //  0.5, // S3TunF
-        //  0.40000000596046447754, // S3Frq
-        //  1, // S3FrqKT
-        //  0.00074110669083893299103, // S3Intrp
-        //  0.75, // S3RelX
-        //  0.5, // S3AxMix
-        //  0, // S3Edlt
-        //  0.050000000745058059692, // S3Eatt
-        //  0.75, // S3Eatc
-        //  0, // S3Eht
-        //  0.5, // S3Edt
-        //  0.25, // S3Edc
-        //  0.40000000596046447754, // S3Esl
-        //  0.20000000298023223877, // S3Ert
-        //  0.25, // S3Etc
-        //  0.75, // S3Erst
-        //  0.25, // S4En
-        //  1, // S4Vol
-        //  0.00390625, // S4KRmin
-        //  0.99609375, // S4KRmax
-        //  0.47265625, // S4base
-        //  0.75, // S4LTrig
-        //  0.25, // S4Rev
-        //  0.00074110669083893299103, // S4src
-        //  0.0010060361819341778755, // S4gmidx
-        //  0, // S4strt
-        //  0.00074110669083893299103, // S4LMode
-        //  0.0002470355830155313015, // S4LSrc
-        //  0, // S4Lbeg
-        //  1, // S4Llen
-        //  0.5, // S4TunS
-        //  0.5, // S4TunF
-        //  0.40000000596046447754, // S4Frq
-        //  1, // S4FrqKT
-        //  0.00074110669083893299103, // S4Intrp
-        //  0.75, // S4RelX
-        //  0.5, // S4AxMix
-        //  0, // S4Edlt
-        //  0.050000000745058059692, // S4Eatt
-        //  0.75, // S4Eatc
-        //  0, // S4Eht
-        //  0.5, // S4Edt
-        //  0.25, // S4Edc
-        //  0.40000000596046447754, // S4Esl
-        //  0.20000000298023223877, // S4Ert
-        //  0.25, // S4Etc
-        //  0.75, // S4Erst
-        //};
+        static_assert((int)M7::MainParamIndices::Count == 34, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultMasterParams[34] = {
+          0.70794576406478881836, // Master
+          0.0002470355830155313015, // PolyMon
+          0.041666667908430099487, // Unisono
+          0, // OscDet
+          0, // UniDet
+          0, // OscSpr
+          0, // UniSpr
+          0, // OscShp
+          0, // UniShp
+          0.5, // FMBrigh
+          0.0002470355830155313015, // XRout
+          1, // XWidth
+          0.30000001192092895508, // PortTm
+          0.5, // PortCv
+          0.54081630706787109375, // PBRng
+          0, // Macro1
+          0, // Macro2
+          0, // Macro3
+          0, // Macro4
+          0, // Macro5
+          0, // Macro6
+          0, // Macro7
+          0, // FM1to2
+          0, // FM1to3
+          0, // FM1to4
+          0, // FM2to1
+          0, // FM2to3
+          0, // FM2to4
+          0, // FM3to1
+          0, // FM3to2
+          0, // FM3to4
+          0, // FM4to1
+          0, // FM4to2
+          0, // FM4to3
+        };
+        static_assert((int)M7::SamplerParamIndexOffsets::Count == 21, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultSamplerParams[21] = {
+          0, // S1En
+          0, // S1Vol
+          0, // S1KRmin
+          0, // S1KRmax
+          0.47265625, // S1base
+          1, // S1LTrig
+          0, // S1Rev
+          0.00074110669083893299103, // S1src
+          0.0010060361819341778755, // S1gmidx
+          0, // S1strt
+          0.00074110669083893299103, // S1LMode
+          0.0002470355830155313015, // S1LSrc
+          0, // S1Lbeg
+          1, // S1Llen
+          0, // S1TunS
+          0, // S1TunF
+          0, // S1Frq
+          0, // S1FrqKT
+          0.00074110669083893299103, // S1Intrp
+          1, // S1RelX
+          0, // S1AxMix
+        };
+        static_assert((int)M7::ModParamIndexOffsets::Count == 11, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultModSpecParams[11] = {
+          0, // M1en
+          0.0002470355830155313015, // M1src
+          0.0002470355830155313015, // M1dest
+          0.5, // M1curv
+          0.80000001192092895508, // M1scale
+          0, // M1Aen
+          0.0002470355830155313015, // M1Asrc
+          1, // M1Aatt
+          0.5, // M1Acrv
+          0, // M1inv
+          0, // M1Ainv
+        };
+        static_assert((int)M7::LFOParamIndexOffsets::Count == 6, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultLFOParams[6] = {
+          0.001235177856869995594, // LFO1wav
+          0, // LFO1shp
+          0, // LFO1rst
+          0.5, // LFO1ph
+          0.40000000596046447754, // LFO1fr
+          0.5, // LFO1lp
+        };
+        static_assert((int)M7::EnvParamIndexOffsets::Count == 10, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultEnvelopeParams[10] = {
+          0, // AE1dlt
+          0.050000000745058059692, // AE1att
+          0.75, // AE1atc
+          0, // AE1ht
+          0.5, // AE1dt
+          0.25, // AE1dc
+          0.40000000596046447754, // AE1sl
+          0.20000000298023223877, // AE1rt
+          0.25, // AE1tc
+          1, // AE1rst
+        };
+        static_assert((int)M7::OscParamIndexOffsets::Count == 18, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultOscillatorParams[18] = {
+          0, // O1En
+          1, // O1Vol
+          0.00390625, // O1KRmin
+          0.99609375, // O1KRmax
+          0.001235177856869995594, // O1Wave
+          0, // O1Shp
+          0, // O1PRst
+          0.5, // O1Poff
+          0, // O1Scen
+          0.40000000596046447754, // O1ScFq
+          1, // O1ScKt
+          0.40000000596046447754, // O1Fq
+          1, // O1FqKt
+          0.5, // O1Semi
+          0.5, // O1Fine
+          0.015625, // O1Mul
+          0, // O1FMFb
+          0.5, // O1Xmix
+        };
+        static_assert((int)M7::AuxParamIndexOffsets::Count == 8, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultAuxParams[8] = {
+          0, // X1En
+          0.0002470355830155313015, // X1Link
+          0.0002470355830155313015, // X1Type
+          0, // X1P1
+          0, // X1P2
+          0, // X1P3
+          0, // X1P4
+          0, // X1P5
+        };
     } // namespace M7
 } // namespace WaveSabreCore

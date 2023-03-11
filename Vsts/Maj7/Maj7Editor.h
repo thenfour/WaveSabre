@@ -11,9 +11,6 @@
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Maj7.hpp>
 
-#define _7ZIP_ST
-
-#include "LzmaEnc.h"
 #include "Maj7Vst.h"
 
 using namespace WaveSabreVstLib;
@@ -76,7 +73,7 @@ class Maj7Editor : public VstEditor
 
 public:
 	Maj7Editor(AudioEffect* audioEffect) :
-		VstEditor(audioEffect, 1100, 900),
+		VstEditor(audioEffect, 1120, 950),
 		mMaj7VST((Maj7Vst*)audioEffect),
 		pMaj7(((Maj7Vst*)audioEffect)->GetMaj7())
 	{
@@ -107,6 +104,52 @@ public:
 		return false;
 	}
 
+	void CopyTextToClipboard(const std::string& s) {
+
+		if (!OpenClipboard(NULL)) return;
+		HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, s.size() + 1);
+		if (!hMem) {
+			CloseClipboard();
+			return;
+		}
+		char* pMem = (char*)GlobalLock(hMem);
+		if (!pMem) {
+			GlobalFree(hMem);
+			CloseClipboard();
+			return;
+		}
+		strcpy(pMem, s.c_str());
+		GlobalUnlock(hMem);
+
+		EmptyClipboard();
+		SetClipboardData(CF_TEXT, hMem);
+
+		CloseClipboard();
+	}
+
+	std::string GetClipboardText() {
+		if (!OpenClipboard(NULL)) return {};
+		HANDLE hData = GetClipboardData(CF_TEXT);
+		if (!hData) {
+			CloseClipboard();
+			return {};
+		}
+
+		char* pMem = (char*)GlobalLock(hData);
+		if (pMem == NULL) {
+			CloseClipboard();
+			return {};
+		}
+
+		std::string text = pMem;
+
+		// Unlock the global memory and close the clipboard
+		GlobalUnlock(hData);
+		CloseClipboard();
+
+		return text;
+	}
+
 	virtual void PopulateMenuBar() override
 	{
 		if (ImGui::BeginMenu("Maj7")) {
@@ -114,61 +157,90 @@ public:
 			if (ImGui::MenuItem("Panic", nullptr, false)) {
 				pMaj7->AllNotesOff();
 			}
+
+			ImGui::Separator();
 			ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector);
 			ImGui::MenuItem("Show color expl", nullptr, &mShowingColorExp);
-			if (ImGui::MenuItem("Copy as param cache")) {
-				CopyParamCache(false);
+
+			ImGui::Separator();
+			if (ImGui::MenuItem("Init patch (from core)")) {
+				pMaj7->LoadDefaults();
 			}
-			if (ImGui::MenuItem("Copy as DIFF param cache")) {
-				CopyParamCache(true);
+
+			if (ImGui::MenuItem("Copy patch to clipboard")) {
+				CopyPatchToClipboard();
+				::MessageBoxA(mCurrentWindow, "Copied to clipboard", "WaveSabre - Maj7", MB_OK);
 			}
-			if (ImGui::MenuItem("Optimized serialize & report")) {
-				void* data;
-				int size = pMaj7->GetChunk(&data);
 
-				std::vector<uint8_t> compressedData;
-				compressedData.resize(size);
-				std::vector<uint8_t> encodedProps;
-				encodedProps.resize(size);
-				SizeT compressedSize = size;
-				SizeT encodedPropsSize = size;
+			if (ImGui::MenuItem("Paste patch from clipboard")) {
+				std::string s = GetClipboardText();
+				if (!s.empty()) {
+					mMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
+				}
+			}
 
-				//class MyAlloc : public ISzAlloc
-				//{
-				//public:
-				//	virtual void* Alloc(size_t size) { return malloc(size); }
-				//	virtual void Free(void* ptr) { free(ptr); }
-				//};
+			ImGui::Separator();
+			if (ImGui::MenuItem("Init patch (from VST)")) {
+				GenerateDefaults(pMaj7);
+			}
 
-				//MyAlloc alloc;
+			if (ImGui::MenuItem("Export as Maj7.cpp defaults to clipboard")) {
+				if (IDYES != ::MessageBoxA(mCurrentWindow, "A new maj7.cpp will be copied to the clipboard, based on 1st item params.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					return;
+				}
+				CopyParamCache();
+			}
 
-				ISzAlloc alloc;
-				alloc.Alloc = [](ISzAllocPtr p, SizeT s) {
-					return malloc(s);
-				};
-				alloc.Free = [](ISzAllocPtr p, void* addr) {
-					free(addr);
-				};
-
-				CLzmaEncProps props;
-				LzmaEncProps_Init(&props);
-				props.level = 5;
-
-				int lzresult = LzmaEncode(&compressedData[0], &compressedSize, (const Byte*)data, size, &props, encodedProps.data(), &encodedPropsSize, 0, nullptr, &alloc, &alloc);
-
-				delete[] data;
-				std::string s = "Minified chunk = ";
-				s += std::to_string(size);
-				s += " bytes. LZMA compressed this to ";
-				s += std::to_string(compressedSize);
-				s += " bytes";
+			if (ImGui::MenuItem("Optimize")) {
+				// the idea is to reset any unused parameters to default values, so they end up being 0 in the minified chunk.
+				// that compresses better. this is a bit tricky though; i guess i should only do this for like, samplers, oscillators, modulations 1-8, and all envelopes.
+				if (IDYES != ::MessageBoxA(mCurrentWindow, "Unused objects will be clobbered; are you sure? Do this as a post-processing step before rendering the minified song.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					return;
+				}
+				if (IDYES == ::MessageBoxA(mCurrentWindow, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					CopyPatchToClipboard();
+					::MessageBoxA(mCurrentWindow, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
+				}
+				auto r1 = AnalyzeChunkMinification(pMaj7);
+				OptimizeParams(pMaj7);
+				auto r2 = AnalyzeChunkMinification(pMaj7);
+				char msg[200];
+				sprintf_s(msg, "Done!\r\nBefore: %d bytes; %d nondefaults\r\nAfter: %d bytes; %d nondefaults\r\nShrunk to %d %%",
+					r1.compressedSize, r1.nonZeroParams,
+					r2.compressedSize, r2.nonZeroParams,
+					int(((float)r2.compressedSize / r1.compressedSize) * 100)
+					);
+				::MessageBoxA(mCurrentWindow, msg, "WaveSabre - Maj7", MB_OK);
+			}
+			if (ImGui::MenuItem("Analyze minified chunk")) {
+				auto r = AnalyzeChunkMinification(pMaj7);
+				std::string s = "uncompressed = ";
+				s += std::to_string(r.uncompressedSize);
+				s += " bytes.\r\nLZMA compressed this to ";
+				s += std::to_string(r.compressedSize);
+				s += " bytes.\r\nNon-default params set: ";
+				s += std::to_string(r.nonZeroParams);
+				s += "\r\nDefault params : ";
+				s += std::to_string(r.defaultParams);
 				::MessageBoxA(mCurrentWindow, s.c_str() , "WaveSabre - Maj7", MB_OK);
 			}
 			ImGui::EndMenu();
 		}
 	}
 
-	void CopyParamCache(bool diff)
+	void CopyPatchToClipboard()
+	{
+		void* data;
+		int size;
+		size = mMaj7VST->getChunk(&data, false);
+		if (data && size) {
+			CopyTextToClipboard((const char*)data);
+		}
+		delete[] data;
+		::MessageBoxA(mCurrentWindow, "Copied to clipboard", "WaveSabre - Maj7", MB_OK);
+	}
+
+	void CopyParamCache()
 	{
 		using vstn = const char[kVstMaxParamStrLen];
 		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
@@ -176,16 +248,30 @@ public:
 		ss << "#include <WaveSabreCore/Maj7.hpp>" << std::endl;
 		ss << "namespace WaveSabreCore {" << std::endl;
 		ss << "  namespace M7 {" << std::endl;
-		ss << "    const float Maj7::gDefaultParamCache[(int)ParamIndices::NumParams] = {" << std::endl;
-		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
-			ss << std::setprecision(20) << "      " << (GetEffectX()->getParameter((VstInt32)i) - pMaj7->mDefaultParamCache[i]) << ", // " << paramNames[i] << std::endl;
-		}
-		ss << "    };" << std::endl;
+
+		auto GenerateArray = [&](const std::string& arrayName, size_t count, const std::string& countExpr, int baseParamID) {
+			ss << "    static_assert((int)" << countExpr << " == " << count << ", \"param count probably changed and this needs to be regenerated.\");" << std::endl;
+			ss << "    const float " << arrayName << "[" << count << "] = {" << std::endl;
+			for (size_t i = 0; i < count; ++i) {
+				size_t paramID = baseParamID + i;
+				ss << std::setprecision(20) << "      " << GetEffectX()->getParameter((VstInt32)paramID) << ", // " << paramNames[paramID] << std::endl;
+			}
+			ss << "    };" << std::endl;
+		};
+
+		GenerateArray("gDefaultMasterParams", (int)M7::MainParamIndices::Count, "M7::MainParamIndices::Count", 0);
+		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mSamplerDevices[0].mBaseParamID);
+		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mModulations[0].mBaseParamID);
+		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFO1Device.mBaseParamID);
+		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mOsc1AmpEnv.mParamBaseID);
+		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mBaseParamID);
+		GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mAux1.mBaseParamID);
+
 		ss << "  } // namespace M7" << std::endl;
 		ss << "} // namespace WaveSabreCore" << std::endl;
 		ImGui::SetClipboardText(ss.str().c_str());
 
-		::MessageBoxA(mCurrentWindow, "Copied. Replace the contents of maj7.cpp with this.", "WaveSabre Maj7", MB_OK);
+		::MessageBoxA(mCurrentWindow, "Copied new contents of WaveSabreCore/Maj7.cpp", "WaveSabre Maj7", MB_OK);
 	}
 
 	virtual std::string GetMenuBarStatusText() override 
@@ -413,7 +499,7 @@ public:
 			style.FramePadding.y = 5;
 			style.ItemSpacing.x = 6;
 			style.TabRounding = 5;
-			style.WindowPadding.x = 10;
+			//style.WindowPadding.x = 10;
 		}
 
 		// color explorer
@@ -472,16 +558,17 @@ public:
 		if (BeginTabBar2("osc", ImGuiTabBarFlags_None))
 		{
 			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
-			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, 0);
-			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, 1);
-			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, 2);
-			Oscillator("Oscillator D", (int)M7::ParamIndices::Osc4Enabled, 3);
+			int isrc = 0;
+			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, isrc ++);
+			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, isrc ++);
+			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, isrc ++);
+			Oscillator("Oscillator D", (int)M7::ParamIndices::Osc4Enabled, isrc ++);
 
 			static_assert(M7::Maj7::gSamplerCount == 4, "sampler count");
-			Sampler("Sampler 1", pMaj7->mSampler1Device, 3);
-			Sampler("Sampler 2", pMaj7->mSampler2Device, 4);
-			Sampler("Sampler 3", pMaj7->mSampler3Device, 5);
-			Sampler("Sampler 4", pMaj7->mSampler4Device, 6);
+			Sampler("Sampler 1", pMaj7->mSamplerDevices[0], isrc ++);
+			Sampler("Sampler 2", pMaj7->mSamplerDevices[1], isrc ++);
+			Sampler("Sampler 3", pMaj7->mSamplerDevices[2], isrc ++);
+			Sampler("Sampler 4", pMaj7->mSamplerDevices[3], isrc ++);
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -743,7 +830,7 @@ public:
 		ImGui::SameLine(0, 60); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase");
 		ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
 
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::Maj7::gLFOLPCenterFrequency, M7::Maj7::gLFOLPFrequencyScale, 0.5f);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::gLFOLPCenterFrequency, M7::gLFOLPFrequencyScale, 0.5f);
 
 		//}
 		ImGui::PopID();
@@ -811,7 +898,7 @@ public:
 		{
 			paramValues[i] = tempParamValues[i];
 		}
-		return { auxInfo.mSelfLink, paramValues, (int)auxInfo.mModParam2ID };
+		return M7::AuxNode{ auxInfo.mSelfLink, 0, paramValues, (int)auxInfo.mModParam2ID };
 	}
 
 	std::string GetAuxName(int iaux, std::string idsuffix)

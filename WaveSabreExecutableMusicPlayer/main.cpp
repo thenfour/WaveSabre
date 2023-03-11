@@ -21,29 +21,6 @@ int main(int argc, char **argv)
 
 	const int numRenderThreads = 3;
 
-	//FILE * pFile;
-	//long lSize;
-	//unsigned char * buffer;
-	//size_t result;
-
-	//pFile = fopen(argv[1], "rb");
-	//if (pFile == NULL) { printf("File error\n"); exit(1); }
-
-	//// obtain file size:
-	//fseek(pFile, 0, SEEK_END);
-	//lSize = ftell(pFile);
-	//rewind(pFile);
-
-	//// allocate memory to contain the whole file:
-	//buffer = (unsigned char*)malloc(sizeof(unsigned char)*lSize);
-
-	//// copy the file into the buffer:
-	//result = fread(buffer, 1, lSize, pFile);
-	//if (result != lSize) { printf("Reading error\n"); exit(3); }
-
-	//// terminate
-	//fclose(pFile);
-
 	SongRenderer::Song song;
 	song.blob = SongBlob;
 	song.factory = SongFactory;

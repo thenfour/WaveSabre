@@ -11,29 +11,29 @@ namespace WaveSabreCore
 		static constexpr real_t gSourceFrequencyScale = 10;
 		static constexpr int gSourcePitchSemisRange = 36;
 		static constexpr float gSourcePitchFineRangeSemis = 2;
-		static constexpr real_t gLFOFrequencyCenterHz = 3.0f;
-		static constexpr real_t gLFOFrequencyScale = 6;
+		static constexpr real_t gLFOFrequencyCenterHz = 1.5f;
+		static constexpr real_t gLFOFrequencyScale = 8;
 
 		// sampler, oscillator, LFO @ device level
 		struct ISoundSourceDevice
 		{
-			ParamIndices mBaseParamID;
-			ParamIndices mEnabledParamID;
-			ParamIndices mVolumeParamID;
-			ParamIndices mAuxPanParamID;
+			const ParamIndices mBaseParamID;
+			const ParamIndices mEnabledParamID;
+			const ParamIndices mVolumeParamID;
+			const ParamIndices mAuxPanParamID;
 
-			ParamIndices mTuneSemisParamID;
-			ParamIndices mTuneFineParamID;
-			ParamIndices mFreqParamID;
-			ParamIndices mFreqKTParamID;
-			ParamIndices mKeyRangeMinParamID;
-			ParamIndices mKeyRangeMaxParamID;
+			const ParamIndices mTuneSemisParamID;
+			const ParamIndices mTuneFineParamID;
+			const ParamIndices mFreqParamID;
+			const ParamIndices mFreqKTParamID;
+			const ParamIndices mKeyRangeMinParamID;
+			const ParamIndices mKeyRangeMaxParamID;
 
-			ModSource mAmpEnvModSourceID;
-			ModDestination mModDestBaseID;
-			ModDestination mVolumeModDestID;
-			ModDestination mAuxPanModDestID;
-			ModDestination mHiddenVolumeModDestID;
+			const ModSource mAmpEnvModSourceID;
+			const ModDestination mModDestBaseID;
+			const ModDestination mVolumeModDestID;
+			const ModDestination mAuxPanModDestID;
+			const ModDestination mHiddenVolumeModDestID;
 
 			BoolParam mEnabledParam;
 			VolumeParam mVolumeParam;
@@ -96,7 +96,6 @@ namespace WaveSabreCore
 				mKeyRangeMin(paramCache[(int)keyRangeMinParamID], 0, 127),
 				mKeyRangeMax(paramCache[(int)keyRangeMaxParamID], 0, 127)
 			{
-				//LoadDefaults();
 			}
 
 			// for LFOs
@@ -129,7 +128,6 @@ namespace WaveSabreCore
 				mKeyRangeMin(mLFOKeyRangeMinBacking, 0, 127),
 				mKeyRangeMax(mLFOKeyRangeMaxBacking, 0, 127)
 			{
-				//LoadDefaults();
 			}
 
 			void InitDevice() {
@@ -138,19 +136,6 @@ namespace WaveSabreCore
 				mAmpEnvModulation->mDestination.SetEnumValue(mHiddenVolumeModDestID);
 				mAmpEnvModulation->mScale.SetN11Value(1);
 				mAmpEnvModulation->mType = ModulationSpecType::SourceAmp;
-			}
-
-			virtual void LoadDefaults()
-			{
-				//mEnabledParam(paramCache[(int)enabledParamID], false),
-				mVolumeParam.SetDecibels(0);
-				mAuxPanParam.SetN11Value(0);
-				mFrequencyParam.mValue.SetParamValue(0.4f);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
-				mFrequencyParam.mKTValue.SetParamValue(0);
-				mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
-				mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
-				mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
-				mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 			}
 
 			virtual void BeginBlock(int samplesInBlock) = 0;
@@ -573,12 +558,16 @@ namespace WaveSabreCore
 
 			OscillatorIntention mIntention;
 
+			FrequencyParam mLPFFrequency;// { mParamCache[(int)ParamIndices::LFO1Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
+
 			// backing values for LFO which don't have these params in main cache
 			float mLFOSyncFrequencyParamValue = 1.0f;
 			float mLFOSyncFrequencyKTBacking = 1.0f;
 			float mLFOFrequencyMulParamValue = 0.5f;
 			float mLFOFMFeedbackParamValue = 0.0f;
 			float mLFOSyncEnableBacking = 0;
+			float mLFPFrequencyBacking = 0;
+			float mLFPFrequencyKTBacking = 0;
 
 			// for Audio
 			explicit OscillatorDevice(OscillatorIntentionAudio, float* paramCache, ModulationSpec* ampEnvModulation,
@@ -608,10 +597,10 @@ namespace WaveSabreCore
 				mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFrequencyCenterHz, gSyncFrequencyScale, 0.4f, 1.0f),
 				mFrequencyMul(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax, 1.0f),
 				mFMFeedback01(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FMFeedback], 0),
+				mLPFFrequency(mLFPFrequencyBacking, mLFPFrequencyKTBacking, gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 
 				mIntention(OscillatorIntention::Audio)
 			{
-				//LoadDefaults();
 			}
 
 			// for LFO, we internalize many params
@@ -628,36 +617,16 @@ namespace WaveSabreCore
 				mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOSyncFrequencyKTBacking, gSyncFrequencyCenterHz, gSyncFrequencyScale),
 				mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f),
 				mFMFeedback01(mLFOFMFeedbackParamValue),
+				mLPFFrequency(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Sharpness], mLFPFrequencyKTBacking, gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 				mIntention(OscillatorIntention::LFO)
 			{
-				//LoadDefaults();
-			}
-
-			virtual void LoadDefaults() override
-			{
-				ISoundSourceDevice::LoadDefaults();
-				mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
-				mPhaseOffset.SetN11Value(0);
-				mSyncFrequency.mValue.SetParamValue(0.4f);
 				mFrequencyMul.SetRangedValue(1);
-				if (mIntention == OscillatorIntention::LFO)
-				{
-					mEnabledParam.SetBoolValue(true);
-					mFrequencyParam.mKTValue.SetParamValue(0);
-					mSyncFrequency.mKTValue.SetParamValue(0);
-					return;
-				}
-
-				// AUDIO
-				mFrequencyParam.mKTValue.SetParamValue(1);
-				mSyncFrequency.mKTValue.SetParamValue(1);
 			}
 
 			virtual void BeginBlock(int samplesInBlock) override {}
 			virtual void EndBlock() override {}
 
 		};
-
 
 		struct OscillatorNode : ISoundSourceDevice::Voice
 		{
@@ -761,6 +730,8 @@ namespace WaveSabreCore
 				freq *= mpOscDevice->mFrequencyMul.GetRangedValue();
 				freq *= detuneFreqMul;
 				freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
+				// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
+				freq = std::max(freq, 0.001f);
 				mCurrentFreq = freq;
 
 				double newDT = (double)freq / Helpers::CurrentSampleRate;

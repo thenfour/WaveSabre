@@ -7,8 +7,9 @@ WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)
 	{
 	//case SongRenderer::DeviceId::Specimen: return new WaveSabreCore::Specimen();
 	//case SongRenderer::DeviceId::Adultery: return new WaveSabreCore::Slaughter();
-	//case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::Adultery();
-		case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::Maj7();
+	//case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
+	//case SongRenderer::DeviceId::Cathedral: return new WaveSabreCore::Cathedral();
+	case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::Maj7();
 	}
 	return nullptr;
 }

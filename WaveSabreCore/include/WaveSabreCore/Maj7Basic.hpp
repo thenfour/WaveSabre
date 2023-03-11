@@ -31,6 +31,9 @@ namespace WaveSabreCore
         static constexpr real_t gFilterFrequencyScale = 10.0f;
         static constexpr float MIN_DECIBEL_GAIN = -60.0f;
 
+        static constexpr real_t gLFOLPCenterFrequency = 20.0f;
+        static constexpr real_t gLFOLPFrequencyScale = 7.0f;
+
         static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
 
         namespace fastmath
@@ -994,6 +997,13 @@ namespace WaveSabreCore
             UnisonoShapeSpread,
             FMBrightness,
 
+            AuxRouting,
+            AuxWidth, // N11 to invert
+
+            PortamentoTime,
+            PortamentoCurve,
+            PitchBendRange,
+
             Macro1,
             Macro2,
             Macro3,
@@ -1002,9 +1012,18 @@ namespace WaveSabreCore
             Macro6,
             Macro7,
 
-            PortamentoTime,
-            PortamentoCurve,
-            PitchBendRange,
+            FMAmt1to2,
+            FMAmt1to3,
+            FMAmt1to4,
+            FMAmt2to1,
+            FMAmt2to3,
+            FMAmt2to4,
+            FMAmt3to1,
+            FMAmt3to2,
+            FMAmt3to4,
+            FMAmt4to1,
+            FMAmt4to2,
+            FMAmt4to3,
 
             Osc1Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc1Volume,
@@ -1162,9 +1181,6 @@ namespace WaveSabreCore
             LFO2FrequencyParam,
             LFO2Sharpness,
 
-            AuxRouting,
-            AuxWidth, // N11 to invert
-
                 Aux1Enabled,
                 Aux1Link,
                 Aux1Type,
@@ -1200,19 +1216,6 @@ namespace WaveSabreCore
                 Aux4Param3, // filter saturation
                 Aux4Param4, // filter freq
                 Aux4Param5, // filter KT
-
-            FMAmt1to2,
-                FMAmt1to3,
-                FMAmt1to4,
-                FMAmt2to1,
-            FMAmt2to3,
-                FMAmt2to4,
-                FMAmt3to1,
-            FMAmt3to2,
-                FMAmt3to4,
-                FMAmt4to1,
-                FMAmt4to2,
-                FMAmt4to3,
 
             Mod1Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod1Source,
@@ -1554,6 +1557,11 @@ namespace WaveSabreCore
             {"OscShp"}, \
             {"UniShp"}, \
             {"FMBrigh"}, \
+            {"XRout"}, \
+            {"XWidth"}, \
+		    {"PortTm"}, \
+		    {"PortCv"}, \
+		    {"PBRng"}, \
 		    {"Macro1"}, \
 		    {"Macro2"}, \
 		    {"Macro3"}, \
@@ -1561,9 +1569,18 @@ namespace WaveSabreCore
 		    {"Macro5"}, \
 		    {"Macro6"}, \
 		    {"Macro7"}, \
-		    {"PortTm"}, \
-		    {"PortCv"}, \
-		    {"PBRng"}, \
+		    {"FM1to2"}, \
+		    {"FM1to3"}, \
+		    {"FM1to4"}, \
+		    {"FM2to1"}, \
+		    {"FM2to3"}, \
+		    {"FM2to4"}, \
+		    {"FM3to1"}, \
+		    {"FM3to2"}, \
+		    {"FM3to4"}, \
+		    {"FM4to1"}, \
+		    {"FM4to2"}, \
+		    {"FM4to3"}, \
             {"O1En"}, \
 		    {"O1Vol"}, \
 		    {"O1KRmin"}, \
@@ -1591,7 +1608,7 @@ namespace WaveSabreCore
 		    {"AE1sl"}, \
 		    {"AE1rt"}, \
 		    {"AE1tc"}, \
-		    {"AE2rst"}, \
+		    {"AE1rst"}, \
 		    {"O2En"}, \
 		    {"O2Vol"}, \
 		    {"O2KRmin"}, \
@@ -1708,8 +1725,6 @@ namespace WaveSabreCore
 		    {"LFO2ph"}, \
 		    {"LFO2fr"}, \
 		    {"LFO2lp"}, \
-            {"XRout"}, \
-            {"XWidth"}, \
             {"X1En"}, \
             {"X1Link"}, \
             {"X1Type"}, \
@@ -1742,18 +1757,6 @@ namespace WaveSabreCore
             {"X43"}, \
             {"X44"}, \
             {"X45"}, \
-		    {"FM1to2"}, \
-		    {"FM1to3"}, \
-		    {"FM1to4"}, \
-		    {"FM2to1"}, \
-		    {"FM2to3"}, \
-		    {"FM2to4"}, \
-		    {"FM3to1"}, \
-		    {"FM3to2"}, \
-		    {"FM3to4"}, \
-		    {"FM4to1"}, \
-		    {"FM4to2"}, \
-		    {"FM4to3"}, \
 		    {"M1en"}, \
 		    {"M1src"}, \
 		    {"M1dest"}, \
@@ -2056,6 +2059,50 @@ namespace WaveSabreCore
             {"S4Erst"}, \
         }
 
+        enum class MainParamIndices : uint8_t
+        {
+            MasterVolume,
+            VoicingMode,
+            Unisono,
+            OscillatorDetune,
+            UnisonoDetune,
+            OscillatorSpread,
+            UnisonoStereoSpread,
+            OscillatorShapeSpread,
+            UnisonoShapeSpread,
+            FMBrightness,
+
+            AuxRouting,
+            AuxWidth, // N11 to invert
+
+            PortamentoTime,
+            PortamentoCurve,
+            PitchBendRange,
+
+            Macro1,
+            Macro2,
+            Macro3,
+            Macro4,
+            Macro5,
+            Macro6,
+            Macro7,
+
+            FMAmt1to2,
+            FMAmt1to3,
+            FMAmt1to4,
+            FMAmt2to1,
+            FMAmt2to3,
+            FMAmt2to4,
+            FMAmt3to1,
+            FMAmt3to2,
+            FMAmt3to4,
+            FMAmt4to1,
+            FMAmt4to2,
+            FMAmt4to3,
+
+            Count,
+        };
+
         enum class SamplerParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
         {
             Enabled,
@@ -2080,6 +2127,7 @@ namespace WaveSabreCore
             ReleaseExitsLoop,
             AuxMix,
             AmpEnvDelayTime,
+            Count = AmpEnvDelayTime,
         };
 
         enum class ModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
@@ -2095,6 +2143,7 @@ namespace WaveSabreCore
             AuxCurve,
             Invert,
             AuxInvert,
+            Count,
         };
         enum class LFOParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
         {
@@ -2104,6 +2153,7 @@ namespace WaveSabreCore
             PhaseOffset,
             FrequencyParam,
             Sharpness,
+            Count,
         };
         enum class EnvParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
         {
@@ -2117,6 +2167,7 @@ namespace WaveSabreCore
             ReleaseTime,
             ReleaseCurve,
             LegatoRestart,
+            Count,
         };
         enum class OscParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
         {
@@ -2139,6 +2190,7 @@ namespace WaveSabreCore
             FMFeedback,
             AuxMix,
             AmpEnvDelayTime,
+            Count = AmpEnvDelayTime,
         };
 
         enum class AuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & FilterAuxParamIndexOffsets

@@ -563,6 +563,7 @@ namespace WaveSabreCore
 
 		struct ModulationSpec
 		{
+			const int mBaseParamID;
 			BoolParam mEnabled;
 			EnumParam<ModSource> mSource;
 			EnumParam<ModDestination> mDestination;
@@ -584,6 +585,7 @@ namespace WaveSabreCore
 			BoolParam mAuxInvert;
 
 			ModulationSpec(real_t* paramCache, int baseParamID) :
+				mBaseParamID(baseParamID),
 				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
 				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
 				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
@@ -596,22 +598,6 @@ namespace WaveSabreCore
 				mInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::Invert]),
 				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
 			{
-				//LoadDefaults();
-			}
-
-			void LoadDefaults()
-			{
-				//mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled], false),
-				mSource.SetEnumValue(ModSource::None);
-				mDestination.SetEnumValue(ModDestination::None);
-				mCurve.SetN11Value(0);
-				mScale.SetN11Value(0.6f);
-					//mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled], false),
-				mAuxSource.SetEnumValue(ModSource::None);
-				mAuxCurve.SetN11Value(0);
-				mAuxAttenuation.SetParamValue(1);
-				//mInvert.SetBoolValue(false);
-				//mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
 			}
 		};
 
