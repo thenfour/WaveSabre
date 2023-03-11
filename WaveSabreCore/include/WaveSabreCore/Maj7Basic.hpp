@@ -2237,37 +2237,37 @@ namespace WaveSabreCore
             " (n/a)", \
         }
 
-        // DISTORTION AUX INFO  ------------------------------------------------------------
-        enum class DistortionAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & DistortionAuxModIndexOffsets
-        {
-            unused__Enabled,
-            unused__Link,
-            unused__AuxType,
-            DistortionStyle, // param 1
-            // FROM here, must be identical to DistortionAuxModIndexOffsets (param2 - 5)
-            Drive, // param 2
-            Threshold, // param 3
-            Shape, // param 4
-            OutputVolume, // param 5
-            Count,
-        };
-
-        enum class DistortionAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
-        {
-            Drive, // param 2
-            Threshold, // param 3
-            Shape, // param 4
-            OutputVolume, // param 5
-            Count,
-        };
-        static_assert((int)DistortionAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
-#define DISTORTION_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::DistortionAuxModIndexOffsets::Count] { \
-            " (Dist gain)", \
-			" (Dist threshold)", \
-			" (Dist shape)", \
-            " (n/a)", \
-        }
-
+//        // DISTORTION AUX INFO  ------------------------------------------------------------
+//        enum class DistortionAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & DistortionAuxModIndexOffsets
+//        {
+//            unused__Enabled,
+//            unused__Link,
+//            unused__AuxType,
+//            DistortionStyle, // param 1
+//            // FROM here, must be identical to DistortionAuxModIndexOffsets (param2 - 5)
+//            Drive, // param 2
+//            Threshold, // param 3
+//            Shape, // param 4
+//            OutputVolume, // param 5
+//            Count,
+//        };
+//
+//        enum class DistortionAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+//        {
+//            Drive, // param 2
+//            Threshold, // param 3
+//            Shape, // param 4
+//            OutputVolume, // param 5
+//            Count,
+//        };
+//        static_assert((int)DistortionAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
+//#define DISTORTION_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::DistortionAuxModIndexOffsets::Count] { \
+//            " (Dist gain)", \
+//			" (Dist threshold)", \
+//			" (Dist shape)", \
+//            " (n/a)", \
+//        }
+//
 
         // BITCRUSH AUX INFO  ------------------------------------------------------------
         enum class BitcrushAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & BitcrushAuxModIndexOffsets
@@ -2349,14 +2349,13 @@ namespace WaveSabreCore
         {
             None,
             BigFilter,
-            Distortion,
+            //Distortion,
             Bitcrush,
             Count,
         };
         #define AUX_EFFECT_TYPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxEffectType::Count] { \
             "None", \
 			"BigFilter", \
-			"Distortion", \
 			"Bitcrush", \
         }
 

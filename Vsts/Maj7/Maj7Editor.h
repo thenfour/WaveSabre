@@ -920,9 +920,9 @@ public:
 		case M7::AuxEffectType::BigFilter:
 			ret += " (Filter)";
 			break;
-		case M7::AuxEffectType::Distortion:
-			ret += " (Distortion)";
-			break;
+		//case M7::AuxEffectType::Distortion:
+		//	ret += " (Distortion)";
+		//	break;
 		case M7::AuxEffectType::Bitcrush:
 			ret += " (Bitcrush)";
 			break;
@@ -957,12 +957,12 @@ public:
 			suffixes = xsuffixes;
 			break;
 		}
-		case M7::AuxEffectType::Distortion:
-		{
-			DISTORTION_AUX_MOD_SUFFIXES(xsuffixes);
-			suffixes = xsuffixes;
-			break;
-		}
+		//case M7::AuxEffectType::Distortion:
+		//{
+		//	DISTORTION_AUX_MOD_SUFFIXES(xsuffixes);
+		//	suffixes = xsuffixes;
+		//	break;
+		//}
 		case M7::AuxEffectType::Bitcrush:
 		{
 			BITCRUSH_AUX_MOD_SUFFIXES(xsuffixes);
@@ -1056,30 +1056,30 @@ public:
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "KT##filt");
 	}
 
-	void AuxDistortion(const AuxInfo& auxInfo)
-	{
-		DISTORTION_STYLE_NAMES(styleNames);
-		Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::DistortionStyle, "Style##aux", (int)M7::DistortionStyle::Count, M7::DistortionStyle::Sine, styleNames);
-		ImGui::SameLine(); Maj7ImGuiParamVolume((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Drive, "Input vol##hc", M7::gDistortionAuxDriveMaxDb, 0.5f);
-		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Threshold, "Threshold##aux");
-		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Shape, "Shape##aux");
-		
-		ImGui::SameLine();
-		ImGuiContext& g = *GImGui;
-		const ImVec2 size = { 90,60 };
-		ImGuiWindow* window = ImGui::GetCurrentWindow();
-		const ImVec2 padding = g.Style.FramePadding;
-		const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size + padding * 2.0f);
-		
-		ImGui::ItemSize(bb);
-		if (!ImGui::ItemAdd(bb, window->GetID(auxInfo.mIndex))) {
-			return;
-		}
+	//void AuxDistortion(const AuxInfo& auxInfo)
+	//{
+	//	DISTORTION_STYLE_NAMES(styleNames);
+	//	Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::DistortionStyle, "Style##aux", (int)M7::DistortionStyle::Count, M7::DistortionStyle::Sine, styleNames);
+	//	ImGui::SameLine(); Maj7ImGuiParamVolume((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Drive, "Input vol##hc", M7::gDistortionAuxDriveMaxDb, 0.5f);
+	//	ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Threshold, "Threshold##aux");
+	//	ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::Shape, "Shape##aux");
+	//	
+	//	ImGui::SameLine();
+	//	ImGuiContext& g = *GImGui;
+	//	const ImVec2 size = { 90,60 };
+	//	ImGuiWindow* window = ImGui::GetCurrentWindow();
+	//	const ImVec2 padding = g.Style.FramePadding;
+	//	const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + size + padding * 2.0f);
+	//	
+	//	ImGui::ItemSize(bb);
+	//	if (!ImGui::ItemAdd(bb, window->GetID(auxInfo.mIndex))) {
+	//		return;
+	//	}
 
-		AuxDistortionGraphic(bb, auxInfo.mIndex);
+	//	AuxDistortionGraphic(bb, auxInfo.mIndex);
 
-		ImGui::SameLine(); Maj7ImGuiParamVolume((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::OutputVolume, "Output vol##hc", 0, 0.5f);
-	}
+	//	ImGui::SameLine(); Maj7ImGuiParamVolume((int)auxInfo.mEnabledParamID + (int)M7::DistortionAuxParamIndexOffsets::OutputVolume, "Output vol##hc", 0, 0.5f);
+	//}
 
 	void AuxEffectTab(const char* idSuffix, int iaux, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[])
 	{
@@ -1226,9 +1226,9 @@ public:
 				case M7::AuxEffectType::BigFilter:
 					AuxFilter(auxInfo);
 					break;
-				case M7::AuxEffectType::Distortion:
-					AuxDistortion(auxInfo);
-					break;
+				//case M7::AuxEffectType::Distortion:
+				//	AuxDistortion(auxInfo);
+				//	break;
 				case M7::AuxEffectType::Bitcrush:
 					AuxBitcrush(auxInfo);
 					break;

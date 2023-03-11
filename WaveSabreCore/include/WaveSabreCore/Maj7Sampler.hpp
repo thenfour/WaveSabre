@@ -1,11 +1,23 @@
 #pragma once
 
+// embedding own samples is kinda a luxury. if needed we can save code size
+//#define MAJ7_INCLUDE_GSM_SUPPORT
+#include <Windows.h>
+// correction for windows.h macros.
+#undef min
+#undef max
+
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
 #include <WaveSabreCore/GmDls.h>
-#include <WaveSabreCore/Specimen.h>
-#include "Adultery.h"
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
+#include "GsmSample.h"
+#endif // MAJ7_INCLUDE_GSM_SUPPORT
+//#include "Specimen.h"
+//#include "Adultery.h"
+#include "SamplePlayer.h"
 #include "Maj7Oscillator.hpp"
+
 
 namespace WaveSabreCore
 {
@@ -69,12 +81,12 @@ namespace WaveSabreCore
 					wave += 4;
 
 					// Read fmt chunk
-					Adultery::Fmt fmt;
+					WaveSabreCore::Fmt fmt;
 					memcpy(&fmt, wave, sizeof(fmt));
 					wave += fmt.size + 8; // size field doesn't account for tag or length fields
 
 					// Read wsmp chunk
-					Adultery::Wsmp wsmp;
+					WaveSabreCore::Wsmp wsmp;
 					memcpy(&wsmp, wave, sizeof(wsmp));
 					wave += wsmp.size + 8; // size field doesn't account for tag or length fields
 
@@ -165,7 +177,7 @@ namespace WaveSabreCore
 				if (!ds.ReadUByte()) { // indicator whether there's a sample serialized or not.
 					return;
 				}
-
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
 				auto CompressedSize = ds.ReadUInt32();
 				auto UncompressedSize = ds.ReadUInt32();
 
@@ -184,6 +196,9 @@ namespace WaveSabreCore
 
 				delete[] pCompressedData;
 				delete[] pwfxComplete;
+#else // MAJ7_INCLUDE_GSM_SUPPORT
+				return;
+#endif // MAJ7_INCLUDE_GSM_SUPPORT
 			}
 
 			void Serialize(Serializer& s) const
@@ -195,6 +210,7 @@ namespace WaveSabreCore
 				if (mSampleSource.GetEnumValue() != SampleSource::Embed) {
 					return;
 				}
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
 				if (!mSample) {
 					s.WriteUByte(0); // indicate there's no sample serialized.
 					return;
@@ -211,6 +227,10 @@ namespace WaveSabreCore
 
 				// Write compressed data
 				s.WriteBuffer((const uint8_t*)pSample->CompressedData, pSample->CompressedSize);
+#else // MAJ7_INCLUDE_GSM_SUPPORT
+				s.WriteUByte(0); // indicate there's no sample serialized.
+				return;
+#endif // MAJ7_INCLUDE_GSM_SUPPORT
 			}
 
 			explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
@@ -259,11 +279,14 @@ namespace WaveSabreCore
 				auto token = MutexHold{ mMutex };
 				if (mSample) {
 					delete mSample;
+					mSample = nullptr;
 				}
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
 				mSampleSource.SetEnumValue(SampleSource::Embed);
 				mSampleLoadSequence++;
 				mSample = new GsmSample(compressedDataPtr, compressedSize, uncompressedSize, waveFormatPtr);
 				strcpy(mSamplePath, path);
+#endif // MAJ7_INCLUDE_GSM_SUPPORT
 			}
 
 			void LoadGmDlsSample(int sampleIndex)
@@ -271,8 +294,8 @@ namespace WaveSabreCore
 				auto token = MutexHold{ mMutex };
 				if (mSample) {
 					delete mSample;
+					mSample = nullptr;
 				}
-				mSample = nullptr;
 				if (sampleIndex < 0 || sampleIndex >= GmDls::NumSamples) {
 					return;
 				}

@@ -31,6 +31,20 @@
 // - unisono detune (semis)           hz+semis     oscillator                             
 
 
+// with adult+spec+slaught+falcon = 15911
+// with maj7                      = 23307
+//  maj7 is 7kb bigger than the other stuff.
+
+//case SongRenderer::DeviceId::Adultery: return new WaveSabreCore::Adultery(); // ~ 0.7 kb
+//case SongRenderer::DeviceId::Specimen: return new WaveSabreCore::Specimen(); // ~ 0.9 kb
+//case SongRenderer::DeviceId::Slaughter: return new WaveSabreCore::Slaughter(); // ~ 2.5 kb
+//case SongRenderer::DeviceId::Falcon: return new WaveSabreCore::Falcon(); // ~ 0.8 kb
+//case SongRenderer::DeviceId::Cathedral: return new WaveSabreCore::Cathedral();
+//case SongRenderer::DeviceId::Chamber: return new WaveSabreCore::Chamber();
+//case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
+//case SongRenderer::DeviceId::Echo: return new WaveSabreCore::Echo(); // ~ 0.7 kb (with maj7)
+//case SongRenderer::DeviceId::Leveller: return new WaveSabreCore::Leveller(); // ~ 0.8 kb
+
 
 #pragma once
 
@@ -48,6 +62,7 @@
 #include <WaveSabreCore/Maj7Oscillator.hpp>
 #include <WaveSabreCore/Maj7Sampler.hpp>
 #include <WaveSabreCore/Maj7GmDls.hpp>
+
 
 //#include <Windows.h>
 //#undef min
@@ -108,8 +123,8 @@ namespace WaveSabreCore
 					break;
 				case AuxEffectType::BigFilter:
 					return new FilterAuxNode(mParamCache_Offset, mModDestParam2ID);
-				case AuxEffectType::Distortion:
-					return new DistortionAuxNode(mParamCache_Offset, mModDestParam2ID);
+				//case AuxEffectType::Distortion:
+				//	return new DistortionAuxNode(mParamCache_Offset, mModDestParam2ID);
 				case AuxEffectType::Bitcrush:
 					return new BitcrushAuxNode(mParamCache_Offset, mModDestParam2ID);
 				}
@@ -431,11 +446,16 @@ namespace WaveSabreCore
 					mSources[i]->InitDevice();
 				}
 
-				mMaj7Voice[0]->mAux2.mEffectType.SetEnumValue(AuxEffectType::BigFilter);
+				mMaj7Voice[0]->mAux1.mEffectType.SetEnumValue(AuxEffectType::Bitcrush);
 				mMaj7Voice[0]->mAux2.mEnabledParam.SetBoolValue(true);
+				mMaj7Voice[0]->mAux2.mEffectType.SetEnumValue(AuxEffectType::BigFilter);
+				mMaj7Voice[0]->mAux2.mLink.SetEnumValue(AuxLink::Aux2);
 				mMaj7Voice[0]->mAux3.mLink.SetEnumValue(AuxLink::Aux1);
 				mMaj7Voice[0]->mAux4.mLink.SetEnumValue(AuxLink::Aux2);
-				mMaj7Voice[0]->mAux4.mEnabledParam.SetBoolValue(true);
+
+				BitcrushAuxNode a1{ mParamCache + (int)ParamIndices::Aux1Enabled, 0};
+				a1.mFreqParam.mKTValue.SetParamValue(1);
+				a1.mFreqParam.mValue.SetParamValue(0.3f);
 
 				FilterAuxNode f2{ mParamCache + (int)ParamIndices::Aux2Enabled, 0 };
 				f2.mFilterFreqParam.mValue.SetParamValue(0.4f);
