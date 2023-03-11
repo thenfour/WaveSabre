@@ -22,6 +22,7 @@ public:
 	"Clipper",
 	"Sine",
 	"Parabola",
+	"Tanh",
 		};
 		static constexpr char const* const oversamplingCaptions[] = {
 	"No oversampling",
@@ -30,7 +31,7 @@ public:
 		};
 
 
-		WSImGuiParamEnumList((VstInt32)Scissor::ParamIndices::Type, "Type", 3, typeCaptions);
+		WSImGuiParamEnumList((VstInt32)Scissor::ParamIndices::Type, "Type", 4, typeCaptions);
 		ImGui::SameLine(0, 80);
 		WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::Drive, "Drive");
 		ImGui::SameLine();

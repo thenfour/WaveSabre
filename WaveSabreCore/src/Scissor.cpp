@@ -1,5 +1,6 @@
 #include <WaveSabreCore/Scissor.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 namespace WaveSabreCore
 {
@@ -66,6 +67,7 @@ namespace WaveSabreCore
 		}
 	}
 
+
 	void Scissor::SetParam(int index, float value)
 	{
 		switch ((ParamIndices)index)
@@ -74,7 +76,7 @@ namespace WaveSabreCore
 		case ParamIndices::Threshold: threshold = value; break;
 		case ParamIndices::Foldover: foldover = value; break;
 		case ParamIndices::DryWet: dryWet = value; break;
-		case ParamIndices::Type: type = (ShaperType)(int)(value * 2.0f); break;
+		case ParamIndices::Type: type = (ShaperType)(int)(value * ShaperTypeMax); break;
 		case ParamIndices::Oversampling: oversampling = (Oversampling)(int)(value * 2.0f); break;
 		}
 	}
@@ -90,7 +92,7 @@ namespace WaveSabreCore
 		case ParamIndices::Threshold: return threshold;
 		case ParamIndices::Foldover: return foldover;
 		case ParamIndices::DryWet: return dryWet;
-		case ParamIndices::Type: return (float)type / 2.0f;
+		case ParamIndices::Type: return float(type) / ShaperTypeMax;
 		case ParamIndices::Oversampling: return (float)oversampling / 2.0f;
 		}
 	}
@@ -111,8 +113,15 @@ namespace WaveSabreCore
 			}
 			break;
 
-		case ShaperType::Sine: v = (v * 3.141592f / 2.0f); break;
-		case ShaperType::Parabola: v = v * v * v;
+		case ShaperType::Sine:
+			v = (v * 3.141592f / 2.0f);
+			break;
+		case ShaperType::Parabola:
+			v = v * v * v;
+			break;
+		case ShaperType::Tanh:
+			v = M7::math::tanh(v);
+			break;
 		}
 
 		if (v < -1.0f) v = -1.0f;

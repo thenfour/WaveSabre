@@ -36,7 +36,11 @@ namespace WaveSabreCore
 			Clipper,
 			Sine,
 			Parabola,
+			Tanh,
+			Count,
 		};
+
+		static constexpr int ShaperTypeMax = (int)ShaperType::Count - 1;
 
 		enum class Oversampling
 		{
