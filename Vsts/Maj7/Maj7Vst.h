@@ -271,10 +271,12 @@ namespace WaveSabreCore
 		{
 			auto token = MutexHold{ p->mMutex };
 			p->Reset();
+			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
 			p->mLegatoTrig.SetBoolValue(true);
 			p->mReverse.SetBoolValue(false);
 			p->mReleaseExitsLoop.SetBoolValue(true);
 			p->mSampleStart.SetParamValue(0);
+			p->mFrequencyParam.mKTValue.SetParamValue(1);
 			p->mLoopMode.SetEnumValue(LoopMode::Repeat);
 			p->mLoopSource.SetEnumValue(LoopBoundaryMode::FromSample);
 			p->mInterpolationMode.SetEnumValue(InterpolationMode::Linear);
