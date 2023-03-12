@@ -36,122 +36,6 @@ namespace WaveSabreCore
 
         static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
 
-        //namespace fastmath
-        //{
-
-        //    static inline float fastpow2(float p)
-        //    {
-        //        float offset = (p < 0) ? 1.0f : 0.0f;
-        //        float clipp = (p < -126) ? -126.0f : p;
-        //        int w = (int)clipp;
-        //        float z = clipp - w + offset;
-        //        union {
-        //            uint32_t i;
-        //            float f;
-        //        } v = { cast_uint32_t((1 << 23) * (clipp + 121.2740575f + 27.7280233f / (4.84252568f - z) - 1.49012907f * z)) };
-
-        //        return v.f;
-        //    }
-
-        //    static inline float fastlog2(float x)
-        //    {
-        //        union {
-        //            float f;
-        //            uint32_t i;
-        //        } vx = { x };
-        //        union {
-        //            uint32_t i;
-        //            float f;
-        //        } mx = { (vx.i & 0x007FFFFF) | 0x3f000000 };
-        //        float y = (float)vx.i;
-        //        y *= 1.1920928955078125e-7f;
-
-        //        return y - 124.22551499f - 1.498030302f * mx.f - 1.72587999f / (0.3520887068f + mx.f);
-        //    }
-
-        //    static inline float fastpow(float x, float p)
-        //    {
-        //        return fastpow2(p * fastlog2(x));
-        //    }
-
-        //    static inline float fasterpow2(float p)
-        //    {
-        //        float clipp = (p < -126) ? -126.0f : p;
-        //        union {
-        //            uint32_t i;
-        //            float f;
-        //        } v = { cast_uint32_t((1 << 23) * (clipp + 126.94269504f)) };
-        //        return v.f;
-        //    }
-
-        //    static inline float fasterlog2(float x)
-        //    {
-        //        union {
-        //            float f;
-        //            uint32_t i;
-        //        } vx = { x };
-        //        float y = (float)vx.i;
-        //        y *= 1.1920928955078125e-7f;
-        //        return y - 126.94269504f;
-        //    }
-
-        //    static inline float fasterlog(float x)
-        //    {
-        //        //  return 0.69314718f * fasterlog2 (x);
-
-        //        union {
-        //            float f;
-        //            uint32_t i;
-        //        } vx = { x };
-        //        float y = (float)vx.i;
-        //        y *= 8.2629582881927490e-8f;
-        //        return y - 87.989971088f;
-        //    }
-
-        //    static inline float fasterpow(float x, float p)
-        //    {
-        //        return fasterpow2(p * fasterlog2(x));
-        //    }
-
-        //    static inline float fasterexp(float p)
-        //    {
-        //        return fasterpow2(1.442695040f * p);
-        //    }
-
-        //    static inline float fastertanh(float p)
-        //    {
-        //        return -1.0f + 2.0f / (1.0f + fasterexp(-2.0f * p));
-        //    }
-
-        //    static inline float fastersin(float x)
-        //    {
-        //        return (float)Helpers::FastSin((double)x);
-        //    }
-
-        //    static inline float fastercos(float x)
-        //    {
-        //        return (float)Helpers::FastCos((double)x);
-        //    }
-
-        //    static inline float fastertanfull(float x)
-        //    {
-        //        static const float twopi = 6.2831853071795865f;
-        //        static const float invtwopi = 0.15915494309189534f;
-
-        //        int k = (int)(x * invtwopi);
-        //        float half = (x < 0) ? -0.5f : 0.5f;
-        //        float xnew = x - (half + k) * twopi;
-
-        //        return fastersin(xnew) / fastercos(xnew);
-        //    }
-
-        //}
-
-
-        //inline bool FloatIsAbove(real_t lhs, real_t rhs, real_t eps = FloatEpsilon)
-        //{
-        //    return lhs > (rhs + eps);
-        //}
         namespace math
         {
             static constexpr real_t gPI = 3.14159265358979323846264338327950288f;
@@ -689,7 +573,9 @@ namespace WaveSabreCore
             explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
 
             real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
-                return math::modCurve_xN11_kN11(x, GetN11Value() + modVal);
+                float f = GetN11Value() + modVal;
+                if (f < 0.0001 && f > -0.0001) return x; // speed optimization; most curves being processed are flat so skip the lookup entirely.
+                return math::modCurve_xN11_kN11(x, f);
             }
         };
 
