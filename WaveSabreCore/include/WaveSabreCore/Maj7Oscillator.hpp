@@ -54,7 +54,7 @@ namespace WaveSabreCore
 			// device-level values set at the beginning of block processing
 			float mDetuneDeviceModAmt = 0;
 			float mAuxPanDeviceModAmt = 0;
-			float mShapeDeviceModAmt = 0;
+			//float mShapeDeviceModAmt = 0;
 
 			// LFO backing values (they don't have params)
 			float mLFOVolumeParamValue = 1.0f;
@@ -166,7 +166,7 @@ namespace WaveSabreCore
 
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;
-				virtual void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale, int samplesInBlock) = 0;
+				virtual void BeginBlock(real_t midiNote, float detuneFreqMul, float fmScale, int samplesInBlock) = 0;
 				//virtual void EndBlock() = 0;
 			};
 		};
@@ -1221,7 +1221,7 @@ namespace WaveSabreCore
 				mpSlaveWave->mPhase = phase01;
 			}
 
-			void BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale, int samplesInBlock)
+			virtual void BeginBlock(real_t midiNote, float detuneFreqMul, float fmScale, int samplesInBlock) override
 			{
 				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
 					return;
@@ -1312,7 +1312,7 @@ namespace WaveSabreCore
 				//mPhaseIncrement = newDT;
 
 				float slaveFreq = mpOscDevice->mSyncEnable.GetBoolValue() ? mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
-				mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal), mpOscDevice->mWaveshape.Get01Value(voiceShapeMod + mWaveShapeModVal), Helpers::CurrentSampleRateF, samplesInBlock);
+				mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal), mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRateF, samplesInBlock);
 			}
 
 			virtual void NoteOn(bool legato) override

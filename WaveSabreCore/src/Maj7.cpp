@@ -1,8 +1,8 @@
 #include <WaveSabreCore/Maj7.hpp>
 namespace WaveSabreCore {
     namespace M7 {
-        static_assert((int)M7::MainParamIndices::Count == 34, "param count probably changed and this needs to be regenerated.");
-        const float gDefaultMasterParams[34] = {
+        static_assert((int)M7::MainParamIndices::Count == 32, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultMasterParams[32] = {
           0.70794576406478881836, // Master
           0.0002470355830155313015, // PolyMon
           0.041666667908430099487, // Unisono
@@ -10,8 +10,6 @@ namespace WaveSabreCore {
           0, // UniDet
           0, // OscSpr
           0, // UniSpr
-          0, // OscShp
-          0, // UniShp
           0.5, // FMBrigh
           0.0002470355830155313015, // XRout
           1, // XWidth

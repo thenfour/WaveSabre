@@ -309,7 +309,7 @@ namespace WaveSabreCore
 				mNoteIsOn = false;
 			}
 
-			void SamplerVoice::BeginBlock(real_t midiNote, float voiceShapeMod, float detuneFreqMul, float fmScale, int samplesInBlock) 
+			void SamplerVoice::BeginBlock(real_t midiNote, float detuneFreqMul, float fmScale, int samplesInBlock) 
 			{
 				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
 					return;

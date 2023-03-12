@@ -644,8 +644,8 @@ namespace WaveSabreCore
             UnisonoDetune,
             OscillatorSpread,
             UnisonoStereoSpread,
-            OscillatorShapeSpread,
-            UnisonoShapeSpread,
+            //OscillatorShapeSpread,
+            //UnisonoShapeSpread,
             FMBrightness,
 
             AuxRouting,
@@ -1205,8 +1205,6 @@ namespace WaveSabreCore
             {"UniDet"}, \
             {"OscSpr"}, \
             {"UniSpr"}, \
-            {"OscShp"}, \
-            {"UniShp"}, \
             {"FMBrigh"}, \
             {"XRout"}, \
             {"XWidth"}, \
@@ -1719,8 +1717,6 @@ namespace WaveSabreCore
             UnisonoDetune,
             OscillatorSpread,
             UnisonoStereoSpread,
-            OscillatorShapeSpread,
-            UnisonoShapeSpread,
             FMBrightness,
 
             AuxRouting,

@@ -255,7 +255,7 @@ namespace WaveSabreCore
 				Minified,
 				Count,
 			};
-			//static constexpr size_t gOptimizeableModulations = 8; // number of modulations which aren't used by internal things
+
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr size_t gOscillatorCount = 4;
@@ -266,11 +266,12 @@ namespace WaveSabreCore
 			static constexpr real_t gMasterVolumeMaxDb = 6;
 			static constexpr size_t gMacroCount = 7;
 
-			//static_assert((gModulationCount - gSourceCount) >= gOptimizeableModulations, "need room for the optimizable modulations + internal modulations.");
+			static constexpr size_t gModEnvCount = 2;
+			static constexpr size_t gModLFOCount = 2;
 
 			// BASE PARAMS & state
-			DCFilter mDCFilterL;
-			DCFilter mDCFilterR;
+			DCFilter mDCFilters[2];
+
 			float mAlways0 = 0;
 			real_t mPitchBendN11 = 0;
 			bool mDeviceModSourceValuesSetThisFrame = false;
@@ -283,8 +284,6 @@ namespace WaveSabreCore
 
 			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
 
-			float mUnisonoShapeAmts[gUnisonoVoiceMax] = { 0 };
-
 			EnumParam<VoiceMode> mVoicingModeParam{ mParamCache[(int)ParamIndices::VoicingMode], WaveSabreCore::VoiceMode::Count};
 			IntParam mUnisonoVoicesParam{ mParamCache[(int)ParamIndices::Unisono], 1, gUnisonoVoiceMax };
 
@@ -293,26 +292,6 @@ namespace WaveSabreCore
 			Float01ParamArray mMacros { &mParamCache[(int)ParamIndices::Macro1], gMacroCount };
 
 			Float01ParamArray mFMMatrix{ &mParamCache[(int)ParamIndices::FMAmt1to2], gFMMatrixSize };
-			//Float01Param mFMAmt1to2{ mParamCache[(int)ParamIndices::FMAmt1to2] };
-			//Float01Param mFMAmt1to3{ mParamCache[(int)ParamIndices::FMAmt1to3] };
-			//Float01Param mFMAmt1to4{ mParamCache[(int)ParamIndices::FMAmt1to4] };
-			//Float01Param mFMAmt2to1{ mParamCache[(int)ParamIndices::FMAmt2to1] };
-			//Float01Param mFMAmt2to3{ mParamCache[(int)ParamIndices::FMAmt2to3] };
-			//Float01Param mFMAmt2to4{ mParamCache[(int)ParamIndices::FMAmt2to4] };
-			//Float01Param mFMAmt3to1{ mParamCache[(int)ParamIndices::FMAmt3to1] };
-			//Float01Param mFMAmt3to2{ mParamCache[(int)ParamIndices::FMAmt3to2] };
-			//Float01Param mFMAmt3to4{ mParamCache[(int)ParamIndices::FMAmt3to4] };
-			//Float01Param mFMAmt4to1{ mParamCache[(int)ParamIndices::FMAmt4to1] };
-			//Float01Param mFMAmt4to2{ mParamCache[(int)ParamIndices::FMAmt4to2] };
-			//Float01Param mFMAmt4to3{ mParamCache[(int)ParamIndices::FMAmt4to3] };
-
-			Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune] };
-			Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread] };
-			Float01Param mOscillatorDetune{ mParamCache[(int)ParamIndices::OscillatorDetune] };
-			Float01Param mOscillatorStereoSpread{ mParamCache[(int)ParamIndices::OscillatorSpread] };
-
-			Float01Param mUnisonoShapeSpread{ mParamCache[(int)ParamIndices::UnisonoShapeSpread] };
-			Float01Param mOscillatorShapeSpread{ mParamCache[(int)ParamIndices::OscillatorShapeSpread] };
 
 			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness] };
 
@@ -386,8 +365,8 @@ namespace WaveSabreCore
 			real_t mUnisonoDetuneMod = 0;
 			real_t mOscillatorStereoSpreadMod = 0;
 			real_t mUnisonoStereoSpreadMod = 0;
-			real_t mOscillatorShapeSpreadMod = 0;
-			real_t mUnisonoShapeSpreadMod = 0;
+			//real_t mOscillatorShapeSpreadMod = 0;
+			//real_t mUnisonoShapeSpreadMod = 0;
 			real_t mFMBrightnessMod = 0;
 			real_t mPortamentoTimeMod = 0;
 			real_t mPortamentoCurveMod = 0;
@@ -400,9 +379,6 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < std::size(mVoices); ++ i) {
 					mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
 				}
-
-				mDCFilterL.SetMinus3DBFreq(10);
-				mDCFilterR.SetMinus3DBFreq(10);
 
 				LoadDefaults();
 			}
@@ -592,13 +568,18 @@ namespace WaveSabreCore
 				BipolarDistribute(gUnisonoVoiceMax, unisonoEnabled, mUnisonoDetuneAmts);
 
 				// scale down per param & mod
-				float unisonoDetuneAmt = mUnisonoDetune.Get01Value(mUnisonoDetuneMod);
-				float unisonoStereoSpreadAmt = mUnisonoStereoSpread.Get01Value(mUnisonoStereoSpreadMod);
-				float unisonoShapeSpreadAmt = mUnisonoShapeSpread.Get01Value(mUnisonoShapeSpreadMod);
+				//Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune] };
+				//Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread] };
+				//Float01Param mOscillatorDetune{ mParamCache[(int)ParamIndices::OscillatorDetune] };
+				//Float01Param mOscillatorStereoSpread{ mParamCache[(int)ParamIndices::OscillatorSpread] };
+
+				//float unisonoDetuneAmt = ;
+				//float unisonoStereoSpreadAmt = ;
+				//float unisonoShapeSpreadAmt = mUnisonoShapeSpread.Get01Value(mUnisonoShapeSpreadMod);
 				for (size_t i = 0; i < mVoicesUnisono; ++i) {
-					mUnisonoPanAmts[i] = mUnisonoDetuneAmts[i] * unisonoStereoSpreadAmt;
-					mUnisonoShapeAmts[i] = mUnisonoDetuneAmts[i] * unisonoShapeSpreadAmt;
-					mUnisonoDetuneAmts[i] *= unisonoDetuneAmt;
+					mUnisonoPanAmts[i] = mUnisonoDetuneAmts[i] * (mParamCache[(int)ParamIndices::UnisonoStereoSpread] + mUnisonoStereoSpreadMod);
+					//mUnisonoShapeAmts[i] = mUnisonoDetuneAmts[i] * unisonoShapeSpreadAmt;
+					mUnisonoDetuneAmts[i] *= mParamCache[(int)ParamIndices::UnisonoDetune] + mUnisonoDetuneMod;
 				}
 
 				// when aux width is 0, they are both mono. it means pan of 0 for both aux routes.
@@ -607,16 +588,16 @@ namespace WaveSabreCore
 				mAuxOutputGains[1] = auxGains.first;// auxPanVolParam.GetLinearGain();
 				mAuxOutputGains[0] = auxGains.second;// auxPanVolParam.GetLinearGain();
 
-				float oscDetuneAmt = mOscillatorDetune.Get01Value(mOscillatorDetuneMod);
-				float oscStereoSpreadAmt = mOscillatorStereoSpread.Get01Value(mOscillatorStereoSpreadMod);
-				float oscShapeSpreadAmt = mOscillatorShapeSpread.Get01Value(mOscillatorShapeSpreadMod);
+				//float oscDetuneAmt = ;//mOscillatorDetune.Get01Value(mOscillatorDetuneMod);
+				//float oscStereoSpreadAmt = ;// mOscillatorStereoSpread.Get01Value(mOscillatorStereoSpreadMod);
+				//float oscShapeSpreadAmt = mOscillatorShapeSpread.Get01Value(mOscillatorShapeSpreadMod);
 
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					auto* src = mSources[i];
 					// for the moment mOscDetuneAmts[i] is just a generic spread value.
-					src->mShapeDeviceModAmt = sourceModDistribution[i] * oscShapeSpreadAmt;
-					src->mAuxPanDeviceModAmt = sourceModDistribution[i] * oscStereoSpreadAmt;
-					src->mDetuneDeviceModAmt = sourceModDistribution[i] * oscDetuneAmt;
+					//src->mShapeDeviceModAmt = sourceModDistribution[i] * oscShapeSpreadAmt;
+					src->mAuxPanDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorSpread] + mOscillatorStereoSpreadMod);
+					src->mDetuneDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorDetune] + mOscillatorDetuneMod);
 					src->BeginBlock(numSamples);
 				}
 
@@ -629,13 +610,17 @@ namespace WaveSabreCore
 				}
 
 				// apply post FX.
-				real_t masterGain = mMasterVolume.GetLinearGain();
-				mModLFO1Phase.BeginBlock(0, 0, 1, 0, numSamples);
-				mModLFO2Phase.BeginBlock(0, 0, 1, 0, numSamples);
+				mModLFO1Phase.BeginBlock(0, 1, 0, numSamples);
+				mModLFO2Phase.BeginBlock(0, 1, 0, numSamples);
+
+				// very inefficient to calculate all in the loops like that but it's for size-optimization
 				for (size_t iSample = 0; iSample < numSamples; ++iSample)
 				{
-					outputs[0][iSample] = mDCFilterL.ProcessSample(outputs[0][iSample] * masterGain);
-					outputs[1][iSample] = mDCFilterR.ProcessSample(outputs[1][iSample] * masterGain);
+					for (size_t ioutput = 0; ioutput < 2; ++ioutput) {
+						//mDCFilters[ioutput].SetMinus3DBFreq(10);
+						outputs[ioutput][iSample] = mDCFilters[ioutput].ProcessSample(outputs[ioutput][iSample] * mMasterVolume.GetLinearGain());
+					}
+					//outputs[1][iSample] = mDCFilterR.ProcessSample(outputs[1][iSample] * masterGain);
 
 					mModLFO1Phase.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, true);
 					mModLFO2Phase.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, true);
@@ -712,7 +697,7 @@ namespace WaveSabreCore
 				EnvelopeNode mModEnv1;
 				EnvelopeNode mModEnv2;
 
-				EnvelopeNode* mpAllEnvelopes[gSourceCount + 2] {
+				EnvelopeNode* mpAllEnvelopes[gSourceCount + gModEnvCount] {
 					&mOsc1AmpEnv,
 					&mOsc2AmpEnv,
 					&mOsc3AmpEnv,
@@ -779,6 +764,7 @@ namespace WaveSabreCore
 					for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
 					{
 						mModMatrix.SetSourceKRateValue((int)ModSource::Macro1 + iMacro, mpOwner->mMacros.Get01Value(iMacro));  // krate, 01
+						//mModMatrix.SetSourceKRateValue((int)ModSource::Macro1 + iMacro, mpOwner->mParamCache[(int)ParamIndices::Macro1 + iMacro]);// .Get01Value(iMacro));  // krate, 01
 					}
 
 					if (!mModLFO1.mpOscDevice->mPhaseRestart.GetBoolValue()) {
@@ -791,8 +777,8 @@ namespace WaveSabreCore
 						mModLFO2.SetPhase(mpOwner->mModLFO2Phase.mPhase);
 					}
 
-					mModLFO1.BeginBlock(0, 0, 1.0f, 0, numSamples);
-					mModLFO2.BeginBlock(0, 0, 1.0f, 0, numSamples);
+					mModLFO1.BeginBlock(0, 1.0f, 0, numSamples);
+					mModLFO2.BeginBlock(0, 1.0f, 0, numSamples);
 
 					mLFOFilter1.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO1LPCutoff, 0, 0);
 					mLFOFilter2.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO2LPCutoff, 0, 0);
@@ -823,8 +809,8 @@ namespace WaveSabreCore
 						mpOwner->mOscillatorStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorStereoSpread, 0);
 						mpOwner->mAuxWidthMod = mModMatrix.GetDestinationValue(ModDestination::AuxWidth, 0);
 						mpOwner->mUnisonoStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoStereoSpread, 0);
-						mpOwner->mOscillatorShapeSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorShapeSpread, 0);
-						mpOwner->mUnisonoShapeSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoShapeSpread, 0);
+						//mpOwner->mOscillatorShapeSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorShapeSpread, 0);
+						//mpOwner->mUnisonoShapeSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoShapeSpread, 0);
 						mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness, 0);
 						mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime, 0);
 						mpOwner->mPortamentoCurveMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve, 0);
@@ -840,7 +826,11 @@ namespace WaveSabreCore
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
-					float myUnisonoShape = mpOwner->mUnisonoShapeAmts[this->mUnisonVoice];
+					//float myUnisonoShape = mpOwner->mUnisonoShapeAmts[this->mUnisonVoice];
+
+					for (size_t i = 0; i < gAuxNodeCount; ++i) {
+						mAllAuxNodes[i]->BeginBlock(numSamples, mAllAuxNodes, noteHz, mModMatrix);
+					}
 
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
@@ -850,7 +840,7 @@ namespace WaveSabreCore
 						}
 						float semis = myUnisonoDetune + srcVoice->mpSrcDevice->mDetuneDeviceModAmt;// mpOwner->mOscDetuneAmts[i];
 						
-						srcVoice->BeginBlock(midiNote, myUnisonoShape + srcVoice->mpSrcDevice->mShapeDeviceModAmt, math::SemisToFrequencyMul(semis), globalFMScale, numSamples);
+						srcVoice->BeginBlock(midiNote, math::SemisToFrequencyMul(semis), globalFMScale, numSamples);
 
 						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID, 0);
 						//VolumeParam outputVolParam{ mpOwner->mParamCache[(int)info.mOutputVolumeParamID], OscillatorNode::gVolumeMaxDb };
@@ -861,10 +851,6 @@ namespace WaveSabreCore
 						float outputVolLin = srcVoice->mpSrcDevice->mVolumeParam.GetLinearGain(volumeMod);
 						srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
 						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
-					}
-
-					for (size_t i = 0; i < gAuxNodeCount; ++i) {
-						mAllAuxNodes[i]->BeginBlock(numSamples, mAllAuxNodes, noteHz, mModMatrix);
 					}
 
 					for (int iSample = 0; iSample < numSamples; ++iSample)

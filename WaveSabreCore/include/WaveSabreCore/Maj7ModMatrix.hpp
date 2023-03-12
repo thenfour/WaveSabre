@@ -91,8 +91,8 @@ namespace WaveSabreCore
 			UnisonoDetune, // krate, 01
 			OscillatorStereoSpread, // krate, 01
 			UnisonoStereoSpread, // krate, 01
-			OscillatorShapeSpread, // krate, 01
-			UnisonoShapeSpread, // krate, 01
+			//OscillatorShapeSpread, // krate, 01
+			//UnisonoShapeSpread, // krate, 01
 			FMBrightness, // krate, 01
 			AuxWidth, // N11
 
@@ -357,8 +357,6 @@ namespace WaveSabreCore
 			"UnisonoDetune", \
 			"OscillatorStereoSpread", \
 			"UnisonoStereoSpread", \
-			"OscillatorShapeSpread", \
-			"UnisonoShapeSpread", \
 			"FMBrightness", \
 			"AuxWidth", \
 			"PortamentoTime", \
