@@ -13,8 +13,8 @@ namespace WaveSabreCore
 		static constexpr float gSourcePitchFineRangeSemis = 2;
 		static constexpr real_t gLFOFrequencyCenterHz = 1.5f;
 		static constexpr real_t gLFOFrequencyScale = 8;
-		static constexpr float gVarTrapezoidSoftSlope = 0.25f;
-		static constexpr float gVarTrapezoidHardSlope = 0.5f;
+		static constexpr float gVarTrapezoidSoftSlope = 0.7f;
+		static constexpr float gVarTrapezoidHardSlope = 0.2f;
 
 		// sampler, oscillator, LFO @ device level
 		struct ISoundSourceDevice
@@ -337,9 +337,11 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
+				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				waveshape = 1 - waveshape;
 				waveshape = 1 - (waveshape * waveshape);
-				mShape = Clamp(waveshape * 0.9f, 0, 1);
+				mShape = Lerp(0, 0.95f, waveshape);
+				//mShape = Clamp(waveshape * 0.9f, 0, 1);
 
 				mFlatValue = mShape;
 
@@ -413,6 +415,8 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
+				mShape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+
 				mEdge1 = (0.75f - mShape * .25f);
 				mEdge2 = (0.75f + mShape * .25f);
 				mFlatValue = math::sin(mEdge1 * 2 * math::gPI); // the Y value that gets sustained
@@ -457,7 +461,7 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-				this->mShape = Lerp(0.95f, .05f, waveshape);
+				this->mShape = Lerp(0.98f, .02f, waveshape);
 			}
 
 			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
@@ -505,6 +509,7 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = Lerp(1, 0.1f, waveshape);
 			}
 
@@ -606,7 +611,6 @@ namespace WaveSabreCore
 			}
 		};
 
-
 		/////////////////////////////////////////////////////////////////////////////
 		struct PulseTristateWaveform :IOscillatorWaveform
 		{
@@ -617,6 +621,7 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				this->mShape = Lerp(0.95f, .05f, waveshape);
 				mT2 = mShape / 2;
 				mT3 = .5f;
@@ -651,8 +656,8 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-				mShape = Lerp(.5f, 0.05f, waveshape); // prevent div0
-				mShape = Clamp(mShape, 0.05f, 0.5f);
+				mShape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+				mShape = Lerp(.5f, 0.03f, mShape); // prevent div0
 			}
 
 			virtual float NaiveSample(float phase01) override
@@ -678,7 +683,8 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-				mShape = Lerp(0.05f, 0.95f, waveshape); // prevent div0
+				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+				mShape = Lerp(0.97f, 0.03f, waveshape); // prevent div0
 			}
 
 			virtual float NaiveSample(float phase01) override
@@ -712,7 +718,8 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-				mShape = Lerp(0.99f, 0.01f, waveshape);
+				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+				mShape = Lerp(0.97f, 0.03f, waveshape);
 				mDCOffset = -.5;//-.5 * this.shape;
 				mScale = 2;//1/(.5+this.DCOffset);
 			}
@@ -786,6 +793,7 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
+				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = Lerp(0, .49f, waveshape * waveshape);
 
 				mT1 = .5f - mShape;
@@ -880,7 +888,8 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
-				mShape = Lerp(0.95f, .05f, waveshape);
+				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+				mShape = Lerp(0.97f, .03f, waveshape);
 			}
 
 			virtual float NaiveSample(float phase01) override
@@ -953,7 +962,7 @@ namespace WaveSabreCore
 			float mWidth = 0;
 
 			VarTrapezoidWaveform(float slope01) :
-				mSlope(Lerp(0.05f, 0.45f, slope01 / 2))
+				mSlope(Lerp(0.02f, 0.47f, slope01 / 2))
 			{
 			}
 
