@@ -31,10 +31,10 @@
 // - unisono detune (semis)           hz+semis     oscillator                             
 
 
-// with adult+spec+slaught+falcon = 15911
-// with maj7                      = 23307
-//  maj7 is 7kb bigger than the other stuff.
+//  maj7 is 8kb bigger than the other stuff.
 
+// 4kb for adultery+slaughter+falcon
+// maj7 is about 12.5 kb by itself
 //case SongRenderer::DeviceId::Adultery: return new WaveSabreCore::Adultery(); // ~ 0.7 kb
 //case SongRenderer::DeviceId::Specimen: return new WaveSabreCore::Specimen(); // ~ 0.9 kb
 //case SongRenderer::DeviceId::Slaughter: return new WaveSabreCore::Slaughter(); // ~ 2.5 kb
@@ -44,7 +44,7 @@
 //case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
 //case SongRenderer::DeviceId::Echo: return new WaveSabreCore::Echo(); // ~ 0.7 kb (with maj7)
 //case SongRenderer::DeviceId::Leveller: return new WaveSabreCore::Leveller(); // ~ 0.8 kb
-
+// scissor is about 450 bytes
 
 #pragma once
 
@@ -269,6 +269,8 @@ namespace WaveSabreCore
 			//static_assert((gModulationCount - gSourceCount) >= gOptimizeableModulations, "need room for the optimizable modulations + internal modulations.");
 
 			// BASE PARAMS & state
+			DCFilter mDCFilterL;
+			DCFilter mDCFilterR;
 			float mAlways0 = 0;
 			real_t mPitchBendN11 = 0;
 			bool mDeviceModSourceValuesSetThisFrame = false;
@@ -402,6 +404,9 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < std::size(mVoices); ++ i) {
 					mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
 				}
+
+				mDCFilterL.SetMinus3DBFreq(10);
+				mDCFilterR.SetMinus3DBFreq(10);
 
 				LoadDefaults();
 			}
@@ -633,8 +638,8 @@ namespace WaveSabreCore
 				mModLFO2Phase.BeginBlock(0, 0, 1, 0, numSamples);
 				for (size_t iSample = 0; iSample < numSamples; ++iSample)
 				{
-					outputs[0][iSample] *= masterGain;
-					outputs[1][iSample] *= masterGain;
+					outputs[0][iSample] = mDCFilterL.ProcessSample(outputs[0][iSample] * masterGain);
+					outputs[1][iSample] = mDCFilterR.ProcessSample(outputs[1][iSample] * masterGain);
 
 					mModLFO1Phase.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, true);
 					mModLFO2Phase.ProcessSample(iSample, 0, 0, 0, 0, 0, 0, true);
