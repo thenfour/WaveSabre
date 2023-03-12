@@ -1266,11 +1266,11 @@ public:
 		case M7::OscillatorWaveform::SineHarmTrunc:
 			pWaveform.reset(new M7::SineHarmTruncWaveform);
 			break;
-		case M7::OscillatorWaveform::SineThroat:
-			pWaveform.reset(new M7::SineThroatWaveform);
-			break;
 		case M7::OscillatorWaveform::SineTrunc:
 			pWaveform.reset(new M7::SineTruncWaveform);
+			break;
+		case M7::OscillatorWaveform::TriClip:
+			pWaveform.reset(new M7::TriClipWaveform);
 			break;
 		case M7::OscillatorWaveform::TriSquare:
 			pWaveform.reset(new M7::TriSquareWaveform);
@@ -1278,8 +1278,11 @@ public:
 		case M7::OscillatorWaveform::TriTrunc:
 			pWaveform.reset(new M7::TriTruncWaveform);
 			break;
-		case M7::OscillatorWaveform::VarTrapezoid:
-			pWaveform.reset(new M7::VarTrapezoidWaveform);
+		case M7::OscillatorWaveform::VarTrapezoidHard:
+			pWaveform.reset(new M7::VarTrapezoidWaveform{ M7::gVarTrapezoidHardSlope });
+			break;
+		case M7::OscillatorWaveform::VarTrapezoidSoft:
+			pWaveform.reset(new M7::VarTrapezoidWaveform { M7::gVarTrapezoidSoftSlope });
 			break;
 		case M7::OscillatorWaveform::VarTriangle:
 			pWaveform.reset(new M7::VarTriWaveform);

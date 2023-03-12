@@ -206,6 +206,10 @@ namespace WaveSabreCore
             inline float randN11() {
                 return rand01() * 2 - 1;
             }
+            inline float abs(float x)
+            {
+                return x < 0 ? -x : x;
+            }
         }
 
         inline bool FloatEquals(real_t f1, real_t f2, real_t eps = FloatEpsilon)

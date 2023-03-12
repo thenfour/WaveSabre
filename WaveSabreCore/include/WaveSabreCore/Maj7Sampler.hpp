@@ -1,7 +1,7 @@
 #pragma once
 
 // embedding own samples is kinda a luxury. if needed we can save code size
-//#define MAJ7_INCLUDE_GSM_SUPPORT // comment this and save about 1kb of minified code.
+#define MAJ7_INCLUDE_GSM_SUPPORT // comment this and save about 1kb of minified code.
 #include <Windows.h>
 // correction for windows.h macros.
 #undef min
