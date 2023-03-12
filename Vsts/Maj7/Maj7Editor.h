@@ -1247,17 +1247,42 @@ public:
 		std::unique_ptr<M7::IOscillatorWaveform> pWaveform;
 
 		switch (waveform) {
+		default:
+		case M7::OscillatorWaveform::Pulse:
+			pWaveform.reset(new M7::PulsePWMWaveform);
+			break;
+		case M7::OscillatorWaveform::PulseTristate:
+			pWaveform.reset(new M7::PulseTristateWaveform);
+			break;
 		case M7::OscillatorWaveform::SawClip:
 			pWaveform.reset(new M7::SawClipWaveform);
 			break;
-		case M7::OscillatorWaveform::Pulse:
-			pWaveform.reset(new M7::PulsePWMWaveform);
+		case M7::OscillatorWaveform::SineAsym:
+			pWaveform.reset(new M7::SineAsymWaveform);
 			break;
 		case M7::OscillatorWaveform::SineClip:
 			pWaveform.reset(new M7::SineClipWaveform);
 			break;
 		case M7::OscillatorWaveform::SineHarmTrunc:
 			pWaveform.reset(new M7::SineHarmTruncWaveform);
+			break;
+		case M7::OscillatorWaveform::SineThroat:
+			pWaveform.reset(new M7::SineThroatWaveform);
+			break;
+		case M7::OscillatorWaveform::SineTrunc:
+			pWaveform.reset(new M7::SineTruncWaveform);
+			break;
+		case M7::OscillatorWaveform::TriSquare:
+			pWaveform.reset(new M7::TriSquareWaveform);
+			break;
+		case M7::OscillatorWaveform::TriTrunc:
+			pWaveform.reset(new M7::TriTruncWaveform);
+			break;
+		case M7::OscillatorWaveform::VarTrapezoid:
+			pWaveform.reset(new M7::VarTrapezoidWaveform);
+			break;
+		case M7::OscillatorWaveform::VarTriangle:
+			pWaveform.reset(new M7::VarTriWaveform);
 			break;
 		case M7::OscillatorWaveform::WhiteNoiseSH:
 			pWaveform.reset(new M7::WhiteNoiseWaveform);

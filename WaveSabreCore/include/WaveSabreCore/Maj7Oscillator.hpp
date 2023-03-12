@@ -169,21 +169,37 @@ namespace WaveSabreCore
 
 		enum class OscillatorWaveform : uint8_t
 		{
-			SawClip,
 			Pulse,
+			PulseTristate,
+			SawClip,
+			SineAsym,
 			SineClip,
 			SineHarmTrunc,
+			SineThroat,
+			SineTrunc,
+			TriSquare,
+			TriTrunc,
+			VarTrapezoid,
+			VarTriangle,
 			WhiteNoiseSH,
 			Count,
 		};
 		// size-optimize using macro
 		#define OSCILLATOR_WAVEFORM_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count] { \
-            "SawClip", \
-			"Pulse", \
-			"SineClip", \
-            "SineHarmTrunc", \
-            "WhiteNoiseSH", \
-        }
+			"Pulse",\
+			"PulseTristate",\
+			"SawClip",\
+			"SineAsym",\
+			"SineClip",\
+			"SineHarmTrunc",\
+			"SineThroat",\
+			"SineTrunc",\
+			"TriSquare",\
+			"TriTrunc",\
+			"VarTrapezoid",\
+			"VarTriangle",\
+			"WhiteNoiseSH",\
+		}
 
 		/////////////////////////////////////////////////////////////////////////////
 		struct IOscillatorWaveform
@@ -202,7 +218,7 @@ namespace WaveSabreCore
 
 			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
 			virtual float NaiveSampleSlope(float phase01) = 0; // return slope at phase			
-			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) = 0;// returns blep before and blep after discontinuity.
+			//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) = 0;// returns blep before and blep after discontinuity.
 
 			// override if you need to adjust things
 			virtual void SetParams(float freq, float phaseOffsetN11, float waveshape, float sampleRate, int samplesInBlock)
@@ -214,6 +230,10 @@ namespace WaveSabreCore
 
 				double newPhaseInc = (double)mFrequency / sampleRate;
 				mDTDT = (newPhaseInc - mPhaseIncrement) / samplesInBlock;
+
+				//mDCOffset = 0;
+				//mScale = 1.0f;
+
 				//mPhaseIncrement = newPhaseInc;
 				//mDTDT = 0;
 			}
@@ -265,6 +285,26 @@ namespace WaveSabreCore
 				bleps.first += blampScale * BlampBefore(samplesFromEdgeToNextSample);
 				bleps.second += blampScale * BlampAfter(samplesFromEdgeToNextSample);
 			}
+
+			// offers waveforms the opportunity to accumulate bleps along the advancement.
+			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) {}
+
+			// samples is 0<samples<1
+			// assume this.phase is currently 0<t<1
+			// this.phase may not be on a sample boundary.
+			// returns blep before and blep after discontinuity.
+			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample)
+			{
+				mPhaseIncrement += mDTDT * samples;
+				double phaseToAdvance = samples * mPhaseIncrement;
+				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				std::pair<float, float> bleps{ 0.0f,0.0f };
+
+				Visit(bleps, newPhase, samples, samplesTillNextSample);
+
+				this->mPhase = newPhase;
+				return bleps;
+			}
 		};
 
 		/////////////////////////////////////////////////////////////////////////////
@@ -307,13 +347,14 @@ namespace WaveSabreCore
 			// assume this.phase is currently 0<t<1
 			// this.phase may not be on a sample boundary.
 			// returns blep before and blep after discontinuity.
-			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
 			{
-				mPhaseIncrement += mDTDT * samples;
-				double phaseToAdvance = samples * mPhaseIncrement;
-				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				//mPhaseIncrement += mDTDT * samples;
+				//double phaseToAdvance = samples * mPhaseIncrement;
+				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
-				std::pair<float, float> bleps{ 0.0f,0.0f };
+				//std::pair<float, float> bleps{ 0.0f,0.0f };
 				float blampScale = float(mPhaseIncrement);
 				float blepScale = -(1.0f - mShape);
 
@@ -321,8 +362,8 @@ namespace WaveSabreCore
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, -blampScale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, this->mShape/*edge*/, blampScale, samples, samplesTillNextSample);
 
-				this->mPhase = newPhase;
-				return bleps;
+				//this->mPhase = newPhase;
+				//return bleps;
 			}
 		};
 
@@ -376,20 +417,21 @@ namespace WaveSabreCore
 				mScale = 1.0f / (.5f - .5f * mFlatValue); // scale it up so it fills both axes
 			}
 
-			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+//				virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
-				mPhaseIncrement += mDTDT * samples;
-				double phaseToAdvance = samples * mPhaseIncrement;
-				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				//mPhaseIncrement += mDTDT * samples;
+				//double phaseToAdvance = samples * mPhaseIncrement;
+				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
-				std::pair<float, float> bleps{ 0.0f,0.0f };
+				//std::pair<float, float> bleps{ 0.0f,0.0f };
 
 				float scale = float(mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1));
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge1, scale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge2, scale, samples, samplesTillNextSample);
 
-				this->mPhase = newPhase;
-				return bleps;
+				//this->mPhase = newPhase;
+				//return bleps;
 			}
 		};
 
@@ -413,19 +455,20 @@ namespace WaveSabreCore
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 			}
 
-			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+				//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
-				mPhaseIncrement += mDTDT * samples;
-				double phaseToAdvance = samples * mPhaseIncrement;
-				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				//mPhaseIncrement += mDTDT * samples;
+				//double phaseToAdvance = samples * mPhaseIncrement;
+				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
-				std::pair<float, float> bleps{ 0.0f,0.0f };
+				//std::pair<float, float> bleps{ 0.0f,0.0f };
 
 				OSC_ACCUMULATE_BLEP(bleps, newPhase, 0, -1, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLEP(bleps, newPhase, mShape, 1, samples, samplesTillNextSample);
 
-				this->mPhase = newPhase;
-				return bleps;
+				//this->mPhase = newPhase;
+				//return bleps;
 			}
 		};
 
@@ -457,27 +500,9 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-
 				mShape = Lerp(1, 0.1f, waveshape);
-
-				mDCOffset = 0;
-				mScale = 1.0f;
 			}
 
-			// samples is 0<samples<1
-			// assume this.phase is currently 0<t<1
-			// this.phase may not be on a sample boundary.
-			// returns blep before and blep after discontinuity.
-			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
-			{
-				mPhaseIncrement += mDTDT * samples;
-				double phaseToAdvance = samples * mPhaseIncrement;
-				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
-
-				std::pair<float, float> bleps{ 0.0f,0.0f };
-				this->mPhase = newPhase;
-				return bleps;
-			}
 		};
 
 		/////////////////////////////////////////////////////////////////////////////
@@ -503,11 +528,12 @@ namespace WaveSabreCore
 				mShape = Lerp(1, 0.1f, waveshape);
 			}
 
-			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+//				virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
-				mPhaseIncrement += mDTDT * samples;
-				double phaseToAdvance = samples * mPhaseIncrement;
-				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				//mPhaseIncrement += mDTDT * samples;
+				//double phaseToAdvance = samples * mPhaseIncrement;
+				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
 				if (newPhase < this->mPhase) {
 					mCurrentLevel = math::randN11();
@@ -518,11 +544,176 @@ namespace WaveSabreCore
 					mCurrentLevel = math::randN11();
 				}
 
-				std::pair<float, float> bleps{ 0.0f,0.0f };
-				this->mPhase = newPhase;
-				return bleps;
+				//std::pair<float, float> bleps{ 0.0f,0.0f };
+				//this->mPhase = newPhase;
+				//return bleps;
 			}
 		};
+
+
+
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct VarTriWaveform :IOscillatorWaveform
+		{
+			// returns Y value at specified phase. instance / stateless.
+			virtual float NaiveSample(float phase01) override
+			{
+				if (phase01 < mShape) {
+					return phase01 / mShape * 2 - 1;
+				}
+				return (1 - phase01) / (1 - mShape) * 2 - 1;
+			}
+
+			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				if (phase01 < mShape) {
+					return 2 * mShape;
+				}
+				return -2 * (1 - mShape);
+			}
+
+			// samples is 0<samples<1
+			// assume this.phase is currently 0<t<1
+			// this.phase may not be on a sample boundary.
+			// returns blep before and blep after discontinuity.
+			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+				//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
+			{
+				//       1-|            ,-',        |
+				//         |         ,-'  | ',      |
+				//       0-|      ,-'         ',    |
+				//         |   ,-'        |     ',  |
+				//      -1-|,-'                   ',|
+				// pw       0-------------|---------1
+				// slope:
+				//         |--------------          | = 1/pw
+				//         |                        | = 0
+				//         |              ----------| = -1/(1-pw)
+
+				//mPhaseIncrement += mDTDT * samples;
+				//double phaseToAdvance = samples * mPhaseIncrement;
+				//double newPhase = Fract(mPhase + phaseToAdvance);
+				//std::pair<float, float> bleps{ 0.0f,0.0f };
+
+				float pw = mShape;
+				// this is
+				// dt / (1/pw - 1/(1-pw))
+				float scale = (float)(mPhaseIncrement / (pw - pw * pw));
+				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(bleps, newPhase, pw/*edge*/, -scale, samples, samplesTillNextSample);
+
+				//this->mPhase = newPhase;
+				//return bleps;
+			}
+		};
+
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct PulseTristateWaveform :IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+		};
+
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct SineAsymWaveform :IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+		};
+
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct SineThroatWaveform :IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+		};
+
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct SineTruncWaveform :IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+		};
+
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct TriSquareWaveform :IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+		};
+
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct TriTruncWaveform :IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+		};
+
+		/////////////////////////////////////////////////////////////////////////////
+		struct VarTrapezoidWaveform :IOscillatorWaveform
+		{
+			virtual float NaiveSample(float phase01) override
+			{
+				return 0;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				return 0;
+			}
+		};
+
+
 
 		/////////////////////////////////////////////////////////////////////////////
 		enum class OscillatorIntention
@@ -642,16 +833,20 @@ namespace WaveSabreCore
 			float mFMFeedbackAmt = 0; // adjusted for global FM scale
 			float mCurrentFreq = 0;
 
-			SawClipWaveform mSawClipWaveform;
-			SineClipWaveform mSineClipWaveform;
 			PulsePWMWaveform mPulsePWMWaveform;
+			PulseTristateWaveform mPulseTristateWaveform;
+			SawClipWaveform mSawClipWaveform;
+			SineAsymWaveform mSineAsymWaveform;
+			SineClipWaveform mSineClipWaveform;
 			SineHarmTruncWaveform mSineHarmTruncWaveform;
+			SineThroatWaveform mSineThroatWaveform;
+			SineTruncWaveform mSineTruncWaveform;
+			TriSquareWaveform mTriSquareWaveform;
+			TriTruncWaveform mTriTruncWaveform;
+			VarTrapezoidWaveform mVarTrapezoidWaveform;
+			VarTriWaveform mVarTriWaveform;
 			WhiteNoiseWaveform mWhiteNoiseWaveform;
-
 			IOscillatorWaveform* mpSlaveWave = &mSawClipWaveform;
-
-			//ModMatrixNode& mModMatrix;
-			//int mModDestBase; // ModDestination enum value representing the 1st mod value. for LFOs that's waveshape, for audio that's volume.
 
 			float mFreqModVal = 0;
 			float mPitchFineModVal = 0;
@@ -700,11 +895,17 @@ namespace WaveSabreCore
 				}
 
 				switch (mpOscDevice->mWaveform.GetEnumValue()) {
+				case OscillatorWaveform::Pulse:
+					mpSlaveWave = &mPulsePWMWaveform;
+					break;
+				case OscillatorWaveform::PulseTristate:
+					mpSlaveWave = &mPulseTristateWaveform;
+					break;
 				case OscillatorWaveform::SawClip:
 					mpSlaveWave = &mSawClipWaveform;
 					break;
-				case OscillatorWaveform::Pulse:
-					mpSlaveWave = &mPulsePWMWaveform;
+				case OscillatorWaveform::SineAsym:
+					mpSlaveWave = &mSineAsymWaveform;
 					break;
 				case OscillatorWaveform::SineClip:
 					mpSlaveWave = &mSineClipWaveform;
@@ -712,6 +913,25 @@ namespace WaveSabreCore
 				case OscillatorWaveform::SineHarmTrunc:
 					mpSlaveWave = &mSineHarmTruncWaveform;
 					break;
+				case OscillatorWaveform::SineThroat:
+					mpSlaveWave = &mSineThroatWaveform;
+					break;
+				case OscillatorWaveform::SineTrunc:
+					mpSlaveWave = &mSineTruncWaveform;
+					break;
+				case OscillatorWaveform::TriSquare:
+					mpSlaveWave = &mTriSquareWaveform;
+					break;
+				case OscillatorWaveform::TriTrunc:
+					mpSlaveWave = &mTriTruncWaveform;
+					break;
+				case OscillatorWaveform::VarTrapezoid:
+					mpSlaveWave = &mVarTrapezoidWaveform;
+					break;
+				case OscillatorWaveform::VarTriangle:
+					mpSlaveWave = &mVarTriWaveform;
+					break;
+				default:
 				case OscillatorWaveform::WhiteNoiseSH:
 					mpSlaveWave = &mWhiteNoiseWaveform;
 					break;
