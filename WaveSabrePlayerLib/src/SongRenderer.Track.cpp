@@ -1,4 +1,5 @@
 #include <WaveSabrePlayerLib/SongRenderer.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 using namespace WaveSabreCore;
 
@@ -169,7 +170,7 @@ namespace WaveSabrePlayerLib
 			float mixAmount = timestampDelta > 0 ?
 				(float)(samplePos - points[pointIndex - 1].TimeStamp) / (float)timestampDelta :
 				0.0f;
-			device->SetParam(paramId, Helpers::Mix(points[pointIndex - 1].Value, points[pointIndex].Value, mixAmount));
+			device->SetParam(paramId, M7::math::lerp(points[pointIndex - 1].Value, points[pointIndex].Value, mixAmount));
 		}
 		samplePos += numSamples;
 	}

@@ -7,7 +7,7 @@ using namespace WaveSabreCore;
 
 AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 {
-	Helpers::Init();
+	//Helpers::Init();
 	return new Maj7Vst(audioMaster);
 }
 

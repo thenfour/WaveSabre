@@ -820,7 +820,7 @@ namespace WaveSabreCore
 							// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 							// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
 							float auxAtten = spec.mAuxAttenuation.Get01Value();
-							float auxScale = Lerp(1, 1.0f - auxAtten, auxVal);
+							float auxScale = math::lerp(1, 1.0f - auxAtten, auxVal);
 							sourceVal *= auxScale;
 						}
 					}

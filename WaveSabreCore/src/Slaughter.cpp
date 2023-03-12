@@ -1,5 +1,6 @@
 #include <WaveSabreCore/Slaughter.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #include <math.h>
 
@@ -203,9 +204,9 @@ namespace WaveSabreCore
 
 		for (int i = 0; i < numSamples; i++)
 		{
-			filter.SetFreq(Helpers::Clamp(slaughter->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (slaughter->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
+			filter.SetFreq(M7::math::clamp(slaughter->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (slaughter->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
 
-			double baseNote = GetNote() + Detune + pitchEnv.GetValue() * slaughter->pitchEnvAmt + Helpers::FastSin(vibratoPhase) * slaughter->VibratoAmount + slaughter->Rise * 24.0f;
+			double baseNote = GetNote() + Detune + pitchEnv.GetValue() * slaughter->pitchEnvAmt + M7::math::sin((float)vibratoPhase) * slaughter->VibratoAmount + slaughter->Rise * 24.0f;
 			float oscMix = 0.0;
 			if (osc1VolumeScalar > 0.0f) oscMix += (float)(osc1.Next(baseNote + osc1Detune, slaughter->osc1Waveform, slaughter->osc1PulseWidth) * osc1VolumeScalar);
 			if (osc2VolumeScalar > 0.0f) oscMix += (float)(osc2.Next(baseNote + osc2Detune, slaughter->osc2Waveform, slaughter->osc2PulseWidth) * osc2VolumeScalar);
@@ -259,7 +260,7 @@ namespace WaveSabreCore
 
 	float Slaughter::SlaughterVoice::Oscillator::Next(double note, float waveform, float pulseWidth)
 	{
-		double phaseMax = Helpers::CurrentSampleRate * .5 / Helpers::NoteToFreq(note);
+		double phaseMax = Helpers::CurrentSampleRate * .5 / M7::math::MIDINoteToFreq((float)note);
 		double dcOffset = -.498 / phaseMax;
 
 		double phase2 = fmod(Phase + 2.0 * phaseMax * (double)pulseWidth, phaseMax * 2.0) - phaseMax;
@@ -271,13 +272,13 @@ namespace WaveSabreCore
 		if (tmpPhase > epsilon || tmpPhase < -epsilon)
 		{
 			tmpPhase *= 3.141592;
-			blit1 = Helpers::FastSin(tmpPhase) / tmpPhase;
+			blit1 = M7::math::sin((float)tmpPhase) / tmpPhase;
 		}
 		else blit1 = 1.0;
 		if (phase2 > epsilon || phase2 < -epsilon)
 		{
 			phase2 *= 3.141592;
-			blit2 = Helpers::FastSin(phase2) / phase2;
+			blit2 = M7::math::sin((float)phase2) / phase2;
 		}
 		else blit2 = 1.0;
 

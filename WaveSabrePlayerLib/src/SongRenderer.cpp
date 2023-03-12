@@ -6,7 +6,7 @@ namespace WaveSabrePlayerLib
 {
 	SongRenderer::SongRenderer(const SongRenderer::Song *song, int numRenderThreads)
 	{
-		Helpers::Init();
+		//Helpers::Init();
 
 		songBlobPtr = song->blob;
 

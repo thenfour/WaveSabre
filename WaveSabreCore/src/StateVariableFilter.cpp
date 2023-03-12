@@ -1,6 +1,7 @@
 #include <WaveSabreCore/StateVariableFilter.h>
 
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #include <math.h>
 
@@ -22,7 +23,7 @@ namespace WaveSabreCore
 	{
 		if (recalculate)
 		{
-			f = (float)(1.5 * Helpers::FastSin(3.141592 * (double)freq / 2.0 / Helpers::CurrentSampleRate));
+			f = 1.5f * M7::math::sin(M7::math::gPI * freq / 2 / Helpers::CurrentSampleRateF);
 
 			recalculate = false;
 		}

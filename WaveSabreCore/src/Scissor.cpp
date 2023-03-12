@@ -60,7 +60,7 @@ namespace WaveSabreCore
 					break;
 				}
 
-				outputs[i][j] = Helpers::Mix(input, v, dryWet);
+				outputs[i][j] = M7::math::lerp(input, v, dryWet);
 
 				lastSample[i] = input;
 			}

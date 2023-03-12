@@ -4,6 +4,8 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
+#include "WaveSabreCore/Maj7Basic.hpp"
+
 #if defined(_MSC_VER) && defined(_M_IX86)
 // TODO: make assembly equivalent for x64 (use intrinsic ?)
 static __declspec(naked) double __vectorcall fpuExp2(double x)
@@ -91,22 +93,22 @@ namespace WaveSabreCore
 	int Helpers::CurrentTempo = 120;
 	int Helpers::RandomSeed = 1;
 
-	double Helpers::fastSinTab[adjustedFastSinTabSize];
-
-	void Helpers::Init()
-	{
-		RandomSeed = 1;
-
-		for (int i = 0; i < adjustedFastSinTabSize; i++)
-		{
-			double phase = double(i) * ((M_PI * 2) / fastSinTabSize);
-#if defined(_MSC_VER) && defined(_M_IX86)
-			fastSinTab[i] = fpuSin(phase);
-#else
-			fastSinTab[i] = sin(phase);
-#endif
-		}
-	}
+	//double Helpers::fastSinTab[adjustedFastSinTabSize];
+//
+//	void Helpers::Init()
+//	{
+//		RandomSeed = 1;
+////
+////		for (int i = 0; i < adjustedFastSinTabSize; i++)
+////		{
+////			double phase = double(i) * ((M_PI * 2) / fastSinTabSize);
+////#if defined(_MSC_VER) && defined(_M_IX86)
+////			fastSinTab[i] = fpuSin(phase);
+////#else
+////			fastSinTab[i] = sin(phase);
+////#endif
+////		}
+//	}
 
 	float Helpers::RandFloat()
 	{
@@ -131,70 +133,70 @@ namespace WaveSabreCore
 #endif
 	}
 
-	double Helpers::FastCos(double x)
-	{
-		return FastSin(x + M_PI_2);
-	}
+	//double Helpers::FastCos(double x)
+	//{
+	//	return FastSin(x + M_PI_2);
+	//}
 
-	double Helpers::FastSin(double x)
-	{
-		// normalize range from 0..2PI to 1..2
-		const auto phaseScale = 1.0 / (M_PI * 2);
-		x *= phaseScale;
-		auto phase = x - floor(x) + 1.0;
+	//double Helpers::FastSin(double x)
+	//{
+	//	// normalize range from 0..2PI to 1..2
+	//	const auto phaseScale = 1.0 / (M_PI * 2);
+	//	x *= phaseScale;
+	//	auto phase = x - floor(x) + 1.0;
 
-		// the exponent is always 0 now, which allows us to use the significand bits directly
-		auto phaseAsInt = *reinterpret_cast<unsigned long long*>(&phase);
+	//	// the exponent is always 0 now, which allows us to use the significand bits directly
+	//	auto phaseAsInt = *reinterpret_cast<unsigned long long*>(&phase);
 
-		const auto fractBits = 32 - fastSinTabLog2Size;
-		const auto fractScale = 1 << fractBits;
-		const auto fractMask = fractScale - 1;
+	//	const auto fractBits = 32 - fastSinTabLog2Size;
+	//	const auto fractScale = 1 << fractBits;
+	//	const auto fractMask = fractScale - 1;
 
-		auto significand = (unsigned int)(phaseAsInt >> (52 - 32));
-		auto index = significand >> fractBits;
-		int fract = significand & fractMask;
+	//	auto significand = (unsigned int)(phaseAsInt >> (52 - 32));
+	//	auto index = significand >> fractBits;
+	//	int fract = significand & fractMask;
 
-		auto left = fastSinTab[index];
-		auto right = fastSinTab[index + 1];
+	//	auto left = fastSinTab[index];
+	//	auto right = fastSinTab[index + 1];
 
-		auto fractMix = fract * (1.0 / fractScale);
-		return left + (right - left) * fractMix;
-	}
+	//	auto fractMix = fract * (1.0 / fractScale);
+	//	return left + (right - left) * fractMix;
+	//}
 
 	double Helpers::Square135(double phase)
 	{
-		return FastSin(phase) +
-			FastSin(phase * 3.0) / 3.0 +
-			FastSin(phase * 5.0) / 5.0;
+		return M7::math::sin((float)phase) +
+			M7::math::sin((float)phase * 3) / 3 +
+			M7::math::sin((float)phase * 5) / 5;
 	}
 
 	double Helpers::Square35(double phase)
 	{
-		return FastSin(phase * 3.0) / 3.0 +
-			FastSin(phase * 5.0) / 5.0;
+		return M7::math::sin((float)phase * 3) / 3 +
+			M7::math::sin((float)phase * 5) / 5;
 	}
 
-	float Helpers::Mix(float v1, float v2, float mix)
-	{
-		return v1 * (1.0f - mix) + v2 * mix;
-	}
+	//float Helpers::Mix(float v1, float v2, float mix)
+	//{
+	//	return v1 * (1.0f - mix) + v2 * mix;
+	//}
 
-	float Helpers::Clamp(float f, float min, float max)
-	{
-		if (f < min) return min;
-		if (f > max) return max;
-		return f;
-	}
+	//float Helpers::Clamp(float f, float min, float max)
+	//{
+	//	if (f < min) return min;
+	//	if (f > max) return max;
+	//	return f;
+	//}
 
-	double Helpers::NoteToFreq(double note)
-	{
-		return 440.0 * Exp2((note - 69.0) / 12.0);
-	}
+	//double Helpers::NoteToFreq(double note)
+	//{
+	//	return 440.0 * Exp2((note - 69.0) / 12.0);
+	//}
 
-	float Helpers::DbToScalar(float db)
-	{
-		return Exp2F(db / 6.0f);
-	}
+	//float Helpers::DbToScalar(float db)
+	//{
+	//	return Exp2F(db / 6.0f);
+	//}
 
 	float Helpers::EnvValueToScalar(float value)
 	{

@@ -1,5 +1,6 @@
 #include <WaveSabreCore/Smasher.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #include <math.h>
 #include <algorithm>
@@ -31,15 +32,15 @@ namespace WaveSabreCore
 		leftBuffer.SetLength(lookaheadMs);
 		rightBuffer.SetLength(lookaheadMs);
 
-		float inputGainScalar = Helpers::DbToScalar(inputGain);
-		float outputGainScalar = Helpers::DbToScalar(outputGain);
+		float inputGainScalar = M7::math::DecibelsToLinear(inputGain);
+		float outputGainScalar = M7::math::DecibelsToLinear(outputGain);
 		int inputChannelOffset = sidechain ? 2 : 0;
 
 		float envCoeff = (float)(1000.0 / Helpers::CurrentSampleRate);
 		float attackScalar = envCoeff / attack;
 		float releaseScalar = envCoeff / release;
 
-		thresholdScalar = Helpers::DbToScalar(threshold);
+		thresholdScalar = M7::math::DecibelsToLinear(threshold);
 		outputPeak = 0;
 		for (int i = 0; i < numSamples; i++)
 		{

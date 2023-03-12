@@ -1,5 +1,6 @@
 #include <WaveSabreCore/Specimen.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #include <math.h>
 
@@ -259,7 +260,7 @@ namespace WaveSabreCore
 		{
 			calcPitch();
 
-			filter.SetFreq(Helpers::Clamp(specimen->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (specimen->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
+			filter.SetFreq(M7::math::clamp(specimen->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (specimen->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
 
 			float sample = samplePlayer.Next();
 			if (!samplePlayer.IsActive)

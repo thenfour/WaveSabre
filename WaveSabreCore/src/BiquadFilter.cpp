@@ -1,5 +1,6 @@
 #include <WaveSabreCore/BiquadFilter.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #include <math.h>
 
@@ -25,7 +26,7 @@ namespace WaveSabreCore
 		{
 			float w0 = 2.0f * 3.141592f * freq / (float)Helpers::CurrentSampleRate;
 
-			float alpha = (float)Helpers::FastSin(w0) / (2.0f * q);
+			float alpha = M7::math::sin(w0) / (2.0f * q);
 
 			float a0, a1, a2;
 			float b0, b1, b2;
@@ -33,30 +34,30 @@ namespace WaveSabreCore
 			{
 			case BiquadFilterType::Lowpass:
 				a0 = 1.0f + alpha;
-				a1 = -2.0f * (float)Helpers::FastCos(w0);
+				a1 = -2.0f * M7::math::cos(w0);
 				a2 = 1.0f - alpha;
-				b0 = (1.0f - (float)Helpers::FastCos(w0)) / 2.0f;
-				b1 = 1.0f - (float)Helpers::FastCos(w0);
-				b2 = (1.0f - (float)Helpers::FastCos(w0)) / 2.0f;
+				b0 = (1.0f - M7::math::cos(w0)) / 2.0f;
+				b1 = 1.0f - M7::math::cos(w0);
+				b2 = (1.0f - M7::math::cos(w0)) / 2.0f;
 				break;
 
 			case BiquadFilterType::Highpass:
 				a0 = 1.0f + alpha;
-				a1 = -2.0f * (float)Helpers::FastCos(w0);
+				a1 = -2.0f * M7::math::cos(w0);
 				a2 = 1.0f - alpha;
-				b0 = (1.0f + (float)Helpers::FastCos(w0)) / 2.0f;
-				b1 = -(1.0f + (float)Helpers::FastCos(w0));
-				b2 = (1.0f + (float)Helpers::FastCos(w0)) / 2.0f;
+				b0 = (1.0f + M7::math::cos(w0)) / 2.0f;
+				b1 = -(1.0f + M7::math::cos(w0));
+				b2 = (1.0f + M7::math::cos(w0)) / 2.0f;
 				break;
 
 			case BiquadFilterType::Peak:
 				{
 					float A = Helpers::Exp10F(gain / 40.0f);
 					a0 = 1.0f + alpha / A;
-					a1 = -2.0f * (float)Helpers::FastCos(w0);
+					a1 = -2.0f * M7::math::cos(w0);
 					a2 = 1.0f - alpha / A;
 					b0 = 1.0f + alpha * A;
-					b1 = -2.0f * (float)Helpers::FastCos(w0);
+					b1 = -2.0f * M7::math::cos(w0);
 					b2 = 1.0f - alpha * A;
 				}
 				break;

@@ -229,7 +229,7 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffsetN11, float waveshape, float sampleRate, int samplesInBlock)
 			{
 				mFrequency = freq;
-				mPhaseOffset = Fract(phaseOffsetN11);
+				mPhaseOffset = math::fract(phaseOffsetN11);
 				mShape = waveshape;
 				mSampleRate = sampleRate;
 
@@ -271,21 +271,21 @@ namespace WaveSabreCore
 
 			void OSC_ACCUMULATE_BLEP(std::pair<float, float>& bleps, double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
-				if (!DoesEncounter(mPhase, newPhase, edge))
+				if (!math::DoesEncounter(mPhase, newPhase, edge))
 					return;
-				float samplesSinceEdge = float(Fract(newPhase - edge) / this->mPhaseIncrement);
-				float samplesFromEdgeToNextSample = Fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+				float samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
+				float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
 				bleps.first = blepScale * BlepBefore(samplesFromEdgeToNextSample);
 				bleps.second = blepScale * BlepAfter(samplesFromEdgeToNextSample);
 			}
 
 			void OSC_ACCUMULATE_BLAMP(std::pair<float, float>& bleps, double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
-				if (!DoesEncounter((mPhase), (newPhase), edge))
+				if (!math::DoesEncounter((mPhase), (newPhase), edge))
 					return;
 
-				float samplesSinceEdge = float(Fract(newPhase - edge) / float(this->mPhaseIncrement));
-				float samplesFromEdgeToNextSample = Fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+				float samplesSinceEdge = float(math::fract(newPhase - edge) / float(this->mPhaseIncrement));
+				float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
 
 				bleps.first += blampScale * BlampBefore(samplesFromEdgeToNextSample);
 				bleps.second += blampScale * BlampAfter(samplesFromEdgeToNextSample);
@@ -302,7 +302,7 @@ namespace WaveSabreCore
 			{
 				mPhaseIncrement += mDTDT * samples;
 				double phaseToAdvance = samples * mPhaseIncrement;
-				double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+				double newPhase = math::fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 				std::pair<float, float> bleps{ 0.0f,0.0f };
 
 				Visit(bleps, newPhase, samples, samplesTillNextSample);
@@ -341,7 +341,7 @@ namespace WaveSabreCore
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				waveshape = 1 - waveshape;
 				waveshape = 1 - (waveshape * waveshape);
-				mShape = Lerp(0, 0.95f, waveshape);
+				mShape = math::lerp(0, 0.95f, waveshape);
 				//mShape = Clamp(waveshape * 0.9f, 0, 1);
 
 				mFlatValue = mShape;
@@ -464,7 +464,7 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-				this->mShape = Lerp(0.98f, .02f, waveshape);
+				this->mShape = math::lerp(0.98f, .02f, waveshape);
 			}
 
 			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
@@ -513,7 +513,7 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = Lerp(1, 0.1f, waveshape);
+				mShape = math::lerp(1, 0.1f, waveshape);
 			}
 
 		};
@@ -538,7 +538,7 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
-				mShape = Lerp(1, 0.1f, waveshape);
+				mShape = math::lerp(1, 0.1f, waveshape);
 			}
 
 			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
@@ -572,7 +572,7 @@ namespace WaveSabreCore
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-				this->mShape = Lerp(0.99f, .01f, waveshape); // just prevent div0
+				this->mShape = math::lerp(0.99f, .01f, waveshape); // just prevent div0
 			}
 
 			// returns Y value at specified phase. instance / stateless.
@@ -625,7 +625,7 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				this->mShape = Lerp(0.95f, .05f, waveshape);
+				this->mShape = math::lerp(0.95f, .05f, waveshape);
 				mT2 = mShape / 2;
 				mT3 = .5f;
 				mT4 = .5f + mT2;
@@ -660,7 +660,7 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 				mShape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = Lerp(.5f, 0.03f, mShape * mShape); // prevent div0
+				mShape = math::lerp(.5f, 0.03f, mShape * mShape); // prevent div0
 			}
 
 			virtual float NaiveSample(float phase01) override
@@ -687,7 +687,7 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = Lerp(0.97f, 0.03f, waveshape); // prevent div0
+				mShape = math::lerp(0.97f, 0.03f, waveshape); // prevent div0
 			}
 
 			virtual float NaiveSample(float phase01) override
@@ -722,7 +722,7 @@ namespace WaveSabreCore
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = Lerp(0.97f, 0.03f, waveshape);
+				mShape = math::lerp(0.97f, 0.03f, waveshape);
 				mDCOffset = -.5;//-.5 * this.shape;
 				mScale = 2;//1/(.5+this.DCOffset);
 				mScale *= gOscillatorHeadroomScalar;
@@ -798,7 +798,7 @@ namespace WaveSabreCore
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = Lerp(0, .49f, waveshape * waveshape);
+				mShape = math::lerp(0, .49f, waveshape * waveshape);
 
 				mT1 = .5f - mShape;
 				mT2 = .5f;
@@ -893,7 +893,7 @@ namespace WaveSabreCore
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
 
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = Lerp(0.97f, .03f, waveshape);
+				mShape = math::lerp(0.97f, .03f, waveshape);
 			}
 
 			virtual float NaiveSample(float phase01) override
@@ -903,7 +903,7 @@ namespace WaveSabreCore
 				}
 				float tx = (phase01 - mShape) / mShape;
 				tx -= 0.25f;
-				tx = Fract(tx);
+				tx = math::fract(tx);
 				tx -= 0.5f;
 				tx = math::abs(tx) * 4 - 1;
 /*
@@ -966,7 +966,7 @@ namespace WaveSabreCore
 			float mWidth = 0;
 
 			VarTrapezoidWaveform(float slope01) :
-				mSlope(Lerp(0.02f, 0.47f, slope01 / 2))
+				mSlope(math::lerp(0.02f, 0.47f, slope01 / 2))
 			{
 			}
 
@@ -1296,7 +1296,7 @@ namespace WaveSabreCore
 				// - osc detune (semis)               hz+semis     oscillator                         
 				// - unisono detune (semis)           hz+semis     oscillator                             
 				midiNote += mpSrcDevice->mPitchSemisParam.GetIntValue() + mpSrcDevice->mPitchFineParam.GetN11Value(mPitchFineModVal) * gSourcePitchFineRangeSemis;
-				float noteHz = MIDINoteToFreq(midiNote);
+				float noteHz = math::MIDINoteToFreq(midiNote);
 				float freq = mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
 				freq *= mpOscDevice->mFrequencyMul.GetRangedValue();
 				freq *= detuneFreqMul;
@@ -1319,7 +1319,7 @@ namespace WaveSabreCore
 				if (legato) return;
 				if (mpOscDevice->mPhaseRestart.GetBoolValue()) {
 					mpSlaveWave->OSC_RESTART(0);
-					mPhase = Fract(mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal));
+					mPhase = math::fract(mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal));
 				}
 			}
 
@@ -1342,7 +1342,7 @@ namespace WaveSabreCore
 
 				// Push master phase forward by full sample.
 				mPhaseIncrement += mDTDT;
-				mPhase = Fract(mPhase + mPhaseIncrement);
+				mPhase = math::fract(mPhase + mPhaseIncrement);
 
 				if (forceSilence) {
 					mOutSample = mCurrentSample = 0;
@@ -1380,7 +1380,7 @@ namespace WaveSabreCore
 
 				// current sample will be used on next sample (this is the 1-sample delay)
 				mCurrentSample += mpSlaveWave->NaiveSample(float(mpSlaveWave->mPhase + phaseMod));
-				mCurrentSample = Clamp(mCurrentSample, -1, 1);
+				mCurrentSample = math::clamp(mCurrentSample, -1, 1);
 				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale;
 
 				return mOutSample;

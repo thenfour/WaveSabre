@@ -6,7 +6,6 @@ using namespace WaveSabreCore;
 
 AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 {
-	Helpers::Init();
 	return new EchoVst(audioMaster);
 }
 

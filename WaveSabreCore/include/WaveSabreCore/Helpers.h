@@ -95,7 +95,7 @@ namespace WaveSabreCore
 		static int CurrentTempo;
 		static int RandomSeed;
 
-		static void Init();
+		//static void Init();
 
 		static float RandFloat();
 
@@ -123,18 +123,18 @@ namespace WaveSabreCore
 			return x * x;
 		}
 
-		static double FastCos(double x);
-		static double FastSin(double x);
+		//static double FastCos(double x);
+		//static double FastSin(double x);
 
-		static double NoteToFreq(double note);
+		//static double NoteToFreq(double note);
 
 		static double Square135(double phase);
 		static double Square35(double phase);
 
-		static float Mix(float v1, float v2, float mix);
-		static float Clamp(float f, float min, float max);
+		//static float Mix(float v1, float v2, float mix);
+		//static float Clamp(float f, float min, float max);
 
-		static float DbToScalar(float db);
+		//static float DbToScalar(float db);
 
 		static float EnvValueToScalar(float value);
 		static float ScalarToEnvValue(float scalar);
@@ -174,11 +174,11 @@ namespace WaveSabreCore
 
 		static VoiceMode ParamToVoiceMode(float param);
 		static float VoiceModeToParam(VoiceMode type);
-	private:
-		static const int fastSinTabLog2Size = 9; // size = 512
-		static const int fastSinTabSize = (1 << fastSinTabLog2Size);
-		static const int adjustedFastSinTabSize = fastSinTabSize + 1;
-		static double fastSinTab[adjustedFastSinTabSize];
+	//private:
+	//	static const int fastSinTabLog2Size = 9; // size = 512
+	//	static const int fastSinTabSize = (1 << fastSinTabLog2Size);
+	//	static const int adjustedFastSinTabSize = fastSinTabSize + 1;
+	//	static double fastSinTab[adjustedFastSinTabSize];
 	};
 }
 

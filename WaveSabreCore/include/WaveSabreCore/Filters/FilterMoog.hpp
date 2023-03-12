@@ -76,19 +76,19 @@ namespace WaveSabreCore
             // 0-1
             virtual void SetResonance(real p_res)
             {
-                if (FloatEquals(p_res, m_resonance))
+                if (math::FloatEquals(p_res, m_resonance))
                     return;
                 m_resonance = p_res;
                 // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
                 m_k = Real(3.88) * p_res;
-                m_k = ClampInclusive(m_k, Real0, Real(3.88));
+                m_k = math::ClampInclusive(m_k, Real0, Real(3.88));
                 Recalc();
             }
 
             virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
             {
-                if (FloatEquals(reso, m_resonance) && FloatEquals(m_overdrive, saturation) &&
-                    FloatEquals(m_cutoffHz, cutoffHz) && (m_FilterType == type))
+                if (math::FloatEquals(reso, m_resonance) && math::FloatEquals(m_overdrive, saturation) &&
+                    math::FloatEquals(m_cutoffHz, cutoffHz) && (m_FilterType == type))
                 {
                     return;
                 }
@@ -119,7 +119,7 @@ namespace WaveSabreCore
                 m_overdrive = saturation;
                 m_resonance = reso;
                 m_k = Real(3.88) * reso;
-                m_k = ClampInclusive(m_k, Real0, Real(3.88));
+                m_k = math::ClampInclusive(m_k, Real0, Real(3.88));
                 Recalc();
             }
 

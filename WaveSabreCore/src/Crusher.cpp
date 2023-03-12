@@ -1,5 +1,6 @@
 #include <WaveSabreCore/Crusher.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #include <math.h>
 
@@ -36,7 +37,7 @@ namespace WaveSabreCore
 					hold[i] = floorf(input / step + .5f) * step;
 				}
 
-				outputs[i][j] = Helpers::Mix(input, hold[i], dryWet);
+				outputs[i][j] = M7::math::lerp(input, hold[i], dryWet);
 			}
 		}
 	}

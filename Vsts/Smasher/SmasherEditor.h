@@ -9,7 +9,7 @@ using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
 
 #include "SmasherVst.h"
-
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 template<size_t window_size>
 struct MovingRMS {
@@ -100,12 +100,12 @@ public:
 			// let's show a range of -30 to 0 db.
 			float x = (db + 30) / 30;
 			x = Clamp01(x);
-			return M7::Lerp(bb.Max.y, bb.Min.y, x);
+			return M7::math::lerp(bb.Max.y, bb.Min.y, x);
 		};
 		auto SampleToX = [&](int sample) {
 			float sx = (float)sample;
 			sx /= gSamplesInHist; // 0,1
-			return M7::Lerp(bb.Min.x, bb.Max.x, sx);
+			return M7::math::lerp(bb.Min.x, bb.Max.x, sx);
 		};
 
 		auto* dl = ImGui::GetWindowDrawList();
@@ -115,9 +115,9 @@ public:
 		// assumes that all 3 plot sources have same # of elements
 		for (int isample = 0; isample < ((signed)mInputHist.size()) - 1; ++isample)
 		{
-			dl->AddLine({ SampleToX(isample), DbToY(M7::LinearToDecibels(mInputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::LinearToDecibels(mInputHist[isample + 1])) }, inpLineColor, 1.5);
-			dl->AddLine({ SampleToX(isample), DbToY(M7::LinearToDecibels(mOutputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::LinearToDecibels(mOutputHist[isample + 1])) }, outpLineColor, 1.5);
-			dl->AddLine({ SampleToX(isample), DbToY(M7::LinearToDecibels(mAttenHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::LinearToDecibels(mAttenHist[isample + 1])) }, attenLineColor, 2.5);
+			dl->AddLine({ SampleToX(isample), DbToY(M7::math::LinearToDecibels(mInputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::math::LinearToDecibels(mInputHist[isample + 1])) }, inpLineColor, 1.5);
+			dl->AddLine({ SampleToX(isample), DbToY(M7::math::LinearToDecibels(mOutputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::math::LinearToDecibels(mOutputHist[isample + 1])) }, outpLineColor, 1.5);
+			dl->AddLine({ SampleToX(isample), DbToY(M7::math::LinearToDecibels(mAttenHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::math::LinearToDecibels(mAttenHist[isample + 1])) }, attenLineColor, 2.5);
 		}
 
 		ImGui::Dummy(gHistViewSize);

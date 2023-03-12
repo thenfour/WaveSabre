@@ -1,5 +1,6 @@
 #include <WaveSabreCore/Twister.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 int const lookAhead = 4;
 
@@ -58,22 +59,22 @@ namespace WaveSabreCore
 			float leftInput = inputs[0][i];
 			float rightInput = inputs[1][i];
 
-			double freq = Helpers::FastSin(vibratoPhase) * vibratoAmount;
+			float freq = M7::math::sin((float)vibratoPhase) * vibratoAmount;
 
 			switch (spread)
 			{
 			case Spread::Mono: 
 			default:
-				positionLeft = Helpers::Clamp((amount + (float)freq), 0.0f, 1.0f);
+				positionLeft = M7::math::clamp((amount + freq), 0.0f, 1.0f);
 				positionRight = positionLeft;
 				break;
 			case Spread::FullInvert:
-				positionLeft = Helpers::Clamp((amount + (float)freq), 0.0f, 1.0f);
-				positionRight = (1.0f - Helpers::Clamp((amount + (float)freq), 0.0f, 1.0f));
+				positionLeft = M7::math::clamp((amount + freq), 0.0f, 1.0f);
+				positionRight = (1.0f - M7::math::clamp((amount + freq), 0.0f, 1.0f));
 				break;
 			case Spread::ModInvert:
-				positionLeft = Helpers::Clamp((amount + (float)freq), 0.0f, 1.0f);
-				positionRight = Helpers::Clamp((amount - (float)freq), 0.0f, 1.0f);
+				positionLeft = M7::math::clamp((amount + freq), 0.0f, 1.0f);
+				positionRight = M7::math::clamp((amount - freq), 0.0f, 1.0f);
 				break;
 			}
 

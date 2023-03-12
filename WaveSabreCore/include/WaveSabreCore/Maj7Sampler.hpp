@@ -324,7 +324,7 @@ namespace WaveSabreCore
 				if (!mSample) {
 					return;
 				}
-				float base_hz = MIDINoteToFreq((float)mBaseNote.GetIntValue());
+				float base_hz = math::MIDINoteToFreq((float)mBaseNote.GetIntValue());
 				mSampleRateCorrectionFactor = mSample->GetSampleRate() / (2 * base_hz * Helpers::CurrentSampleRateF);// WHY * 2? because it corresponds more naturally to other synth octave ranges.
 			}
 
@@ -409,7 +409,7 @@ namespace WaveSabreCore
 				float freqMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam, 0);
 
 				midiNote += mpSamplerDevice->mPitchSemisParam.GetIntValue() + mpSamplerDevice->mPitchFineParam.GetN11Value(pitchFineMod) * gSourcePitchFineRangeSemis;
-				float noteHz = MIDINoteToFreq(midiNote);
+				float noteHz = math::MIDINoteToFreq(midiNote);
 				float freq = mpSamplerDevice->mFrequencyParam.GetFrequency(noteHz, freqMod);
 				freq *= detuneFreqMul;
 
@@ -420,7 +420,7 @@ namespace WaveSabreCore
 
 			float ProcessSample(size_t iSample)
 			{
-				return Clamp(mSamplePlayer.Next(), -1, 1); // clamp addresses craz glitch when changing samples.
+				return math::clamp(mSamplePlayer.Next(), -1, 1); // clamp addresses craz glitch when changing samples.
 			}
 
 		}; // struct SamplerVoice

@@ -24,16 +24,22 @@ void* __cdecl operator new[](unsigned __int64 bytes) {
 
 namespace WaveSabreCore
 {
+	namespace M7
+	{
+		namespace math
+		{
+			// for some reason this: 1. resolves to sinf() and not sin(), and 2. sinf() is not found in our msvcrt.
+			SinCosLUT gSinLUT{ 2048, [](float x) { return (float)::sin((double)x * 2 * M_PI); }};
+			SinCosLUT gCosLUT{ 2048,  [](float x) { return (float)::cos((double)x * 2 * M_PI); } };
+			TanHLUT gTanhLUT{ 2048 };
+			LUT01 gSqrt01LUT{ 2048, [](float x) { return ::sqrtf(x); } };
+		}
+	}
+
 	Maj7SynthDevice::Maj7SynthDevice(int numParams)
 		: Device(numParams)
 	{
 		AllNotesOff();
-		//clearEvents();
-		//memset(mNoteStates, 0, sizeof(mNoteStates[0]) * maxActiveNotes);
-		//for (int i = 0; i < maxActiveNotes; i++)
-		//{
-		//	mNoteStates[i].MidiNoteValue = i;
-		//}
 	}
 
 	Maj7SynthDevice::~Maj7SynthDevice()

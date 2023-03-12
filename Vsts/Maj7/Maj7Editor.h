@@ -1314,7 +1314,7 @@ public:
 		float centerY = sampleToY(0);
 		drawList->AddLine({ outerTL.x, centerY }, {outerBR.x, centerY }, ImGui::GetColorU32(ImGuiCol_PlotLines), 2.0f);// center line
 		for (size_t iSample = 0; iSample < bb.GetWidth(); ++iSample) {
-			float sample = pWaveform->NaiveSample(M7::Fract(float(iSample) / bb.GetWidth() + phaseOffsetN11));
+			float sample = pWaveform->NaiveSample(M7::math::fract(float(iSample) / bb.GetWidth() + phaseOffsetN11));
 			sample = (sample + pWaveform->mDCOffset) * pWaveform->mScale;
 			drawList->AddLine({outerTL.x + iSample, centerY }, {outerTL.x + iSample, sampleToY(sample)}, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
 		}
@@ -1411,7 +1411,7 @@ public:
 		float maxRectify = 0.001f;
 		for (size_t iSample = 0; iSample < nSamples; ++iSample)
 		{
-			float s = M7::Fract(float(iSample) / nSamples) * 2 - 1;
+			float s = M7::math::fract(float(iSample) / nSamples) * 2 - 1;
 			s = pdist->AuxProcessSample(s);
 			maxRectify = std::max(maxRectify, std::abs(s));
 			wave.push_back(s);
@@ -1737,8 +1737,8 @@ public:
 		}
 
 		auto GetX = [&](float t01) {
-			float x = M7::Lerp(bb.Min.x, bb.Max.x, t01);
-			x = M7::Clamp(x, bb.Min.x, bb.Max.x);
+			float x = M7::math::lerp(bb.Min.x, bb.Max.x, t01);
+			x = M7::math::clamp(x, bb.Min.x, bb.Max.x);
 			return x;
 		};
 

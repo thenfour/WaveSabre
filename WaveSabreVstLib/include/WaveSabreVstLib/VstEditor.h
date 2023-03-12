@@ -793,14 +793,14 @@ namespace WaveSabreVstLib
 			static constexpr float handleRadius = 3;
 			static constexpr int circleSegments = 7;
 
-			float delayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DelayTime), 0, 1) * gSegmentMaxWidth;
-			float attackWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackTime), 0, 1) * gSegmentMaxWidth;
-			float holdWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::HoldTime), 0, 1) * gSegmentMaxWidth;
-			float decayWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayTime), 0, 1) * gSegmentMaxWidth;
+			float delayWidth = M7::math::clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DelayTime), 0, 1) * gSegmentMaxWidth;
+			float attackWidth = M7::math::clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackTime), 0, 1) * gSegmentMaxWidth;
+			float holdWidth = M7::math::clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::HoldTime), 0, 1) * gSegmentMaxWidth;
+			float decayWidth = M7::math::clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayTime), 0, 1) * gSegmentMaxWidth;
 			float sustainWidth = gSegmentMaxWidth;
-			float releaseWidth = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseTime), 0, 1) * gSegmentMaxWidth;
+			float releaseWidth = M7::math::clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseTime), 0, 1) * gSegmentMaxWidth;
 
-			float sustainLevel = M7::Clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::SustainLevel), 0, 1);
+			float sustainLevel = M7::math::clamp(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::SustainLevel), 0, 1);
 			float sustainYOffset = innerHeight * (1.0f - sustainLevel);
 
 			float attackCurveRaw;
@@ -985,7 +985,7 @@ namespace WaveSabreVstLib
 
 		void VUMeter(float rmsLevel, float* peakLevel, VUMeterFlags flags)
 		{
-			float rmsDB = M7::LinearToDecibels(::fabsf(rmsLevel));
+			float rmsDB = M7::math::LinearToDecibels(::fabsf(rmsLevel));
 			bool clip = rmsDB > 0;
 
 			VUMeterColors colors;
@@ -1021,7 +1021,7 @@ namespace WaveSabreVstLib
 				// let's show a range of -60 to 0 db.
 				float x = (db + 60) / 60;
 				x = Clamp01(x);
-				return M7::Lerp(bb.Max.y, bb.Min.y, x);
+				return M7::math::lerp(bb.Max.y, bb.Min.y, x);
 			};
 
 			auto* dl = ImGui::GetWindowDrawList();
@@ -1050,7 +1050,7 @@ namespace WaveSabreVstLib
 
 			// draw peak
 			if (peakLevel != nullptr) {
-				float peakDb = M7::LinearToDecibels(*peakLevel);
+				float peakDb = M7::math::LinearToDecibels(*peakLevel);
 				float peakY = DbToY(peakDb);
 				ImRect threshbb = bb;
 				threshbb.Min.y = threshbb.Max.y = peakY;

@@ -36,122 +36,211 @@ namespace WaveSabreCore
 
         static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
 
-        namespace fastmath
-        {
+        //namespace fastmath
+        //{
 
-            static inline float fastpow2(float p)
-            {
-                float offset = (p < 0) ? 1.0f : 0.0f;
-                float clipp = (p < -126) ? -126.0f : p;
-                int w = (int)clipp;
-                float z = clipp - w + offset;
-                union {
-                    uint32_t i;
-                    float f;
-                } v = { cast_uint32_t((1 << 23) * (clipp + 121.2740575f + 27.7280233f / (4.84252568f - z) - 1.49012907f * z)) };
+        //    static inline float fastpow2(float p)
+        //    {
+        //        float offset = (p < 0) ? 1.0f : 0.0f;
+        //        float clipp = (p < -126) ? -126.0f : p;
+        //        int w = (int)clipp;
+        //        float z = clipp - w + offset;
+        //        union {
+        //            uint32_t i;
+        //            float f;
+        //        } v = { cast_uint32_t((1 << 23) * (clipp + 121.2740575f + 27.7280233f / (4.84252568f - z) - 1.49012907f * z)) };
 
-                return v.f;
-            }
+        //        return v.f;
+        //    }
 
-            static inline float fastlog2(float x)
-            {
-                union {
-                    float f;
-                    uint32_t i;
-                } vx = { x };
-                union {
-                    uint32_t i;
-                    float f;
-                } mx = { (vx.i & 0x007FFFFF) | 0x3f000000 };
-                float y = (float)vx.i;
-                y *= 1.1920928955078125e-7f;
+        //    static inline float fastlog2(float x)
+        //    {
+        //        union {
+        //            float f;
+        //            uint32_t i;
+        //        } vx = { x };
+        //        union {
+        //            uint32_t i;
+        //            float f;
+        //        } mx = { (vx.i & 0x007FFFFF) | 0x3f000000 };
+        //        float y = (float)vx.i;
+        //        y *= 1.1920928955078125e-7f;
 
-                return y - 124.22551499f - 1.498030302f * mx.f - 1.72587999f / (0.3520887068f + mx.f);
-            }
+        //        return y - 124.22551499f - 1.498030302f * mx.f - 1.72587999f / (0.3520887068f + mx.f);
+        //    }
 
-            static inline float fastpow(float x, float p)
-            {
-                return fastpow2(p * fastlog2(x));
-            }
+        //    static inline float fastpow(float x, float p)
+        //    {
+        //        return fastpow2(p * fastlog2(x));
+        //    }
 
-            static inline float fasterpow2(float p)
-            {
-                float clipp = (p < -126) ? -126.0f : p;
-                union {
-                    uint32_t i;
-                    float f;
-                } v = { cast_uint32_t((1 << 23) * (clipp + 126.94269504f)) };
-                return v.f;
-            }
+        //    static inline float fasterpow2(float p)
+        //    {
+        //        float clipp = (p < -126) ? -126.0f : p;
+        //        union {
+        //            uint32_t i;
+        //            float f;
+        //        } v = { cast_uint32_t((1 << 23) * (clipp + 126.94269504f)) };
+        //        return v.f;
+        //    }
 
-            static inline float fasterlog2(float x)
-            {
-                union {
-                    float f;
-                    uint32_t i;
-                } vx = { x };
-                float y = (float)vx.i;
-                y *= 1.1920928955078125e-7f;
-                return y - 126.94269504f;
-            }
+        //    static inline float fasterlog2(float x)
+        //    {
+        //        union {
+        //            float f;
+        //            uint32_t i;
+        //        } vx = { x };
+        //        float y = (float)vx.i;
+        //        y *= 1.1920928955078125e-7f;
+        //        return y - 126.94269504f;
+        //    }
 
-            static inline float fasterlog(float x)
-            {
-                //  return 0.69314718f * fasterlog2 (x);
+        //    static inline float fasterlog(float x)
+        //    {
+        //        //  return 0.69314718f * fasterlog2 (x);
 
-                union {
-                    float f;
-                    uint32_t i;
-                } vx = { x };
-                float y = (float)vx.i;
-                y *= 8.2629582881927490e-8f;
-                return y - 87.989971088f;
-            }
+        //        union {
+        //            float f;
+        //            uint32_t i;
+        //        } vx = { x };
+        //        float y = (float)vx.i;
+        //        y *= 8.2629582881927490e-8f;
+        //        return y - 87.989971088f;
+        //    }
 
-            static inline float fasterpow(float x, float p)
-            {
-                return fasterpow2(p * fasterlog2(x));
-            }
+        //    static inline float fasterpow(float x, float p)
+        //    {
+        //        return fasterpow2(p * fasterlog2(x));
+        //    }
 
-            static inline float fasterexp(float p)
-            {
-                return fasterpow2(1.442695040f * p);
-            }
+        //    static inline float fasterexp(float p)
+        //    {
+        //        return fasterpow2(1.442695040f * p);
+        //    }
 
-            static inline float fastertanh(float p)
-            {
-                return -1.0f + 2.0f / (1.0f + fasterexp(-2.0f * p));
-            }
+        //    static inline float fastertanh(float p)
+        //    {
+        //        return -1.0f + 2.0f / (1.0f + fasterexp(-2.0f * p));
+        //    }
 
-            static inline float fastersin(float x)
-            {
-                return (float)Helpers::FastSin((double)x);
-            }
+        //    static inline float fastersin(float x)
+        //    {
+        //        return (float)Helpers::FastSin((double)x);
+        //    }
 
-            static inline float fastercos(float x)
-            {
-                return (float)Helpers::FastCos((double)x);
-            }
+        //    static inline float fastercos(float x)
+        //    {
+        //        return (float)Helpers::FastCos((double)x);
+        //    }
 
-            static inline float fastertanfull(float x)
-            {
-                static const float twopi = 6.2831853071795865f;
-                static const float invtwopi = 0.15915494309189534f;
+        //    static inline float fastertanfull(float x)
+        //    {
+        //        static const float twopi = 6.2831853071795865f;
+        //        static const float invtwopi = 0.15915494309189534f;
 
-                int k = (int)(x * invtwopi);
-                float half = (x < 0) ? -0.5f : 0.5f;
-                float xnew = x - (half + k) * twopi;
+        //        int k = (int)(x * invtwopi);
+        //        float half = (x < 0) ? -0.5f : 0.5f;
+        //        float xnew = x - (half + k) * twopi;
 
-                return fastersin(xnew) / fastercos(xnew);
-            }
+        //        return fastersin(xnew) / fastercos(xnew);
+        //    }
 
-        }
+        //}
 
-        // we may be able to save code size by calling exported functions instead of pulling in lib fns
+
+        //inline bool FloatIsAbove(real_t lhs, real_t rhs, real_t eps = FloatEpsilon)
+        //{
+        //    return lhs > (rhs + eps);
+        //}
         namespace math
         {
             static constexpr real_t gPI = 3.14159265358979323846264338327950288f;
             static constexpr real_t gPITimes2 = gPI * 2;
+
+            inline real_t floor(real_t x) {
+                return (real_t)::floor((double)x);
+            }
+            inline double floord(double x) {
+                return ::floor(x);
+            }
+            inline float rand01() {
+                return float(::rand()) / RAND_MAX;
+            }
+            inline float randN11() {
+                return rand01() * 2 - 1;
+            }
+            inline constexpr real_t max(real_t x, real_t y) {
+                return x > y ? x : y;
+            }
+            inline constexpr real_t min(real_t x, real_t y) {
+                return x < y ? x : y;
+            }
+            inline constexpr float abs(float x)
+            {
+                return x < 0 ? -x : x;
+            }
+            inline constexpr real_t clamp(real_t x, real_t low, real_t hi)
+            {
+                if (x <= low)
+                    return low;
+                if (x >= hi)
+                    return hi;
+                return x;
+            }
+
+            // for floating point types, it's helpful to be clear that the value is inclusive.
+            template <typename T>
+            static T ClampInclusive(T x, T minInclusive, T maxInclusive)
+            {
+                if (x <= minInclusive)
+                    return minInclusive;
+                if (x >= maxInclusive)
+                    return maxInclusive;
+                return x;
+            }
+
+            template <typename T>
+            static T ClampI(T x, T minInclusive, T maxInclusive)
+            {
+                if (x <= minInclusive)
+                    return minInclusive;
+                if (x >= maxInclusive)
+                    return maxInclusive;
+                return x;
+            }
+
+            inline constexpr bool FloatEquals(real_t f1, real_t f2, real_t eps = FloatEpsilon)
+            {
+                return math::abs(f1 - f2) < eps;
+            }
+
+            inline constexpr bool FloatLessThanOrEquals(real_t lhs, real_t rhs, real_t eps = FloatEpsilon)
+            {
+                return lhs <= (rhs + eps);
+            }
+
+            static float lerp(float a, float b, float t)
+            {
+                return a * (1.0f - t) + b * t;
+            }
+
+            inline real_t CalculateInc01PerSampleForMS(real_t ms)
+            {
+                return clamp(1000.0f / (math::max(0.01f, ms) * (real_t)Helpers::CurrentSampleRate), 0, 1);
+            }
+
+
+            inline bool IsSilentGain(float gain)
+            {
+                return gain <= gMinGainLinear;
+            }
+
+            inline float MillisecondsToSamples(float ms)
+            {
+                static constexpr float oneOver1000 = 1.0f / 1000.0f; // obsessive optimization?
+                return (ms * Helpers::CurrentSampleRateF) * oneOver1000;
+            }
+
 
             inline real_t pow(real_t x, real_t y) {
                 // fasterpow is just too inaccurate.
@@ -159,231 +248,221 @@ namespace WaveSabreCore
                 return ::powf(x, y);
             }
             inline real_t pow2(real_t y) {
-                return fastmath::fastpow2(y);
+                return pow(2, y);
+                //return fastmath::fastpow2(y);
             }
             inline real_t log2(real_t x) {
-                return fastmath::fasterlog2(x);
+                return (float)(::log((double)x) / ::log(2));
+                //return (float)::log2((double)x);
+                //return fastmath::fasterlog2(x);
             }
             inline real_t log10(real_t x) {
-                return fastmath::fasterlog(x);
-            }
-            
-            inline real_t sqrt(real_t x) {
-                //return fastmath::fastpow(x, 0.5f); // probably faster ?
-                return (float)::sqrt((double)x); // size optimization.
-            }
-            inline real_t floor(real_t x) {
-                return (real_t)::floor((double)x);
-            }
-            inline double floord(double x) {
-                return ::floor(x);
-            }
-            inline real_t sin(real_t x) {
-                return (real_t)Helpers::FastSin((double)x);
-            }
-            inline real_t cos(real_t x) {
-                return (real_t)Helpers::FastCos((double)x);
+                return (float)::log((double)x);
+                //return fastmath::fasterlog(x);
             }
             inline real_t tan(real_t x) {
                 return (float)::tan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
             }
-            inline real_t max(real_t x, real_t y) {
-                return x > y ? x : y;
+
+            inline float fract(float x) {
+                return x - math::floor(x);
             }
-            inline real_t min(real_t x, real_t y) {
-                return x < y ? x : y;
+
+            inline double fract(double x) {
+                return x - math::floord(x);
             }
+
+            // where t1, t2, and x are periodic values [0,1).
+            // and t1 is "before" t2,
+            // return true if x falls between t1 and t2.
+            // so if t2 < t1, it means a cycle wrap.
+            inline bool DoesEncounter(double t1, double t2, float x) {
+                if (t1 < t2) {
+                    return (t1 < x&& x <= t2);
+                }
+                return (x <= t2 || x > t1);
+            }
+
+
+            // lookup table for 0-1 input values, linear interpolation upon lookup.
+            // non-periodic.
+            struct LUT01
+            {
+                const size_t mNSamples;
+                float* mpTable;
+                LUT01(size_t nSamples, float (*fn)(float)) :
+                    mNSamples(nSamples),
+                    mpTable(new float[nSamples])
+                {
+                    // populate table.
+                    for (size_t i = 0; i < nSamples; ++i) {
+                        float x = float(i) / (nSamples - 1);
+                        mpTable[i] = fn(x);
+                    }
+                }
+                virtual ~LUT01() {
+                    delete[] mpTable;
+                }
+
+                virtual float Invoke(float x) const {
+                    if (x <= 0) return mpTable[0];
+                    if (x >= 1) return mpTable[mNSamples - 1];
+                    float index = x * (mNSamples - 1);
+                    int lower_index = static_cast<int>(index);
+                    int upper_index = lower_index + 1;
+                    float t = index - lower_index;
+                    return (1 - t) * mpTable[lower_index] + t * mpTable[upper_index];
+                }
+            };
+
+            struct SinCosLUT : public LUT01
+            {
+                SinCosLUT(size_t nSamples, float (*fn)(float))
+                    : LUT01(nSamples, fn)
+                {}
+
+                virtual float Invoke(float x) const override {
+                    static constexpr float gPeriodCorrection = 1 / gPITimes2;
+                    float scaledX = x * gPeriodCorrection;
+                    return LUT01::Invoke(fract(scaledX));
+                }
+            };
+
+            // tanh approaches -1 before -PI, and +1 after +PI. so squish the range and do a 0,1 LUT mapping from -PI,PI
+            struct TanHLUT : public LUT01
+            {
+                TanHLUT(size_t nSamples)
+                    : LUT01(nSamples, [](float x) { return (float)::tanh(((double)x - .5) * M_PI * 2); })
+                {}
+
+                virtual float Invoke(float x) const override {
+                    static constexpr float gOneOver2pi = 1.0f / gPITimes2;
+                    x *= gOneOver2pi;
+                    x += 0.5f;
+                    return LUT01::Invoke(x);
+                }
+            };
+
+            extern SinCosLUT gSinLUT;
+            extern SinCosLUT gCosLUT;
+            extern TanHLUT gTanhLUT;
+            extern LUT01 gSqrt01LUT;// sqrt 01
+
+            // 2D LUTs: pow() 0-1, and curve
+
+            inline real_t sin(real_t x) {
+                return gSinLUT.Invoke(x);
+                //return (real_t)Helpers::FastSin((double)x);
+            }
+            inline real_t cos(real_t x) {
+                return gCosLUT.Invoke(x);// (real_t)Helpers::FastCos((double)x);
+            }
+
+            inline real_t sqrt(real_t x) {
+                return (float)::sqrt((double)x);
+            }
+
+            // optimized LUT works for 0<=x<=1
+            inline real_t sqrt01(real_t x) {
+                return gSqrt01LUT.Invoke(x);
+            }
+
             inline real_t tanh(real_t x) {
-                return (float)::tanh((double)x);
+                return gTanhLUT.Invoke(x);
+                //return (float)::tanh((double)x);
                 //return fastmath::fastertanh(x); // tanh is used for saturation and the fast version adds weird high frequency content. try it on a LP filter and see what i mean.
             }
-            //inline real_t tanh(real_t x, real_t y) { // used by saturation
-            //    return tanh(x * y);
-            //}
-            inline float rand01() {
-                return float(::rand()) / RAND_MAX;
-            }
-            inline float randN11() {
-                return rand01() * 2 - 1;
-            }
-            inline float abs(float x)
+
+
+
+            // valid for 0<k<1 and 0<x<1
+            inline real_t modCurve_x01_k01(real_t x, real_t k)
             {
-                return x < 0 ? -x : x;
+                real_t ret = 1 - math::pow(x, k);
+                return math::pow(ret, 1 / k);
             }
-        }
 
-        inline bool FloatEquals(real_t f1, real_t f2, real_t eps = FloatEpsilon)
-        {
-            return ::fabsf(f1 - f2) < eps;
-        }
-
-        inline bool FloatLessThanOrEquals(real_t lhs, real_t rhs, real_t eps = FloatEpsilon)
-        {
-            return lhs <= (rhs + eps);
-        }
-
-        inline bool FloatIsAbove(real_t lhs, real_t rhs, real_t eps = FloatEpsilon)
-        {
-            return lhs > (rhs + eps);
-        }
-
-        inline real_t Clamp(real_t x, real_t low, real_t hi)
-        {
-            if (x <= low)
-                return low;
-            if (x >= hi)
-                return hi;
-            return x;
-        }
-
-        // for floating point types, it's helpful to be clear that the value is inclusive.
-        template <typename T>
-        static T ClampInclusive(T x, T minInclusive, T maxInclusive)
-        {
-            if (x <= minInclusive)
-                return minInclusive;
-            if (x >= maxInclusive)
-                return maxInclusive;
-            return x;
-        }
-
-        template <typename T>
-        static T ClampI(T x, T minInclusive, T maxInclusive)
-        {
-            if (x <= minInclusive)
-                return minInclusive;
-            if (x >= maxInclusive)
-                return maxInclusive;
-            return x;
-        }
-
-        static float Lerp(float a, float b, float t)
-        {
-            return a * (1.0f - t) + b * t;
-        }
-
-        inline real_t CalculateInc01PerSampleForMS(real_t ms)
-        {
-            return Clamp(1000.0f / (math::max(0.01f, ms) * (real_t)Helpers::CurrentSampleRate), 0, 1);
-        }
-
-        // valid for 0<k<1 and 0<x<1
-        inline real_t modCurve_x01_k01(real_t x, real_t k)
-        {
-            real_t ret = 1 - math::pow(x, k);
-            return math::pow(ret, 1 / k);
-        }
-
-        // extends range to support -1<x<0 and -1<k<0
-        // outputs -1 to 1
-        inline real_t modCurve_xN11_kN11(real_t x, real_t k)
-        {
-            static constexpr float CornerMargin = 0.6f; // .77 is quite sharp, 0.5 is mild and usable but maybe should be sharper
-            k *= CornerMargin;
-            k = Clamp(k, -CornerMargin, CornerMargin);
-            x = Clamp(x, -1, 1);
-            if (k >= 0)
+            // extends range to support -1<x<0 and -1<k<0
+            // outputs -1 to 1
+            inline real_t modCurve_xN11_kN11(real_t x, real_t k)
             {
+                static constexpr float CornerMargin = 0.6f; // .77 is quite sharp, 0.5 is mild and usable but maybe should be sharper
+                k *= CornerMargin;
+                k = clamp(k, -CornerMargin, CornerMargin);
+                x = clamp(x, -1, 1);
+                if (k >= 0)
+                {
+                    if (x > 0)
+                    {
+                        return 1 - modCurve_x01_k01(x, 1 - k);
+                    }
+                    return modCurve_x01_k01(-x, 1 - k) - 1;
+                }
                 if (x > 0)
                 {
-                    return 1 - modCurve_x01_k01(x, 1 - k);
+                    return modCurve_x01_k01(1 - x, 1 + k);
                 }
-                return modCurve_x01_k01(-x, 1 - k) - 1;
+                return -modCurve_x01_k01(x + 1, 1 + k);
             }
-            if (x > 0)
+
+            /**
+             * Converts a linear value to decibels.  Returns <= aMinDecibels if the linear
+             * value is 0.
+             */
+            inline float LinearToDecibels(float aLinearValue, float aMinDecibels = MIN_DECIBEL_GAIN)
             {
-                return modCurve_x01_k01(1 - x, 1 + k);
+                return (aLinearValue > FloatEpsilon) ? 20.0f * log10f(aLinearValue) : aMinDecibels;
             }
-            return -modCurve_x01_k01(x + 1, 1 + k);
-        }
 
-        /**
-         * Converts a linear value to decibels.  Returns <= aMinDecibels if the linear
-         * value is 0.
-         */
-        inline float LinearToDecibels(float aLinearValue, float aMinDecibels = MIN_DECIBEL_GAIN)
-        {
-            return (aLinearValue > FloatEpsilon) ? 20.0f * log10f(aLinearValue) : aMinDecibels;
-        }
-
-        /**
-         * Converts a decibel value to a linear value.
-         */
-        inline float DecibelsToLinear(float aDecibels, float aNegInfDecibels = MIN_DECIBEL_GAIN)
-        {
-            float lin = math::pow(10.0f, 0.05f * aDecibels);
-            if (lin <= aNegInfDecibels)
-                return 0.0f;
-            return lin;
-        }
-
-        inline bool IsSilentGain(float gain)
-        {
-            return gain <= gMinGainLinear;
-        }
-
-        inline float MillisecondsToSamples(float ms)
-        {
-            static constexpr float oneOver1000 = 1.0f / 1000.0f; // obsessive optimization?
-            return (ms * Helpers::CurrentSampleRateF) * oneOver1000;
-        }
-
-
-        // don't use a LUT because we want to support pitch bend and glides and stuff. using a LUT + interpolation would be
-        // asinine.
-        inline float MIDINoteToFreq(float x)
-        {
-            // float a = 440;
-            // return (a / 32.0f) * fast::pow(2.0f, (((float)x - 9.0f) / 12.0f));
-            return 440 * math::pow2((x - 69) / 12);
-        }
-
-        inline float SemisToFrequencyMul(float x)
-        {
-            return math::pow2(x / 12.0f);
-        }
-
-        inline float FrequencyToMIDINote(float hz)
-        {
-            float ret = 12.0f * math::log2(max(8.0f, hz) / 440) + 69;
-            return ret;
-        }
-
-        inline std::pair<float, float> PanToLRVolumeParams(float panN11)
-        {
-            // -1..+1  -> 1..0
-            panN11 = Clamp(panN11, -1, 1);
-            float leftVol = (-panN11 + 1) / 2;
-            return { leftVol, 1 - leftVol };
-        }
-
-        inline std::pair<float, float> PanToFactor(float panN11)
-        {
-            // SQRT pan law
-            auto volumes = PanToLRVolumeParams(panN11);
-            float leftChannel = math::sqrt(volumes.first);
-            float rightChannel = math::sqrt(volumes.second);
-            return { leftChannel, rightChannel };
-        }
-
-        inline float Fract(float x) {
-            return x - math::floor(x);
-        }
-
-        inline double Fract(double x) {
-            return x - math::floord(x);
-        }
-
-        // where t1, t2, and x are periodic values [0,1).
-        // and t1 is "before" t2,
-        // return true if x falls between t1 and t2.
-        // so if t2 < t1, it means a cycle wrap.
-        inline bool DoesEncounter(double t1, double t2, float x) {
-            if (t1 < t2) {
-                return (t1 < x&& x <= t2);
+            /**
+             * Converts a decibel value to a linear value.
+             */
+            inline float DecibelsToLinear(float aDecibels, float aNegInfDecibels = MIN_DECIBEL_GAIN)
+            {
+                float lin = math::pow(10.0f, 0.05f * aDecibels);
+                if (lin <= aNegInfDecibels)
+                    return 0.0f;
+                return lin;
             }
-            return (x <= t2 || x > t1);
-        }
+
+            // don't use a LUT because we want to support pitch bend and glides and stuff. using a LUT + interpolation would be
+            // asinine.
+            inline float MIDINoteToFreq(float x)
+            {
+                // float a = 440;
+                // return (a / 32.0f) * fast::pow(2.0f, (((float)x - 9.0f) / 12.0f));
+                return 440 * math::pow2((x - 69) / 12);
+            }
+
+            inline float SemisToFrequencyMul(float x)
+            {
+                return math::pow2(x / 12.0f);
+            }
+
+            inline float FrequencyToMIDINote(float hz)
+            {
+                float ret = 12.0f * math::log2(max(8.0f, hz) / 440) + 69;
+                return ret;
+            }
+
+            inline std::pair<float, float> PanToLRVolumeParams(float panN11)
+            {
+                // -1..+1  -> 1..0
+                panN11 = clamp(panN11, -1, 1);
+                float leftVol = (-panN11 + 1) / 2;
+                return { leftVol, 1 - leftVol };
+            }
+
+            inline std::pair<float, float> PanToFactor(float panN11)
+            {
+                // SQRT pan law
+                auto volumes = PanToLRVolumeParams(panN11);
+                float leftChannel = math::sqrt01(volumes.first);
+                float rightChannel = math::sqrt01(volumes.second);
+                return { leftChannel, rightChannel };
+            }
+        } // namespace math
+
 
         // AA correction polynomial to be added THIS sample.
         // x is 0-1 samples after the discontinuity.
@@ -475,7 +554,7 @@ namespace WaveSabreCore
             explicit Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
             explicit Float01Param(real_t& ref) : Float01RefParam(ref) {}
             real_t Get01Value(real_t modVal = 0.0f) const {
-                return Clamp(mParamValue + modVal, 0, 1);
+                return math::clamp(mParamValue + modVal, 0, 1);
             }
         };
 
@@ -488,7 +567,7 @@ namespace WaveSabreCore
 
             real_t GetN11Value(real_t modVal = 0.0f) const {
                 real_t r = mParamValue + modVal;
-                return Clamp(r * 2 - 1, -1, 1);
+                return math::clamp(r * 2 - 1, -1, 1);
             }
             void SetN11Value(real_t v) {
                 SetParamValue(v*.5f+.5f);
@@ -514,13 +593,13 @@ namespace WaveSabreCore
             real_t GetMilliseconds(real_t paramModulation = 0.0f) const
             {
                 float param = mParamValue + paramModulation; // apply current modulation value.
-                param = Clamp(param, 0, 1);
+                param = math::clamp(param, 0, 1);
                 param -= 0.5f;       // -.5 to .5
                 param *= gRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
                 float fact = math::pow(2, param);
                 param = gCenterValue * fact;
                 param -= gMinRawVal; // pow(2,x) doesn't ever reach 0 value. subtracting the min allows 0 to exist.
-                return Clamp(param, gMinRealVal, gMaxRealVal);
+                return math::clamp(param, gMinRealVal, gMaxRealVal);
             }
 
         };
@@ -532,7 +611,7 @@ namespace WaveSabreCore
             explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
 
             real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
-                return modCurve_xN11_kN11(x, GetN11Value() + modVal);
+                return math::modCurve_xN11_kN11(x, GetN11Value() + modVal);
             }
         };
 
@@ -570,7 +649,7 @@ namespace WaveSabreCore
             int GetIntValue() const {
                 int c = GetDiscreteValueCount();
                 int r = (int)(mParamValue * c);
-                r = ClampI(r, 0, c - 1);
+                r = math::ClampI(r, 0, c - 1);
                 return r + mMinValueInclusive;
             }
             void SetIntValue(int val) {
@@ -655,7 +734,7 @@ namespace WaveSabreCore
             real_t GetRangedValue() const {
                 real_t range = GetRange();
                 real_t r = mParamValue * range;
-                r = Clamp(r, 0, range);
+                r = math::clamp(r, 0, range);
                 return r + mMinValueInclusive;
             }
 
@@ -687,21 +766,21 @@ namespace WaveSabreCore
 
             inline float ParamToDecibels(float x) const
             {
-                return LinearToDecibels(ParamToLinear(x));
+                return math::LinearToDecibels(ParamToLinear(x));
             }
             inline float DecibelsToParam(float db) const
             { // pretty expensive
-                return LinearToParam(DecibelsToLinear(db));
+                return LinearToParam(math::DecibelsToLinear(db));
             }
 
         public:
             explicit VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01) :
                 Float01Param(ref, initialParamValue01),
-                mMaxVolumeLinearGain(DecibelsToLinear(maxDecibels))
+                mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
             {}
             explicit VolumeParam(real_t& ref, real_t maxDecibels) :
                 Float01Param(ref),
-                mMaxVolumeLinearGain(DecibelsToLinear(maxDecibels))
+                mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
             {}
 
             float GetLinearGain(float modVal = 0.0f) const
@@ -715,7 +794,7 @@ namespace WaveSabreCore
 
             float IsSilent() const
             {
-                return IsSilentGain(GetLinearGain());
+                return math::IsSilentGain(GetLinearGain());
             }
             void SetLinearValue(float f)
             { // expensive
@@ -743,7 +822,7 @@ namespace WaveSabreCore
                 mValue(valRef, initialValue),
                 mKTValue(ktRef, initialKT),
                 mCenterFrequency(centerFrequency),
-                mCenterMidiNote(FrequencyToMIDINote(centerFrequency)),
+                mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
                 mScale(scale)
             {}
 
@@ -751,7 +830,7 @@ namespace WaveSabreCore
                 mValue(valRef),
                 mKTValue(ktRef),
                 mCenterFrequency(centerFrequency),
-                mCenterMidiNote(FrequencyToMIDINote(centerFrequency)),
+                mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
                 mScale(scale)
             {}
 
@@ -772,12 +851,12 @@ namespace WaveSabreCore
                 // at 0.3, we use playFrequency.
                 // for each 0.1 param value, it's +/- one octave.
                 float ktFreq = noteHz * 4; // to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
-                float centerFreq = Lerp(mCenterFrequency, ktFreq, mKTValue.Get01Value());
+                float centerFreq = math::lerp(mCenterFrequency, ktFreq, mKTValue.Get01Value());
 
                 param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)
                 param *= mScale;// 10.0f; // (.3 = -2, .8 = 3)
                 float fact = math::pow(2, param);
-                return Clamp(centerFreq * fact, 0.0f, 22050.0f);
+                return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
             }
 
             // param modulation is normal krate param mod
@@ -786,7 +865,7 @@ namespace WaveSabreCore
             {
                 float ktNote = playingMidiNote + 24; // center represents playing note + 2 octaves.
 
-                float centerNote = Lerp(mCenterMidiNote, ktNote, mKTValue.Get01Value());
+                float centerNote = math::lerp(mCenterMidiNote, ktNote, mKTValue.Get01Value());
 
                 float param = mValue.Get01Value() + paramModulation;
 

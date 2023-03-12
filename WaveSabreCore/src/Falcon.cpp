@@ -1,5 +1,6 @@
 #include <WaveSabreCore/Falcon.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #include <math.h>
 
@@ -172,10 +173,10 @@ namespace WaveSabreCore
 			double baseNote = GetNote() + Detune + falcon->Rise * 24.0f;
 
 			double osc1Input = osc1Phase / Helpers::CurrentSampleRate * 2.0 * 3.141592 + osc1Output * osc1Feedback;
-			osc1Output = ((Helpers::FastSin(osc1Input) + Helpers::Square35(osc1Input) * (double)falcon->osc1Waveform)) * osc1Env.GetValue() * 13.25;
+			osc1Output = ((M7::math::sin((float)osc1Input) + Helpers::Square35(osc1Input) * (double)falcon->osc1Waveform)) * osc1Env.GetValue() * 13.25;
 
 			double osc2Input = osc2Phase / Helpers::CurrentSampleRate * 2.0 * 3.141592 + osc2Output * osc2Feedback * 13.25 + osc1Output * osc1FeedForwardScalar;
-			osc2Output = ((Helpers::FastSin(osc2Input) + Helpers::Square35(osc2Input) * (double)falcon->osc2Waveform)) * osc2Env.GetValue();
+			osc2Output = ((M7::math::sin((float)osc2Input) + Helpers::Square35(osc2Input) * (double)falcon->osc2Waveform)) * osc2Env.GetValue();
 
 			float finalOutput = (float)osc2Output * masterLevelScalar;
 			outputs[0][i] += finalOutput * leftPanScalar;
@@ -189,8 +190,8 @@ namespace WaveSabreCore
 			}
 
 			float pEnv = pitchEnv.GetValue();
-			double freq1 = Helpers::NoteToFreq(baseNote + pEnv * falcon->pitchEnvAmt1 + Helpers::FastSin(vibratoPhase) * falcon->VibratoAmount);
-			double freq2 = Helpers::NoteToFreq(baseNote + pEnv * falcon->pitchEnvAmt2 + Helpers::FastSin(vibratoPhase) * falcon->VibratoAmount);
+			double freq1 = M7::math::MIDINoteToFreq(baseNote + pEnv * falcon->pitchEnvAmt1 + M7::math::sin(vibratoPhase) * falcon->VibratoAmount);
+			double freq2 = M7::math::MIDINoteToFreq(baseNote + pEnv * falcon->pitchEnvAmt2 + M7::math::sin(vibratoPhase) * falcon->VibratoAmount);
 			osc1Phase += freq1 * osc1RatioScalar;
 			osc2Phase += freq2 * osc2RatioScalar;
 			vibratoPhase += vibratoFreq;

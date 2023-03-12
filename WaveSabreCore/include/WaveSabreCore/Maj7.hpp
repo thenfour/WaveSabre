@@ -208,14 +208,14 @@ namespace WaveSabreCore
 					return;
 				}
 				mSlideCursorSamples += nSamples;
-				float durationSamples = MillisecondsToSamples(mTime.GetMilliseconds(timeMod));
+				float durationSamples = math::MillisecondsToSamples(mTime.GetMilliseconds(timeMod));
 				float t = mSlideCursorSamples / durationSamples;
 				if (t >= 1) {
 					NoteOn(mTargetNote, true); // disengages
 					return;
 				}
 				t = mCurve.ApplyToValue(t, curveMod);
-				mCurrentNote = Lerp(mSourceNote, mTargetNote, t);
+				mCurrentNote = math::lerp(mSourceNote, mTargetNote, t);
 			}
 
 			float GetCurrentMidiNote() const
@@ -607,7 +607,7 @@ namespace WaveSabreCore
 
 				// when aux width is 0, they are both mono. it means pan of 0 for both aux routes.
 				// when aux width is +1, auxroute 0 becomes -1 and auxroute 1 becomes +1, fully separating the channels
-				auto auxGains = PanToFactor(mAuxWidth.GetN11Value(mAuxWidthMod));
+				auto auxGains = math::PanToFactor(mAuxWidth.GetN11Value(mAuxWidthMod));
 				mAuxOutputGains[1] = auxGains.first;// auxPanVolParam.GetLinearGain();
 				mAuxOutputGains[0] = auxGains.second;// auxPanVolParam.GetLinearGain();
 
@@ -781,7 +781,7 @@ namespace WaveSabreCore
 					real_t midiNote = mPortamento.GetCurrentMidiNote();
 					midiNote += mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
-					real_t noteHz = MIDINoteToFreq(midiNote);
+					real_t noteHz = math::MIDINoteToFreq(midiNote);
 
 					mModMatrix.SetSourceKRateValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
 					mModMatrix.SetSourceKRateValue(ModSource::Velocity, mVelocity01);  // krate, 01
@@ -876,14 +876,14 @@ namespace WaveSabreCore
 						}
 						float semis = myUnisonoDetune + srcVoice->mpSrcDevice->mDetuneDeviceModAmt;// mpOwner->mOscDetuneAmts[i];
 						
-						srcVoice->BeginBlock(midiNote, myUnisonoShape + srcVoice->mpSrcDevice->mShapeDeviceModAmt, SemisToFrequencyMul(semis), globalFMScale, numSamples);
+						srcVoice->BeginBlock(midiNote, myUnisonoShape + srcVoice->mpSrcDevice->mShapeDeviceModAmt, math::SemisToFrequencyMul(semis), globalFMScale, numSamples);
 
 						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID, 0);
 						//VolumeParam outputVolParam{ mpOwner->mParamCache[(int)info.mOutputVolumeParamID], OscillatorNode::gVolumeMaxDb };
 
 						// treat panning as added to modulation value
 						float panParam = myUnisonoPan + srcVoice->mpSrcDevice->mAuxPanParam.GetN11Value(srcVoice->mpSrcDevice->mAuxPanDeviceModAmt + mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID, 0)); // -1 would mean full Left, 1 is full Right.
-						auto panGains = PanToFactor(panParam);
+						auto panGains = math::PanToFactor(panParam);
 						float outputVolLin = srcVoice->mpSrcDevice->mVolumeParam.GetLinearGain(volumeMod);
 						srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
 						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
