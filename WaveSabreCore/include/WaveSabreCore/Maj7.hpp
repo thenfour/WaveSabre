@@ -256,7 +256,6 @@ namespace WaveSabreCore
 				Minified,
 				Count,
 			};
-			static constexpr size_t gModulationCount = 16;
 			//static constexpr size_t gOptimizeableModulations = 8; // number of modulations which aren't used by internal things
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;

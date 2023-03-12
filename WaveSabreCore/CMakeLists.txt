@@ -63,6 +63,11 @@ add_library(WaveSabreCore
 	src/Helpers.cpp
 	src/Leveller.cpp
 	src/Maj7.cpp
+	src/Maj7Basic.cpp
+	src/Maj7Envelope.cpp
+	src/Maj7ModMatrix.cpp
+	src/Maj7Oscillator.cpp
+	src/Maj7Sampler.cpp
 	src/Maj7SynthDevice.cpp
 	src/MxcsrFlagGuard.cpp
 	src/ResampleBuffer.cpp

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/Maj7Envelope.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
 
 namespace WaveSabreCore
