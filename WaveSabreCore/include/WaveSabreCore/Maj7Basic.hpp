@@ -290,6 +290,7 @@ namespace WaveSabreCore
             {
                 const size_t mNSamples;
                 float* mpTable;
+
                 LUT01(size_t nSamples, float (*fn)(float)) :
                     mNSamples(nSamples),
                     mpTable(new float[nSamples])
@@ -343,11 +344,115 @@ namespace WaveSabreCore
                 }
             };
 
+            struct LUT2D {
+                size_t mNSamplesX;
+                size_t mNSamplesY;
+                float* mpTable;
+
+                LUT2D(size_t nSamplesX, size_t nSamplesY, float (*fn)(float, float))
+                    : mNSamplesX(nSamplesX)
+                    , mNSamplesY(nSamplesY)
+                    , mpTable(new float[nSamplesX * nSamplesY])
+                {
+                    // Populate table.
+                    for (size_t y = 0; y < nSamplesY; ++y) {
+                        for (size_t x = 0; x < nSamplesX; ++x) {
+                            float u = float(x) / (nSamplesX - 1);
+                            float v = float(y) / (nSamplesY - 1);
+                            mpTable[y * nSamplesX + x] = fn(u, v);
+                        }
+                    }
+                }
+
+                virtual ~LUT2D() {
+                    delete[] mpTable;
+                }
+
+                virtual float Invoke(float x, float y) const {
+                    if (x <= 0) x = 0;
+                    if (x >= 1) x = 0.9999f; // this ensures it will not OOB
+                    if (y <= 0) y = 0;
+                    if (y >= 1) y = 0.9999f;
+
+                    float indexX = x * (mNSamplesX - 1);
+                    float indexY = y * (mNSamplesY - 1);
+
+                    int lowerIndexX = static_cast<int>(indexX);
+                    int lowerIndexY = static_cast<int>(indexY);
+                    int upperIndexX = lowerIndexX + 1;
+                    int upperIndexY = lowerIndexY + 1;
+
+                    float tx = indexX - lowerIndexX;
+                    float ty = indexY - lowerIndexY;
+
+                    float f00 = mpTable[lowerIndexY * mNSamplesX + lowerIndexX];
+                    float f01 = mpTable[upperIndexY * mNSamplesX + lowerIndexX];
+                    float f10 = mpTable[lowerIndexY * mNSamplesX + upperIndexX];
+                    float f11 = mpTable[upperIndexY * mNSamplesX + upperIndexX];
+
+                    float f0 = (1 - tx) * f00 + tx * f10;
+                    float f1 = (1 - tx) * f01 + tx * f11;
+
+                    return (1 - ty) * f0 + ty * f1;
+                }
+            };
+
+            struct CurveLUT : public LUT2D
+            {
+                // valid for 0<k<1 and 0<x<1
+                static inline real_t modCurve_x01_k01_RT(real_t x, real_t k)
+                {
+                    real_t ret = 1 - math::pow(x, k);
+                    return math::pow(ret, 1 / k);
+                }
+
+                // extends range to support -1<x<0 and -1<k<0
+                // outputs -1 to 1
+                static inline real_t modCurve_xN11_kN11_RT(real_t x, real_t k)
+                {
+                    static constexpr float CornerMargin = 0.6f; // .77 is quite sharp, 0.5 is mild and usable but maybe should be sharper
+                    k *= CornerMargin;
+                    k = clamp(k, -CornerMargin, CornerMargin);
+                    x = clamp(x, -1, 1);
+                    if (k >= 0)
+                    {
+                        if (x > 0)
+                        {
+                            return 1 - modCurve_x01_k01_RT(x, 1 - k);
+                        }
+                        return modCurve_x01_k01_RT(-x, 1 - k) - 1;
+                    }
+                    if (x > 0)
+                    {
+                        return modCurve_x01_k01_RT(1 - x, 1 + k);
+                    }
+                    return -modCurve_x01_k01_RT(x + 1, 1 + k);
+                }
+
+                // incoming values should support -1,1 and output -1,1
+                CurveLUT(size_t nSamples)
+                    : LUT2D(nSamples, nSamples, [](float x01, float y01)
+                        {
+                            return modCurve_xN11_kN11_RT(x01*2-1, y01*2-1);
+                        })
+                {}
+
+                // user passes in n11 values; need to map N11 to 01
+                virtual float Invoke(float xN11, float yN11) const override {
+                    return LUT2D::Invoke(xN11 *.5f+.5f, yN11 *.5f+.5f);
+                }
+            };
+
+
+
+
+
             extern SinCosLUT gSinLUT;
             extern SinCosLUT gCosLUT;
             extern TanHLUT gTanhLUT;
             extern LUT01 gSqrt01LUT;// sqrt 01
 
+            extern CurveLUT gCurveLUT;
             // 2D LUTs: pow() 0-1, and curve
 
             inline real_t sin(real_t x) {
@@ -373,36 +478,9 @@ namespace WaveSabreCore
                 //return fastmath::fastertanh(x); // tanh is used for saturation and the fast version adds weird high frequency content. try it on a LP filter and see what i mean.
             }
 
-
-
-            // valid for 0<k<1 and 0<x<1
-            inline real_t modCurve_x01_k01(real_t x, real_t k)
-            {
-                real_t ret = 1 - math::pow(x, k);
-                return math::pow(ret, 1 / k);
-            }
-
-            // extends range to support -1<x<0 and -1<k<0
-            // outputs -1 to 1
             inline real_t modCurve_xN11_kN11(real_t x, real_t k)
             {
-                static constexpr float CornerMargin = 0.6f; // .77 is quite sharp, 0.5 is mild and usable but maybe should be sharper
-                k *= CornerMargin;
-                k = clamp(k, -CornerMargin, CornerMargin);
-                x = clamp(x, -1, 1);
-                if (k >= 0)
-                {
-                    if (x > 0)
-                    {
-                        return 1 - modCurve_x01_k01(x, 1 - k);
-                    }
-                    return modCurve_x01_k01(-x, 1 - k) - 1;
-                }
-                if (x > 0)
-                {
-                    return modCurve_x01_k01(1 - x, 1 + k);
-                }
-                return -modCurve_x01_k01(x + 1, 1 + k);
+                return gCurveLUT.Invoke(x, k);
             }
 
             /**
