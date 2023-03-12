@@ -766,7 +766,7 @@ public:
 	{
 		float enabledBacking;
 		M7::BoolParam bp{ enabledBacking };
-		bp.SetParamValue(GetEffectX()->getParameter(enabledParamID));
+		bp.SetRawParamValue(GetEffectX()->getParameter(enabledParamID));
 		ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
 		auto token = cm.Push();
 
@@ -1370,7 +1370,8 @@ public:
 				ImGui::PushID(n);
 				if (WaveformButton(n, wf, waveshapeParam.Get01Value(), phaseOffsetN11)) {
 					float t;
-					M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count, wf);
+					M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count);
+					tp.SetEnumValue(wf);
 					GetEffectX()->setParameter(waveformParamID, t);
 				}
 				ImGui::PopID();

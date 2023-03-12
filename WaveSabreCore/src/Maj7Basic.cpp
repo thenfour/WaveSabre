@@ -267,14 +267,14 @@ namespace WaveSabreCore
             }
         }
 
-            Float01Param::Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
+            //Float01Param::Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
             Float01Param::Float01Param(real_t& ref) : Float01RefParam(ref) {}
             float Float01Param::Get01Value(real_t modVal) const {
                 return math::clamp(mParamValue + modVal, 0, 1);
             }
 
-            FloatN11Param::FloatN11Param(real_t& ref, real_t initialValueN11) : Float01RefParam(ref, initialValueN11 * .5f + .5f) {
-            }
+            //FloatN11Param::FloatN11Param(real_t& ref, real_t initialValueN11) : Float01RefParam(ref, initialValueN11 * .5f + .5f) {
+            //}
             FloatN11Param::FloatN11Param(real_t& ref) : Float01RefParam(ref) {
             }
 
@@ -308,14 +308,14 @@ namespace WaveSabreCore
         }
 
 
-            IntParam::IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue) :
-                Float01Param(ref),
-                mMinValueInclusive(minValueInclusive),
-                mMaxValueInclusive(maxValueInclusive),
-                mHalfMinusMinVal(0.5f - minValueInclusive)
-            {
-                SetIntValue(initialValue);
-            }
+            //IntParam::IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue) :
+            //    Float01Param(ref),
+            //    mMinValueInclusive(minValueInclusive),
+            //    mMaxValueInclusive(maxValueInclusive),
+            //    mHalfMinusMinVal(0.5f - minValueInclusive)
+            //{
+            //    SetIntValue(initialValue);
+            //}
             IntParam::IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive) :
                 Float01Param(ref),
                 mMinValueInclusive(minValueInclusive),
@@ -346,26 +346,26 @@ namespace WaveSabreCore
             }
 
 
-                BoolParam::BoolParam(real_t& ref, bool initialValue) : IntParam(ref, 0, 1, initialValue ? 1 : 0)
-                {}
-                BoolParam::BoolParam(real_t& ref) : IntParam(ref, 0, 1)
-                {}
+                //BoolParam::BoolParam(real_t& ref, bool initialValue) : IntParam(ref, 0, 1, initialValue ? 1 : 0)
+                //{}
+                //BoolParam::BoolParam(real_t& ref) : IntParam(ref, 0, 1)
+                //{}
 
-                bool BoolParam::GetBoolValue() const {
-                    return mParamValue > 0.5f;
-                }
-                void BoolParam::SetBoolValue(bool b) {
-                    mParamValue = b ? 1.0f : 0.0f;
-                }
+                //bool BoolParam::GetBoolValue() const {
+                //    return mParamValue > 0.5f;
+                //}
+                //void BoolParam::SetBoolValue(bool b) {
+                //    mParamValue = b ? 1.0f : 0.0f;
+                //}
 
 
-                    ScaledRealParam::ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive, real_t initialRangedValue) :
-                        Float01Param(ref),
-                        mMinValueInclusive(minValueInclusive),
-                        mMaxValueInclusive(maxValueInclusive)
-                    {
-                        SetRangedValue(initialRangedValue);
-                    }
+                    //ScaledRealParam::ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive, real_t initialRangedValue) :
+                    //    Float01Param(ref),
+                    //    mMinValueInclusive(minValueInclusive),
+                    //    mMaxValueInclusive(maxValueInclusive)
+                    //{
+                    //    SetRangedValue(initialRangedValue);
+                    //}
                     ScaledRealParam::ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive) :
                         Float01Param(ref),
                         mMinValueInclusive(minValueInclusive),
@@ -411,10 +411,10 @@ namespace WaveSabreCore
                             return LinearToParam(math::DecibelsToLinear(db));
                         }
 
-                        VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01) :
-                            Float01Param(ref, initialParamValue01),
-                            mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
-                        {}
+                        //VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01) :
+                        //    Float01Param(ref, initialParamValue01),
+                        //    mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
+                        //{}
                         VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels) :
                             Float01Param(ref),
                             mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
@@ -443,13 +443,13 @@ namespace WaveSabreCore
                         }
 
 
-                        FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT) :
-                            mValue(valRef, initialValue),
-                            mKTValue(ktRef, initialKT),
-                            mCenterFrequency(centerFrequency),
-                            mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
-                            mScale(scale)
-                        {}
+                        //FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT) :
+                        //    mValue(valRef, initialValue),
+                        //    mKTValue(ktRef, initialKT),
+                        //    mCenterFrequency(centerFrequency),
+                        //    mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
+                        //    mScale(scale)
+                        //{}
 
                         FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/) :
                             mValue(valRef),

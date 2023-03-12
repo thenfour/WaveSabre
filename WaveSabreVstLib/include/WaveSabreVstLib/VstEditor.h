@@ -193,7 +193,7 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::ScaledRealParam mParam;
 
 			ScaledFloatConverter(float v_min, float v_max) :
-				mParam(mBacking, v_min, v_max, v_min)
+				mParam(mBacking, v_min, v_max)
 			{
 			}
 
@@ -216,7 +216,7 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::IntParam mParam;
 
 			Maj7IntConverter(int v_min, int v_max) :
-				mParam(mBacking, v_min, v_max, v_min)
+				mParam(mBacking, v_min, v_max)
 			{
 			}
 
@@ -241,7 +241,7 @@ namespace WaveSabreVstLib
 			VstInt32 mKTParamID;
 
 			Maj7FrequencyConverter(M7::real_t centerFreq, M7::real_t scale, VstInt32 ktParamID /*pass -1 if no KT*/) :
-				mParam(mBacking, mBackingKT, centerFreq, scale, 0.5f, 0),
+				mParam(mBacking, mBackingKT, centerFreq, scale),
 				mKTParamID(ktParamID)
 			{
 			}
@@ -322,7 +322,7 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::FloatN11Param mParam;
 
 			FloatN11Converter() :
-				mParam(mBacking, 0)
+				mParam(mBacking)
 			{
 			}
 
@@ -344,7 +344,7 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::VolumeParam mParam;
 
 			M7VolumeConverter(M7::real_t maxDb) :
-				mParam(mBacking, maxDb, maxDb)
+				mParam(mBacking, maxDb)
 			{
 			}
 
@@ -570,7 +570,7 @@ namespace WaveSabreVstLib
 		template<typename Tenum, typename TparamID, typename Tcount>
 		void Maj7ImGuiParamEnumList(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions) {
 			M7::real_t tempVal;
-			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0));
+			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount));
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 			auto friendlyVal = p.GetEnumValue();// ParamToEnum(paramValue, elementCount); //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
 			int enumIndex = (int)friendlyVal;
@@ -611,7 +611,7 @@ namespace WaveSabreVstLib
 		template<typename Tenum, typename TparamID, typename Tcount>
 		void Maj7ImGuiParamEnumCombo(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions, float width = 120) {
 			M7::real_t tempVal;
-			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount), Tenum(0));
+			M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount));
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 			auto friendlyVal = p.GetEnumValue();// ParamToEnum(paramValue, elementCount); //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
 			int enumIndex = (int)friendlyVal;
@@ -647,7 +647,8 @@ namespace WaveSabreVstLib
 
 		void Maj7ImGuiParamScaledFloat(VstInt32 paramID, const char* label, M7::real_t v_min, M7::real_t v_max, M7::real_t v_defaultScaled) {
 			WaveSabreCore::M7::real_t tempVal;
-			M7::ScaledRealParam p{ tempVal , v_min, v_max, v_defaultScaled };
+			M7::ScaledRealParam p{ tempVal , v_min, v_max };
+			p.SetRangedValue(v_defaultScaled);
 			float defaultParamVal = p.Get01Value();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
@@ -672,7 +673,8 @@ namespace WaveSabreVstLib
 
 		void Maj7ImGuiParamInt(VstInt32 paramID, const char* label, int v_min, int v_max, int v_defaultScaled) {
 			WaveSabreCore::M7::real_t tempVal;
-			M7::IntParam p{ tempVal , v_min, v_max, v_defaultScaled };
+			M7::IntParam p{ tempVal , v_min, v_max };
+			p.SetIntValue(v_defaultScaled);
 			float defaultParamVal = p.Get01Value();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
@@ -684,9 +686,9 @@ namespace WaveSabreVstLib
 		}
 
 		void Maj7ImGuiParamFrequency(VstInt32 paramID, VstInt32 ktParamID, const char* label, M7::real_t centerFreq, M7::real_t scale, M7::real_t defaultParamValue) {
-			M7::real_t tempVal;
-			M7::real_t tempValKT;
-			M7::FrequencyParam p{ tempVal, tempValKT, centerFreq, scale, defaultParamValue, 0 };
+			M7::real_t tempVal = 0;
+			M7::real_t tempValKT = 0;
+			M7::FrequencyParam p{ tempVal, tempValKT, centerFreq, scale};
 			p.mValue.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			Maj7FrequencyConverter conv{ centerFreq, scale, ktParamID };
@@ -711,7 +713,8 @@ namespace WaveSabreVstLib
 
 		void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled) {
 			WaveSabreCore::M7::real_t tempVal;
-			M7::FloatN11Param p{ tempVal, v_defaultScaled };
+			M7::FloatN11Param p{ tempVal };
+			p.SetN11Value(v_defaultScaled);
 			float defaultParamVal = p.GetRawParamValue();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
@@ -730,7 +733,8 @@ namespace WaveSabreVstLib
 
 		void Maj7ImGuiParamCurve(VstInt32 paramID, const char* label, M7::real_t v_defaultN11, M7CurveRenderStyle style) {
 			WaveSabreCore::M7::real_t tempVal;
-			M7::CurveParam p{ tempVal, v_defaultN11 };
+			M7::CurveParam p{ tempVal };
+			p.SetN11Value(v_defaultN11);
 			float defaultParamVal = p.GetRawParamValue();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
@@ -750,7 +754,8 @@ namespace WaveSabreVstLib
 
 		void Maj7ImGuiParamVolume(VstInt32 paramID, const char* label, M7::real_t maxDb, M7::real_t v_defaultScaled) {
 			WaveSabreCore::M7::real_t tempVal;
-			M7::VolumeParam p{ tempVal, maxDb, v_defaultScaled };
+			M7::VolumeParam p{ tempVal, maxDb };
+			p.SetDecibels(v_defaultScaled);
 			float defaultParamVal = p.GetRawParamValue();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
@@ -804,15 +809,15 @@ namespace WaveSabreVstLib
 			float sustainYOffset = innerHeight * (1.0f - sustainLevel);
 
 			float attackCurveRaw;
-			M7::CurveParam attackCurve{ attackCurveRaw, 0 };
+			M7::CurveParam attackCurve{ attackCurveRaw };
 			attackCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackCurve));
 
 			float decayCurveRaw;
-			M7::CurveParam decayCurve{ decayCurveRaw, 0 };
+			M7::CurveParam decayCurve{ decayCurveRaw };
 			decayCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayCurve));
 
 			float releaseCurveRaw;
-			M7::CurveParam releaseCurve{ releaseCurveRaw, 0 };
+			M7::CurveParam releaseCurve{ releaseCurveRaw };
 			releaseCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseCurve));
 
 			ImVec2 originalPos = ImGui::GetCursorScreenPos();

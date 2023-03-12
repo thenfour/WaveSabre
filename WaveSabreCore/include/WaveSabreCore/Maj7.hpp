@@ -1,4 +1,4 @@
-// Time sync for LFOs? it's more complex than i expected, because of the difference between live play & playback.
+// Time sync for LFOs? use Helpers::CurrentTempo
 
 // speed optimizations
 // (use profiler)
@@ -6,14 +6,13 @@
 // - do not process LFO & ENV when not in use
 // - recalc some a-rate things less frequently / reduce some things to k-rate. frequencies are calculated every sample...
 // - cache some values like mod matrix arate source buffers
-// - LUTs: curves (bilinear), sin, cos, tanh
 // - mod matrix currently processes every mod spec each sample. K-Rate should be done per buffer init.
 //   for example a K-rate to K-rate (macro to filter freq) does not need to process every sample.
 // 
 // size-optimizations:
 // (profile w sizebench!)
 // - dont inline (use cpp)
-// - don't put GetChunk() in size-optimized code. it's not used in WS runtime.
+// - don't put GetChunk() or serialization code in size-optimized code. it's not used in WS runtime.
 // - use fixed-point in oscillators. there's absolutely no reason to be using chonky floating point instructions there.
 
 // Pitch params in order of processing:
@@ -197,8 +196,8 @@ namespace WaveSabreCore
 			CurveParam mCurve;
 
 			PortamentoCalc(float& timeParamBacking, float& curveParamBacking) :
-				mTime(timeParamBacking, 0.2f),
-				mCurve(curveParamBacking, 0)
+				mTime(timeParamBacking),
+				mCurve(curveParamBacking)
 			{}
 
 			// advances cursor; call this at the end of buffer processing. next buffer will call
@@ -260,10 +259,12 @@ namespace WaveSabreCore
 			static constexpr int gPitchBendMaxRange = 24;
 			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr size_t gOscillatorCount = 4;
+			static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
 			static constexpr size_t gSamplerCount = 4;
 			static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
 			static constexpr size_t gAuxNodeCount = 4;
 			static constexpr real_t gMasterVolumeMaxDb = 6;
+			static constexpr size_t gMacroCount = 7;
 
 			//static_assert((gModulationCount - gSourceCount) >= gOptimizeableModulations, "need room for the optimizable modulations + internal modulations.");
 
@@ -288,26 +289,22 @@ namespace WaveSabreCore
 			IntParam mUnisonoVoicesParam{ mParamCache[(int)ParamIndices::Unisono], 1, gUnisonoVoiceMax };
 
 			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb };
-			Float01Param mMacro1{ mParamCache[(int)ParamIndices::Macro1] };
-			Float01Param mMacro2{ mParamCache[(int)ParamIndices::Macro2] };
-			Float01Param mMacro3{ mParamCache[(int)ParamIndices::Macro3] };
-			Float01Param mMacro4{ mParamCache[(int)ParamIndices::Macro4] };
-			Float01Param mMacro5{ mParamCache[(int)ParamIndices::Macro5] };
-			Float01Param mMacro6{ mParamCache[(int)ParamIndices::Macro6] };
-			Float01Param mMacro7{ mParamCache[(int)ParamIndices::Macro7] };
 
-			Float01Param mFMAmt1to2{ mParamCache[(int)ParamIndices::FMAmt1to2] };
-			Float01Param mFMAmt1to3{ mParamCache[(int)ParamIndices::FMAmt1to3] };
-			Float01Param mFMAmt1to4{ mParamCache[(int)ParamIndices::FMAmt1to4] };
-			Float01Param mFMAmt2to1{ mParamCache[(int)ParamIndices::FMAmt2to1] };
-			Float01Param mFMAmt2to3{ mParamCache[(int)ParamIndices::FMAmt2to3] };
-			Float01Param mFMAmt2to4{ mParamCache[(int)ParamIndices::FMAmt2to4] };
-			Float01Param mFMAmt3to1{ mParamCache[(int)ParamIndices::FMAmt3to1] };
-			Float01Param mFMAmt3to2{ mParamCache[(int)ParamIndices::FMAmt3to2] };
-			Float01Param mFMAmt3to4{ mParamCache[(int)ParamIndices::FMAmt3to4] };
-			Float01Param mFMAmt4to1{ mParamCache[(int)ParamIndices::FMAmt4to1] };
-			Float01Param mFMAmt4to2{ mParamCache[(int)ParamIndices::FMAmt4to2] };
-			Float01Param mFMAmt4to3{ mParamCache[(int)ParamIndices::FMAmt4to3] };
+			Float01ParamArray mMacros { &mParamCache[(int)ParamIndices::Macro1], gMacroCount };
+
+			Float01ParamArray mFMMatrix{ &mParamCache[(int)ParamIndices::FMAmt1to2], gFMMatrixSize };
+			//Float01Param mFMAmt1to2{ mParamCache[(int)ParamIndices::FMAmt1to2] };
+			//Float01Param mFMAmt1to3{ mParamCache[(int)ParamIndices::FMAmt1to3] };
+			//Float01Param mFMAmt1to4{ mParamCache[(int)ParamIndices::FMAmt1to4] };
+			//Float01Param mFMAmt2to1{ mParamCache[(int)ParamIndices::FMAmt2to1] };
+			//Float01Param mFMAmt2to3{ mParamCache[(int)ParamIndices::FMAmt2to3] };
+			//Float01Param mFMAmt2to4{ mParamCache[(int)ParamIndices::FMAmt2to4] };
+			//Float01Param mFMAmt3to1{ mParamCache[(int)ParamIndices::FMAmt3to1] };
+			//Float01Param mFMAmt3to2{ mParamCache[(int)ParamIndices::FMAmt3to2] };
+			//Float01Param mFMAmt3to4{ mParamCache[(int)ParamIndices::FMAmt3to4] };
+			//Float01Param mFMAmt4to1{ mParamCache[(int)ParamIndices::FMAmt4to1] };
+			//Float01Param mFMAmt4to2{ mParamCache[(int)ParamIndices::FMAmt4to2] };
+			//Float01Param mFMAmt4to3{ mParamCache[(int)ParamIndices::FMAmt4to3] };
 
 			Float01Param mUnisonoDetune{ mParamCache[(int)ParamIndices::UnisonoDetune] };
 			Float01Param mUnisonoStereoSpread{ mParamCache[(int)ParamIndices::UnisonoStereoSpread] };
@@ -764,16 +761,6 @@ namespace WaveSabreCore
 					for (auto p : mpAllEnvelopes) {
 						p->BeginBlock();
 					}
-					//mOsc1AmpEnv.BeginBlock(); // tells envelopes to recalc state based on mod values and changed settings
-					//mOsc2AmpEnv.BeginBlock();
-					//mOsc3AmpEnv.BeginBlock();
-					//mOsc4AmpEnv.BeginBlock();
-					//mSampler1AmpEnv.BeginBlock();
-					//mSampler2AmpEnv.BeginBlock();
-					//mSampler3AmpEnv.BeginBlock();
-					//mSampler4AmpEnv.BeginBlock();
-					//mModEnv1.BeginBlock();
-					//mModEnv2.BeginBlock();
 
 					mModMatrix.InitBlock(numSamples);
 
@@ -788,13 +775,11 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceKRateValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::UnisonoVoice, float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono); // krate, 01
 					mModMatrix.SetSourceKRateValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::Macro1, mpOwner->mMacro1.Get01Value());  // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::Macro2, mpOwner->mMacro2.Get01Value());  // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::Macro3, mpOwner->mMacro3.Get01Value());  // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::Macro4, mpOwner->mMacro4.Get01Value());  // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::Macro5, mpOwner->mMacro5.Get01Value());  // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::Macro6, mpOwner->mMacro6.Get01Value());  // krate, 01
-					mModMatrix.SetSourceKRateValue(ModSource::Macro7, mpOwner->mMacro7.Get01Value());  // krate, 01
+
+					for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
+					{
+						mModMatrix.SetSourceKRateValue((int)ModSource::Macro1 + iMacro, mpOwner->mMacros.Get01Value(iMacro));  // krate, 01
+					}
 
 					if (!mModLFO1.mpOscDevice->mPhaseRestart.GetBoolValue()) {
 						// sync phase with device-level. TODO: also check that modulations aren't creating per-voice variation?
@@ -848,20 +833,10 @@ namespace WaveSabreCore
 					}
 
 					float globalFMScale = mpOwner->mFMBrightness.Get01Value(mpOwner->mFMBrightnessMod) * 2;
-					float FMScales[] = {
-						mpOwner->mFMAmt2to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to1, 0))* globalFMScale,
-						mpOwner->mFMAmt3to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to1, 0))* globalFMScale,
-						mpOwner->mFMAmt4to1.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt4to1, 0))* globalFMScale,
-						mpOwner->mFMAmt1to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to2, 0))* globalFMScale,
-						mpOwner->mFMAmt3to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to2, 0))* globalFMScale,
-						mpOwner->mFMAmt4to2.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt4to2, 0))* globalFMScale,
-						mpOwner->mFMAmt1to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to3, 0))* globalFMScale,
-						mpOwner->mFMAmt2to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to3, 0))* globalFMScale,
-						mpOwner->mFMAmt4to3.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt4to3, 0))* globalFMScale,
-						mpOwner->mFMAmt1to4.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt1to4, 0))* globalFMScale,
-						mpOwner->mFMAmt2to4.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt2to4, 0))* globalFMScale,
-						mpOwner->mFMAmt3to4.Get01Value(mModMatrix.GetDestinationValue(ModDestination::FMAmt3to4, 0)) * globalFMScale,
-					};
+					float FMScales[gFMMatrixSize];
+					for (size_t i = 0; i < gFMMatrixSize; ++i) {
+						FMScales[i] = mpOwner->mFMMatrix.Get01Value(i, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt1to2 + i, 0)) * globalFMScale;
+					}
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
@@ -888,7 +863,6 @@ namespace WaveSabreCore
 						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
 					}
 
-					auto auxRouting = mpOwner->mAuxRoutingParam.GetEnumValue();
 					for (size_t i = 0; i < gAuxNodeCount; ++i) {
 						mAllAuxNodes[i]->BeginBlock(numSamples, mAllAuxNodes, noteHz, mModMatrix);
 					}
@@ -913,33 +887,33 @@ namespace WaveSabreCore
 						float sourceValues[gSourceCount] = { 0 };
 
 						sourceValues[0] = mOscillator1.ProcessSample(iSample,
-							osc2LastSample, FMScales[0],
-							osc3LastSample, FMScales[1],
-							osc4LastSample, FMScales[2],
+							osc2LastSample, FMScales[FMMatrixIndices::FMAmt2to1],
+							osc3LastSample, FMScales[FMMatrixIndices::FMAmt3to1],
+							osc4LastSample, FMScales[FMMatrixIndices::FMAmt4to1],
 							false
 						);
 						sourceValues[0] *= mOscillator1.mAmpEnvGain;
 
 						sourceValues[1] = mOscillator2.ProcessSample(iSample,
-							sourceValues[0], FMScales[3],
-							osc3LastSample, FMScales[4],
-							osc4LastSample, FMScales[5],
+							sourceValues[0], FMScales[FMMatrixIndices::FMAmt1to2],
+							osc3LastSample, FMScales[FMMatrixIndices::FMAmt3to2],
+							osc4LastSample, FMScales[FMMatrixIndices::FMAmt4to2],
 							false
 						);
 						sourceValues[1] *= mOscillator2.mAmpEnvGain;
 
 						sourceValues[2] = mOscillator3.ProcessSample(iSample,
-							sourceValues[0], FMScales[6],
-							sourceValues[1], FMScales[7],
-							osc4LastSample, FMScales[8],
+							sourceValues[0], FMScales[FMMatrixIndices::FMAmt1to3],
+							sourceValues[1], FMScales[FMMatrixIndices::FMAmt2to3],
+							osc4LastSample, FMScales[FMMatrixIndices::FMAmt4to3],
 							false
 						);
 						sourceValues[2] *= mOscillator3.mAmpEnvGain;
 
 						sourceValues[3] = mOscillator4.ProcessSample(iSample,
-							sourceValues[0], FMScales[9],
-							sourceValues[1], FMScales[10],
-							sourceValues[2], FMScales[11],
+							sourceValues[0], FMScales[FMMatrixIndices::FMAmt1to4],
+							sourceValues[1], FMScales[FMMatrixIndices::FMAmt2to4],
+							sourceValues[2], FMScales[FMMatrixIndices::FMAmt3to4],
 							false
 						);
 						sourceValues[3] *= mOscillator4.mAmpEnvGain;
@@ -961,7 +935,7 @@ namespace WaveSabreCore
 						sl = mAux1.ProcessSample(sl, mAllAuxNodes);
 						sl = mAux2.ProcessSample(sl, mAllAuxNodes);
 
-						switch (auxRouting) {
+						switch (mpOwner->mAuxRoutingParam.GetEnumValue()) {
 						case AuxRoute::FourZero:
 							// L = aux1 -> aux2 -> aux3 -> aux4 -> *
 							// R = *

@@ -1128,14 +1128,14 @@ namespace WaveSabreCore
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::AuxMix)),
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::PreFMVolume))
 					),
-				mWaveform(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count, OscillatorWaveform::SineClip),
-				mWaveshape(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveshape], 0),
-				mPhaseRestart(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseRestart], false),
-				mPhaseOffset(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseOffset], 0),
-				mSyncEnable(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncEnable], false),
-				mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFrequencyCenterHz, gSyncFrequencyScale, 0.4f, 1.0f),
-				mFrequencyMul(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax, 1.0f),
-				mFMFeedback01(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FMFeedback], 0),
+				mWaveform(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count),
+				mWaveshape(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveshape]),
+				mPhaseRestart(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseRestart]),
+				mPhaseOffset(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseOffset]),
+				mSyncEnable(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncEnable]),
+				mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFrequencyCenterHz, gSyncFrequencyScale),
+				mFrequencyMul(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax),
+				mFMFeedback01(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FMFeedback]),
 				mLPFFrequency(mLFPFrequencyBacking, mLFPFrequencyKTBacking, gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 
 				mIntention(OscillatorIntention::Audio)

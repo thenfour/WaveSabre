@@ -149,7 +149,7 @@ namespace ImGuiKnobs {
             void draw_m7_curve(color_set bgcolor, color_set linecolor, bool invertX, bool invertY) {
                 ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
                 float val;
-                WaveSabreCore::M7::CurveParam param {val, 0 };
+                WaveSabreCore::M7::CurveParam param {val };
                 param.SetParamValue(this->t);
                 AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, param, linecolor.base, 2.0f);
             }

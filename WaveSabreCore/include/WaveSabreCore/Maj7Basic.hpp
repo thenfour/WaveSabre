@@ -325,14 +325,14 @@ namespace WaveSabreCore
         // overkill? maybe but no judging plz
         struct Float01Param : Float01RefParam
         {
-            explicit Float01Param(real_t& ref, real_t initialValue);
+            //explicit Float01Param(real_t& ref, real_t initialValue);
             explicit Float01Param(real_t& ref);
             real_t Get01Value(real_t modVal = 0.0f) const;
         };
 
         struct FloatN11Param : Float01RefParam
         {
-            explicit FloatN11Param(real_t& ref, real_t initialValueN11);
+            //explicit FloatN11Param(real_t& ref, real_t initialValueN11);
             explicit FloatN11Param(real_t& ref);
 
             real_t GetN11Value(real_t modVal = 0.0f) const;
@@ -361,7 +361,7 @@ namespace WaveSabreCore
         // paramvalue N11
         struct CurveParam : FloatN11Param
         {
-            explicit CurveParam(real_t& ref, real_t initialValueN11) : FloatN11Param(ref, initialValueN11) {}
+            //explicit CurveParam(real_t& ref, real_t initialValueN11) : FloatN11Param(ref, initialValueN11) {}
             explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
 
             real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
@@ -378,7 +378,7 @@ namespace WaveSabreCore
             const int mMaxValueInclusive;
             const float mHalfMinusMinVal; // precalc to avoid an add
         public:
-            explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue);
+            //explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue);
             explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive);
             int GetDiscreteValueCount() const;
             // we want to split the float 0-1 range into equal portions. so if you have 3 values (0 - 2 inclusive),
@@ -400,8 +400,8 @@ namespace WaveSabreCore
         struct EnumParam : IntParam
         {
             static constexpr size_t MaxItems = 2023;
-            explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, MaxItems, (int)initialValue)
-            {}
+            //explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, MaxItems, (int)initialValue)
+            //{}
             explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, MaxItems)
             {}
             T GetEnumValue() const {
@@ -412,12 +412,15 @@ namespace WaveSabreCore
             }
         };
 
-        struct BoolParam : IntParam
+        struct BoolParam
         {
-            explicit BoolParam(real_t& ref, bool initialValue);
-            explicit BoolParam(real_t& ref);
-            bool GetBoolValue() const;
-            void SetBoolValue(bool b);
+        private:
+            float& mVal;
+        public:
+            inline explicit BoolParam(real_t& ref) : mVal(ref) {}
+            inline bool GetBoolValue() const { return mVal > 0.5f; } // this generates slightly smaller code than == 0, or even >0
+            inline void SetBoolValue(bool b) { mVal = float(b ? 1 : 0); }
+            inline void SetRawParamValue(float f) { mVal = f; }
         };
 
         // stores a floating-point value which is always scaled linear to 0-1 param range.
@@ -433,7 +436,7 @@ namespace WaveSabreCore
             real_t mMaxValueInclusive;
 
         public:
-            explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive, real_t initialRangedValue);
+            //explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive, real_t initialRangedValue);
             explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive);
             real_t GetRange() const;
             real_t GetRangedValue() const;
@@ -456,7 +459,7 @@ namespace WaveSabreCore
             float DecibelsToParam(float db) const;
 
         public:
-            explicit VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01);
+            //explicit VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01);
             explicit VolumeParam(real_t& ref, real_t maxDecibels);
             float GetLinearGain(float modVal = 0.0f) const;
             float GetDecibels() const;
@@ -477,13 +480,26 @@ namespace WaveSabreCore
             Float01Param mValue;
             Float01Param mKTValue; // how much key tracking to apply. when 0, the frequency doesn't change based on playing note. when 1, it scales completely with the note's frequency.
 
-            explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT);
+            //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT);
             explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
             // noteHz is the playing note, to support key-tracking.
             float GetFrequency(float noteHz, float paramModulation) const;
             // param modulation is normal krate param mod
             // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
             float GetMidiNote(float playingMidiNote, float paramModulation) const;
+        };
+
+        struct Float01ParamArray
+        {
+            float* mpArray;
+            size_t mCount;
+            Float01ParamArray(float* parr, size_t count) : mpArray(parr), mCount(count) {}
+            float Get01Value(size_t i) const {
+                return math::clamp(mpArray[i], 0, 1);
+            }
+            float Get01Value(size_t i, float mod) const {
+                return math::clamp(mpArray[i] + mod, 0, 1);
+            }
         };
 
         //template<typename T, typename = std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T>>>
@@ -1999,6 +2015,22 @@ namespace WaveSabreCore
             virtual ~IAuxEffect() {}
             virtual void AuxBeginBlock(float noteHz, int nSamples, struct ModMatrixNode& modMatrix) = 0;
             virtual float AuxProcessSample(float inp) = 0;
+        };
+
+        enum FMMatrixIndices
+        {
+            FMAmt1to2 = 0,
+            FMAmt1to3 = 1,
+            FMAmt1to4 = 2,
+            FMAmt2to1 = 3,
+            FMAmt2to3 = 4,
+            FMAmt2to4 = 5,
+            FMAmt3to1 = 6,
+            FMAmt3to2 = 7,
+            FMAmt3to4 = 8,
+            FMAmt4to1 = 9,
+            FMAmt4to2 = 10,
+            FMAmt4to3 = 11,
         };
 
     } // namespace M7
