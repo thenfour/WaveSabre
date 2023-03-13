@@ -591,25 +591,25 @@ namespace WaveSabreCore
 		{
 		private:
 			static constexpr size_t gMaxEndpointCount = std::max((size_t)ModDestination::Count, (size_t)ModSource::Count);
-			const size_t gEndpointCount = false; // as in, the number of modulations. like ModSource::Count
+			//const size_t gEndpointCount = false; // as in, the number of modulations. like ModSource::Count
 
 			size_t mElementsAllocated = 0; // the backing buffer is allocated this big. may be bigger than blocks*blocksize.
 			size_t mBlockSize = 0;
-			real_t* mpBuffer = nullptr;
+			//real_t* mpBuffer = nullptr;
 
-			real_t mpKRateValues[gMaxEndpointCount] = { 0 };
-			bool mpARatePopulated[gMaxEndpointCount] = { false };
+			real_t mValues[gMaxEndpointCount] = { 0 };
+			//bool mpARatePopulated[gMaxEndpointCount] = { false };
 			//bool mpKRatePopulated[gMaxEndpointCount] = { false }; // because krate is fallback anyway, and gets reset to 0 each block, this is not necessary.
 
 		public:
-			ModMatrixBuffers(size_t modulationEndpointCount);
+			//ModMatrixBuffers();
 
-			~ModMatrixBuffers();
-			void Reset(size_t blockSize, bool zero);
-			void SetARateValue(size_t id, size_t iSample, real_t val);
+			//~ModMatrixBuffers();
+			void Reset(bool zero);
+			void SetValue(size_t id, real_t val);
 
-			void SetKRateValue(size_t id, real_t val);
-			real_t GetValue(size_t id, size_t sample) const;
+			//void SetKRateValue(size_t id, real_t val);
+			real_t GetValue(size_t id) const;
 		};
 
 
@@ -634,67 +634,68 @@ namespace WaveSabreCore
 			ModMatrixBuffers mDest;
 
 		public:
-			ModMatrixNode();
+			//ModMatrixNode();
+
+			//template<typename Tmodid>
+			//void SetSourceARateValue(Tmodid iblock, size_t iSample, real_t val) {
+			//	return mSource.SetARateValue((size_t)iblock, iSample, val);
+			//}
+
 			template<typename Tmodid>
-			void SetSourceARateValue(Tmodid iblock, size_t iSample, real_t val) {
-				return mSource.SetARateValue((size_t)iblock, iSample, val);
+			inline void SetSourceValue(Tmodid id, real_t val)
+			{
+				mSource.SetValue((size_t)id, val);
 			}
 
 			template<typename Tmodid>
-			inline void SetSourceKRateValue(Tmodid id, real_t val)
+			inline real_t GetSourceValue(Tmodid id) const
 			{
-				mSource.SetKRateValue((size_t)id, val);
+				return mSource.GetValue((size_t)id);
 			}
 
 			template<typename Tmodid>
-			inline real_t GetSourceValue(Tmodid id, size_t sample) const
+			inline real_t GetDestinationValue(Tmodid id) const
 			{
-				return mSource.GetValue((size_t)id, sample);
-			}
-
-			template<typename Tmodid>
-			inline real_t GetDestinationValue(Tmodid id, size_t sample) const
-			{
-				return mDest.GetValue((size_t)id, sample);
+				return mDest.GetValue((size_t)id);
 			}
 
 			// call at the beginning of audio block processing to allocate & zero all buffers, preparing for source value population.
-			void InitBlock(size_t nSamples);
-			static constexpr ModulationRate GetRate(ModSource m)
-			{
-				switch (m)
-				{
-				case ModSource::Osc1AmpEnv:
-				case ModSource::Osc2AmpEnv:
-				case ModSource::Osc3AmpEnv:
-				case ModSource::Osc4AmpEnv:
-				case ModSource::Sampler1AmpEnv:
-				case ModSource::Sampler2AmpEnv:
-				case ModSource::Sampler3AmpEnv:
-				case ModSource::Sampler4AmpEnv:
-				case ModSource::ModEnv1:
-				case ModSource::ModEnv2:
-				case ModSource::LFO1:
-				case ModSource::LFO2:
-					return ModulationRate::ARate;
-				case ModSource::PitchBend:
-				case ModSource::Velocity:
-				case ModSource::NoteValue:
-				case ModSource::RandomTrigger:
-				case ModSource::UnisonoVoice:
-				case ModSource::SustainPedal:
-				case ModSource::Macro1:
-				case ModSource::Macro2:
-				case ModSource::Macro3:
-				case ModSource::Macro4:
-				case ModSource::Macro5:
-				case ModSource::Macro6:
-				case ModSource::Macro7:
-					return ModulationRate::KRate;
-				}
+			void InitBlock();
+			//static constexpr ModulationRate GetRate(ModSource m)
+			//{
+			//	switch (m)
+			//	{
+			//	case ModSource::Osc1AmpEnv:
+			//	case ModSource::Osc2AmpEnv:
+			//	case ModSource::Osc3AmpEnv:
+			//	case ModSource::Osc4AmpEnv:
+			//	case ModSource::Sampler1AmpEnv:
+			//	case ModSource::Sampler2AmpEnv:
+			//	case ModSource::Sampler3AmpEnv:
+			//	case ModSource::Sampler4AmpEnv:
+			//	case ModSource::ModEnv1:
+			//	case ModSource::ModEnv2:
+			//	case ModSource::LFO1:
+			//	case ModSource::LFO2:
+			//		return ModulationRate::ARate;
+			//	case ModSource::PitchBend:
+			//	case ModSource::Velocity:
+			//	case ModSource::NoteValue:
+			//	case ModSource::RandomTrigger:
+			//	case ModSource::UnisonoVoice:
+			//	case ModSource::SustainPedal:
+			//	case ModSource::Macro1:
+			//	case ModSource::Macro2:
+			//	case ModSource::Macro3:
+			//	case ModSource::Macro4:
+			//	case ModSource::Macro5:
+			//	case ModSource::Macro6:
+			//	case ModSource::Macro7:
+			//		return ModulationRate::KRate;
+			//	}
 
-				return ModulationRate::Disabled;
-			}
+			//	return ModulationRate::Disabled;
+			//}
 
 			static constexpr ModulationPolarity GetPolarity(ModSource m)
 			{
@@ -712,7 +713,7 @@ namespace WaveSabreCore
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.
 			// the result will be placed 
-			void ProcessSample(ModulationSpec(&modSpecs)[gModulationCount], size_t iSample);
+			void ProcessSample(ModulationSpec(&modSpecs)[gModulationCount]);
 		};
 	} // namespace M7
 

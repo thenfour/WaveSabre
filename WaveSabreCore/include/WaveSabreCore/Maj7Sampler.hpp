@@ -117,9 +117,9 @@ namespace WaveSabreCore
 			virtual void NoteOn(bool legato) override;
 			virtual void NoteOff() override;
 
-			virtual void BeginBlock(real_t midiNote, float detuneFreqMul, float fmScale, int samplesInBlock) override;
+			virtual void BeginBlock(int samplesInBlock) override;
 
-			float ProcessSample(size_t iSample);
+			float ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale);
 
 		}; // struct SamplerVoice
 

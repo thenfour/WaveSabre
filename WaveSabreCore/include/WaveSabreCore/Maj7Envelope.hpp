@@ -38,7 +38,7 @@ namespace WaveSabreCore
 
             // advances to a specified stage. The point of this is to advance through 0-length stages so we don't end up with
             // >=1sample per stage.
-            void AdvanceToStage(EnvelopeStage stage, size_t isample);
+            void AdvanceToStage(EnvelopeStage stage);
 
             void noteOn(bool isLegato);
 
@@ -65,9 +65,9 @@ namespace WaveSabreCore
 
             void BeginBlock();
 
-            float ProcessSample(size_t isample);
+            float ProcessSample();
         private:
-            void RecalcState(size_t isample);
+            void RecalcState();
 
             EnvelopeStage mStage = EnvelopeStage::Idle;
             real_t mStagePos01 = 0;      // where in the current stage are we?

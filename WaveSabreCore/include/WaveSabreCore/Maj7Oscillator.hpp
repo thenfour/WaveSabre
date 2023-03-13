@@ -166,7 +166,7 @@ namespace WaveSabreCore
 
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;
-				virtual void BeginBlock(real_t midiNote, float detuneFreqMul, float fmScale, int samplesInBlock) = 0;
+				virtual void BeginBlock(int samplesInBlock) = 0;
 				//virtual void EndBlock() = 0;
 			};
 		};
@@ -218,29 +218,29 @@ namespace WaveSabreCore
 
 			float mFrequency = 0;
 			double mPhase = 0; // phase cursor 0-1
-			double mDTDT = 0; // to glide to a new frequency smoothly over a block.
+			//double mDTDT = 0; // to glide to a new frequency smoothly over a block.
 			double mPhaseIncrement = 0; // dt
-			float mSampleRate = 0;
 
 			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
 			virtual float NaiveSampleSlope(float phase01) = 0; // return slope at phase			
 			//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) = 0;// returns blep before and blep after discontinuity.
 
 			// override if you need to adjust things
-			virtual void SetParams(float freq, float phaseOffsetN11, float waveshape, float sampleRate, int samplesInBlock)
+			virtual void SetParams(float freq, float phaseOffsetN11, float waveshape, double sampleRate /*required for VST to display a graphic*/)
 			{
 				mFrequency = freq;
 				mPhaseOffset = math::fract(phaseOffsetN11);
 				mShape = waveshape;
-				mSampleRate = sampleRate;
+				//mSampleRate = sampleRate;
 
 				double newPhaseInc = (double)mFrequency / sampleRate;
-				mDTDT = (newPhaseInc - mPhaseIncrement) / samplesInBlock;
+				//mDTDT = (newPhaseInc - mPhaseIncrement) / samplesInBlock;
 
 				//mDCOffset = 0;
 				//mScale = 1.0f;
 
-				//mPhaseIncrement = newPhaseInc;
+				mPhaseIncrement = newPhaseInc;
+
 				//mDTDT = 0;
 			}
 
@@ -301,7 +301,7 @@ namespace WaveSabreCore
 			// returns blep before and blep after discontinuity.
 			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample)
 			{
-				mPhaseIncrement += mDTDT * samples;
+				//mPhaseIncrement += mDTDT * samples;
 				double phaseToAdvance = samples * mPhaseIncrement;
 				double newPhase = math::fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 				std::pair<float, float> bleps{ 0.0f,0.0f };
@@ -335,9 +335,9 @@ namespace WaveSabreCore
 				return 1;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				waveshape = 1 - waveshape;
@@ -414,9 +414,9 @@ namespace WaveSabreCore
 				//);
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 
 				mShape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 
@@ -462,9 +462,9 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				this->mShape = math::lerp(0.98f, .02f, waveshape);
 			}
 
@@ -510,9 +510,9 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = math::lerp(1, 0.1f, waveshape);
 			}
@@ -535,10 +535,9 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				mShape = math::lerp(1, 0.1f, waveshape);
 			}
 
@@ -570,9 +569,9 @@ namespace WaveSabreCore
 		/////////////////////////////////////////////////////////////////////////////
 		struct VarTriWaveform :IOscillatorWaveform
 		{
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				this->mShape = math::lerp(0.99f, .01f, waveshape); // just prevent div0
 			}
 
@@ -622,9 +621,9 @@ namespace WaveSabreCore
 			float mT3 = 0;
 			float mT4 = 0;
 
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				this->mShape = math::lerp(0.95f, .05f, waveshape);
 				mT2 = mShape / 2;
@@ -657,9 +656,9 @@ namespace WaveSabreCore
 		/////////////////////////////////////////////////////////////////////////////
 		struct SineAsymWaveform :IOscillatorWaveform
 		{
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				mShape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = math::lerp(.5f, 0.03f, mShape * mShape); // prevent div0
 			}
@@ -684,9 +683,9 @@ namespace WaveSabreCore
 		/////////////////////////////////////////////////////////////////////////////
 		struct SineTruncWaveform :IOscillatorWaveform
 		{
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = math::lerp(0.97f, 0.03f, waveshape); // prevent div0
 			}
@@ -719,9 +718,9 @@ namespace WaveSabreCore
 		/////////////////////////////////////////////////////////////////////////////
 		struct TriClipWaveform :IOscillatorWaveform
 		{
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = math::lerp(0.97f, 0.03f, waveshape);
 				mDCOffset = -.5;//-.5 * this.shape;
@@ -794,10 +793,9 @@ namespace WaveSabreCore
 			float mT1 = 0;
 			float mT2 = 0;
 			float mT3 = 0;
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = math::lerp(0, .49f, waveshape * waveshape);
 
@@ -889,10 +887,9 @@ namespace WaveSabreCore
 		/////////////////////////////////////////////////////////////////////////////
 		struct TriTruncWaveform :IOscillatorWaveform
 		{
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate, samplesInBlock);
-
+				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				mShape = math::lerp(0.97f, .03f, waveshape);
 			}
@@ -971,10 +968,9 @@ namespace WaveSabreCore
 			{
 			}
 
-			virtual void SetParams(float freq, float phaseOffset, float width, float sampleRate, int samplesInBlock) override
+			virtual void SetParams(float freq, float phaseOffset, float width, double sampleRate) override
 			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, width, sampleRate, samplesInBlock);
-
+				IOscillatorWaveform::SetParams(freq, phaseOffset, width, sampleRate);
 				float remainingSpace = 1 - 2 * mSlope;
 				mWidth = width * remainingSpace;
 
@@ -1174,7 +1170,7 @@ namespace WaveSabreCore
 			// voice-level state
 			double mPhase = 0;
 			double mPhaseIncrement = 0; // DT
-			double mDTDT = 0; // to smooth frequency changes without having expensive recalc frequency every sample, just linearly adjust phaseincrement (DT) every sample over the block.
+			//double mDTDT = 0; // to smooth frequency changes without having expensive recalc frequency every sample, just linearly adjust phaseincrement (DT) every sample over the block.
 			float mCurrentSample = 0;
 			float mOutSample = 0;
 			float mPrevSample = 0;
@@ -1221,28 +1217,25 @@ namespace WaveSabreCore
 				mpSlaveWave->mPhase = phase01;
 			}
 
-			virtual void BeginBlock(real_t midiNote, float detuneFreqMul, float fmScale, int samplesInBlock) override
+
+			virtual void NoteOn(bool legato) override
+			{
+				if (legato) return;
+				if (mpOscDevice->mPhaseRestart.GetBoolValue()) {
+					mpSlaveWave->OSC_RESTART(0);
+					mPhase = math::fract(mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal));
+				}
+			}
+
+			virtual void NoteOff() override {}
+
+			int mSamplesInBlock = 0;
+
+			virtual void BeginBlock(int samplesInBlock) override
 			{
 				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
 					return;
 				}
-				switch (mpOscDevice->mIntention) {
-				case OscillatorIntention::LFO:
-					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam, 0);
-					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape, 0);
-					break;
-				case OscillatorIntention::Audio:
-					mSyncFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::SyncFrequency, 0);
-					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FrequencyParam, 0);
-					mFMFeedbackModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FMFeedback, 0);
-					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Waveshape, 0);
-					mPhaseModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Phase, 0);
-					mPitchFineModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine, 0);
-
-					mFMFeedbackAmt = mpOscDevice->mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
-					break;
-				}
-
 				switch (mpOscDevice->mWaveform.GetEnumValue()) {
 				case OscillatorWaveform::Pulse:
 					mpSlaveWave = &mPulsePWMWaveform;
@@ -1288,6 +1281,31 @@ namespace WaveSabreCore
 					mpSlaveWave = &mWhiteNoiseWaveform;
 					break;
 				}
+			}
+
+			real_t ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount, bool forceSilence)
+			{
+				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
+					mOutSample = mCurrentSample = 0;
+					return 0;
+				}
+
+				switch (mpOscDevice->mIntention) {
+				case OscillatorIntention::LFO:
+					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
+					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
+					break;
+				case OscillatorIntention::Audio:
+					mSyncFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::SyncFrequency);
+					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FrequencyParam);
+					mFMFeedbackModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FMFeedback);
+					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Waveshape);
+					mPhaseModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Phase);
+					mPitchFineModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
+
+					mFMFeedbackAmt = mpOscDevice->mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
+					break;
+				}
 
 				// - osc pitch semis                  note         oscillator                  
 				// - osc fine (semis)                 note         oscillator                   
@@ -1307,31 +1325,12 @@ namespace WaveSabreCore
 				mCurrentFreq = freq;
 
 				double newDT = (double)freq / Helpers::CurrentSampleRate;
-				mDTDT = (newDT - mPhaseIncrement) / samplesInBlock;
+				//mDTDT = (newDT - mPhaseIncrement) / samplesInBlock;
 				//mDTDT = 0;
-				//mPhaseIncrement = newDT;
+				mPhaseIncrement = newDT;
 
 				float slaveFreq = mpOscDevice->mSyncEnable.GetBoolValue() ? mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
-				mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal), mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRateF, samplesInBlock);
-			}
-
-			virtual void NoteOn(bool legato) override
-			{
-				if (legato) return;
-				if (mpOscDevice->mPhaseRestart.GetBoolValue()) {
-					mpSlaveWave->OSC_RESTART(0);
-					mPhase = math::fract(mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal));
-				}
-			}
-
-			virtual void NoteOff() override {}
-
-			real_t ProcessSample(size_t bufferPos, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount, bool forceSilence)
-			{
-				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
-					mOutSample = mCurrentSample = 0;
-					return 0;
-				}
+				mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal), mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate);
 
 				mPrevSample = mCurrentSample;// THIS sample.
 				mCurrentSample = 0; // a value that gets added to the next sample
@@ -1342,7 +1341,7 @@ namespace WaveSabreCore
 				// mSlaveWave holds the slave phase, bound by sync frequency.
 
 				// Push master phase forward by full sample.
-				mPhaseIncrement += mDTDT;
+				//mPhaseIncrement += mDTDT;
 				mPhase = math::fract(mPhase + mPhaseIncrement);
 
 				if (forceSilence) {

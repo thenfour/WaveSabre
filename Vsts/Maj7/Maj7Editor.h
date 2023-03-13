@@ -1296,7 +1296,7 @@ public:
 
 		// freq & samplerate should be set such that we have `width` samples per 1 cycle.
 		// samples per cycle = srate / freq
-		pWaveform->SetParams(1, 0, waveshape01, bb.GetWidth(), 1);
+		pWaveform->SetParams(1, 0, waveshape01, bb.GetWidth());
 		//pWaveform->OSC_RESTART(0);
 
 		ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();

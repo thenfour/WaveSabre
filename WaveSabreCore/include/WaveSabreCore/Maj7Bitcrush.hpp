@@ -35,7 +35,7 @@ namespace WaveSabreCore
 
             virtual void AuxBeginBlock(float noteHz, int nSamples, ModMatrixNode& modMatrix) override
             {
-                double freq = mFreqParam.GetFrequency(noteHz, modMatrix.GetDestinationValue(mModDestParam2ID + (int)BitcrushAuxModIndexOffsets::Freq, 0));
+                double freq = mFreqParam.GetFrequency(noteHz, modMatrix.GetDestinationValue(mModDestParam2ID + (int)BitcrushAuxModIndexOffsets::Freq));
                 double newdt = freq / Helpers::CurrentSampleRate;
                 ddt = (newdt - dt) / nSamples;
             }

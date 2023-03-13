@@ -156,9 +156,9 @@ namespace WaveSabreCore
                 mFilter.SetParams(
                     // TODO: apply mods
                     mFilterTypeParam.GetEnumValue(),
-                    mFilterFreqParam.GetFrequency(noteHz, modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq, 0)),
-                    mFilterQParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q, 0)),
-                    mFilterSaturationParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Saturation, 0))
+                    mFilterFreqParam.GetFrequency(noteHz, modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq)),
+                    mFilterQParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q)),
+                    mFilterSaturationParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Saturation))
                 );
             }
 

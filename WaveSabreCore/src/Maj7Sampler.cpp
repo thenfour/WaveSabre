@@ -309,7 +309,7 @@ namespace WaveSabreCore
 				mNoteIsOn = false;
 			}
 
-			void SamplerVoice::BeginBlock(real_t midiNote, float detuneFreqMul, float fmScale, int samplesInBlock) 
+			void SamplerVoice::BeginBlock(/*real_t midiNote, float detuneFreqMul, float fmScale,*/ int samplesInBlock)
 			{
 				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
 					return;
@@ -321,8 +321,12 @@ namespace WaveSabreCore
 				ConfigPlayer();
 				mSamplePlayer.RunPrep();
 
-				float pitchFineMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine, 0);
-				float freqMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam, 0);
+			}
+
+			float SamplerVoice::ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale)
+			{
+				float pitchFineMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
+				float freqMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
 
 				midiNote += mpSamplerDevice->mPitchSemisParam.GetIntValue() + mpSamplerDevice->mPitchFineParam.GetN11Value(pitchFineMod) * gSourcePitchFineRangeSemis;
 				float noteHz = math::MIDINoteToFreq(midiNote);
@@ -332,10 +336,7 @@ namespace WaveSabreCore
 				float rate = freq * mpSamplerDevice->mSampleRateCorrectionFactor;
 
 				mSamplePlayer.SetPlayRate(rate);
-			}
 
-			float SamplerVoice::ProcessSample(size_t iSample)
-			{
 				return math::clamp(mSamplePlayer.Next(), -1, 1); // clamp addresses craz glitch when changing samples.
 			}
 
