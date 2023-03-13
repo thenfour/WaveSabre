@@ -202,7 +202,7 @@ namespace WaveSabreCore
 
 			// advances cursor; call this at the end of buffer processing. next buffer will call
 			// GetCurrentMidiNote() then.
-			void Advance(size_t nSamples, float timeMod, float curveMod) {
+			void Advance(size_t nSamples, float timeMod) {
 				if (!mEngaged) {
 					return;
 				}
@@ -213,7 +213,7 @@ namespace WaveSabreCore
 					NoteOn(mTargetNote, true); // disengages
 					return;
 				}
-				t = mCurve.ApplyToValue(t, curveMod);
+				t = mCurve.ApplyToValue(t, 0);
 				mCurrentNote = math::lerp(mSourceNote, mTargetNote, t);
 			}
 
@@ -361,17 +361,17 @@ namespace WaveSabreCore
 			// these values are at the device level (not voice level), but yet they can be modulated by voice-level things.
 			// for exmaple you could map Velocity to unisono detune. Well it should be clear that this doesn't make much sense,
 			// except for maybe monophonic mode? So they are evaluated at the voice level but ultimately stored here.
-			real_t mOscillatorDetuneMod = 0;
-			real_t mUnisonoDetuneMod = 0;
-			real_t mOscillatorStereoSpreadMod = 0;
-			real_t mUnisonoStereoSpreadMod = 0;
+			//real_t mOscillatorDetuneMod = 0;
+			//real_t mUnisonoDetuneMod = 0;
+			//real_t mOscillatorStereoSpreadMod = 0;
+			//real_t mUnisonoStereoSpreadMod = 0;
 			//real_t mOscillatorShapeSpreadMod = 0;
 			//real_t mUnisonoShapeSpreadMod = 0;
 			real_t mFMBrightnessMod = 0;
 			real_t mPortamentoTimeMod = 0;
-			real_t mPortamentoCurveMod = 0;
+			//real_t mPortamentoCurveMod = 0;
 
-			float mAuxWidthMod = 0;
+			//float mAuxWidthMod = 0;
 
 			Maj7() :
 				Maj7SynthDevice((int)ParamIndices::NumParams)
@@ -569,21 +569,21 @@ namespace WaveSabreCore
 
 				// scale down per param & mod
 				for (size_t i = 0; i < mVoicesUnisono; ++i) {
-					mUnisonoPanAmts[i] = mUnisonoDetuneAmts[i] * (mParamCache[(int)ParamIndices::UnisonoStereoSpread] + mUnisonoStereoSpreadMod);
-					mUnisonoDetuneAmts[i] *= mParamCache[(int)ParamIndices::UnisonoDetune] + mUnisonoDetuneMod;
+					mUnisonoPanAmts[i] = mUnisonoDetuneAmts[i] * (mParamCache[(int)ParamIndices::UnisonoStereoSpread] /*+ mUnisonoStereoSpreadMod*/);
+					mUnisonoDetuneAmts[i] *= mParamCache[(int)ParamIndices::UnisonoDetune] /*+ mUnisonoDetuneMod*/;
 				}
 
 				// when aux width is 0, they are both mono. it means pan of 0 for both aux routes.
 				// when aux width is +1, auxroute 0 becomes -1 and auxroute 1 becomes +1, fully separating the channels
-				auto auxGains = math::PanToFactor(mAuxWidth.GetN11Value(mAuxWidthMod));
+				auto auxGains = math::PanToFactor(mAuxWidth.GetN11Value(/*mAuxWidthMod*/));
 				mAuxOutputGains[1] = auxGains.first;
 				mAuxOutputGains[0] = auxGains.second;
 
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					auto* src = mSources[i];
 					// for the moment mOscDetuneAmts[i] is just a generic spread value.
-					src->mAuxPanDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorSpread] + mOscillatorStereoSpreadMod);
-					src->mDetuneDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorDetune] + mOscillatorDetuneMod);
+					src->mAuxPanDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorSpread] /*+ mOscillatorStereoSpreadMod*/);
+					src->mDetuneDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorDetune]/* + mOscillatorDetuneMod*/);
 					src->BeginBlock(numSamples);
 				}
 
@@ -702,13 +702,6 @@ namespace WaveSabreCore
 					&mModEnv2,
 				};
 
-				//OscillatorNode* mpAllOscillators[gOscillatorCount] = {
-				//	&mOscillator1,
-				//	& mOscillator2,
-				//	& mOscillator3,
-				//	& mOscillator4,
-				//};
-
 				ISoundSourceDevice::Voice* mSourceVoices[gSourceCount] = {
 					&mOscillator1,
 					&mOscillator2,
@@ -731,7 +724,7 @@ namespace WaveSabreCore
 					&mAux4,
 				};
 
-				float mMidiNote;
+				float mMidiNote = 0;
 
 				void BeginBlock(int numSamples)
 				{
@@ -777,14 +770,14 @@ namespace WaveSabreCore
 
 					// set device-level modded values.
 					if (!mpOwner->mDeviceModSourceValuesSetThisFrame) {
-						mpOwner->mOscillatorDetuneMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorDetune);
-						mpOwner->mUnisonoDetuneMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoDetune);
-						mpOwner->mOscillatorStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorStereoSpread);
-						mpOwner->mAuxWidthMod = mModMatrix.GetDestinationValue(ModDestination::AuxWidth);
-						mpOwner->mUnisonoStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoStereoSpread);
+						//mpOwner->mOscillatorDetuneMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorDetune);
+						//mpOwner->mUnisonoDetuneMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoDetune);
+						//mpOwner->mOscillatorStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorStereoSpread);
+						//mpOwner->mAuxWidthMod = mModMatrix.GetDestinationValue(ModDestination::AuxWidth);
+						//mpOwner->mUnisonoStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoStereoSpread);
 						mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness);
 						mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
-						mpOwner->mPortamentoCurveMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve);
+						//mpOwner->mPortamentoCurveMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve);
 
 						mpOwner->mDeviceModSourceValuesSetThisFrame = true;
 					}
@@ -925,8 +918,7 @@ namespace WaveSabreCore
 					s[1] += sl * mpOwner->mAuxOutputGains[1] + sr * mpOwner->mAuxOutputGains[0];
 
 					mPortamento.Advance(1,
-						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime),
-						mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve)
+						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime)
 					);
 				}
 

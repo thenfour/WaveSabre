@@ -141,6 +141,7 @@ namespace WaveSabreCore
             case EnvelopeStage::Release: {
                 // 0-1 => mReleaseFromValue01 - 0
                 // curve contained within the stage, not the output 0-1 range.
+                //ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01);
                 ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));// gModCurveLUT.Transfer32(1.0f - mStagePos01, mpLutRow); // 1-0
                 ret = ret * mReleaseFromValue01;
                 nextStage = EnvelopeStage::Idle;

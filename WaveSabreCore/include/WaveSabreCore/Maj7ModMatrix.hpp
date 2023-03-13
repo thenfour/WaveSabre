@@ -87,17 +87,8 @@ namespace WaveSabreCore
 		enum class ModDestination : uint8_t
 		{
 			None,
-			OscillatorDetune, // krate, 01
-			UnisonoDetune, // krate, 01
-			OscillatorStereoSpread, // krate, 01
-			UnisonoStereoSpread, // krate, 01
-			//OscillatorShapeSpread, // krate, 01
-			//UnisonoShapeSpread, // krate, 01
 			FMBrightness, // krate, 01
-			AuxWidth, // N11
-
 			PortamentoTime, // krate, 01
-			PortamentoCurve, // krate, N11
 
 			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
 			Osc1Volume, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
@@ -353,14 +344,8 @@ namespace WaveSabreCore
 		// size-optimize using macro
 #define MOD_DEST_CAPTIONS { \
 			"None", \
-			"OscillatorDetune", \
-			"UnisonoDetune", \
-			"OscillatorStereoSpread", \
-			"UnisonoStereoSpread", \
 			"FMBrightness", \
-			"AuxWidth", \
 			"PortamentoTime", \
-			"PortamentoCurve", \
 			"Osc1Volume", \
 			"Osc1PreFMVolume", \
 			"Osc1Waveshape", \
