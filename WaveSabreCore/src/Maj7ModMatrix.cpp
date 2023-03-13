@@ -29,17 +29,21 @@ namespace WaveSabreCore
 				delete[] mpBuffer;
 			}
 
-			void ModMatrixBuffers::Reset(size_t blockSize) {
+			void ModMatrixBuffers::Reset(size_t blockSize, bool zero) {
 				size_t desiredElements = gEndpointCount * blockSize;
 				if (mElementsAllocated < desiredElements) {
+					auto newBuffer = new real_t[desiredElements];
+					memcpy(newBuffer, mpBuffer, sizeof(*mpBuffer) * mElementsAllocated);
 					delete[] mpBuffer;
-					mpBuffer = new real_t[desiredElements];
+					mpBuffer = newBuffer;
 					mElementsAllocated = desiredElements;
 				}
 				mBlockSize = blockSize;
-				memset(mpBuffer, 0, desiredElements * sizeof(mpBuffer[0]));
-				memset(mpKRateValues, 0, std::size(mpKRateValues) * sizeof(mpKRateValues[0]));
-				memset(mpARatePopulated, 0, std::size(mpARatePopulated) * sizeof(mpARatePopulated[0]));
+				if (zero) {
+					memset(mpBuffer, 0, desiredElements * sizeof(mpBuffer[0]));
+					memset(mpKRateValues, 0, std::size(mpKRateValues) * sizeof(mpKRateValues[0]));
+					memset(mpARatePopulated, 0, std::size(mpARatePopulated) * sizeof(mpARatePopulated[0]));
+				}
 				//memset(mpKRatePopulated, 0, std::size(mpKRatePopulated) * sizeof(mpKRatePopulated[0]));
 			}
 
@@ -79,8 +83,8 @@ namespace WaveSabreCore
 			// call at the beginning of audio block processing to allocate & zero all buffers, preparing for source value population.
 			void ModMatrixNode::InitBlock(size_t nSamples)
 			{
-				mSource.Reset(nSamples);
-				mDest.Reset(nSamples);
+				mSource.Reset(nSamples, false);
+				mDest.Reset(nSamples, true);
 			}
 
 			float ModMatrixNode::InvertValue(float val, const BoolParam& invertParam, const ModSource modSource)

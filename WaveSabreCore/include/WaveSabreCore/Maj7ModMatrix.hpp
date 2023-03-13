@@ -605,7 +605,7 @@ namespace WaveSabreCore
 			ModMatrixBuffers(size_t modulationEndpointCount);
 
 			~ModMatrixBuffers();
-			void Reset(size_t blockSize);
+			void Reset(size_t blockSize, bool zero);
 			void SetARateValue(size_t id, size_t iSample, real_t val);
 
 			void SetKRateValue(size_t id, real_t val);
