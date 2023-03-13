@@ -786,101 +786,101 @@ namespace WaveSabreCore
 		};
 
 
-		/////////////////////////////////////////////////////////////////////////////
-		struct TriSquareWaveform :IOscillatorWaveform
-		{
-			float mT1 = 0;
-			float mT2 = 0;
-			float mT3 = 0;
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
-			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
-				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = math::lerp(0, .49f, waveshape * waveshape);
+		///////////////////////////////////////////////////////////////////////////////
+		//struct TriSquareWaveform :IOscillatorWaveform
+		//{
+		//	float mT1 = 0;
+		//	float mT2 = 0;
+		//	float mT3 = 0;
+		//	virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
+		//	{
+		//		IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+		//		waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+		//		mShape = math::lerp(0, .49f, waveshape * waveshape);
 
-				mT1 = .5f - mShape;
-				mT2 = .5f;
-				mT3 = 1 - mShape;
-			}
+		//		mT1 = .5f - mShape;
+		//		mT2 = .5f;
+		//		mT3 = 1 - mShape;
+		//	}
 
-			virtual float NaiveSample(float t) override
-			{
-				/*
-				  // my original impl created a tall triangle wave, and then clipped it.
-				  // that is elegant, but when dealing with fixed point arith, those amplitudes will definitely get out of bounds.
-				  // and i don't want to rely on saturating arith.
-				  // so as with the others, let's REMAKE it.
+		//	virtual float NaiveSample(float t) override
+		//	{
+		//		/*
+		//		  // my original impl created a tall triangle wave, and then clipped it.
+		//		  // that is elegant, but when dealing with fixed point arith, those amplitudes will definitely get out of bounds.
+		//		  // and i don't want to rely on saturating arith.
+		//		  // so as with the others, let's REMAKE it.
 
-				  //         shape describes the width of the flat areas.
-				  //         0<shape<0.5. shape cannot be 0.5 exactly; it must be minus at least 1 sample length
-				  //       1-|    /````\
-				  //         |   /      \
-				  //       0-|  /        \
-				  //         | /          \
-				  //      -1-|/            \____
-				  //          ^    <==>     <==>
-				  //          ^   t1  t2    t3  ^
-				  //          0       .5        1
-				  //          t2-t1 = 1-t3 = shape
-				  //          t1-t0 = (1-shape*2)/2 = .5-shape
-				  //          slope = 2 / shape
-				  (t<this.t1) ? (
-					(t/this.t1)*2-1
-				  ):(t<this.t2)?(
-					1
-				  ):(t<this.t3)?(
-					1-(t-.5)/this.t1*2
-				  ):(
-					-1
-				  );
-				*/
-				if (t < mT1) {
-					return (t / mT1) * 2 - 1;
-				}
-				if (t < mT2) {
-					return 1;
-				}
-				if (t < mT3) {
-					return 1 - (t - 0.5f) / mT1 * 2;
-				}
-				return -1;
-			}
+		//		  //         shape describes the width of the flat areas.
+		//		  //         0<shape<0.5. shape cannot be 0.5 exactly; it must be minus at least 1 sample length
+		//		  //       1-|    /````\
+		//		  //         |   /      \
+		//		  //       0-|  /        \
+		//		  //         | /          \
+		//		  //      -1-|/            \____
+		//		  //          ^    <==>     <==>
+		//		  //          ^   t1  t2    t3  ^
+		//		  //          0       .5        1
+		//		  //          t2-t1 = 1-t3 = shape
+		//		  //          t1-t0 = (1-shape*2)/2 = .5-shape
+		//		  //          slope = 2 / shape
+		//		  (t<this.t1) ? (
+		//			(t/this.t1)*2-1
+		//		  ):(t<this.t2)?(
+		//			1
+		//		  ):(t<this.t3)?(
+		//			1-(t-.5)/this.t1*2
+		//		  ):(
+		//			-1
+		//		  );
+		//		*/
+		//		if (t < mT1) {
+		//			return (t / mT1) * 2 - 1;
+		//		}
+		//		if (t < mT2) {
+		//			return 1;
+		//		}
+		//		if (t < mT3) {
+		//			return 1 - (t - 0.5f) / mT1 * 2;
+		//		}
+		//		return -1;
+		//	}
 
-			virtual float NaiveSampleSlope(float t) override
-			{
-				/*
-				  (t<this.t1) ? (
-					1/this.t1;
-				  ):(t<this.t2)?(
-					0
-				  ):(t<this.t3)?(
-					-1/this.t1;
-				  ):(
-					0
-				  );
-				*/
-				if (t < mT1) {
-					return 1 / mT1;
-				}
-				if (t < mT2) {
-					return 0;
-				}
-				if (t < mT3) {
-					return -1 / mT1;
-				}
-				return 0;
-			}
+		//	virtual float NaiveSampleSlope(float t) override
+		//	{
+		//		/*
+		//		  (t<this.t1) ? (
+		//			1/this.t1;
+		//		  ):(t<this.t2)?(
+		//			0
+		//		  ):(t<this.t3)?(
+		//			-1/this.t1;
+		//		  ):(
+		//			0
+		//		  );
+		//		*/
+		//		if (t < mT1) {
+		//			return 1 / mT1;
+		//		}
+		//		if (t < mT2) {
+		//			return 0;
+		//		}
+		//		if (t < mT3) {
+		//			return -1 / mT1;
+		//		}
+		//		return 0;
+		//	}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
-			{
-				float scale = float(mPhaseIncrement / mT1);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT1/*edge*/, -scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT2/*edge*/, -scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT3/*edge*/, scale, samples, samplesTillNextSample);
-			}
+		//	virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+		//	{
+		//		float scale = float(mPhaseIncrement / mT1);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT1/*edge*/, -scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT2/*edge*/, -scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT3/*edge*/, scale, samples, samplesTillNextSample);
+		//	}
 
-		};
+		//};
 
 
 		/////////////////////////////////////////////////////////////////////////////
@@ -959,7 +959,7 @@ namespace WaveSabreCore
 			float mT1 = 0;
 			float mT2 = 0;
 			float mT3 = 0;
-			const float mSlope = 0.1f; // 0, .5 range., avoid div0!
+			float mSlope = 0.1f; // 0, .5 range., avoid div0!
 			float mWidth = 0;
 
 			VarTrapezoidWaveform(float slope01) :
@@ -1053,6 +1053,20 @@ namespace WaveSabreCore
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT1/*edge*/, -scale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT2/*edge*/, scale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT3/*edge*/, scale, samples, samplesTillNextSample);
+			}
+		};
+
+		struct TriSquareWaveform :VarTrapezoidWaveform
+		{
+			TriSquareWaveform() : VarTrapezoidWaveform(0.5f)
+			{
+			}
+
+			virtual void SetParams(float freq, float phaseOffset, float slope, double sampleRate) override
+			{
+				slope = std::abs(slope * 2 - 1); // create reflection to make bipolar
+				mSlope = math::lerp(0.5f, 0.015f, math::sqrt01(slope));
+				VarTrapezoidWaveform::SetParams(freq, phaseOffset, 0.5f, sampleRate);
 			}
 		};
 
