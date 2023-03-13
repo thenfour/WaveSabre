@@ -13,67 +13,11 @@ namespace WaveSabreCore
         {
             MoogLadderFilter()
             {
-                m_LPF1.SetParams(FilterType::LP, 0, 0, 0);
-                m_LPF2.SetParams(FilterType::LP, 0, 0, 0);
-                m_LPF3.SetParams(FilterType::LP, 0, 0, 0);
-                m_LPF4.SetParams(FilterType::LP, 0, 0, 0);
+                for (auto& lpf : m_LPF) {
+                    lpf.SetParams(FilterType::LP, 0, 0, 0);
+                }
             }
 
-
-            //// IFilter
-            //virtual void SetType(FilterType type) override
-            //{
-            //    if (m_FilterType == type)
-            //        return;
-            //    switch (type)
-            //    {
-            //    default:
-            //    case FilterType::LP:
-            //        m_FilterType = FilterType::LP4;
-            //        Recalc();
-            //        break;
-            //    case FilterType::BP:
-            //        m_FilterType = FilterType::BP4;
-            //        Recalc();
-            //        break;
-            //    case FilterType::HP:
-            //        m_FilterType = FilterType::HP4;
-            //        Recalc();
-            //        break;
-            //    case FilterType::LP2:
-            //    case FilterType::LP4:
-            //    case FilterType::BP2:
-            //    case FilterType::BP4:
-            //    case FilterType::HP2:
-            //    case FilterType::HP4:
-            //        m_FilterType = type;
-            //        Recalc();
-            //        break;
-            //    }
-            //}
-
-            //virtual FilterCapabilities GetCapabilities() override
-            //{
-            //    return (FilterCapabilities)((int)FilterCapabilities::Resonance | (int)FilterCapabilities::Saturation);
-            //}
-
-            //virtual void SetCutoffFrequency(real hz) override
-            //{
-            //    if (FloatEquals(m_cutoffHz, hz))
-            //        return;
-            //    m_cutoffHz = hz;
-            //    Recalc();
-            //}
-
-            //virtual void SetSaturation(real amt) override
-            //{
-            //    if (FloatEquals(m_overdrive, amt))
-            //        return;
-            //    m_overdrive = amt;
-            //    Recalc();
-            //}
-
-            // 0-1
             virtual void SetResonance(real p_res)
             {
                 if (math::FloatEquals(p_res, m_resonance))
@@ -123,54 +67,40 @@ namespace WaveSabreCore
                 Recalc();
             }
 
-            //virtual void ProcessInPlace(real* samples, size_t sampleCount) override
-            //{
-            //    for (size_t i = 0; i < sampleCount; ++i)
-            //    {
-            //        samples[i] = InlineProcessSample(samples[i]);
-            //    }
-            //}
-
             virtual real ProcessSample(real x) override
             {
                 return InlineProcessSample(x);
             }
-            //virtual void ProcessInPlace(real* samplesL, real* samplesR, size_t sampleCount) override
-            //{
-            //    for (size_t i = 0; i < sampleCount; ++i)
-            //    {
-            //        InlineProcessSample(samplesL[i], samplesR[i]);
-            //    }
-            //}
-            //virtual void ProcessSample(real& xnL, real& xnR) override
-            //{
-            //    return InlineProcessSample(xnL, xnR);
-            //}
 
             virtual void Reset() override
             {
-                m_LPF1.Reset();
-                m_LPF2.Reset();
-                m_LPF3.Reset();
-                m_LPF4.Reset();
+                for (auto& lpf : m_LPF) {
+                    lpf.Reset();
+                }
             }
 
             inline real InlineProcessSample(real xn)
             {
-                real dSigma = m_LPF1.getFeedbackOutputL() + m_LPF2.getFeedbackOutputL() + m_LPF3.getFeedbackOutputL() +
-                    m_LPF4.getFeedbackOutputL();
+                real dSigma = 0;
+                for (auto& lpf : m_LPF) {
+                    dSigma += lpf.getFeedbackOutputL();
+                }
 
                 // calculate input to first filter
-                real dU = (xn - m_k * dSigma) * m_alpha_0;
+                float dLP[5];
+                dLP[0] = (xn - m_k * dSigma) * m_alpha_0;
 
                 // --- cascade of 4 filters
-                real dLP1 = m_LPF1.InlineProcessSample(dU);
-                real dLP2 = m_LPF2.InlineProcessSample(dLP1);
-                real dLP3 = m_LPF3.InlineProcessSample(dLP2);
-                real dLP4 = m_LPF4.InlineProcessSample(dLP3);
+                float output = 0;
+                for (size_t i = 0; i < 4; ++i) {
+                    dLP[i + 1] = m_LPF[i].InlineProcessSample(dLP[i]);
+                    output += dLP[i] * mLetters[i];
+                }
+                output += dLP[4] * mLetters[4];
 
                 // --- Oberheim variations
-                real output = m_a * dU + m_b * dLP1 + m_c * dLP2 + m_d * dLP3 + m_e * dLP4;
+                //real output = m_a * dU + m_b * dLP1 + m_c * dLP2 + m_d * dLP3 + m_e * dLP4;
+                //real output = m_a * dLP[0] + m_b * dLP[1] + m_c * dLP[2] + m_d * dLP[3] + m_e * dLP[4];
 
                 applyOverdrive(output, m_overdrive, Real(3.5));
 
@@ -215,8 +145,14 @@ namespace WaveSabreCore
 
                 // note: measured input to tan function, it seemed limited to (0.005699, 1.282283).
                 // input for fasttan shall be limited to (-pi/2, pi/2) according to documentation
-                real wa = (2 * Helpers::CurrentSampleRateF) * math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
-                real g = wa * Helpers::CurrentSampleRateRecipF * Real(0.5);
+                //real wa = (2 * Helpers::CurrentSampleRateF) * math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
+                //real g = wa * Helpers::CurrentSampleRateRecipF * Real(0.5);
+
+                real g = math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
+                //real g = wa * Helpers::CurrentSampleRateRecipF * Real(0.5);
+
+                // wa = 2 * sr * tan
+                // g = wa / sr * 
 
                 // G - the feedforward coeff in the VA One Pole
                 //     same for LPF, HPF
@@ -224,19 +160,29 @@ namespace WaveSabreCore
                 real G = g * oneOver1plusg;
 
                 // set alphas
-                m_LPF1.m_alpha = G;
-                m_LPF2.m_alpha = G;
-                m_LPF3.m_alpha = G;
-                m_LPF4.m_alpha = G;
+                //for (auto& lpf : m_LPF) {
+                //    lpf.m_alpha = G;
+                //}
+                //m_LPF1.m_alpha = G;
+                //m_LPF2.m_alpha = G;
+                //m_LPF3.m_alpha = G;
+                //m_LPF4.m_alpha = G;
+
+                m_gamma = 1;
+                for (int i = 3; i >= 0; --i) {
+                    m_LPF[i].m_alpha = G;
+                    m_LPF[i].m_beta = m_gamma * oneOver1plusg;
+                    m_gamma *= G;
+                }
 
                 // set betas
-                const real GG = G * G;
-                m_LPF1.m_beta = GG * G * oneOver1plusg;
-                m_LPF2.m_beta = GG * oneOver1plusg;
-                m_LPF3.m_beta = G * oneOver1plusg;
-                m_LPF4.m_beta = Real1 * oneOver1plusg;
+                //const real GG = G * G;
+                //m_LPF1.m_beta = G * G * G * oneOver1plusg;
+                //m_LPF2.m_beta = G * G * oneOver1plusg;
+                //m_LPF3.m_beta = G * oneOver1plusg;
+                //m_LPF4.m_beta = oneOver1plusg;
 
-                m_gamma = GG * GG;
+                //m_gamma = G * G * G * G;
 
                 m_alpha_0 = Real1 / (Real1 + m_k * m_gamma);
 
@@ -245,48 +191,48 @@ namespace WaveSabreCore
                 {
                 case FilterType::LP:
                 case FilterType::LP4:
-                    m_a = Real(0.0);
-                    m_b = Real(0.0);
-                    m_c = Real(0.0);
-                    m_d = Real(0.0);
-                    m_e = Real(1.0);
+                    mLetters[0] = Real(0.0);
+                    mLetters[1] = Real(0.0);
+                    mLetters[2] = Real(0.0);
+                    mLetters[3] = Real(0.0);
+                    mLetters[4] = Real(1.0);
                     break;
                 case FilterType::LP2:
-                    m_a = Real(0.0);
-                    m_b = Real(0.0);
-                    m_c = Real(1.0);
-                    m_d = Real(0.0);
-                    m_e = Real(0.0);
+                    mLetters[0] = Real(0.0);
+                    mLetters[1] = Real(0.0);
+                    mLetters[2] = Real(1.0);
+                    mLetters[3] = Real(0.0);
+                    mLetters[4] = Real(0.0);
                     break;
                 case FilterType::BP:
                 case FilterType::BP4:
-                    m_a = Real(0.0);
-                    m_b = Real(0.0);
-                    m_c = Real(4.0);
-                    m_d = Real(-8.0);
-                    m_e = Real(4.0);
+                    mLetters[0] = Real(0.0);
+                    mLetters[1] = Real(0.0);
+                    mLetters[2] = Real(4.0);
+                    mLetters[3] = Real(-8.0);
+                    mLetters[4] = Real(4.0);
                     break;
                 case FilterType::BP2:
-                    m_a = Real(0.0);
-                    m_b = Real(2.0);
-                    m_c = Real(-2.0);
-                    m_d = Real(0.0);
-                    m_e = Real(0.0);
+                    mLetters[0] = Real(0.0);
+                    mLetters[1] = Real(2.0);
+                    mLetters[2] = Real(-2.0);
+                    mLetters[3] = Real(0.0);
+                    mLetters[4] = Real(0.0);
                     break;
                 case FilterType::HP:
                 case FilterType::HP4:
-                    m_a = Real(1.0);
-                    m_b = Real(-4.0);
-                    m_c = Real(6.0);
-                    m_d = Real(-4.0);
-                    m_e = Real(1.0);
+                    mLetters[0] = Real(1.0);
+                    mLetters[1] = Real(-4.0);
+                    mLetters[2] = Real(6.0);
+                    mLetters[3] = Real(-4.0);
+                    mLetters[4] = Real(1.0);
                     break;
                 case FilterType::HP2:
-                    m_a = Real(1.0);
-                    m_b = Real(-2.0);
-                    m_c = Real(1.0);
-                    m_d = Real(0.0);
-                    m_e = Real(0.0);
+                    mLetters[0] = Real(1.0);
+                    mLetters[1] = Real(-2.0);
+                    mLetters[2] = Real(1.0);
+                    mLetters[3] = Real(0.0);
+                    mLetters[4] = Real(0.0);
                     break;
                 }
             }
@@ -297,21 +243,19 @@ namespace WaveSabreCore
 
             real m_resonance = Real(-1); // cached resonance for knowing when recalc is not needed.
 
-            OnePoleFilter m_LPF1;
-            OnePoleFilter m_LPF2;
-            OnePoleFilter m_LPF3;
-            OnePoleFilter m_LPF4;
+            OnePoleFilter m_LPF[4];
 
             real m_k = 0;       // K, set with Q
-            real m_gamma;       // see block diagram
+            real m_gamma = 0;       // see block diagram
             real m_alpha_0 = 1; // see block diagram
 
             // Oberheim Xpander variations
-            real m_a = 0;
-            real m_b = 0;
-            real m_c = 0;
-            real m_d = 0;
-            real m_e = 0;
+            //real m_a = 0;
+            //real m_b = 0;
+            //real m_c = 0;
+            //real m_d = 0;
+            //real m_e = 0;
+            float mLetters[5] = { 0 };
         };
     } // namespace M7
 } // namespace WaveSabreCore

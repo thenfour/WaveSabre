@@ -617,7 +617,7 @@ namespace WaveSabreCore
 		struct PulseTristateWaveform :IOscillatorWaveform
 		{
 			float mT2 = 0;
-			float mT3 = 0;
+			static constexpr float mT3 = 0.5f;
 			float mT4 = 0;
 
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
@@ -626,7 +626,7 @@ namespace WaveSabreCore
 				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
 				this->mShape = math::lerp(0.95f, .05f, waveshape);
 				mT2 = mShape / 2;
-				mT3 = .5f;
+				//mT3 = .5f;
 				mT4 = .5f + mT2;
 			}
 
@@ -1190,6 +1190,13 @@ namespace WaveSabreCore
 			float mFMFeedbackAmt = 0; // adjusted for global FM scale
 			float mCurrentFreq = 0;
 
+			float mFreqModVal = 0;
+			float mPitchFineModVal = 0;
+			float mWaveShapeModVal = 0;
+			float mSyncFreqModVal = 0;
+			float mFMFeedbackModVal = 0;
+			float mPhaseModVal = 0;
+
 			PulsePWMWaveform mPulsePWMWaveform;
 			PulseTristateWaveform mPulseTristateWaveform;
 			SawClipWaveform mSawClipWaveform;
@@ -1203,13 +1210,6 @@ namespace WaveSabreCore
 			VarTriWaveform mVarTriWaveform;
 			WhiteNoiseWaveform mWhiteNoiseWaveform;
 			IOscillatorWaveform* mpSlaveWave = &mSawClipWaveform;
-
-			float mFreqModVal = 0;
-			float mPitchFineModVal = 0;
-			float mWaveShapeModVal = 0;
-			float mSyncFreqModVal = 0;
-			float mFMFeedbackModVal = 0;
-			float mPhaseModVal = 0;
 
 			OscillatorNode(OscillatorDevice* pOscDevice, ModMatrixNode& modMatrix, EnvelopeNode* pAmpEnv) :
 				ISoundSourceDevice::Voice(pOscDevice, modMatrix, pAmpEnv),
@@ -1237,8 +1237,6 @@ namespace WaveSabreCore
 			}
 
 			virtual void NoteOff() override {}
-
-			int mSamplesInBlock = 0;
 
 			virtual void BeginBlock(int samplesInBlock) override
 			{
@@ -1383,7 +1381,7 @@ namespace WaveSabreCore
 
 				// current sample will be used on next sample (this is the 1-sample delay)
 				mCurrentSample += mpSlaveWave->NaiveSample(float(mpSlaveWave->mPhase + phaseMod));
-				mCurrentSample = math::clamp(mCurrentSample, -1, 1);
+				mCurrentSample = math::clamp(mCurrentSample, -1, 1); // prevent FM from going crazy.
 				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale;
 
 				return mOutSample;

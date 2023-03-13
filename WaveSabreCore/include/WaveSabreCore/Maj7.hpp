@@ -11,8 +11,6 @@
 // 
 // size-optimizations:
 // (profile w sizebench!)
-// - dont inline (use cpp)
-// - don't put GetChunk() or serialization code in size-optimized code. it's not used in WS runtime.
 // - use fixed-point in oscillators. there's absolutely no reason to be using chonky floating point instructions there.
 
 // Pitch params in order of processing:
@@ -28,22 +26,6 @@
 // - osc mul (Hz)                     hz           oscillator             
 // - osc detune (semis)               hz+semis     oscillator                         
 // - unisono detune (semis)           hz+semis     oscillator                             
-
-
-//  maj7 is 8kb bigger than the other stuff.
-
-// 4kb for adultery+slaughter+falcon
-// maj7 is about 12.5 kb by itself
-//case SongRenderer::DeviceId::Adultery: return new WaveSabreCore::Adultery(); // ~ 0.7 kb
-//case SongRenderer::DeviceId::Specimen: return new WaveSabreCore::Specimen(); // ~ 0.9 kb
-//case SongRenderer::DeviceId::Slaughter: return new WaveSabreCore::Slaughter(); // ~ 2.5 kb
-//case SongRenderer::DeviceId::Falcon: return new WaveSabreCore::Falcon(); // ~ 0.8 kb
-//case SongRenderer::DeviceId::Cathedral: return new WaveSabreCore::Cathedral();
-//case SongRenderer::DeviceId::Chamber: return new WaveSabreCore::Chamber();
-//case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
-//case SongRenderer::DeviceId::Echo: return new WaveSabreCore::Echo(); // ~ 0.7 kb (with maj7)
-//case SongRenderer::DeviceId::Leveller: return new WaveSabreCore::Leveller(); // ~ 0.8 kb
-// scissor is about 450 bytes
 
 #pragma once
 
@@ -327,6 +309,7 @@ namespace WaveSabreCore
 			// 1. the LFO is not triggered by notes.
 			// 2. the LFO has no modulations on its phase or frequency
 			ModMatrixNode mNullModMatrix;
+
 			OscillatorDevice mLFO1Device{ OscillatorIntentionLFO{}, mParamCache, ParamIndices::LFO1Waveform, ModDestination::LFO1Waveshape };
 			OscillatorDevice mLFO2Device{ OscillatorIntentionLFO{}, mParamCache, ParamIndices::LFO2Waveform, ModDestination::LFO2Waveshape };
 
@@ -361,17 +344,8 @@ namespace WaveSabreCore
 			// these values are at the device level (not voice level), but yet they can be modulated by voice-level things.
 			// for exmaple you could map Velocity to unisono detune. Well it should be clear that this doesn't make much sense,
 			// except for maybe monophonic mode? So they are evaluated at the voice level but ultimately stored here.
-			//real_t mOscillatorDetuneMod = 0;
-			//real_t mUnisonoDetuneMod = 0;
-			//real_t mOscillatorStereoSpreadMod = 0;
-			//real_t mUnisonoStereoSpreadMod = 0;
-			//real_t mOscillatorShapeSpreadMod = 0;
-			//real_t mUnisonoShapeSpreadMod = 0;
 			real_t mFMBrightnessMod = 0;
 			real_t mPortamentoTimeMod = 0;
-			//real_t mPortamentoCurveMod = 0;
-
-			//float mAuxWidthMod = 0;
 
 			Maj7() :
 				Maj7SynthDevice((int)ParamIndices::NumParams)

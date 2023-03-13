@@ -102,8 +102,9 @@ namespace WaveSabreCore
             {
                 real wd = PITimes2 * m_cutoffHz;
                 real T = Helpers::CurrentSampleRateRecipF;
-                real wa = (2 / T) * math::tan(wd * T / 2);
-                real g = wa * T / 2;
+                //real wa = (2 / T) * math::tan(wd * T / 2);
+                //real g = wa * T / 2;
+                float g = math::tan(wd * T / 2);
                 m_alpha = g / (Real(1) + g);
             }
         };
