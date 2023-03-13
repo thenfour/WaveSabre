@@ -291,7 +291,7 @@ namespace WaveSabreCore
 
 			Float01ParamArray mMacros { &mParamCache[(int)ParamIndices::Macro1], gMacroCount };
 
-			Float01ParamArray mFMMatrix{ &mParamCache[(int)ParamIndices::FMAmt1to2], gFMMatrixSize };
+			Float01ParamArray mFMMatrix{ &mParamCache[(int)ParamIndices::FMAmt2to1], gFMMatrixSize };
 
 			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness] };
 
@@ -606,15 +606,12 @@ namespace WaveSabreCore
 
 					for (auto* v : mMaj7Voice)
 					{
-						v->ProcessAndMix(s[0], s[1]);
+						v->ProcessAndMix(s);
 					}
 
 					for (size_t ioutput = 0; ioutput < 2; ++ioutput) {
-						s[ioutput] = mDCFilters[ioutput].ProcessSample(s[ioutput] * mMasterVolume.GetLinearGain());
+						outputs[ioutput][iSample] = mDCFilters[ioutput].ProcessSample(s[ioutput] * mMasterVolume.GetLinearGain());
 					}
-
-					outputs[0][iSample] = s[0];
-					outputs[1][iSample] = s[1];
 
 					// advance phase of master LFOs
 					mModLFO1Phase.ProcessSample(0, 1, 0, 0, 0, 0, 0, 0, 0, true);
@@ -704,6 +701,13 @@ namespace WaveSabreCore
 					&mModEnv1,
 					&mModEnv2,
 				};
+
+				//OscillatorNode* mpAllOscillators[gOscillatorCount] = {
+				//	&mOscillator1,
+				//	& mOscillator2,
+				//	& mOscillator3,
+				//	& mOscillator4,
+				//};
 
 				ISoundSourceDevice::Voice* mSourceVoices[gSourceCount] = {
 					&mOscillator1,
@@ -801,17 +805,14 @@ namespace WaveSabreCore
 					}
 				}
 
-				void ProcessAndMix(float& s1, float& s2)
+				void ProcessAndMix(float* s)
 				{
 					if (!this->IsPlaying()) {
 						return;
 					}
 
-					// process a-rate mod source buffers.
-					for (auto& srcVoice : mSourceVoices)
-					{
-						mModMatrix.SetSourceValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, srcVoice->mpAmpEnv->ProcessSample());
-					}
+					mModMatrix.ProcessSample(mpOwner->mModulations); // this sets dest values to 0.
+
 					mModMatrix.SetSourceValue(ModSource::ModEnv1, mModEnv1.ProcessSample());
 					mModMatrix.SetSourceValue(ModSource::ModEnv2, mModEnv2.ProcessSample());
 
@@ -823,14 +824,6 @@ namespace WaveSabreCore
 					l2 = mLFOFilter2.ProcessSample(l2);
 					mModMatrix.SetSourceValue(ModSource::LFO2, l2);
 
-					mModMatrix.ProcessSample(mpOwner->mModulations);
-
-					float globalFMScale = mpOwner->mFMBrightness.Get01Value(mpOwner->mFMBrightnessMod) * 2;
-					float FMScales[gFMMatrixSize];
-					for (size_t i = 0; i < gFMMatrixSize; ++i) {
-						FMScales[i] = mpOwner->mFMMatrix.Get01Value(i, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt1to2 + i)) * globalFMScale;
-					}
-
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 
@@ -840,15 +833,14 @@ namespace WaveSabreCore
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
+
+						mModMatrix.SetSourceValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, srcVoice->mpAmpEnv->ProcessSample());
+
 						if (!srcVoice->mpSrcDevice->mEnabledParam.GetBoolValue()) {
 							continue;
 						}
-						float semis = myUnisonoDetune + srcVoice->mpSrcDevice->mDetuneDeviceModAmt;// mpOwner->mOscDetuneAmts[i];
-						detuneMul[i] = math::SemisToFrequencyMul(semis);
-						//srcVoice->BeginBlock(midiNote, math::SemisToFrequencyMul(semis), globalFMScale, numSamples);
 
 						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
-						//VolumeParam outputVolParam{ mpOwner->mParamCache[(int)info.mOutputVolumeParamID], OscillatorNode::gVolumeMaxDb };
 
 						// treat panning as added to modulation value
 						float panParam = myUnisonoPan + srcVoice->mpSrcDevice->mAuxPanParam.GetN11Value(srcVoice->mpSrcDevice->mAuxPanDeviceModAmt + mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID)); // -1 would mean full Left, 1 is full Right.
@@ -859,50 +851,34 @@ namespace WaveSabreCore
 
 						float hiddenVolumeBacking = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mHiddenVolumeModDestID);
 						VolumeParam hiddenAmpParam{ hiddenVolumeBacking, 0 };
-						srcVoice->mAmpEnvGain = hiddenAmpParam.GetLinearGain(0);
+						float ampEnvGain = hiddenAmpParam.GetLinearGain(0);
+						srcVoice->mAmpEnvGain = ampEnvGain;
+						sourceValues[i] = srcVoice->GetLastSample() * ampEnvGain;
+
+						float semis = myUnisonoDetune + srcVoice->mpSrcDevice->mDetuneDeviceModAmt * 2;// mpOwner->mOscDetuneAmts[i];
+						float det = detuneMul[i] = math::SemisToFrequencyMul(semis);
+
+						if (i >= gOscillatorCount)
+						{
+							auto ps = static_cast<SamplerVoice*>(srcVoice);
+							sourceValues[i] = ps->ProcessSample(mMidiNote, det, 0) * ampEnvGain;
+						}
 					}
 
-					float osc2LastSample = mOscillator2.GetSample() * mOscillator2.mAmpEnvGain;
-					float osc3LastSample = mOscillator3.GetSample() * mOscillator3.mAmpEnvGain;
-					float osc4LastSample = mOscillator4.GetSample() * mOscillator4.mAmpEnvGain;
+					float globalFMScale = 3 * mpOwner->mFMBrightness.Get01Value(mpOwner->mFMBrightnessMod);
 
+					for (size_t i = 0; i < gOscillatorCount; ++i) {
+						auto* srcVoice = mSourceVoices[i];
+						auto po = static_cast<OscillatorNode*>(srcVoice);
+						const size_t x = i * (gOscillatorCount - 1);
 
-					sourceValues[0] = mOscillator1.ProcessSample(mMidiNote, detuneMul[0], globalFMScale,
-						osc2LastSample, FMScales[FMMatrixIndices::FMAmt2to1],
-						osc3LastSample, FMScales[FMMatrixIndices::FMAmt3to1],
-						osc4LastSample, FMScales[FMMatrixIndices::FMAmt4to1],
-						false
-					);
-					sourceValues[0] *= mOscillator1.mAmpEnvGain;
-
-					sourceValues[1] = mOscillator2.ProcessSample(mMidiNote, detuneMul[1], globalFMScale, 
-						sourceValues[0], FMScales[FMMatrixIndices::FMAmt1to2],
-						osc3LastSample, FMScales[FMMatrixIndices::FMAmt3to2],
-						osc4LastSample, FMScales[FMMatrixIndices::FMAmt4to2],
-						false
-					);
-					sourceValues[1] *= mOscillator2.mAmpEnvGain;
-
-					sourceValues[2] = mOscillator3.ProcessSample(mMidiNote, detuneMul[2], globalFMScale, 
-						sourceValues[0], FMScales[FMMatrixIndices::FMAmt1to3],
-						sourceValues[1], FMScales[FMMatrixIndices::FMAmt2to3],
-						osc4LastSample, FMScales[FMMatrixIndices::FMAmt4to3],
-						false
-					);
-					sourceValues[2] *= mOscillator3.mAmpEnvGain;
-
-					sourceValues[3] = mOscillator4.ProcessSample(mMidiNote, detuneMul[3], globalFMScale, 
-						sourceValues[0], FMScales[FMMatrixIndices::FMAmt1to4],
-						sourceValues[1], FMScales[FMMatrixIndices::FMAmt2to4],
-						sourceValues[2], FMScales[FMMatrixIndices::FMAmt3to4],
-						false
-					);
-					sourceValues[3] *= mOscillator4.mAmpEnvGain;
-
-					sourceValues[4] = mSampler1.ProcessSample(mMidiNote, detuneMul[4], globalFMScale) * mSampler1.mAmpEnvGain;
-					sourceValues[5] = mSampler2.ProcessSample(mMidiNote, detuneMul[5], globalFMScale) * mSampler2.mAmpEnvGain;
-					sourceValues[6] = mSampler3.ProcessSample(mMidiNote, detuneMul[6], globalFMScale) * mSampler3.mAmpEnvGain;
-					sourceValues[7] = mSampler4.ProcessSample(mMidiNote, detuneMul[7], globalFMScale) * mSampler4.mAmpEnvGain;
+						sourceValues[i] = po->ProcessSample(mMidiNote, detuneMul[i], globalFMScale,
+							sourceValues[i < 1 ? 1 : 0], mpOwner->mFMMatrix.Get01Value(x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt2to1 + x)) * globalFMScale,
+							sourceValues[i < 2 ? 2 : 1], mpOwner->mFMMatrix.Get01Value(1 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt3to1 + x)) * globalFMScale,
+							sourceValues[i < 3 ? 3 : 2], mpOwner->mFMMatrix.Get01Value(2 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt4to1 + x)) * globalFMScale,
+							false
+						) * srcVoice->mAmpEnvGain;
+					}
 
 					float sl = 0;
 					float sr = 0;
@@ -945,9 +921,8 @@ namespace WaveSabreCore
 						break;
 					}
 
-					s1 += sl * mpOwner->mAuxOutputGains[0] + sr * mpOwner->mAuxOutputGains[1];
-					s2 += sl * mpOwner->mAuxOutputGains[1] + sr * mpOwner->mAuxOutputGains[0];
-					//}
+					s[0] += sl * mpOwner->mAuxOutputGains[0] + sr * mpOwner->mAuxOutputGains[1];
+					s[1] += sl * mpOwner->mAuxOutputGains[1] + sr * mpOwner->mAuxOutputGains[0];
 
 					mPortamento.Advance(1,
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime),

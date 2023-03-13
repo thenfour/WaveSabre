@@ -663,18 +663,18 @@ namespace WaveSabreCore
             Macro6,
             Macro7,
 
-            FMAmt1to2,
-            FMAmt1to3,
-            FMAmt1to4,
             FMAmt2to1,
-            FMAmt2to3,
-            FMAmt2to4,
             FMAmt3to1,
-            FMAmt3to2,
-            FMAmt3to4,
             FMAmt4to1,
+            FMAmt1to2,
+            FMAmt3to2,
             FMAmt4to2,
+            FMAmt1to3,
+            FMAmt2to3,
             FMAmt4to3,
+            FMAmt1to4,
+            FMAmt2to4,
+            FMAmt3to4,
 
             Osc1Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc1Volume,
@@ -1218,18 +1218,18 @@ namespace WaveSabreCore
 		    {"Macro5"}, \
 		    {"Macro6"}, \
 		    {"Macro7"}, \
-		    {"FM1to2"}, \
-		    {"FM1to3"}, \
-		    {"FM1to4"}, \
 		    {"FM2to1"}, \
-		    {"FM2to3"}, \
-		    {"FM2to4"}, \
 		    {"FM3to1"}, \
-		    {"FM3to2"}, \
-		    {"FM3to4"}, \
 		    {"FM4to1"}, \
+		    {"FM1to2"}, \
+		    {"FM3to2"}, \
 		    {"FM4to2"}, \
+		    {"FM1to3"}, \
+		    {"FM2to3"}, \
 		    {"FM4to3"}, \
+		    {"FM1to4"}, \
+		    {"FM2to4"}, \
+		    {"FM3to4"}, \
             {"O1En"}, \
 		    {"O1Vol"}, \
 		    {"O1KRmin"}, \
@@ -1734,18 +1734,18 @@ namespace WaveSabreCore
             Macro6,
             Macro7,
 
-            FMAmt1to2,
-            FMAmt1to3,
-            FMAmt1to4,
             FMAmt2to1,
-            FMAmt2to3,
-            FMAmt2to4,
             FMAmt3to1,
-            FMAmt3to2,
-            FMAmt3to4,
             FMAmt4to1,
+            FMAmt1to2,
+            FMAmt3to2,
             FMAmt4to2,
+            FMAmt1to3,
+            FMAmt2to3,
             FMAmt4to3,
+            FMAmt1to4,
+            FMAmt2to4,
+            FMAmt3to4,
 
             Count,
         };
@@ -2015,18 +2015,18 @@ namespace WaveSabreCore
 
         enum FMMatrixIndices
         {
-            FMAmt1to2 = 0,
-            FMAmt1to3 = 1,
-            FMAmt1to4 = 2,
-            FMAmt2to1 = 3,
-            FMAmt2to3 = 4,
-            FMAmt2to4 = 5,
-            FMAmt3to1 = 6,
-            FMAmt3to2 = 7,
-            FMAmt3to4 = 8,
-            FMAmt4to1 = 9,
-            FMAmt4to2 = 10,
-            FMAmt4to3 = 11,
+            FMAmt2to1 = 0,
+            FMAmt3to1 = 1,
+            FMAmt4to1 = 2,
+            FMAmt1to2 = 3,
+            FMAmt3to2 = 4,
+            FMAmt4to2 = 5,
+            FMAmt1to3 = 6,
+            FMAmt2to3 = 7,
+            FMAmt4to3 = 8,
+            FMAmt1to4 = 9,
+            FMAmt2to4 = 10,
+            FMAmt3to4 = 11,
         };
 
     } // namespace M7

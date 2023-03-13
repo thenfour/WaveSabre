@@ -754,10 +754,10 @@ public:
 				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc2AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp2");
 				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc3AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp3");
 				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc4AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp4");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetSample()), ImVec2{ 50, 0 }, "Osc1");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetSample()), ImVec2{ 50, 0 }, "Osc2");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetSample()), ImVec2{ 50, 0 }, "Osc3");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator4.GetSample()), ImVec2{ 50, 0 }, "Osc4");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetLastSample()), ImVec2{ 50, 0 }, "Osc1");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetLastSample()), ImVec2{ 50, 0 }, "Osc2");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetLastSample()), ImVec2{ 50, 0 }, "Osc3");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator4.GetLastSample()), ImVec2{ 50, 0 }, "Osc4");
 			}
 		}
 	}
@@ -1257,18 +1257,18 @@ public:
 		case M7::OscillatorWaveform::SawClip:
 			pWaveform.reset(new M7::SawClipWaveform);
 			break;
-		case M7::OscillatorWaveform::SineAsym:
-			pWaveform.reset(new M7::SineAsymWaveform);
-			break;
+		//case M7::OscillatorWaveform::SineAsym:
+		//	pWaveform.reset(new M7::SineAsymWaveform);
+		//	break;
 		case M7::OscillatorWaveform::SineClip:
 			pWaveform.reset(new M7::SineClipWaveform);
 			break;
 		case M7::OscillatorWaveform::SineHarmTrunc:
 			pWaveform.reset(new M7::SineHarmTruncWaveform);
 			break;
-		case M7::OscillatorWaveform::SineTrunc:
-			pWaveform.reset(new M7::SineTruncWaveform);
-			break;
+		//case M7::OscillatorWaveform::SineTrunc:
+		//	pWaveform.reset(new M7::SineTruncWaveform);
+		//	break;
 		case M7::OscillatorWaveform::TriClip:
 			pWaveform.reset(new M7::TriClipWaveform);
 			break;

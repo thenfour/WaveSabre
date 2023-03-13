@@ -207,18 +207,18 @@ namespace WaveSabreCore
 			LFO2Waveshape, // krate, 01
 			LFO2FrequencyParam, // krate, 01
 
+			FMAmt2to1, // arate, 01
+			FMAmt3to1, // arate, 01
+			FMAmt4to1, // arate, 01
 			FMAmt1to2, // arate, 01
-				FMAmt1to3, // arate, 01
-				FMAmt1to4, // arate, 01
-				FMAmt2to1, // arate, 01
-				FMAmt2to3, // arate, 01
-				FMAmt2to4, // arate, 01
-				FMAmt3to1, // arate, 01
-				FMAmt3to2, // arate, 01
-				FMAmt3to4, // arate, 01
-				FMAmt4to1, // arate, 01
-				FMAmt4to2, // arate, 01
-				FMAmt4to3, // arate, 01
+			FMAmt3to2, // arate, 01
+			FMAmt4to2, // arate, 01
+			FMAmt1to3, // arate, 01
+			FMAmt2to3, // arate, 01
+			FMAmt4to3, // arate, 01
+			FMAmt1to4, // arate, 01
+			FMAmt2to4, // arate, 01
+			FMAmt3to4, // arate, 01
 
 			// aux param 1 is not a mod destination. just keeps things slightly more compact and there's ALWAYS 1 param like this anyway so it's not necessary.
 			// typically param 1 is an enum like FilterType or DistortionType.
@@ -455,15 +455,15 @@ namespace WaveSabreCore
 			"LFO1FrequencyParam", \
 			"LFO2Waveshape", \
 			"LFO2FrequencyParam", \
-			"FMAmt1to2", \
-			"FMAmt1to3", \
-			"FMAmt1to4", \
 			"FMAmt2to1", \
-			"FMAmt2to3", \
-			"FMAmt2to4", \
 			"FMAmt3to1", \
+			"FMAmt4to1", \
+			"FMAmt1to2", \
 			"FMAmt3to2", \
-			"FMAmt3to4", \
+			"FMAmt4to2", \
+			"FMAmt1to3", \
+			"FMAmt2to3", \
+			"FMAmt4to3", \
 			"FMAmt1to4", \
 			"FMAmt2to4", \
 			"FMAmt3to4", \

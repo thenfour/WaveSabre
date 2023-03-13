@@ -119,6 +119,8 @@ namespace WaveSabreCore
 
 			virtual void BeginBlock(int samplesInBlock) override;
 
+			virtual float GetLastSample() const override { return 0; } // not used
+
 			float ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale);
 
 		}; // struct SamplerVoice

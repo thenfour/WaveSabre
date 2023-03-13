@@ -167,6 +167,7 @@ namespace WaveSabreCore
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;
 				virtual void BeginBlock(int samplesInBlock) = 0;
+				virtual float GetLastSample() const = 0;
 				//virtual void EndBlock() = 0;
 			};
 		};
@@ -176,10 +177,10 @@ namespace WaveSabreCore
 			Pulse,
 			PulseTristate,
 			SawClip,
-			SineAsym,
+			//SineAsym,
 			SineClip,
 			SineHarmTrunc,
-			SineTrunc,
+			//SineTrunc,
 			TriClip, // aka one-pole tri trunc for some reason
 			TriSquare,
 			TriTrunc,
@@ -194,10 +195,8 @@ namespace WaveSabreCore
 			"Pulse",\
 			"PulseTristate",\
 			"SawClip",\
-			"SineAsym",\
 			"SineClip",\
 			"SineHarmTrunc",\
-			"SineTrunc",\
 			"TriClip",\
 			"TriSquare",\
 			"TriTrunc",\
@@ -653,66 +652,66 @@ namespace WaveSabreCore
 			}
 		};
 
-		/////////////////////////////////////////////////////////////////////////////
-		struct SineAsymWaveform :IOscillatorWaveform
-		{
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
-			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
-				mShape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = math::lerp(.5f, 0.03f, mShape * mShape); // prevent div0
-			}
+		///////////////////////////////////////////////////////////////////////////////
+		//struct SineAsymWaveform :IOscillatorWaveform
+		//{
+		//	virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
+		//	{
+		//		IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+		//		mShape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+		//		mShape = math::lerp(.5f, 0.03f, mShape * mShape); // prevent div0
+		//	}
 
-			virtual float NaiveSample(float phase01) override
-			{
-				if (phase01 < mShape) {
-					return math::cos(math::gPI * phase01 / mShape);
-				}
-				return -math::cos(math::gPI * (phase01 - mShape) / (1 - mShape));
-			}
+		//	virtual float NaiveSample(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return math::cos(math::gPI * phase01 / mShape);
+		//		}
+		//		return -math::cos(math::gPI * (phase01 - mShape) / (1 - mShape));
+		//	}
 
-			virtual float NaiveSampleSlope(float phase01) override
-			{
-				if (phase01 < mShape) {
-					return math::sin(math::gPI * phase01 / mShape);
-				}
-				return -math::sin(math::gPI * (phase01 - mShape) / (1 - mShape));
-			}
-		};
+		//	virtual float NaiveSampleSlope(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return math::sin(math::gPI * phase01 / mShape);
+		//		}
+		//		return -math::sin(math::gPI * (phase01 - mShape) / (1 - mShape));
+		//	}
+		//};
 
-		/////////////////////////////////////////////////////////////////////////////
-		struct SineTruncWaveform :IOscillatorWaveform
-		{
-			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
-			{
-				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
-				waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-				mShape = math::lerp(0.97f, 0.03f, waveshape); // prevent div0
-			}
+		///////////////////////////////////////////////////////////////////////////////
+		//struct SineTruncWaveform :IOscillatorWaveform
+		//{
+		//	virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
+		//	{
+		//		IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
+		//		waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
+		//		mShape = math::lerp(0.97f, 0.03f, waveshape); // prevent div0
+		//	}
 
-			virtual float NaiveSample(float phase01) override
-			{
-				if (phase01 < mShape) {
-					return math::sin(math::gPITimes2 * phase01 / mShape);
-				}
-				return 0;
-			}
+		//	virtual float NaiveSample(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return math::sin(math::gPITimes2 * phase01 / mShape);
+		//		}
+		//		return 0;
+		//	}
 
-			virtual float NaiveSampleSlope(float phase01) override
-			{
-				if (phase01 < mShape) {
-					return math::gPITimes2 * math::cos(math::gPITimes2 * phase01 / mShape) / mShape;
-				}
-				return 0;
-			}
+		//	virtual float NaiveSampleSlope(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return math::gPITimes2 * math::cos(math::gPITimes2 * phase01 / mShape) / mShape;
+		//		}
+		//		return 0;
+		//	}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
-			{
-				float scale = float(math::gPI * mPhaseIncrement / mShape);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape/*edge*/, -scale, samples, samplesTillNextSample);
-			}
-		};
+		//	virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+		//	{
+		//		float scale = float(math::gPI * mPhaseIncrement / mShape);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape/*edge*/, -scale, samples, samplesTillNextSample);
+		//	}
+		//};
 
 
 		/////////////////////////////////////////////////////////////////////////////
@@ -1180,10 +1179,8 @@ namespace WaveSabreCore
 			PulsePWMWaveform mPulsePWMWaveform;
 			PulseTristateWaveform mPulseTristateWaveform;
 			SawClipWaveform mSawClipWaveform;
-			SineAsymWaveform mSineAsymWaveform;
 			SineClipWaveform mSineClipWaveform;
 			SineHarmTruncWaveform mSineHarmTruncWaveform;
-			SineTruncWaveform mSineTruncWaveform;
 			TriClipWaveform mTriClipWaveform;
 			TriSquareWaveform mTriSquareWaveform;
 			TriTruncWaveform mTriTruncWaveform;
@@ -1206,9 +1203,7 @@ namespace WaveSabreCore
 			{
 			}
 
-			real_t GetSample() const {
-				return mOutSample;
-			}
+			virtual float GetLastSample() const override { return mOutSample; }
 
 			// used by LFOs to just hard-set the phase. nothing fancy.
 			void SetPhase(double phase01)
@@ -1246,17 +1241,11 @@ namespace WaveSabreCore
 				case OscillatorWaveform::SawClip:
 					mpSlaveWave = &mSawClipWaveform;
 					break;
-				case OscillatorWaveform::SineAsym:
-					mpSlaveWave = &mSineAsymWaveform;
-					break;
 				case OscillatorWaveform::SineClip:
 					mpSlaveWave = &mSineClipWaveform;
 					break;
 				case OscillatorWaveform::SineHarmTrunc:
 					mpSlaveWave = &mSineHarmTruncWaveform;
-					break;
-				case OscillatorWaveform::SineTrunc:
-					mpSlaveWave = &mSineTruncWaveform;
 					break;
 				case OscillatorWaveform::TriClip:
 					mpSlaveWave = &mTriClipWaveform;
