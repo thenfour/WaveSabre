@@ -526,13 +526,6 @@ namespace WaveSabreCore
 "Sampler4AmpEnvReleaseCurve", \
 		}
 
-		//struct ModSourceInfo
-		//{
-		//	ModSource mID;
-		//	ModulationPolarity mPolarity;
-		//	ModulationRate mRate;
-		//};
-
 		// some modulation specs are for internal purposes / locked into certain behavior.
 		enum ModulationSpecType
 		{
@@ -546,13 +539,11 @@ namespace WaveSabreCore
 
 		struct ModulationSpec
 		{
-			const int mBaseParamID;
 			BoolParam mEnabled;
 			EnumParam<ModSource> mSource;
 			EnumParam<ModDestination> mDestination;
-			CurveParam mCurve;
-			FloatN11Param mScale;
 			ModulationSpecType mType = ModulationSpecType::General;
+			BoolParam* mpDestSourceEnabledParam = nullptr;
 
 			// you may ask why aux (aka sidechain) is necessary.
 			// it's because we don't allow modulation of the modulation scale params, so it's a way of modulating the modulation itself.
@@ -561,41 +552,62 @@ namespace WaveSabreCore
 			// while aux values are used to scale the mod val, which doesn't have a true analog via normal modulations.
 			BoolParam mAuxEnabled;
 			EnumParam<ModSource> mAuxSource;
-			Float01Param mAuxAttenuation;
-			CurveParam mAuxCurve;
 
 			BoolParam mInvert;
 			BoolParam mAuxInvert;
 
+			const int mBaseParamID;
+
+			CurveParam mCurve;
+			CurveParam mAuxCurve;
+			FloatN11Param mScale;
+			Float01Param mAuxAttenuation;
+
+			void BeginBlock()
+			{
+				mEnabled.CacheValue();
+				mInvert.CacheValue();
+				mSource.CacheValue();
+				mDestination.CacheValue();
+				mAuxEnabled.CacheValue();
+				mAuxInvert.CacheValue();
+				mAuxSource.CacheValue();
+			}
+
+			void SetSourceAmp(ModSource mAmpEnvModSourceID, ModDestination mHiddenVolumeModDestID, BoolParam* pDestSourceEnabledParam)
+			{
+				mEnabled.SetBoolValue(true);
+				mSource.SetEnumValue(mAmpEnvModSourceID);
+				mDestination.SetEnumValue(mHiddenVolumeModDestID);
+				mScale.SetN11Value(1);
+				mType = ModulationSpecType::SourceAmp;
+				mpDestSourceEnabledParam = pDestSourceEnabledParam;
+			}
+
 			ModulationSpec(real_t* paramCache, int baseParamID);
 		};
 
-		// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
-		// this means 1 single big allocation instead of 70 identically-sized small ones.
-		struct ModMatrixBuffers
-		{
-		private:
-			static constexpr size_t gMaxEndpointCount = std::max((size_t)ModDestination::Count, (size_t)ModSource::Count);
-			//const size_t gEndpointCount = false; // as in, the number of modulations. like ModSource::Count
+		//// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
+		//// this means 1 single big allocation instead of 70 identically-sized small ones.
+		//struct ModMatrixBuffers
+		//{
+		//private:
+		//	static constexpr size_t gMaxEndpointCount = std::max((size_t)ModDestination::Count, (size_t)ModSource::Count);
+		//	//size_t mBlockSize = 0;
+		//	real_t mValues[gMaxEndpointCount] = { 0 };
+		//	//bool mpARatePopulated[gMaxEndpointCount] = { false };
+		//	//bool mpKRatePopulated[gMaxEndpointCount] = { false }; // because krate is fallback anyway, and gets reset to 0 each block, this is not necessary.
 
-			size_t mElementsAllocated = 0; // the backing buffer is allocated this big. may be bigger than blocks*blocksize.
-			size_t mBlockSize = 0;
-			//real_t* mpBuffer = nullptr;
+		//public:
+		//	//ModMatrixBuffers();
 
-			real_t mValues[gMaxEndpointCount] = { 0 };
-			//bool mpARatePopulated[gMaxEndpointCount] = { false };
-			//bool mpKRatePopulated[gMaxEndpointCount] = { false }; // because krate is fallback anyway, and gets reset to 0 each block, this is not necessary.
+		//	//~ModMatrixBuffers();
+		//	void Reset();
+		//	void SetValue(size_t id, real_t val);
 
-		public:
-			//ModMatrixBuffers();
-
-			//~ModMatrixBuffers();
-			void Reset(bool zero);
-			void SetValue(size_t id, real_t val);
-
-			//void SetKRateValue(size_t id, real_t val);
-			real_t GetValue(size_t id) const;
-		};
+		//	//void SetKRateValue(size_t id, real_t val);
+		//	real_t GetValue(size_t id) const;
+		//};
 
 
 		struct ModMatrixNode
@@ -615,72 +627,28 @@ namespace WaveSabreCore
 			// 2. mod matrix pulls in LFO a-rate buffer, and generates the waveshape destination buffer applying curve and accumulating multiple mods to same dest.
 			// 2. Oscillator arate Osc1Waveshape dest gets buffer from mod matrix
 
-			ModMatrixBuffers mSource;
-			ModMatrixBuffers mDest;
+			real_t mSourceValues[(size_t)ModSource::Count] = { 0 };
+			real_t mDestValues[(size_t)ModDestination::Count] = { 0 };
 
 		public:
-			//ModMatrixNode();
-
-			//template<typename Tmodid>
-			//void SetSourceARateValue(Tmodid iblock, size_t iSample, real_t val) {
-			//	return mSource.SetARateValue((size_t)iblock, iSample, val);
-			//}
 
 			template<typename Tmodid>
 			inline void SetSourceValue(Tmodid id, real_t val)
 			{
-				mSource.SetValue((size_t)id, val);
+				mSourceValues[(size_t)id] = val;
 			}
 
 			template<typename Tmodid>
 			inline real_t GetSourceValue(Tmodid id) const
 			{
-				return mSource.GetValue((size_t)id);
+				return mSourceValues[(size_t)id];
 			}
 
 			template<typename Tmodid>
 			inline real_t GetDestinationValue(Tmodid id) const
 			{
-				return mDest.GetValue((size_t)id);
+				return mDestValues[(size_t)id];
 			}
-
-			// call at the beginning of audio block processing to allocate & zero all buffers, preparing for source value population.
-			void InitBlock();
-			//static constexpr ModulationRate GetRate(ModSource m)
-			//{
-			//	switch (m)
-			//	{
-			//	case ModSource::Osc1AmpEnv:
-			//	case ModSource::Osc2AmpEnv:
-			//	case ModSource::Osc3AmpEnv:
-			//	case ModSource::Osc4AmpEnv:
-			//	case ModSource::Sampler1AmpEnv:
-			//	case ModSource::Sampler2AmpEnv:
-			//	case ModSource::Sampler3AmpEnv:
-			//	case ModSource::Sampler4AmpEnv:
-			//	case ModSource::ModEnv1:
-			//	case ModSource::ModEnv2:
-			//	case ModSource::LFO1:
-			//	case ModSource::LFO2:
-			//		return ModulationRate::ARate;
-			//	case ModSource::PitchBend:
-			//	case ModSource::Velocity:
-			//	case ModSource::NoteValue:
-			//	case ModSource::RandomTrigger:
-			//	case ModSource::UnisonoVoice:
-			//	case ModSource::SustainPedal:
-			//	case ModSource::Macro1:
-			//	case ModSource::Macro2:
-			//	case ModSource::Macro3:
-			//	case ModSource::Macro4:
-			//	case ModSource::Macro5:
-			//	case ModSource::Macro6:
-			//	case ModSource::Macro7:
-			//		return ModulationRate::KRate;
-			//	}
-
-			//	return ModulationRate::Disabled;
-			//}
 
 			static constexpr ModulationPolarity GetPolarity(ModSource m)
 			{
@@ -693,7 +661,7 @@ namespace WaveSabreCore
 				}
 				return ModulationPolarity::Positive01;
 			}
-			static float InvertValue(float val, const BoolParam& invertParam, const ModSource modSource);
+			static float InvertValue(float val, bool invertParam, const ModSource modSource);
 			// caller passes in:
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.

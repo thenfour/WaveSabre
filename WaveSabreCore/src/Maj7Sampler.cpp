@@ -233,7 +233,20 @@ namespace WaveSabreCore
 			void SamplerDevice::BeginBlock(int samplesInBlock)
 			{
 				WaitForSingleObject(mMutex, INFINITE);
-				//auto token = MutexHold{ mMutex };
+
+				ISoundSourceDevice::BeginBlock(samplesInBlock);
+
+				// not needed because these are not accessed often enough.
+				//mLegatoTrig.CacheValue();
+				//mReverse.CacheValue();
+				//mReleaseExitsLoop.CacheValue();
+				//mLoopMode.CacheValue();
+				//mLoopSource.CacheValue();
+				//mInterpolationMode.CacheValue();
+				//mSampleSource.CacheValue();
+				//mGmDlsIndex;
+				//mBaseNote.CacheValue();
+
 				// base note + original samplerate gives us a "native frequency" of the sample.
 				// so let's say the sample is 22.05khz, base midi note 60 (261hz).
 				// and you are requested to play it back at "1000hz" (or, midi note 88.7)
@@ -328,7 +341,7 @@ namespace WaveSabreCore
 				float pitchFineMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
 				float freqMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
 
-				midiNote += mpSamplerDevice->mPitchSemisParam.GetIntValue() + mpSamplerDevice->mPitchFineParam.GetN11Value(pitchFineMod) * gSourcePitchFineRangeSemis;
+				midiNote += mpSamplerDevice->mPitchSemisParam.mCachedVal + (mpSamplerDevice->mPitchFineParam.mCachedVal + pitchFineMod) * gSourcePitchFineRangeSemis;
 				float noteHz = math::MIDINoteToFreq(midiNote);
 				float freq = mpSamplerDevice->mFrequencyParam.GetFrequency(noteHz, freqMod);
 				freq *= detuneFreqMul;

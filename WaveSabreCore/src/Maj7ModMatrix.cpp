@@ -22,82 +22,23 @@ namespace WaveSabreCore
 			{
 			}
 
-			void ModMatrixBuffers::Reset(bool zero) {
-				if (zero) {
-					memset(mValues, 0, sizeof(mValues));
-				}
-				//size_t desiredElements = gEndpointCount * blockSize;
-				//if (mElementsAllocated < desiredElements) {
-				//	auto newBuffer = new real_t[desiredElements];
-				//	memcpy(newBuffer, mpBuffer, sizeof(*mpBuffer) * mElementsAllocated);
-				//	delete[] mpBuffer;
-				//	mpBuffer = newBuffer;
-				//	mElementsAllocated = desiredElements;
-				//}
-				//mBlockSize = blockSize;
-				//if (zero) {
-				//	memset(mpBuffer, 0, desiredElements * sizeof(mpBuffer[0]));
-				//	memset(mpKRateValues, 0, std::size(mpKRateValues) * sizeof(mpKRateValues[0]));
-				//	memset(mpARatePopulated, 0, std::size(mpARatePopulated) * sizeof(mpARatePopulated[0]));
-				//}
-				//memset(mpKRatePopulated, 0, std::size(mpKRatePopulated) * sizeof(mpKRatePopulated[0]));
-			}
-
-			//void ModMatrixBuffers::SetARateValue(size_t id, size_t iSample, real_t val) {
-			//	//if (id >= gEndpointCount) return; // error
-			//	size_t i = id * mBlockSize + iSample;
-			//	//if (i >= mBlockSize) return; // error
-			//	mpARatePopulated[id] = 1;
-			//	mpBuffer[i] = val;
-			//	//return mSource.SetSourceARateValue(iblock, iSample, val);
+			//void ModMatrixBuffers::Reset() {
+			//	memset(mValues, 0, sizeof(mValues));
 			//}
 
-			//void ModMatrixBuffers::SetKRateValue(size_t id, real_t val)
+			//void ModMatrixBuffers::SetValue(size_t id, real_t val)
 			//{
-			//	mpKRateValues[id] = val;
-			//	//mpKRatePopulated[id] = 1;
+			//	mValues[id] = val;
 			//}
 
-			//real_t ModMatrixBuffers::GetValue(size_t id, size_t sample) const
+			//real_t ModMatrixBuffers::GetValue(size_t id) const
 			//{
-			//	//if (!mpBuffer || id >= gEndpointCount) return 0;
-			//	if (mpARatePopulated[id]) {
-			//		size_t i = id * mBlockSize + sample;
-			//		if (i >= mElementsAllocated) return 0;
-			//		return mpBuffer[i];
-			//	}
-			//	//if (mpKRatePopulated[id]) 
-			//	return mpKRateValues[(size_t)id];
-			//	//return 0;
+			//	return mValues[id];
 			//}
-	/*
-			ModMatrixNode::ModMatrixNode() :
-				mSource((size_t)ModSource::Count),
-				mDest((size_t)ModDestination::Count)
-			{}*/
 
-
-			void ModMatrixBuffers::SetValue(size_t id, real_t val)
+			float ModMatrixNode::InvertValue(float val, bool invertParam, const ModSource modSource)
 			{
-				mValues[id] = val;
-			}
-
-			real_t ModMatrixBuffers::GetValue(size_t id) const
-			{
-				return mValues[id];
-			}
-
-
-			// call at the beginning of audio block processing to allocate & zero all buffers, preparing for source value population.
-			void ModMatrixNode::InitBlock()
-			{
-				//mSource.Reset(false);
-				//mDest.Reset(true);
-			}
-
-			float ModMatrixNode::InvertValue(float val, const BoolParam& invertParam, const ModSource modSource)
-			{
-				if (invertParam.GetBoolValue()) {
+				if (invertParam) {
 					switch (GetPolarity(modSource)) {
 					case ModulationPolarity::N11:
 						return -val;
@@ -110,29 +51,31 @@ namespace WaveSabreCore
 
 			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
 			{
-				mDest.Reset(true);
-				for (ModulationSpec& spec : modSpecs) {
-					if (!spec.mEnabled.GetBoolValue()) continue;
-					auto modSource = spec.mSource.GetEnumValue();
-					//auto srcRate = GetRate(modSource);
+				memset(mDestValues, 0, sizeof(mDestValues));// mDest.Reset();
+				for (ModulationSpec& spec : modSpecs)
+				{
+					if (!spec.mEnabled.mCachedVal) continue;
+					auto modSource = spec.mSource.mCachedVal;
 					if (modSource == ModSource::None) continue;
-					auto modDest = spec.mDestination.GetEnumValue();
-					//auto destRate = GetRate(modSource);
+					auto modDest = spec.mDestination.mCachedVal;
 					if (modDest == ModDestination::None) continue;
+					if (spec.mpDestSourceEnabledParam && !spec.mpDestSourceEnabledParam->mCachedVal) { // NB: requires that the source.enabled has cached its bool val
+						continue;
+					}
 
-					real_t sourceVal = GetSourceValue(spec.mSource.GetEnumValue());
-					sourceVal = InvertValue(sourceVal, spec.mInvert, modSource);
+					real_t sourceVal = GetSourceValue(modSource);
+					sourceVal = InvertValue(sourceVal, spec.mInvert.mCachedVal, modSource);
 					sourceVal = spec.mCurve.ApplyToValue(sourceVal);
 					sourceVal *= spec.mScale.GetN11Value();
 
-					if (spec.mAuxEnabled.GetBoolValue())
+					if (spec.mAuxEnabled.mCachedVal)
 					{
 						// attenuate the value
 						//const auto& auxSourceInfo = gModSourceInfo[(int)spec.mAuxSource.GetEnumValue()];
-						auto auxSource = spec.mAuxSource.GetEnumValue();
+						auto auxSource = spec.mAuxSource.mCachedVal;
 						if (auxSource != ModSource::None) {
-							float auxVal = GetSourceValue(spec.mAuxSource.GetEnumValue());
-							auxVal = InvertValue(auxVal, spec.mAuxInvert, auxSource);
+							float auxVal = GetSourceValue(auxSource);
+							auxVal = InvertValue(auxVal, spec.mAuxInvert.mCachedVal, auxSource);
 							auxVal = spec.mAuxCurve.ApplyToValue(auxVal);
 							// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 							// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
@@ -142,8 +85,8 @@ namespace WaveSabreCore
 						}
 					}
 
-					real_t destVal = GetDestinationValue(spec.mDestination.GetEnumValue());
-					mDest.SetValue((size_t)spec.mDestination.GetEnumValue(),destVal + sourceVal);
+					//real_t destVal = GetDestinationValue(modDest);
+					mDestValues[(size_t)modDest] += sourceVal;
 				}
 			}
 	} // namespace M7

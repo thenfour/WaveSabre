@@ -135,14 +135,16 @@ namespace WaveSabreCore
 			}
 
 			void InitDevice() {
-				mAmpEnvModulation->mEnabled.SetBoolValue(true);
-				mAmpEnvModulation->mSource.SetEnumValue(mAmpEnvModSourceID);
-				mAmpEnvModulation->mDestination.SetEnumValue(mHiddenVolumeModDestID);
-				mAmpEnvModulation->mScale.SetN11Value(1);
-				mAmpEnvModulation->mType = ModulationSpecType::SourceAmp;
+				mAmpEnvModulation->SetSourceAmp(mAmpEnvModSourceID, mHiddenVolumeModDestID, &mEnabledParam);
 			}
 
-			virtual void BeginBlock(int samplesInBlock) = 0;
+			virtual void BeginBlock(int samplesInBlock)
+			{
+				mEnabledParam.CacheValue();
+				mAuxPanParam.CacheValue();
+				mPitchSemisParam.CacheValue();
+				mPitchFineParam.CacheValue();
+			}
 			virtual void EndBlock() = 0;
 
 			struct Voice
@@ -1171,7 +1173,14 @@ namespace WaveSabreCore
 				mFrequencyMul.SetRangedValue(1);
 			}
 
-			virtual void BeginBlock(int samplesInBlock) override {}
+			virtual void BeginBlock(int samplesInBlock) override {
+				ISoundSourceDevice::BeginBlock(samplesInBlock);
+				//mWaveform.CacheValue();
+				//mPhaseRestart.CacheValue();
+				mPhaseOffset.CacheValue();
+				mSyncEnable.CacheValue();
+				mFrequencyMul.CacheValue();
+			}
 			virtual void EndBlock() override {}
 
 		};
@@ -1286,7 +1295,7 @@ namespace WaveSabreCore
 
 			real_t ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount, bool forceSilence)
 			{
-				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
+				if (!this->mpSrcDevice->mEnabledParam.mCachedVal) {
 					mOutSample = mCurrentSample = 0;
 					return 0;
 				}
@@ -1315,10 +1324,10 @@ namespace WaveSabreCore
 				// - osc mul (Hz)                     hz           oscillator             
 				// - osc detune (semis)               hz+semis     oscillator                         
 				// - unisono detune (semis)           hz+semis     oscillator                             
-				midiNote += mpSrcDevice->mPitchSemisParam.GetIntValue() + mpSrcDevice->mPitchFineParam.GetN11Value(mPitchFineModVal) * gSourcePitchFineRangeSemis;
+				midiNote += mpSrcDevice->mPitchSemisParam.mCachedVal + (mpSrcDevice->mPitchFineParam.mCachedVal + mPitchFineModVal) * gSourcePitchFineRangeSemis;
 				float noteHz = math::MIDINoteToFreq(midiNote);
 				float freq = mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
-				freq *= mpOscDevice->mFrequencyMul.GetRangedValue();
+				freq *= mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
 				freq *= detuneFreqMul;
 				freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
 				// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
@@ -1330,8 +1339,8 @@ namespace WaveSabreCore
 				//mDTDT = 0;
 				mPhaseIncrement = newDT;
 
-				float slaveFreq = mpOscDevice->mSyncEnable.GetBoolValue() ? mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
-				mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal), mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate);
+				float slaveFreq = mpOscDevice->mSyncEnable.mCachedVal ? mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
+				mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.mCachedVal + mPhaseModVal, mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate);
 
 				mPrevSample = mCurrentSample;// THIS sample.
 				mCurrentSample = 0; // a value that gets added to the next sample
@@ -1357,7 +1366,7 @@ namespace WaveSabreCore
 					+ signal3 * signal3PMAmount
 					;
 
-				if (mPhase >= mPhaseIncrement || !mpOscDevice->mSyncEnable.GetBoolValue()) // did not cross cycle. advance 1 sample
+				if (mPhase >= mPhaseIncrement || !mpOscDevice->mSyncEnable.mCachedVal) // did not cross cycle. advance 1 sample
 				{
 					auto bleps = mpSlaveWave->OSC_ADVANCE(1, 0);
 					mPrevSample += bleps.first;

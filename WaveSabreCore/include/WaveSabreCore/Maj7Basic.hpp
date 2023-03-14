@@ -255,7 +255,6 @@ namespace WaveSabreCore
 
             inline real_t modCurve_xN11_kN11(real_t x, real_t k)
             {
-                if (k < 0.0001 && k > -0.0001) return x; // speed optimization; most curves being processed are flat so skip the lookup entirely.
                 return gCurveLUT.Invoke(x, k);
             }
 
@@ -347,11 +346,15 @@ namespace WaveSabreCore
 
         struct FloatN11Param : Float01RefParam
         {
+            float mCachedVal;
             //explicit FloatN11Param(real_t& ref, real_t initialValueN11);
             explicit FloatN11Param(real_t& ref);
 
             real_t GetN11Value(real_t modVal = 0.0f) const;
             void SetN11Value(real_t v);
+            inline float CacheValue() {
+                return mCachedVal = GetN11Value();
+            }
         };
 
         // todo: time should not always be the same; allow configuring the range.
@@ -380,8 +383,9 @@ namespace WaveSabreCore
             explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
 
             real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
-                float f = GetN11Value() + modVal;
-                return math::modCurve_xN11_kN11(x, f);
+                float k = GetN11Value() + modVal;
+                if (k < 0.0001 && k > -0.0001) return x; // speed optimization; most curves being processed are flat so skip the lookup entirely.
+                return math::modCurve_xN11_kN11(x, k);
             }
         };
 
@@ -393,6 +397,7 @@ namespace WaveSabreCore
             const int mMaxValueInclusive;
             const float mHalfMinusMinVal; // precalc to avoid an add
         public:
+            int mCachedVal;
             //explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue);
             explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive);
             int GetDiscreteValueCount() const;
@@ -402,6 +407,9 @@ namespace WaveSabreCore
             // 0     .33     .66     1.00
             int GetIntValue() const;
             void SetIntValue(int val);
+            inline int CacheValue() {
+                return mCachedVal = GetIntValue();
+            }
         };
 
         // so i had this idea:
@@ -415,15 +423,22 @@ namespace WaveSabreCore
         struct EnumParam : IntParam
         {
             static constexpr size_t MaxItems = 2023;
+            T mCachedVal;
             //explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, MaxItems, (int)initialValue)
             //{}
             explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, MaxItems)
-            {}
+            {
+                CacheValue();
+            }
             T GetEnumValue() const {
                 return (T)GetIntValue();
             }
             void SetEnumValue(T v) {
                 SetIntValue((int)v);
+                mCachedVal = v;
+            }
+            inline T CacheValue() {
+                return mCachedVal = GetEnumValue();
             }
         };
 
@@ -432,10 +447,16 @@ namespace WaveSabreCore
         private:
             float& mVal;
         public:
-            inline explicit BoolParam(real_t& ref) : mVal(ref) {}
+            bool mCachedVal = false;
+            inline explicit BoolParam(real_t& ref) : mVal(ref) {
+                CacheValue();
+            }
             inline bool GetBoolValue() const { return mVal > 0.5f; } // this generates slightly smaller code than == 0, or even >0
             inline void SetBoolValue(bool b) { mVal = float(b ? 1 : 0); }
             inline void SetRawParamValue(float f) { mVal = f; }
+            inline bool CacheValue() {
+                return mCachedVal = GetBoolValue();
+            }
         };
 
         // stores a floating-point value which is always scaled linear to 0-1 param range.
@@ -451,11 +472,15 @@ namespace WaveSabreCore
             real_t mMaxValueInclusive;
 
         public:
+            float mCachedVal;
             //explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive, real_t initialRangedValue);
             explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive);
             real_t GetRange() const;
             real_t GetRangedValue() const;
             void SetRangedValue(real_t val);
+            inline float CacheValue() {
+                return mCachedVal = GetRangedValue();
+            }
         };
 
         // stores a volume parameter as a 0-1 float param with linear sweeping

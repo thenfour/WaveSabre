@@ -529,8 +529,17 @@ namespace WaveSabreCore
 
 				bool sourceEnabled[gSourceCount];
 
+				// cache values
+				mAuxRoutingParam.CacheValue();
+
 				for (size_t i = 0; i < gSourceCount; ++i) {
-					sourceEnabled[i] = mSources[i]->mEnabledParam.GetBoolValue();
+					auto* src = mSources[i];
+					sourceEnabled[i] = src->mEnabledParam.GetBoolValue();
+					src->BeginBlock(numSamples);
+				}
+
+				for (auto& m : mModulations) {
+					m.BeginBlock();
 				}
 
 				float sourceModDistribution[gSourceCount];
@@ -559,7 +568,6 @@ namespace WaveSabreCore
 					// for the moment mOscDetuneAmts[i] is just a generic spread value.
 					src->mAuxPanDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorSpread] /*+ mOscillatorStereoSpreadMod*/);
 					src->mDetuneDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorDetune]/* + mOscillatorDetuneMod*/);
-					src->BeginBlock(numSamples);
 				}
 
 				mLFO1LPCutoff = mLFO1Device.mLPFFrequency.GetFrequency(0, 0);
@@ -715,7 +723,7 @@ namespace WaveSabreCore
 						p->BeginBlock();
 					}
 
-					mModMatrix.InitBlock();
+					//mModMatrix.InitBlock();
 
 					mMidiNote = mPortamento.GetCurrentMidiNote() + mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
@@ -817,7 +825,7 @@ namespace WaveSabreCore
 
 						//if (mpOwner->IsEnvelopeInUse(srcVoice->mpSrcDevice->mAmpEnvModSourceID))
 
-						if (!srcVoice->mpSrcDevice->mEnabledParam.GetBoolValue()) {
+						if (!srcVoice->mpSrcDevice->mEnabledParam.mCachedVal) {
 							srcVoice->mpAmpEnv->kill();
 							continue;
 						}
@@ -827,7 +835,10 @@ namespace WaveSabreCore
 						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
 
 						// treat panning as added to modulation value
-						float panParam = myUnisonoPan + srcVoice->mpSrcDevice->mAuxPanParam.GetN11Value(srcVoice->mpSrcDevice->mAuxPanDeviceModAmt + mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID)); // -1 would mean full Left, 1 is full Right.
+						float panParam = myUnisonoPan +
+							srcVoice->mpSrcDevice->mAuxPanParam.mCachedVal +
+							srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
+							mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
 						auto panGains = math::PanToFactor(panParam);
 						float outputVolLin = srcVoice->mpSrcDevice->mVolumeParam.GetLinearGain(volumeMod);
 						srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
@@ -931,21 +942,14 @@ namespace WaveSabreCore
 						//srcVoice->mpAmpEnv->noteOn(mLegato);
 						srcVoice->NoteOn(mLegato);
 					}
-					//mModEnv1.noteOn(mLegato);
-					//mModEnv2.noteOn(mLegato);
-					//mModLFO1.NoteOn(mLegato);
-					//mModLFO2.NoteOn(mLegato);
 					mPortamento.NoteOn((float)mNoteInfo.MidiNoteValue, !mLegato);
 				}
 
 				virtual void NoteOff() override {
 					for (auto& srcVoice : mSourceVoices)
 					{
-						//srcVoice->mpAmpEnv->noteOff();
 						srcVoice->NoteOff();
 					}
-					//mModEnv1.noteOff();
-					//mModEnv2.noteOff();
 
 					for (auto* p : mpAllEnvelopes)
 					{
@@ -960,20 +964,12 @@ namespace WaveSabreCore
 						p->kill();
 					}
 
-					//for (auto& srcVoice : mSourceVoices)
-					//{
-					//	srcVoice->mpAmpEnv->kill();
-					//}
-					//mModEnv1.kill();
-					//mModEnv2.kill();
 				}
 
 				virtual bool IsPlaying() override {
 					for (auto& srcVoice : mSourceVoices)
 					{
 						// if the voice is not enabled, its env won't be playing.
-						//if (!srcVoice->mpSrcDevice->mEnabledParam.GetBoolValue())
-						//	continue;
 						if (srcVoice->mpAmpEnv->IsPlaying())
 							return true;
 					}
