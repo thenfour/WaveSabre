@@ -9,6 +9,10 @@ namespace WaveSabreCore
     {
         struct EnvelopeNode
         {
+            size_t mnSampleCount = 0;
+            static constexpr size_t gRecalcSamplePeriod = 8;
+            static constexpr size_t gRecalcSampleMask = 7;
+
             const int mParamBaseID;
             EnvTimeParam mDelayTime;//;{ 0 };
             EnvTimeParam mAttackTime;//;{ 0 };
@@ -72,8 +76,9 @@ namespace WaveSabreCore
             EnvelopeStage mStage = EnvelopeStage::Idle;
             real_t mStagePos01 = 0;      // where in the current stage are we?
             real_t mLastOutputLevel = 0; // used to calculated release from value.
+            float mOutputDeltaPerSample = 0;
             real_t mStagePosIncPerSample =
-                0; // how much mStagePos01 changes per sample (recalculated when mStage changes, or when spec changes)
+                0; // how much mStagePos01 changes per recalc samples block (recalculated when mStage changes, or when spec changes)
 
             real_t mReleaseFromValue01 = 0; // when release stage begins, what value is it releasing from?
 

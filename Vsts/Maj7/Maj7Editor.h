@@ -898,7 +898,7 @@ public:
 		{
 			paramValues[i] = tempParamValues[i];
 		}
-		return M7::AuxDevice{ auxInfo.mSelfLink, 0, paramValues, (int)auxInfo.mModParam2ID };
+		return M7::AuxDevice{ nullptr, auxInfo.mSelfLink, 0, paramValues, (int)auxInfo.mModParam2ID };
 	}
 
 	std::string GetAuxName(int iaux, std::string idsuffix)

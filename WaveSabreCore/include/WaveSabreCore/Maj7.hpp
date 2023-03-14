@@ -56,6 +56,7 @@ namespace WaveSabreCore
 		struct AuxDevice
 		{
 			const AuxLink mLinkToSelf;
+			const AuxDevice* mpAllAuxNodes;
 
 			BoolParam mEnabledParam;
 			EnumParam<AuxLink> mLink;
@@ -65,7 +66,8 @@ namespace WaveSabreCore
 			const int mModDestParam2ID;
 			const int mBaseParamID;
 
-			AuxDevice(AuxLink selfLink, int baseParamID, float* paramCache, int modDestParam2ID) :
+			AuxDevice(AuxDevice* allAuxNodes, AuxLink selfLink, int baseParamID, float* paramCache, int modDestParam2ID) :
+				mpAllAuxNodes(allAuxNodes),
 				mLinkToSelf(selfLink),
 				mEnabledParam(paramCache[baseParamID + (int)AuxParamIndexOffsets::Enabled]),
 				mLink(paramCache[baseParamID + (int)AuxParamIndexOffsets::Link], AuxLink::Count),
@@ -82,9 +84,9 @@ namespace WaveSabreCore
 			}
 
 			// nullptr is a valid return val for safe null effect.
-			IAuxEffect* CreateEffect(AuxDevice* allAuxNodes) const
+			IAuxEffect* CreateEffect() const
 			{
-				if (!IsEnabled(allAuxNodes)) {
+				if (!IsEnabled()) {
 					return nullptr;
 				}
 				// ASSERT: not linked.
@@ -102,14 +104,14 @@ namespace WaveSabreCore
 			}
 
 			// returns whether this node will process audio. depends on external linking.
-			bool IsEnabled(AuxDevice* allAuxNodes) const
+			bool IsEnabled() const
 			{
 				auto link = mLink.mCachedVal;// .GetEnumValue();
 				const AuxDevice* srcNode = this;
 				if (IsLinkedExternally())
 				{
-					if (!allAuxNodes) return false;
-					srcNode = &allAuxNodes[(int)link];
+					if (!mpAllAuxNodes) return false;
+					srcNode = &mpAllAuxNodes[(int)link];
 					if (srcNode->IsLinkedExternally())
 					{
 						return false; // no chaining; needlessly vexing
@@ -155,17 +157,16 @@ namespace WaveSabreCore
 
 			// pass in aux nodes due to linking.
 			// for simplicity to avoid circular refs, disable if you link to a linked aux
-			void BeginBlock(int nSamples, AuxDevice* allAuxNodes, float noteHz, ModMatrixNode& modMatrix) {
-				if (!mpDevice->IsEnabled(allAuxNodes)) return;
+			void BeginBlock(int nSamples, float noteHz, ModMatrixNode& modMatrix) {
+				if (!mpDevice->IsEnabled()) return;
 				auto link = mpDevice->mLink.mCachedVal;// .GetEnumValue();
-				AuxDevice* srcNode = mpDevice;
-				srcNode = &allAuxNodes[(int)link];
+				const AuxDevice* const srcNode = &mpDevice->mpAllAuxNodes[(int)link];
 				auto effectType = srcNode->mEffectType.mCachedVal;// .GetEnumValue();
 
 				// ensure correct engine set up.
 				if (mCurrentEffectLink != link || mCurrentEffectType != effectType) {
 					delete mpCurrentEffect;
-					mpCurrentEffect = srcNode->CreateEffect(allAuxNodes);
+					mpCurrentEffect = srcNode->CreateEffect();
 					mCurrentEffectLink = link;
 					mCurrentEffectType = effectType;
 				}
@@ -174,8 +175,8 @@ namespace WaveSabreCore
 				return mpCurrentEffect->AuxBeginBlock(noteHz, nSamples, modMatrix);
 			}
 
-			float ProcessSample(float inp, AuxDevice* allAuxNodes) {
-				if (!mpDevice->IsEnabled(allAuxNodes)) return inp;
+			float ProcessSample(float inp) {
+				if (!mpDevice->IsEnabled()) return inp;
 				if (!mpCurrentEffect) return inp;
 				return mpCurrentEffect->AuxProcessSample(inp);
 			}
@@ -351,10 +352,10 @@ namespace WaveSabreCore
 			};
 
 			AuxDevice mAuxDevices[gAuxNodeCount] = {
-				AuxDevice { AuxLink::Aux1, (int)ParamIndices::Aux1Enabled, mParamCache, (int)ModDestination::Aux1Param2 },
-				AuxDevice { AuxLink::Aux2, (int)ParamIndices::Aux2Enabled, mParamCache, (int)ModDestination::Aux2Param2 },
-				AuxDevice { AuxLink::Aux3, (int)ParamIndices::Aux3Enabled, mParamCache, (int)ModDestination::Aux3Param2 },
-				AuxDevice { AuxLink::Aux4, (int)ParamIndices::Aux4Enabled, mParamCache, (int)ModDestination::Aux4Param2 },
+				AuxDevice { mAuxDevices, AuxLink::Aux1, (int)ParamIndices::Aux1Enabled, mParamCache, (int)ModDestination::Aux1Param2 },
+				AuxDevice { mAuxDevices, AuxLink::Aux2, (int)ParamIndices::Aux2Enabled, mParamCache, (int)ModDestination::Aux2Param2 },
+				AuxDevice { mAuxDevices, AuxLink::Aux3, (int)ParamIndices::Aux3Enabled, mParamCache, (int)ModDestination::Aux3Param2 },
+				AuxDevice { mAuxDevices, AuxLink::Aux4, (int)ParamIndices::Aux4Enabled, mParamCache, (int)ModDestination::Aux4Param2 },
 			};
 
 			ISoundSourceDevice* mSources[gSourceCount] = {
@@ -804,7 +805,7 @@ namespace WaveSabreCore
 					mLFOFilter2.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO2LPCutoff, 0, 0);
 
 					for (size_t i = 0; i < gAuxNodeCount; ++i) {
-						mAllAuxNodes[i]->BeginBlock(numSamples, mpOwner->mAuxDevices, noteHz, mModMatrix);
+						mAllAuxNodes[i]->BeginBlock(numSamples, noteHz, mModMatrix);
 					}
 
 					for (size_t i = 0; i < gSourceCount; ++i)
@@ -905,36 +906,36 @@ namespace WaveSabreCore
 					}
 
 					// send through aux
-					AuxDevice* const allAuxDevices = &mpOwner->mAuxDevices[0];
-					sl = mAux1.ProcessSample(sl, allAuxDevices);
-					sl = mAux2.ProcessSample(sl, allAuxDevices);
+					//AuxDevice* const allAuxDevices = &mpOwner->mAuxDevices[0];
+					sl = mAux1.ProcessSample(sl);
+					sl = mAux2.ProcessSample(sl);
 
-					switch (mpOwner->mAuxRoutingParam.GetEnumValue()) {
+					switch (mpOwner->mAuxRoutingParam.mCachedVal) {
 					case AuxRoute::FourZero:
 						// L = aux1 -> aux2 -> aux3 -> aux4 -> *
 						// R = *
-						sl = mAux3.ProcessSample(sl, allAuxDevices);
-						sl = mAux4.ProcessSample(sl, allAuxDevices);
+						sl = mAux3.ProcessSample(sl);
+						sl = mAux4.ProcessSample(sl);
 						break;
 					case AuxRoute::SerialMono:
 						// L = aux1 -> aux2 -> aux3 -> aux4 -> *
 						// R = 
 						// for the sake of being pleasant this swaps l/r channels as well for continuity with other settings
-						sl = mAux3.ProcessSample(sl, allAuxDevices);
-						sr = mAux4.ProcessSample(sl, allAuxDevices);
+						sl = mAux3.ProcessSample(sl);
+						sr = mAux4.ProcessSample(sl);
 						sl = 0;
 						break;
 					case AuxRoute::ThreeOne:
 						// L = aux1 -> aux2 -> aux3 -> *
 						// R = aux4 -> *
-						sl = mAux3.ProcessSample(sl, allAuxDevices);
-						sr = mAux4.ProcessSample(sr, allAuxDevices);
+						sl = mAux3.ProcessSample(sl);
+						sr = mAux4.ProcessSample(sr);
 						break;
 					case AuxRoute::TwoTwo:
 						// L = aux1 -> aux2 -> *
 						// R = aux3 -> aux4 -> *
-						sr = mAux3.ProcessSample(sr, allAuxDevices);
-						sr = mAux4.ProcessSample(sr, allAuxDevices);
+						sr = mAux3.ProcessSample(sr);
+						sr = mAux4.ProcessSample(sr);
 						break;
 					}
 
