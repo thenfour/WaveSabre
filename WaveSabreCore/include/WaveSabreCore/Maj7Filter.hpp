@@ -196,7 +196,7 @@ namespace WaveSabreCore
                 return yn;
             }
 
-        private:
+        //private:
             // state L
             real xnminus1L = 0;
             real ynminus1L = 0;

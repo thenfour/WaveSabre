@@ -95,13 +95,15 @@ namespace WaveSabreCore
 
         void EnvelopeNode::BeginBlock()
         {
+            mnSampleCount = 0; // ensure reprocessing after setting these params to avoid corrupt state.
             RecalcState();
         }
 
         float EnvelopeNode::ProcessSample()
         {
+            auto recalcMask = GetModulationRecalcSampleMask();
             bool calc = (mnSampleCount == 0);
-            mnSampleCount = (mnSampleCount + 1) & gRecalcSampleMask;
+            mnSampleCount = (mnSampleCount + 1) & recalcMask;
             if (!calc) {
                 mLastOutputLevel += mOutputDeltaPerSample;
                 return mLastOutputLevel;
@@ -158,13 +160,13 @@ namespace WaveSabreCore
             }
             }
 
-            mStagePos01 += mStagePosIncPerSample * gRecalcSamplePeriod;
+            mStagePos01 += mStagePosIncPerSample * (recalcMask + 1);
             if (mStagePos01 >= 1.0f)
             {
                 AdvanceToStage(nextStage);
             }
 
-            mOutputDeltaPerSample = (ret - mLastOutputLevel) / gRecalcSamplePeriod;
+            mOutputDeltaPerSample = (ret - mLastOutputLevel) / (recalcMask + 1);
             mLastOutputLevel += mOutputDeltaPerSample;
 
             //mLastOutputLevel = ret;

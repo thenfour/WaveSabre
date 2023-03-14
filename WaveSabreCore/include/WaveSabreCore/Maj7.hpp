@@ -626,7 +626,10 @@ namespace WaveSabreCore
 					}
 
 					for (size_t ioutput = 0; ioutput < 2; ++ioutput) {
-						outputs[ioutput][iSample] = mDCFilters[ioutput].ProcessSample(s[ioutput] * mMasterVolume.GetLinearGain());
+						float o = s[ioutput];
+						o *= mMasterVolume.GetLinearGain();
+						o = math::clamp(o, -1, 1);
+						outputs[ioutput][iSample] = mDCFilters[ioutput].ProcessSample(o);
 					}
 
 					// advance phase of master LFOs

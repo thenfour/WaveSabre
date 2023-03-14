@@ -597,16 +597,7 @@ namespace WaveSabreCore
 			real_t mDestValueDeltas[(size_t)gModulationCount] = { 0 };
 			int mnSampleCount = 0;
 
-			void FullProcessSample(ModulationSpec(&modSpecs)[gModulationCount]);
-			//void DeltaProcessSample(ModulationSpec(&modSpecs)[gModulationCount]);
-
-			// in order to process modulations only every N samples, linearly interpolate during those N samples.
-			// when the dest value is processed, then this is the value that's added every sample to reach the final
-			// dest value. It does mean a N sample delay.
-			//float mDestAddendPerSample = 0;
-
 		public:
-			static constexpr size_t gRecalcSampleMask = 7;
 
 			template<typename Tmodid>
 			inline void SetSourceValue(Tmodid id, real_t val)

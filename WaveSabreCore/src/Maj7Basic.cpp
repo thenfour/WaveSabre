@@ -1,11 +1,57 @@
 
 #include <WaveSabreCore/Maj7Basic.hpp>
-
+#include <atomic>
 
 namespace WaveSabreCore
 {
 	namespace M7
 	{
+
+		static uint16_t gAudioRecalcSampleMaskValues[] = {
+			1023, // Potato,
+			255, // Carrot,
+			63, // Cauliflower,
+			15, // Eggplant,
+			7, // Celery,
+			3, // Mushroom,
+			1, // Artichoke,
+		};
+
+		static uint16_t gModulationRecalcSampleMaskValues[] = {
+			1023, // Potato,
+			255, // Carrot,
+			127, // Cauliflower,
+			63, // Eggplant,
+			15, // Celery,
+			7, // Mushroom,
+			3, // Artichoke,
+		};
+
+		std::atomic_uint16_t gAudioOscRecalcSampleMask = gAudioRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
+		std::atomic_uint16_t gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
+		std::atomic<QualitySetting> gQualitySetting = QualitySetting::Celery;
+
+		uint16_t GetAudioOscillatorRecalcSampleMask()
+		{
+			return gAudioOscRecalcSampleMask.load();
+		}
+		uint16_t GetModulationRecalcSampleMask()
+		{
+			return gModulationRecalcSampleMask.load();
+		}
+
+		void SetQualitySetting(QualitySetting n)
+		{
+			gAudioOscRecalcSampleMask.store(gAudioRecalcSampleMaskValues[(size_t)n]);
+			gModulationRecalcSampleMask.store(gModulationRecalcSampleMaskValues[(size_t)n]);
+			gQualitySetting.store(n);
+		}
+		QualitySetting GetQualitySetting()
+		{
+			return gQualitySetting.load();
+		}
+
+
 		namespace math
 		{
 			bool FloatEquals(real_t f1, real_t f2, real_t eps)

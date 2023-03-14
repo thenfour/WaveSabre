@@ -10,8 +10,8 @@ namespace WaveSabreCore
         struct EnvelopeNode
         {
             size_t mnSampleCount = 0;
-            static constexpr size_t gRecalcSamplePeriod = 8;
-            static constexpr size_t gRecalcSampleMask = 7;
+            //static constexpr size_t gRecalcSamplePeriod = 8;
+            //static constexpr size_t gRecalcSampleMask = 7;
 
             const int mParamBaseID;
             EnvTimeParam mDelayTime;//;{ 0 };

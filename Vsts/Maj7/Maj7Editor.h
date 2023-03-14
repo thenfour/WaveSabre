@@ -71,6 +71,7 @@ class Maj7Editor : public VstEditor
 	bool mShowingGmDlsList = false;
 	char mGmDlsFilter[100] = { 0 };
 
+
 public:
 	Maj7Editor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1120, 950),
@@ -157,6 +158,26 @@ public:
 			if (ImGui::MenuItem("Panic", nullptr, false)) {
 				pMaj7->AllNotesOff();
 			}
+
+			ImGui::Separator();
+			if (ImGui::BeginMenu("CPU - Quality Balance"))
+			{
+				QUALITY_SETTING_CAPTIONS(captions);
+				size_t currentSelectionID = (size_t)M7::GetQualitySetting();
+				int newSelection = -1;
+				for (size_t i = 0; i < (size_t)M7::QualitySetting::Count; ++i)
+				{
+					bool selected = (currentSelectionID == i);
+					if (ImGui::MenuItem(captions[i], nullptr, &selected)) {
+							newSelection = (int)i;
+					}
+				}
+				if (newSelection >= 0) {
+					M7::SetQualitySetting((M7::QualitySetting)newSelection);
+				}
+				ImGui::EndMenu();
+			}
+
 
 			ImGui::Separator();
 			ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector);

@@ -36,6 +36,40 @@ namespace WaveSabreCore
 
         static constexpr size_t gModulationCount = 16;
 
+        // too high (1023 for example) results in ugly audible ramping between modulations
+        // 255 feels actually quite usable
+        // 127 as well. - maybe this could be a "low cpu" setting.
+        // 31 feels like a good quality compromise.
+        // 7 is sharp quality.
+        // 3 is HD.
+        enum class QualitySetting : uint8_t
+        {
+            Potato,
+            Carrot,
+            Cauliflower,
+            Eggplant,
+            Celery,
+            Mushroom,
+            Artichoke,
+            Count,
+        };
+
+        #define QUALITY_SETTING_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::QualitySetting::Count]{ \
+                "Potato", \
+                "Carrot", \
+                "Cauliflower", \
+                "Eggplant", \
+                "Celery", \
+                "Mushroom",\
+                "Artichoke",\
+        };
+
+        extern uint16_t GetAudioOscillatorRecalcSampleMask();
+        extern uint16_t GetModulationRecalcSampleMask();
+        
+        extern QualitySetting GetQualitySetting();
+        extern void SetQualitySetting(QualitySetting);
+
         static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
 
         namespace math

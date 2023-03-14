@@ -1254,6 +1254,7 @@ namespace WaveSabreCore
 				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
 					return;
 				}
+				mnSamples = 0; // ensure reprocessing after setting these params to avoid corrupt state.
 				switch (mpOscDevice->mWaveform.GetEnumValue()) {
 				case OscillatorWaveform::Pulse:
 					mpSlaveWave = &mPulsePWMWaveform;
@@ -1297,10 +1298,8 @@ namespace WaveSabreCore
 
 			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount)
 			{
-				static constexpr size_t gRecalcSampleMask = 7;
 				if (!this->mpSrcDevice->mEnabledParam.mCachedVal) {
 					mOutSample = mCurrentSample = 0;
-					mnSamples = (mnSamples + 1) & gRecalcSampleMask;
 					return 0;
 				}
 
@@ -1339,7 +1338,7 @@ namespace WaveSabreCore
 					mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.mCachedVal + mPhaseModVal, mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate);
 				}
 
-				mnSamples = (mnSamples + 1) & gRecalcSampleMask;
+				mnSamples = (mnSamples + 1) & GetAudioOscillatorRecalcSampleMask();
 
 				mPrevSample = mCurrentSample;// THIS sample.
 				mCurrentSample = 0; // a value that gets added to the next sample
@@ -1393,7 +1392,6 @@ namespace WaveSabreCore
 
 			real_t ProcessSampleForLFO(bool forceSilence)
 			{
-				static constexpr size_t gRecalcSampleMask = 31;
 				if (!mnSamples)// NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
 					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
@@ -1404,10 +1402,13 @@ namespace WaveSabreCore
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);
 					mCurrentFreq = freq;
+
+					mpSlaveWave->SetParams(freq, mpOscDevice->mPhaseOffset.mCachedVal + mPhaseModVal, mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate);
+
 					double newDT = (double)freq / Helpers::CurrentSampleRate;
 					mPhaseIncrement = newDT;
 				}
-				mnSamples = (mnSamples + 1) & gRecalcSampleMask;
+				mnSamples = (mnSamples + 1) & GetModulationRecalcSampleMask();
 
 				mPhase = math::fract(mPhase + mPhaseIncrement);
 
