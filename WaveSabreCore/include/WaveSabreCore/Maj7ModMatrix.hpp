@@ -571,6 +571,7 @@ namespace WaveSabreCore
 				mDestination.CacheValue();
 				mAuxEnabled.CacheValue();
 				mAuxInvert.CacheValue();
+				mScale.CacheValue();
 				mAuxSource.CacheValue();
 			}
 
@@ -587,50 +588,25 @@ namespace WaveSabreCore
 			ModulationSpec(real_t* paramCache, int baseParamID);
 		};
 
-		//// contiguous array holding multiple audio blocks. when we have 70 modulation destinations, 
-		//// this means 1 single big allocation instead of 70 identically-sized small ones.
-		//struct ModMatrixBuffers
-		//{
-		//private:
-		//	static constexpr size_t gMaxEndpointCount = std::max((size_t)ModDestination::Count, (size_t)ModSource::Count);
-		//	//size_t mBlockSize = 0;
-		//	real_t mValues[gMaxEndpointCount] = { 0 };
-		//	//bool mpARatePopulated[gMaxEndpointCount] = { false };
-		//	//bool mpKRatePopulated[gMaxEndpointCount] = { false }; // because krate is fallback anyway, and gets reset to 0 each block, this is not necessary.
-
-		//public:
-		//	//ModMatrixBuffers();
-
-		//	//~ModMatrixBuffers();
-		//	void Reset();
-		//	void SetValue(size_t id, real_t val);
-
-		//	//void SetKRateValue(size_t id, real_t val);
-		//	real_t GetValue(size_t id) const;
-		//};
-
 
 		struct ModMatrixNode
 		{
 		private:
-			// krate values are a single scalar.
-			// arate are block-sized buffers.
-			// 
-			// NOTE: because block sizes will vary constantly, these can only be used within the same processing block.
-			// do not for example hold a-rate buffers to modulate the next block.
-			// 
-			// that means all A-Rate sources must be processed before you process the mod matrix.
-			// then all A-Rate destinations must be processed after mod matrix.
-			// that implies that no single "node" can both be an A-Rate source and an A-Rate destination.
-			// example: you modulate waveshape with LFO (common for PWM)
-			// 1. process LFO (all krate inputs, no problem. arate output)
-			// 2. mod matrix pulls in LFO a-rate buffer, and generates the waveshape destination buffer applying curve and accumulating multiple mods to same dest.
-			// 2. Oscillator arate Osc1Waveshape dest gets buffer from mod matrix
-
 			real_t mSourceValues[(size_t)ModSource::Count] = { 0 };
 			real_t mDestValues[(size_t)ModDestination::Count] = { 0 };
+			real_t mDestValueDeltas[(size_t)gModulationCount] = { 0 };
+			int mnSampleCount = 0;
+
+			void FullProcessSample(ModulationSpec(&modSpecs)[gModulationCount]);
+			//void DeltaProcessSample(ModulationSpec(&modSpecs)[gModulationCount]);
+
+			// in order to process modulations only every N samples, linearly interpolate during those N samples.
+			// when the dest value is processed, then this is the value that's added every sample to reach the final
+			// dest value. It does mean a N sample delay.
+			//float mDestAddendPerSample = 0;
 
 		public:
+			static constexpr size_t gRecalcSampleMask = 7;
 
 			template<typename Tmodid>
 			inline void SetSourceValue(Tmodid id, real_t val)

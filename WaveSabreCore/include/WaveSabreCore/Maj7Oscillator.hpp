@@ -1189,6 +1189,8 @@ namespace WaveSabreCore
 		{
 			OscillatorDevice* mpOscDevice = nullptr;
 
+			size_t mnSamples = 0;
+
 			// voice-level state
 			double mPhase = 0;
 			double mPhaseIncrement = 0; // DT
@@ -1293,19 +1295,17 @@ namespace WaveSabreCore
 				}
 			}
 
-			real_t ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount, bool forceSilence)
+			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount)
 			{
+				static constexpr size_t gRecalcSampleMask = 7;
 				if (!this->mpSrcDevice->mEnabledParam.mCachedVal) {
 					mOutSample = mCurrentSample = 0;
+					mnSamples = (mnSamples + 1) & gRecalcSampleMask;
 					return 0;
 				}
 
-				switch (mpOscDevice->mIntention) {
-				case OscillatorIntention::LFO:
-					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
-					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
-					break;
-				case OscillatorIntention::Audio:
+				if (0 == mnSamples) // NOTE: important that this is designed to be 0 the first run to force initial calculation.
+				{
 					mSyncFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::SyncFrequency);
 					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FrequencyParam);
 					mFMFeedbackModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FMFeedback);
@@ -1314,33 +1314,32 @@ namespace WaveSabreCore
 					mPitchFineModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
 
 					mFMFeedbackAmt = mpOscDevice->mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
-					break;
+
+					// - osc pitch semis                  note         oscillator                  
+					// - osc fine (semis)                 note         oscillator                   
+					// - osc sync freq / kt (Hz)          hz           oscillator                        
+					// - osc freq / kt (Hz)               hz           oscillator                   
+					// - osc mul (Hz)                     hz           oscillator             
+					// - osc detune (semis)               hz+semis     oscillator                         
+					// - unisono detune (semis)           hz+semis     oscillator                             
+					midiNote += mpSrcDevice->mPitchSemisParam.mCachedVal + (mpSrcDevice->mPitchFineParam.mCachedVal + mPitchFineModVal) * gSourcePitchFineRangeSemis;
+					float noteHz = math::MIDINoteToFreq(midiNote);
+					float freq = mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
+					freq *= mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
+					freq *= detuneFreqMul;
+					freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
+					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
+					freq = std::max(freq, 0.001f);
+					mCurrentFreq = freq;
+
+					double newDT = (double)freq / Helpers::CurrentSampleRate;
+					mPhaseIncrement = newDT;
+
+					float slaveFreq = mpOscDevice->mSyncEnable.mCachedVal ? mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
+					mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.mCachedVal + mPhaseModVal, mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate);
 				}
 
-				// - osc pitch semis                  note         oscillator                  
-				// - osc fine (semis)                 note         oscillator                   
-				// - osc sync freq / kt (Hz)          hz           oscillator                        
-				// - osc freq / kt (Hz)               hz           oscillator                   
-				// - osc mul (Hz)                     hz           oscillator             
-				// - osc detune (semis)               hz+semis     oscillator                         
-				// - unisono detune (semis)           hz+semis     oscillator                             
-				midiNote += mpSrcDevice->mPitchSemisParam.mCachedVal + (mpSrcDevice->mPitchFineParam.mCachedVal + mPitchFineModVal) * gSourcePitchFineRangeSemis;
-				float noteHz = math::MIDINoteToFreq(midiNote);
-				float freq = mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
-				freq *= mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
-				freq *= detuneFreqMul;
-				freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
-				// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
-				freq = std::max(freq, 0.001f);
-				mCurrentFreq = freq;
-
-				double newDT = (double)freq / Helpers::CurrentSampleRate;
-				//mDTDT = (newDT - mPhaseIncrement) / samplesInBlock;
-				//mDTDT = 0;
-				mPhaseIncrement = newDT;
-
-				float slaveFreq = mpOscDevice->mSyncEnable.mCachedVal ? mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
-				mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.mCachedVal + mPhaseModVal, mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate);
+				mnSamples = (mnSamples + 1) & gRecalcSampleMask;
 
 				mPrevSample = mCurrentSample;// THIS sample.
 				mCurrentSample = 0; // a value that gets added to the next sample
@@ -1354,11 +1353,6 @@ namespace WaveSabreCore
 				//mPhaseIncrement += mDTDT;
 				mPhase = math::fract(mPhase + mPhaseIncrement);
 
-				if (forceSilence) {
-					mOutSample = mCurrentSample = 0;
-					return 0;
-				}
-				
 				float phaseMod =
 					mPrevSample * mFMFeedbackAmt
 					+ signal1 * signal1PMAmount
@@ -1394,7 +1388,38 @@ namespace WaveSabreCore
 				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale;
 
 				return mOutSample;
-			}
+			} // process sample for audio
+
+
+			real_t ProcessSampleForLFO(bool forceSilence)
+			{
+				static constexpr size_t gRecalcSampleMask = 31;
+				if (!mnSamples)// NOTE: important that this is designed to be 0 the first run to force initial calculation.
+				{
+					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
+					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
+
+					float freq = mpSrcDevice->mFrequencyParam.GetFrequency(0, mFreqModVal);
+					freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
+					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
+					freq = std::max(freq, 0.001f);
+					mCurrentFreq = freq;
+					double newDT = (double)freq / Helpers::CurrentSampleRate;
+					mPhaseIncrement = newDT;
+				}
+				mnSamples = (mnSamples + 1) & gRecalcSampleMask;
+
+				mPhase = math::fract(mPhase + mPhaseIncrement);
+
+				if (forceSilence) {
+					mOutSample = mCurrentSample = 0;
+					return 0;
+				}
+
+				mOutSample = mCurrentSample = mpSlaveWave->NaiveSample(float(mPhase));
+
+				return mOutSample;
+			} // process sample for lfo
 		};
 	} // namespace M7
 

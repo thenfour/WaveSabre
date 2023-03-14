@@ -28,13 +28,13 @@ namespace WaveSabreCore
 	{
 		namespace math
 		{
-			SinCosLUT gSinLUT{ 1024, [](float x) { return (float)::sin((double)x * 2 * M_PI); }};
-			SinCosLUT gCosLUT{ 1024,  [](float x) { return (float)::cos((double)x * 2 * M_PI); } };
-			TanHLUT gTanhLUT{ 1024 };
-			LUT01 gSqrt01LUT{ 1024, [](float x) { return ::sqrtf(x); } };
+			SinCosLUT gSinLUT{ 768, [](float x) { return (float)::sin((double)x * 2 * M_PI); }};
+			SinCosLUT gCosLUT{ 768,  [](float x) { return (float)::cos((double)x * 2 * M_PI); } };
+			TanHLUT gTanhLUT{ 768 };
+			LUT01 gSqrt01LUT{ 768, [](float x) { return ::sqrtf(x); } };
 
-			CurveLUT gCurveLUT{ 1024 };
-			Pow2_N16_16_LUT gPow2_N16_16_LUT{ 4096 };
+			CurveLUT gCurveLUT{ 768 };
+			Pow2_N16_16_LUT gPow2_N16_16_LUT{ 768 };
 		}
 	}
 

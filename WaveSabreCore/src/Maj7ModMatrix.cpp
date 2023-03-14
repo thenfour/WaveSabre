@@ -22,19 +22,7 @@ namespace WaveSabreCore
 			{
 			}
 
-			//void ModMatrixBuffers::Reset() {
-			//	memset(mValues, 0, sizeof(mValues));
-			//}
 
-			//void ModMatrixBuffers::SetValue(size_t id, real_t val)
-			//{
-			//	mValues[id] = val;
-			//}
-
-			//real_t ModMatrixBuffers::GetValue(size_t id) const
-			//{
-			//	return mValues[id];
-			//}
 
 			float ModMatrixNode::InvertValue(float val, bool invertParam, const ModSource modSource)
 			{
@@ -49,11 +37,13 @@ namespace WaveSabreCore
 				return val;
 			}
 
-			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
+			void ModMatrixNode::FullProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
 			{
-				memset(mDestValues, 0, sizeof(mDestValues));// mDest.Reset();
-				for (ModulationSpec& spec : modSpecs)
+				//for (ModulationSpec& spec : modSpecs)
+				for (size_t imod = 0; imod < gModulationCount; ++ imod)
 				{
+					auto& spec = modSpecs[imod];
+					mDestValueDeltas[imod] = 0;
 					if (!spec.mEnabled.mCachedVal) continue;
 					auto modSource = spec.mSource.mCachedVal;
 					if (modSource == ModSource::None) continue;
@@ -66,12 +56,11 @@ namespace WaveSabreCore
 					real_t sourceVal = GetSourceValue(modSource);
 					sourceVal = InvertValue(sourceVal, spec.mInvert.mCachedVal, modSource);
 					sourceVal = spec.mCurve.ApplyToValue(sourceVal);
-					sourceVal *= spec.mScale.GetN11Value();
+					sourceVal *= spec.mScale.mCachedVal;
 
 					if (spec.mAuxEnabled.mCachedVal)
 					{
 						// attenuate the value
-						//const auto& auxSourceInfo = gModSourceInfo[(int)spec.mAuxSource.GetEnumValue()];
 						auto auxSource = spec.mAuxSource.mCachedVal;
 						if (auxSource != ModSource::None) {
 							float auxVal = GetSourceValue(auxSource);
@@ -85,10 +74,34 @@ namespace WaveSabreCore
 						}
 					}
 
+					float orig = mDestValues[(size_t)modDest];
+					mDestValueDeltas[imod] = (sourceVal - orig) / (gRecalcSampleMask + 1);
+
 					//real_t destVal = GetDestinationValue(modDest);
-					mDestValues[(size_t)modDest] += sourceVal;
+					//mDestValues[(size_t)modDest] += sourceVal;
+				} // for each mod
+			} // full process
+
+			//void ModMatrixNode::DeltaProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
+			//{
+			//} // full process
+
+			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
+			{
+				//memset(mDestValues, 0, sizeof(mDestValues));// mDest.Reset();
+				if (!mnSampleCount)
+				{
+					FullProcessSample(modSpecs); // populate modspec dest addend-per-sample
 				}
+				for (size_t imod = 0; imod < gModulationCount; ++imod)
+				{
+					auto& spec = modSpecs[imod];
+					mDestValues[(size_t)spec.mDestination.mCachedVal] += mDestValueDeltas[imod];
+				} // for each mod
+
+				mnSampleCount = (mnSampleCount + 1) & gRecalcSampleMask;
 			}
+
 	} // namespace M7
 
 

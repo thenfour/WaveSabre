@@ -218,13 +218,11 @@ namespace WaveSabreCore
 			n->mLegatoRestart.SetBoolValue(true); // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
 		}
 
-		static inline void GenerateDefaults(AuxNode* p)
+		static inline void GenerateDefaults(AuxDevice* p)
 		{
-			p->Reset();
 			p->mEnabledParam.SetBoolValue(false);
 			p->mLink.SetEnumValue(p->mLinkToSelf);// (paramCache_Offset[(int)AuxParamIndexOffsets::Link], AuxLink::Count),
 			p->mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
-			p->mCurrentEffectType = AuxEffectType::None;
 		}
 
 		static inline void GenerateDefaults_Source(ISoundSourceDevice* p)
@@ -338,8 +336,8 @@ namespace WaveSabreCore
 			for (auto& m : p->mModulations) {
 				GenerateDefaults(&m);
 			}
-			for (auto& m : p->mMaj7Voice[0]->mAllAuxNodes) {
-				GenerateDefaults(m);
+			for (auto& m : p->mAuxDevices) {
+				GenerateDefaults(&m);
 			}
 			for (auto p : p->mMaj7Voice[0]->mpAllEnvelopes)
 			{

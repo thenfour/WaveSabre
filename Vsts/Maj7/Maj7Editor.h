@@ -265,7 +265,7 @@ public:
 		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFO1Device.mBaseParamID);
 		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mOsc1AmpEnv.mParamBaseID);
 		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mBaseParamID);
-		GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mAux1.mBaseParamID);
+		GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mAuxDevices[0].mBaseParamID);
 
 		ss << "  } // namespace M7" << std::endl;
 		ss << "} // namespace WaveSabreCore" << std::endl;
@@ -881,7 +881,7 @@ public:
 		{3, M7::ParamIndices::Aux4Enabled, M7::AuxLink::Aux4,M7::ModDestination::Aux4Param2 },
 	};
 
-	M7::AuxNode GetDummyAuxNode(float (&paramValues)[(int)M7::AuxParamIndexOffsets::Count], int iaux)
+	M7::AuxDevice GetDummyAuxDevice(float (&paramValues)[(int)M7::AuxParamIndexOffsets::Count], int iaux)
 	{
 		auto& auxInfo = gAuxInfo[iaux];
 		float tempParamValues[(int)M7::AuxParamIndexOffsets::Count] = {
@@ -898,7 +898,7 @@ public:
 		{
 			paramValues[i] = tempParamValues[i];
 		}
-		return M7::AuxNode{ auxInfo.mSelfLink, 0, paramValues, (int)auxInfo.mModParam2ID };
+		return M7::AuxDevice{ auxInfo.mSelfLink, 0, paramValues, (int)auxInfo.mModParam2ID };
 	}
 
 	std::string GetAuxName(int iaux, std::string idsuffix)
@@ -906,7 +906,7 @@ public:
 		// (link:Aux1)
 		// (Filter)
 		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
-		M7::AuxNode a = GetDummyAuxNode(paramValues, iaux);
+		auto a = GetDummyAuxDevice(paramValues, iaux);
 		auto ret = std::string{ "Aux " } + std::to_string(iaux + 1);
 		if (a.IsLinkedExternally()) {
 			ret += " (*Aux ";
@@ -940,7 +940,7 @@ public:
 	{
 		auto& auxInfo = gAuxInfo[iaux];
 		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
-		M7::AuxNode a = GetDummyAuxNode(paramValues, iaux);
+		auto a = GetDummyAuxDevice(paramValues, iaux);
 		if (a.IsLinkedExternally()) {
 			labels[0] += " (shadowed)";
 			labels[1] += " (shadowed)";
@@ -1087,7 +1087,7 @@ public:
 		AUX_EFFECT_TYPE_CAPTIONS(auxEffectTypeCaptions);
 		auto& auxInfo = gAuxInfo[iaux];
 		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
-		M7::AuxNode a = GetDummyAuxNode(paramValues, iaux);
+		auto a = GetDummyAuxDevice(paramValues, iaux);
 
 		ColorMod& cm = a.mEnabledParam.GetBoolValue() ? *auxTabColors[iaux] : *auxTabDisabledColors[iaux];
 		auto token = cm.Push();
@@ -1130,7 +1130,7 @@ public:
 						// modulations: don't copy modulations because we can't guarantee you expect them to be clobbered, and there's a finite number so just avoid the headache.
 						auto& srcAuxInfo = gAuxInfo[n];
 						float srcParamValues[(int)M7::AuxParamIndexOffsets::Count];
-						M7::AuxNode srcNode = GetDummyAuxNode(srcParamValues, n);
+						auto srcNode = GetDummyAuxDevice(srcParamValues, n);
 
 						// copy from SRC to THIS
 						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, srcParamValues[(int)M7::AuxParamIndexOffsets::Enabled]);
@@ -1192,7 +1192,7 @@ public:
 						// modulations: don't copy modulations because we can't guarantee you expect them to be clobbered, and there's a finite number so just avoid the headache.
 						auto& srcAuxInfo = gAuxInfo[n];
 						float srcParamValues[(int)M7::AuxParamIndexOffsets::Count];
-						M7::AuxNode srcNode = GetDummyAuxNode(srcParamValues, n);
+						auto srcNode = GetDummyAuxDevice(srcParamValues, n);
 
 						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Enabled));
 						GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type, GetEffectX()->getParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Type));
@@ -1380,53 +1380,53 @@ public:
 		}
 	} // waveform param
 
-	void AuxDistortionGraphic(ImRect bb, int iaux)
-	{
-		float innerHeight = bb.GetHeight() - 4;
+	//void AuxDistortionGraphic(ImRect bb, int iaux)
+	//{
+	//	float innerHeight = bb.GetHeight() - 4;
 
-		ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
-		ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
+	//	ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
+	//	ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
 
-		auto drawList = ImGui::GetWindowDrawList();
+	//	auto drawList = ImGui::GetWindowDrawList();
 
-		auto sampleToY = [&](float sample) {
-			float c = outerBR.y - float(bb.GetHeight()) * 0.5f;
-			float h = float(innerHeight) * 0.5f * sample;
-			return c - h;
-		};
+	//	auto sampleToY = [&](float sample) {
+	//		float c = outerBR.y - float(bb.GetHeight()) * 0.5f;
+	//		float h = float(innerHeight) * 0.5f * sample;
+	//		return c - h;
+	//	};
 
-		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
-		M7::AuxNode an = GetDummyAuxNode(paramValues, iaux);
-		auto pdist = an.CreateEffect(nullptr);
-		if (pdist == nullptr)
-		{
-			//ImGui::Text("Error creating distortion node."); its normal when aux is disabled.
-			return;
-		}
-		size_t nSamples = (size_t)bb.GetWidth();
-		M7::ModMatrixNode mm;
-		pdist->AuxBeginBlock(0, (int)nSamples, mm);
+	//	float paramValues[(int)M7::AuxParamIndexOffsets::Count];
+	//	M7::AuxNode an = GetDummyAuxNode(paramValues, iaux);
+	//	auto pdist = an.CreateEffect(nullptr);
+	//	if (pdist == nullptr)
+	//	{
+	//		//ImGui::Text("Error creating distortion node."); its normal when aux is disabled.
+	//		return;
+	//	}
+	//	size_t nSamples = (size_t)bb.GetWidth();
+	//	M7::ModMatrixNode mm;
+	//	pdist->AuxBeginBlock(0, (int)nSamples, mm);
 
-		std::vector<float> wave;
-		wave.reserve(nSamples);
-		float maxRectify = 0.001f;
-		for (size_t iSample = 0; iSample < nSamples; ++iSample)
-		{
-			float s = M7::math::fract(float(iSample) / nSamples) * 2 - 1;
-			s = pdist->AuxProcessSample(s);
-			maxRectify = std::max(maxRectify, std::abs(s));
-			wave.push_back(s);
-		}
+	//	std::vector<float> wave;
+	//	wave.reserve(nSamples);
+	//	float maxRectify = 0.001f;
+	//	for (size_t iSample = 0; iSample < nSamples; ++iSample)
+	//	{
+	//		float s = M7::math::fract(float(iSample) / nSamples) * 2 - 1;
+	//		s = pdist->AuxProcessSample(s);
+	//		maxRectify = std::max(maxRectify, std::abs(s));
+	//		wave.push_back(s);
+	//	}
 
-		ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f); // background
-		float centerY = sampleToY(0);
-		drawList->AddLine({ outerTL.x, centerY }, { outerBR.x, centerY }, ImGui::GetColorU32(ImGuiCol_PlotLines), 2.0f);// center line
-		for (size_t iSample = 0; iSample < nSamples; ++iSample)
-		{
-			float s = wave[iSample] / maxRectify;
-			drawList->AddLine({ outerTL.x + iSample, centerY }, { outerTL.x + iSample, sampleToY(s) }, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
-		}
-	}
+	//	ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f); // background
+	//	float centerY = sampleToY(0);
+	//	drawList->AddLine({ outerTL.x, centerY }, { outerBR.x, centerY }, ImGui::GetColorU32(ImGuiCol_PlotLines), 2.0f);// center line
+	//	for (size_t iSample = 0; iSample < nSamples; ++iSample)
+	//	{
+	//		float s = wave[iSample] / maxRectify;
+	//		drawList->AddLine({ outerTL.x + iSample, centerY }, { outerTL.x + iSample, sampleToY(s) }, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
+	//	}
+	//}
 
 	bool LoadSample(const char* path, M7::SamplerDevice& sampler, size_t isrc)
 	{
