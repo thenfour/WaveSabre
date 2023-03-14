@@ -73,6 +73,23 @@ namespace WaveSabreCore
                 return LUT01::Invoke(fract(scaledX));
             }
 
+
+            Pow2_N16_16_LUT::Pow2_N16_16_LUT(size_t nSamples)
+                : LUT01(nSamples, [](float n) {
+                return (float)::powf(2.0f, (n - .5f) * 32); // return (float)::sin((double)x * 2 * M_PI); }};
+                    })
+            {}
+
+            float Pow2_N16_16_LUT::Invoke(float x) const { // passed in value is -16,16
+                static constexpr float gScaleCorrection = 1.0f / 32;
+                x *= gScaleCorrection;
+                x += 0.5f;
+                return LUT01::Invoke(x);
+            }
+
+
+
+
             // tanh approaches -1 before -PI, and +1 after +PI. so squish the range and do a 0,1 LUT mapping from -PI,PI
             TanHLUT::TanHLUT(size_t nSamples)
                 : LUT01(nSamples, [](float x) { return (float)::tanh(((double)x - .5) * M_PI * 2); })
@@ -203,7 +220,9 @@ namespace WaveSabreCore
             {
                 // float a = 440;
                 // return (a / 32.0f) * fast::pow(2.0f, (((float)x - 9.0f) / 12.0f));
-                return 440 * math::pow2((x - 69) / 12);
+                //return 440 * math::pow2((x - 69) / 12);
+                static constexpr float oneTwelfth = 1.0f / 12;
+                return 440 * math::pow2_N16_16((x - 69) * oneTwelfth);
             }
 
             float SemisToFrequencyMul(float x)
@@ -478,9 +497,10 @@ namespace WaveSabreCore
                             float ktFreq = noteHz * 4; // to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
                             float centerFreq = math::lerp(mCenterFrequency, ktFreq, mKTValue.Get01Value());
 
-                            param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)
-                            param *= mScale;// 10.0f; // (.3 = -2, .8 = 3)
-                            float fact = math::pow(2, param);
+                            param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)   [-.5,+.5]
+                            param *= mScale;// 10.0f; // (.3 = -2, .8 = 3) [-15,+15]
+                            //float fact = math::pow(2, param);
+                            float fact = math::pow2_N16_16(param);
                             return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
                         }
 

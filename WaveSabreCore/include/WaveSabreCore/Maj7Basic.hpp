@@ -215,6 +215,21 @@ namespace WaveSabreCore
             extern CurveLUT gCurveLUT;
             // 2D LUTs: pow() 0-1, and curve
 
+
+            // pow(2,n) is a quite hot path, used by MidiNoteToFrequency(), as well as all other frequency calculations.
+            // the range of `n` is [-15,+15] but depends on frequency param scale. so let's extend a bit and make a huge lut.
+            struct Pow2_N16_16_LUT : public LUT01
+            {
+                Pow2_N16_16_LUT(size_t nSamples);
+                virtual float Invoke(float x) const override;
+            };
+            extern Pow2_N16_16_LUT gPow2_N16_16_LUT;
+
+            inline float pow2_N16_16(float n)
+            {
+                return gPow2_N16_16_LUT.Invoke(n);
+            }
+
             inline real_t sin(real_t x) {
                 return gSinLUT.Invoke(x);
                 //return (real_t)Helpers::FastSin((double)x);

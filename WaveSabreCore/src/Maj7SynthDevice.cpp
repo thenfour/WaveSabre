@@ -34,6 +34,7 @@ namespace WaveSabreCore
 			LUT01 gSqrt01LUT{ 1024, [](float x) { return ::sqrtf(x); } };
 
 			CurveLUT gCurveLUT{ 1024 };
+			Pow2_N16_16_LUT gPow2_N16_16_LUT{ 4096 };
 		}
 	}
 

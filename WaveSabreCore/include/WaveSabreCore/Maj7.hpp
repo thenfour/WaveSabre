@@ -522,6 +522,7 @@ namespace WaveSabreCore
 				return mParamCache[index];
 			}
 
+
 			virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) override
 			{
 				mDeviceModSourceValuesSetThisFrame = false;
@@ -780,16 +781,29 @@ namespace WaveSabreCore
 
 					mModMatrix.ProcessSample(mpOwner->mModulations); // this sets dest values to 0.
 
-					mModMatrix.SetSourceValue(ModSource::ModEnv1, mModEnv1.ProcessSample());
-					mModMatrix.SetSourceValue(ModSource::ModEnv2, mModEnv2.ProcessSample());
+					float l = 0;
+					//if (mpOwner->IsEnvelopeInUse(ModSource::ModEnv1))
+						l = mModEnv1.ProcessSample();
+					mModMatrix.SetSourceValue(ModSource::ModEnv1,l );
 
-					float l1 = mModLFO1.ProcessSample(0, 1, 0, 0, 0, 0, 0, 0, 0, false);
-					l1 = mLFOFilter1.ProcessSample(l1);
-					mModMatrix.SetSourceValue(ModSource::LFO1, l1);
+					l = 0;
+					//if (mpOwner->IsEnvelopeInUse(ModSource::ModEnv2))
+						l = mModEnv2.ProcessSample();
+					mModMatrix.SetSourceValue(ModSource::ModEnv2, l);
 
-					float l2 = mModLFO2.ProcessSample(0, 1, 0, 0, 0, 0, 0, 0, 0, false);
-					l2 = mLFOFilter2.ProcessSample(l2);
-					mModMatrix.SetSourceValue(ModSource::LFO2, l2);
+					l = 0;
+					//if (mpOwner->IsLFOInUse(ModSource::LFO1)) {
+						mModLFO1.ProcessSample(0, 1, 0, 0, 0, 0, 0, 0, 0, false);
+						l = mLFOFilter1.ProcessSample(l);
+					//}
+					mModMatrix.SetSourceValue(ModSource::LFO1, l);
+
+					l = 0;
+					//if (mpOwner->IsLFOInUse(ModSource::LFO2)) {
+						mModLFO2.ProcessSample(0, 1, 0, 0, 0, 0, 0, 0, 0, false);
+						l = mLFOFilter2.ProcessSample(l);
+					//}
+					mModMatrix.SetSourceValue(ModSource::LFO2, l);
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
@@ -801,11 +815,14 @@ namespace WaveSabreCore
 					{
 						auto* srcVoice = mSourceVoices[i];
 
-						mModMatrix.SetSourceValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, srcVoice->mpAmpEnv->ProcessSample());
+						//if (mpOwner->IsEnvelopeInUse(srcVoice->mpSrcDevice->mAmpEnvModSourceID))
 
 						if (!srcVoice->mpSrcDevice->mEnabledParam.GetBoolValue()) {
+							srcVoice->mpAmpEnv->kill();
 							continue;
 						}
+
+						mModMatrix.SetSourceValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, srcVoice->mpAmpEnv->ProcessSample());
 
 						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
 
@@ -954,8 +971,9 @@ namespace WaveSabreCore
 				virtual bool IsPlaying() override {
 					for (auto& srcVoice : mSourceVoices)
 					{
-						if (!srcVoice->mpSrcDevice->mEnabledParam.GetBoolValue())
-							continue;
+						// if the voice is not enabled, its env won't be playing.
+						//if (!srcVoice->mpSrcDevice->mEnabledParam.GetBoolValue())
+						//	continue;
 						if (srcVoice->mpAmpEnv->IsPlaying())
 							return true;
 					}
