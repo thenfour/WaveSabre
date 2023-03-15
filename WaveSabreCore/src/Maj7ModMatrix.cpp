@@ -82,7 +82,7 @@ namespace WaveSabreCore
 						//real_t destVal = GetDestinationValue(modDest);
 						//mDestValues[(size_t)modDest] += sourceVal;
 					} // for each mod
-				}
+				} // if needs recalc
 
 				for (size_t imod = 0; imod < gModulationCount; ++imod)
 				{

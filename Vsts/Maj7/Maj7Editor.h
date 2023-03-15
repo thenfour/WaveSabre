@@ -15,45 +15,45 @@
 
 using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
-
-template<typename T>
-struct ComPtr
-{
-private:
-	T* mp = nullptr;
-	void Release() {
-		if (mp) {
-			mp->Release();
-			mp = nullptr;
-		}
-	}
-public:
-	~ComPtr() {
-		Release();
-	}
-	void Set(T* p, bool incrRef) {
-		Release();
-		if (p) {
-			mp = p;
-			if (incrRef) {
-				mp->AddRef();
-			}
-		}
-	}
-	T** GetReceivePtr() { // many COM Calls return an interface with a reference for the caller. this receives the object and assumes a ref has already been added to keep.
-		Release();
-		return &mp;
-	}
-	T* get() {
-		return mp;
-	}
-	T* operator ->() {
-		return mp;
-	}
-	bool operator !() {
-		return !!mp;
-	}
-};
+//
+//template<typename T>
+//struct ComPtr
+//{
+//private:
+//	T* mp = nullptr;
+//	void Release() {
+//		if (mp) {
+//			mp->Release();
+//			mp = nullptr;
+//		}
+//	}
+//public:
+//	~ComPtr() {
+//		Release();
+//	}
+//	void Set(T* p, bool incrRef) {
+//		Release();
+//		if (p) {
+//			mp = p;
+//			if (incrRef) {
+//				mp->AddRef();
+//			}
+//		}
+//	}
+//	T** GetReceivePtr() { // many COM Calls return an interface with a reference for the caller. this receives the object and assumes a ref has already been added to keep.
+//		Release();
+//		return &mp;
+//	}
+//	T* get() {
+//		return mp;
+//	}
+//	T* operator ->() {
+//		return mp;
+//	}
+//	bool operator !() {
+//		return !!mp;
+//	}
+//};
 //
 //// the "default param cache
 //static inline void NewPatch(M7::Maj7* pmaj7)
@@ -180,7 +180,12 @@ public:
 
 
 			ImGui::Separator();
-			ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector);
+			if (ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector)) {
+				if (!mShowingInspector) mShowingModulationInspector = false;
+			}
+			if (ImGui::MenuItem("Show modulation inspector", nullptr, &mShowingModulationInspector)) {
+				if (mShowingModulationInspector) mShowingInspector = true;
+			}
 			ImGui::MenuItem("Show color expl", nullptr, &mShowingColorExp);
 
 			ImGui::Separator();
@@ -316,102 +321,6 @@ public:
 		return playingVoiceToReturn;
 	}
 
-	struct ColorMod
-	{
-		float mHueAdd;
-		float mSaturationMul;
-		float mValueMul;
-		float mTextValue;
-		float mTextDisabledValue;
-
-		bool mInitialized = false;
-		ImVec4 mNewColors[ImGuiCol_COUNT];
-
-		struct Token
-		{
-			ImVec4 mOldColors[ImGuiCol_COUNT];
-			bool isSet = false;
-			Token(ImVec4* newColors) {
-				isSet = !!newColors;
-				if (isSet) {
-					memcpy(mOldColors, ImGui::GetStyle().Colors, sizeof(mOldColors));
-					memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
-				}
-			}
-			Token(Token&& rhs)
-			{
-				isSet = rhs.isSet;
-				rhs.isSet = false;
-				memcpy(mOldColors, rhs.mOldColors, sizeof(mOldColors));
-			}
-			Token& operator =(Token&& rhs)
-			{
-				isSet = rhs.isSet;
-				rhs.isSet = false;
-				memcpy(mOldColors, rhs.mOldColors, sizeof(mOldColors));
-				return *this;
-			}
-			Token() {
-
-			}
-			~Token() {
-				if (isSet) {
-					memcpy(ImGui::GetStyle().Colors, mOldColors, sizeof(mOldColors));
-				}
-			}
-		};
-		Token Push()
-		{
-			if (!this->mInitialized) {
-				return { nullptr };
-			}
-			return { mNewColors };
-		}
-
-		void EnsureInitialized() {
-			if (mInitialized) return;
-			ImGuiStyle& style = ImGui::GetStyle();
-
-			// correct some things in default style.
-			{
-				ImVec4 color = style.Colors[ImGuiCol_TabActive];
-				float h, s, v;
-				ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-				auto newcolor = ImColor::HSV(h, s, 1);
-				style.Colors[ImGuiCol_TabActive] = newcolor.Value;
-			}
-
-			mInitialized = true;
-			for (size_t i = 0; i < ImGuiCol_COUNT; ++i) {
-				ImVec4 color = style.Colors[i];
-				float h, s, v;
-				ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-				auto newcolor = ImColor::HSV(h + mHueAdd, s * mSaturationMul, v * mValueMul);
-				mNewColors[i] = newcolor.Value;
-			}
-			mNewColors[ImGuiCol_Text] = ImColor::HSV(0, 0, mTextValue);
-			mNewColors[ImGuiCol_TextDisabled] = ImColor::HSV(0, 0, mTextDisabledValue);
-		}
-
-		ColorMod(float hueAdd, float satMul, float valMul, float textVal, float textDisabledVal) :
-			mHueAdd(hueAdd),
-			mSaturationMul(satMul),
-			mValueMul(valMul),
-			mTextValue(textVal),
-			mTextDisabledValue(textDisabledVal)
-		{
-		}
-
-		// really just for the NOP color
-		ColorMod() :
-			mHueAdd(0),
-			mSaturationMul(1),
-			mValueMul(1),
-			mTextValue(.8f),
-			mTextDisabledValue(.4f)
-		{
-		}
-	};
 
 	ColorMod mModulationsColors{ 0.15f, 0.6f, 0.65f, 0.9f, 0.0f };
 	ColorMod mModulationDisabledColors{ 0.15f, 0.0f, 0.65f, 0.6f, 0.0f };
@@ -433,70 +342,9 @@ public:
 	ColorMod mNopColors;
 
 	bool mShowingInspector = false;
+	bool mShowingModulationInspector = false;
 	bool mShowingColorExp = false;
 
-	bool BeginTabBar2(const char* str_id, ImGuiTabBarFlags flags, float columns = 1)
-	{
-		tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
-		ImGuiContext& g = *GImGui;
-		ImGuiWindow* window = g.CurrentWindow;
-		ImGuiID id = window->GetID(str_id);
-		ImGuiTabBar* tab_bar = g.TabBars.GetOrAddByKey(id);
-		// Copied from imgui with changes:
-		// 1. shrinking workrect max for column support
-		// 2. adding X cursor pos for side-by-side positioning
-		// 3. pushing empty separator color so BeginTabBarEx doesn't display a separator line (we'll do it later).
-		ImRect tab_bar_bb = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x / columns), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
-		tab_bar->ID = id;
-		ImGui::PushStyleColor(ImGuiCol_TabActive, {});// : ImGuiCol_TabUnfocusedActive
-		bool ret = ImGui::BeginTabBarEx(tab_bar, tab_bar_bb, flags | ImGuiTabBarFlags_IsFocused);
-		ImGui::PopStyleColor(1);
-		return ret;
-	}
-
-	ImRect tabBarBB;
-	ImU32 tabBarStoredSeparatorColor;
-
-	bool WSBeginTabItem(const char* label, bool* p_open = 0, ImGuiTabItemFlags flags = 0)
-	{
-		if (ImGui::BeginTabItem(label, p_open, flags)) {
-			tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
-			return true;
-		}
-		return false;
-	}
-
-	void EndTabBarWithColoredSeparator()
-	{
-		ImGuiContext& g = *GImGui;
-		ImGuiWindow* window = g.CurrentWindow;
-		ImGuiTabBar* tab_bar = g.CurrentTabBar;
-		const ImU32 col = tabBarStoredSeparatorColor;
-		const float y = tab_bar->BarRect.Max.y - 1.0f;
-
-		const float separator_min_x = tab_bar->BarRect.Min.x - M7::math::floor(window->WindowPadding.x * 0.5f);
-		const float separator_max_x = tab_bar->BarRect.Max.x + M7::math::floor(window->WindowPadding.x * 0.5f);
-
-		ImRect body_bb;
-		body_bb.Min = { separator_min_x, y };
-		body_bb.Max = { separator_max_x, window->DC.CursorPos.y };
-
-		ImColor c2 = { col };
-		float h, s, v;
-		ImGui::ColorConvertRGBtoHSV(c2.Value.x, c2.Value.y, c2.Value.z, h, s, v);
-		auto halfAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.5f);
-		auto lowAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.15f);
-
-		//window->DrawList->AddLine(ImVec2(separator_min_x, y), ImVec2(separator_max_x, y), col, 1.0f);
-
-		ImGui::GetBackgroundDrawList()->AddRectFilled(body_bb.Min, body_bb.Max, lowAlpha, 6, ImDrawFlags_RoundCornersAll);
-		ImGui::GetBackgroundDrawList()->AddRect(body_bb.Min, body_bb.Max, halfAlpha, 6, ImDrawFlags_RoundCornersAll);
-
-		ImGui::EndTabBar();
-
-		// add some bottom margin.
-		ImGui::Dummy({0, 7});
-	}
 
 
 	virtual void renderImgui() override
@@ -531,11 +379,11 @@ public:
 			static float colorValueVarAmt = 1;
 			static float colorTextVal = 0.9f;
 			static float colorTextDisabledVal = 0.5f;
-			bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, gNormalKnobSpeed, gSlowKnobSpeed);
+			bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
 			ColorMod xyz{ colorHueVarAmt , colorSaturationVarAmt, colorValueVarAmt, colorTextVal, colorTextDisabledVal };
 			xyz.EnsureInitialized();
 			colorExplorerToken = std::move(xyz.Push());
@@ -544,7 +392,7 @@ public:
 
 		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, 0.5f);
 		ImGui::SameLine();
-		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1);
+		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1, 0);
 
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorDetune, "OscDetune##mst");
@@ -561,7 +409,7 @@ public:
 		//WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoShapeSpread, "UniShape##mst");
 
 		ImGui::SameLine(0, 60);
-		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", -M7::Maj7::gPitchBendMaxRange, M7::Maj7::gPitchBendMaxRange, 2);
+		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", -M7::Maj7::gPitchBendMaxRange, M7::Maj7::gPitchBendMaxRange, 2, 0);
 		ImGui::SameLine();
 		Maj7ImGuiParamEnvTime((VstInt32)M7::ParamIndices::PortamentoTime, "Port##mst", 0.4f);
 		ImGui::SameLine();
@@ -749,12 +597,12 @@ public:
 
 		if (mShowingInspector)
 		{
-			ImGui::SeparatorText("Inspector");
+			ImGui::SeparatorText("Voice inspector");
 
 			for (size_t i = 0; i < std::size(pMaj7->mVoices); ++i) {
 				auto pv = (M7::Maj7::Maj7Voice*)pMaj7->mVoices[i];
 				char txt[200];
-				if (i & 0x1) ImGui::SameLine();
+				//if (i & 0x1) ImGui::SameLine();
 				auto color = ImColor::HSV(0, 0, .3f);
 				if (pv->IsPlaying()) {
 					auto& ns = pMaj7->mNoteStates[pv->mNoteInfo.MidiNoteValue];
@@ -779,6 +627,37 @@ public:
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetLastSample()), ImVec2{ 50, 0 }, "Osc2");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetLastSample()), ImVec2{ 50, 0 }, "Osc3");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator4.GetLastSample()), ImVec2{ 50, 0 }, "Osc4");
+
+				if (mShowingModulationInspector) {
+					//ImGui::SeparatorText("Modulation Inspector");
+					for (size_t idest = 0; idest < std::size(pv->mModMatrix.mDestValues); ++idest)
+					{
+						char sz[10];
+						sprintf_s(sz, "%d", (int)idest);
+						if ((idest & 15) == 0) {
+						}
+						else {
+							ImGui::SameLine();
+						}
+							ImGui::ProgressBar(::fabsf(pv->mModMatrix.mDestValues[idest]), ImVec2{ 50, 0 }, sz);
+					}
+					for (size_t idest = 0; idest < std::size(pv->mModMatrix.mDestValueDeltas); ++idest)
+					{
+						char sz[10];
+						sprintf_s(sz, "+%d", (int)idest);
+						if ((idest & 15) == 0) {
+						}
+						else {
+							ImGui::SameLine();
+						}
+						float d = ::fabsf(pv->mModMatrix.mDestValueDeltas[idest]);
+						// d is typically VERY small so 
+						if (d > 0.00001f) {
+							d = M7::math::modCurve_xN11_kN11(d + 0.001f, 0.9f);
+						}
+						ImGui::ProgressBar(d, ImVec2{50, 0}, sz);
+					}
+				}
 			}
 		}
 	}
@@ -803,9 +682,9 @@ public:
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape");
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, 0.4f);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "KT");
-			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PitchFine, "FineTune", 0);
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::OscillatorDevice::gFrequencyMulMax, 1);
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::OscillatorDevice::gFrequencyMulMax, 1, 0);
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, "Phase", 0);
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
@@ -827,8 +706,8 @@ public:
 			};
 			auto ampEnvSource = ampEnvSources[oscID];// ampSourceParam.GetIntValue()];
 
-			Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMin, "KeyRangeMin", 0, 127, 0);
-			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMax, "KeyRangeMax", 0, 127, 127);
+			Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMin, "KeyRangeMin", 0, 127, 0, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMax, "KeyRangeMax", 0, 127, 127, 127);
 
 			ImGui::SameLine();
 			{
@@ -1605,13 +1484,13 @@ public:
 
 			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, 0.4f);
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mFreqKTParamID, "KT");
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneFine, "FineTune", 0);
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::BaseNote, "BaseNote", 0, 127, 60);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::BaseNote, "BaseNote", 0, 127, 60, 60);
 
 			ImGui::SameLine(0, 50); WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LegatoTrig, "Leg.Trig");
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMin, "KeyMin", 0, 127, 0);
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMax, "KeyMax", 0, 127, 127);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMin, "KeyMin", 0, 127, 0, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMax, "KeyMax", 0, 127, 127, 127);
 
 			ImGui::SameLine(0, 50); Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopMode, "LoopMode##mst", (int)WaveSabreCore::LoopMode::NumLoopModes, WaveSabreCore::LoopMode::Repeat, loopModeNames);
 			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopSource, "LoopSrc##mst", (int)WaveSabreCore::LoopBoundaryMode::NumLoopBoundaryModes, WaveSabreCore::LoopBoundaryMode::FromSample, loopBoundaryModeNames);

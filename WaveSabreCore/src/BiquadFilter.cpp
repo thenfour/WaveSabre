@@ -25,39 +25,36 @@ namespace WaveSabreCore
 		if (recalculate)
 		{
 			float w0 = 2.0f * 3.141592f * freq / (float)Helpers::CurrentSampleRate;
-
+			float cosw0 = M7::math::cos(w0);
 			float alpha = M7::math::sin(w0) / (2.0f * q);
 
-			float a0, a1, a2;
+			float a0 = 1;
+			float a2 = 1;
+			float a1 = -2.0f * cosw0;
 			float b0, b1, b2;
 			switch (type)
 			{
+			default:
 			case BiquadFilterType::Lowpass:
-				a0 = 1.0f + alpha;
-				a1 = -2.0f * M7::math::cos(w0);
-				a2 = 1.0f - alpha;
-				b0 = (1.0f - M7::math::cos(w0)) / 2.0f;
-				b1 = 1.0f - M7::math::cos(w0);
-				b2 = (1.0f - M7::math::cos(w0)) / 2.0f;
+				a0 += alpha;
+				a2 -= alpha;
+				b0 = b2 = (1.0f - cosw0) / 2.0f;
+				b1 = 1.0f - cosw0;
 				break;
 
 			case BiquadFilterType::Highpass:
-				a0 = 1.0f + alpha;
-				a1 = -2.0f * M7::math::cos(w0);
-				a2 = 1.0f - alpha;
-				b0 = (1.0f + M7::math::cos(w0)) / 2.0f;
-				b1 = -(1.0f + M7::math::cos(w0));
-				b2 = (1.0f + M7::math::cos(w0)) / 2.0f;
+				a0 += alpha;
+				a2 -= alpha;
+				b1 = -(1.0f + cosw0);
+				b0 = b2 = (1.0f + cosw0) / 2.0f;
 				break;
-
 			case BiquadFilterType::Peak:
 				{
 					float A = Helpers::Exp10F(gain / 40.0f);
-					a0 = 1.0f + alpha / A;
-					a1 = -2.0f * M7::math::cos(w0);
-					a2 = 1.0f - alpha / A;
+					a0 += alpha / A;
+					a2 -= alpha / A;
 					b0 = 1.0f + alpha * A;
-					b1 = -2.0f * M7::math::cos(w0);
+					b1 = -2.0f * cosw0;
 					b2 = 1.0f - alpha * A;
 				}
 				break;

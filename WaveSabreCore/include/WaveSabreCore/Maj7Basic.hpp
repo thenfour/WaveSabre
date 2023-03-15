@@ -47,9 +47,7 @@ namespace WaveSabreCore
             Potato,
             Carrot,
             Cauliflower,
-            Eggplant,
             Celery,
-            Mushroom,
             Artichoke,
             Count,
         };
@@ -58,9 +56,7 @@ namespace WaveSabreCore
                 "Potato", \
                 "Carrot", \
                 "Cauliflower", \
-                "Eggplant", \
                 "Celery", \
-                "Mushroom",\
                 "Artichoke",\
         };
 
@@ -134,6 +130,16 @@ namespace WaveSabreCore
             bool FloatLessThanOrEquals(real_t lhs, real_t rhs, real_t eps = FloatEpsilon);
 
             float lerp(float a, float b, float t);
+
+            inline float lerp_rev(float v_min, float v_max, float v_val) // inverse of lerp; returns 0-1 where t lies between a and b.
+            {
+                return (v_val - v_min) / (v_max - v_min);
+            }
+            inline float map(float inp, float inp_min, float inp_max, float out_min, float out_max)
+            {
+                float t = lerp_rev(inp_min, inp_max, inp);
+                return lerp(out_min, out_max, t);
+            }
 
             real_t CalculateInc01PerSampleForMS(real_t ms);
 
@@ -542,6 +548,18 @@ namespace WaveSabreCore
             void SetDecibels(float db);
         };
 
+        struct WSQParam : Float01Param
+        {
+            explicit WSQParam(real_t& ref) : Float01Param(ref) {}
+            float GetQValue() const {
+                return Helpers::ParamToQ(this->mParamValue);
+            }
+            void SetQValue(float f) {
+                mParamValue = Helpers::QToParam(f);
+            }
+
+        };
+
         // value 0.3 = unity, and each 0.1 param value = 1 octave transposition, when KT = 1.
         // when KT = 0, 0.5 = 1khz, and each 0.1 param value = +/- octave.
         struct FrequencyParam
@@ -558,6 +576,7 @@ namespace WaveSabreCore
             explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
             // noteHz is the playing note, to support key-tracking.
             float GetFrequency(float noteHz, float paramModulation) const;
+            void SetFrequencyAssumingNoKeytracking(float hz);
             // param modulation is normal krate param mod
             // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
             float GetMidiNote(float playingMidiNote, float paramModulation) const;

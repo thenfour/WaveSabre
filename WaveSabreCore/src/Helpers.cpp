@@ -239,14 +239,24 @@ namespace WaveSabreCore
 		return sqrtf((freq - 20.0f) / (20000.0f - 20.0f));
 	}
 
+	// input [0,1], output [.33,12]
+	// Q has 2 param regions. [0,.5] scales linearly to [.33,1]
+	// [.5,1] scales linearly to [1,12]
 	float Helpers::ParamToQ(float param)
 	{
 		if (param < .5f)
 		{
+			// scales by 2 (0,.5) => (0,1)
+			// then scales by 0.66... wtf? => (0,.66)
+			// and adds 0.33 so it's (0.33,1).
 			return param / .5f * (1.0f - .33f) + .33f;
 		}
 		else
 		{
+			// 0,.5
+			// why divide by .5?? so it scales 0.5,1 to 0,1
+			// then scales up to 0,11
+			// then adds 1 so it's 1,12
 			return (param - .5f) / .5f * 11.0f + 1.0f;
 		}
 	}

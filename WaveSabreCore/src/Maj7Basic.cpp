@@ -9,21 +9,17 @@ namespace WaveSabreCore
 
 		static uint16_t gAudioRecalcSampleMaskValues[] = {
 			1023, // Potato,
-			255, // Carrot,
-			63, // Cauliflower,
-			15, // Eggplant,
+			127, // Carrot,
+			31, // Cauliflower,
 			7, // Celery,
-			3, // Mushroom,
 			1, // Artichoke,
 		};
 
 		static uint16_t gModulationRecalcSampleMaskValues[] = {
 			1023, // Potato,
 			255, // Carrot,
-			127, // Cauliflower,
-			63, // Eggplant,
-			15, // Celery,
-			7, // Mushroom,
+			31, // Cauliflower,
+			7, // Celery,
 			3, // Artichoke,
 		};
 
@@ -532,6 +528,14 @@ namespace WaveSabreCore
 			//float fact = math::pow(2, param);
 			float fact = math::pow2_N16_16(param);
 			return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
+		}
+
+		void FrequencyParam::SetFrequencyAssumingNoKeytracking(float hz) {
+			// 2 ^ param
+			float  p = math::log2(hz);
+			p /= mScale;
+			p += 0.5f;
+			this->mValue.SetParamValue(math::clamp(p, 0, 1));
 		}
 
 		// param modulation is normal krate param mod

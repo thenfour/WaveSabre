@@ -9,6 +9,9 @@
 #include <cstdlib>
 #include <string>
 #include <WaveSabreCore/Maj7.hpp>
+
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "imgui.h"
 
 // correction for windows.h macros.
@@ -106,6 +109,6 @@ namespace ImGuiKnobs {
         virtual double DisplayValueToParam(double param, void* capture) = 0;
     };
 
-    bool Knob(const char *label, float *p_value, float v_min, float v_max, float v_default, float normalSpeed, float slowSpeed, const char *format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
-    bool KnobInt(const char *label, int *p_value, int v_min, int v_max, int v_default, float normalSpeed, float slowSpeed, const char *format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
+    bool Knob(const char *label, float *p_value, float v_min, float v_max, float v_default, float v_center, float normalSpeed, float slowSpeed, const char *format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
+    bool KnobInt(const char *label, int *p_value, int v_min, int v_max, int v_default, int v_center, float normalSpeed, float slowSpeed, const char *format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
 }// namespace ImGuiKnobs

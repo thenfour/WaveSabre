@@ -591,13 +591,10 @@ namespace WaveSabreCore
 
 		struct ModMatrixNode
 		{
-		private:
 			real_t mSourceValues[(size_t)ModSource::Count] = { 0 };
 			real_t mDestValues[(size_t)ModDestination::Count] = { 0 };
 			real_t mDestValueDeltas[(size_t)gModulationCount] = { 0 };
 			int mnSampleCount = 0;
-
-		public:
 
 			template<typename Tmodid>
 			inline void SetSourceValue(Tmodid id, real_t val)
@@ -628,7 +625,14 @@ namespace WaveSabreCore
 				}
 				return ModulationPolarity::Positive01;
 			}
+			
 			static float InvertValue(float val, bool invertParam, const ModSource modSource);
+
+			void BeginBlock(int nSamples)
+			{
+				mnSampleCount = 0; // forces a full recalc every block; it's important because things like envelopes are changing state.
+			}
+
 			// caller passes in:
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.

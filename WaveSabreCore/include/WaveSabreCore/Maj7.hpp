@@ -1,14 +1,5 @@
-// Time sync for LFOs? use Helpers::CurrentTempo
+// Time sync for LFOs? use Helpers::CurrentTempo; but do i always know the song position?
 
-// speed optimizations
-// (use profiler)
-// - some things may be calculated at the synth level, not voice level. think portamento time/curve params?
-// - do not process LFO & ENV when not in use
-// - recalc some a-rate things less frequently / reduce some things to k-rate. frequencies are calculated every sample...
-// - cache some values like mod matrix arate source buffers
-// - mod matrix currently processes every mod spec each sample. K-Rate should be done per buffer init.
-//   for example a K-rate to K-rate (macro to filter freq) does not need to process every sample.
-// 
 // size-optimizations:
 // (profile w sizebench!)
 // - use fixed-point in oscillators. there's absolutely no reason to be using chonky floating point instructions there.
@@ -277,7 +268,6 @@ namespace WaveSabreCore
 
 			float mAlways0 = 0;
 			real_t mPitchBendN11 = 0;
-			bool mDeviceModSourceValuesSetThisFrame = false;
 			float mLFO1LPCutoff = 0.0f;
 			float mLFO2LPCutoff = 0.0f;
 
@@ -553,8 +543,6 @@ namespace WaveSabreCore
 
 			virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) override
 			{
-				mDeviceModSourceValuesSetThisFrame = false;
-
 				bool sourceEnabled[gSourceCount];
 
 				// cache values
@@ -759,7 +747,7 @@ namespace WaveSabreCore
 						p->BeginBlock();
 					}
 
-					//mModMatrix.InitBlock();
+					mModMatrix.BeginBlock(numSamples);
 
 					mMidiNote = mPortamento.GetCurrentMidiNote() + mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
@@ -788,18 +776,8 @@ namespace WaveSabreCore
 					}
 
 					// set device-level modded values.
-					if (!mpOwner->mDeviceModSourceValuesSetThisFrame) {
-						//mpOwner->mOscillatorDetuneMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorDetune);
-						//mpOwner->mUnisonoDetuneMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoDetune);
-						//mpOwner->mOscillatorStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::OscillatorStereoSpread);
-						//mpOwner->mAuxWidthMod = mModMatrix.GetDestinationValue(ModDestination::AuxWidth);
-						//mpOwner->mUnisonoStereoSpreadMod = mModMatrix.GetDestinationValue(ModDestination::UnisonoStereoSpread);
-						mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness);
-						mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
-						//mpOwner->mPortamentoCurveMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoCurve);
-
-						mpOwner->mDeviceModSourceValuesSetThisFrame = true;
-					}
+					mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness);
+					mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
 
 					mModLFO1.BeginBlock(numSamples);
 					mModLFO2.BeginBlock(numSamples);
