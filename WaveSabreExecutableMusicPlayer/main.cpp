@@ -21,6 +21,7 @@ void progressCallback(double progress, void *data)
 
 int main(int argc, char **argv)
 {
+	::logl(1); // wut? this is needed to force the linker into pulling in logf() for some reason. why???
 	if (argc <= 2) {
 		cout("-w xyz.wav = output file\n-p         = play with prerender\n");
 		return 0;
@@ -29,6 +30,8 @@ int main(int argc, char **argv)
 	bool preRender = argc == 3 && !strcmp(argv[2], "-p");
 
 	const int numRenderThreads = 3;
+
+
 
 	SongRenderer::Song song;
 	song.blob = SongBlob;

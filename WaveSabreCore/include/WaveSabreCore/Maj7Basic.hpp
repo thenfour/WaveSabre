@@ -164,13 +164,19 @@ namespace WaveSabreCore
             inline real_t pow2(real_t y) {
                 return pow(2, y);
             }
+            inline double LOG(double x) {
+                return ::logl(x);
+            }
             inline float log2(float x) {
                 static constexpr float log2_e = 1.44269504089f; // 1/log(2)
-                return (float)::logl((double)x) * log2_e;
+                //return (float)::logl((double)x) * log2_e;
+                return (float)LOG((double)x) * log2_e;
+                //return 0;
             }
             inline float log10(float x) {
                 static constexpr float log10_e = 0.4342944819f;// 1.0f / LOG(10.0f);
-                return (float)::logl((double)x) * log10_e;
+                return (float)LOG((double)x) * log10_e;
+                //return 0;
             }
             inline real_t tan(real_t x) {
                 return (float)::tan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.

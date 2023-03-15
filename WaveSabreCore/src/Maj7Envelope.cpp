@@ -170,7 +170,7 @@ namespace WaveSabreCore
             mLastOutputLevel += mOutputDeltaPerSample;
 
             //mLastOutputLevel = ret;
-            return mOutputDeltaPerSample;
+            return mLastOutputLevel;
         }
 
 
