@@ -5,17 +5,26 @@ using namespace WaveSabrePlayerLib;
 #include <string.h>
 #include "rendered.hpp"
 
+void cout(const char* s) // assumes s is not a format string.
+{
+	printf(s);
+}
+
 void progressCallback(double progress, void *data)
 {
 	const int barLength = 32;
 	int filledChars = (int)(progress * (double)(barLength - 1));
-	printf("\r[");
+	cout("\r[");
 	for (int j = 0; j < barLength; j++) putchar(filledChars >= j ? '*' : '-');
-	printf("]");
+	cout("]");
 }
 
 int main(int argc, char **argv)
 {
+	if (argc <= 2) {
+		cout("-w xyz.wav = output file\n-p         = play with prerender\n");
+		return 0;
+	}
 	bool writeWav = argc >= 3 && !strcmp(argv[2], "-w");
 	bool preRender = argc == 3 && !strcmp(argv[2], "-p");
 
@@ -27,15 +36,13 @@ int main(int argc, char **argv)
 
 	if (writeWav)
 	{
+		if (argc < 4) return 0; // did not specify filename
 		WavWriter wavWriter(&song, numRenderThreads);
 
-		printf("WAV writer activated.\n");
+		cout("WAV writer activated. Rendering ...\n");
+		wavWriter.Write(argv[3], progressCallback, nullptr);
 
-		auto fileName = argc >= 4 ? argv[3] : "out.wav";
-		printf("Rendering...\n");
-		wavWriter.Write(fileName, progressCallback, nullptr);
-
-		printf("\n\nWAV file written to \"%s\"\n", fileName);
+		cout("\n\nDone.\n");
 	}
 	else
 	{
@@ -43,7 +50,7 @@ int main(int argc, char **argv)
 
 		if (preRender)
 		{
-			printf("Prerender running...\n\n");
+			cout("Precalc...\n\n");
 			player = new PreRenderPlayer(&song, numRenderThreads, progressCallback, nullptr);
 		}
 		else
@@ -51,7 +58,7 @@ int main(int argc, char **argv)
 			player = new RealtimePlayer(&song, numRenderThreads);
 		}
 
-		printf("Playing... ESC to quit.\n");
+		cout("Playing... ESC to quit.\n");
 		player->Play();
 		while (!GetAsyncKeyState(VK_ESCAPE))
 		{
@@ -64,7 +71,7 @@ int main(int argc, char **argv)
 
 			Sleep(10);
 		}
-		printf("\n");
+		cout("\n");
 		delete player;
 	}
 	return 0;

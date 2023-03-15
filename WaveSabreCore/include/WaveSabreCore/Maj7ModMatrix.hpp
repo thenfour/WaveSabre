@@ -630,7 +630,14 @@ namespace WaveSabreCore
 
 			void BeginBlock(int nSamples)
 			{
-				mnSampleCount = 0; // forces a full recalc every block; it's important because things like envelopes are changing state.
+				// force a full recalc every block. this is required, otherwise our mod deltas will get messed up.
+				// because voices which aren't running don't process any samples, our deltas will be inaccurate,
+				// not to mention our samplecount will be inaccurate and take potentially too many samples between recalcs.
+				// that would send dest values into an undefined state. Actually this will potentially mean our recalc
+				// period is too short, which also leaves things in an inaccurate state, although a much safer state because
+				// at least it's between the desired value and original. too long and it would go out of bounds. it will 
+				// correct itself on the next recalc.
+				mnSampleCount = 0; 
 			}
 
 			// caller passes in:

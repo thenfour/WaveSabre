@@ -18,7 +18,7 @@ public:
 
 	virtual void renderImgui() override
 	{
-		WSImGuiParamKnobInt((VstInt32)Twister::ParamIndices::Type, "Variation", 0, 3, 0);
+		WSImGuiParamKnobInt((VstInt32)Twister::ParamIndices::Type, "Variation", 0, 3, 0, 0);
 
 		ImGui::SameLine(0, 60);
 		WSImGuiParamKnob((VstInt32)Twister::ParamIndices::LowCutFreq, "Lowcut", ParamBehavior::Frequency);

@@ -23,13 +23,13 @@ public:
 
 	virtual void renderImgui() override
 	{
-		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::LeftDelayCoarse, "LEFT COARSE", 0, 16, 3);
+		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::LeftDelayCoarse, "LEFT COARSE", 0, 16, 3, 0);
 		ImGui::SameLine();
-		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::LeftDelayFine, "LEFT FINE", 0, 200, 110);
+		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::LeftDelayFine, "LEFT FINE", 0, 200, 110, 0);
 		ImGui::SameLine();
-		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::RightDelayCoarse, "RIGHT COARSE", 0, 16, 4);
+		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::RightDelayCoarse, "RIGHT COARSE", 0, 16, 4, 0);
 		ImGui::SameLine();
-		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::RightDelayFine, "RIGHT FINE", 0, 200, 80);
+		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Echo::ParamIndices::RightDelayFine, "RIGHT FINE", 0, 200, 80, 0);
 
 		WSImGuiParamKnob((VstInt32)WaveSabreCore::Echo::ParamIndices::Feedback, "FEEDBACK");
 		ImGui::SameLine();

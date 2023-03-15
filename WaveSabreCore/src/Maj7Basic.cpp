@@ -8,19 +8,19 @@ namespace WaveSabreCore
 	{
 
 		static uint16_t gAudioRecalcSampleMaskValues[] = {
-			1023, // Potato,
-			127, // Carrot,
+			127, // Potato,
+			63, // Carrot,
 			31, // Cauliflower,
 			7, // Celery,
 			1, // Artichoke,
 		};
 
 		static uint16_t gModulationRecalcSampleMaskValues[] = {
-			1023, // Potato,
-			255, // Carrot,
+			127, // Potato,
+			63, // Carrot,
 			31, // Cauliflower,
-			7, // Celery,
-			3, // Artichoke,
+			15, // Celery,
+			7, // Artichoke,
 		};
 
 		std::atomic_uint16_t gAudioOscRecalcSampleMask = gAudioRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
@@ -242,7 +242,7 @@ namespace WaveSabreCore
 				*/
 			float LinearToDecibels(float aLinearValue, float aMinDecibels)
 			{
-				return (aLinearValue > FloatEpsilon) ? 20.0f * log10f(aLinearValue) : aMinDecibels;
+				return (aLinearValue > FloatEpsilon) ? 20.0f * math::log10(aLinearValue) : aMinDecibels;
 			}
 
 			/**

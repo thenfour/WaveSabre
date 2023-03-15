@@ -25,7 +25,7 @@ public:
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::PreDelay, "Pre delay");
 		ImGui::SameLine();
-		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Chamber::ParamIndices::Mode, "Variation", 0, 2, 0);
+		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Chamber::ParamIndices::Mode, "Variation", 0, 2, 0, 0);
 
 		WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::LowCutFreq, "Lowcut", ParamBehavior::Frequency);
 		ImGui::SameLine();

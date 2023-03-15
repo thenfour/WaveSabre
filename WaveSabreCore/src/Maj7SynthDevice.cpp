@@ -173,7 +173,6 @@ namespace WaveSabreCore
 		{
 			mVoices[i]->Kill();
 		}
-		//cc::log("voice mode set to %d", voiceMode);
 		this->mVoiceMode = voiceMode;
 	}
 

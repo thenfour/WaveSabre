@@ -8,69 +8,6 @@
 #define _USE_MATH_DEFINES
 #include <math.h>
 
-
-
-
-//#ifdef _DEBUG
-//#include <Windows.h>
-//#undef max
-//#undef min
-//inline bool WSAssert(bool condition, const char* msg)
-//{
-//	if (condition) return condition;
-//	//std::string fmt = std::string("[%x:%x] FAILED ASSERTION: ") + format + "\r\n";
-//	//auto size = std::snprintf(nullptr, 0, fmt.c_str(), GetCurrentProcessId(), GetCurrentThreadId(), std::forward<Args>(args)...);
-//	//std::string output(size + 2, '\0');// to ensure the null-terminator
-//	//output.resize(size);// so the reported length is correct.
-//	//std::sprintf(&output[0], fmt.c_str(), GetCurrentProcessId(), GetCurrentThreadId(), std::forward<Args>(args)...);
-//	OutputDebugStringA("FAILED ASSERTION\r\n");
-//	OutputDebugStringA(msg);
-//	return condition;
-//}
-//
-//
-//#include <string>
-//
-//namespace cc
-//{
-//	extern thread_local size_t gLogIndent;
-//	template <typename ...Args>
-//	inline static void log(const std::string& format, Args && ...args)
-//	{
-//		std::string fmt = std::string("[%x:%x] ") + std::string(gLogIndent, ' ') + std::string(gLogIndent, ' ') + format + "\r\n";
-//		auto size = std::snprintf(nullptr, 0, fmt.c_str(), GetCurrentProcessId(), GetCurrentThreadId(), std::forward<Args>(args)...);
-//		std::string output(size + 2, '\0');// to ensure the null-terminator
-//		output.resize(size);// so the reported length is correct.
-//		std::sprintf(&output[0], fmt.c_str(), GetCurrentProcessId(), GetCurrentThreadId(), std::forward<Args>(args)...);
-//		OutputDebugStringA(output.c_str());
-//	}
-//	struct LogScope {
-//		inline LogScope(const std::string& msg) {
-//			log("{ %s", msg.c_str());
-//			gLogIndent++;
-//		}
-//		inline LogScope() : LogScope("") { }
-//		inline ~LogScope() {
-//			gLogIndent--;
-//			log("}");
-//		}
-//	};
-//
-//
-//}
-//#else
-//#define WSAssert(a, b)
-//namespace cc
-//{
-//	template <typename ...Args>
-//	static void log(Args && ...args)
-//	{
-//	}
-//}
-//#endif
-
-
-
 namespace WaveSabreCore
 {
 	struct ISampleSource

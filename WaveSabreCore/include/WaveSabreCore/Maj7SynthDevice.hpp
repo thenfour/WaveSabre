@@ -188,7 +188,6 @@ namespace WaveSabreCore
 
 				for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
 				{
-					//cc::log("mono note on; iuv=%d", iuv);
 					mVoices[iuv]->BaseNoteOn(myNote, iuv, !!existingNote);
 				}
 
