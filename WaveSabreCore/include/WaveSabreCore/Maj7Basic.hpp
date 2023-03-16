@@ -34,7 +34,7 @@ namespace WaveSabreCore
         static constexpr real_t gLFOLPCenterFrequency = 20.0f;
         static constexpr real_t gLFOLPFrequencyScale = 7.0f;
 
-        static constexpr size_t gModulationCount = 16;
+        static constexpr size_t gModulationCount = 18;
 
         // too high (1023 for example) results in ugly audible ramping between modulations
         // 255 feels actually quite usable
@@ -1171,6 +1171,30 @@ namespace WaveSabreCore
                 Mod16Invert,
                 Mod16AuxInvert,
 
+                Mod17Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                Mod17Source,
+                Mod17Destination,
+                Mod17Curve,
+                Mod17Scale,
+                Mod17AuxEnabled,
+                Mod17AuxSource,
+                Mod17AuxAttenuation,
+                Mod17AuxCurve,
+                Mod17Invert,
+                Mod17AuxInvert,
+
+                    Mod18Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
+                    Mod18Source,
+                    Mod18Destination,
+                    Mod18Curve,
+                    Mod18Scale,
+                    Mod18AuxEnabled,
+                    Mod18AuxSource,
+                    Mod18AuxAttenuation,
+                    Mod18AuxCurve,
+                    Mod18Invert,
+                    Mod18AuxInvert,
+
                 Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler1Volume,
                 Sampler1KeyrangeMin,
@@ -1705,6 +1729,28 @@ namespace WaveSabreCore
             {"M16Acrv"}, \
             {"M16inv"}, \
             {"M16Ainv"}, \
+            {"M17en"}, \
+            {"M17src"}, \
+            {"M17dest"}, \
+            {"M17curv"}, \
+            {"M17scle"}, \
+            {"M17Aen"}, \
+            {"M17Asrc"}, \
+            {"M17Aatt"}, \
+            {"M17Acrv"}, \
+            {"M17inv"}, \
+            {"M17Ainv"}, \
+            {"M18en"}, \
+            {"M18src"}, \
+            {"M18dest"}, \
+            {"M18curv"}, \
+            {"M18scle"}, \
+            {"M18Aen"}, \
+            {"M18Asrc"}, \
+            {"M18Aatt"}, \
+            {"M18Acrv"}, \
+            {"M18inv"}, \
+            {"M18Ainv"}, \
             {"S1En"}, \
             {"S1Vol"}, \
             {"S1KRmin"}, \

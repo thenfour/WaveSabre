@@ -187,6 +187,7 @@ public:
 				if (mShowingModulationInspector) mShowingInspector = true;
 			}
 			ImGui::MenuItem("Show color expl", nullptr, &mShowingColorExp);
+			ImGui::MenuItem("Show internal modulations", nullptr, &mShowingLockedModulations);
 
 			ImGui::Separator();
 			if (ImGui::MenuItem("Init patch (from core)")) {
@@ -346,7 +347,7 @@ public:
 	bool mShowingInspector = false;
 	bool mShowingModulationInspector = false;
 	bool mShowingColorExp = false;
-
+	bool mShowingLockedModulations = false;
 
 
 	virtual void renderImgui() override
@@ -589,6 +590,8 @@ public:
 			ModulationSection(13, this->pMaj7->mModulations[13], (int)M7::ParamIndices::Mod14Enabled);
 			ModulationSection(14, this->pMaj7->mModulations[14], (int)M7::ParamIndices::Mod15Enabled);
 			ModulationSection(15, this->pMaj7->mModulations[15], (int)M7::ParamIndices::Mod16Enabled);
+			ModulationSection(16, this->pMaj7->mModulations[16], (int)M7::ParamIndices::Mod17Enabled);
+			ModulationSection(17, this->pMaj7->mModulations[17], (int)M7::ParamIndices::Mod18Enabled);
 
 			EndTabBarWithColoredSeparator();
 		}
@@ -941,6 +944,9 @@ public:
 
 	void ModulationSection(int imod, M7::ModulationSpec& spec, int enabledParamID)
 	{
+		bool isLocked = spec.mType != M7::ModulationSpecType::General;
+		if (isLocked && !mShowingLockedModulations) return;
+
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
 		std::string modDestinationCaptions[(size_t)M7::ModDestination::Count] = MOD_DEST_CAPTIONS;
 		char const* modDestinationCaptionsCstr[(size_t)M7::ModDestination::Count];
@@ -956,7 +962,6 @@ public:
 			modDestinationCaptionsCstr[i] = modDestinationCaptions[i].c_str();
 		}
 
-		bool isLocked = spec.mType != M7::ModulationSpecType::General;
 		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mLockedModulationsColors : mModulationsColors) : mModulationDisabledColors;
 		auto token = cm.Push();
 

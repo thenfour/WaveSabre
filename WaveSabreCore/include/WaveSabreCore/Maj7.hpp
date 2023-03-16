@@ -308,6 +308,8 @@ namespace WaveSabreCore
 				{ mParamCache, (int)ParamIndices::Mod14Enabled },
 				{ mParamCache, (int)ParamIndices::Mod15Enabled },
 				{ mParamCache, (int)ParamIndices::Mod16Enabled },
+				{ mParamCache, (int)ParamIndices::Mod17Enabled },
+				{ mParamCache, (int)ParamIndices::Mod18Enabled },
 			};
 
 			float mParamCache[(int)ParamIndices::NumParams];
