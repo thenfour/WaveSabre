@@ -76,11 +76,11 @@ namespace WaveSabreCore {
         };
         static_assert((int)M7::LFOParamIndexOffsets::Count == 6, "param count probably changed and this needs to be regenerated.");
         const float gDefaultLFOParams[6] = {
-          0.003705533687025308609, // LFO1wav
+          0.0032114624045789241791, // LFO1wav
           0.5, // LFO1shp
           0, // LFO1rst
           0.5, // LFO1ph
-          0.54400002956390380859, // LFO1fr
+          0.67000001668930053711, // LFO1fr
           0.5, // LFO1lp
         };
         static_assert((int)M7::EnvParamIndexOffsets::Count == 10, "param count probably changed and this needs to be regenerated.");
@@ -104,7 +104,7 @@ namespace WaveSabreCore {
           0.99609375, // O1KRmax
           0.001729249022901058197, // O1Wave
           0.5, // O1Shp
-          0, // O1PRst
+          1, // O1PRst
           0.5, // O1Poff
           0, // O1Scen
           0.40000000596046447754, // O1ScFq

@@ -288,7 +288,7 @@ public:
 		GenerateArray("gDefaultMasterParams", (int)M7::MainParamIndices::Count, "M7::MainParamIndices::Count", 0);
 		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mSamplerDevices[0].mBaseParamID);
 		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mModulations[0].mBaseParamID);
-		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFO1Device.mBaseParamID);
+		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFOs[0].mDevice.mBaseParamID);
 		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mOsc1AmpEnv.mParamBaseID);
 		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mBaseParamID);
 		GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mAuxDevices[0].mBaseParamID);
@@ -556,6 +556,16 @@ public:
 			if (WSBeginTabItem("LFO 2"))
 			{
 				LFO("LFO 2", (int)M7::ParamIndices::LFO2Waveform);
+				ImGui::EndTabItem();
+			}
+			if (WSBeginTabItem("LFO 3"))
+			{
+				LFO("LFO 3", (int)M7::ParamIndices::LFO3Waveform);
+				ImGui::EndTabItem();
+			}
+			if (WSBeginTabItem("LFO 4"))
+			{
+				LFO("LFO 4", (int)M7::ParamIndices::LFO4Waveform);
 				ImGui::EndTabItem();
 			}
 			EndTabBarWithColoredSeparator();

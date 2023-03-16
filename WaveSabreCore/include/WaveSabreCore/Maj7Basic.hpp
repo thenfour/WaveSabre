@@ -922,12 +922,26 @@ namespace WaveSabreCore
             LFO1FrequencyParam,
             LFO1Sharpness,
 
-            LFO2Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
-            LFO2Waveshape,
-            LFO2Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
-            LFO2PhaseOffset,
-            LFO2FrequencyParam,
-            LFO2Sharpness,
+                LFO2Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
+                LFO2Waveshape,
+                LFO2Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
+                LFO2PhaseOffset,
+                LFO2FrequencyParam,
+                LFO2Sharpness,
+
+                LFO3Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
+                LFO3Waveshape,
+                LFO3Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
+                LFO3PhaseOffset,
+                LFO3FrequencyParam,
+                LFO3Sharpness,
+
+                LFO4Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
+                LFO4Waveshape,
+                LFO4Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
+                LFO4PhaseOffset,
+                LFO4FrequencyParam,
+                LFO4Sharpness,
 
                 Aux1Enabled,
                 Aux1Link,
@@ -1471,6 +1485,18 @@ namespace WaveSabreCore
 		    {"LFO2ph"}, \
 		    {"LFO2fr"}, \
 		    {"LFO2lp"}, \
+            {"LFO3wav"}, \
+            {"LFO3shp"}, \
+            {"LFO3rst"}, \
+            {"LFO3ph"}, \
+            {"LFO3fr"}, \
+            {"LFO3lp"}, \
+            {"LFO4wav"}, \
+            {"LFO4shp"}, \
+            {"LFO4rst"}, \
+            {"LFO4ph"}, \
+            {"LFO4fr"}, \
+            {"LFO4lp"}, \
             {"X1En"}, \
             {"X1Link"}, \
             {"X1Type"}, \

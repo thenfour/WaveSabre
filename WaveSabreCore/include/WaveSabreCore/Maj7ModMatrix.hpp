@@ -36,6 +36,8 @@ namespace WaveSabreCore
 			ModEnv2, // arate, 01
 			LFO1, // arate, N11
 			LFO2, // arate, N11
+			LFO3, // arate, N11
+			LFO4, // arate, N11
 			PitchBend, // krate, N11
 			Velocity, // krate, 01
 			NoteValue, // krate, 01
@@ -69,6 +71,8 @@ namespace WaveSabreCore
 			"ModEnv2", \
 			"LFO1", \
 			"LFO2", \
+			"LFO3", \
+			"LFO4", \
 			"PitchBend", \
 			"Velocity", \
 			"NoteValue", \
@@ -97,6 +101,8 @@ namespace WaveSabreCore
 			"MEnv2", \
 			"LFO1", \
 			"LFO2", \
+			"LFO3", \
+			"LFO4", \
 			"PB", \
 			"Vel", \
 			"Note", \
@@ -223,8 +229,14 @@ namespace WaveSabreCore
 			LFO1Waveshape,
 			LFO1FrequencyParam,
 
-			LFO2Waveshape, // krate, 01
-			LFO2FrequencyParam, // krate, 01
+				LFO2Waveshape,
+				LFO2FrequencyParam,
+
+				LFO3Waveshape,
+				LFO3FrequencyParam,
+
+				LFO4Waveshape,
+				LFO4FrequencyParam,
 
 			FMAmt2to1, // arate, 01
 			FMAmt3to1, // arate, 01
@@ -468,6 +480,10 @@ namespace WaveSabreCore
 			"LFO1FrequencyParam", \
 			"LFO2Waveshape", \
 			"LFO2FrequencyParam", \
+			"LFO3Waveshape", \
+			"LFO3FrequencyParam", \
+			"LFO4Waveshape", \
+			"LFO4FrequencyParam", \
 			"FMAmt2to1", \
 			"FMAmt3to1", \
 			"FMAmt4to1", \
@@ -652,6 +668,10 @@ namespace WaveSabreCore
 "LFO1Freq", \
 "LFO2Shp", \
 "LFO2Freq", \
+"LFO3Shp", \
+"LFO3Freq", \
+"LFO4Shp", \
+"LFO4Freq", \
 "FM2to1", \
 "FM3to1", \
 "FM4to1", \

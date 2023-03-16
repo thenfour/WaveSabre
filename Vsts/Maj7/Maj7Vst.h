@@ -324,8 +324,11 @@ namespace WaveSabreCore
 			}
 
 			// generate defaults for the major nodes
-			GenerateDefaults_LFO(&p->mLFO1Device);
-			GenerateDefaults_LFO(&p->mLFO2Device);
+			//GenerateDefaults_LFO(&p->mLFO1Device);
+			//GenerateDefaults_LFO(&p->mLFO2Device);
+			for (auto& m : p->mLFOs) {
+				GenerateDefaults_LFO(&m.mDevice);
+			}
 
 			for (auto& m : p->mOscillatorDevices) {
 				GenerateDefaults_Audio(&m);
