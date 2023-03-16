@@ -83,10 +83,38 @@ namespace WaveSabreCore
 			"Macro6", \
 			"Macro7", \
 		}
+#define MODSOURCE_SHORT_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{ \
+			"-", \
+			"O1Env", \
+			"O2Env", \
+			"O3Env", \
+			"O4Env", \
+			"S1Env", \
+			"S2Env", \
+			"S3Env", \
+			"S4Env", \
+			"MEnv1", \
+			"MEnv2", \
+			"LFO1", \
+			"LFO2", \
+			"PB", \
+			"Vel", \
+			"Note", \
+			"Rng", \
+			"UVox", \
+			"Sus", \
+			"Knob1", \
+			"Knob2", \
+			"Knob3", \
+			"Knob4", \
+			"Knob5", \
+			"Knob6", \
+			"Knob7", \
+        };
 
 		enum class ModDestination : uint8_t
 		{
-			None,
+			None, // important that this is 0, for initialization of mModSpecLastDestinations
 			FMBrightness, // krate, 01
 			PortamentoTime, // krate, 01
 
@@ -526,6 +554,192 @@ namespace WaveSabreCore
 "Sampler4AmpEnvReleaseCurve", \
 		}
 
+#define MODDEST_SHORT_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModDestination::Count]{ \
+"-", \
+"FMAmt", \
+"Port", \
+"O1Vol", \
+"O1PreVol", \
+"O1Shape", \
+"O1Sync", \
+"O1Freq", \
+"O1Fine", \
+"O1FMFB", \
+"O1Phase", \
+"O1Pan", \
+"O1EnvDly", \
+"O1EnvAtt", \
+"O1EnvAttCrv", \
+"O1EnvHold", \
+"O1EnvDcy", \
+"O1EnvDcyCrv", \
+"O1EnvSus", \
+"O1EnvRel", \
+"O1EnvRelCrv", \
+"O2Vol", \
+"O2PreVol", \
+"O2Shape", \
+"O2Sync", \
+"O2Freq", \
+"O2Fine", \
+"O2FMFB", \
+"O2Phase", \
+"O2Pan", \
+"O2EnvDly", \
+"O2EnvAtt", \
+"O2EnvAttCrv", \
+"O2EnvHold", \
+"O2EnvDcy", \
+"O2EnvDcyCrv", \
+"O2EnvSus", \
+"O2EnvRel", \
+"O2EnvRelCrv", \
+"O3Vol", \
+"O3PreVol", \
+"O3Shape", \
+"O3Sync", \
+"O3Freq", \
+"O3Fine", \
+"O3FMFB", \
+"O3Phase", \
+"O3Pan", \
+"O3EnvDly", \
+"O3EnvAtt", \
+"O3EnvAttCrv", \
+"O3EnvHold", \
+"O3EnvDcy", \
+"O3EnvDcyCrv", \
+"O3EnvSus", \
+"O3EnvRel", \
+"O3EnvRelCrv", \
+"O4Vol", \
+"O4PreVol", \
+"O4Shape", \
+"O4Sync", \
+"O4Freq", \
+"O4Fine", \
+"O4FMFB", \
+"O4Phase", \
+"O4Pan", \
+"O4EnvDly", \
+"O4EnvAtt", \
+"O4EnvAttCrv", \
+"O4EnvHold", \
+"O4EnvDcy", \
+"O4EnvDcyCrv", \
+"O4EnvSus", \
+"O4EnvRel", \
+"O4EnvRelCrv", \
+"Env1Dly", \
+"Env1Att", \
+"Env1AttCrv", \
+"Env1Hold", \
+"Env1Dcy", \
+"Env1DcyCrv", \
+"Env1Sus", \
+"Env1Rel", \
+"Env1RelCrv", \
+"Env2Dly", \
+"Env2Att", \
+"Env2AttCrv", \
+"Env2Hold", \
+"Env2Dcy", \
+"Env2DcyCrv", \
+"Env2Sus", \
+"Env2Rel", \
+"Env2RelCrv", \
+"LFO1Shp", \
+"LFO1Freq", \
+"LFO2Shp", \
+"LFO2Freq", \
+"FM2to1", \
+"FM3to1", \
+"FM4to1", \
+"FM1to2", \
+"FM3to2", \
+"FM4to2", \
+"FM1to3", \
+"FM2to3", \
+"FM4to3", \
+"FM1to4", \
+"FM2to4", \
+"FM3to4", \
+"Aux1P2", \
+"Aux1P3", \
+"Aux1P4", \
+"Aux1P5", \
+"Aux2P2", \
+"Aux2P3", \
+"Aux2P4", \
+"Aux2P5", \
+"Aux3P2", \
+"Aux3P3", \
+"Aux3P4", \
+"Aux3P5", \
+"Aux4P2", \
+"Aux4P3", \
+"Aux4P4", \
+"Aux4P5", \
+"S1Vol", \
+"S1PreVol", \
+"S1Fine", \
+"S1Freq", \
+"S1Pan", \
+"S1EnvDly", \
+"S1EnvAtt", \
+"S1EnvAttCrv", \
+"S1EnvHold", \
+"S1EnvDcy", \
+"S1EnvDcyCrv", \
+"S1EnvSus", \
+"S1EnvRel", \
+"S1EnvRelCrv", \
+"S2Vol", \
+"S2PreVol", \
+"S2Fine", \
+"S2Freq", \
+"S2Pan", \
+"S2EnvDly", \
+"S2EnvAtt", \
+"S2EnvAttCrv", \
+"S2EnvHold", \
+"S2EnvDcy", \
+"S2EnvDcyCrv", \
+"S2EnvSus", \
+"S2EnvRel", \
+"S2EnvRelCrv", \
+"S3Vol", \
+"S3PreVol", \
+"S3Fine", \
+"S3Freq", \
+"S3Pan", \
+"S3EnvDly", \
+"S3EnvAtt", \
+"S3EnvAttCrv", \
+"S3EnvHold", \
+"S3EnvDcy", \
+"S3EnvDcyCrv", \
+"S3EnvSus", \
+"S3EnvRel", \
+"S3EnvRelCrv", \
+"S4Vol", \
+"S4PreVol", \
+"S4Fine", \
+"S4Freq", \
+"S4Pan", \
+"S4EnvDly", \
+"S4EnvAtt", \
+"S4EnvAttCrv", \
+"S4EnvHold", \
+"S4EnvDcy", \
+"S4EnvDcyCrv", \
+"S4EnvSus", \
+"S4EnvRel", \
+"S4EnvRelCrv", \
+		}
+
+
+
 		// some modulation specs are for internal purposes / locked into certain behavior.
 		enum ModulationSpecType
 		{
@@ -594,6 +808,11 @@ namespace WaveSabreCore
 			real_t mSourceValues[(size_t)ModSource::Count] = { 0 };
 			real_t mDestValues[(size_t)ModDestination::Count] = { 0 };
 			real_t mDestValueDeltas[(size_t)gModulationCount] = { 0 };
+
+			// this is required to know when to reset a destination back to 0.
+			// after the user disables a modulationspec or changes its destination,
+			// we need to detect that scenario to remove its influence on the dest value.
+			ModDestination mModSpecLastDestinations[(size_t)gModulationCount] = { ModDestination::None };
 			int mnSampleCount = 0;
 
 			template<typename Tmodid>

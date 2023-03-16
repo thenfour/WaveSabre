@@ -324,6 +324,9 @@ public:
 
 	ColorMod mModulationsColors{ 0.15f, 0.6f, 0.65f, 0.9f, 0.0f };
 	ColorMod mModulationDisabledColors{ 0.15f, 0.0f, 0.65f, 0.6f, 0.0f };
+	ColorMod mLockedModulationsColors{ 0.50f, 0.6f, 0.75f, 0.9f, 0.0f };
+
+	ColorMod mLFOColors{ 0.4f, 0.6f, 0.65f, 0.9f, 0.0f };
 
 	ColorMod mAuxLeftColors{ 0.1f, 1, 1, .9f, 0.5f };
 	ColorMod mAuxRightColors{ 0.4f, 1, 1, .9f, 0.5f };
@@ -336,8 +339,7 @@ public:
 	ColorMod mSamplerColors{ 0.55f, 0.8f, .9f, 1.0f, 0.5f };
 	ColorMod mSamplerDisabledColors{ 0.55f, 0.15f, .6f, 0.5f, 0.2f };
 
-	ColorMod mCyanColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
-	ColorMod mPinkColors{ 0.40f, 0.6f, 0.75f, 0.9f, 0.0f };
+	ColorMod mFMColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
 
 	ColorMod mNopColors;
 
@@ -351,8 +353,8 @@ public:
 	{
 		mModulationsColors.EnsureInitialized();
 		mModulationDisabledColors.EnsureInitialized();
-		mPinkColors.EnsureInitialized();
-		mCyanColors.EnsureInitialized();
+		mFMColors.EnsureInitialized();
+		mLockedModulationsColors.EnsureInitialized();
 		mOscColors.EnsureInitialized();
 		mOscDisabledColors.EnsureInitialized();
 		mAuxLeftColors.EnsureInitialized();
@@ -361,6 +363,7 @@ public:
 		mAuxRightDisabledColors.EnsureInitialized();
 		mSamplerDisabledColors.EnsureInitialized();
 		mSamplerColors.EnsureInitialized();
+		mLFOColors.EnsureInitialized();
 
 		{
 			auto& style = ImGui::GetStyle();
@@ -448,7 +451,7 @@ public:
 		//ImGui::BeginGroup();
 		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 2.2f))
 		{
-			auto colorModToken = mCyanColors.Push();
+			auto colorModToken = mFMColors.Push();
 			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
 			if (WSBeginTabItem("Phase Mod Matrix")) {
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
@@ -544,6 +547,7 @@ public:
 				Envelope("Modulation Envelope 2", (int)M7::ParamIndices::Env2DelayTime);
 				ImGui::EndTabItem();
 			}
+			auto lfoColorModToken = mLFOColors.Push();
 			if (WSBeginTabItem("LFO 1"))
 			{
 				LFO("LFO 1", (int)M7::ParamIndices::LFO1Waveform);
@@ -559,22 +563,22 @@ public:
 
 		if (BeginTabBar2("modspectabs", ImGuiTabBarFlags_None))
 		{
-			ModulationSection("Mod 1", this->pMaj7->mModulations[0], (int)M7::ParamIndices::Mod1Enabled);
-			ModulationSection("Mod 2", this->pMaj7->mModulations[1], (int)M7::ParamIndices::Mod2Enabled);
-			ModulationSection("Mod 3", this->pMaj7->mModulations[2], (int)M7::ParamIndices::Mod3Enabled);
-			ModulationSection("Mod 4", this->pMaj7->mModulations[3], (int)M7::ParamIndices::Mod4Enabled);
-			ModulationSection("Mod 5", this->pMaj7->mModulations[4], (int)M7::ParamIndices::Mod5Enabled);
-			ModulationSection("Mod 6", this->pMaj7->mModulations[5], (int)M7::ParamIndices::Mod6Enabled);
-			ModulationSection("Mod 7", this->pMaj7->mModulations[6], (int)M7::ParamIndices::Mod7Enabled);
-			ModulationSection("Mod 8", this->pMaj7->mModulations[7], (int)M7::ParamIndices::Mod8Enabled);
-			ModulationSection("Mod 9", this->pMaj7->mModulations[8], (int)M7::ParamIndices::Mod9Enabled);
-			ModulationSection("Mod 10", this->pMaj7->mModulations[9], (int)M7::ParamIndices::Mod10Enabled);
-			ModulationSection("Mod 11", this->pMaj7->mModulations[10], (int)M7::ParamIndices::Mod11Enabled);
-			ModulationSection("Mod 12", this->pMaj7->mModulations[11], (int)M7::ParamIndices::Mod12Enabled);
-			ModulationSection("Mod 13", this->pMaj7->mModulations[12], (int)M7::ParamIndices::Mod13Enabled);
-			ModulationSection("Mod 14", this->pMaj7->mModulations[13], (int)M7::ParamIndices::Mod14Enabled);
-			ModulationSection("Mod 15", this->pMaj7->mModulations[14], (int)M7::ParamIndices::Mod15Enabled);
-			ModulationSection("Mod 16", this->pMaj7->mModulations[15], (int)M7::ParamIndices::Mod16Enabled);
+			ModulationSection(0, this->pMaj7->mModulations[0], (int)M7::ParamIndices::Mod1Enabled);
+			ModulationSection(1, this->pMaj7->mModulations[1], (int)M7::ParamIndices::Mod2Enabled);
+			ModulationSection(2, this->pMaj7->mModulations[2], (int)M7::ParamIndices::Mod3Enabled);
+			ModulationSection(3, this->pMaj7->mModulations[3], (int)M7::ParamIndices::Mod4Enabled);
+			ModulationSection(4, this->pMaj7->mModulations[4], (int)M7::ParamIndices::Mod5Enabled);
+			ModulationSection(5, this->pMaj7->mModulations[5], (int)M7::ParamIndices::Mod6Enabled);
+			ModulationSection(6, this->pMaj7->mModulations[6], (int)M7::ParamIndices::Mod7Enabled);
+			ModulationSection(7, this->pMaj7->mModulations[7], (int)M7::ParamIndices::Mod8Enabled);
+			ModulationSection(8, this->pMaj7->mModulations[8], (int)M7::ParamIndices::Mod9Enabled);
+			ModulationSection(9, this->pMaj7->mModulations[9], (int)M7::ParamIndices::Mod10Enabled);
+			ModulationSection(10, this->pMaj7->mModulations[10], (int)M7::ParamIndices::Mod11Enabled);
+			ModulationSection(11, this->pMaj7->mModulations[11], (int)M7::ParamIndices::Mod12Enabled);
+			ModulationSection(12, this->pMaj7->mModulations[12], (int)M7::ParamIndices::Mod13Enabled);
+			ModulationSection(13, this->pMaj7->mModulations[13], (int)M7::ParamIndices::Mod14Enabled);
+			ModulationSection(14, this->pMaj7->mModulations[14], (int)M7::ParamIndices::Mod15Enabled);
+			ModulationSection(15, this->pMaj7->mModulations[15], (int)M7::ParamIndices::Mod16Enabled);
 
 			EndTabBarWithColoredSeparator();
 		}
@@ -885,7 +889,47 @@ public:
 		labels[3] += suffixes[3];
 	}
 
-	void ModulationSection(const char* labelWithID, M7::ModulationSpec& spec, int enabledParamID)
+	std::string GetModulationName(M7::ModulationSpec& spec, int imod)
+	{
+		char ret[200];
+
+		float enabledBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled);
+		M7::BoolParam mEnabled {enabledBacking};
+		if (!mEnabled.GetBoolValue()) {
+			sprintf_s(ret, "Mod %d###mod%d", imod, imod);
+			return ret;
+		}
+
+		float srcBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Source);
+		M7::EnumParam<M7::ModSource> mSource{ srcBacking, M7::ModSource::Count };
+		auto src = mSource.GetEnumValue();
+		if (src == M7::ModSource::None) {
+			sprintf_s(ret, "Mod %d###mod%d", imod, imod);
+			return ret;
+		}
+
+		float destBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Destination);
+		M7::EnumParam<M7::ModDestination> mDestination{ destBacking, M7::ModDestination::Count };
+		auto dest = mDestination.GetEnumValue();
+		if (dest == M7::ModDestination::None) {
+			sprintf_s(ret, "Mod %d###mod%d", imod, imod);
+			return ret;
+		}
+
+		MODSOURCE_SHORT_CAPTIONS(srcCaptions);
+
+		if (spec.mType == M7::ModulationSpecType::SourceAmp) {
+			sprintf_s(ret, "%s###mod%d", srcCaptions[(int)src], imod);
+			return ret;
+		}
+
+		MODDEST_SHORT_CAPTIONS(destCaptions);
+
+		sprintf_s(ret, "%s > %s###mod%d", srcCaptions[(int)src], destCaptions[(int)dest], imod);
+		return ret;
+	}
+
+	void ModulationSection(int imod, M7::ModulationSpec& spec, int enabledParamID)
 	{
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
 		std::string modDestinationCaptions[(size_t)M7::ModDestination::Count] = MOD_DEST_CAPTIONS;
@@ -903,10 +947,10 @@ public:
 		}
 
 		bool isLocked = spec.mType != M7::ModulationSpecType::General;
-		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mPinkColors : mModulationsColors) : mModulationDisabledColors;
+		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mLockedModulationsColors : mModulationsColors) : mModulationDisabledColors;
 		auto token = cm.Push();
 
-		if (WSBeginTabItem(labelWithID))
+		if (WSBeginTabItem(GetModulationName(spec, imod).c_str()))
 		{
 			ImGui::BeginDisabled(isLocked);
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
@@ -935,6 +979,38 @@ public:
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "SCInvert");
 			ImGui::SameLine();
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "SC Curve", 0, M7CurveRenderStyle::Rising);
+
+
+			ImGui::SameLine();
+			if (ImGui::SmallButton("Copy to...")) {
+				ImGui::OpenPopup("copymodto");
+			}
+
+			if (ImGui::BeginPopup("copymodto"))
+			{
+				for (int n = 0; n < (int)M7::gModulationCount; n++)
+				{
+					ImGui::PushID(n);
+
+					char modName[100];
+					sprintf_s(modName, "Mod %d", n);
+
+					if (ImGui::Selectable(GetModulationName(this->pMaj7->mModulations[n], n).c_str()))
+					{
+						M7::ModulationSpec& srcSpec = spec;
+						M7::ModulationSpec& destSpec = this->pMaj7->mModulations[n];
+						for (int iparam = 0; iparam < (int)M7::ModParamIndexOffsets::Count; ++ iparam) {
+
+							float p = GetEffectX()->getParameter(srcSpec.mBaseParamID + iparam);
+							GetEffectX()->setParameter(destSpec.mBaseParamID + iparam, p);
+						}
+					}
+					ImGui::PopID();
+				}
+				ImGui::EndPopup();
+			}
+
+
 			ImGui::EndTabItem();
 
 		}

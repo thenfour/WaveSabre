@@ -12,9 +12,123 @@
 
 #define IMGUIKNOBS_PI 3.14159265358979323846f
 
+namespace ImGui {
+
+    // WS: this is effectively copied from Imgui, but
+    // 1. hard-codes the datatype as a `double`
+    // 2. uses custom formatting for displaying the label (but default behavior for editing)
+    // 3. some metrics are tweaked to make the display size correct
+
+    // Note: p_data, p_min and p_max are _pointers_ to a memory address holding the data. For a Drag widget, p_min and p_max are optional.
+    // Read code of e.g. DragFloat(), DragInt() etc. or examples in 'Demo->Widgets->Data Types' to understand how to use this function directly.
+    static inline bool DragScalar_Custom(const char* label, double* p_data, float v_speed, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags, ImGuiKnobs::IValueConverter* conv, void* capture)
+    {
+        static constexpr float          DRAG_MOUSE_THRESHOLD_FACTOR = 0.50f;    // Multiplier for the default value of io.MouseDragThreshold to make DragFloat/DragInt react faster to mouse drags.
+        ImGuiDataType data_type = ImGuiDataType_Double;
+
+        ImGuiWindow* window = GetCurrentWindow();
+        if (window->SkipItems)
+            return false;
+
+        char value_buf[64];
+        double paramValue = *p_data;
+        auto strValue = conv->ParamToDisplayString(paramValue, capture);
+        strcpy_s(value_buf, strValue.c_str());
+
+        ImGuiContext& g = *GImGui;
+        const ImGuiStyle& style = g.Style;
+        const ImGuiID id = window->GetID(label);
+        const float w = CalcItemWidth();
+
+        ImVec2 label_size = CalcTextSize(label, NULL, true);
+        ImVec2 value_size = CalcTextSize(value_buf, NULL, true);
+        value_size.x = std::max(value_size.x + 6, 40.0f);
+
+        float frame_bb_w = value_size.x;
+
+        const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(frame_bb_w, label_size.y + style.FramePadding.y * 2.0f));
+        const ImRect total_bb(frame_bb.Min, frame_bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
+
+        const bool temp_input_allowed = (flags & ImGuiSliderFlags_NoInput) == 0;
+        ItemSize(total_bb, style.FramePadding.y);
+        if (!ItemAdd(total_bb, id, &frame_bb, temp_input_allowed ? ImGuiItemFlags_Inputable : 0))
+            return false;
+
+        // Default format string when passing NULL
+        //if (format == NULL)
+        //    format = DataTypeGetInfo(data_type)->PrintFmt;
+
+        const bool hovered = ItemHoverable(frame_bb, id);
+        bool temp_input_is_active = temp_input_allowed && TempInputIsActive(id);
+        if (!temp_input_is_active)
+        {
+            // Tabbing or CTRL-clicking on Drag turns it into an InputText
+            const bool input_requested_by_tabbing = temp_input_allowed && (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_FocusedByTabbing) != 0;
+            const bool clicked = hovered && IsMouseClicked(0, id);
+            const bool double_clicked = (hovered && g.IO.MouseClickedCount[0] == 2 && TestKeyOwner(ImGuiKey_MouseLeft, id));
+            const bool make_active = (input_requested_by_tabbing || clicked || double_clicked || g.NavActivateId == id || g.NavActivateInputId == id);
+            if (make_active && (clicked || double_clicked))
+                SetKeyOwner(ImGuiKey_MouseLeft, id);
+            if (make_active && temp_input_allowed)
+                if (input_requested_by_tabbing || (clicked && g.IO.KeyCtrl) || double_clicked || g.NavActivateInputId == id)
+                    temp_input_is_active = true;
+
+            // (Optional) simple click (without moving) turns Drag into an InputText
+            if (g.IO.ConfigDragClickToInputText && temp_input_allowed && !temp_input_is_active)
+                if (g.ActiveId == id && hovered && g.IO.MouseReleased[0] && !IsMouseDragPastThreshold(0, g.IO.MouseDragThreshold * DRAG_MOUSE_THRESHOLD_FACTOR))
+                {
+                    g.NavActivateId = g.NavActivateInputId = id;
+                    g.NavActivateFlags = ImGuiActivateFlags_PreferInput;
+                    temp_input_is_active = true;
+                }
+
+            if (make_active && !temp_input_is_active)
+            {
+                SetActiveID(id, window);
+                SetFocusID(id, window);
+                FocusWindow(window);
+                g.ActiveIdUsingNavDirMask = (1 << ImGuiDir_Left) | (1 << ImGuiDir_Right);
+            }
+        }
+
+        if (temp_input_is_active)
+        {
+            // Only clamp CTRL+Click input when ImGuiSliderFlags_AlwaysClamp is set
+            const bool is_clamp_input = (flags & ImGuiSliderFlags_AlwaysClamp) != 0 && (p_min == NULL || p_max == NULL || DataTypeCompare(data_type, p_min, p_max) < 0);
+            return TempInputScalar(frame_bb, id, label, data_type, p_data, format, is_clamp_input ? p_min : NULL, is_clamp_input ? p_max : NULL);
+        }
+
+        // Draw frame
+        const ImU32 frame_col = GetColorU32(g.ActiveId == id ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
+        RenderNavHighlight(frame_bb, id);
+        RenderFrame(frame_bb.Min, frame_bb.Max, frame_col, true, style.FrameRounding);
+
+        // Drag behavior
+        const bool value_changed = DragBehavior(id, data_type, p_data, v_speed, p_min, p_max, format, flags);
+        if (value_changed)
+            MarkItemEdited(id);
+
+        // Display value using user-provided display format so user can add prefix/suffix/decorations to the value.
+        //const char* value_buf_end = value_buf + DataTypeFormatString(value_buf, IM_ARRAYSIZE(value_buf), data_type, p_data, format);
+        if (g.LogEnabled)
+            LogSetNextTextDecoration("{", "}");
+        RenderTextClipped(frame_bb.Min, frame_bb.Max, value_buf, value_buf + strlen(value_buf), NULL, ImVec2(0.5f, 0.5f));
+        //RenderText(frame_bb.Min, value_buf, 0, false);
+
+        if (label_size.x > 0.0f)
+            RenderText(ImVec2(frame_bb.Max.x + style.ItemInnerSpacing.x, frame_bb.Min.y + style.FramePadding.y), label);
+
+        IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags | (temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0));
+        return value_changed;
+    }
+
+}
 
 namespace ImGuiKnobs {
     namespace detail {
+
+
+
 
 
         void draw_arc1(ImVec2 center, float radius, float start_angle__, float end_angle__, float thickness, ImColor color, int num_segments) {
@@ -219,22 +333,17 @@ namespace ImGuiKnobs {
             // Draw input
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0,0});
             if (flags & ImGuiKnobFlags_CustomInput) {
+                ImGuiSliderFlags drag_flags = 0;
+                if (!(flags & ImGuiKnobFlags_DragHorizontal)) {
+                    drag_flags |= ImGuiSliderFlags_Vertical;
+                }
+                double tempVal = (double)*p_value;
+                auto changed = ImGui::DragScalar_Custom("###knob_drag", &tempVal, speed, &v_min, &v_max, format, drag_flags, conv, capture);
+                if (changed) {
+                    k.value_changed = true;
+                    *p_value = (DataType)tempVal;
+                }
 
-                // TODO: a way of inputting text
-                char textBuffer[100];
-                std::string displayVal = conv->ParamToDisplayString((double)*p_value, capture);
-                strcpy_s(textBuffer, displayVal.c_str());
-                ImGui::Text("%s", displayVal.c_str());
-                //if (ImGui::InputText("###knob_custom_input", textBuffer, std::size(textBuffer))) {
-                //    // transform value back.
-                //    *p_value = (DataType)std::strtod(textBuffer, nullptr);
-                //    k.value_changed = true;
-                //}
-
-                //auto changed = LabelEditOnClick("###knob_label", p_value, conv, capture);
-                //if (changed) {
-                //    k.value_changed = true;
-                //}
             }
             else if (!(flags & ImGuiKnobFlags_NoInput)) {
                 ImGuiSliderFlags drag_flags = 0;

@@ -46,13 +46,31 @@ namespace WaveSabreCore
 					{
 						auto& spec = modSpecs[imod];
 						mDestValueDeltas[imod] = 0;
-						if (!spec.mEnabled.mCachedVal) continue;
+						bool skip = false;
+						if (!spec.mEnabled.mCachedVal) skip = true;
 						auto modSource = spec.mSource.mCachedVal;
-						if (modSource == ModSource::None) continue;
+						if (modSource == ModSource::None) skip = true;
 						auto modDest = spec.mDestination.mCachedVal;
-						if (modDest == ModDestination::None) continue;
-						if (spec.mpDestSourceEnabledParam && !spec.mpDestSourceEnabledParam->mCachedVal) { // NB: requires that the source.enabled has cached its bool val
+						if (modDest == ModDestination::None) skip = true;
+						if (spec.mpDestSourceEnabledParam && !spec.mpDestSourceEnabledParam->mCachedVal) {
+							skip = true;
+						}
+
+						auto lastDest = this->mModSpecLastDestinations[imod];
+						if (skip) {
+							this->mModSpecLastDestinations[imod] = ModDestination::None;
+							// if we're skipping, check if we ran it previously.
+							if (lastDest != ModDestination::None) {
+								mDestValues[(size_t)lastDest] = 0;
+							}
 							continue;
+						}
+						else {
+							this->mModSpecLastDestinations[imod] = modDest;
+							// don't skip; also need to reset dest values if the dest changed.
+							if (lastDest != modDest) {
+								mDestValues[(size_t)lastDest] = 0;
+							}
 						}
 
 						real_t sourceVal = GetSourceValue(modSource);
