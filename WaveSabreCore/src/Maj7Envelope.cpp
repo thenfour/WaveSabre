@@ -18,7 +18,8 @@ namespace WaveSabreCore
             mSustainLevel(paramCache[paramBaseID + (int)EnvParamIndexOffsets::SustainLevel]),
             mReleaseTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseTime]),
             mReleaseCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseCurve]),
-            mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart]), // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
+            mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart]),
+            mMode(paramCache[paramBaseID + (int)EnvParamIndexOffsets::Mode], EnvelopeMode::Count),
             mMyModSource(myModSource)
         {
         }
@@ -61,7 +62,7 @@ namespace WaveSabreCore
             case EnvelopeStage::Decay:
                 if (math::FloatLessThanOrEquals(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)), 0))
                 {
-                    AdvanceToStage(EnvelopeStage::Sustain);
+                    AdvanceToStage(mMode.mCachedVal == EnvelopeMode::Sustain ? EnvelopeStage::Sustain : EnvelopeStage::Idle);
                     return;
                 }
                 break;
@@ -92,16 +93,19 @@ namespace WaveSabreCore
         void EnvelopeNode::noteOff()
         {
             if (!IsPlaying()) return;
+            if (mMode.mCachedVal == EnvelopeMode::OneShot) return; // in one-shot there's no way to cut off the note faster.
             EnvelopeNode::AdvanceToStage(EnvelopeStage::Release);
         }
 
-        void EnvelopeNode::kill() {
+        float EnvelopeNode::kill() {
             EnvelopeNode::AdvanceToStage(EnvelopeStage::Idle);
+            return 0;
         }
 
         void EnvelopeNode::BeginBlock()
         {
             mnSampleCount = 0; // ensure reprocessing after setting these params to avoid corrupt state.
+            mMode.CacheValue();
             RecalcState();
         }
 
@@ -116,6 +120,7 @@ namespace WaveSabreCore
             }
 
             // proceed to full calc
+            mMode.CacheValue();
 
             float ret = 0;
             EnvelopeStage nextStage = EnvelopeStage::Idle;
@@ -148,22 +153,33 @@ namespace WaveSabreCore
             case EnvelopeStage::Decay: {
                 // 0-1 => 1 - sustainlevel
                 // curve contained within the stage, not the output 0-1 range.
-                float range = 1.0f - (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel)); // could be precalculated
-                ret = 1.0f - mDecayCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayCurve));// gModCurveLUT.Transfer32(1.0f - mStagePos01, mpLutRow);   // 0-1
+                float susLevel = 0;
+                nextStage = EnvelopeStage::Idle;
+                if (mMode.mCachedVal == EnvelopeMode::Sustain) {
+                    nextStage = EnvelopeStage::Sustain;
+                    susLevel = mSustainLevel.Get01Value(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel));
+                }
+                float range = 1.0f - (susLevel);
+                ret = 1.0f - mDecayCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayCurve));
                 ret = 1.0f - range * ret;
-                nextStage = EnvelopeStage::Sustain;
                 break;
             }
             case EnvelopeStage::Sustain: {
-                float ret = (mSustainLevel.Get01Value() + mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel));
+                if (mMode.mCachedVal == EnvelopeMode::OneShot) {
+                    return kill();
+                }
+                float ret = (mSustainLevel.Get01Value(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel)));
                 mLastOutputLevel = ret;
                 return ret;
             }
             case EnvelopeStage::Release: {
+                if (mMode.mCachedVal == EnvelopeMode::OneShot) {
+                    return kill();
+                }
                 // 0-1 => mReleaseFromValue01 - 0
                 // curve contained within the stage, not the output 0-1 range.
                 //ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01);
-                ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));// gModCurveLUT.Transfer32(1.0f - mStagePos01, mpLutRow); // 1-0
+                ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));
                 ret = ret * mReleaseFromValue01;
                 nextStage = EnvelopeStage::Idle;
                 break;

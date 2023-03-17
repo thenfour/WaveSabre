@@ -775,7 +775,21 @@ public:
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve(delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseCurve, "Curve##Release", 0, M7CurveRenderStyle::Falling);
 		ImGui::SameLine();
+		ImGui::BeginGroup();
 		WSImGuiParamCheckbox(delayTimeParamID + (int)M7::EnvParamIndexOffsets::LegatoRestart, "Leg.Restart");
+
+		ImGui::Text("OneShot");
+		float backing = GetEffectX()->getParameter(delayTimeParamID + (int)M7::EnvParamIndexOffsets::Mode);
+		M7::EnumParam<M7::EnvelopeMode> modeParam{ backing, M7::EnvelopeMode::Count };
+		bool boneshot = modeParam.GetEnumValue() == M7::EnvelopeMode::OneShot;
+		bool r = ImGui::Checkbox("##cb", &boneshot);
+		if (r) {
+			modeParam.SetEnumValue(boneshot ? M7::EnvelopeMode::OneShot : M7::EnvelopeMode::Sustain);
+			GetEffectX()->setParameterAutomated(delayTimeParamID + (int)M7::EnvParamIndexOffsets::Mode,
+				backing);
+		}
+
+		ImGui::EndGroup();
 
 		ImGui::SameLine();
 		Maj7ImGuiEnvelopeGraphic("graph", delayTimeParamID);

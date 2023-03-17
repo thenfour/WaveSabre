@@ -83,8 +83,8 @@ namespace WaveSabreCore {
           0.67000001668930053711, // LFO1fr
           0.5, // LFO1lp
         };
-        static_assert((int)M7::EnvParamIndexOffsets::Count == 10, "param count probably changed and this needs to be regenerated.");
-        const float gDefaultEnvelopeParams[10] = {
+        static_assert((int)M7::EnvParamIndexOffsets::Count == 11, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultEnvelopeParams[11] = {
           0, // AE1dlt
           0.050000000745058059692, // AE1att
           0.75, // AE1atc
@@ -95,6 +95,7 @@ namespace WaveSabreCore {
           0.20000000298023223877, // AE1rt
           0.25, // AE1tc
           1, // AE1rst
+          0, // AE1mode
         };
         static_assert((int)M7::OscParamIndexOffsets::Count == 18, "param count probably changed and this needs to be regenerated.");
         const float gDefaultOscillatorParams[18] = {

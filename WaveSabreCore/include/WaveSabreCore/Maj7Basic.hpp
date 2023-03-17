@@ -802,6 +802,7 @@ namespace WaveSabreCore
             Osc1AmpEnvReleaseTime,
             Osc1AmpEnvReleaseCurve,
             Osc1AmpEnvLegatoRestart,
+            Osc1AmpEnvMode,
 
             Osc2Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc2Volume,
@@ -832,6 +833,7 @@ namespace WaveSabreCore
             Osc2AmpEnvReleaseTime,
             Osc2AmpEnvReleaseCurve,
             Osc2AmpEnvLegatoRestart,
+                Osc2AmpEnvMode,
 
             Osc3Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc3Volume,
@@ -862,6 +864,7 @@ namespace WaveSabreCore
             Osc3AmpEnvReleaseTime,
             Osc3AmpEnvReleaseCurve,
             Osc3AmpEnvLegatoRestart,
+                Osc3AmpEnvMode,
 
                 Osc4Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
                 Osc4Volume,
@@ -892,6 +895,7 @@ namespace WaveSabreCore
                 Osc4AmpEnvReleaseTime,
                 Osc4AmpEnvReleaseCurve,
                 Osc4AmpEnvLegatoRestart,
+                Osc4AmpEnvMode,
 
             Env1DelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Env1AttackTime,
@@ -903,6 +907,7 @@ namespace WaveSabreCore
             Env1ReleaseTime,
             Env1ReleaseCurve,
             Env1LegatoRestart,
+                Env1AmpEnvMode,
 
             Env2DelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Env2AttackTime,
@@ -914,6 +919,7 @@ namespace WaveSabreCore
             Env2ReleaseTime,
             Env2ReleaseCurve,
             Env2LegatoRestart,
+                Env2AmpEnvMode,
 
             LFO1Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
             LFO1Waveshape,
@@ -1227,6 +1233,7 @@ namespace WaveSabreCore
                 Sampler1AmpEnvReleaseTime,
                 Sampler1AmpEnvReleaseCurve,
                 Sampler1AmpEnvLegatoRestart,
+                    Sampler1AmpEnvMode,
 
                     Sampler2Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                     Sampler2Volume,
@@ -1260,6 +1267,7 @@ namespace WaveSabreCore
                     Sampler2AmpEnvReleaseTime,
                     Sampler2AmpEnvReleaseCurve,
                     Sampler2AmpEnvLegatoRestart,
+                    Sampler2AmpEnvMode,
 
                 Sampler3Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler3Volume,
@@ -1293,6 +1301,7 @@ namespace WaveSabreCore
                 Sampler3AmpEnvReleaseTime,
                 Sampler3AmpEnvReleaseCurve,
                 Sampler3AmpEnvLegatoRestart,
+                    Sampler3AmpEnvMode,
 
                 Sampler4Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler4Volume,
@@ -1326,6 +1335,7 @@ namespace WaveSabreCore
                 Sampler4AmpEnvReleaseTime,
                 Sampler4AmpEnvReleaseCurve,
                 Sampler4AmpEnvLegatoRestart,
+                        Sampler4AmpEnvMode,
 
                 NumParams,
                 Invalid,
@@ -1393,6 +1403,7 @@ namespace WaveSabreCore
 		    {"AE1rt"}, \
 		    {"AE1tc"}, \
 		    {"AE1rst"}, \
+		    {"AE1mode"}, \
 		    {"O2En"}, \
 		    {"O2Vol"}, \
 		    {"O2KRmin"}, \
@@ -1421,6 +1432,7 @@ namespace WaveSabreCore
 		    {"AE2rt"}, \
 		    {"AE2tc"}, \
 		    {"AE2rst"}, \
+		    {"AE2mode"}, \
 		    {"O3En"}, \
 		    {"O3Vol"}, \
 		    {"O3KRmin"}, \
@@ -1449,6 +1461,7 @@ namespace WaveSabreCore
 		    {"AE3rt"}, \
 		    {"AE3tc"}, \
 		    {"AE3rst"}, \
+		    {"AE3mode"}, \
             {"O4En"}, \
             {"O4Vol"}, \
             {"O4KRmin"}, \
@@ -1477,6 +1490,7 @@ namespace WaveSabreCore
             {"AE4rt"}, \
             {"AE4tc"}, \
             {"AE4rst"}, \
+		    {"AE4mode"}, \
 		    {"E1dlt"}, \
 		    {"E1att"}, \
 		    {"E1atc"}, \
@@ -1487,6 +1501,7 @@ namespace WaveSabreCore
 		    {"E1rt"}, \
 		    {"E1tc"}, \
 		    {"E1rst"}, \
+		    {"E1mode"}, \
 		    {"E2dlt"}, \
 		    {"E2att"}, \
 		    {"E2atc"}, \
@@ -1497,6 +1512,7 @@ namespace WaveSabreCore
 		    {"E2rt"}, \
 		    {"E2tc"}, \
 		    {"E2rst"}, \
+		    {"E2mode"}, \
 		    {"LFO1wav"}, \
 		    {"LFO1shp"}, \
 		    {"LFO1rst"}, \
@@ -1782,6 +1798,7 @@ namespace WaveSabreCore
 		    {"S1Ert"}, \
 		    {"S1Etc"}, \
 		    {"S1Erst"}, \
+		    {"S1Emode"}, \
             {"S2En"}, \
             {"S2Vol"}, \
             {"S2KRmin"}, \
@@ -1813,6 +1830,7 @@ namespace WaveSabreCore
             {"S2Ert"}, \
             {"S2Etc"}, \
             {"S2Erst"}, \
+		    {"S2Emode"}, \
             {"S3En"}, \
             {"S3Vol"}, \
             {"S3KRmin"}, \
@@ -1844,6 +1862,7 @@ namespace WaveSabreCore
             {"S3Ert"}, \
             {"S3Etc"}, \
             {"S3Erst"}, \
+		    {"S3Emode"}, \
             {"S4En"}, \
             {"S4Vol"}, \
             {"S4KRmin"}, \
@@ -1875,6 +1894,7 @@ namespace WaveSabreCore
             {"S4Ert"}, \
             {"S4Etc"}, \
             {"S4Erst"}, \
+		    {"S4Emode"}, \
         }
 
         enum class MainParamIndices : uint8_t
@@ -1983,6 +2003,7 @@ namespace WaveSabreCore
             ReleaseTime,
             ReleaseCurve,
             LegatoRestart,
+            Mode,
             Count,
         };
         enum class OscParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
@@ -2052,6 +2073,15 @@ namespace WaveSabreCore
 			" (Filter Frequency)", \
             " (n/a)", \
         }
+
+
+        // ------------------------------------------------------------
+        enum class EnvelopeMode : uint8_t
+        {
+            Sustain, // uses all features of the envelope.
+            OneShot, // ignores note offs, decays to 0.
+            Count,
+        };
 
 //        // DISTORTION AUX INFO  ------------------------------------------------------------
 //        enum class DistortionAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & DistortionAuxModIndexOffsets

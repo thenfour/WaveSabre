@@ -22,6 +22,7 @@ namespace WaveSabreCore
             EnvTimeParam mReleaseTime;//;{ 0.2f };
             CurveParam mReleaseCurve;//;{ 0 };
             BoolParam mLegatoRestart;// { false };
+            EnumParam< EnvelopeMode> mMode;
             
             ModSource mMyModSource; // not used by this object, but useful for mappings.
 
@@ -46,7 +47,7 @@ namespace WaveSabreCore
 
             void noteOff();
 
-            void kill();
+            float kill();
 
             // used by debug displays
             EnvelopeStage GetStage() const
