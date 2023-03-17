@@ -10,8 +10,6 @@ namespace WaveSabreCore
         struct EnvelopeNode
         {
             size_t mnSampleCount = 0;
-            //static constexpr size_t gRecalcSamplePeriod = 8;
-            //static constexpr size_t gRecalcSampleMask = 7;
 
             const int mParamBaseID;
             EnvTimeParam mDelayTime;//;{ 0 };
@@ -80,7 +78,14 @@ namespace WaveSabreCore
             real_t mStagePosIncPerSample =
                 0; // how much mStagePos01 changes per recalc samples block (recalculated when mStage changes, or when spec changes)
 
-            real_t mReleaseFromValue01 = 0; // when release stage begins, what value is it releasing from?
+            float mReleaseStagePos01 = 0; // where in the release stage are we? delay acts like 2 stages at the same time so this is needed.
+            float mReleaseStagePosIncPerSample = 0;
+
+            // when release stage begins, what value is it releasing from?
+            real_t mReleaseFromValue01 = 0;
+
+            // in monophonic situations, attack stage may not start from 0.
+            real_t mAttackFromValue01 = 0; 
 
             ModMatrixNode& mModMatrix;
             const int mModDestBase;// delay time
