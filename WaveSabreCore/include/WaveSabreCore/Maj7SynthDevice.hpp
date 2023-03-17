@@ -73,7 +73,7 @@ namespace WaveSabreCore
 			bool mLegato;
 		};
 
-		enum class EventType
+		enum class EventType : uint8_t
 		{
 			None,
 			NoteOn,

@@ -68,6 +68,15 @@ namespace WaveSabreCore
 
         static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
 
+        template<typename Tfirst, typename Tsecond>
+        struct Pair
+        {
+            Tfirst first;
+            Tsecond second;
+        };
+
+        using FloatPair = Pair<float, float>;
+
         namespace math
         {
             static constexpr real_t gPI = 3.14159265358979323846264338327950288f;
@@ -319,9 +328,9 @@ namespace WaveSabreCore
             float SemisToFrequencyMul(float x);
 
             float FrequencyToMIDINote(float hz);
-            std::pair<float, float> PanToLRVolumeParams(float panN11);
+            FloatPair PanToLRVolumeParams(float panN11);
 
-            std::pair<float, float> PanToFactor(float panN11);
+            FloatPair PanToFactor(float panN11);
         } // namespace math
 
 
@@ -670,7 +679,7 @@ namespace WaveSabreCore
 
             ~Serializer();
 
-            std::pair<uint8_t*, size_t> DetachBuffer();
+            Pair<uint8_t*, size_t> DetachBuffer();
             uint8_t* GrowBy(size_t n);
             void WriteUByte(uint8_t b);
         //    void WriteSByte(int8_t b) {
@@ -732,7 +741,7 @@ namespace WaveSabreCore
 
 
         // you need to sync up all these enums below to correspond with ordering et al.
-        enum class ParamIndices
+        enum class ParamIndices : uint16_t
         {
             MasterVolume,
             VoicingMode,
@@ -2208,7 +2217,7 @@ namespace WaveSabreCore
         struct IAuxEffect
         {
             virtual ~IAuxEffect() {}
-            virtual void AuxBeginBlock(float noteHz, int nSamples, struct ModMatrixNode& modMatrix) = 0;
+            virtual void AuxBeginBlock(float noteHz, struct ModMatrixNode& modMatrix) = 0;
             virtual float AuxProcessSample(float inp) = 0;
         };
 

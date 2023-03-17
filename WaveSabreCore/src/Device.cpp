@@ -1,4 +1,5 @@
 #include <WaveSabreCore/Device.h>
+#include <cstring>
 #include <WaveSabreCore/Helpers.h>
 
 namespace WaveSabreCore
@@ -69,7 +70,8 @@ namespace WaveSabreCore
 	{
 		for (int i = 0; i < 2; i++)
 		{
-			for (int j = 0; j < numSamples; j++) outputs[i][j] = 0.0f;
+			memset(outputs[i], 0, sizeof(float) * numSamples);
+			//for (int j = 0; j < numSamples; j++) outputs[i][j] = 0.0f;
 		}
 	}
 }

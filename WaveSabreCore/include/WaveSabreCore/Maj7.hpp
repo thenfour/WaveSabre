@@ -113,7 +113,7 @@ namespace WaveSabreCore
 
 			// pass in aux nodes due to linking.
 			// for simplicity to avoid circular refs, disable if you link to a linked aux
-			void BeginBlock(int nSamples)
+			void BeginBlock()
 			{
 				mEnabledParam.CacheValue();
 				mLink.CacheValue();
@@ -148,7 +148,7 @@ namespace WaveSabreCore
 
 			// pass in aux nodes due to linking.
 			// for simplicity to avoid circular refs, disable if you link to a linked aux
-			void BeginBlock(int nSamples, float noteHz, ModMatrixNode& modMatrix) {
+			void BeginBlock(float noteHz, ModMatrixNode& modMatrix) {
 				if (!mpDevice->IsEnabled()) return;
 				auto link = mpDevice->mLink.mCachedVal;// .GetEnumValue();
 				const AuxDevice* const srcNode = &mpDevice->mpAllAuxNodes[(int)link];
@@ -163,7 +163,7 @@ namespace WaveSabreCore
 				}
 				if (!mpCurrentEffect) return;
 
-				return mpCurrentEffect->AuxBeginBlock(noteHz, nSamples, modMatrix);
+				return mpCurrentEffect->AuxBeginBlock(noteHz, modMatrix);
 			}
 
 			float ProcessSample(float inp) {
@@ -562,14 +562,14 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					auto* src = mSources[i];
 					sourceEnabled[i] = src->mEnabledParam.GetBoolValue();
-					src->BeginBlock(numSamples);
+					src->BeginBlock();
 				}
 
 				for (auto& m : mModulations) {
 					m.BeginBlock();
 				}
 				for (size_t i = 0; i < gAuxNodeCount; ++i) {
-					mAuxDevices[i].BeginBlock(numSamples);
+					mAuxDevices[i].BeginBlock();
 				}
 
 				float sourceModDistribution[gSourceCount];
@@ -602,14 +602,14 @@ namespace WaveSabreCore
 
 				for (size_t i = 0; i < gModLFOCount; ++i) {
 					auto& lfo = mLFOs[i];
-					lfo.mDevice.BeginBlock(numSamples);
+					lfo.mDevice.BeginBlock();
 					lfo.mLPCutoff = lfo.mDevice.mLPFFrequency.GetFrequency(0, 0);
-					lfo.mPhase.BeginBlock(numSamples);
+					lfo.mPhase.BeginBlock();
 				}
 
 				for (auto* v : mMaj7Voice)
 				{
-					v->BeginBlock(numSamples);
+					v->BeginBlock();
 				}
 
 				//// apply post FX.
@@ -766,7 +766,7 @@ namespace WaveSabreCore
 
 				float mMidiNote = 0;
 
-				void BeginBlock(int numSamples)
+				void BeginBlock()
 				{
 					if (!this->IsPlaying()) {
 						return;
@@ -780,7 +780,7 @@ namespace WaveSabreCore
 						p->BeginBlock();
 					}
 
-					mModMatrix.BeginBlock(numSamples);
+					mModMatrix.BeginBlock();
 
 					mMidiNote = mPortamento.GetCurrentMidiNote() + mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
@@ -804,7 +804,7 @@ namespace WaveSabreCore
 							// sync phase with device-level. TODO: also check that modulations aren't creating per-voice variation?
 							lfo.mNode.SetPhase(lfo.mDevice.mPhase.mPhase);
 						}
-						lfo.mNode.BeginBlock(numSamples);
+						lfo.mNode.BeginBlock();
 						lfo.mFilter.SetParams(FilterModel::LP_OnePole, lfo.mDevice.mLPCutoff, 0, 0);
 					}
 
@@ -825,12 +825,12 @@ namespace WaveSabreCore
 					mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
 
 					for (size_t i = 0; i < gAuxNodeCount; ++i) {
-						mAllAuxNodes[i]->BeginBlock(numSamples, noteHz, mModMatrix);
+						mAllAuxNodes[i]->BeginBlock(noteHz, mModMatrix);
 					}
 
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
-						mSourceVoices[i]->BeginBlock(numSamples);
+						mSourceVoices[i]->BeginBlock();
 					}
 				}
 

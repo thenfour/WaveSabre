@@ -23,7 +23,7 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		enum class SampleSource
+		enum class SampleSource : uint8_t
 		{
 			GmDls,
 			Embed,
@@ -98,7 +98,7 @@ namespace WaveSabreCore
 			// called when loading chunk, or by VST
 			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char* path);
 			void LoadGmDlsSample(int sampleIndex);
-			virtual void BeginBlock(int samplesInBlock) override;
+			virtual void BeginBlock() override;
 
 			virtual void EndBlock() override;
 
@@ -117,7 +117,7 @@ namespace WaveSabreCore
 			virtual void NoteOn(bool legato) override;
 			virtual void NoteOff() override;
 
-			virtual void BeginBlock(int samplesInBlock) override;
+			virtual void BeginBlock() override;
 
 			virtual float GetLastSample() const override { return 0; } // not used
 

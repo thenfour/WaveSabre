@@ -138,7 +138,7 @@ namespace WaveSabreCore
 				mAmpEnvModulation->SetSourceAmp(mAmpEnvModSourceID, mHiddenVolumeModDestID, &mEnabledParam);
 			}
 
-			virtual void BeginBlock(int samplesInBlock)
+			virtual void BeginBlock()
 			{
 				mEnabledParam.CacheValue();
 				mAuxPanParam.CacheValue();
@@ -168,7 +168,7 @@ namespace WaveSabreCore
 
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;
-				virtual void BeginBlock(int samplesInBlock) = 0;
+				virtual void BeginBlock() = 0;
 				virtual float GetLastSample() const = 0;
 				//virtual void EndBlock() = 0;
 			};
@@ -247,7 +247,7 @@ namespace WaveSabreCore
 
 			// process discontinuity due to restarting phase right now.
 			// returns blep before and blep after discontinuity.
-			virtual std::pair<float, float> OSC_RESTART(float samplesBeforeNext)
+			virtual FloatPair OSC_RESTART(float samplesBeforeNext)
 			{
 				float sampleBefore = this->NaiveSample((float)this->mPhase);
 				double newPhase = this->mPhaseOffset;
@@ -268,10 +268,10 @@ namespace WaveSabreCore
 
 				mPhase = newPhase;
 
-				return std::make_pair(blepBefore, blepAfter);
+				return { blepBefore, blepAfter };
 			}
 
-			void OSC_ACCUMULATE_BLEP(std::pair<float, float>& bleps, double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
+			void OSC_ACCUMULATE_BLEP(FloatPair& bleps, double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
 				if (!math::DoesEncounter(mPhase, newPhase, edge))
 					return;
@@ -281,7 +281,7 @@ namespace WaveSabreCore
 				bleps.second = blepScale * BlepAfter(samplesFromEdgeToNextSample);
 			}
 
-			void OSC_ACCUMULATE_BLAMP(std::pair<float, float>& bleps, double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
+			void OSC_ACCUMULATE_BLAMP(FloatPair& bleps, double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
 				if (!math::DoesEncounter((mPhase), (newPhase), edge))
 					return;
@@ -294,18 +294,18 @@ namespace WaveSabreCore
 			}
 
 			// offers waveforms the opportunity to accumulate bleps along the advancement.
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) {}
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) {}
 
 			// samples is 0<samples<1
 			// assume this.phase is currently 0<t<1
 			// this.phase may not be on a sample boundary.
 			// returns blep before and blep after discontinuity.
-			virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample)
+			virtual FloatPair OSC_ADVANCE(float samples, float samplesTillNextSample)
 			{
 				//mPhaseIncrement += mDTDT * samples;
 				double phaseToAdvance = samples * mPhaseIncrement;
 				double newPhase = math::fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
-				std::pair<float, float> bleps{ 0.0f,0.0f };
+				FloatPair bleps{ 0.0f,0.0f };
 
 				Visit(bleps, newPhase, samples, samplesTillNextSample);
 
@@ -357,14 +357,12 @@ namespace WaveSabreCore
 			// assume this.phase is currently 0<t<1
 			// this.phase may not be on a sample boundary.
 			// returns blep before and blep after discontinuity.
-			//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 			{
 				//mPhaseIncrement += mDTDT * samples;
 				//double phaseToAdvance = samples * mPhaseIncrement;
 				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 
-				//std::pair<float, float> bleps{ 0.0f,0.0f };
 				float blampScale = float(mPhaseIncrement);
 				float blepScale = -(1.0f - mShape);
 
@@ -430,7 +428,7 @@ namespace WaveSabreCore
 				mScale *= gOscillatorHeadroomScalar;
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 //				virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				//mPhaseIncrement += mDTDT * samples;
@@ -469,7 +467,7 @@ namespace WaveSabreCore
 				this->mShape = math::lerp(0.98f, .02f, waveshape);
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 				//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				//mPhaseIncrement += mDTDT * samples;
@@ -542,7 +540,7 @@ namespace WaveSabreCore
 				mShape = math::lerp(1, 0.1f, waveshape);
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 //				virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
 				//mPhaseIncrement += mDTDT * samples;
@@ -594,7 +592,7 @@ namespace WaveSabreCore
 				return -2 * (1 - mShape);
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 			{
 				//       1-|            ,-',        |
 				//         |         ,-'  | ',      |
@@ -645,7 +643,7 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 			{
 				OSC_ACCUMULATE_BLEP(bleps, newPhase, 0, .5f, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLEP(bleps, newPhase, mT2, -.5f, samples, samplesTillNextSample);
@@ -778,7 +776,7 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 			{
 				float scale = float(mPhaseIncrement / mShape);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
@@ -945,7 +943,7 @@ namespace WaveSabreCore
 				*/
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 			{
 				float scale = float(mPhaseIncrement * 2 / mShape);//OSC_GENERAL_SLOPE(this.shape);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
@@ -1048,7 +1046,7 @@ namespace WaveSabreCore
 				return 1 / mSlope;
 			}
 
-			virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
 			{
 				float scale = float(mPhaseIncrement / (mSlope));
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, -scale, samples, samplesTillNextSample);
@@ -1075,7 +1073,7 @@ namespace WaveSabreCore
 
 
 		/////////////////////////////////////////////////////////////////////////////
-		enum class OscillatorIntention
+		enum class OscillatorIntention : uint8_t
 		{
 			LFO,
 			Audio,
@@ -1173,8 +1171,8 @@ namespace WaveSabreCore
 				mFrequencyMul.SetRangedValue(1);
 			}
 
-			virtual void BeginBlock(int samplesInBlock) override {
-				ISoundSourceDevice::BeginBlock(samplesInBlock);
+			virtual void BeginBlock() override {
+				ISoundSourceDevice::BeginBlock();
 				//mWaveform.CacheValue();
 				//mPhaseRestart.CacheValue();
 				mPhaseOffset.CacheValue();
@@ -1249,7 +1247,7 @@ namespace WaveSabreCore
 
 			virtual void NoteOff() override {}
 
-			virtual void BeginBlock(int samplesInBlock) override
+			virtual void BeginBlock() override
 			{
 				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
 					return;

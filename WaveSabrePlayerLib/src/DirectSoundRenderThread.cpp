@@ -15,7 +15,9 @@ namespace WaveSabrePlayerLib
 		bufferSizeBytes = sampleRate * SongRenderer::BlockAlign * bufferSizeMs / 1000;
 
 		thread = CreateThread(0, 0, threadProc, (LPVOID)this, 0, 0);
-		SetThreadPriority(thread, THREAD_PRIORITY_HIGHEST);
+
+		// avoid pulling in a long-named import
+		//SetThreadPriority(thread, THREAD_PRIORITY_HIGHEST);
 	}
 
 	DirectSoundRenderThread::~DirectSoundRenderThread()

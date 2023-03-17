@@ -278,7 +278,7 @@ namespace WaveSabreCore
 				return ret;
 			}
 
-			std::pair<float, float> PanToLRVolumeParams(float panN11)
+			FloatPair PanToLRVolumeParams(float panN11)
 			{
 				// -1..+1  -> 1..0
 				panN11 = clamp(panN11, -1, 1);
@@ -286,7 +286,7 @@ namespace WaveSabreCore
 				return { leftVol, 1 - leftVol };
 			}
 
-			std::pair<float, float> PanToFactor(float panN11)
+			FloatPair PanToFactor(float panN11)
 			{
 				// SQRT pan law
 				auto volumes = PanToLRVolumeParams(panN11);
@@ -559,9 +559,9 @@ namespace WaveSabreCore
 			delete[] mBuffer;
 		}
 
-		std::pair<uint8_t*, size_t> Serializer::DetachBuffer()
+		Pair<uint8_t*, size_t> Serializer::DetachBuffer()
 		{
-			std::pair<uint8_t*, size_t> ret{ mBuffer, mSize };
+			Pair<uint8_t*, size_t> ret{ mBuffer, mSize };
 			mBuffer = nullptr;
 			mAllocatedSize = mSize = 0;
 			return ret;

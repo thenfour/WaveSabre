@@ -867,7 +867,7 @@ namespace WaveSabreCore
 			
 			static float InvertValue(float val, bool invertParam, const ModSource modSource);
 
-			void BeginBlock(int nSamples)
+			void BeginBlock()
 			{
 				// force a full recalc every block. this is required, otherwise our mod deltas will get messed up.
 				// because voices which aren't running don't process any samples, our deltas will be inaccurate,

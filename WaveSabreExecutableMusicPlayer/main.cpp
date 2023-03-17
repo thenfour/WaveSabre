@@ -12,8 +12,8 @@ void cout(const char* s) // assumes s is not a format string.
 
 void progressCallback(double progress, void *data)
 {
-	const int barLength = 32;
-	int filledChars = (int)(progress * (double)(barLength - 1));
+	static constexpr int barLength = 32;
+	int filledChars = (int)(progress * (barLength - 1));
 	cout("\r[");
 	for (int j = 0; j < barLength; j++) putchar(filledChars >= j ? '*' : '-');
 	cout("]");
@@ -30,8 +30,6 @@ int main(int argc, char **argv)
 	bool preRender = argc == 3 && !strcmp(argv[2], "-p");
 
 	const int numRenderThreads = 3;
-
-
 
 	SongRenderer::Song song;
 	song.blob = SongBlob;

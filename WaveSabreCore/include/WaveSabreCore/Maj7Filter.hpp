@@ -151,7 +151,7 @@ namespace WaveSabreCore
                 mModDestParam2ID(modDestParam2ID)
             {}
 
-            virtual void AuxBeginBlock(float noteHz, int nSamples, ModMatrixNode& modMatrix) override
+            virtual void AuxBeginBlock(float noteHz, ModMatrixNode& modMatrix) override
             {
                 mFilter.SetParams(
                     // TODO: apply mods

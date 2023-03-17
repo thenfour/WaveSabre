@@ -34,7 +34,7 @@ namespace ProjectManager
                 textBoxOutput.Text = "";
                 logger = new EventLogger();
                 logger.OnLog += OnLogEvent;
-                song = new ProjectConverter().Convert(projectFile, logger);
+                song = new ProjectConverter().Convert(projectFile, logger, new ConvertOptions { mUseProjectLoop = cbxCareAboutLoop.Checked });
                 fileName = Path.GetFileNameWithoutExtension(projectFile);
                 textBoxOutput.AppendText("Done.");
                 Enable();
@@ -176,5 +176,20 @@ namespace ProjectManager
                 MessageBox.Show(err.Message);
             }
         }
+
+        private void btnCopyCPP_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var header = new Serializer().Serialize(song);
+                Clipboard.SetText(header);
+                MessageBox.Show("Copied!");
+            }
+            catch (Exception err)
+            {
+                MessageBox.Show(err.Message);
+            }
+        }
+
     }
 }

@@ -230,11 +230,11 @@ namespace WaveSabreCore
 				mSample = new GmDlsSample(sampleIndex);
 			}
 
-			void SamplerDevice::BeginBlock(int samplesInBlock)
+			void SamplerDevice::BeginBlock()
 			{
 				WaitForSingleObject(mMutex, INFINITE);
 
-				ISoundSourceDevice::BeginBlock(samplesInBlock);
+				ISoundSourceDevice::BeginBlock();
 
 				// not needed because these are not accessed often enough.
 				//mLegatoTrig.CacheValue();
@@ -322,7 +322,7 @@ namespace WaveSabreCore
 				mNoteIsOn = false;
 			}
 
-			void SamplerVoice::BeginBlock(/*real_t midiNote, float detuneFreqMul, float fmScale,*/ int samplesInBlock)
+			void SamplerVoice::BeginBlock(/*real_t midiNote, float detuneFreqMul, float fmScale,*/)
 			{
 				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
 					return;

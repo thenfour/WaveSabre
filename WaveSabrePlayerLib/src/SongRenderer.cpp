@@ -83,7 +83,7 @@ namespace WaveSabrePlayerLib
 				renderThreadData->songRenderer = this;
 				renderThreadData->renderThreadIndex = i + 1;
 				additionalRenderThreads[i] = CreateThread(0, 0, renderThreadProc, (LPVOID)renderThreadData, 0, 0);
-				SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_HIGHEST);
+				//SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_HIGHEST);
 			}
 		}
 	}

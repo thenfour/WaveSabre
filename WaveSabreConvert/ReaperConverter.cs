@@ -34,7 +34,7 @@ namespace WaveSabreConvert
         private List<ReaperTrackLink> linkedTracks, visitedTracks, orderedTracks;
         private double trackStart;
 
-        public Song Process(ReaperProject project, ILog logger)
+        public Song Process(ReaperProject project, ILog logger, ConvertOptions options)
         {
             this.logger = logger;
             this.project = project;
@@ -151,7 +151,7 @@ namespace WaveSabreConvert
             }
 
             // loop active, detertmine start and end from loop
-            if (project.Loop)
+            if (project.Loop && options.mUseProjectLoop)
             {
                 if (project.Selection.Start < project.Selection.End)
                     song.Length = project.Selection.End - project.Selection.Start;
@@ -219,6 +219,11 @@ namespace WaveSabreConvert
 
             foreach (var f in reaperTrack.EffectsChain)
             {
+                if (f.Vst == null)
+                {
+                    logger.WriteLine($"Track {reaperTrack.TrackName} has no VST?");
+                    continue;
+                }
                 if (f.Wet != 0)
                     logger.WriteLine("WARNING: Wet value for effect {0} on track {1} unsupported", f.Vst.VstFile, reaperTrack.TrackName);
 
@@ -235,18 +240,21 @@ namespace WaveSabreConvert
                 {
                     logger.WriteLine("WARNING: Device skipped (unsupported plugin): " + f.Vst.VstFile);
                 }
-                /*else if (f.Vst.Bypass)  // TODO: Parse out Bypass
+                else
                 {
-                    logger.WriteLine("WARNING: Device skipped (bypass enabled): " + projectDevice.PluginDll);
-                }*/
+                    /*else if (f.Vst.Bypass)  // TODO: Parse out Bypass
+                    {
+                        logger.WriteLine("WARNING: Device skipped (bypass enabled): " + projectDevice.PluginDll);
+                    }*/
 
-                track.Devices.Add(device);
-                var deviceIndex = track.Devices.IndexOf(device);
-                foreach (var a in f.Automations)
-                {
-                    track.Automations.Add(ConvertAutomation(a, deviceIndex, reaperTrack.TrackName));
+                    track.Devices.Add(device);
+                    var deviceIndex = track.Devices.IndexOf(device);
+                    foreach (var a in f.Automations)
+                    {
+                        track.Automations.Add(ConvertAutomation(a, deviceIndex, reaperTrack.TrackName));
+                    }
+
                 }
-
                 track.Events = ConvertMidi(reaperTrack.MediaItems);
             }
 

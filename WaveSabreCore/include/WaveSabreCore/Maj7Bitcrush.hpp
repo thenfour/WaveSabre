@@ -24,7 +24,7 @@ namespace WaveSabreCore
             float currentValue = 0;
             double t = 0;
             double dt = 0;
-            double ddt = 0;
+            //double ddt = 0;
 
             BitcrushAuxNode(float* auxParams, int modDestParam2ID) :
                 // !! do not SET initial values; these get instantiated dynamically.
@@ -33,16 +33,16 @@ namespace WaveSabreCore
             {
             }
 
-            virtual void AuxBeginBlock(float noteHz, int nSamples, ModMatrixNode& modMatrix) override
+            virtual void AuxBeginBlock(float noteHz, ModMatrixNode& modMatrix) override
             {
                 double freq = mFreqParam.GetFrequency(noteHz, modMatrix.GetDestinationValue(mModDestParam2ID + (int)BitcrushAuxModIndexOffsets::Freq));
-                double newdt = freq / Helpers::CurrentSampleRate;
-                ddt = (newdt - dt) / nSamples;
+                dt = freq / Helpers::CurrentSampleRate;
+                //ddt = (newdt - dt) / nSamples;
             }
 
             virtual float AuxProcessSample(float s) override
             {
-                dt += ddt;
+                //dt += ddt;
                 auto newphase = t + dt;
                 if (newphase > 1) {
                     t = newphase - 1;

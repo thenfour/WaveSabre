@@ -85,4 +85,9 @@ namespace WaveSabreConvert
         public void WriteLine(string format, object arg0) { }
         public void WriteLine(string format, params object[] arg) { }
     }
+
+    public class ConvertOptions
+    {
+        public bool mUseProjectLoop = false;
+    }
 }

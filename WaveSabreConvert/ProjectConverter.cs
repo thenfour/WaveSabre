@@ -5,7 +5,7 @@ namespace WaveSabreConvert
 {
     public class ProjectConverter
     {
-        public Song Convert(string inputFileName, ILog logger)
+        public Song Convert(string inputFileName, ILog logger, ConvertOptions options)
         {
             Song song;
 
@@ -31,7 +31,7 @@ namespace WaveSabreConvert
                     break;
                 case ".rpp":
                     var reaperProject = new ReaperParser.ReaperParser().ParseProject(inputFileName);
-                    song = new ReaperConverter().Process(reaperProject, logger);
+                    song = new ReaperConverter().Process(reaperProject, logger, options);
                     break;
                 default:
                     throw new Exception("Invalid file format.");

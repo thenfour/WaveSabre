@@ -200,39 +200,52 @@ namespace WaveSabreCore
 
         void EnvelopeNode::RecalcState()
         {
+            auto UpdateStagePosInc = [&](EnvTimeParam& param, EnvModParamIndexOffsets modid) {
+                auto ms = param.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)modid));
+                mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(ms);
+            };
+
             switch (mStage)
             {
             default:
             case EnvelopeStage::Idle:
                 return;
             case EnvelopeStage::Delay: {
-                auto ms = mDelayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime));
-                mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(ms);
-
+                //UpdateStagePosInc(mReleaseTime, EnvModParamIndexOffsets::ReleaseTime);
+                //mReleaseStagePosIncPerSample = mStagePosIncPerSample;
+                UpdateStagePosInc(mDelayTime, EnvModParamIndexOffsets::DelayTime);
+                //auto ms = mDelayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime));
+                //mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(ms);
                 mReleaseStagePosIncPerSample = math::CalculateInc01PerSampleForMS(
                     mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
                 return;
             }
             case EnvelopeStage::Attack: {
-                auto ms = mAttackTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime));
-                mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(ms);
+                UpdateStagePosInc(mAttackTime, EnvModParamIndexOffsets::AttackTime);
+
+                //auto ms = mAttackTime.GetMilliseconds(mModMatrix.GetDestinationVal
+                //    ue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime));
+                //mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(ms);
                 return;
             }
             case EnvelopeStage::Hold: {
-                mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(mHoldTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime)));
+                UpdateStagePosInc(mHoldTime, EnvModParamIndexOffsets::HoldTime);
+                //mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(mHoldTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime)));
                 return;
             }
             case EnvelopeStage::Decay: {
-                mStagePosIncPerSample =
-                    math::CalculateInc01PerSampleForMS(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)));
+                UpdateStagePosInc(mDecayTime, EnvModParamIndexOffsets::DecayTime);
+                //mStagePosIncPerSample =
+                //    math::CalculateInc01PerSampleForMS(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)));
                 return;
             }
             case EnvelopeStage::Sustain: {
                 return;
             }
             case EnvelopeStage::Release: {
-                mStagePosIncPerSample =
-                    math::CalculateInc01PerSampleForMS(mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
+                UpdateStagePosInc(mReleaseTime, EnvModParamIndexOffsets::ReleaseTime);
+                //mStagePosIncPerSample =
+                //    math::CalculateInc01PerSampleForMS(mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
                 return;
             }
             }
