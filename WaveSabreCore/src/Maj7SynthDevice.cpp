@@ -44,15 +44,13 @@ namespace WaveSabreCore
 		AllNotesOff();
 	}
 
-	Maj7SynthDevice::~Maj7SynthDevice()
-	{
-	}
 
 	// plays through the buffer,
 	// handling events and processing audio in sub-chunks broken up by events.
 	void Maj7SynthDevice::Run(double songPosition, float **inputs, float **__outputs, int numSamples)
 	{
 		clearOutputs(__outputs, numSamples);
+		//cc::gBufferCount++;
 
 		float *runningOutputs[2] = { __outputs[0], __outputs[1]}; // make a copy because we'll be advancing these cursors ourselves.
 
@@ -88,9 +86,11 @@ namespace WaveSabreCore
 				switch (e->Type)
 				{
 				case EventType::NoteOn:
+					//cc::log("[buf:%d] Handling note on event; note=%d, velocity=%d, deltasamples=%d", cc::gBufferCount, e->data1, e->data2, e->DeltaSamples);
 					ProcessNoteOnEvent(e);
 					break;
 				case EventType::NoteOff:
+					//cc::log("[buf:%d] Handling note off event; note=%d, deltasamples=%d", cc::gBufferCount, e->data1, e->DeltaSamples);
 					ProcessNoteOffEvent(e);
 					break;
 				case EventType::CC:
@@ -149,11 +149,13 @@ namespace WaveSabreCore
 
 	void Maj7SynthDevice::NoteOn(int note, int velocity, int deltaSamples)
 	{
+		//cc::log("[buf:%d] Pushing note on event; note=%d, velocity=%d, deltasamples=%d", cc::gBufferCount, note, velocity, deltaSamples);
 		PushEvent(EventType::NoteOn, note, velocity, deltaSamples);
 	}
 
 	void Maj7SynthDevice::NoteOff(int note, int deltaSamples)
 	{
+		//cc::log("[buf:%d] Pushing note off event; note=%d, deltasamples=%d", cc::gBufferCount, note, deltaSamples);
 		PushEvent(EventType::NoteOff, note, 0, deltaSamples);
 	}
 

@@ -17,7 +17,6 @@ namespace WaveSabreCore
 	{
 	public:
 		Maj7SynthDevice(int numParams);
-		~Maj7SynthDevice();
 
 		virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) = 0;
 		virtual void HandlePitchBend(float pbN11) = 0;
@@ -134,8 +133,7 @@ namespace WaveSabreCore
 			// 2. pedal down
 			// 3. hold note B, release note B. pedal is currently down so you hear note B.
 			// 4. release pedal. note A is still held so it should now be playing.
-			//for (auto& x : mNoteStates)
-			for (size_t i = 0; i < maxActiveNotes; ++ i)
+			for (size_t i = 0; i < maxActiveNotes; ++i)
 			{
 				auto& x = mNoteStates[i];
 				if (x.mIsPhysicallyHeld && (x.MidiNoteValue != ignoreMidiNote)) {
@@ -145,6 +143,24 @@ namespace WaveSabreCore
 				}
 			}
 			return pTrill;
+		}
+
+		// finds the musically-held note with the highest sequence ID; this is the currently playing monophonic note.
+		// returns nullptr when no suitable note.
+		NoteInfo* FindCurrentlyPlayingNote()
+		{
+			NoteInfo* pRet = nullptr;
+			for (size_t i = 0; i < maxActiveNotes; ++i)
+			{
+				auto& x = mNoteStates[i];
+				if (!x.mIsMusicallyHeld) continue;
+				if (pRet && x.mSequence < pRet->mSequence)
+				{
+					continue;
+				}
+				pRet = &x;
+			}
+			return pRet;
 		}
 
 		void ProcessMusicalNoteOn(Event* e, NoteInfo& myNote) {
@@ -200,10 +216,11 @@ namespace WaveSabreCore
 			int note = e->data1;
 			mNoteStates[note].mIsPhysicallyHeld = true;
 			mNoteStates[note].Velocity = e->data2;
+
 			ProcessMusicalNoteOn(e, mNoteStates[note]);
 		}
 
-		void ProcessMusicalNoteOff(int note, NoteInfo& myNote) {
+		void ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo* pPlaying) {
 			switch (mVoiceMode)
 			{
 			case VoiceMode::Polyphonic:
@@ -217,9 +234,16 @@ namespace WaveSabreCore
 				}
 				break;
 			case VoiceMode::MonoLegatoTrill:
+
 				myNote.mIsMusicallyHeld = false;
+
 				auto pTrillNote = FindTrillNote(myNote.MidiNoteValue);
 				if (pTrillNote) {
+					if (pPlaying && pPlaying->MidiNoteValue != myNote.MidiNoteValue) {
+						// if the note being lifted is not the one playing, don't do anything;
+						// it doesn't trigger another note on, and it's not playing so shouldn't get a note off.
+						return;
+					}
 					pTrillNote->mSequence = ++mNoteSequence;
 					pTrillNote->mIsMusicallyHeld = true;
 				}
@@ -245,12 +269,16 @@ namespace WaveSabreCore
 			if (!ni.mIsPhysicallyHeld) {
 				return;
 			}
+
+			//auto pPlaying = FindTrillNote(-1); // returns the currently playing note (useful for monophonic processing)
+			auto pPlaying = FindCurrentlyPlayingNote();
+
 			ni.mIsPhysicallyHeld = false;
 			if (this->mIsPedalDown) {
 				return;// don't affect musical state; nothing more to do.
 			}
 			// pedal is up
-			ProcessMusicalNoteOff(note, ni);
+			ProcessMusicalNoteOff(note, ni, pPlaying);
 		}
 
 		void ProcessPedalEvent(Event* e, bool isDown)
@@ -263,6 +291,9 @@ namespace WaveSabreCore
 				return;
 			}
 
+			// returns the currently playing note (useful for monophonic processing)
+			auto pPlaying = FindCurrentlyPlayingNote();
+
 			// handle pedal up.
 			mIsPedalDown = false;
 
@@ -272,7 +303,7 @@ namespace WaveSabreCore
 				if (x.mIsPhysicallyHeld) {
 					continue;
 				}
-				ProcessMusicalNoteOff(x.MidiNoteValue, x);
+				ProcessMusicalNoteOff(x.MidiNoteValue, x, pPlaying);
 			}
 		}
 

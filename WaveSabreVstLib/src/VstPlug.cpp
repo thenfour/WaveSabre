@@ -74,6 +74,8 @@ namespace WaveSabreVstLib
 					char *midiData = midiEvent->midiData;
 					int status = midiData[0] & 0xf0;
 
+					//cc::log("Vst midi event; status=%02x, flags=%x, type=d", status, midiEvent->flags, midiEvent->type);
+
 					if (status == 0xb0)
 					{
 						if (midiData[1] == 0x7e || midiData[1] == 0x7b) {
@@ -86,8 +88,9 @@ namespace WaveSabreVstLib
 					else if (status == 0x90 || status == 0x80)
 					{
 						int note = midiData[1] & 0x7f;
-						if (status == 0x80) device->NoteOff(note, midiEvent->deltaFrames);
-						else device->NoteOn(note, midiData[2] & 0x7f, midiEvent->deltaFrames);
+						int vel = midiData[2] & 0x7f;
+						if (vel == 0 || status == 0x80) device->NoteOff(note, midiEvent->deltaFrames);
+						else device->NoteOn(note, vel, midiEvent->deltaFrames);
 					}
 					else if (status == 0xe0) {
 						int msb = midiData[2];

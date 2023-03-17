@@ -1,5 +1,15 @@
 #include <WaveSabreCore/Helpers.h>
 
+
+#ifdef _DEBUG
+namespace cc
+{
+	thread_local extern size_t gBufferCount = 0;
+	thread_local size_t gLogIndent = 0;
+}
+#endif
+
+
 #include <inttypes.h>
 #define _USE_MATH_DEFINES
 #include <math.h>

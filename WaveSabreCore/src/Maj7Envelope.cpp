@@ -168,8 +168,6 @@ namespace WaveSabreCore
 
             mOutputDeltaPerSample = (ret - mLastOutputLevel) / (recalcMask + 1);
             mLastOutputLevel += mOutputDeltaPerSample;
-
-            //mLastOutputLevel = ret;
             return mLastOutputLevel;
         }
 
@@ -188,10 +186,7 @@ namespace WaveSabreCore
             }
             case EnvelopeStage::Attack: {
                 auto ms = mAttackTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime));
-                // Serial.println(String("attack param:") + mSpec.mAttackTime.GetValue() + ", mod:" + mModValues.attackTime +
-                //                " = " + ms + " ms");
                 mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(ms);
-                //mpLutRow = mSpec.mAttackCurve.BeginLookup(mModValues.attackCurve);
                 return;
             }
             case EnvelopeStage::Hold: {
@@ -201,7 +196,6 @@ namespace WaveSabreCore
             case EnvelopeStage::Decay: {
                 mStagePosIncPerSample =
                     math::CalculateInc01PerSampleForMS(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)));
-                //mpLutRow = mSpec.mDecayCurve.BeginLookup(mModValues.decayCurve);
                 return;
             }
             case EnvelopeStage::Sustain: {
@@ -210,7 +204,6 @@ namespace WaveSabreCore
             case EnvelopeStage::Release: {
                 mStagePosIncPerSample =
                     math::CalculateInc01PerSampleForMS(mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
-                //mpLutRow = mSpec.mReleaseCurve.BeginLookup(mModValues.releaseCurve);
                 return;
             }
             }
