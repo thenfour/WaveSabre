@@ -22,6 +22,7 @@ namespace WaveSabreCore
 		struct ISoundSourceDevice
 		{
 			const ParamIndices mBaseParamID;
+			const ParamIndices mAmpEnvBaseParamID;
 			const ParamIndices mEnabledParamID;
 			const ParamIndices mVolumeParamID;
 			const ParamIndices mAuxPanParamID;
@@ -71,13 +72,14 @@ namespace WaveSabreCore
 			{}
 
 			ISoundSourceDevice(float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ParamIndices enabledParamID, ParamIndices volumeParamID, ParamIndices auxPanParamID,
+				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ParamIndices enabledParamID, ParamIndices volumeParamID, ParamIndices auxPanParamID,
 				ParamIndices tuneSemisParamID, ParamIndices tuneFineParamID, ParamIndices freqParamID, ParamIndices freqKTParamID, ParamIndices keyRangeMinParamID, ParamIndices keyRangeMaxParamID,
 				ModSource ampEnvModSourceID, ModDestination modDestBaseID, ModDestination volumeModDestID, ModDestination auxPanModDestID, ModDestination hiddenVolumeModDestID
 			) :
 
 				mAmpEnvModulation(ampEnvModulation),
 				mBaseParamID(baseParamID),
+				mAmpEnvBaseParamID(ampEnvBaseParamID),
 				mEnabledParamID(enabledParamID),
 				mVolumeParamID(volumeParamID),
 				mAuxPanParamID(auxPanParamID),
@@ -107,22 +109,23 @@ namespace WaveSabreCore
 				ParamIndices baseParamID, ParamIndices freqParamID,
 				ModDestination modDestBaseID
 			) :
-				mAmpEnvModulation(nullptr),
-				mBaseParamID(baseParamID),
+				mAmpEnvBaseParamID(ParamIndices::Invalid),
 				mEnabledParamID(ParamIndices::Invalid),
 				mVolumeParamID(ParamIndices::Invalid),
 				mAuxPanParamID(ParamIndices::Invalid),
 				mTuneSemisParamID(ParamIndices::Invalid),
 				mTuneFineParamID(ParamIndices::Invalid),
-				mFreqParamID(freqParamID),
 				mFreqKTParamID(ParamIndices::Invalid),
 				mKeyRangeMinParamID(ParamIndices::Invalid),
 				mKeyRangeMaxParamID(ParamIndices::Invalid),
 				mAmpEnvModSourceID(ModSource::Invalid),
 				mVolumeModDestID(ModDestination::Invalid),
 				mAuxPanModDestID(ModDestination::Invalid),
-				mModDestBaseID(modDestBaseID),
 				mHiddenVolumeModDestID(ModDestination::Invalid),
+				mAmpEnvModulation(nullptr),
+				mBaseParamID(baseParamID),
+				mFreqParamID(freqParamID),
+				mModDestBaseID(modDestBaseID),
 				mEnabledParam(mLFOEnabledBacking),
 				mVolumeParam(mLFOVolumeBacking, 0),
 				mAuxPanParam(mLFOAuxPanBacking),
@@ -1119,9 +1122,9 @@ namespace WaveSabreCore
 
 			// for Audio
 			explicit OscillatorDevice(OscillatorIntentionAudio, float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
+				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			) :
-				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID,
+				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID, ampEnvBaseParamID,
 					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Enabled)),
 					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Volume)),
 					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::AuxMix)),
@@ -1396,7 +1399,6 @@ namespace WaveSabreCore
 					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
 
 					float freq = mpSrcDevice->mFrequencyParam.GetFrequency(0, mFreqModVal);
-					freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);
 					mCurrentFreq = freq;

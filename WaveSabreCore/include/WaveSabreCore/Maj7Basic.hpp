@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Windows.h>
 #include <WaveSabreCore/Helpers.h>
 #include <memory>
 
@@ -164,31 +165,110 @@ namespace WaveSabreCore
                 return (ms * Helpers::CurrentSampleRateF) * oneOver1000;
             }
 
+            inline void* GetCrtProc(const char * const imp) {
+                HANDLE h = GetModuleHandleA("msvcrt");
+                return GetProcAddress((HMODULE)h, imp);
+            }
+
+            struct CrtFns {
+                CrtFns() : 
+                    crt_sin(decltype(crt_sin)(GetCrtProc("sin"))),
+                    crt_cos(decltype(crt_cos)(GetCrtProc("cos"))),
+                    crt_tan(decltype(crt_tan)(GetCrtProc("tan"))),
+                    crt_floor(decltype(crt_floor)(GetCrtProc("floor"))),
+                    crt_pow(decltype(crt_pow)(GetCrtProc("pow"))),
+                    crt_log(decltype(crt_log)(GetCrtProc("log")))
+                {
+                    //
+                }
+                double(__cdecl* crt_sin)(double);
+                double(__cdecl* crt_cos)(double);
+                double(__cdecl* crt_tan)(double);
+                double(__cdecl* crt_floor)(double);
+                double(__cdecl* crt_pow)(double, double);
+                double(__cdecl* crt_log)(double);
+            };
+
+            extern CrtFns* gCrtFns;
+
+            template<typename Tfn>
+            struct CrtMathFn
+            {
+                CrtMathFn(const char *import) : mImport(import) {}
+                Tfn pfn = nullptr;
+                const char* const mImport;
+                double invoke(double x) {
+                    if (!mfn) {
+                        mfn = (Tfn);
+                    }
+                    return mfn(x);
+                }
+            };
+
+            inline CrtFns* EnsureCrt() {
+                if (!gCrtFns) {
+                    gCrtFns = new CrtFns();
+                }
+                return gCrtFns;
+            }
+
+            inline double CrtSin(double x) {
+                return EnsureCrt()->crt_sin(x);
+            }
+
+            inline double CrtCos(double x) {
+                return EnsureCrt()->crt_cos(x);
+            }
+
+            inline double CrtLog(double x) {
+                return EnsureCrt()->crt_log(x);
+            }
+
+            inline double CrtFloor(double x) {
+                return EnsureCrt()->crt_floor(x);
+            }
+
+            inline double CrtPow(double x, double y) {
+                return EnsureCrt()->crt_pow(x, y);
+            }
+
+            inline double CrtTan(double x) {
+                return EnsureCrt()->crt_tan(x);
+            }
 
             inline real_t pow(real_t x, real_t y) {
                 // fasterpow is just too inaccurate.
                 //return fastmath::fastpow(x, y); // this is also not always accurate, just due to ranges. 
-                return ::powf(x, y);
+                return (float)CrtPow((double)x, (double)y);
             }
             inline real_t pow2(real_t y) {
-                return pow(2, y);
+                return (float)CrtPow(2, (double)y);
             }
-            inline double LOG(double x) {
-                return ::logl(x);
-            }
+
+            //inline double LOG(double x) {
+            //    //static CrtMathFn gLog{ "log" };
+            //    //return gLog.invoke(x);
+            //    //static double(__cdecl * log_fn_t)(double) = nullptr;
+            //    //if (!log_fn_t) {
+            //    //    log_fn_t = (decltype(log_fn_t))GetProcAddress(GetModuleHandleA("msvcrt"), "log");
+            //    //}
+            //    //return log_fn_t(x);
+            //    //return 0;
+            //    //return ::logl(x);
+            //}
             inline float log2(float x) {
                 static constexpr float log2_e = 1.44269504089f; // 1/log(2)
                 //return (float)::logl((double)x) * log2_e;
-                return (float)LOG((double)x) * log2_e;
+                return (float)CrtLog((double)x) * log2_e;
                 //return 0;
             }
             inline float log10(float x) {
                 static constexpr float log10_e = 0.4342944819f;// 1.0f / LOG(10.0f);
-                return (float)LOG((double)x) * log10_e;
+                return (float)CrtLog((double)x) * log10_e;
                 //return 0;
             }
             inline real_t tan(real_t x) {
-                return (float)::tan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
+                return (float)CrtTan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
             }
 
             inline float fract(float x) {

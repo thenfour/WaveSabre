@@ -8,6 +8,10 @@ set(CMAKE_CSharp_FLAGS ${CMAKE_CSharp_FLAGS} "/langversion:6")
 cmake_minimum_required(VERSION 3.11)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+#set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /arch:IA32")
+set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /fp:fast")
+set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /DEBUG")
+
 if(MSVC)
 	# disable exceptions globally (will be added back for VSTs)
 	string(REPLACE "/EHsc" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})

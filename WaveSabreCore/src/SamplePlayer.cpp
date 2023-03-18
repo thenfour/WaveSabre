@@ -1,5 +1,6 @@
 #include <WaveSabreCore/SamplePlayer.h>
 #include <WaveSabreCore/Helpers.h>
+#include <WaveSabreCore/Maj7Basic.hpp>
 
 #include <math.h>
 
@@ -87,7 +88,7 @@ namespace WaveSabreCore
 
 	float SamplePlayer::Next()
 	{
-		double samplePosFloor = floor(samplePos);
+		double samplePosFloor = M7::math::floor(samplePos);
 		double samplePosFract = samplePos - samplePosFloor;
 
 		int roundedSamplePos = (int)samplePosFloor;

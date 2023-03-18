@@ -7,7 +7,7 @@ using namespace WaveSabrePlayerLib;
 
 void cout(const char* s) // assumes s is not a format string.
 {
-	printf(s);
+	//printf(s);
 }
 
 void progressCallback(double progress, void *data)
@@ -21,11 +21,10 @@ void progressCallback(double progress, void *data)
 
 int main(int argc, char **argv)
 {
-	::logl(1); // wut? this is needed to force the linker into pulling in logf() for some reason. why???
-	if (argc <= 2) {
-		cout("-w xyz.wav = output file\n-p         = play with prerender\n");
-		return 0;
-	}
+	//if (argc <= 2) {
+	//	cout("-w xyz.wav = output file\n-p         = play with prerender\n");
+	//	return 0;
+	//}
 	bool writeWav = argc >= 3 && !strcmp(argv[2], "-w");
 	bool preRender = argc == 3 && !strcmp(argv[2], "-p");
 
@@ -68,7 +67,7 @@ int main(int argc, char **argv)
 			int minutes = (int)songPos / 60;
 			int seconds = (int)songPos % 60;
 			int hundredths = (int)(songPos * 100.0) % 100;
-			printf("\r %.1i:%.2i.%.2i", minutes, seconds, hundredths);
+			//printf("\r %.1i:%.2i.%.2i", minutes, seconds, hundredths);
 
 			Sleep(10);
 		}

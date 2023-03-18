@@ -34,7 +34,7 @@ namespace WaveSabreCore
 				if (phase[i] >= 1.0f)
 				{
 					phase[i] -= 1.0f;
-					hold[i] = floorf(input / step + .5f) * step;
+					hold[i] = M7::math::floor(input / step + .5f) * step;
 				}
 
 				outputs[i][j] = M7::math::lerp(input, hold[i], dryWet);

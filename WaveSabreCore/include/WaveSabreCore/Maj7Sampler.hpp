@@ -92,7 +92,7 @@ namespace WaveSabreCore
 			void Serialize(Serializer& s) const;
 
 			explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
+				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			);
 			virtual ~SamplerDevice();
 			// called when loading chunk, or by VST

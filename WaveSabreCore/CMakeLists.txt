@@ -87,7 +87,7 @@ target_compile_definitions(WaveSabreCore PUBLIC NOMINMAX)
 
 if(MSVC)
 	target_compile_options(WaveSabreCore
-		PUBLIC $<$<CONFIG:MinSizeRel>:/GS- /Gy /Zi /GL /GR->
+		PUBLIC $<$<CONFIG:MinSizeRel>:/GS- /GL /Gy /Zi /GR->  # /GL is whole program optimization and causes some issues sometimes.
 		PRIVATE $<$<CONFIG:MinSizeRel>:/Oi /fp:fast>)
 
 	set_property(TARGET WaveSabreCore APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS_MINSIZEREL

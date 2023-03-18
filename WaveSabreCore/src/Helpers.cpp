@@ -15,85 +15,85 @@ namespace cc
 #include <math.h>
 
 #include "WaveSabreCore/Maj7Basic.hpp"
-
-#if defined(_MSC_VER) && defined(_M_IX86)
-// TODO: make assembly equivalent for x64 (use intrinsic ?)
-static __declspec(naked) double __vectorcall fpuExp2(double x)
-{
-	__asm
-	{
-		sub esp, 8
-
-		movsd mmword ptr [esp], xmm0
-		fld qword ptr [esp]
-
-		fld st(0)
-		frndint
-		fsubr st(1), st(0)
-		fxch st(1)
-		fchs
-		f2xm1
-		fld1
-		faddp st(1), st(0)
-		fscale
-		fstp st(1)
-
-		fstp qword ptr [esp]
-		movsd xmm0, mmword ptr [esp]
-
-		add esp, 8
-
-		ret
-	}
-}
-
-static __declspec(naked) float __vectorcall fpuExp2F(float x)
-{
-	__asm
-	{
-		sub esp, 8
-
-		movss mmword ptr [esp], xmm0
-		fld dword ptr [esp]
-
-		fld st(0)
-		frndint
-		fsubr st(1), st(0)
-		fxch st(1)
-		fchs
-		f2xm1
-		fld1
-		faddp st(1), st(0)
-		fscale
-		fstp st(1)
-
-		fstp dword ptr [esp]
-		movss xmm0, mmword ptr [esp]
-
-		add esp, 8
-
-		ret
-	}
-}
-
-static __declspec(naked) double __vectorcall fpuSin(double x)
-{
-	__asm
-	{
-		sub esp, 8
-
-		movsd mmword ptr [esp], xmm0
-		fld qword ptr [esp]
-		fsin
-		fstp qword ptr [esp]
-		movsd xmm0, mmword ptr [esp]
-
-		add esp, 8
-
-		ret
-	}
-}
-#endif // defined(_MSC_VER) && defined(_M_IX86)
+//
+//#if defined(_MSC_VER) && defined(_M_IX86)
+//// TODO: make assembly equivalent for x64 (use intrinsic ?)
+//static __declspec(naked) double __vectorcall fpuExp2(double x)
+//{
+//	__asm
+//	{
+//		sub esp, 8
+//
+//		movsd mmword ptr [esp], xmm0
+//		fld qword ptr [esp]
+//
+//		fld st(0)
+//		frndint
+//		fsubr st(1), st(0)
+//		fxch st(1)
+//		fchs
+//		f2xm1
+//		fld1
+//		faddp st(1), st(0)
+//		fscale
+//		fstp st(1)
+//
+//		fstp qword ptr [esp]
+//		movsd xmm0, mmword ptr [esp]
+//
+//		add esp, 8
+//
+//		ret
+//	}
+//}
+//
+//static __declspec(naked) float __vectorcall fpuExp2F(float x)
+//{
+//	__asm
+//	{
+//		sub esp, 8
+//
+//		movss mmword ptr [esp], xmm0
+//		fld dword ptr [esp]
+//
+//		fld st(0)
+//		frndint
+//		fsubr st(1), st(0)
+//		fxch st(1)
+//		fchs
+//		f2xm1
+//		fld1
+//		faddp st(1), st(0)
+//		fscale
+//		fstp st(1)
+//
+//		fstp dword ptr [esp]
+//		movss xmm0, mmword ptr [esp]
+//
+//		add esp, 8
+//
+//		ret
+//	}
+//}
+//
+//static __declspec(naked) double __vectorcall fpuSin(double x)
+//{
+//	__asm
+//	{
+//		sub esp, 8
+//
+//		movsd mmword ptr [esp], xmm0
+//		fld qword ptr [esp]
+//		fsin
+//		fstp qword ptr [esp]
+//		movsd xmm0, mmword ptr [esp]
+//
+//		add esp, 8
+//
+//		ret
+//	}
+//}
+//#endif // defined(_MSC_VER) && defined(_M_IX86)
 
 namespace WaveSabreCore
 {
@@ -127,21 +127,21 @@ namespace WaveSabreCore
 
 	double Helpers::Exp2(double x)
 	{
-#if defined(_MSC_VER) && defined(_M_IX86)
-		return fpuExp2(x);
-#else
-		return pow(2.0, x);
-#endif
+		return M7::math::pow2(x);
 	}
-
 	float Helpers::Exp2F(float x)
 	{
-#if defined(_MSC_VER) && defined(_M_IX86)
-		return fpuExp2F(x);
-#else
-		return powf(2.0f, x);
-#endif
+		return M7::math::pow2(x);
 	}
+	//
+//	float Helpers::Exp2F(float x)
+//	{
+//#if defined(_MSC_VER) && defined(_M_IX86)
+//		return fpuExp2F(x);
+//#else
+//		return powf(2.0f, x);
+//#endif
+//	}
 
 	//double Helpers::FastCos(double x)
 	//{

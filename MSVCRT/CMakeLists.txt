@@ -9,5 +9,8 @@ add_library(msvcrt_dll SHARED IMPORTED GLOBAL)
 set_target_properties(msvcrt_dll PROPERTIES IMPORTED_IMPLIB ${CMAKE_CURRENT_BINARY_DIR}/msvcrt.lib)
 add_dependencies(msvcrt_dll build-msvcrt)
 
-add_library(msvcrt STATIC mainCRTStartup.c)
+add_library(msvcrt STATIC
+    crt.cpp
+    mainCRTStartup.c)
+
 target_link_libraries(msvcrt msvcrt_dll)

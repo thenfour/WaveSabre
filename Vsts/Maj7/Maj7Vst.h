@@ -204,7 +204,7 @@ namespace WaveSabreCore
 			m->mAuxInvert.SetBoolValue(false);
 		}
 
-		static inline void GenerateDefaults(EnvelopeNode* n)
+		static inline void GenerateDefaults_Env(EnvelopeNode* n)
 		{
 			n->mDelayTime.SetParamValue(0);
 			n->mAttackTime.SetParamValue(0.05f);
@@ -342,9 +342,13 @@ namespace WaveSabreCore
 			for (auto& m : p->mAuxDevices) {
 				GenerateDefaults(&m);
 			}
-			for (auto p : p->mMaj7Voice[0]->mpAllEnvelopes)
+			for (auto p : p->mMaj7Voice[0]->mpAllModEnvelopes)
 			{
-				GenerateDefaults(p);
+				GenerateDefaults_Env(p);
+			}
+			for (auto p : p->mMaj7Voice[0]->mSourceVoices)
+			{
+				GenerateDefaults_Env(p->mpAmpEnv);
 			}
 
 			GenerateMasterParamDefaults(p);
@@ -483,11 +487,22 @@ namespace WaveSabreCore
 			if (!IsLFOInUse(p, ModSource::LFO2)) {
 				memcpy(p->mParamCache + (int)ParamIndices::LFO2Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
 			}
+			if (!IsLFOInUse(p, ModSource::LFO3)) {
+				memcpy(p->mParamCache + (int)ParamIndices::LFO3Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
+			}
+			if (!IsLFOInUse(p, ModSource::LFO4)) {
+				memcpy(p->mParamCache + (int)ParamIndices::LFO4Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
+			}
 
 			// envelopes
-			for (auto* env : p->mMaj7Voice[0]->mpAllEnvelopes) {
+			for (auto* env : p->mMaj7Voice[0]->mpAllModEnvelopes) {
 				if (!IsEnvelopeInUse(p, env->mMyModSource)) {
 					memcpy(p->mParamCache + (int)env->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+				}
+			}
+			for (auto* psv : p->mMaj7Voice[0]->mSourceVoices) {
+				if (!IsEnvelopeInUse(p, psv->mpAmpEnv->mMyModSource)) {
+					memcpy(p->mParamCache + (int)psv->mpAmpEnv->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
 				}
 			}
 

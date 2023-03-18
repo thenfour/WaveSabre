@@ -218,6 +218,55 @@ public:
 				CopyParamCache();
 			}
 
+			if (ImGui::MenuItem("Test chunk roundtrip")) {
+				if (IDYES != ::MessageBoxA(mCurrentWindow, "Sure? This could ruin your patch. But hopefully it doesn't?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					return;
+				}
+
+				float orig[(size_t)M7::ParamIndices::NumParams];
+				for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
+					orig[i] = pMaj7->GetParam((int)i);
+				}
+
+				void* data;
+				int n = pMaj7->GetChunk(&data);
+				pMaj7->SetChunk(data, n);
+				delete[] data;
+
+
+				float after[(size_t)M7::ParamIndices::NumParams];
+				for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
+					after[i] = pMaj7->GetParam((int)i);
+				}
+
+				//float delta = 0;
+				std::vector<std::string> paramReports;
+
+				using vstn = const char[kVstMaxParamStrLen];
+				static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+
+				for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
+					if (!M7::math::FloatEquals(orig[i], after[i])) {
+						//delta = abs(orig[i] - after[i]);
+						//bdiff++;
+						char msg[200];
+						sprintf_s(msg, "%s before=%.2f after=%.2f", paramNames[i], orig[i], after[i]);
+						paramReports.push_back(msg);
+					}
+				}
+
+				char msg[200];
+				sprintf_s(msg, "Done. %d bytes long. %d params have been messed up.\r\n", n, (int)paramReports.size());
+				std::string smsg{ msg };
+				smsg += "\r\n";
+				for (auto& p : paramReports) {
+					smsg += p;
+				}
+				::MessageBoxA(mCurrentWindow, smsg.c_str(), "WaveSabre - Maj7", MB_OK);
+			}
+
+
+
 			if (ImGui::MenuItem("Optimize")) {
 				// the idea is to reset any unused parameters to default values, so they end up being 0 in the minified chunk.
 				// that compresses better. this is a bit tricky though; i guess i should only do this for like, samplers, oscillators, modulations 1-8, and all envelopes.

@@ -155,7 +155,7 @@ namespace WaveSabreCore
 				auto effectType = srcNode->mEffectType.mCachedVal;// .GetEnumValue();
 
 				// ensure correct engine set up.
-				if (mCurrentEffectLink != link || mCurrentEffectType != effectType) {
+				if (mCurrentEffectLink != link || mCurrentEffectType != effectType || !mpCurrentEffect) {
 					delete mpCurrentEffect;
 					mpCurrentEffect = srcNode->CreateEffect();
 					mCurrentEffectLink = link;
@@ -339,17 +339,17 @@ namespace WaveSabreCore
 			};
 
 			OscillatorDevice mOscillatorDevices[gOscillatorCount] = {
-				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 8], ParamIndices::Osc1Enabled, ModSource::Osc1AmpEnv, ModDestination::Osc1Volume },
-				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 7], ParamIndices::Osc2Enabled, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume },
-				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 6], ParamIndices::Osc3Enabled, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume },
-				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 5], ParamIndices::Osc4Enabled, ModSource::Osc4AmpEnv, ModDestination::Osc4Volume },
+				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 8], ParamIndices::Osc1Enabled, ParamIndices::Osc1AmpEnvDelayTime, ModSource::Osc1AmpEnv, ModDestination::Osc1Volume },
+				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 7], ParamIndices::Osc2Enabled, ParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume },
+				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 6], ParamIndices::Osc3Enabled, ParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume },
+				OscillatorDevice { OscillatorIntentionAudio{}, mParamCache, &mModulations[gModulationCount - 5], ParamIndices::Osc4Enabled, ParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv, ModDestination::Osc4Volume },
 			};
 
 			SamplerDevice mSamplerDevices[gSamplerCount] = {
-				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 4], ParamIndices::Sampler1Enabled, ModSource::Sampler1AmpEnv, ModDestination::Sampler1Volume },
-				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 3], ParamIndices::Sampler2Enabled, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume },
-				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 2], ParamIndices::Sampler3Enabled, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume },
-				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 1], ParamIndices::Sampler4Enabled, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume },
+				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 4], ParamIndices::Sampler1Enabled, ParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv, ModDestination::Sampler1Volume },
+				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 3], ParamIndices::Sampler2Enabled, ParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume },
+				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 2], ParamIndices::Sampler3Enabled, ParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume },
+				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 1], ParamIndices::Sampler4Enabled, ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume },
 			};
 
 			AuxDevice mAuxDevices[gAuxNodeCount] = {
@@ -402,9 +402,9 @@ namespace WaveSabreCore
 				// now load in all default params
 				memcpy(mParamCache, gDefaultMasterParams, sizeof(gDefaultMasterParams));
 
-				memcpy(mParamCache + (int)ParamIndices::LFO1Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
-				memcpy(mParamCache + (int)ParamIndices::LFO2Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
-
+				for (auto& m : mLFOs) {
+					memcpy(mParamCache + (int)m.mDevice.mBaseParamID, gDefaultLFOParams, sizeof(gDefaultLFOParams));
+				}
 				for (auto& m : mOscillatorDevices) {
 					memcpy(mParamCache + (int)m.mBaseParamID, gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
 				}
@@ -417,14 +417,15 @@ namespace WaveSabreCore
 				for (auto& m : mAuxDevices) {
 					memcpy(m.mParamCache_Offset, gDefaultAuxParams, sizeof(gDefaultAuxParams));
 				}
-				for (auto* p : mMaj7Voice[0]->mpAllEnvelopes) {
+				for (auto* p : mMaj7Voice[0]->mpAllModEnvelopes) {
 					memcpy(mParamCache + (int)p->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+				}
+				for (auto* p : mSources) {
+					memcpy(mParamCache + (int)p->mAmpEnvBaseParamID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+					p->InitDevice();
 				}
 
 				// and correct stuff
-				for (size_t i = 0; i < gSourceCount; ++i) {
-					mSources[i]->InitDevice();
-				}
 
 				mAuxDevices[0].mEffectType.SetEnumValue(AuxEffectType::Bitcrush);
 				mAuxDevices[1].mEnabledParam.SetBoolValue(true);
@@ -729,15 +730,7 @@ namespace WaveSabreCore
 				EnvelopeNode mModEnv1;
 				EnvelopeNode mModEnv2;
 
-				EnvelopeNode* mpAllEnvelopes[gSourceCount + gModEnvCount] {
-					&mOsc1AmpEnv,
-					&mOsc2AmpEnv,
-					&mOsc3AmpEnv,
-					&mOsc4AmpEnv,
-					&mSampler1AmpEnv,
-					&mSampler2AmpEnv,
-					&mSampler3AmpEnv,
-					&mSampler4AmpEnv,
+				EnvelopeNode* mpAllModEnvelopes[gModEnvCount] {
 					&mModEnv1,
 					&mModEnv2,
 				};
@@ -776,7 +769,7 @@ namespace WaveSabreCore
 					// 2. mod matrix, which fills buffers with modulation signals. mod sources should be up-to-date
 					// 3. run signals which are A-Rate destinations.
 					// if we were really ambitious we could make the filter an A-Rate destination as well, with oscillator outputs being A-Rate.
-					for (auto p : mpAllEnvelopes) {
+					for (auto p : mpAllModEnvelopes) {
 						p->BeginBlock();
 					}
 
@@ -808,18 +801,6 @@ namespace WaveSabreCore
 						lfo.mFilter.SetParams(FilterModel::LP_OnePole, lfo.mDevice.mLPCutoff, 0, 0);
 					}
 
-					//mModLFO1.BeginBlock(numSamples);
-					//mModLFO2.BeginBlock(numSamples);
-
-					//mLFOFilter1.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO1LPCutoff, 0, 0);
-					//mLFOFilter2.SetParams(FilterModel::LP_OnePole, mpOwner->mLFO2LPCutoff, 0, 0);
-
-
-					//if (!mModLFO2.mpOscDevice->mPhaseRestart.GetBoolValue()) {
-					//	// sync phase with device-level
-					//	mModLFO2.SetPhase(mpOwner->mModLFO2Phase.mPhase);
-					//}
-
 					// set device-level modded values.
 					mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness);
 					mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
@@ -831,6 +812,7 @@ namespace WaveSabreCore
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						mSourceVoices[i]->BeginBlock();
+						mSourceVoices[i]->mpAmpEnv->BeginBlock();
 					}
 				}
 
@@ -976,7 +958,7 @@ namespace WaveSabreCore
 					mVelocity01 = mNoteInfo.Velocity / 127.0f;
 					mTriggerRandom01 = math::rand01();
 
-					for (auto* p : mpAllEnvelopes)
+					for (auto* p : mpAllModEnvelopes)
 					{
 						p->noteOn(mLegato);
 					}
@@ -987,8 +969,8 @@ namespace WaveSabreCore
 							continue;
 						if (srcVoice->mpSrcDevice->mKeyRangeMax.GetIntValue() < mNoteInfo.MidiNoteValue)
 							continue;
-						//srcVoice->mpAmpEnv->noteOn(mLegato);
 						srcVoice->NoteOn(mLegato);
+						srcVoice->mpAmpEnv->noteOn(mLegato);
 					}
 					mPortamento.NoteOn((float)mNoteInfo.MidiNoteValue, !mLegato);
 				}
@@ -997,9 +979,10 @@ namespace WaveSabreCore
 					for (auto& srcVoice : mSourceVoices)
 					{
 						srcVoice->NoteOff();
+						srcVoice->mpAmpEnv->noteOff();
 					}
 
-					for (auto* p : mpAllEnvelopes)
+					for (auto* p : mpAllModEnvelopes)
 					{
 						p->noteOff();
 					}
@@ -1007,9 +990,13 @@ namespace WaveSabreCore
 				}
 
 				virtual void Kill() override {
-					for (auto* p : mpAllEnvelopes)
+					for (auto* p : mpAllModEnvelopes)
 					{
 						p->kill();
+					}
+					for (auto& srcVoice : mSourceVoices)
+					{
+						srcVoice->mpAmpEnv->kill();
 					}
 
 				}

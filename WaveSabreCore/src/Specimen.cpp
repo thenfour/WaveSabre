@@ -327,7 +327,7 @@ namespace WaveSabreCore
 
 	double Specimen::SpecimenVoice::coarseDetune(float detune)
 	{
-		return floor((detune * 2.0f - 1.0f) * 12.0f);
+		return M7::math::floor((detune * 2.0f - 1.0f) * 12.0f);
 	}
 
 	void Specimen::SpecimenVoice::calcPitch()

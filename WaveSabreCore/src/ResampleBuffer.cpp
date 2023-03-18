@@ -1,5 +1,6 @@
 #include <WaveSabreCore/ResampleBuffer.h>
 #include <WaveSabreCore/Helpers.h>
+#include <WaveSabreCore/Maj7Basic.hpp>
 #include <math.h>
 
 namespace WaveSabreCore
@@ -49,7 +50,7 @@ namespace WaveSabreCore
 	float ResampleBuffer::ReadPosition(float position) const
 	{
 		int samplePos = (currentPosition + (int)position) % length; // actual sample position determined
-		float fraction = position - floorf(position);  // fractional
+		float fraction = position - M7::math::floor(position);  // fractional
 		
 		float s0 = buffer[samplePos];
 		float s1 = (samplePos > 0) ? buffer[samplePos - 1] : buffer[length - 1];

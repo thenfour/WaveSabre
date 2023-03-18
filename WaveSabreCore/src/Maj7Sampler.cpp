@@ -96,6 +96,7 @@ namespace WaveSabreCore
 				int sampleSource = ds.ReadUByte();
 				mSampleSource.SetIntValue(sampleSource);
 				if (mSampleSource.GetEnumValue() != SampleSource::Embed) {
+					LoadGmDlsSample(mGmDlsIndex.GetIntValue());
 					return;
 				}
 				if (!ds.ReadUByte()) { // indicator whether there's a sample serialized or not.
@@ -158,9 +159,9 @@ namespace WaveSabreCore
 			}
 
 			SamplerDevice::SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
+				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			) :
-				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID,
+				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID, ampEnvBaseParamID,
 					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Enabled)),
 					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Volume)),
 					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::AuxMix)),

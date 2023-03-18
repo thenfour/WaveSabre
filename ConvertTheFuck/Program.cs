@@ -22,7 +22,7 @@ namespace ConvertTheFuck
                 else
                 {
                     var logger = new ConsoleLogger();
-                    var song = new ProjectConverter().Convert(args[0], logger);
+                    var song = new ProjectConverter().Convert(args[0], logger, new ConvertOptions { mUseProjectLoop = true });
                     var option = args[1];
                     var outFile = args[2];
 

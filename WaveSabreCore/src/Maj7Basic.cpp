@@ -1,6 +1,6 @@
 
 #include <WaveSabreCore/Maj7Basic.hpp>
-#include <atomic>
+//#include <atomic>
 
 namespace WaveSabreCore
 {
@@ -23,33 +23,35 @@ namespace WaveSabreCore
 			7, // Artichoke,
 		};
 
-		std::atomic_uint16_t gAudioOscRecalcSampleMask = gAudioRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
-		std::atomic_uint16_t gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
-		std::atomic<QualitySetting> gQualitySetting = QualitySetting::Celery;
+		uint16_t gAudioOscRecalcSampleMask = gAudioRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
+		uint16_t gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
+		QualitySetting gQualitySetting = QualitySetting::Celery;
 
 		uint16_t GetAudioOscillatorRecalcSampleMask()
 		{
-			return gAudioOscRecalcSampleMask.load();
+			return gAudioOscRecalcSampleMask;
 		}
 		uint16_t GetModulationRecalcSampleMask()
 		{
-			return gModulationRecalcSampleMask.load();
+			return gModulationRecalcSampleMask;
 		}
 
 		void SetQualitySetting(QualitySetting n)
 		{
-			gAudioOscRecalcSampleMask.store(gAudioRecalcSampleMaskValues[(size_t)n]);
-			gModulationRecalcSampleMask.store(gModulationRecalcSampleMaskValues[(size_t)n]);
-			gQualitySetting.store(n);
+			gAudioOscRecalcSampleMask = gAudioRecalcSampleMaskValues[(size_t)n];
+			gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)n];
+			gQualitySetting = n;
 		}
 		QualitySetting GetQualitySetting()
 		{
-			return gQualitySetting.load();
+			return gQualitySetting;
 		}
 
 
 		namespace math
 		{
+			CrtFns* gCrtFns = nullptr;
+
 			bool FloatEquals(real_t f1, real_t f2, real_t eps)
 			{
 				return math::abs(f1 - f2) < eps;
@@ -118,7 +120,7 @@ namespace WaveSabreCore
 
 			Pow2_N16_16_LUT::Pow2_N16_16_LUT(size_t nSamples)
 				: LUT01(nSamples, [](float n) {
-				return (float)::powf(2.0f, (n - .5f) * 32); // return (float)::sin((double)x * 2 * M_PI); }};
+				return (float)math::CrtPow(2.0, ((double)n - .5) * 32); // return (float)::sin((double)x * 2 * M_PI); }};
 					})
 			{}
 
@@ -269,7 +271,8 @@ namespace WaveSabreCore
 
 			float SemisToFrequencyMul(float x)
 			{
-				return math::pow2(x / 12.0f);
+				return math::pow2_N16_16(x / 12);
+				//return math::pow2(x / 12.0f);
 			}
 
 			float FrequencyToMIDINote(float hz)
@@ -364,7 +367,7 @@ namespace WaveSabreCore
 			param = math::clamp(param, 0, 1);
 			param -= 0.5f;       // -.5 to .5
 			param *= gRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
-			float fact = math::pow(2, param);
+			float fact = math::pow2_N16_16(param);
 			param = gCenterValue * fact;
 			param -= gMinRawVal; // pow(2,x) doesn't ever reach 0 value. subtracting the min allows 0 to exist.
 			return math::clamp(param, gMinRealVal, gMaxRealVal);

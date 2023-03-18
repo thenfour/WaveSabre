@@ -15,6 +15,8 @@ foreach(child ${children})
 		set_property(TARGET ${child} PROPERTY FOLDER VSTs)
 		target_compile_features(${child} PUBLIC cxx_std_17)
 
+		set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /DEBUG")
+
 
 		if(VSTDIR)
 			add_custom_command(TARGET ${child} POST_BUILD

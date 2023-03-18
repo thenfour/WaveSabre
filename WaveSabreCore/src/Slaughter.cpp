@@ -288,6 +288,6 @@ namespace WaveSabreCore
 
 	double Slaughter::SlaughterVoice::coarseDetune(float detune)
 	{
-		return floor(detune * 24.99f);
+		return M7::math::floor(detune * 24.99f);
 	}
 }
