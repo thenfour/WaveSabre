@@ -1357,6 +1357,7 @@ namespace WaveSabreCore
 					+ signal1 * signal1PMAmount
 					+ signal2 * signal2PMAmount
 					+ signal3 * signal3PMAmount
+					//+ mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal)
 					;
 
 				if (mPhase >= mPhaseIncrement || !mpOscDevice->mSyncEnable.mCachedVal) // did not cross cycle. advance 1 sample
@@ -1416,6 +1417,7 @@ namespace WaveSabreCore
 					return 0;
 				}
 
+				auto bleps = mpSlaveWave->OSC_ADVANCE(1, 0); // advance phase
 				mOutSample = mCurrentSample = mpSlaveWave->NaiveSample(float(mPhase));
 
 				return mOutSample;

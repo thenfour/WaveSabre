@@ -922,6 +922,9 @@ namespace WaveSabreCore
 					{
 						p->noteOn(mLegato);
 					}
+					for (auto& p : mLFOs) {
+						p.mNode.NoteOn(mLegato);
+					}
 
 					for (auto& srcVoice : mSourceVoices)
 					{

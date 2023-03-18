@@ -141,6 +141,9 @@ namespace WaveSabreCore
             Float01Param mFilterSaturationParam;// FilterSaturation,
             FrequencyParam mFilterFreqParam;// FilterFrequency,// FilterFrequencyKT,
             int mModDestParam2ID;
+            float mNoteHz = 0;
+            size_t mnSampleCount = 0;
+            ModMatrixNode* mModMatrix = nullptr;
 
             FilterAuxNode(float* auxParams, int modDestParam2ID) :
                 // !! do not SET initial values; these get instantiated dynamically.
@@ -153,17 +156,26 @@ namespace WaveSabreCore
 
             virtual void AuxBeginBlock(float noteHz, ModMatrixNode& modMatrix) override
             {
-                mFilter.SetParams(
-                    // TODO: apply mods
-                    mFilterTypeParam.GetEnumValue(),
-                    mFilterFreqParam.GetFrequency(noteHz, modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq)),
-                    mFilterQParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q)),
-                    mFilterSaturationParam.Get01Value(modMatrix.GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Saturation))
-                );
+                mModMatrix = &modMatrix;
+                mnSampleCount = 0; // ensure reprocessing after setting these params to avoid corrupt state.
+                mNoteHz = noteHz;
+                mFilterTypeParam.CacheValue();
             }
 
             virtual float AuxProcessSample(float inputSample) override
             {
+                auto recalcMask = GetModulationRecalcSampleMask();
+                bool calc = (mnSampleCount == 0);
+                mnSampleCount = (mnSampleCount + 1) & recalcMask;
+                if (calc) {
+                    mFilter.SetParams(
+                        mFilterTypeParam.mCachedVal,
+                        mFilterFreqParam.GetFrequency(mNoteHz, mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq)),
+                        mFilterQParam.Get01Value(mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q)),
+                        mFilterSaturationParam.Get01Value(mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Saturation))
+                    );
+                }
+
                 return mFilter.ProcessSample(inputSample);
             }
 
