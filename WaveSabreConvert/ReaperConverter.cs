@@ -45,7 +45,7 @@ namespace WaveSabreConvert
             
             song.Tempo = (int)project.Tempo.BPM;
 
-            if (project.Loop)
+            if (project.Loop && options.mUseProjectLoop)
             {
                 if (project.Selection.Start > project.Selection.End)
                     trackStart = project.Selection.End;

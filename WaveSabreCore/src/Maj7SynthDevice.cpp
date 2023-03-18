@@ -157,7 +157,12 @@ namespace WaveSabreCore
 	void Maj7SynthDevice::NoteOn(int note, int velocity, int deltaSamples)
 	{
 		//cc::log("[buf:%d] Pushing note on event; note=%d, velocity=%d, deltasamples=%d", cc::gBufferCount, note, velocity, deltaSamples);
-		PushEvent(EventType::NoteOn, note, velocity, deltaSamples);
+		if (velocity == 0) {
+			PushEvent(EventType::NoteOff, note, 0, deltaSamples);
+		}
+		else {
+			PushEvent(EventType::NoteOn, note, velocity, deltaSamples);
+		}
 	}
 
 	void Maj7SynthDevice::NoteOff(int note, int deltaSamples)

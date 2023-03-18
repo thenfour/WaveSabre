@@ -759,21 +759,14 @@ namespace WaveSabreCore
 
             ~Serializer();
 
+            static void FreeBuffer(void* p) {
+                delete[] p;
+            }
+
             Pair<uint8_t*, size_t> DetachBuffer();
             uint8_t* GrowBy(size_t n);
             void WriteUByte(uint8_t b);
-        //    void WriteSByte(int8_t b) {
-        //        auto p = (int8_t*)GrowBy(sizeof(b));
-        //        *p = b;
-        //    }
-        //    void WriteUWord(uint16_t b) {
-        //        auto p = (uint16_t*)GrowBy(sizeof(b));
-        //        *p = b;
-        //    }
-        //    void WriteSWord(int16_t b) {
-        //        auto p = (int16_t*)GrowBy(sizeof(b));
-        //        *p = b;
-        //    }
+
             void WriteFloat(float f);
             void WriteUInt32(uint32_t f);
             void WriteBuffer(const uint8_t* buf, size_t n);

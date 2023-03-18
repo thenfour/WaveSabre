@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -99,5 +100,107 @@ namespace WaveSabreConvert
             return output;
         }
 
-    }
+        [DllImport("kernel32.dll", SetLastError = true)]
+        private static extern IntPtr LoadLibrary(string dllToLoad);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Ansi, ExactSpelling = true, SetLastError = true)]
+        private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
+
+        [DllImport("kernel32.dll")]
+        private static extern bool FreeLibrary(IntPtr hModule);
+
+        public delegate int WaveSabreDeviceVSTChunkToMinifiedChunkDelegate([MarshalAs(UnmanagedType.LPStr)] string deviceName, int inputSize, IntPtr inputData, ref int outputSize, out IntPtr outputData);
+        public delegate int WaveSabreFreeChunkDelegate(IntPtr p);
+
+        public static string FindFileInDirectories(IEnumerable<string> directories, string filename)
+        {
+            foreach (string directory in directories)
+            {
+                string fullPath = Path.Combine(directory, filename);
+
+                if (File.Exists(fullPath))
+                {
+                    return fullPath;
+                }
+
+                string[] subDirectories = Directory.GetDirectories(directory);
+
+                foreach (string subDirectory in subDirectories)
+                {
+                    string subDirectoryPath = Path.Combine(directory, subDirectory);
+                    string subDirectoryFile = FindFileInDirectories(new List<string> { subDirectoryPath }, filename);
+
+                    if (!string.IsNullOrEmpty(subDirectoryFile))
+                    {
+                        return subDirectoryFile;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public static string FindDeviceDllFullPath(Song.DeviceId deviceID)
+        {
+            // TODO: dynamic. maybe look in the DAW's config?
+            string leaf = deviceID.ToString() + ".dll";
+            return FindFileInDirectories(
+                new List<string> {
+                    @"C:\root\vstpluginlinks\WaveSabre"
+                    //Environment.ExpandEnvironmentVariables("%program files.....")
+
+                }, leaf);
+        }
+
+        public static byte[] ConvertDeviceChunk(Song.DeviceId deviceID, byte[] inputData)
+        {
+            string dll = FindDeviceDllFullPath(deviceID);
+            IntPtr dllHandle = LoadLibrary(dll);
+            if (dllHandle == IntPtr.Zero)
+            {
+                return inputData;
+            }
+            IntPtr functionHandle = GetProcAddress(dllHandle, "WaveSabreDeviceVSTChunkToMinifiedChunk");
+            if (functionHandle == IntPtr.Zero)
+            {
+                FreeLibrary(dllHandle);
+                return inputData;
+            }
+            IntPtr pfnFree = GetProcAddress(dllHandle, "WaveSabreFreeChunk");
+            if (pfnFree == IntPtr.Zero)
+            {
+                FreeLibrary(dllHandle);
+                return inputData;
+            }
+
+            IntPtr inputBuffer = Marshal.AllocHGlobal(inputData.Length);
+            Marshal.Copy(inputData, 0, inputBuffer, inputData.Length);
+
+            int outputSize = 0;
+            IntPtr outputBuffer = IntPtr.Zero;
+
+            WaveSabreDeviceVSTChunkToMinifiedChunkDelegate __imp_WaveSabreDeviceVSTChunkToMinifiedChunk = Marshal.GetDelegateForFunctionPointer<WaveSabreDeviceVSTChunkToMinifiedChunkDelegate>(functionHandle);
+
+            WaveSabreFreeChunkDelegate __imp_WaveSabreFreeChunk = Marshal.GetDelegateForFunctionPointer<WaveSabreFreeChunkDelegate>(pfnFree);
+
+            int result = __imp_WaveSabreDeviceVSTChunkToMinifiedChunk(deviceID.ToString(), inputData.Length, inputBuffer, ref outputSize, out outputBuffer);
+            if (result <= 0 || outputBuffer == IntPtr.Zero)
+            {
+                Marshal.FreeHGlobal(inputBuffer);
+                FreeLibrary(dllHandle);
+                return inputData;
+            }
+
+            byte[] outputData = new byte[outputSize];
+            Marshal.Copy(outputBuffer, outputData, 0, outputSize);
+            //Marshal.FreeHGlobal(outputBuffer);
+            __imp_WaveSabreFreeChunk(outputBuffer);
+
+            Marshal.FreeHGlobal(inputBuffer);
+
+            FreeLibrary(dllHandle);
+
+            return outputData;
+        } // ConvertDeviceChunk
+    } // class Utils
 }

@@ -214,9 +214,9 @@ namespace WaveSabreCore
 		void ProcessNoteOnEvent(Event* e)
 		{
 			int note = e->data1;
+			int velocity = e->data2;
 			mNoteStates[note].mIsPhysicallyHeld = true;
 			mNoteStates[note].Velocity = e->data2;
-
 			ProcessMusicalNoteOn(e, mNoteStates[note]);
 		}
 

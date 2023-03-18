@@ -8,6 +8,127 @@
 #include <WaveSabreVstLib.h>
 #include "Serialization.hpp"
 
+
+
+inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
+{
+	if (!byteSize) return byteSize;
+	const char* pstr = (const char*)data;
+	if (strnlen(pstr, byteSize - 1) >= byteSize) return byteSize;
+
+	using vstn = const char[kVstMaxParamStrLen];
+	static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+
+	clarinoid::MemoryStream memStream{ (const uint8_t*)data, (size_t)byteSize };
+	clarinoid::BufferedStream buffering{ memStream };
+	clarinoid::TextStream textStream{ buffering };
+	clarinoid::JsonVariantReader doc{ textStream };
+
+	// @ root there is exactly 1 KV object.
+	auto maj7Obj = doc.GetNextObjectItem();
+	if (maj7Obj.IsEOF()) {
+		return 0; // empty doc?
+	}
+	if (maj7Obj.mParseResult.IsFailure()) {
+		return 0;//return ch.mParseResult;
+	}
+	if (maj7Obj.mKeyName != "Maj7") {
+		return 0;
+	}
+
+	bool tagSatisfied = false;
+	bool versionSatisfied = false;
+	while (true) {
+		auto ch = maj7Obj.GetNextObjectItem();
+		if (ch.mKeyName == "Tag") {
+			if (ch.mNumericValue.Get<DWORD>() != M7::Maj7::gChunkTag) {
+				return 0; //invalid tag
+			}
+			tagSatisfied = true;
+		}
+		if (ch.mKeyName == "Version") {
+			if (ch.mNumericValue.Get<uint8_t>() != M7::Maj7::gChunkVersion) {
+				return 0; // unknown version
+			}
+			versionSatisfied = true;
+		}
+		if (ch.IsEOF())
+			break;
+	}
+	if (!tagSatisfied || !versionSatisfied)
+		return 0;
+
+	auto paramsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
+	if (paramsObj.IsEOF()) {
+		return 0;
+	}
+	if (paramsObj.mParseResult.IsFailure()) {
+		return 0;
+	}
+	if (paramsObj.mKeyName != "params") {
+		return 0;
+	}
+
+	std::map<std::string, std::pair<bool, size_t>> paramMap; // maps string name to whether it's been set + which param index is it.
+	for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
+		paramMap[paramNames[i]] = std::make_pair(false, i);
+	}
+
+	while (true) {
+		auto ch = paramsObj.GetNextObjectItem();
+		if (ch.IsEOF())
+			break;
+		if (ch.mParseResult.IsFailure()) {
+			return 0;
+		}
+		auto it = paramMap.find(ch.mKeyName);
+		if (it == paramMap.end()) {
+			return 0; // unknown param name.
+		}
+		if (it->second.first) {
+			return 0; // already set. is this a duplicate?
+		}
+
+		//char str[200];
+		//sprintf(str, "setting param %s = %f\r\n", ch.mKeyName.c_str(), ch.mNumericValue.Get<float>());
+		//::OutputDebugStringA(str);
+
+		p->SetParam((VstInt32)it->second.second, ch.mNumericValue.Get<float>());
+		it->second.first = true;
+	}
+
+	//for (auto& kv : paramMap) {
+	//	if (!kv.second.first) {
+	//		return 0; // a parameter was not set. well no big deal tbh; worth a warning?
+	//	}
+	//}
+
+	auto samplersArr = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
+	if (samplersArr.IsEOF()) {
+		return 0;
+	}
+	if (samplersArr.mParseResult.IsFailure()) {
+		return 0;
+	}
+	if (samplersArr.mKeyName != "samplers") {
+		return 0;
+	}
+
+	for (auto& s : p->mSamplerDevices) {
+		auto b64 = samplersArr.GetNextArrayItem();
+		if (b64.IsEOF()) break;
+		if (b64.mParseResult.IsFailure()) break;
+		auto data = clarinoid::base64_decode(b64.mStringValue);
+		M7::Deserializer ds{ data.data(), data.size() };
+		s.Deserialize(ds);
+	}
+
+	return byteSize;
+}
+
+
+
+
 class Maj7Vst : public WaveSabreVstLib::VstPlug
 {
 public:
@@ -20,118 +141,120 @@ public:
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
-		if (!byteSize) return byteSize;
-		const char* pstr = (const char *)data;
-		if (strnlen(pstr, byteSize - 1) >= byteSize) return byteSize;
+		return Maj7SetVstChunk(GetMaj7(), data, byteSize);
 
-		using vstn = const char[kVstMaxParamStrLen];
-		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+		//if (!byteSize) return byteSize;
+		//const char* pstr = (const char *)data;
+		//if (strnlen(pstr, byteSize - 1) >= byteSize) return byteSize;
 
-		clarinoid::MemoryStream memStream {(const uint8_t*)data, (size_t)byteSize};
-		clarinoid::BufferedStream buffering{ memStream };
-		clarinoid::TextStream textStream{ buffering };
-		clarinoid::JsonVariantReader doc{ textStream };
+		//using vstn = const char[kVstMaxParamStrLen];
+		//static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 
-		// @ root there is exactly 1 KV object.
-		auto maj7Obj = doc.GetNextObjectItem();
-		if (maj7Obj.IsEOF()) {
-			return 0; // empty doc?
-		}
-		if (maj7Obj.mParseResult.IsFailure()) {
-			return 0;//return ch.mParseResult;
-		}
-		if (maj7Obj.mKeyName != "Maj7") {
-			return 0;
-		}
+		//clarinoid::MemoryStream memStream {(const uint8_t*)data, (size_t)byteSize};
+		//clarinoid::BufferedStream buffering{ memStream };
+		//clarinoid::TextStream textStream{ buffering };
+		//clarinoid::JsonVariantReader doc{ textStream };
 
-		bool tagSatisfied = false;
-		bool versionSatisfied = false;
-		while (true) {
-			auto ch = maj7Obj.GetNextObjectItem();
-			if (ch.mKeyName == "Tag") {
-				if (ch.mNumericValue.Get<DWORD>() != M7::Maj7::gChunkTag) {
-					return 0; //invalid tag
-				}
-				tagSatisfied = true;
-			}
-			if (ch.mKeyName == "Version") {
-				if (ch.mNumericValue.Get<uint8_t>() != M7::Maj7::gChunkVersion) {
-					return 0; // unknown version
-				}
-				versionSatisfied = true;
-			}
-			if (ch.IsEOF())
-				break;
-		}
-		if (!tagSatisfied || !versionSatisfied)
-			return 0;
-
-		auto paramsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
-		if (paramsObj.IsEOF()) {
-			return 0;
-		}
-		if (paramsObj.mParseResult.IsFailure()) {
-			return 0;
-		}
-		if (paramsObj.mKeyName != "params") {
-			return 0;
-		}
-
-		std::map<std::string, std::pair<bool, size_t>> paramMap; // maps string name to whether it's been set + which param index is it.
-		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
-			paramMap[paramNames[i]] = std::make_pair(false, i);
-		}
-
-		while (true) {
-			auto ch = paramsObj.GetNextObjectItem();
-			if (ch.IsEOF())
-				break;
-			if (ch.mParseResult.IsFailure()) {
-				return 0;
-			}
-			auto it = paramMap.find(ch.mKeyName);
-			if (it == paramMap.end()) {
-				return 0; // unknown param name.
-			}
-			if (it->second.first) {
-				return 0; // already set. is this a duplicate?
-			}
-
-			//char str[200];
-			//sprintf(str, "setting param %s = %f\r\n", ch.mKeyName.c_str(), ch.mNumericValue.Get<float>());
-			//::OutputDebugStringA(str);
-
-			setParameter((VstInt32)it->second.second, ch.mNumericValue.Get<float>());
-			it->second.first = true;
-		}
-
-		//for (auto& kv : paramMap) {
-		//	if (!kv.second.first) {
-		//		return 0; // a parameter was not set. well no big deal tbh; worth a warning?
-		//	}
+		//// @ root there is exactly 1 KV object.
+		//auto maj7Obj = doc.GetNextObjectItem();
+		//if (maj7Obj.IsEOF()) {
+		//	return 0; // empty doc?
+		//}
+		//if (maj7Obj.mParseResult.IsFailure()) {
+		//	return 0;//return ch.mParseResult;
+		//}
+		//if (maj7Obj.mKeyName != "Maj7") {
+		//	return 0;
 		//}
 
-		auto samplersArr = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
-		if (samplersArr.IsEOF()) {
-			return 0;
-		}
-		if (samplersArr.mParseResult.IsFailure()) {
-			return 0;
-		}
-		if (samplersArr.mKeyName != "samplers") {
-			return 0;
-		}
+		//bool tagSatisfied = false;
+		//bool versionSatisfied = false;
+		//while (true) {
+		//	auto ch = maj7Obj.GetNextObjectItem();
+		//	if (ch.mKeyName == "Tag") {
+		//		if (ch.mNumericValue.Get<DWORD>() != M7::Maj7::gChunkTag) {
+		//			return 0; //invalid tag
+		//		}
+		//		tagSatisfied = true;
+		//	}
+		//	if (ch.mKeyName == "Version") {
+		//		if (ch.mNumericValue.Get<uint8_t>() != M7::Maj7::gChunkVersion) {
+		//			return 0; // unknown version
+		//		}
+		//		versionSatisfied = true;
+		//	}
+		//	if (ch.IsEOF())
+		//		break;
+		//}
+		//if (!tagSatisfied || !versionSatisfied)
+		//	return 0;
 
-		for (auto& s : GetMaj7()->mSamplerDevices) {
-			auto b64 = samplersArr.GetNextArrayItem();
-			if (b64.IsEOF()) break;
-			if (b64.mParseResult.IsFailure()) break;
-			auto data = clarinoid::base64_decode(b64.mStringValue);
-			M7::Deserializer ds{data.data(), data.size()};
-			s.Deserialize(ds);
-		}
+		//auto paramsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
+		//if (paramsObj.IsEOF()) {
+		//	return 0;
+		//}
+		//if (paramsObj.mParseResult.IsFailure()) {
+		//	return 0;
+		//}
+		//if (paramsObj.mKeyName != "params") {
+		//	return 0;
+		//}
 
-		return byteSize;
+		//std::map<std::string, std::pair<bool, size_t>> paramMap; // maps string name to whether it's been set + which param index is it.
+		//for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
+		//	paramMap[paramNames[i]] = std::make_pair(false, i);
+		//}
+
+		//while (true) {
+		//	auto ch = paramsObj.GetNextObjectItem();
+		//	if (ch.IsEOF())
+		//		break;
+		//	if (ch.mParseResult.IsFailure()) {
+		//		return 0;
+		//	}
+		//	auto it = paramMap.find(ch.mKeyName);
+		//	if (it == paramMap.end()) {
+		//		return 0; // unknown param name.
+		//	}
+		//	if (it->second.first) {
+		//		return 0; // already set. is this a duplicate?
+		//	}
+
+		//	//char str[200];
+		//	//sprintf(str, "setting param %s = %f\r\n", ch.mKeyName.c_str(), ch.mNumericValue.Get<float>());
+		//	//::OutputDebugStringA(str);
+
+		//	setParameter((VstInt32)it->second.second, ch.mNumericValue.Get<float>());
+		//	it->second.first = true;
+		//}
+
+		////for (auto& kv : paramMap) {
+		////	if (!kv.second.first) {
+		////		return 0; // a parameter was not set. well no big deal tbh; worth a warning?
+		////	}
+		////}
+
+		//auto samplersArr = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
+		//if (samplersArr.IsEOF()) {
+		//	return 0;
+		//}
+		//if (samplersArr.mParseResult.IsFailure()) {
+		//	return 0;
+		//}
+		//if (samplersArr.mKeyName != "samplers") {
+		//	return 0;
+		//}
+
+		//for (auto& s : GetMaj7()->mSamplerDevices) {
+		//	auto b64 = samplersArr.GetNextArrayItem();
+		//	if (b64.IsEOF()) break;
+		//	if (b64.mParseResult.IsFailure()) break;
+		//	auto data = clarinoid::base64_decode(b64.mStringValue);
+		//	M7::Deserializer ds{data.data(), data.size()};
+		//	s.Deserialize(ds);
+		//}
+
+		//return byteSize;
 	}
 
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
@@ -517,7 +640,3 @@ namespace WaveSabreCore
 	} // namespace M7
 
 } // namespace WaveSabreCore
-
-
-
-

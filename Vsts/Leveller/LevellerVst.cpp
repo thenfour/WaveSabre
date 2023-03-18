@@ -4,6 +4,18 @@
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
+// no conversion required
+int WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+{
+	*outpSize = 0;
+	return 0;
+}
+
+void WaveSabreFreeChunk(void* p)
+{
+	M7::Serializer::FreeBuffer(p);
+}
+
 AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 {
 	return new LevellerVst(audioMaster);

@@ -167,6 +167,11 @@ namespace WaveSabreConvert
             // sort by devices type, keeping similar chunk data together, should be better for compressor
             Devices.Sort((x, y) => x.Id.CompareTo(y.Id));
 
+            foreach (var d in Devices)
+            {
+                d.Chunk = Utils.ConvertDeviceChunk(d.Id, d.Chunk);
+            }
+
             // link device id back to track
             foreach (var t in Tracks)
             {
