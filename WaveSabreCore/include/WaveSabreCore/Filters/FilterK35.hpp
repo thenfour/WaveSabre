@@ -185,7 +185,7 @@ namespace WaveSabreCore
                 y /= m_k;
 
                 // make this one a bit easier (3.f), its very aggresive
-                applyOverdrive(y, m_overdrive, Real(3));
+                //applyOverdrive(y, m_overdrive, Real(3));
 
                 return y;
             }

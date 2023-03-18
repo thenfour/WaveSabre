@@ -102,7 +102,7 @@ namespace WaveSabreCore
                 //real output = m_a * dU + m_b * dLP1 + m_c * dLP2 + m_d * dLP3 + m_e * dLP4;
                 //real output = m_a * dLP[0] + m_b * dLP[1] + m_c * dLP[2] + m_d * dLP[3] + m_e * dLP[4];
 
-                applyOverdrive(output, m_overdrive, Real(3.5));
+                //applyOverdrive(output, m_overdrive, Real(3.5));
 
                 return output;
             }

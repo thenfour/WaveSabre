@@ -191,7 +191,7 @@ namespace WaveSabreCore
                 xn = m_LPF3.InlineProcessSample(xn);
                 xn = m_LPF4.InlineProcessSample(xn);
 
-                applyOverdrive(xn, m_overdrive, Real(3.5));
+                //applyOverdrive(xn, m_overdrive, Real(3.5));
 
                 return xn;
             }

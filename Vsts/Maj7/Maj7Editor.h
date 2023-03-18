@@ -1102,7 +1102,7 @@ public:
 		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, M7::gFreqParamKTUnity);
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "KT##filt");
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Q, "Q##filt");
-		ImGui::SameLine(0, 60); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
+		//ImGui::SameLine(0, 60); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
 	}
 
 	void AuxBitcrush(const AuxInfo& auxInfo)

@@ -28,20 +28,20 @@ namespace WaveSabreCore
         //constexpr real OneOverSampleRate = Real1 / Real(44100.0f);
 
         // overdrive amt can be between 0 and up, but practical range 0-1.5 or so.
-        inline void applyOverdrive(real& pio_input, real m_overdrive, real p_tanh_factor)
-        {
-            real overdrive_modded = m_overdrive;
-            overdrive_modded = overdrive_modded < Real0 ? Real0 : overdrive_modded;
-            if (overdrive_modded > Real(0.01) && overdrive_modded < Real1)
-            {
-                // interpolate here so we have possibility of pure linear Processing
-                pio_input = pio_input * (Real1 - overdrive_modded) + overdrive_modded * math::tanh(pio_input * p_tanh_factor);
-            }
-            else if (overdrive_modded >= Real1)
-            {
-                pio_input = math::tanh(overdrive_modded * pio_input * p_tanh_factor);
-            }
-        }
+        //inline void applyOverdrive(real& pio_input, real m_overdrive, real p_tanh_factor)
+        //{
+        //    real overdrive_modded = m_overdrive;
+        //    overdrive_modded = overdrive_modded < Real0 ? Real0 : overdrive_modded;
+        //    if (overdrive_modded > Real(0.01) && overdrive_modded < Real1)
+        //    {
+        //        // interpolate here so we have possibility of pure linear Processing
+        //        pio_input = pio_input * (Real1 - overdrive_modded) + overdrive_modded * math::tanh(pio_input * p_tanh_factor);
+        //    }
+        //    else if (overdrive_modded >= Real1)
+        //    {
+        //        pio_input = math::tanh(overdrive_modded * pio_input * p_tanh_factor);
+        //    }
+        //}
 
         //inline void applyOverdrive(real& L, real& R, real m_overdrive, real p_tanh_factor)
         //{
