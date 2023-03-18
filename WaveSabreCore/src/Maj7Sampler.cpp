@@ -351,7 +351,7 @@ namespace WaveSabreCore
 
 				mSamplePlayer.SetPlayRate(rate);
 
-				return math::clamp(mSamplePlayer.Next(), -1, 1); // clamp addresses craz glitch when changing samples.
+				return math::clampN11(mSamplePlayer.Next()); // clamp addresses craz glitch when changing samples.
 			}
 
 

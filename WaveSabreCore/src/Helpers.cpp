@@ -127,7 +127,7 @@ namespace WaveSabreCore
 
 	double Helpers::Exp2(double x)
 	{
-		return M7::math::pow2(x);
+		return (double)M7::math::pow2((float)x);
 	}
 	float Helpers::Exp2F(float x)
 	{

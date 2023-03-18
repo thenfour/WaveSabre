@@ -1327,7 +1327,6 @@ namespace WaveSabreCore
 					float freq = mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
 					freq *= mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
 					freq *= detuneFreqMul;
-					freq *= 0.5f; // WHY? because it corresponds more naturally to other synth octave ranges.
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);
 					mCurrentFreq = freq;
@@ -1384,7 +1383,7 @@ namespace WaveSabreCore
 
 				// current sample will be used on next sample (this is the 1-sample delay)
 				mCurrentSample += mpSlaveWave->NaiveSample(float(mpSlaveWave->mPhase + phaseMod));
-				mCurrentSample = math::clamp(mCurrentSample, -1, 1); // prevent FM from going crazy.
+				mCurrentSample = math::clampN11(mCurrentSample); // prevent FM from going crazy.
 				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale;
 
 				return mOutSample;

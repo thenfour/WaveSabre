@@ -444,7 +444,7 @@ public:
 		}
 
 
-		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, 0.5f);
+		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, -6.0f);
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1, 0);
 
@@ -747,7 +747,7 @@ public:
 			//ImGui::SameLine(); WaveformGraphic(waveformParam.GetEnumValue(), waveshapeParam.Get01Value());
 			//ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform");
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape");
-			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, 0.4f);
+			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "KT");
 			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PitchFine, "FineTune", 0);
@@ -755,7 +755,7 @@ public:
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, "Phase", 0);
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
-			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::OscillatorDevice::gSyncFrequencyCenterHz, M7::OscillatorDevice::gSyncFrequencyScale, 0.4f);
+			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::OscillatorDevice::gSyncFrequencyCenterHz, M7::OscillatorDevice::gSyncFrequencyScale, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT");
 
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Aux pan", 0);
@@ -1099,7 +1099,7 @@ public:
 	{
 		static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
 		Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, 0.4f);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, M7::gFreqParamKTUnity);
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "KT##filt");
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Q, "Q##filt");
 		ImGui::SameLine(0, 60); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
@@ -1107,7 +1107,7 @@ public:
 
 	void AuxBitcrush(const AuxInfo& auxInfo)
 	{
-		Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gBitcrushFreqCenterFreq, M7::gBitcrushFreqRange, 0.4f);
+		Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gBitcrushFreqCenterFreq, M7::gBitcrushFreqRange, M7::gFreqParamKTUnity);
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "KT##filt");
 	}
 
@@ -1637,7 +1637,7 @@ public:
 			WSImGuiParamCheckbox((int)sampler.mEnabledParamID, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mVolumeParamID, "Volume", 0, 0);
 
-			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, 0.4f);
+			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mFreqKTParamID, "KT");
 			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneFine, "FineTune", 0);
@@ -1714,6 +1714,11 @@ public:
 			else if (sampler.mSampleSource.GetEnumValue() == M7::SampleSource::Embed) {
 				auto* p = static_cast<WaveSabreCore::GsmSample*>(sampler.mSample);
 				ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%) / %d Samples / path:%s", p->UncompressedSize, p->CompressedSize, (p->CompressedSize * 100) / p->UncompressedSize, p->SampleLength, sampler.mSamplePath);
+
+				if (ImGui::SmallButton("Clear sample")) {
+					sampler.Reset();
+				}
+
 			}
 			else if (sampler.mSampleSource.GetEnumValue() == M7::SampleSource::GmDls) {
 				auto* p = static_cast<M7::GmDlsSample*>(sampler.mSample);

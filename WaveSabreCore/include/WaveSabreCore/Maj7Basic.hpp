@@ -29,10 +29,12 @@ namespace WaveSabreCore
         using real_t = float;
 
         static constexpr real_t FloatEpsilon = 0.000001f;
+        static constexpr float MIN_DECIBEL_GAIN = -60.0f;
 
         static constexpr real_t gFilterCenterFrequency = 1000.0f;
         static constexpr real_t gFilterFrequencyScale = 10.0f;
-        static constexpr float MIN_DECIBEL_GAIN = -60.0f;
+        static constexpr real_t gFreqParamKTUnity = 0.3f;
+
 
         static constexpr real_t gLFOLPCenterFrequency = 20.0f;
         static constexpr real_t gLFOLPFrequencyScale = 7.0f;
@@ -114,6 +116,14 @@ namespace WaveSabreCore
                 if (x >= hi)
                     return hi;
                 return x;
+            }
+            inline constexpr real_t clamp01(real_t x)
+            {
+                return clamp(x, 0, 1);
+            }
+            inline constexpr real_t clampN11(real_t x)
+            {
+                return clamp(x, -1, 1);
             }
 
             // for floating point types, it's helpful to be clear that the value is inclusive.
@@ -688,10 +698,10 @@ namespace WaveSabreCore
             size_t mCount;
             Float01ParamArray(float* parr, size_t count) : mpArray(parr), mCount(count) {}
             float Get01Value(size_t i) const {
-                return math::clamp(mpArray[i], 0, 1);
+                return math::clamp01(mpArray[i]);
             }
             float Get01Value(size_t i, float mod) const {
-                return math::clamp(mpArray[i] + mod, 0, 1);
+                return math::clamp01(mpArray[i] + mod);
             }
         };
 

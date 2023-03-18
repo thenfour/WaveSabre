@@ -3,7 +3,7 @@ namespace WaveSabreCore {
     namespace M7 {
         static_assert((int)M7::MainParamIndices::Count == 32, "param count probably changed and this needs to be regenerated.");
         const float gDefaultMasterParams[32] = {
-          0.70794576406478881836, // Master
+          0.50118720531463623047, // Master
           0.0002470355830155313015, // PolyMon
           0.041666667908430099487, // Unisono
           0, // OscDet
@@ -54,7 +54,7 @@ namespace WaveSabreCore {
           1, // S1Llen
           0.5, // S1TunS
           0.5, // S1TunF
-          0.40000000596046447754, // S1Frq
+          0.30000001192092895508, // S1Frq
           1, // S1FrqKT
           0.00074110669083893299103, // S1Intrp
           1, // S1RelX
@@ -76,11 +76,11 @@ namespace WaveSabreCore {
         };
         static_assert((int)M7::LFOParamIndexOffsets::Count == 6, "param count probably changed and this needs to be regenerated.");
         const float gDefaultLFOParams[6] = {
-          0.0032114624045789241791, // LFO1wav
+          0.003705533687025308609, // LFO1wav
           0.5, // LFO1shp
           0, // LFO1rst
           0.5, // LFO1ph
-          0.67000001668930053711, // LFO1fr
+          0.60000002384185791016, // LFO1fr
           0.5, // LFO1lp
         };
         static_assert((int)M7::EnvParamIndexOffsets::Count == 11, "param count probably changed and this needs to be regenerated.");
@@ -105,12 +105,12 @@ namespace WaveSabreCore {
           0.99609375, // O1KRmax
           0.001729249022901058197, // O1Wave
           0.5, // O1Shp
-          1, // O1PRst
+          0, // O1PRst
           0.5, // O1Poff
           0, // O1Scen
-          0.40000000596046447754, // O1ScFq
+          0.30000001192092895508, // O1ScFq
           1, // O1ScKt
-          0.40000000596046447754, // O1Fq
+          0.30000001192092895508, // O1Fq
           1, // O1FqKt
           0.5, // O1Semi
           0.5, // O1Fine

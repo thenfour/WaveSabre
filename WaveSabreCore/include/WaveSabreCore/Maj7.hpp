@@ -439,7 +439,7 @@ namespace WaveSabreCore
 				a1.mFreqParam.mValue.SetParamValue(0.3f);
 
 				FilterAuxNode f2{ mParamCache + (int)ParamIndices::Aux2Enabled, 0 };
-				f2.mFilterFreqParam.mValue.SetParamValue(0.4f);
+				f2.mFilterFreqParam.mValue.SetParamValue(M7::gFreqParamKTUnity);
 				f2.mFilterFreqParam.mKTValue.SetParamValue(1.0f);
 				f2.mFilterQParam.SetParamValue(0.15f);
 				f2.mFilterSaturationParam.SetParamValue(0.15f);
@@ -576,12 +576,8 @@ namespace WaveSabreCore
 					v->BeginBlock();
 				}
 
-				//// apply post FX.
-				//for (size_t i = 0; i < gModLFOCount; ++i) {
-				//	auto& lfo = mLFOs[i];
-				//}
-
 				// very inefficient to calculate all in the loops like that but it's for size-optimization
+				float masterGain = mMasterVolume.GetLinearGain();
 				for (size_t iSample = 0; iSample < (size_t)numSamples; ++iSample)
 				{
 					float s[2] = { 0 };
@@ -593,9 +589,10 @@ namespace WaveSabreCore
 
 					for (size_t ioutput = 0; ioutput < 2; ++ioutput) {
 						float o = s[ioutput];
-						o *= mMasterVolume.GetLinearGain();
-						o = math::clamp(o, -1, 1);
-						outputs[ioutput][iSample] = mDCFilters[ioutput].ProcessSample(o);
+						o *= masterGain;
+						o = mDCFilters[ioutput].ProcessSample(o);
+						o = math::clampN11(o);
+						outputs[ioutput][iSample] = o;
 					}
 
 					// advance phase of master LFOs

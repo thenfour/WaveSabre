@@ -88,7 +88,7 @@ namespace WaveSabreCore
 
 	float SamplePlayer::Next()
 	{
-		double samplePosFloor = M7::math::floor(samplePos);
+		double samplePosFloor = (double)M7::math::floor((float)samplePos);
 		double samplePosFract = samplePos - samplePosFloor;
 
 		int roundedSamplePos = (int)samplePosFloor;

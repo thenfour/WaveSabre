@@ -74,7 +74,7 @@ namespace WaveSabreCore
 			gTanhLUT{ 768 },
 			gSqrt01LUT{ 768, [](float x) {
 				//return ::sqrtf(x);
-				return (float)math::CrtPow(0.5, (double)x);
+				return (float)math::CrtPow((double)x, 0.5);
 			} },
 
 			gCurveLUT{ 768 },
@@ -99,7 +99,7 @@ namespace WaveSabreCore
 
 			real_t CalculateInc01PerSampleForMS(real_t ms)
 			{
-				return clamp(1000.0f / (math::max(0.01f, ms) * (real_t)Helpers::CurrentSampleRate), 0, 1);
+				return clamp01(1000.0f / (math::max(0.01f, ms) * (real_t)Helpers::CurrentSampleRate));
 			}
 
 			bool DoesEncounter(double t1, double t2, float x) {
@@ -238,7 +238,7 @@ namespace WaveSabreCore
 				static constexpr float CornerMargin = 0.6f; // .77 is quite sharp, 0.5 is mild and usable but maybe should be sharper
 				k *= CornerMargin;
 				k = clamp(k, -CornerMargin, CornerMargin);
-				x = clamp(x, -1, 1);
+				x = clampN11(x);
 				if (k >= 0)
 				{
 					if (x > 0)
@@ -314,7 +314,7 @@ namespace WaveSabreCore
 			FloatPair PanToLRVolumeParams(float panN11)
 			{
 				// -1..+1  -> 1..0
-				panN11 = clamp(panN11, -1, 1);
+				panN11 = clampN11(panN11);
 				float leftVol = (-panN11 + 1) / 2;
 				return { leftVol, 1 - leftVol };
 			}
@@ -364,7 +364,7 @@ namespace WaveSabreCore
 		//Float01Param::Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
 		Float01Param::Float01Param(real_t& ref) : Float01RefParam(ref) {}
 		float Float01Param::Get01Value(real_t modVal) const {
-			return math::clamp(mParamValue + modVal, 0, 1);
+			return math::clamp01(mParamValue + modVal);
 		}
 
 		//FloatN11Param::FloatN11Param(real_t& ref, real_t initialValueN11) : Float01RefParam(ref, initialValueN11 * .5f + .5f) {
@@ -375,7 +375,7 @@ namespace WaveSabreCore
 
 		real_t FloatN11Param::GetN11Value(real_t modVal) const {
 			real_t r = mParamValue + modVal;
-			return math::clamp(r * 2 - 1, -1, 1);
+			return math::clampN11(r * 2 - 1);
 		}
 		void FloatN11Param::SetN11Value(real_t v) {
 			SetParamValue(v * .5f + .5f);
@@ -394,7 +394,7 @@ namespace WaveSabreCore
 		real_t EnvTimeParam::GetMilliseconds(real_t paramModulation) const
 		{
 			float param = mParamValue + paramModulation; // apply current modulation value.
-			param = math::clamp(param, 0, 1);
+			param = math::clamp01(param);
 			param -= 0.5f;       // -.5 to .5
 			param *= gRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
 			float fact = math::pow2_N16_16(param);
@@ -553,7 +553,8 @@ namespace WaveSabreCore
 			// with full KT,
 			// at 0.3, we use playFrequency.
 			// for each 0.1 param value, it's +/- one octave.
-			float ktFreq = noteHz * 4; // to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
+			// to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
+			float ktFreq = noteHz * 4;
 			float centerFreq = math::lerp(mCenterFrequency, ktFreq, mKTValue.Get01Value());
 
 			param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)   [-.5,+.5]
@@ -568,7 +569,7 @@ namespace WaveSabreCore
 			float  p = math::log2(hz);
 			p /= mScale;
 			p += 0.5f;
-			this->mValue.SetParamValue(math::clamp(p, 0, 1));
+			this->mValue.SetParamValue(math::clamp01(p));
 		}
 
 		// param modulation is normal krate param mod

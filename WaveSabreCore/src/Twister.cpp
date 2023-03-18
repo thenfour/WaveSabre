@@ -65,16 +65,16 @@ namespace WaveSabreCore
 			{
 			case Spread::Mono: 
 			default:
-				positionLeft = M7::math::clamp((amount + freq), 0.0f, 1.0f);
+				positionLeft = M7::math::clamp01((amount + freq));
 				positionRight = positionLeft;
 				break;
 			case Spread::FullInvert:
-				positionLeft = M7::math::clamp((amount + freq), 0.0f, 1.0f);
-				positionRight = (1.0f - M7::math::clamp((amount + freq), 0.0f, 1.0f));
+				positionLeft = M7::math::clamp01((amount + freq));
+				positionRight = (1.0f - M7::math::clamp01((amount + freq)));
 				break;
 			case Spread::ModInvert:
-				positionLeft = M7::math::clamp((amount + freq), 0.0f, 1.0f);
-				positionRight = M7::math::clamp((amount - freq), 0.0f, 1.0f);
+				positionLeft = M7::math::clamp01((amount + freq));
+				positionRight = M7::math::clamp01((amount - freq));
 				break;
 			}
 

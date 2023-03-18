@@ -355,7 +355,7 @@ namespace WaveSabreCore
 			p->mEnabledParam.SetBoolValue(false);
 			p->mVolumeParam.SetDecibels(0);
 			p->mAuxPanParam.SetN11Value(0);
-			p->mFrequencyParam.mValue.SetParamValue(0.4f);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
+			p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mFrequencyParam.mKTValue.SetParamValue(0);
 			p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
 			p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
@@ -366,12 +366,14 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults_LFO(OscillatorDevice* p)
 		{
 			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
-			p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
+			p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
+			p->mWaveshape.SetParamValue(0.5f);
 			p->mPhaseOffset.SetN11Value(0);
-			p->mSyncFrequency.mValue.SetParamValue(0.4f);
+			p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
 			p->mFrequencyMul.SetRangedValue(1);
 			p->mIntention = OscillatorIntention::LFO;
 			p->mEnabledParam.SetBoolValue(true);
+			p->mFrequencyParam.mValue.SetParamValue(0.6f);
 			p->mFrequencyParam.mKTValue.SetParamValue(0);
 			p->mSyncFrequency.mKTValue.SetParamValue(0);
 			p->mLPFFrequency.mValue.SetParamValue(0.5f);
@@ -381,8 +383,9 @@ namespace WaveSabreCore
 		{
 			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
 			p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
+			p->mWaveshape.SetParamValue(0.5f);
 			p->mPhaseOffset.SetN11Value(0);
-			p->mSyncFrequency.mValue.SetParamValue(0.4f);
+			p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
 			p->mFrequencyMul.SetRangedValue(1);
 			p->mIntention = OscillatorIntention::Audio;
 			p->mEnabledParam.SetBoolValue(false);
@@ -413,7 +416,7 @@ namespace WaveSabreCore
 		//enum class MainParamIndices : uint8_t
 		static inline void GenerateMasterParamDefaults(Maj7* p)
 		{
-			p->mMasterVolume.SetDecibels(0);//MasterVolume,
+			p->mMasterVolume.SetDecibels(-6);//MasterVolume,
 			p->mUnisonoVoicesParam.SetIntValue(1);
 			p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
 			// OscillatorDetune, = 0
