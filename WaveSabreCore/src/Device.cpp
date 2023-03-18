@@ -1,11 +1,13 @@
 #include <WaveSabreCore/Device.h>
 #include <cstring>
 #include <WaveSabreCore/Helpers.h>
+#include <WaveSabreCore/Maj7Basic.hpp>
 
 namespace WaveSabreCore
 {
 	Device::Device(int numParams)
 	{
+		M7::Init();
 		this->numParams = numParams;
 		chunkData = nullptr;
 	}

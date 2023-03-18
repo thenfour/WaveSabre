@@ -2,16 +2,16 @@
 
 #include <Windows.h>
 
-static char *gmDlsPaths[2] =
-{
-	"drivers/gm.dls",
-	"drivers/etc/gm.dls"
-};
-
 namespace WaveSabreCore
 {
 	unsigned char *GmDls::Load()
 	{
+		static const char* gmDlsPaths[2] =
+		{
+			"drivers/gm.dls",
+			"drivers/etc/gm.dls"
+		};
+
 		HANDLE gmDlsFile = INVALID_HANDLE_VALUE;
 		for (int i = 0; gmDlsFile == INVALID_HANDLE_VALUE; i++)
 		{

@@ -5,13 +5,14 @@
 using namespace WaveSabreCore;
 
 // no conversion required
-int WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+int  __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
 	*outpSize = 0;
+	*outpData = nullptr;
 	return 0;
 }
 
-void WaveSabreFreeChunk(void* p)
+void __cdecl WaveSabreFreeChunk(void* p)
 {
 	M7::Serializer::FreeBuffer(p);
 }

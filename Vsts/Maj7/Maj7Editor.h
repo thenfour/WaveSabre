@@ -229,7 +229,8 @@ public:
 				}
 
 				void* data;
-				int n = pMaj7->GetChunk(&data);
+				//int n = pMaj7->GetChunk(&data);
+				int n = GetMinifiedChunk(pMaj7, &data);
 				pMaj7->SetChunk(data, n);
 				delete[] data;
 
@@ -1611,7 +1612,7 @@ public:
 			std::string lowercaseEntry = entry.first;
 			std::transform(lowercaseEntry.begin(), lowercaseEntry.end(), lowercaseEntry.begin(), ::tolower); // convert entry to lowercase
 			int inputIndex = 0, entryIndex = 0;
-			while (inputIndex < input.size() && entryIndex < lowercaseEntry.size()) {
+			while ((size_t)inputIndex < input.size() && (size_t)entryIndex < lowercaseEntry.size()) {
 				if (input[inputIndex] == lowercaseEntry[entryIndex]) {
 					inputIndex++;
 				}

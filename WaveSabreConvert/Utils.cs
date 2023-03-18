@@ -109,7 +109,15 @@ namespace WaveSabreConvert
         [DllImport("kernel32.dll")]
         private static extern bool FreeLibrary(IntPtr hModule);
 
-        public delegate int WaveSabreDeviceVSTChunkToMinifiedChunkDelegate([MarshalAs(UnmanagedType.LPStr)] string deviceName, int inputSize, IntPtr inputData, ref int outputSize, out IntPtr outputData);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate int WaveSabreDeviceVSTChunkToMinifiedChunkDelegate(
+            [MarshalAs(UnmanagedType.LPStr)] string deviceName,
+            int inputSize,
+            IntPtr inputData,
+            ref int outputSize,
+            out IntPtr outputData);
+
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int WaveSabreFreeChunkDelegate(IntPtr p);
 
         public static string FindFileInDirectories(IEnumerable<string> directories, string filename)

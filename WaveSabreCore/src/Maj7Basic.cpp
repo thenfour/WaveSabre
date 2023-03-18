@@ -1,11 +1,15 @@
 
 #include <WaveSabreCore/Maj7Basic.hpp>
-//#include <atomic>
 
 namespace WaveSabreCore
 {
 	namespace M7
 	{
+		void Init() {
+			if (math::gCrtFns) return;
+			math::gCrtFns = new math::CrtFns();
+			math::gLuts = new math::LUTs();
+		}
 
 		static uint16_t gAudioRecalcSampleMaskValues[] = {
 			127, // Potato,
@@ -51,6 +55,32 @@ namespace WaveSabreCore
 		namespace math
 		{
 			CrtFns* gCrtFns = nullptr;
+			LUTs* gLuts = nullptr;
+
+			LUTs::LUTs() :
+				gSinLUT{ 768, [](float x) {
+				//static CrtMathFn gfn{ "sin" };
+				//return (float)gfn.invoke((double)x * 2 * M_PI);
+				return (float)math::CrtSin((double)x * 2 * M_PI);
+
+				//return (float)::sin((double)x * 2 * M_PI);
+			} },
+			gCosLUT{ 768,  [](float x)
+				{
+					//return (float)::cos((double)x * 2 * M_PI);
+					return (float)math::CrtCos((double)x * 2 * M_PI);
+
+			} },
+			gTanhLUT{ 768 },
+			gSqrt01LUT{ 768, [](float x) {
+				//return ::sqrtf(x);
+				return (float)math::CrtPow(0.5, (double)x);
+			} },
+
+			gCurveLUT{ 768 },
+			gPow2_N16_16_LUT{ 768 }
+
+			{}
 
 			bool FloatEquals(real_t f1, real_t f2, real_t eps)
 			{

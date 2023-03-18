@@ -24,6 +24,8 @@ namespace WaveSabreCore
 {
     namespace M7
     {
+        void Init();
+
         using real_t = float;
 
         static constexpr real_t FloatEpsilon = 0.000001f;
@@ -191,49 +193,49 @@ namespace WaveSabreCore
 
             extern CrtFns* gCrtFns;
 
-            template<typename Tfn>
-            struct CrtMathFn
-            {
-                CrtMathFn(const char *import) : mImport(import) {}
-                Tfn pfn = nullptr;
-                const char* const mImport;
-                double invoke(double x) {
-                    if (!mfn) {
-                        mfn = (Tfn);
-                    }
-                    return mfn(x);
-                }
-            };
+            //template<typename Tfn>
+            //struct CrtMathFn
+            //{
+            //    CrtMathFn(const char *import) : mImport(import) {}
+            //    Tfn pfn = nullptr;
+            //    const char* const mImport;
+            //    double invoke(double x) {
+            //        if (!mfn) {
+            //            mfn = (Tfn);
+            //        }
+            //        return mfn(x);
+            //    }
+            //};
 
-            inline CrtFns* EnsureCrt() {
-                if (!gCrtFns) {
-                    gCrtFns = new CrtFns();
-                }
-                return gCrtFns;
-            }
+            //inline CrtFns* EnsureCrt() {
+            //    if (!gCrtFns) {
+            //        gCrtFns = new CrtFns();
+            //    }
+            //    //return gCrtFns;
+            //}
 
             inline double CrtSin(double x) {
-                return EnsureCrt()->crt_sin(x);
+                return gCrtFns->crt_sin(x);
             }
 
             inline double CrtCos(double x) {
-                return EnsureCrt()->crt_cos(x);
+                return gCrtFns->crt_cos(x);
             }
 
             inline double CrtLog(double x) {
-                return EnsureCrt()->crt_log(x);
+                return gCrtFns->crt_log(x);
             }
 
             inline double CrtFloor(double x) {
-                return EnsureCrt()->crt_floor(x);
+                return gCrtFns->crt_floor(x);
             }
 
             inline double CrtPow(double x, double y) {
-                return EnsureCrt()->crt_pow(x, y);
+                return gCrtFns->crt_pow(x, y);
             }
 
             inline double CrtTan(double x) {
-                return EnsureCrt()->crt_tan(x);
+                return gCrtFns->crt_tan(x);
             }
 
             inline real_t pow(real_t x, real_t y) {
@@ -340,15 +342,6 @@ namespace WaveSabreCore
                         virtual float Invoke(float xN11, float yN11) const override;
             };
 
-            extern SinCosLUT gSinLUT;
-            extern SinCosLUT gCosLUT;
-            extern TanHLUT gTanhLUT;
-            extern LUT01 gSqrt01LUT;// sqrt 01
-
-            extern CurveLUT gCurveLUT;
-            // 2D LUTs: pow() 0-1, and curve
-
-
             // pow(2,n) is a quite hot path, used by MidiNoteToFrequency(), as well as all other frequency calculations.
             // the range of `n` is [-15,+15] but depends on frequency param scale. so let's extend a bit and make a huge lut.
             struct Pow2_N16_16_LUT : public LUT01
@@ -356,19 +349,33 @@ namespace WaveSabreCore
                 Pow2_N16_16_LUT(size_t nSamples);
                 virtual float Invoke(float x) const override;
             };
-            extern Pow2_N16_16_LUT gPow2_N16_16_LUT;
+            struct LUTs
+            {
+                SinCosLUT gSinLUT;
+                SinCosLUT gCosLUT;
+                TanHLUT gTanhLUT;
+                LUT01 gSqrt01LUT;// sqrt 01
+
+                CurveLUT gCurveLUT;
+                Pow2_N16_16_LUT gPow2_N16_16_LUT;
+                // pow10 can be useful too.
+
+                LUTs();
+            };
+
+            extern LUTs* gLuts;
 
             inline float pow2_N16_16(float n)
             {
-                return gPow2_N16_16_LUT.Invoke(n);
+                return gLuts->gPow2_N16_16_LUT.Invoke(n);
             }
 
             inline real_t sin(real_t x) {
-                return gSinLUT.Invoke(x);
+                return gLuts->gSinLUT.Invoke(x);
                 //return (real_t)Helpers::FastSin((double)x);
             }
             inline real_t cos(real_t x) {
-                return gCosLUT.Invoke(x);// (real_t)Helpers::FastCos((double)x);
+                return gLuts->gCosLUT.Invoke(x);// (real_t)Helpers::FastCos((double)x);
             }
 
             inline real_t sqrt(real_t x) {
@@ -377,18 +384,18 @@ namespace WaveSabreCore
 
             // optimized LUT works for 0<=x<=1
             inline real_t sqrt01(real_t x) {
-                return gSqrt01LUT.Invoke(x);
+                return gLuts->gSqrt01LUT.Invoke(x);
             }
 
             inline real_t tanh(real_t x) {
-                return gTanhLUT.Invoke(x);
+                return gLuts->gTanhLUT.Invoke(x);
                 //return (float)::tanh((double)x);
                 //return fastmath::fastertanh(x); // tanh is used for saturation and the fast version adds weird high frequency content. try it on a LP filter and see what i mean.
             }
 
             inline real_t modCurve_xN11_kN11(real_t x, real_t k)
             {
-                return gCurveLUT.Invoke(x, k);
+                return gLuts->gCurveLUT.Invoke(x, k);
             }
 
             /**

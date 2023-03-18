@@ -85,19 +85,21 @@ int GetMinifiedChunk(M7::Maj7* p, void** data)
 
 
 // no conversion required
-int WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
 	*outpSize = 0;
 
 	M7::Maj7* tmpEffect = new M7::Maj7(); // consumes like 30kb of stack so new it.
 	Maj7SetVstChunk(tmpEffect, inpData, inpSize);
 	
+	M7::OptimizeParams(tmpEffect);
+
 	*outpSize = GetMinifiedChunk(tmpEffect, outpData);
 	delete tmpEffect;
 	return *outpSize;
 }
 
-void WaveSabreFreeChunk(void* p)
+void __cdecl WaveSabreFreeChunk(void* p)
 {
 	M7::Serializer::FreeBuffer(p);
 }

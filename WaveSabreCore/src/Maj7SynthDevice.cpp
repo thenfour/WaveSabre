@@ -17,34 +17,6 @@
 
 namespace WaveSabreCore
 {
-	namespace M7
-	{
-		namespace math
-		{
-			SinCosLUT gSinLUT{ 768, [](float x) {
-				//static CrtMathFn gfn{ "sin" };
-				//return (float)gfn.invoke((double)x * 2 * M_PI);
-				return (float)math::CrtSin((double)x * 2 * M_PI);
-
-				//return (float)::sin((double)x * 2 * M_PI);
-			}};
-			SinCosLUT gCosLUT{ 768,  [](float x)
-				{
-					//return (float)::cos((double)x * 2 * M_PI);
-					return (float)math::CrtCos((double)x * 2 * M_PI);
-
-			} };
-			TanHLUT gTanhLUT{ 768 };
-			LUT01 gSqrt01LUT{ 768, [](float x) {
-				//return ::sqrtf(x);
-				return (float)math::CrtPow(0.5, (double)x);
-			} };
-
-			CurveLUT gCurveLUT{ 768 };
-			Pow2_N16_16_LUT gPow2_N16_16_LUT{ 768 };
-		}
-	}
-
 	Maj7SynthDevice::Maj7SynthDevice(int numParams)
 		: Device(numParams)
 	{

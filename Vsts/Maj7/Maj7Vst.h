@@ -9,12 +9,14 @@
 #include "Serialization.hpp"
 
 
+extern int GetMinifiedChunk(M7::Maj7* p, void** data);
+
 
 inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 {
 	if (!byteSize) return byteSize;
 	const char* pstr = (const char*)data;
-	if (strnlen(pstr, byteSize - 1) >= byteSize) return byteSize;
+	if (strnlen(pstr, byteSize - 1) >= (size_t)byteSize) return byteSize;
 
 	using vstn = const char[kVstMaxParamStrLen];
 	static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
@@ -548,7 +550,8 @@ namespace WaveSabreCore
 		{
 			ChunkStats ret;
 			void* data;
-			int size = p->GetChunk(&data);
+			int size = GetMinifiedChunk(p, &data);
+			//int size = p->GetChunk(&data);
 			ret.uncompressedSize = size;
 
 			//int numNonZeroParams = 0;
