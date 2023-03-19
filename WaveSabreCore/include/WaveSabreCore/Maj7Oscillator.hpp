@@ -3,6 +3,7 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7Envelope.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
+#include <WaveSabreCore/Filters/FilterOnePole.hpp>
 
 namespace WaveSabreCore
 {
@@ -524,11 +525,14 @@ namespace WaveSabreCore
 		/////////////////////////////////////////////////////////////////////////////
 		struct WhiteNoiseWaveform :IOscillatorWaveform
 		{
+			OnePoleFilter mHPFilter;
 			float mCurrentLevel = 0;
+			float mCurrentSample = 0;
+			float mSampleFract = 0;
 			// returns Y value at specified phase. instance / stateless.
 			virtual float NaiveSample(float phase01) override
 			{
-				return mCurrentLevel;// math::randN11();// Helpers::RandFloat() * 2 - 1;
+				return mCurrentSample;// math::randN11();// Helpers::RandFloat() * 2 - 1;
 			}
 
 			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
@@ -537,31 +541,34 @@ namespace WaveSabreCore
 				return 0;
 			}
 
+			virtual FloatPair OSC_ADVANCE(float samples, float samplesTillNextSample)
+			{
+				// assume we're always advancing by 1 exact sample. it theoretically breaks hard sync but like, who the f is hard-syncing a white noise channel?
+				
+				mPhase += mPhaseIncrement;
+				if (mPhase > 1) {
+					mCurrentLevel = math::randN11();
+					mPhase = math::fract(mPhase);
+				}
+
+				mCurrentSample = mHPFilter.InlineProcessSample(mCurrentLevel);
+
+				return { 0,0 };
+			}
+
+
 			virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
 			{
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
-				mShape = math::lerp(1, 0.1f, waveshape);
+				float kt = 0;
+				FrequencyParam fp{ waveshape, kt, freq, 6 };
+				float lfoFreqShape = freq * waveshape * waveshape * 0.25f;
+
+				mHPFilter.SetParams(FilterType::HP, freq < 30 ? lfoFreqShape : fp.GetFrequency(0, 0), 0, 0);
 			}
 
 			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
-//				virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
-				//mPhaseIncrement += mDTDT * samples;
-				//double phaseToAdvance = samples * mPhaseIncrement;
-				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
-
-				if (newPhase < this->mPhase) {
-					mCurrentLevel = math::randN11();
-				}
-
-				// this effectively doubles the frequency which feels more comfy both for LFO and audio osc.
-				if (newPhase > 0.5f && this->mPhase <= 0.5f) {
-					mCurrentLevel = math::randN11();
-				}
-
-				//std::pair<float, float> bleps{ 0.0f,0.0f };
-				//this->mPhase = newPhase;
-				//return bleps;
 			}
 		};
 
