@@ -60,11 +60,14 @@ namespace WaveSabreCore {
           1, // S1RelX
           0.5, // S1AxMix
         };
-        static_assert((int)M7::ModParamIndexOffsets::Count == 11, "param count probably changed and this needs to be regenerated.");
-        const float gDefaultModSpecParams[11] = {
+        static_assert((int)M7::ModParamIndexOffsets::Count == 14, "param count probably changed and this needs to be regenerated.");
+        const float gDefaultModSpecParams[14] = {
           0, // M1en
           0.0002470355830155313015, // M1src
           0.0002470355830155313015, // M1dest
+          0.0002470355830155313015, // M2dest
+          0.0002470355830155313015, // M3dest
+          0.0002470355830155313015, // M4dest
           0.5, // M1curv
           0.80000001192092895508, // M1scale
           0, // M1Aen

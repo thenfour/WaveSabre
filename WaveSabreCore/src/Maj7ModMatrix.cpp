@@ -6,22 +6,6 @@ namespace WaveSabreCore
 	namespace M7
 	{
 
-			ModulationSpec::ModulationSpec(real_t* paramCache, int baseParamID) :
-				mBaseParamID(baseParamID),
-				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
-				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
-				mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
-				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
-				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale]),
-				mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled]),
-				mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
-				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
-				mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
-				mInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::Invert]),
-				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
-			{
-			}
-
 
 
 			float ModMatrixNode::InvertValue(float val, bool invertParam, const ModSource modSource)
@@ -45,32 +29,37 @@ namespace WaveSabreCore
 					for (size_t imod = 0; imod < gModulationCount; ++imod)
 					{
 						auto& spec = modSpecs[imod];
-						mDestValueDeltas[imod] = 0;
 						bool skip = false;
 						if (!spec.mEnabled.mCachedVal) skip = true;
 						auto modSource = spec.mSource.mCachedVal;
 						if (modSource == ModSource::None) skip = true;
-						auto modDest = spec.mDestination.mCachedVal;
-						if (modDest == ModDestination::None) skip = true;
-						if (spec.mpDestSourceEnabledParam && !spec.mpDestSourceEnabledParam->mCachedVal) {
-							skip = true;
+						bool anyDestsEnabled = false;
+						if (!skip) {
+							for (auto& d : spec.mDestinations) {
+								if (d.mCachedVal != ModDestination::None) {
+									anyDestsEnabled = true;
+									break;
+								}
+							}
+							if (!anyDestsEnabled) skip = true;
+							if (spec.mpDestSourceEnabledParam && !spec.mpDestSourceEnabledParam->mCachedVal) {
+								skip = true;
+							}
 						}
 
-						auto lastDest = this->mModSpecLastDestinations[imod];
-						if (skip) {
-							this->mModSpecLastDestinations[imod] = ModDestination::None;
-							// if we're skipping, check if we ran it previously.
-							if (lastDest != ModDestination::None) {
+						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
+							mDestValueDeltas[imod][id] = 0;
+							auto lastDest = this->mModSpecLastDestinations[imod][id];
+							auto newDest = skip ? ModDestination::None : spec.mDestinations[id].mCachedVal;
+							if (lastDest != newDest) { // if a mod destination changes, then need to reset the value to 0 to erase the effect of the modulation.
 								mDestValues[(size_t)lastDest] = 0;
 							}
-							continue;
+							mModSpecLastDestinations[imod][id] = newDest;
 						}
-						else {
-							this->mModSpecLastDestinations[imod] = modDest;
-							// don't skip; also need to reset dest values if the dest changed.
-							if (lastDest != modDest) {
-								mDestValues[(size_t)lastDest] = 0;
-							}
+
+						if (skip)
+						{
+							continue;
 						}
 
 						real_t sourceVal = GetSourceValue(modSource);
@@ -94,18 +83,30 @@ namespace WaveSabreCore
 							}
 						}
 
-						float orig = mDestValues[(size_t)modDest];
-						mDestValueDeltas[imod] = (sourceVal - orig) / (recalcMask + 1);
+						//float orig = mDestValues[(size_t)modDest];
+						//mDestValueDeltas[imod] = (sourceVal - orig) / (recalcMask + 1);
 
-						//real_t destVal = GetDestinationValue(modDest);
-						//mDestValues[(size_t)modDest] += sourceVal;
+
+						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
+							float orig = mDestValues[(size_t)spec.mDestinations[id].mCachedVal];
+							mDestValueDeltas[imod][id] = (sourceVal - orig) / (recalcMask + 1);
+							//auto lastDest = this->mModSpecLastDestinations[imod][id];
+							//auto newDest = skip ? ModDestination::None : spec.mDestinations[id].mCachedVal;
+							//if (lastDest != newDest) { // if a mod destination changes, then need to reset the value to 0 to erase the effect of the modulation.
+							//	mDestValues[(size_t)lastDest] = 0;
+							//}
+							//mModSpecLastDestinations[imod][id] = newDest;
+						}
+
 					} // for each mod
 				} // if needs recalc
 
 				for (size_t imod = 0; imod < gModulationCount; ++imod)
 				{
 					auto& spec = modSpecs[imod];
-					mDestValues[(size_t)spec.mDestination.mCachedVal] += mDestValueDeltas[imod];
+					for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
+						mDestValues[(size_t)spec.mDestinations[id].mCachedVal] += mDestValueDeltas[imod][id];
+					}
 				} // for each mod
 
 				mnSampleCount = (mnSampleCount + 1) & recalcMask;

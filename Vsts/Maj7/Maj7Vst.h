@@ -318,7 +318,7 @@ namespace WaveSabreCore
 		{
 			m->mEnabled.SetBoolValue(false);
 			m->mSource.SetEnumValue(ModSource::None);
-			m->mDestination.SetEnumValue(ModDestination::None);
+			for (auto& d : m->mDestinations) d.SetEnumValue(ModDestination::None);
 			m->mCurve.SetN11Value(0);
 			m->mScale.SetN11Value(0.6f);
 			m->mAuxEnabled.SetBoolValue(false);
@@ -499,26 +499,29 @@ namespace WaveSabreCore
 				}
 				if ((m.mSource.GetEnumValue() == modSource) || (m.mAuxEnabled.GetBoolValue() && (m.mAuxSource.GetEnumValue() == modSource))) {
 					// it's referenced by aux or main source. check that the destination is enabled.
-					auto dest = m.mDestination.GetEnumValue();
-					bool isHiddenVolumeDest = false;
-					for (auto& src : p->mSources)
+					for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
 					{
-						if (src->mHiddenVolumeModDestID == dest) {
-							isHiddenVolumeDest = true;
-							// the mod spec is modulating from this env to a hidden volume control; likely a built-in modulationspec for osc vol.
-							// if that source is enabled, then consider this used.
-							// otherwise keep looking.
-							if (src->mEnabledParam.GetBoolValue()) {
-								return true;
+						auto dest = m.mDestinations[id].GetEnumValue();
+						bool isHiddenVolumeDest = false;
+						for (auto& src : p->mSources)
+						{
+							if (src->mHiddenVolumeModDestID == dest) {
+								isHiddenVolumeDest = true;
+								// the mod spec is modulating from this env to a hidden volume control; likely a built-in modulationspec for osc vol.
+								// if that source is enabled, then consider this used.
+								// otherwise keep looking.
+								if (src->mEnabledParam.GetBoolValue()) {
+									return true;
+								}
 							}
+						}
+						if (!isHiddenVolumeDest) {
+							// it's modulating something other than a built-in volume control; assume the use cares about this.
+							// here's where ideally we'd check deeper but rather just assume it's in use. after all the user explicitly set this mod.
+							return true;
 						}
 					}
 
-					if (!isHiddenVolumeDest) {
-						// it's modulating something other than a built-in volume control; assume the use cares about this.
-						// here's where ideally we'd check deeper but rather just assume it's in use. after all the user explicitly set this mod.
-						return true;
-					}
 				}
 			}
 			return false;

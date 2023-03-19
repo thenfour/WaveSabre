@@ -708,22 +708,24 @@ public:
 						}
 							ImGui::ProgressBar(::fabsf(pv->mModMatrix.mDestValues[idest]), ImVec2{ 50, 0 }, sz);
 					}
-					for (size_t idest = 0; idest < std::size(pv->mModMatrix.mDestValueDeltas); ++idest)
-					{
-						char sz[10];
-						sprintf_s(sz, "+%d", (int)idest);
-						if ((idest & 15) == 0) {
-						}
-						else {
-							ImGui::SameLine();
-						}
-						float d = ::fabsf(pv->mModMatrix.mDestValueDeltas[idest]);
-						// d is typically VERY small so 
-						if (d > 0.00001f) {
-							d = M7::math::modCurve_xN11_kN11(d + 0.001f, 0.9f);
-						}
-						ImGui::ProgressBar(d, ImVec2{50, 0}, sz);
-					}
+
+					// todo...
+					//for (size_t idest = 0; idest < std::size(pv->mModMatrix.mDestValueDeltas); ++idest)
+					//{
+					//	char sz[10];
+					//	sprintf_s(sz, "+%d", (int)idest);
+					//	if ((idest & 15) == 0) {
+					//	}
+					//	else {
+					//		ImGui::SameLine();
+					//	}
+					//	float d = ::fabsf(pv->mModMatrix.mDestValueDeltas[idest]);
+					//	// d is typically VERY small so 
+					//	if (d > 0.00001f) {
+					//		d = M7::math::modCurve_xN11_kN11(d + 0.001f, 0.9f);
+					//	}
+					//	ImGui::ProgressBar(d, ImVec2{50, 0}, sz);
+					//}
 				}
 			}
 		}
@@ -985,7 +987,7 @@ public:
 			return ret;
 		}
 
-		float destBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Destination);
+		float destBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Destination1);
 		M7::EnumParam<M7::ModDestination> mDestination{ destBacking, M7::ModDestination::Count };
 		auto dest = mDestination.GetEnumValue();
 		if (dest == M7::ModDestination::None) {
@@ -1038,7 +1040,14 @@ public:
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
 			ImGui::SameLine();
 			ImGui::BeginDisabled(isLocked);
-			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination, "Dest", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+			{
+				ImGui::BeginGroup();
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination1, "Dest1", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination2, "Dest2", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination3, "Dest3", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination4, "Dest4", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				ImGui::EndGroup();
+			}
 			ImGui::EndDisabled();
 			ImGui::SameLine();
 			Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale, "Scale", 1);

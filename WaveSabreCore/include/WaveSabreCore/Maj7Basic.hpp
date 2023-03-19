@@ -34,7 +34,7 @@ namespace WaveSabreCore
         static constexpr real_t gFilterCenterFrequency = 1000.0f;
         static constexpr real_t gFilterFrequencyScale = 10.0f;
         static constexpr real_t gFreqParamKTUnity = 0.3f;
-
+        static constexpr size_t gModulationSpecDestinationCount = 4;
 
         static constexpr real_t gLFOLPCenterFrequency = 20.0f;
         static constexpr real_t gLFOLPFrequencyScale = 7.0f;
@@ -1086,8 +1086,11 @@ namespace WaveSabreCore
 
             Mod1Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod1Source,
-            Mod1Destination,
-            Mod1Curve,
+                    Mod1Destination1,
+                    Mod1Destination2,
+                    Mod1Destination3,
+                    Mod1Destination4,
+                    Mod1Curve,
             Mod1Scale,
             Mod1AuxEnabled,
             Mod1AuxSource,
@@ -1098,8 +1101,11 @@ namespace WaveSabreCore
 
             Mod2Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod2Source,
-            Mod2Destination,
-            Mod2Curve,
+                Mod2Destination1,
+                Mod2Destination2,
+                Mod2Destination3,
+                Mod2Destination4,
+                Mod2Curve,
             Mod2Scale,
             Mod2AuxEnabled,
             Mod2AuxSource,
@@ -1110,8 +1116,11 @@ namespace WaveSabreCore
 
             Mod3Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod3Source,
-            Mod3Destination,
-            Mod3Curve,
+                Mod3Destination1,
+                Mod3Destination2,
+                Mod3Destination3,
+                Mod3Destination4,
+                Mod3Curve,
             Mod3Scale,
             Mod3AuxEnabled,
             Mod3AuxSource,
@@ -1122,8 +1131,11 @@ namespace WaveSabreCore
 
             Mod4Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod4Source,
-            Mod4Destination,
-            Mod4Curve,
+                    Mod4Destination1,
+                    Mod4Destination2,
+                    Mod4Destination3,
+                    Mod4Destination4,
+                    Mod4Curve,
             Mod4Scale,
             Mod4AuxEnabled,
             Mod4AuxSource,
@@ -1134,8 +1146,11 @@ namespace WaveSabreCore
 
             Mod5Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod5Source,
-            Mod5Destination,
-            Mod5Curve,
+                    Mod5Destination1,
+                    Mod5Destination2,
+                    Mod5Destination3,
+                    Mod5Destination4,
+                    Mod5Curve,
             Mod5Scale,
             Mod5AuxEnabled,
             Mod5AuxSource,
@@ -1146,8 +1161,11 @@ namespace WaveSabreCore
 
             Mod6Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod6Source,
-            Mod6Destination,
-            Mod6Curve,
+                    Mod6Destination1,
+                    Mod6Destination2,
+                    Mod6Destination3,
+                    Mod6Destination4,
+                    Mod6Curve,
             Mod6Scale,
             Mod6AuxEnabled,
             Mod6AuxSource,
@@ -1158,8 +1176,11 @@ namespace WaveSabreCore
 
             Mod7Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod7Source,
-            Mod7Destination,
-            Mod7Curve,
+                    Mod7Destination1,
+                    Mod7Destination2,
+                    Mod7Destination3,
+                    Mod7Destination4,
+                    Mod7Curve,
             Mod7Scale,
             Mod7AuxEnabled,
             Mod7AuxSource,
@@ -1170,8 +1191,11 @@ namespace WaveSabreCore
 
             Mod8Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod8Source,
-            Mod8Destination,
-            Mod8Curve,
+                Mod8Destination1,
+                Mod8Destination2,
+                Mod8Destination3,
+                Mod8Destination4,
+                Mod8Curve,
             Mod8Scale,
             Mod8AuxEnabled,
             Mod8AuxSource,
@@ -1182,7 +1206,10 @@ namespace WaveSabreCore
 
                 Mod9Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod9Source,
-                Mod9Destination,
+                Mod9Destination1,
+                Mod9Destination2,
+                Mod9Destination3,
+                Mod9Destination4,
                 Mod9Curve,
                 Mod9Scale,
                 Mod9AuxEnabled,
@@ -1194,7 +1221,10 @@ namespace WaveSabreCore
 
                 Mod10Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod10Source,
-                Mod10Destination,
+                Mod10Destination1,
+                Mod10Destination2,
+                Mod10Destination3,
+                Mod10Destination4,
                 Mod10Curve,
                 Mod10Scale,
                 Mod10AuxEnabled,
@@ -1206,7 +1236,10 @@ namespace WaveSabreCore
 
                 Mod11Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod11Source,
-                Mod11Destination,
+                Mod11Destination1,
+                Mod11Destination2,
+                Mod11Destination3,
+                Mod11Destination4,
                 Mod11Curve,
                 Mod11Scale,
                 Mod11AuxEnabled,
@@ -1218,7 +1251,10 @@ namespace WaveSabreCore
 
                 Mod12Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod12Source,
-                Mod12Destination,
+                Mod12Destination1,
+                Mod12Destination2,
+                Mod12Destination3,
+                Mod12Destination4,
                 Mod12Curve,
                 Mod12Scale,
                 Mod12AuxEnabled,
@@ -1230,7 +1266,10 @@ namespace WaveSabreCore
 
                 Mod13Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod13Source,
-                Mod13Destination,
+                Mod13Destination1,
+                Mod13Destination2,
+                Mod13Destination3,
+                Mod13Destination4,
                 Mod13Curve,
                 Mod13Scale,
                 Mod13AuxEnabled,
@@ -1242,7 +1281,10 @@ namespace WaveSabreCore
 
                 Mod14Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod14Source,
-                Mod14Destination,
+                Mod14Destination1,
+                Mod14Destination2,
+                Mod14Destination3,
+                Mod14Destination4,
                 Mod14Curve,
                 Mod14Scale,
                 Mod14AuxEnabled,
@@ -1254,7 +1296,10 @@ namespace WaveSabreCore
 
                 Mod15Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod15Source,
-                Mod15Destination,
+                Mod15Destination1,
+                Mod15Destination2,
+                Mod15Destination3,
+                Mod15Destination4,
                 Mod15Curve,
                 Mod15Scale,
                 Mod15AuxEnabled,
@@ -1266,8 +1311,11 @@ namespace WaveSabreCore
 
                 Mod16Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod16Source,
-                Mod16Destination,
-                Mod16Curve,
+                    Mod16Destination1,
+                    Mod16Destination2,
+                    Mod16Destination3,
+                    Mod16Destination4,
+                    Mod16Curve,
                 Mod16Scale,
                 Mod16AuxEnabled,
                 Mod16AuxSource,
@@ -1278,8 +1326,11 @@ namespace WaveSabreCore
 
                 Mod17Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod17Source,
-                Mod17Destination,
-                Mod17Curve,
+                    Mod17Destination1,
+                    Mod17Destination2,
+                    Mod17Destination3,
+                    Mod17Destination4,
+                    Mod17Curve,
                 Mod17Scale,
                 Mod17AuxEnabled,
                 Mod17AuxSource,
@@ -1290,7 +1341,10 @@ namespace WaveSabreCore
 
                     Mod18Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                     Mod18Source,
-                    Mod18Destination,
+                    Mod18Destination1,
+                    Mod18Destination2,
+                    Mod18Destination3,
+                    Mod18Destination4,
                     Mod18Curve,
                     Mod18Scale,
                     Mod18AuxEnabled,
@@ -1442,558 +1496,612 @@ namespace WaveSabreCore
 
         // 
         #define MAJ7_PARAM_VST_NAMES { \
-		    {"Master"}, \
-		    {"PolyMon"}, \
-		    {"Unisono"}, \
-            {"OscDet"}, \
-            {"UniDet"}, \
-            {"OscSpr"}, \
-            {"UniSpr"}, \
-            {"FMBrigh"}, \
-            {"XRout"}, \
-            {"XWidth"}, \
-		    {"PortTm"}, \
-		    {"PortCv"}, \
-		    {"PBRng"}, \
-		    {"Macro1"}, \
-		    {"Macro2"}, \
-		    {"Macro3"}, \
-		    {"Macro4"}, \
-		    {"Macro5"}, \
-		    {"Macro6"}, \
-		    {"Macro7"}, \
-		    {"FM2to1"}, \
-		    {"FM3to1"}, \
-		    {"FM4to1"}, \
-		    {"FM1to2"}, \
-		    {"FM3to2"}, \
-		    {"FM4to2"}, \
-		    {"FM1to3"}, \
-		    {"FM2to3"}, \
-		    {"FM4to3"}, \
-		    {"FM1to4"}, \
-		    {"FM2to4"}, \
-		    {"FM3to4"}, \
-            {"O1En"}, \
-		    {"O1Vol"}, \
-		    {"O1KRmin"}, \
-		    {"O1KRmax"}, \
-		    {"O1Wave"}, \
-		    {"O1Shp"}, \
-		    {"O1PRst"}, \
-		    {"O1Poff"}, \
-		    {"O1Scen"}, \
-		    {"O1ScFq"}, \
-		    {"O1ScKt"}, \
-		    {"O1Fq"}, \
-		    {"O1FqKt"}, \
-		    {"O1Semi"}, \
-		    {"O1Fine"}, \
-		    {"O1Mul"}, \
-		    {"O1FMFb"}, \
-		    {"O1Xmix"}, \
-		    {"AE1dlt"}, \
-		    {"AE1att"}, \
-		    {"AE1atc"}, \
-		    {"AE1ht"}, \
-		    {"AE1dt"}, \
-		    {"AE1dc"}, \
-		    {"AE1sl"}, \
-		    {"AE1rt"}, \
-		    {"AE1tc"}, \
-		    {"AE1rst"}, \
-		    {"AE1mode"}, \
-		    {"O2En"}, \
-		    {"O2Vol"}, \
-		    {"O2KRmin"}, \
-		    {"O2KRmax"}, \
-		    {"O2Wave"}, \
-		    {"O2Shp"}, \
-		    {"O2PRst"}, \
-		    {"O2Poff"}, \
-		    {"O2Scen"}, \
-		    {"O2ScFq"}, \
-		    {"O2ScKt"}, \
-		    {"O2Fq"}, \
-		    {"O2FqKt"}, \
-		    {"O2Semi"}, \
-		    {"O2Fine"}, \
-		    {"O2Mul"}, \
-		    {"O2FMFb"}, \
-		    {"O2Xmix"}, \
-		    {"AE2dlt"}, \
-		    {"AE2att"}, \
-		    {"AE2atc"}, \
-		    {"AE2ht"}, \
-		    {"AE2dt"}, \
-		    {"AE2dc"}, \
-		    {"AE2sl"}, \
-		    {"AE2rt"}, \
-		    {"AE2tc"}, \
-		    {"AE2rst"}, \
-		    {"AE2mode"}, \
-		    {"O3En"}, \
-		    {"O3Vol"}, \
-		    {"O3KRmin"}, \
-		    {"O3KRmax"}, \
-		    {"O3Wave"}, \
-		    {"O3Shp"}, \
-		    {"O3PRst"}, \
-		    {"O3Poff"}, \
-		    {"O3Scen"}, \
-		    {"O3ScFq"}, \
-		    {"O3ScKt"}, \
-		    {"O3Fq"}, \
-		    {"O3FqKt"}, \
-		    {"O3Semi"}, \
-		    {"O3Fine"}, \
-		    {"O3Mul"}, \
-		    {"O3FMFb"}, \
-		    {"O3Xmix"}, \
-		    {"AE3dlt"}, \
-		    {"AE3att"}, \
-		    {"AE3atc"}, \
-		    {"AE3ht"}, \
-		    {"AE3dt"}, \
-		    {"AE3dc"}, \
-		    {"AE3sl"}, \
-		    {"AE3rt"}, \
-		    {"AE3tc"}, \
-		    {"AE3rst"}, \
-		    {"AE3mode"}, \
-            {"O4En"}, \
-            {"O4Vol"}, \
-            {"O4KRmin"}, \
-            {"O4KRmax"}, \
-            {"O4Wave"}, \
-            {"O4Shp"}, \
-            {"O4PRst"}, \
-            {"O4Poff"}, \
-            {"O4Scen"}, \
-            {"O4ScFq"}, \
-            {"O4ScKt"}, \
-            {"O4Fq"}, \
-            {"O4FqKt"}, \
-            {"O4Semi"}, \
-            {"O4Fine"}, \
-            {"O4Mul"}, \
-            {"O4FMFb"}, \
-            {"O4Xmix"}, \
-            {"AE4dlt"}, \
-            {"AE4att"}, \
-            {"AE4atc"}, \
-            {"AE4ht"}, \
-            {"AE4dt"}, \
-            {"AE4dc"}, \
-            {"AE4sl"}, \
-            {"AE4rt"}, \
-            {"AE4tc"}, \
-            {"AE4rst"}, \
-		    {"AE4mode"}, \
-		    {"E1dlt"}, \
-		    {"E1att"}, \
-		    {"E1atc"}, \
-		    {"E1ht"}, \
-		    {"E1dt"}, \
-		    {"E1dc"}, \
-		    {"E1sl"}, \
-		    {"E1rt"}, \
-		    {"E1tc"}, \
-		    {"E1rst"}, \
-		    {"E1mode"}, \
-		    {"E2dlt"}, \
-		    {"E2att"}, \
-		    {"E2atc"}, \
-		    {"E2ht"}, \
-		    {"E2dt"}, \
-		    {"E2dc"}, \
-		    {"E2sl"}, \
-		    {"E2rt"}, \
-		    {"E2tc"}, \
-		    {"E2rst"}, \
-		    {"E2mode"}, \
-		    {"LFO1wav"}, \
-		    {"LFO1shp"}, \
-		    {"LFO1rst"}, \
-		    {"LFO1ph"}, \
-		    {"LFO1fr"}, \
-		    {"LFO1lp"}, \
-		    {"LFO2wav"}, \
-		    {"LFO2shp"}, \
-		    {"LFO2rst"}, \
-		    {"LFO2ph"}, \
-		    {"LFO2fr"}, \
-		    {"LFO2lp"}, \
-            {"LFO3wav"}, \
-            {"LFO3shp"}, \
-            {"LFO3rst"}, \
-            {"LFO3ph"}, \
-            {"LFO3fr"}, \
-            {"LFO3lp"}, \
-            {"LFO4wav"}, \
-            {"LFO4shp"}, \
-            {"LFO4rst"}, \
-            {"LFO4ph"}, \
-            {"LFO4fr"}, \
-            {"LFO4lp"}, \
-            {"X1En"}, \
-            {"X1Link"}, \
-            {"X1Type"}, \
-            {"X1P1"}, \
-            {"X1P2"}, \
-            {"X1P3"}, \
-            {"X1P4"}, \
-            {"X1P5"}, \
-            {"X2En"}, \
-            {"X2Link"}, \
-            {"X2Type"}, \
-            {"X2P1"}, \
-            {"X2P2"}, \
-            {"X2P3"}, \
-            {"X2P4"}, \
-            {"X2P5"}, \
-            {"X3En"}, \
-            {"X3Link"}, \
-            {"X3Type"}, \
-            {"X31"}, \
-            {"X32"}, \
-            {"X33"}, \
-            {"X34"}, \
-            {"X35"}, \
-            {"X4En"}, \
-            {"X4Link"}, \
-            {"X4Type"}, \
-            {"X41"}, \
-            {"X42"}, \
-            {"X43"}, \
-            {"X44"}, \
-            {"X45"}, \
-		    {"M1en"}, \
-		    {"M1src"}, \
-		    {"M1dest"}, \
-		    {"M1curv"}, \
-		    {"M1scale"}, \
-            {"M1Aen"}, \
-            {"M1Asrc"}, \
-            {"M1Aatt"}, \
-            {"M1Acrv"}, \
-            {"M1inv"}, \
-            {"M1Ainv"}, \
-		    {"M2en"}, \
-		    {"M2src"}, \
-		    {"M2dest"}, \
-		    {"M2curv"}, \
-		    {"M2scale"}, \
-            {"M2Aen"}, \
-            {"M2Asrc"}, \
-            {"M2Aatt"}, \
-            {"M2Acrv"}, \
-            {"M2inv"}, \
-            {"M2Ainv"}, \
-		    {"M3en"}, \
-		    {"M3src"}, \
-		    {"M3dest"}, \
-		    {"M3curv"}, \
-		    {"M3scale"}, \
-            {"M3Aen"}, \
-            {"M3Asrc"}, \
-            {"M3Aatt"}, \
-            {"M3Acrv"}, \
-            {"M3inv"}, \
-            {"M3Ainv"}, \
-		    {"M4en"}, \
-		    {"M4src"}, \
-		    {"M4dest"}, \
-		    {"M4curv"}, \
-		    {"M4scale"}, \
-            {"M4Aen"}, \
-            {"M4Asrc"}, \
-            {"M4Aatt"}, \
-            {"M4Acrv"}, \
-            {"M4inv"}, \
-            {"M4Ainv"}, \
-		    {"M5en"}, \
-		    {"M5src"}, \
-		    {"M5dest"}, \
-		    {"M5curv"}, \
-		    {"M5scale"}, \
-            {"M5Aen"}, \
-            {"M5Asrc"}, \
-            {"M5Aatt"}, \
-            {"M5Acrv"}, \
-            {"M5inv"}, \
-            {"M5Ainv"}, \
-		    {"M6en"}, \
-		    {"M6src"}, \
-		    {"M6dest"}, \
-		    {"M6curv"}, \
-		    {"M6scale"}, \
-            {"M6Aen"}, \
-            {"M6Asrc"}, \
-            {"M6Aatt"}, \
-            {"M6Acrv"}, \
-            {"M6inv"}, \
-            {"M6Ainv"}, \
-		    {"M7en"}, \
-		    {"M7src"}, \
-		    {"M7dest"}, \
-		    {"M7curv"}, \
-		    {"M7scale"}, \
-            {"M7Aen"}, \
-            {"M7Asrc"}, \
-            {"M7Aatt"}, \
-            {"M7Acrv"}, \
-            {"M7inv"}, \
-            {"M7Ainv"}, \
-		    {"M8en"}, \
-		    {"M8src"}, \
-		    {"M8dest"}, \
-		    {"M8curv"}, \
-		    {"M8scale"}, \
-            {"M8Aen"}, \
-            {"M8Asrc"}, \
-            {"M8Aatt"}, \
-            {"M8Acrv"}, \
-            {"M8inv"}, \
-            {"M8Ainv"}, \
-            {"M9en"}, \
-            {"M9src"}, \
-            {"M9dest"}, \
-            {"M9curv"}, \
-            {"M9scale"}, \
-            {"M9Aen"}, \
-            {"M9Asrc"}, \
-            {"M9Aatt"}, \
-            {"M9Acrv"}, \
-            {"M9inv"}, \
-            {"M9Ainv"}, \
-            {"M10en"}, \
-            {"M10src"}, \
-            {"M10dest"}, \
-            {"M10curv"}, \
-            {"M10scle"}, \
-            {"M10Aen"}, \
-            {"M10Asrc"}, \
-            {"M10Aatt"}, \
-            {"M10Acrv"}, \
-            {"M10inv"}, \
-            {"M10Ainv"}, \
-            {"M11en"}, \
-            {"M11src"}, \
-            {"M11dest"}, \
-            {"M11curv"}, \
-            {"M11scle"}, \
-            {"M11Aen"}, \
-            {"M11Asrc"}, \
-            {"M11Aatt"}, \
-            {"M11Acrv"}, \
-            {"M11inv"}, \
-            {"M11Ainv"}, \
-            {"M12en"}, \
-            {"M12src"}, \
-            {"M12dest"}, \
-            {"M12curv"}, \
-            {"M12scle"}, \
-            {"M12Aen"}, \
-            {"M12Asrc"}, \
-            {"M12Aatt"}, \
-            {"M12Acrv"}, \
-            {"M12inv"}, \
-            {"M12Ainv"}, \
-            {"M13en"}, \
-            {"M13src"}, \
-            {"M13dest"}, \
-            {"M13curv"}, \
-            {"M13scle"}, \
-            {"M13Aen"}, \
-            {"M13Asrc"}, \
-            {"M13Aatt"}, \
-            {"M13Acrv"}, \
-            {"M13inv"}, \
-            {"M13Ainv"}, \
-            {"M14en"}, \
-            {"M14src"}, \
-            {"M14dest"}, \
-            {"M14curv"}, \
-            {"M14scle"}, \
-            {"M14Aen"}, \
-            {"M14Asrc"}, \
-            {"M14Aatt"}, \
-            {"M14Acrv"}, \
-            {"M14inv"}, \
-            {"M14Ainv"}, \
-            {"M15en"}, \
-            {"M15src"}, \
-            {"M15dest"}, \
-            {"M15curv"}, \
-            {"M15scle"}, \
-            {"M15Aen"}, \
-            {"M15Asrc"}, \
-            {"M15Aatt"}, \
-            {"M15Acrv"}, \
-            {"M15inv"}, \
-            {"M15Ainv"}, \
-            {"M16en"}, \
-            {"M16src"}, \
-            {"M16dest"}, \
-            {"M16curv"}, \
-            {"M16scle"}, \
-            {"M16Aen"}, \
-            {"M16Asrc"}, \
-            {"M16Aatt"}, \
-            {"M16Acrv"}, \
-            {"M16inv"}, \
-            {"M16Ainv"}, \
-            {"M17en"}, \
-            {"M17src"}, \
-            {"M17dest"}, \
-            {"M17curv"}, \
-            {"M17scle"}, \
-            {"M17Aen"}, \
-            {"M17Asrc"}, \
-            {"M17Aatt"}, \
-            {"M17Acrv"}, \
-            {"M17inv"}, \
-            {"M17Ainv"}, \
-            {"M18en"}, \
-            {"M18src"}, \
-            {"M18dest"}, \
-            {"M18curv"}, \
-            {"M18scle"}, \
-            {"M18Aen"}, \
-            {"M18Asrc"}, \
-            {"M18Aatt"}, \
-            {"M18Acrv"}, \
-            {"M18inv"}, \
-            {"M18Ainv"}, \
-            {"S1En"}, \
-            {"S1Vol"}, \
-            {"S1KRmin"}, \
-            {"S1KRmax"}, \
-            {"S1base"}, \
-            {"S1LTrig"}, \
-            {"S1Rev"}, \
-            {"S1src"}, \
-            {"S1gmidx"}, \
-            {"S1strt"}, \
-            {"S1LMode"}, \
-            {"S1LSrc"}, \
-            {"S1Lbeg"}, \
-            {"S1Llen"}, \
-            {"S1TunS"}, \
-            {"S1TunF"}, \
-            {"S1Frq"}, \
-            {"S1FrqKT"}, \
-            {"S1Intrp"}, \
-            {"S1RelX"}, \
-            {"S1AxMix"}, \
-		    {"S1Edlt"}, \
-		    {"S1Eatt"}, \
-		    {"S1Eatc"}, \
-		    {"S1Eht"}, \
-		    {"S1Edt"}, \
-		    {"S1Edc"}, \
-		    {"S1Esl"}, \
-		    {"S1Ert"}, \
-		    {"S1Etc"}, \
-		    {"S1Erst"}, \
-		    {"S1Emode"}, \
-            {"S2En"}, \
-            {"S2Vol"}, \
-            {"S2KRmin"}, \
-            {"S2KRmax"}, \
-            {"S2base"}, \
-            {"S2LTrig"}, \
-            {"S2Rev"}, \
-            {"S2src"}, \
-            {"S2gmidx"}, \
-            {"S2strt"}, \
-            {"S2LMode"}, \
-            {"S2LSrc"}, \
-            {"S2Lbeg"}, \
-            {"S2Llen"}, \
-            {"S2TunS"}, \
-            {"S2TunF"}, \
-            {"S2Frq"}, \
-            {"S2FrqKT"}, \
-            {"S2Intrp"}, \
-            {"S2RelX"}, \
-            {"S2AxMix"}, \
-            {"S2Edlt"}, \
-            {"S2Eatt"}, \
-            {"S2Eatc"}, \
-            {"S2Eht"}, \
-            {"S2Edt"}, \
-            {"S2Edc"}, \
-            {"S2Esl"}, \
-            {"S2Ert"}, \
-            {"S2Etc"}, \
-            {"S2Erst"}, \
-		    {"S2Emode"}, \
-            {"S3En"}, \
-            {"S3Vol"}, \
-            {"S3KRmin"}, \
-            {"S3KRmax"}, \
-            {"S3base"}, \
-            {"S3LTrig"}, \
-            {"S3Rev"}, \
-            {"S3src"}, \
-            {"S3gmidx"}, \
-            {"S3strt"}, \
-            {"S3LMode"}, \
-            {"S3LSrc"}, \
-            {"S3Lbeg"}, \
-            {"S3Llen"}, \
-            {"S3TunS"}, \
-            {"S3TunF"}, \
-            {"S3Frq"}, \
-            {"S3FrqKT"}, \
-            {"S3Intrp"}, \
-            {"S3RelX"}, \
-            {"S3AxMix"}, \
-            {"S3Edlt"}, \
-            {"S3Eatt"}, \
-            {"S3Eatc"}, \
-            {"S3Eht"}, \
-            {"S3Edt"}, \
-            {"S3Edc"}, \
-            {"S3Esl"}, \
-            {"S3Ert"}, \
-            {"S3Etc"}, \
-            {"S3Erst"}, \
-		    {"S3Emode"}, \
-            {"S4En"}, \
-            {"S4Vol"}, \
-            {"S4KRmin"}, \
-            {"S4KRmax"}, \
-            {"S4base"}, \
-            {"S4LTrig"}, \
-            {"S4Rev"}, \
-            {"S4src"}, \
-            {"S4gmidx"}, \
-            {"S4strt"}, \
-            {"S4LMode"}, \
-            {"S4LSrc"}, \
-            {"S4Lbeg"}, \
-            {"S4Llen"}, \
-            {"S4TunS"}, \
-            {"S4TunF"}, \
-            {"S4Frq"}, \
-            {"S4FrqKT"}, \
-            {"S4Intrp"}, \
-            {"S4RelX"}, \
-            {"S4AxMix"}, \
-            {"S4Edlt"}, \
-            {"S4Eatt"}, \
-            {"S4Eatc"}, \
-            {"S4Eht"}, \
-            {"S4Edt"}, \
-            {"S4Edc"}, \
-            {"S4Esl"}, \
-            {"S4Ert"}, \
-            {"S4Etc"}, \
-            {"S4Erst"}, \
-		    {"S4Emode"}, \
+{"Master"}, \
+{"PolyMon"}, \
+{"Unisono"}, \
+{"OscDet"}, \
+{"UniDet"}, \
+{"OscSpr"}, \
+{"UniSpr"}, \
+{"FMBrigh"}, \
+{"XRout"}, \
+{"XWidth"}, \
+{"PortTm"}, \
+{"PortCv"}, \
+{"PBRng"}, \
+{"Macro1"}, \
+{"Macro2"}, \
+{"Macro3"}, \
+{"Macro4"}, \
+{"Macro5"}, \
+{"Macro6"}, \
+{"Macro7"}, \
+{"FM2to1"}, \
+{"FM3to1"}, \
+{"FM4to1"}, \
+{"FM1to2"}, \
+{"FM3to2"}, \
+{"FM4to2"}, \
+{"FM1to3"}, \
+{"FM2to3"}, \
+{"FM4to3"}, \
+{"FM1to4"}, \
+{"FM2to4"}, \
+{"FM3to4"}, \
+{"O1En"}, \
+{"O1Vol"}, \
+{"O1KRmin"}, \
+{"O1KRmax"}, \
+{"O1Wave"}, \
+{"O1Shp"}, \
+{"O1PRst"}, \
+{"O1Poff"}, \
+{"O1Scen"}, \
+{"O1ScFq"}, \
+{"O1ScKt"}, \
+{"O1Fq"}, \
+{"O1FqKt"}, \
+{"O1Semi"}, \
+{"O1Fine"}, \
+{"O1Mul"}, \
+{"O1FMFb"}, \
+{"O1Xmix"}, \
+{"AE1dlt"}, \
+{"AE1att"}, \
+{"AE1atc"}, \
+{"AE1ht"}, \
+{"AE1dt"}, \
+{"AE1dc"}, \
+{"AE1sl"}, \
+{"AE1rt"}, \
+{"AE1tc"}, \
+{"AE1rst"}, \
+{"AE1mode"}, \
+{"O2En"}, \
+{"O2Vol"}, \
+{"O2KRmin"}, \
+{"O2KRmax"}, \
+{"O2Wave"}, \
+{"O2Shp"}, \
+{"O2PRst"}, \
+{"O2Poff"}, \
+{"O2Scen"}, \
+{"O2ScFq"}, \
+{"O2ScKt"}, \
+{"O2Fq"}, \
+{"O2FqKt"}, \
+{"O2Semi"}, \
+{"O2Fine"}, \
+{"O2Mul"}, \
+{"O2FMFb"}, \
+{"O2Xmix"}, \
+{"AE2dlt"}, \
+{"AE2att"}, \
+{"AE2atc"}, \
+{"AE2ht"}, \
+{"AE2dt"}, \
+{"AE2dc"}, \
+{"AE2sl"}, \
+{"AE2rt"}, \
+{"AE2tc"}, \
+{"AE2rst"}, \
+{"AE2mode"}, \
+{"O3En"}, \
+{"O3Vol"}, \
+{"O3KRmin"}, \
+{"O3KRmax"}, \
+{"O3Wave"}, \
+{"O3Shp"}, \
+{"O3PRst"}, \
+{"O3Poff"}, \
+{"O3Scen"}, \
+{"O3ScFq"}, \
+{"O3ScKt"}, \
+{"O3Fq"}, \
+{"O3FqKt"}, \
+{"O3Semi"}, \
+{"O3Fine"}, \
+{"O3Mul"}, \
+{"O3FMFb"}, \
+{"O3Xmix"}, \
+{"AE3dlt"}, \
+{"AE3att"}, \
+{"AE3atc"}, \
+{"AE3ht"}, \
+{"AE3dt"}, \
+{"AE3dc"}, \
+{"AE3sl"}, \
+{"AE3rt"}, \
+{"AE3tc"}, \
+{"AE3rst"}, \
+{"AE3mode"}, \
+{"O4En"}, \
+{"O4Vol"}, \
+{"O4KRmin"}, \
+{"O4KRmax"}, \
+{"O4Wave"}, \
+{"O4Shp"}, \
+{"O4PRst"}, \
+{"O4Poff"}, \
+{"O4Scen"}, \
+{"O4ScFq"}, \
+{"O4ScKt"}, \
+{"O4Fq"}, \
+{"O4FqKt"}, \
+{"O4Semi"}, \
+{"O4Fine"}, \
+{"O4Mul"}, \
+{"O4FMFb"}, \
+{"O4Xmix"}, \
+{"AE4dlt"}, \
+{"AE4att"}, \
+{"AE4atc"}, \
+{"AE4ht"}, \
+{"AE4dt"}, \
+{"AE4dc"}, \
+{"AE4sl"}, \
+{"AE4rt"}, \
+{"AE4tc"}, \
+{"AE4rst"}, \
+{"AE4mode"}, \
+{"E1dlt"}, \
+{"E1att"}, \
+{"E1atc"}, \
+{"E1ht"}, \
+{"E1dt"}, \
+{"E1dc"}, \
+{"E1sl"}, \
+{"E1rt"}, \
+{"E1tc"}, \
+{"E1rst"}, \
+{"E1mode"}, \
+{"E2dlt"}, \
+{"E2att"}, \
+{"E2atc"}, \
+{"E2ht"}, \
+{"E2dt"}, \
+{"E2dc"}, \
+{"E2sl"}, \
+{"E2rt"}, \
+{"E2tc"}, \
+{"E2rst"}, \
+{"E2mode"}, \
+{"LFO1wav"}, \
+{"LFO1shp"}, \
+{"LFO1rst"}, \
+{"LFO1ph"}, \
+{"LFO1fr"}, \
+{"LFO1lp"}, \
+{"LFO2wav"}, \
+{"LFO2shp"}, \
+{"LFO2rst"}, \
+{"LFO2ph"}, \
+{"LFO2fr"}, \
+{"LFO2lp"}, \
+{"LFO3wav"}, \
+{"LFO3shp"}, \
+{"LFO3rst"}, \
+{"LFO3ph"}, \
+{"LFO3fr"}, \
+{"LFO3lp"}, \
+{"LFO4wav"}, \
+{"LFO4shp"}, \
+{"LFO4rst"}, \
+{"LFO4ph"}, \
+{"LFO4fr"}, \
+{"LFO4lp"}, \
+{"X1En"}, \
+{"X1Link"}, \
+{"X1Type"}, \
+{"X1P1"}, \
+{"X1P2"}, \
+{"X1P3"}, \
+{"X1P4"}, \
+{"X1P5"}, \
+{"X2En"}, \
+{"X2Link"}, \
+{"X2Type"}, \
+{"X2P1"}, \
+{"X2P2"}, \
+{"X2P3"}, \
+{"X2P4"}, \
+{"X2P5"}, \
+{"X3En"}, \
+{"X3Link"}, \
+{"X3Type"}, \
+{"X31"}, \
+{"X32"}, \
+{"X33"}, \
+{"X34"}, \
+{"X35"}, \
+{"X4En"}, \
+{"X4Link"}, \
+{"X4Type"}, \
+{"X41"}, \
+{"X42"}, \
+{"X43"}, \
+{"X44"}, \
+{"X45"}, \
+{"M1en"}, \
+{"M1src"}, \
+{"M1dest1"}, \
+{"M1dest2"}, \
+{"M1dest3"}, \
+{"M1dest4"}, \
+{"M1curv"}, \
+{"M1scale"}, \
+{"M1Aen"}, \
+{"M1Asrc"}, \
+{"M1Aatt"}, \
+{"M1Acrv"}, \
+{"M1inv"}, \
+{"M1Ainv"}, \
+{"M2en"}, \
+{"M2src"}, \
+{"M2dest1"}, \
+{"M2dest2"}, \
+{"M2dest3"}, \
+{"M2dest4"}, \
+{"M2curv"}, \
+{"M2scale"}, \
+{"M2Aen"}, \
+{"M2Asrc"}, \
+{"M2Aatt"}, \
+{"M2Acrv"}, \
+{"M2inv"}, \
+{"M2Ainv"}, \
+{"M3en"}, \
+{"M3src"}, \
+{"M3dest1"}, \
+{"M3dest2"}, \
+{"M3dest3"}, \
+{"M3dest4"}, \
+{"M3curv"}, \
+{"M3scale"}, \
+{"M3Aen"}, \
+{"M3Asrc"}, \
+{"M3Aatt"}, \
+{"M3Acrv"}, \
+{"M3inv"}, \
+{"M3Ainv"}, \
+{"M4en"}, \
+{"M4src"}, \
+{"M4dest1"}, \
+{"M4dest2"}, \
+{"M4dest3"}, \
+{"M4dest4"}, \
+{"M4curv"}, \
+{"M4scale"}, \
+{"M4Aen"}, \
+{"M4Asrc"}, \
+{"M4Aatt"}, \
+{"M4Acrv"}, \
+{"M4inv"}, \
+{"M4Ainv"}, \
+{"M5en"}, \
+{"M5src"}, \
+{"M5dest1"}, \
+{"M5dest2"}, \
+{"M5dest3"}, \
+{"M5dest4"}, \
+{"M5curv"}, \
+{"M5scale"}, \
+{"M5Aen"}, \
+{"M5Asrc"}, \
+{"M5Aatt"}, \
+{"M5Acrv"}, \
+{"M5inv"}, \
+{"M5Ainv"}, \
+{"M6en"}, \
+{"M6src"}, \
+{"M6dest1"}, \
+{"M6dest2"}, \
+{"M6dest3"}, \
+{"M6dest4"}, \
+{"M6curv"}, \
+{"M6scale"}, \
+{"M6Aen"}, \
+{"M6Asrc"}, \
+{"M6Aatt"}, \
+{"M6Acrv"}, \
+{"M6inv"}, \
+{"M6Ainv"}, \
+{"M7en"}, \
+{"M7src"}, \
+{"M7dest1"}, \
+{"M7dest2"}, \
+{"M7dest3"}, \
+{"M7dest4"}, \
+{"M7curv"}, \
+{"M7scale"}, \
+{"M7Aen"}, \
+{"M7Asrc"}, \
+{"M7Aatt"}, \
+{"M7Acrv"}, \
+{"M7inv"}, \
+{"M7Ainv"}, \
+{"M8en"}, \
+{"M8src"}, \
+{"M8dest1"}, \
+{"M8dest2"}, \
+{"M8dest3"}, \
+{"M8dest4"}, \
+{"M8curv"}, \
+{"M8scale"}, \
+{"M8Aen"}, \
+{"M8Asrc"}, \
+{"M8Aatt"}, \
+{"M8Acrv"}, \
+{"M8inv"}, \
+{"M8Ainv"}, \
+{"M9en"}, \
+{"M9src"}, \
+{"M9dest1"}, \
+{"M9dest2"}, \
+{"M9dest3"}, \
+{"M9dest4"}, \
+{"M9curv"}, \
+{"M9scale"}, \
+{"M9Aen"}, \
+{"M9Asrc"}, \
+{"M9Aatt"}, \
+{"M9Acrv"}, \
+{"M9inv"}, \
+{"M9Ainv"}, \
+{"M10en"}, \
+{"M10src"}, \
+{"M10dst1"}, \
+{"M10dst2"}, \
+{"M10dst3"}, \
+{"M10dst4"}, \
+{"M10curv"}, \
+{"M10scle"}, \
+{"M10Aen"}, \
+{"M10Asrc"}, \
+{"M10Aatt"}, \
+{"M10Acrv"}, \
+{"M10inv"}, \
+{"M10Ainv"}, \
+{"M11en"}, \
+{"M11src"}, \
+{"M11dst1"}, \
+{"M11dst2"}, \
+{"M11dst3"}, \
+{"M11dst4"}, \
+{"M11curv"}, \
+{"M11scle"}, \
+{"M11Aen"}, \
+{"M11Asrc"}, \
+{"M11Aatt"}, \
+{"M11Acrv"}, \
+{"M11inv"}, \
+{"M11Ainv"}, \
+{"M12en"}, \
+{"M12src"}, \
+{"M12dst1"}, \
+{"M12dst2"}, \
+{"M12dst3"}, \
+{"M12dst4"}, \
+{"M12curv"}, \
+{"M12scle"}, \
+{"M12Aen"}, \
+{"M12Asrc"}, \
+{"M12Aatt"}, \
+{"M12Acrv"}, \
+{"M12inv"}, \
+{"M12Ainv"}, \
+{"M13en"}, \
+{"M13src"}, \
+{"M13dst1"}, \
+{"M13dst2"}, \
+{"M13dst3"}, \
+{"M13dst4"}, \
+{"M13curv"}, \
+{"M13scle"}, \
+{"M13Aen"}, \
+{"M13Asrc"}, \
+{"M13Aatt"}, \
+{"M13Acrv"}, \
+{"M13inv"}, \
+{"M13Ainv"}, \
+{"M14en"}, \
+{"M14src"}, \
+{"M14dst1"}, \
+{"M14dst2"}, \
+{"M14dst3"}, \
+{"M14dst4"}, \
+{"M14curv"}, \
+{"M14scle"}, \
+{"M14Aen"}, \
+{"M14Asrc"}, \
+{"M14Aatt"}, \
+{"M14Acrv"}, \
+{"M14inv"}, \
+{"M14Ainv"}, \
+{"M15en"}, \
+{"M15src"}, \
+{"M15dst1"}, \
+{"M15dst2"}, \
+{"M15dst3"}, \
+{"M15dst4"}, \
+{"M15curv"}, \
+{"M15scle"}, \
+{"M15Aen"}, \
+{"M15Asrc"}, \
+{"M15Aatt"}, \
+{"M15Acrv"}, \
+{"M15inv"}, \
+{"M15Ainv"}, \
+{"M16en"}, \
+{"M16src"}, \
+{"M16dst1"}, \
+{"M16dst2"}, \
+{"M16dst3"}, \
+{"M16dst4"}, \
+{"M16curv"}, \
+{"M16scle"}, \
+{"M16Aen"}, \
+{"M16Asrc"}, \
+{"M16Aatt"}, \
+{"M16Acrv"}, \
+{"M16inv"}, \
+{"M16Ainv"}, \
+{"M17en"}, \
+{"M17src"}, \
+{"M17dst1"}, \
+{"M17dst2"}, \
+{"M17dst3"}, \
+{"M17dst4"}, \
+{"M17curv"}, \
+{"M17scle"}, \
+{"M17Aen"}, \
+{"M17Asrc"}, \
+{"M17Aatt"}, \
+{"M17Acrv"}, \
+{"M17inv"}, \
+{"M17Ainv"}, \
+{"M18en"}, \
+{"M18src"}, \
+{"M18dst1"}, \
+{"M18dst2"}, \
+{"M18dst3"}, \
+{"M18dst4"}, \
+{"M18curv"}, \
+{"M18scle"}, \
+{"M18Aen"}, \
+{"M18Asrc"}, \
+{"M18Aatt"}, \
+{"M18Acrv"}, \
+{"M18inv"}, \
+{"M18Ainv"}, \
+{"S1En"}, \
+{"S1Vol"}, \
+{"S1KRmin"}, \
+{"S1KRmax"}, \
+{"S1base"}, \
+{"S1LTrig"}, \
+{"S1Rev"}, \
+{"S1src"}, \
+{"S1gmidx"}, \
+{"S1strt"}, \
+{"S1LMode"}, \
+{"S1LSrc"}, \
+{"S1Lbeg"}, \
+{"S1Llen"}, \
+{"S1TunS"}, \
+{"S1TunF"}, \
+{"S1Frq"}, \
+{"S1FrqKT"}, \
+{"S1Intrp"}, \
+{"S1RelX"}, \
+{"S1AxMix"}, \
+{"S1Edlt"}, \
+{"S1Eatt"}, \
+{"S1Eatc"}, \
+{"S1Eht"}, \
+{"S1Edt"}, \
+{"S1Edc"}, \
+{"S1Esl"}, \
+{"S1Ert"}, \
+{"S1Etc"}, \
+{"S1Erst"}, \
+{"S1Emode"}, \
+{"S2En"}, \
+{"S2Vol"}, \
+{"S2KRmin"}, \
+{"S2KRmax"}, \
+{"S2base"}, \
+{"S2LTrig"}, \
+{"S2Rev"}, \
+{"S2src"}, \
+{"S2gmidx"}, \
+{"S2strt"}, \
+{"S2LMode"}, \
+{"S2LSrc"}, \
+{"S2Lbeg"}, \
+{"S2Llen"}, \
+{"S2TunS"}, \
+{"S2TunF"}, \
+{"S2Frq"}, \
+{"S2FrqKT"}, \
+{"S2Intrp"}, \
+{"S2RelX"}, \
+{"S2AxMix"}, \
+{"S2Edlt"}, \
+{"S2Eatt"}, \
+{"S2Eatc"}, \
+{"S2Eht"}, \
+{"S2Edt"}, \
+{"S2Edc"}, \
+{"S2Esl"}, \
+{"S2Ert"}, \
+{"S2Etc"}, \
+{"S2Erst"}, \
+{"S2Emode"}, \
+{"S3En"}, \
+{"S3Vol"}, \
+{"S3KRmin"}, \
+{"S3KRmax"}, \
+{"S3base"}, \
+{"S3LTrig"}, \
+{"S3Rev"}, \
+{"S3src"}, \
+{"S3gmidx"}, \
+{"S3strt"}, \
+{"S3LMode"}, \
+{"S3LSrc"}, \
+{"S3Lbeg"}, \
+{"S3Llen"}, \
+{"S3TunS"}, \
+{"S3TunF"}, \
+{"S3Frq"}, \
+{"S3FrqKT"}, \
+{"S3Intrp"}, \
+{"S3RelX"}, \
+{"S3AxMix"}, \
+{"S3Edlt"}, \
+{"S3Eatt"}, \
+{"S3Eatc"}, \
+{"S3Eht"}, \
+{"S3Edt"}, \
+{"S3Edc"}, \
+{"S3Esl"}, \
+{"S3Ert"}, \
+{"S3Etc"}, \
+{"S3Erst"}, \
+{"S3Emode"}, \
+{"S4En"}, \
+{"S4Vol"}, \
+{"S4KRmin"}, \
+{"S4KRmax"}, \
+{"S4base"}, \
+{"S4LTrig"}, \
+{"S4Rev"}, \
+{"S4src"}, \
+{"S4gmidx"}, \
+{"S4strt"}, \
+{"S4LMode"}, \
+{"S4LSrc"}, \
+{"S4Lbeg"}, \
+{"S4Llen"}, \
+{"S4TunS"}, \
+{"S4TunF"}, \
+{"S4Frq"}, \
+{"S4FrqKT"}, \
+{"S4Intrp"}, \
+{"S4RelX"}, \
+{"S4AxMix"}, \
+{"S4Edlt"}, \
+{"S4Eatt"}, \
+{"S4Eatc"}, \
+{"S4Eht"}, \
+{"S4Edt"}, \
+{"S4Edc"}, \
+{"S4Esl"}, \
+{"S4Ert"}, \
+{"S4Etc"}, \
+{"S4Erst"}, \
+{"S4Emode"}, \
         }
 
         enum class MainParamIndices : uint8_t
@@ -2069,7 +2177,10 @@ namespace WaveSabreCore
         {
             Enabled,
             Source,
-            Destination,
+            Destination1,
+            Destination2,
+            Destination3,
+            Destination4,
             Curve,
             Scale,
             AuxEnabled,
