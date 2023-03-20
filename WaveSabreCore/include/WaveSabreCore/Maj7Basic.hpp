@@ -516,9 +516,9 @@ namespace WaveSabreCore
 
             static constexpr real_t gCenterValue = 375; // the MS at 0.5 param value.
             static constexpr int gRangeLog2 = 10;      // must be even for below calculations to work
-            static constexpr real_t gMinRawVal =
-                (1.0f / (1 << (gRangeLog2 / 2))) *
-                gCenterValue; // minimum value as described by log calc (before subtracting min).
+            static constexpr real_t gMinRawVal = 12; // slightly above the correct value (~1ms), in order to guarantee envelope times can reach true 0.
+                //(1.0f / (1 << (gRangeLog2 / 2))) *
+                //gCenterValue; // minimum value as described by log calc (before subtracting min).
             static constexpr real_t gMaxRawVal = (1 << (gRangeLog2 / 2)) * gCenterValue;
             static constexpr real_t gMinRealVal = 0;
             static constexpr real_t gMaxRealVal = gMaxRawVal - gMinRawVal;

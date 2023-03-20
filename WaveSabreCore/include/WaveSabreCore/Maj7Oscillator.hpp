@@ -16,7 +16,7 @@ namespace WaveSabreCore
 		static constexpr real_t gLFOFrequencyCenterHz = 1.5f;
 		static constexpr real_t gLFOFrequencyScale = 8;
 		static constexpr float gVarTrapezoidSoftSlope = 0.7f;
-		static constexpr float gVarTrapezoidHardSlope = 0.2f;
+		static constexpr float gVarTrapezoidHardSlope = 0.15f;
 		static constexpr float gOscillatorHeadroomScalar = 0.75f; // scale oscillator outputs down to make room for blepping etc.
 
 		// sampler, oscillator, LFO @ device level
@@ -219,7 +219,7 @@ namespace WaveSabreCore
 			float mPhaseOffset = 0;
 
 			float mDCOffset = 0; // while we could try to bake our wave generator with correct DC, it's very inconvenient. This is just way easier.
-			float mScale = gOscillatorHeadroomScalar; // same here; way easier to just scale in post than to try and get everything scaled correctly during generation.
+			float mScale = 1; // same here; way easier to just scale in post than to try and get everything scaled correctly during generation.
 
 			float mFrequency = 0;
 			double mPhase = 0; // phase cursor 0-1
@@ -354,7 +354,7 @@ namespace WaveSabreCore
 
 				mDCOffset = -mShape; // offset so we can scale to fill both axes
 				mScale = 1 / (1.0f - mShape); // scale it up so it fills both axes
-				mScale *= gOscillatorHeadroomScalar;
+				//mScale *= gOscillatorHeadroomScalar;
 			}
 
 			// samples is 0<samples<1
@@ -429,7 +429,7 @@ namespace WaveSabreCore
 
 				mDCOffset = -(.5f + .5f * mFlatValue); // offset so we can scale to fill both axes
 				mScale = 1.0f / (.5f - .5f * mFlatValue); // scale it up so it fills both axes
-				mScale *= gOscillatorHeadroomScalar;
+				//mScale *= gOscillatorHeadroomScalar;
 			}
 
 			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
@@ -734,7 +734,7 @@ namespace WaveSabreCore
 				mShape = math::lerp(0.97f, 0.03f, waveshape);
 				mDCOffset = -.5;//-.5 * this.shape;
 				mScale = 2;//1/(.5+this.DCOffset);
-				mScale *= gOscillatorHeadroomScalar;
+				//mScale *= gOscillatorHeadroomScalar;
 			}
 
 			virtual float NaiveSample(float phase01) override
@@ -1392,7 +1392,7 @@ namespace WaveSabreCore
 				// current sample will be used on next sample (this is the 1-sample delay)
 				mCurrentSample += mpSlaveWave->NaiveSample(float(mpSlaveWave->mPhase + phaseMod));
 				mCurrentSample = math::clampN11(mCurrentSample); // prevent FM from going crazy.
-				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale;
+				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale * gOscillatorHeadroomScalar;
 
 				return mOutSample;
 			} // process sample for audio

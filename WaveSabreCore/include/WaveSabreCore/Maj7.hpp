@@ -622,7 +622,7 @@ namespace WaveSabreCore
 					mSampler3AmpEnv(mModMatrix, ModDestination::Sampler3AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv),
 					mSampler4AmpEnv(mModMatrix, ModDestination::Sampler4AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv),
 					mModEnv1(mModMatrix, ModDestination::Env1DelayTime, owner->mParamCache, (int)ParamIndices::Env1DelayTime, ModSource::ModEnv1),
-					mModEnv2(mModMatrix, ModDestination::Env2DelayTime, owner->mParamCache, (int)ParamIndices::Env2DelayTime, ModSource::ModEnv1),
+					mModEnv2(mModMatrix, ModDestination::Env2DelayTime, owner->mParamCache, (int)ParamIndices::Env2DelayTime, ModSource::ModEnv2),
 					mOscillator1(&owner->mOscillatorDevices[0], mModMatrix, &mOsc1AmpEnv),
 					mOscillator2(&owner->mOscillatorDevices[1], mModMatrix, &mOsc2AmpEnv),
 					mOscillator3(&owner->mOscillatorDevices[2], mModMatrix, &mOsc3AmpEnv),
@@ -782,8 +782,6 @@ namespace WaveSabreCore
 						return;
 					}
 
-					mModMatrix.ProcessSample(mpOwner->mModulations); // this sets dest values to 0.
-
 					float l = mModEnv1.ProcessSample();
 					mModMatrix.SetSourceValue(ModSource::ModEnv1,l );
 
@@ -912,6 +910,8 @@ namespace WaveSabreCore
 					mPortamento.Advance(1,
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime)
 					);
+
+					mModMatrix.ProcessSample(mpOwner->mModulations); // this sets dest values to 0.
 				}
 
 				virtual void NoteOn() override {

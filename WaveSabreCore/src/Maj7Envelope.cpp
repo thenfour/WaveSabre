@@ -62,7 +62,7 @@ namespace WaveSabreCore
             case EnvelopeStage::Decay:
                 if (math::FloatLessThanOrEquals(mDecayTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)), 0))
                 {
-                    AdvanceToStage(mMode.mCachedVal == EnvelopeMode::Sustain ? EnvelopeStage::Sustain : EnvelopeStage::Idle);
+                    AdvanceToStage(mMode.mCachedVal == EnvelopeMode::Sustain ? EnvelopeStage::Sustain : EnvelopeStage::ReleaseSilence);
                     return;
                 }
                 break;
@@ -71,11 +71,13 @@ namespace WaveSabreCore
             case EnvelopeStage::Release:
                 if (math::FloatLessThanOrEquals(mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)), 0))
                 {
-                    AdvanceToStage(EnvelopeStage::Idle);
+                    AdvanceToStage(EnvelopeStage::ReleaseSilence);
                     return;
                 }
                 // here we must determine the value to release from, based on existing stage.
                 mReleaseFromValue01 = mLastOutputLevel;
+                break;
+            case EnvelopeStage::ReleaseSilence:
                 break;
             }
             mStagePos01 = 0;
@@ -97,8 +99,14 @@ namespace WaveSabreCore
             EnvelopeNode::AdvanceToStage(EnvelopeStage::Release);
         }
 
+        // call to forcibly kill the env and jump to silence
         float EnvelopeNode::kill() {
-            EnvelopeNode::AdvanceToStage(EnvelopeStage::Idle);
+            mnSampleCount = 0;
+            mStage = EnvelopeStage::Idle;
+            mLastOutputLevel = 0;
+            mOutputDeltaPerSample = 0;
+            mStagePosIncPerSample = 0;
+            mAttackFromValue01 = 0;
             return 0;
         }
 
@@ -109,17 +117,9 @@ namespace WaveSabreCore
             RecalcState();
         }
 
-        float EnvelopeNode::ProcessSample()
+        void EnvelopeNode::ProcessSampleFull(int recalcPeriod)
         {
-            auto recalcMask = GetModulationRecalcSampleMask();
-            bool calc = (mnSampleCount == 0);
-            mnSampleCount = (mnSampleCount + 1) & recalcMask;
-            if (!calc) {
-                mLastOutputLevel += mOutputDeltaPerSample;
-                return mLastOutputLevel;
-            }
-
-            // proceed to full calc
+            // full calc
             mMode.CacheValue();
 
             float ret = 0;
@@ -130,31 +130,31 @@ namespace WaveSabreCore
             default:
             case EnvelopeStage::Idle: {
                 mLastOutputLevel = 0;
-                return 0;
+                return;
             }
             case EnvelopeStage::Delay: {
                 ret = mReleaseCurve.ApplyToValue(1.0f - mReleaseStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));
                 ret = ret * mReleaseFromValue01;
-                mReleaseStagePos01 += mReleaseStagePosIncPerSample * (recalcMask + 1);
+                mReleaseStagePos01 += mReleaseStagePosIncPerSample * recalcPeriod;
                 nextStage = EnvelopeStage::Attack;
-                break;
+                break; // advance through stage.
             }
             case EnvelopeStage::Attack: {
                 ret = mAttackCurve.ApplyToValue(mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackCurve));
                 ret = math::lerp(mAttackFromValue01, 1, ret);
                 nextStage = EnvelopeStage::Hold;
-                break;
+                break; // advance through stage.
             }
             case EnvelopeStage::Hold: {
                 ret = 1;
                 nextStage = EnvelopeStage::Decay;
-                break;
+                break; // advance through stage.
             }
             case EnvelopeStage::Decay: {
                 // 0-1 => 1 - sustainlevel
                 // curve contained within the stage, not the output 0-1 range.
                 float susLevel = 0;
-                nextStage = EnvelopeStage::Idle;
+                nextStage = EnvelopeStage::ReleaseSilence;
                 if (mMode.mCachedVal == EnvelopeMode::Sustain) {
                     nextStage = EnvelopeStage::Sustain;
                     susLevel = mSustainLevel.Get01Value(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel));
@@ -162,37 +162,58 @@ namespace WaveSabreCore
                 float range = 1.0f - (susLevel);
                 ret = 1.0f - mDecayCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayCurve));
                 ret = 1.0f - range * ret;
-                break;
+                break; // advance through stage.
             }
             case EnvelopeStage::Sustain: {
                 if (mMode.mCachedVal == EnvelopeMode::OneShot) {
-                    return kill();
+                    kill();
+                    return;
                 }
                 float ret = (mSustainLevel.Get01Value(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::SustainLevel)));
                 mLastOutputLevel = ret;
-                return ret;
+                return;
             }
             case EnvelopeStage::Release: {
                 if (mMode.mCachedVal == EnvelopeMode::OneShot) {
-                    return kill();
+                    kill();
+                    return;
                 }
                 // 0-1 => mReleaseFromValue01 - 0
                 // curve contained within the stage, not the output 0-1 range.
                 //ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01);
                 ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));
                 ret = ret * mReleaseFromValue01;
-                nextStage = EnvelopeStage::Idle;
+                nextStage = EnvelopeStage::ReleaseSilence;
+                break; // advance through stage.
+            }
+            case EnvelopeStage::ReleaseSilence: {
+                ret = 0;
                 break;
+                nextStage = EnvelopeStage::Idle;
             }
             }
 
-            mStagePos01 += mStagePosIncPerSample * (recalcMask + 1);
+            mStagePos01 += mStagePosIncPerSample * recalcPeriod;
             if (mStagePos01 >= 1.0f)
             {
                 AdvanceToStage(nextStage);
             }
 
-            mOutputDeltaPerSample = (ret - mLastOutputLevel) / (recalcMask + 1);
+            mOutputDeltaPerSample = (ret - mLastOutputLevel) / recalcPeriod;
+            //mLastOutputLevel += mOutputDeltaPerSample;
+            //return mLastOutputLevel;
+        }
+
+        float EnvelopeNode::ProcessSample()
+        {
+            auto recalcMask = GetModulationRecalcSampleMask();
+            bool calc = (mnSampleCount == 0);
+            mnSampleCount = (mnSampleCount + 1) & recalcMask;
+
+            if (calc) {
+                ProcessSampleFull(recalcMask + 1);
+            }
+
             mLastOutputLevel += mOutputDeltaPerSample;
             return mLastOutputLevel;
         }
@@ -246,6 +267,10 @@ namespace WaveSabreCore
                 UpdateStagePosInc(mReleaseTime, EnvModParamIndexOffsets::ReleaseTime);
                 //mStagePosIncPerSample =
                 //    math::CalculateInc01PerSampleForMS(mReleaseTime.GetMilliseconds(mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
+                return;
+            }
+            case EnvelopeStage::ReleaseSilence: {
+                mStagePosIncPerSample = 0.4f; // a couple samples of silence before advancing to idle.
                 return;
             }
             }

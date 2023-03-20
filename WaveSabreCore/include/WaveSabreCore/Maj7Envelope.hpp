@@ -9,8 +9,6 @@ namespace WaveSabreCore
     {
         struct EnvelopeNode
         {
-            size_t mnSampleCount = 0;
-
             const int mParamBaseID;
             EnvTimeParam mDelayTime;//;{ 0 };
             EnvTimeParam mAttackTime;//;{ 0 };
@@ -37,6 +35,7 @@ namespace WaveSabreCore
                 Decay,   // output = curve from 1 to 0
                 Sustain, // output = SustainLevel
                 Release, // output = curve from Y to 0, based on when release occurred
+                ReleaseSilence, // output = 0. one sample of silence after the release phase is required to bring modulation destinations to 0 before "turning off" the envelope.
             };
 
             // advances to a specified stage. The point of this is to advance through 0-length stages so we don't end up with
@@ -68,10 +67,13 @@ namespace WaveSabreCore
 
             void BeginBlock();
 
+            void ProcessSampleFull(int recalcPeriod);
             float ProcessSample();
+
         private:
             void RecalcState();
 
+            size_t mnSampleCount = 0;
             EnvelopeStage mStage = EnvelopeStage::Idle;
             real_t mStagePos01 = 0;      // where in the current stage are we?
             real_t mLastOutputLevel = 0; // used to calculated release from value.
@@ -90,7 +92,6 @@ namespace WaveSabreCore
 
             ModMatrixNode& mModMatrix;
             const int mModDestBase;// delay time
-
         };
 
     } // namespace M7

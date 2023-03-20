@@ -315,7 +315,7 @@ namespace WaveSabreCore
 			return mVoicesUnisono;
 		}
 
-		static constexpr int maxVoices = 32;// for the sake of CPU savings don't go crazy. if this is too high then long release times or big unisono will just kill a CPU.
+		static constexpr int maxVoices = 48;
 		static constexpr int maxEvents = 64;
 		static constexpr int maxActiveNotes = 128; // should always be 128 for all midi notes.
 
