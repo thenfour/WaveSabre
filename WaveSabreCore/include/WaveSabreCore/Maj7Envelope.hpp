@@ -73,7 +73,6 @@ namespace WaveSabreCore
         private:
             void RecalcState();
 
-            size_t mnSamplesSinceCalc = 1;
             size_t mnSampleCount = 0;
             EnvelopeStage mStage = EnvelopeStage::Idle;
             real_t mStagePos01 = 0;      // where in the current stage are we?

@@ -121,6 +121,7 @@ namespace WaveSabreCore
         {
             // full calc
             mMode.CacheValue();
+            int recalcPeriod = (GetModulationRecalcSampleMask() + 1);
 
             float ret = 0;
             EnvelopeStage nextStage = EnvelopeStage::Idle;
@@ -135,7 +136,7 @@ namespace WaveSabreCore
             case EnvelopeStage::Delay: {
                 ret = mReleaseCurve.ApplyToValue(1.0f - mReleaseStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));
                 ret = ret * mReleaseFromValue01;
-                mReleaseStagePos01 += mReleaseStagePosIncPerSample * mnSamplesSinceCalc;
+                mReleaseStagePos01 += mReleaseStagePosIncPerSample * recalcPeriod;
                 nextStage = EnvelopeStage::Attack;
                 break; // advance through stage.
             }
@@ -193,22 +194,20 @@ namespace WaveSabreCore
             }
             }
 
-            mStagePos01 += mStagePosIncPerSample * mnSamplesSinceCalc;
+            mStagePos01 += mStagePosIncPerSample * recalcPeriod;
             if (mStagePos01 >= 1.0f)
             {
                 AdvanceToStage(nextStage);
             }
 
-            mOutputDeltaPerSample = (ret - mLastOutputLevel) / mnSamplesSinceCalc;
+            mOutputDeltaPerSample = (ret - mLastOutputLevel) / recalcPeriod;
         }
 
         float EnvelopeNode::ProcessSample()
         {
-            ++mnSamplesSinceCalc;
             auto recalcMask = GetModulationRecalcSampleMask();
             if (mnSampleCount == 0) {
                 ProcessSampleFull();
-                mnSamplesSinceCalc = 0;
             }
             mnSampleCount = (mnSampleCount + 1) & recalcMask;
 
