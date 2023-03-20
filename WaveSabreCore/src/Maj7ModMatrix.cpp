@@ -26,6 +26,7 @@ namespace WaveSabreCore
 				auto recalcMask = GetModulationRecalcSampleMask();
 				if (!mnSampleCount)
 				{
+					//memset(mDestValues, 0, sizeof(mDestValues));
 					mModulatedDestValueCount = 0;
 					for (size_t imod = 0; imod < gModulationCount; ++imod)
 					{
@@ -88,7 +89,9 @@ namespace WaveSabreCore
 							if (destid == ModDestination::None) continue;
 							const float orig = mDestValues[(size_t)destid];
 							const float amt = sourceVal * spec.mScales[id].mCachedVal;
-							if (math::FloatEquals(amt, 0)) continue;
+							
+							if (math::FloatEquals(amt, orig)) continue;
+
 							const float deltaPerSample = (amt - orig) / (recalcMask + 1);
 
 							// get this dest/delta combo in mModulatedDestValueDeltas somehow...

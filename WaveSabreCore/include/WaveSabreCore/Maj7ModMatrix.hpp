@@ -878,6 +878,12 @@ namespace WaveSabreCore
 				mSourceValues[(size_t)id] = val;
 			}
 
+			//// when something like a note on / note off happens, do a full recalc immediately to pull new sample-accurate values.
+			//void OnRecalcEvent()
+			//{
+			//	mnSampleCount = 0;
+			//}
+
 			template<typename Tmodid>
 			inline real_t GetSourceValue(Tmodid id) const
 			{

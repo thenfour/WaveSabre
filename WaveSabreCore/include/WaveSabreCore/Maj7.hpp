@@ -3,6 +3,7 @@
 // size-optimizations:
 // (profile w sizebench!)
 // - use fixed-point in oscillators. there's absolutely no reason to be using chonky floating point instructions there.
+// - re-order params so likely-zeros are grouped together.
 
 // Pitch params in order of processing:
 // x                                  Units        Level
@@ -795,10 +796,22 @@ namespace WaveSabreCore
 						mModMatrix.SetSourceValue(lfo.mModSourceID, s);
 					}
 
+					for (size_t i = 0; i < gSourceCount; ++i)
+					{
+						auto* srcVoice = mSourceVoices[i];
 
-					//l = mModLFO2.ProcessSampleForLFO(false);
-					//l = mLFOFilter2.ProcessSample(l);
-					//mModMatrix.SetSourceValue(ModSource::LFO2, l);
+						if (!srcVoice->mpSrcDevice->mEnabledParam.mCachedVal) {
+							srcVoice->mpAmpEnv->kill();
+							continue;
+						}
+
+						mModMatrix.SetSourceValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, srcVoice->mpAmpEnv->ProcessSample());
+					}
+
+					// process modulations here. sources have just been set, and past here we're getting many destination values.
+					// processing here ensures fairly up-to-date accurate values.
+					// one area where this is quite sensitive is envelopes with instant attacks/releases
+					mModMatrix.ProcessSample(mpOwner->mModulations); // this sets dest values to 0.
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
@@ -809,15 +822,6 @@ namespace WaveSabreCore
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
-
-						//if (mpOwner->IsEnvelopeInUse(srcVoice->mpSrcDevice->mAmpEnvModSourceID))
-
-						if (!srcVoice->mpSrcDevice->mEnabledParam.mCachedVal) {
-							srcVoice->mpAmpEnv->kill();
-							continue;
-						}
-
-						mModMatrix.SetSourceValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, srcVoice->mpAmpEnv->ProcessSample());
 
 						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
 
@@ -910,11 +914,10 @@ namespace WaveSabreCore
 					mPortamento.Advance(1,
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime)
 					);
-
-					mModMatrix.ProcessSample(mpOwner->mModulations); // this sets dest values to 0.
 				}
 
 				virtual void NoteOn() override {
+					//mModMatrix.OnRecalcEvent();
 					mVelocity01 = mNoteInfo.Velocity / 127.0f;
 					mTriggerRandom01 = math::rand01();
 
@@ -939,6 +942,7 @@ namespace WaveSabreCore
 				}
 
 				virtual void NoteOff() override {
+					//mModMatrix.OnRecalcEvent();
 					for (auto& srcVoice : mSourceVoices)
 					{
 						srcVoice->NoteOff();

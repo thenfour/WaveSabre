@@ -117,7 +117,7 @@ namespace WaveSabreCore
             RecalcState();
         }
 
-        void EnvelopeNode::ProcessSampleFull(int recalcPeriod)
+        void EnvelopeNode::ProcessSampleFull()
         {
             // full calc
             mMode.CacheValue();
@@ -135,7 +135,7 @@ namespace WaveSabreCore
             case EnvelopeStage::Delay: {
                 ret = mReleaseCurve.ApplyToValue(1.0f - mReleaseStagePos01, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseCurve));
                 ret = ret * mReleaseFromValue01;
-                mReleaseStagePos01 += mReleaseStagePosIncPerSample * recalcPeriod;
+                mReleaseStagePos01 += mReleaseStagePosIncPerSample * mnSamplesSinceCalc;
                 nextStage = EnvelopeStage::Attack;
                 break; // advance through stage.
             }
@@ -187,32 +187,30 @@ namespace WaveSabreCore
                 break; // advance through stage.
             }
             case EnvelopeStage::ReleaseSilence: {
+                nextStage = EnvelopeStage::Idle;
                 ret = 0;
                 break;
-                nextStage = EnvelopeStage::Idle;
             }
             }
 
-            mStagePos01 += mStagePosIncPerSample * recalcPeriod;
+            mStagePos01 += mStagePosIncPerSample * mnSamplesSinceCalc;
             if (mStagePos01 >= 1.0f)
             {
                 AdvanceToStage(nextStage);
             }
 
-            mOutputDeltaPerSample = (ret - mLastOutputLevel) / recalcPeriod;
-            //mLastOutputLevel += mOutputDeltaPerSample;
-            //return mLastOutputLevel;
+            mOutputDeltaPerSample = (ret - mLastOutputLevel) / mnSamplesSinceCalc;
         }
 
         float EnvelopeNode::ProcessSample()
         {
+            ++mnSamplesSinceCalc;
             auto recalcMask = GetModulationRecalcSampleMask();
-            bool calc = (mnSampleCount == 0);
-            mnSampleCount = (mnSampleCount + 1) & recalcMask;
-
-            if (calc) {
-                ProcessSampleFull(recalcMask + 1);
+            if (mnSampleCount == 0) {
+                ProcessSampleFull();
+                mnSamplesSinceCalc = 0;
             }
+            mnSampleCount = (mnSampleCount + 1) & recalcMask;
 
             mLastOutputLevel += mOutputDeltaPerSample;
             return mLastOutputLevel;
@@ -270,7 +268,9 @@ namespace WaveSabreCore
                 return;
             }
             case EnvelopeStage::ReleaseSilence: {
-                mStagePosIncPerSample = 0.4f; // a couple samples of silence before advancing to idle.
+                mLastOutputLevel = 0;
+                mOutputDeltaPerSample = 0;
+                mStagePosIncPerSample = 1.0f / (10 * (GetModulationRecalcSampleMask() + 1)); // last more than 2 recalc periods, in order for our zero to fully propagate, leaving no trailing crap around.
                 return;
             }
             }
