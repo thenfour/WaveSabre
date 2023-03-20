@@ -325,9 +325,9 @@ namespace WaveSabreCore
 
 			void SamplerVoice::BeginBlock(/*real_t midiNote, float detuneFreqMul, float fmScale,*/)
 			{
-				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
+				mpSamplerDevice->mEnabledParam.CacheValue();
+				if (!mpSrcDevice->mEnabledParam.mCachedVal)
 					return;
-				}
 				if (!mpSamplerDevice->mSample) {
 					return;
 				}
@@ -339,6 +339,8 @@ namespace WaveSabreCore
 
 			float SamplerVoice::ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale)
 			{
+				if (!mpSrcDevice->mEnabledParam.mCachedVal)
+					return 0;
 				float pitchFineMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
 				float freqMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
 

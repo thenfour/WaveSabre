@@ -315,8 +315,8 @@ namespace WaveSabreCore
 			{
 				// -1..+1  -> 1..0
 				panN11 = clampN11(panN11);
-				float leftVol = (-panN11 + 1) / 2;
-				return { leftVol, 1 - leftVol };
+				float rightVol = (panN11 + 1) * 0.5f;
+				return { 1 - rightVol, rightVol };
 			}
 
 			FloatPair PanToFactor(float panN11)
@@ -341,13 +341,12 @@ namespace WaveSabreCore
 			size_t iPair = 0;
 			size_t iEnabled = 0;
 			for (size_t iElement = 0; iElement < count; ++iElement) {
+				outp[iElement] = 0;// produce valid values even for disabled elements; they get used sometimes for optimization
 				if (!enabled[iElement]) {
-					// no calc needed; for disabled elements ignore.
 					continue;
 				}
 				if (iPair >= pairCount) {
 					// past the expected # of pairs; this means it's centered. there should only ever be 1 of these elements (the odd one)
-					outp[iElement] = 0;
 					++iEnabled;
 					continue;
 				}
