@@ -784,6 +784,12 @@ namespace WaveSabreCore
 				EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination3], ModDestination::Count},
 				EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination4], ModDestination::Count},
 			};
+			FloatN11Param mScales[gModulationSpecDestinationCount] = {
+				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale1]},
+				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale2]},
+				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale3]},
+				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale4]},
+			};
 			ModulationSpecType mType = ModulationSpecType::General;
 			BoolParam* mpDestSourceEnabledParam = nullptr;
 
@@ -801,7 +807,7 @@ namespace WaveSabreCore
 
 			CurveParam mCurve;
 			CurveParam mAuxCurve;
-			FloatN11Param mScale;
+			//FloatN11Param mScale;
 			Float01Param mAuxAttenuation;
 
 
@@ -812,7 +818,7 @@ namespace WaveSabreCore
 				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
 				//mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
 				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
-				mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale]),
+				//mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale]),
 				mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled]),
 				mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
 				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
@@ -827,9 +833,9 @@ namespace WaveSabreCore
 				mInvert.CacheValue();
 				mSource.CacheValue();
 				for (auto& d : mDestinations) d.CacheValue();
+				for (auto& d : mScales) d.CacheValue();
 				mAuxEnabled.CacheValue();
 				mAuxInvert.CacheValue();
-				mScale.CacheValue();
 				mAuxSource.CacheValue();
 			}
 
@@ -838,19 +844,27 @@ namespace WaveSabreCore
 				mEnabled.SetBoolValue(true);
 				mSource.SetEnumValue(mAmpEnvModSourceID);
 				mDestinations[0].SetEnumValue(mHiddenVolumeModDestID);
-				mScale.SetN11Value(1);
+				mScales[0].SetN11Value(1);
 				mType = ModulationSpecType::SourceAmp;
 				mpDestSourceEnabledParam = pDestSourceEnabledParam;
 			}
 
 		};
 
-
 		struct ModMatrixNode
 		{
 			real_t mSourceValues[(size_t)ModSource::Count] = { 0 };
 			real_t mDestValues[(size_t)ModDestination::Count] = { 0 };
-			real_t mDestValueDeltas[(size_t)gModulationCount][gModulationSpecDestinationCount] = { 0 };
+
+			struct ModDestAlgo
+			{
+				ModDestination mDest = ModDestination::None;
+				float mDeltaPerSample = 0;
+			};
+
+			//real_t mDestValueDeltas[(size_t)gModulationCount][gModulationSpecDestinationCount] = { 0 };
+			ModDestAlgo mModulatedDestValueDeltas[(size_t)ModDestination::Count];
+			size_t mModulatedDestValueCount = 0;
 
 			// this is required to know when to reset a destination back to 0.
 			// after the user disables a modulationspec or changes its destination,

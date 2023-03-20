@@ -26,6 +26,7 @@ namespace WaveSabreCore
 				auto recalcMask = GetModulationRecalcSampleMask();
 				if (!mnSampleCount)
 				{
+					mModulatedDestValueCount = 0;
 					for (size_t imod = 0; imod < gModulationCount; ++imod)
 					{
 						auto& spec = modSpecs[imod];
@@ -48,7 +49,7 @@ namespace WaveSabreCore
 						}
 
 						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
-							mDestValueDeltas[imod][id] = 0;
+							//mDestValueDeltas[imod][id] = 0;
 							auto lastDest = this->mModSpecLastDestinations[imod][id];
 							auto newDest = skip ? ModDestination::None : spec.mDestinations[id].mCachedVal;
 							if (lastDest != newDest) { // if a mod destination changes, then need to reset the value to 0 to erase the effect of the modulation.
@@ -65,8 +66,6 @@ namespace WaveSabreCore
 						real_t sourceVal = GetSourceValue(modSource);
 						sourceVal = InvertValue(sourceVal, spec.mInvert.mCachedVal, modSource);
 						sourceVal = spec.mCurve.ApplyToValue(sourceVal);
-						sourceVal *= spec.mScale.mCachedVal;
-
 						if (spec.mAuxEnabled.mCachedVal)
 						{
 							// attenuate the value
@@ -83,31 +82,49 @@ namespace WaveSabreCore
 							}
 						}
 
-						//float orig = mDestValues[(size_t)modDest];
-						//mDestValueDeltas[imod] = (sourceVal - orig) / (recalcMask + 1);
-
-
 						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
-							float orig = mDestValues[(size_t)spec.mDestinations[id].mCachedVal];
-							mDestValueDeltas[imod][id] = (sourceVal - orig) / (recalcMask + 1);
-							//auto lastDest = this->mModSpecLastDestinations[imod][id];
-							//auto newDest = skip ? ModDestination::None : spec.mDestinations[id].mCachedVal;
-							//if (lastDest != newDest) { // if a mod destination changes, then need to reset the value to 0 to erase the effect of the modulation.
-							//	mDestValues[(size_t)lastDest] = 0;
-							//}
-							//mModSpecLastDestinations[imod][id] = newDest;
+							const auto& d = spec.mDestinations[id];
+							const ModDestination destid = d.mCachedVal;
+							if (destid == ModDestination::None) continue;
+							const float orig = mDestValues[(size_t)destid];
+							const float amt = sourceVal * spec.mScales[id].mCachedVal;
+							if (math::FloatEquals(amt, 0)) continue;
+							const float deltaPerSample = (amt - orig) / (recalcMask + 1);
+
+							// get this dest/delta combo in mModulatedDestValueDeltas somehow...
+							bool added = false;
+							for (size_t id = 0; id < mModulatedDestValueCount; ++id) {
+								auto& dvd = mModulatedDestValueDeltas[id];
+								if (dvd.mDest == d.mCachedVal) {
+									// add to existing
+									dvd.mDeltaPerSample += deltaPerSample;
+									added = true;
+									break;
+								}
+							}
+							if (!added) {
+								// create new dest delta thingy
+								auto& dvd = mModulatedDestValueDeltas[mModulatedDestValueCount];
+								mModulatedDestValueCount++;
+								dvd.mDest = d.mCachedVal;
+								dvd.mDeltaPerSample = deltaPerSample;
+							}
 						}
 
 					} // for each mod
 				} // if needs recalc
 
-				for (size_t imod = 0; imod < gModulationCount; ++imod)
-				{
-					auto& spec = modSpecs[imod];
-					for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
-						mDestValues[(size_t)spec.mDestinations[id].mCachedVal] += mDestValueDeltas[imod][id];
-					}
-				} // for each mod
+				//for (size_t imod = 0; imod < gModulationCount; ++imod)
+				//{
+				//	auto& spec = modSpecs[imod];
+				//	for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
+				//		mDestValues[(size_t)spec.mDestinations[id].mCachedVal] += mDestValueDeltas[imod][id];
+				//	}
+				//} // for each mod
+				for (size_t id = 0; id < mModulatedDestValueCount; ++id) {
+					auto& dvd = mModulatedDestValueDeltas[id];
+					mDestValues[(int)dvd.mDest] += dvd.mDeltaPerSample;
+				}
 
 				mnSampleCount = (mnSampleCount + 1) & recalcMask;
 			}

@@ -319,8 +319,8 @@ namespace WaveSabreCore
 			m->mEnabled.SetBoolValue(false);
 			m->mSource.SetEnumValue(ModSource::None);
 			for (auto& d : m->mDestinations) d.SetEnumValue(ModDestination::None);
+			for (auto& d : m->mScales) d.SetN11Value(0.75f);
 			m->mCurve.SetN11Value(0);
-			m->mScale.SetN11Value(0.6f);
 			m->mAuxEnabled.SetBoolValue(false);
 			m->mAuxSource.SetEnumValue(ModSource::None);
 			m->mAuxCurve.SetN11Value(0);

@@ -878,7 +878,7 @@ namespace WaveSabreVstLib
 			}
 		}
 
-		void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled) {
+		void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled, float size = 0.0f) {
 			WaveSabreCore::M7::real_t tempVal;
 			M7::FloatN11Param p{ tempVal };
 			p.SetN11Value(v_defaultScaled);
@@ -886,7 +886,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			FloatN11Converter conv{ };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, size, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}

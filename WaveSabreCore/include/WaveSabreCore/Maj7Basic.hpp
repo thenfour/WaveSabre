@@ -1091,8 +1091,11 @@ namespace WaveSabreCore
                     Mod1Destination3,
                     Mod1Destination4,
                     Mod1Curve,
-            Mod1Scale,
-            Mod1AuxEnabled,
+                    Mod1Scale1,
+                    Mod1Scale2,
+                    Mod1Scale3,
+                    Mod1Scale4,
+                    Mod1AuxEnabled,
             Mod1AuxSource,
             Mod1AuxAttenuation,
             Mod1AuxCurve,
@@ -1106,8 +1109,11 @@ namespace WaveSabreCore
                 Mod2Destination3,
                 Mod2Destination4,
                 Mod2Curve,
-            Mod2Scale,
-            Mod2AuxEnabled,
+                Mod2Scale1,
+                Mod2Scale2,
+                Mod2Scale3,
+                Mod2Scale4,
+                Mod2AuxEnabled,
             Mod2AuxSource,
             Mod2AuxAttenuation,
             Mod2AuxCurve,
@@ -1121,8 +1127,11 @@ namespace WaveSabreCore
                 Mod3Destination3,
                 Mod3Destination4,
                 Mod3Curve,
-            Mod3Scale,
-            Mod3AuxEnabled,
+                    Mod3Scale1,
+                    Mod3Scale2,
+                    Mod3Scale3,
+                    Mod3Scale4,
+                    Mod3AuxEnabled,
             Mod3AuxSource,
             Mod3AuxAttenuation,
             Mod3AuxCurve,
@@ -1136,8 +1145,11 @@ namespace WaveSabreCore
                     Mod4Destination3,
                     Mod4Destination4,
                     Mod4Curve,
-            Mod4Scale,
-            Mod4AuxEnabled,
+                    Mod4Scale1,
+                    Mod4Scale2,
+                    Mod4Scale3,
+                    Mod4Scale4,
+                    Mod4AuxEnabled,
             Mod4AuxSource,
             Mod4AuxAttenuation,
             Mod4AuxCurve,
@@ -1151,8 +1163,11 @@ namespace WaveSabreCore
                     Mod5Destination3,
                     Mod5Destination4,
                     Mod5Curve,
-            Mod5Scale,
-            Mod5AuxEnabled,
+                    Mod5Scale1,
+                    Mod5Scale2,
+                    Mod5Scale3,
+                    Mod5Scale4,
+                    Mod5AuxEnabled,
             Mod5AuxSource,
             Mod5AuxAttenuation,
             Mod5AuxCurve,
@@ -1166,8 +1181,11 @@ namespace WaveSabreCore
                     Mod6Destination3,
                     Mod6Destination4,
                     Mod6Curve,
-            Mod6Scale,
-            Mod6AuxEnabled,
+                    Mod6Scale1,
+                    Mod6Scale2,
+                    Mod6Scale3,
+                    Mod6Scale4,
+                    Mod6AuxEnabled,
             Mod6AuxSource,
             Mod6AuxAttenuation,
             Mod6AuxCurve,
@@ -1181,8 +1199,11 @@ namespace WaveSabreCore
                     Mod7Destination3,
                     Mod7Destination4,
                     Mod7Curve,
-            Mod7Scale,
-            Mod7AuxEnabled,
+                Mod7Scale1,
+                Mod7Scale2,
+                Mod7Scale3,
+                Mod7Scale4,
+                Mod7AuxEnabled,
             Mod7AuxSource,
             Mod7AuxAttenuation,
             Mod7AuxCurve,
@@ -1196,8 +1217,11 @@ namespace WaveSabreCore
                 Mod8Destination3,
                 Mod8Destination4,
                 Mod8Curve,
-            Mod8Scale,
-            Mod8AuxEnabled,
+                    Mod8Scale1,
+                    Mod8Scale2,
+                    Mod8Scale3,
+                    Mod8Scale4,
+                    Mod8AuxEnabled,
             Mod8AuxSource,
             Mod8AuxAttenuation,
             Mod8AuxCurve,
@@ -1211,8 +1235,11 @@ namespace WaveSabreCore
                 Mod9Destination3,
                 Mod9Destination4,
                 Mod9Curve,
-                Mod9Scale,
-                Mod9AuxEnabled,
+                    Mod9Scale1,
+                    Mod9Scale2,
+                    Mod9Scale3,
+                    Mod9Scale4,
+                    Mod9AuxEnabled,
                 Mod9AuxSource,
                 Mod9AuxAttenuation,
                 Mod9AuxCurve,
@@ -1226,8 +1253,11 @@ namespace WaveSabreCore
                 Mod10Destination3,
                 Mod10Destination4,
                 Mod10Curve,
-                Mod10Scale,
-                Mod10AuxEnabled,
+                    Mod10Scale1,
+                    Mod10Scale2,
+                    Mod10Scale3,
+                    Mod10Scale4,
+                    Mod10AuxEnabled,
                 Mod10AuxSource,
                 Mod10AuxAttenuation,
                 Mod10AuxCurve,
@@ -1241,8 +1271,11 @@ namespace WaveSabreCore
                 Mod11Destination3,
                 Mod11Destination4,
                 Mod11Curve,
-                Mod11Scale,
-                Mod11AuxEnabled,
+                    Mod11Scale1,
+                    Mod11Scale2,
+                    Mod11Scale3,
+                    Mod11Scale4,
+                    Mod11AuxEnabled,
                 Mod11AuxSource,
                 Mod11AuxAttenuation,
                 Mod11AuxCurve,
@@ -1256,8 +1289,11 @@ namespace WaveSabreCore
                 Mod12Destination3,
                 Mod12Destination4,
                 Mod12Curve,
-                Mod12Scale,
-                Mod12AuxEnabled,
+                    Mod12Scale1,
+                    Mod12Scale2,
+                    Mod12Scale3,
+                    Mod12Scale4,
+                    Mod12AuxEnabled,
                 Mod12AuxSource,
                 Mod12AuxAttenuation,
                 Mod12AuxCurve,
@@ -1271,8 +1307,11 @@ namespace WaveSabreCore
                 Mod13Destination3,
                 Mod13Destination4,
                 Mod13Curve,
-                Mod13Scale,
-                Mod13AuxEnabled,
+                    Mod13Scale1,
+                    Mod13Scale2,
+                    Mod13Scale3,
+                    Mod13Scale4,
+                    Mod13AuxEnabled,
                 Mod13AuxSource,
                 Mod13AuxAttenuation,
                 Mod13AuxCurve,
@@ -1286,8 +1325,11 @@ namespace WaveSabreCore
                 Mod14Destination3,
                 Mod14Destination4,
                 Mod14Curve,
-                Mod14Scale,
-                Mod14AuxEnabled,
+                    Mod14Scale1,
+                    Mod14Scale2,
+                    Mod14Scale3,
+                    Mod14Scale4,
+                    Mod14AuxEnabled,
                 Mod14AuxSource,
                 Mod14AuxAttenuation,
                 Mod14AuxCurve,
@@ -1301,8 +1343,11 @@ namespace WaveSabreCore
                 Mod15Destination3,
                 Mod15Destination4,
                 Mod15Curve,
-                Mod15Scale,
-                Mod15AuxEnabled,
+                    Mod15Scale1,
+                    Mod15Scale2,
+                    Mod15Scale3,
+                    Mod15Scale4,
+                    Mod15AuxEnabled,
                 Mod15AuxSource,
                 Mod15AuxAttenuation,
                 Mod15AuxCurve,
@@ -1316,8 +1361,11 @@ namespace WaveSabreCore
                     Mod16Destination3,
                     Mod16Destination4,
                     Mod16Curve,
-                Mod16Scale,
-                Mod16AuxEnabled,
+                    Mod16Scale1,
+                    Mod16Scale2,
+                    Mod16Scale3,
+                    Mod16Scale4,
+                    Mod16AuxEnabled,
                 Mod16AuxSource,
                 Mod16AuxAttenuation,
                 Mod16AuxCurve,
@@ -1331,8 +1379,11 @@ namespace WaveSabreCore
                     Mod17Destination3,
                     Mod17Destination4,
                     Mod17Curve,
-                Mod17Scale,
-                Mod17AuxEnabled,
+                    Mod17Scale1,
+                    Mod17Scale2,
+                    Mod17Scale3,
+                    Mod17Scale4,
+                    Mod17AuxEnabled,
                 Mod17AuxSource,
                 Mod17AuxAttenuation,
                 Mod17AuxCurve,
@@ -1346,7 +1397,10 @@ namespace WaveSabreCore
                     Mod18Destination3,
                     Mod18Destination4,
                     Mod18Curve,
-                    Mod18Scale,
+                    Mod18Scale1,
+                    Mod18Scale2,
+                    Mod18Scale3,
+                    Mod18Scale4,
                     Mod18AuxEnabled,
                     Mod18AuxSource,
                     Mod18AuxAttenuation,
@@ -1729,7 +1783,10 @@ namespace WaveSabreCore
 {"M1dest3"}, \
 {"M1dest4"}, \
 {"M1curv"}, \
-{"M1scale"}, \
+{"M1scl1"}, \
+{"M1scl2"}, \
+{"M1scl3"}, \
+{"M1scl4"}, \
 {"M1Aen"}, \
 {"M1Asrc"}, \
 {"M1Aatt"}, \
@@ -1743,7 +1800,10 @@ namespace WaveSabreCore
 {"M2dest3"}, \
 {"M2dest4"}, \
 {"M2curv"}, \
-{"M2scale"}, \
+{"M2scl1"}, \
+{"M2scl2"}, \
+{"M2scl3"}, \
+{"M2scl4"}, \
 {"M2Aen"}, \
 {"M2Asrc"}, \
 {"M2Aatt"}, \
@@ -1757,7 +1817,10 @@ namespace WaveSabreCore
 {"M3dest3"}, \
 {"M3dest4"}, \
 {"M3curv"}, \
-{"M3scale"}, \
+{"M3scl1"}, \
+{"M3scl2"}, \
+{"M3scl3"}, \
+{"M3scl4"}, \
 {"M3Aen"}, \
 {"M3Asrc"}, \
 {"M3Aatt"}, \
@@ -1771,7 +1834,10 @@ namespace WaveSabreCore
 {"M4dest3"}, \
 {"M4dest4"}, \
 {"M4curv"}, \
-{"M4scale"}, \
+{"M4scl1"}, \
+{"M4scl2"}, \
+{"M4scl3"}, \
+{"M4scl4"}, \
 {"M4Aen"}, \
 {"M4Asrc"}, \
 {"M4Aatt"}, \
@@ -1785,7 +1851,10 @@ namespace WaveSabreCore
 {"M5dest3"}, \
 {"M5dest4"}, \
 {"M5curv"}, \
-{"M5scale"}, \
+{"M5scl1"}, \
+{"M5scl2"}, \
+{"M5scl3"}, \
+{"M5scl4"}, \
 {"M5Aen"}, \
 {"M5Asrc"}, \
 {"M5Aatt"}, \
@@ -1799,7 +1868,10 @@ namespace WaveSabreCore
 {"M6dest3"}, \
 {"M6dest4"}, \
 {"M6curv"}, \
-{"M6scale"}, \
+{"M6scl1"}, \
+{"M6scl2"}, \
+{"M6scl3"}, \
+{"M6scl4"}, \
 {"M6Aen"}, \
 {"M6Asrc"}, \
 {"M6Aatt"}, \
@@ -1813,7 +1885,10 @@ namespace WaveSabreCore
 {"M7dest3"}, \
 {"M7dest4"}, \
 {"M7curv"}, \
-{"M7scale"}, \
+{"M7scl1"}, \
+{"M7scl2"}, \
+{"M7scl3"}, \
+{"M7scl4"}, \
 {"M7Aen"}, \
 {"M7Asrc"}, \
 {"M7Aatt"}, \
@@ -1827,7 +1902,10 @@ namespace WaveSabreCore
 {"M8dest3"}, \
 {"M8dest4"}, \
 {"M8curv"}, \
-{"M8scale"}, \
+{"M8scl1"}, \
+{"M8scl2"}, \
+{"M8scl3"}, \
+{"M8scl4"}, \
 {"M8Aen"}, \
 {"M8Asrc"}, \
 {"M8Aatt"}, \
@@ -1841,7 +1919,10 @@ namespace WaveSabreCore
 {"M9dest3"}, \
 {"M9dest4"}, \
 {"M9curv"}, \
-{"M9scale"}, \
+{"M9scl1"}, \
+{"M9scl2"}, \
+{"M9scl3"}, \
+{"M9scl4"}, \
 {"M9Aen"}, \
 {"M9Asrc"}, \
 {"M9Aatt"}, \
@@ -1855,7 +1936,10 @@ namespace WaveSabreCore
 {"M10dst3"}, \
 {"M10dst4"}, \
 {"M10curv"}, \
-{"M10scle"}, \
+{"M10scl1"}, \
+{"M10scl2"}, \
+{"M10scl3"}, \
+{"M10scl4"}, \
 {"M10Aen"}, \
 {"M10Asrc"}, \
 {"M10Aatt"}, \
@@ -1869,7 +1953,10 @@ namespace WaveSabreCore
 {"M11dst3"}, \
 {"M11dst4"}, \
 {"M11curv"}, \
-{"M11scle"}, \
+{"M11scl1"}, \
+{"M11scl2"}, \
+{"M11scl3"}, \
+{"M11scl4"}, \
 {"M11Aen"}, \
 {"M11Asrc"}, \
 {"M11Aatt"}, \
@@ -1883,7 +1970,10 @@ namespace WaveSabreCore
 {"M12dst3"}, \
 {"M12dst4"}, \
 {"M12curv"}, \
-{"M12scle"}, \
+{"M12scl1"}, \
+{"M12scl2"}, \
+{"M12scl3"}, \
+{"M12scl4"}, \
 {"M12Aen"}, \
 {"M12Asrc"}, \
 {"M12Aatt"}, \
@@ -1897,7 +1987,10 @@ namespace WaveSabreCore
 {"M13dst3"}, \
 {"M13dst4"}, \
 {"M13curv"}, \
-{"M13scle"}, \
+{"M13scl1"}, \
+{"M13scl2"}, \
+{"M13scl3"}, \
+{"M13scl4"}, \
 {"M13Aen"}, \
 {"M13Asrc"}, \
 {"M13Aatt"}, \
@@ -1911,7 +2004,10 @@ namespace WaveSabreCore
 {"M14dst3"}, \
 {"M14dst4"}, \
 {"M14curv"}, \
-{"M14scle"}, \
+{"M14scl1"}, \
+{"M14scl2"}, \
+{"M14scl3"}, \
+{"M14scl4"}, \
 {"M14Aen"}, \
 {"M14Asrc"}, \
 {"M14Aatt"}, \
@@ -1925,7 +2021,10 @@ namespace WaveSabreCore
 {"M15dst3"}, \
 {"M15dst4"}, \
 {"M15curv"}, \
-{"M15scle"}, \
+{"M15scl1"}, \
+{"M15scl2"}, \
+{"M15scl3"}, \
+{"M15scl4"}, \
 {"M15Aen"}, \
 {"M15Asrc"}, \
 {"M15Aatt"}, \
@@ -1939,7 +2038,10 @@ namespace WaveSabreCore
 {"M16dst3"}, \
 {"M16dst4"}, \
 {"M16curv"}, \
-{"M16scle"}, \
+{"M16scl1"}, \
+{"M16scl2"}, \
+{"M16scl3"}, \
+{"M16scl4"}, \
 {"M16Aen"}, \
 {"M16Asrc"}, \
 {"M16Aatt"}, \
@@ -1953,7 +2055,10 @@ namespace WaveSabreCore
 {"M17dst3"}, \
 {"M17dst4"}, \
 {"M17curv"}, \
-{"M17scle"}, \
+{"M17scl1"}, \
+{"M17scl2"}, \
+{"M17scl3"}, \
+{"M17scl4"}, \
 {"M17Aen"}, \
 {"M17Asrc"}, \
 {"M17Aatt"}, \
@@ -1967,7 +2072,10 @@ namespace WaveSabreCore
 {"M18dst3"}, \
 {"M18dst4"}, \
 {"M18curv"}, \
-{"M18scle"}, \
+{"M18scl1"}, \
+{"M18scl2"}, \
+{"M18scl3"}, \
+{"M18scl4"}, \
 {"M18Aen"}, \
 {"M18Asrc"}, \
 {"M18Aatt"}, \
@@ -2182,7 +2290,10 @@ namespace WaveSabreCore
             Destination3,
             Destination4,
             Curve,
-            Scale,
+            Scale1,
+            Scale2,
+            Scale3,
+            Scale4,
             AuxEnabled,
             AuxSource,
             AuxAttenuation,

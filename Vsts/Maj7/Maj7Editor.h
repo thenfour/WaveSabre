@@ -422,7 +422,6 @@ public:
 			style.FramePadding.y = 5;
 			style.ItemSpacing.x = 6;
 			style.TabRounding = 5;
-			//style.WindowPadding.x = 10;
 		}
 
 		// color explorer
@@ -1042,15 +1041,29 @@ public:
 			ImGui::BeginDisabled(isLocked);
 			{
 				ImGui::BeginGroup();
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination1, "Dest1", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination2, "Dest2", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination3, "Dest3", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination4, "Dest4", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
+
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination1, "Dest##1", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				ImGui::SameLine();
+				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale1, "###Scale1", 1, 25.0f);
+
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination2, "###Dest2", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				ImGui::SameLine();
+				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale2, "###Scale2", 1, 25.0f);
+
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination3, "###Dest3", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				ImGui::SameLine();
+				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale3, "###Scale3", 1, 25.0f);
+
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination4, "###Dest4", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				ImGui::SameLine();
+				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale4, "###Scale4", 1, 25.0f);
+
+				ImGui::PopStyleVar();
 				ImGui::EndGroup();
 			}
 			ImGui::EndDisabled();
-			ImGui::SameLine();
-			Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale, "Scale", 1);
 			ImGui::SameLine();
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Invert, "Invert");
 			ImGui::SameLine();
