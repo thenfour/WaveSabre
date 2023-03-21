@@ -442,6 +442,7 @@ public:
 			colorExplorerToken = std::move(xyz.Push());
 		}
 
+		auto runningVoice = FindRunningVoice();
 
 		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, -6.0f);
 		ImGui::SameLine();
@@ -489,10 +490,10 @@ public:
 			Oscillator("Oscillator D", (int)M7::ParamIndices::Osc4Enabled, isrc ++);
 
 			static_assert(M7::Maj7::gSamplerCount == 4, "sampler count");
-			Sampler("Sampler 1", pMaj7->mSamplerDevices[0], isrc ++);
-			Sampler("Sampler 2", pMaj7->mSamplerDevices[1], isrc ++);
-			Sampler("Sampler 3", pMaj7->mSamplerDevices[2], isrc ++);
-			Sampler("Sampler 4", pMaj7->mSamplerDevices[3], isrc ++);
+			Sampler("Sampler 1", pMaj7->mSamplerDevices[0], isrc ++, runningVoice);
+			Sampler("Sampler 2", pMaj7->mSamplerDevices[1], isrc ++, runningVoice);
+			Sampler("Sampler 3", pMaj7->mSamplerDevices[2], isrc ++, runningVoice);
+			Sampler("Sampler 4", pMaj7->mSamplerDevices[3], isrc ++, runningVoice);
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -602,22 +603,22 @@ public:
 			auto lfoColorModToken = mLFOColors.Push();
 			if (WSBeginTabItem("LFO 1"))
 			{
-				LFO("LFO 1", (int)M7::ParamIndices::LFO1Waveform);
+				LFO("LFO 1", (int)M7::ParamIndices::LFO1Waveform, 0);
 				ImGui::EndTabItem();
 			}
 			if (WSBeginTabItem("LFO 2"))
 			{
-				LFO("LFO 2", (int)M7::ParamIndices::LFO2Waveform);
+				LFO("LFO 2", (int)M7::ParamIndices::LFO2Waveform, 1);
 				ImGui::EndTabItem();
 			}
 			if (WSBeginTabItem("LFO 3"))
 			{
-				LFO("LFO 3", (int)M7::ParamIndices::LFO3Waveform);
+				LFO("LFO 3", (int)M7::ParamIndices::LFO3Waveform, 2);
 				ImGui::EndTabItem();
 			}
 			if (WSBeginTabItem("LFO 4"))
 			{
-				LFO("LFO 4", (int)M7::ParamIndices::LFO4Waveform);
+				LFO("LFO 4", (int)M7::ParamIndices::LFO4Waveform, 3);
 				ImGui::EndTabItem();
 			}
 			EndTabBarWithColoredSeparator();
@@ -746,7 +747,7 @@ public:
 
 			//ImGui::SameLine(); Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform", M7::OscillatorWaveform::Count, 0, gWaveformCaptions);
 
-			ImGui::SameLine(); WaveformParam(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset);
+			ImGui::SameLine(); WaveformParam(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, nullptr);
 			//ImGui::SameLine(); WaveformGraphic(waveformParam.GetEnumValue(), waveshapeParam.Get01Value());
 			//ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform");
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape");
@@ -788,12 +789,15 @@ public:
 		}
 	}
 
-	void LFO(const char* labelWithID, int waveformParamID)
+	void LFO(const char* labelWithID, int waveformParamID, int ilfo)
 	{
 		ImGui::PushID(labelWithID);
 		//if (ImGui::CollapsingHeader(labelWithID)) {
 		//WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, "Waveform");
-		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset);
+
+		float phaseCursor = (float)(this->pMaj7->mLFOs[ilfo].mPhase.mPhase);
+
+		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, &phaseCursor);
 
 		ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, "Shape");
 		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFrequencyCenterHz, M7::gLFOFrequencyScale, 0.4f);
@@ -1324,11 +1328,12 @@ public:
 		}
 	}
 
-	void WaveformGraphic(M7::OscillatorWaveform waveform, float waveshape01, float phaseOffsetN11, ImRect bb)
+	void WaveformGraphic(M7::OscillatorWaveform waveform, float waveshape01, float phaseOffsetN11, ImRect bb, float* cursorPhase)
 	{
 		OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
 		std::unique_ptr<M7::IOscillatorWaveform> pWaveform;
 
+		float freq = 1; // 1 hz at width-in-pixels samplerate will put 1 cycle in frame.
 		switch (waveform) {
 		default:
 		case M7::OscillatorWaveform::Pulse:
@@ -1371,16 +1376,20 @@ public:
 			pWaveform.reset(new M7::VarTriWaveform);
 			break;
 		case M7::OscillatorWaveform::WhiteNoiseSH:
-			pWaveform.reset(new M7::WhiteNoiseWaveform);
-			break;
+		{
+			freq = 8;// 1.0f / 12; // white noise waveforms just have 1 sample level per cycle and always start at 0.
+			auto p = new M7::WhiteNoiseWaveform;
+			p->mCurrentLevel = p->mCurrentSample = M7::math::randN11();
+			pWaveform.reset(p);
+				break;
+		}
 		}
 
 		float innerHeight = bb.GetHeight() - 4;
 
 		// freq & samplerate should be set such that we have `width` samples per 1 cycle.
 		// samples per cycle = srate / freq
-		pWaveform->SetParams(1, 0, waveshape01, bb.GetWidth());
-		//pWaveform->OSC_RESTART(0);
+		pWaveform->SetParams(freq, 0, waveshape01, bb.GetWidth());
 
 		ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
 		ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
@@ -1391,6 +1400,9 @@ public:
 			float c = outerBR.y - float(bb.GetHeight()) * 0.5f;
 			float h = float(innerHeight) * 0.5f * sample;
 			return c - h;
+		};
+		auto phaseToX = [&](float phase) {
+			return outerTL.x + M7::math::fract(phase) * bb.GetWidth();
 		};
 
 		ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f); // background
@@ -1403,11 +1415,18 @@ public:
 			drawList->AddLine({outerTL.x + iSample, centerY }, {outerTL.x + iSample, sampleToY(sample)}, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
 		}
 
+		if (cursorPhase != nullptr)
+		{
+			float x = phaseToX(*cursorPhase - phaseOffsetN11);
+			static constexpr float gHalfCursorWidth = 2.5f * 0.5f;
+			drawList->AddLine({ x- gHalfCursorWidth, outerTL.y }, { x+ gHalfCursorWidth, outerBR.y }, ColorFromHTML("#ff0000"), 2.0f);// center line
+		}
+
 		drawList->AddText({ bb.Min.x + 1, bb.Min.y + 1 }, ImGui::GetColorU32(ImGuiCol_TextDisabled), gWaveformCaptions[(int)waveform]);
 		drawList->AddText(bb.Min, ImGui::GetColorU32(ImGuiCol_Text), gWaveformCaptions[(int)waveform]);
 	}
 
-	bool WaveformButton(ImGuiID id, M7::OscillatorWaveform waveform, float waveshape01, float phaseOffsetN11)
+	bool WaveformButton(ImGuiID id, M7::OscillatorWaveform waveform, float waveshape01, float phaseOffsetN11, float* phaseCursor)
 	{
 		id += 10;// &= 0x8000; // just to comply with ImGui expectations of IDs never being 0. 
 		ImGuiButtonFlags flags = 0;
@@ -1425,14 +1444,14 @@ public:
 
 		bool hovered, held;
 
-		WaveformGraphic(waveform, waveshape01, phaseOffsetN11, bb);
+		WaveformGraphic(waveform, waveshape01, phaseOffsetN11, bb, phaseCursor);
 
 		bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
 
 		return pressed;
 	}
 
-	void WaveformParam(int waveformParamID, int waveshapeParamID, int phaseOffsetParamID)
+	void WaveformParam(int waveformParamID, int waveshapeParamID, int phaseOffsetParamID, float* phaseCursor)
 	{
 		OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
 		M7::EnumParam<M7::OscillatorWaveform> waveformParam(pMaj7->mParamCache[waveformParamID], M7::OscillatorWaveform::Count);
@@ -1442,7 +1461,7 @@ public:
 		M7::FloatN11Param phaseOffsetParam(pMaj7->mParamCache[phaseOffsetParamID]);
 		float phaseOffsetN11 = phaseOffsetParam.GetN11Value();
 
-		if (WaveformButton(waveformParamID, selectedWaveform, waveshape01, phaseOffsetN11)) {
+		if (WaveformButton(waveformParamID, selectedWaveform, waveshape01, phaseOffsetN11, phaseCursor)) {
 			ImGui::OpenPopup("selectWaveformPopup");
 		}
 		ImGui::SameLine();
@@ -1452,7 +1471,7 @@ public:
 			{
 				M7::OscillatorWaveform wf = (M7::OscillatorWaveform)n;
 				ImGui::PushID(n);
-				if (WaveformButton(n, wf, waveshapeParam.Get01Value(), phaseOffsetN11)) {
+				if (WaveformButton(n, wf, waveshapeParam.Get01Value(), phaseOffsetN11, phaseCursor)) {
 					float t;
 					M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count);
 					tp.SetEnumValue(wf);
@@ -1654,7 +1673,7 @@ public:
 		return suggestions;
 	}
 
-	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc)
+	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc, Maj7::Maj7Voice* runningVoice)
 	{
 		ColorMod& cm = sampler.mEnabledParam.GetBoolValue() ? mSamplerColors : mSamplerDisabledColors;
 		auto token = cm.Push();
@@ -1691,7 +1710,7 @@ public:
 			ImGui::EndGroup();
 
 			ImGui::SameLine();
-			SamplerWaveformDisplay(sampler, isrc);
+			SamplerWaveformDisplay(sampler, isrc, runningVoice);
 
 			if (ImGui::SmallButton("Load from file ...")) {
 				OPENFILENAME ofn = { 0 };
@@ -1847,7 +1866,7 @@ public:
 	}
 
 	// TODO: cache this image in a texture.
-	void SamplerWaveformDisplay(M7::SamplerDevice& sampler, size_t isrc)
+	void SamplerWaveformDisplay(M7::SamplerDevice& sampler, size_t isrc, Maj7::Maj7Voice* runningVoice)
 	{
 		auto sourceInfo = this->mSourceStatusText[isrc];
 		//ImGuiIO& io = ImGui::GetIO();
@@ -1870,7 +1889,6 @@ public:
 			}
 		}
 
-		auto runningVoice = FindRunningVoice();
 		float cursor = 0;
 		if (runningVoice) {
 			M7::SamplerVoice* sv = static_cast<M7::SamplerVoice*>(runningVoice->mSourceVoices[isrc]);

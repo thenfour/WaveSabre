@@ -328,16 +328,16 @@ namespace WaveSabreCore
 					mDevice{ OscillatorIntentionLFO{}, paramCache, paramBaseID, modBaseID }
 				{}
 				float mLPCutoff = 0.0f;
-				ModMatrixNode mNullModMatrix;
 				OscillatorDevice mDevice;
-				OscillatorNode mPhase{ &mDevice, mNullModMatrix, nullptr };
+				ModMatrixNode mNullModMatrix;
+				OscillatorNode mPhase{ &mDevice, &mNullModMatrix, nullptr };
 			};
 
 			LFODevice mLFOs[gModLFOCount] = {
-				LFODevice{mParamCache, ParamIndices::LFO1Waveform, ModDestination::LFO1Waveshape},
-				LFODevice{mParamCache, ParamIndices::LFO2Waveform, ModDestination::LFO2Waveshape},
-				LFODevice{mParamCache, ParamIndices::LFO3Waveform, ModDestination::LFO3Waveshape},
-				LFODevice{mParamCache, ParamIndices::LFO4Waveform, ModDestination::LFO4Waveshape},
+				LFODevice{mParamCache, ParamIndices::LFO1Waveform, ModDestination::LFO1Waveshape },
+				LFODevice{mParamCache, ParamIndices::LFO2Waveform, ModDestination::LFO2Waveshape },
+				LFODevice{mParamCache, ParamIndices::LFO3Waveform, ModDestination::LFO3Waveshape },
+				LFODevice{mParamCache, ParamIndices::LFO4Waveform, ModDestination::LFO4Waveshape },
 			};
 
 			OscillatorDevice mOscillatorDevices[gOscillatorCount] = {
@@ -631,10 +631,10 @@ namespace WaveSabreCore
 					mSampler4AmpEnv(mModMatrix, ModDestination::Sampler4AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv),
 					mModEnv1(mModMatrix, ModDestination::Env1DelayTime, owner->mParamCache, (int)ParamIndices::Env1DelayTime, ModSource::ModEnv1),
 					mModEnv2(mModMatrix, ModDestination::Env2DelayTime, owner->mParamCache, (int)ParamIndices::Env2DelayTime, ModSource::ModEnv2),
-					mOscillator1(&owner->mOscillatorDevices[0], mModMatrix, &mOsc1AmpEnv),
-					mOscillator2(&owner->mOscillatorDevices[1], mModMatrix, &mOsc2AmpEnv),
-					mOscillator3(&owner->mOscillatorDevices[2], mModMatrix, &mOsc3AmpEnv),
-					mOscillator4(&owner->mOscillatorDevices[3], mModMatrix, &mOsc4AmpEnv),
+					mOscillator1(&owner->mOscillatorDevices[0], &mModMatrix, &mOsc1AmpEnv),
+					mOscillator2(&owner->mOscillatorDevices[1], &mModMatrix, &mOsc2AmpEnv),
+					mOscillator3(&owner->mOscillatorDevices[2], &mModMatrix, &mOsc3AmpEnv),
+					mOscillator4(&owner->mOscillatorDevices[3], &mModMatrix, &mOsc4AmpEnv),
 					mSampler1(&owner->mSamplerDevices[0], mModMatrix, &mSampler1AmpEnv),
 					mSampler2(&owner->mSamplerDevices[1], mModMatrix, &mSampler2AmpEnv),
 					mSampler3(&owner->mSamplerDevices[2], mModMatrix, &mSampler3AmpEnv),
@@ -643,8 +643,6 @@ namespace WaveSabreCore
 					mAux2(&owner->mAuxDevices[1]),
 					mAux3(&owner->mAuxDevices[2]),
 					mAux4(&owner->mAuxDevices[3])
-					//mModLFO1(&owner->mLFO1Device, mModMatrix, nullptr),
-					//mModLFO2(&owner->mLFO2Device, mModMatrix, nullptr),
 				{
 				}
 
@@ -659,7 +657,7 @@ namespace WaveSabreCore
 					explicit LFOVoice(ModSource modSourceID, LFODevice& device, ModMatrixNode& modMatrix) :
 						mModSourceID(modSourceID),
 						mDevice(device),
-						mNode(&device.mDevice, modMatrix, nullptr)
+						mNode(&device.mDevice, &modMatrix, nullptr)
 					{}
 					ModSource mModSourceID;
 					LFODevice& mDevice;
@@ -672,9 +670,6 @@ namespace WaveSabreCore
 					LFOVoice{ ModSource::LFO3, mpOwner->mLFOs[2], mModMatrix },
 					LFOVoice{ ModSource::LFO4, mpOwner->mLFOs[3], mModMatrix }
 				};
-
-				//OscillatorNode mModLFO2;
-				//FilterNode mLFOFilter2;
 
 				ModMatrixNode mModMatrix;
 
@@ -732,6 +727,12 @@ namespace WaveSabreCore
 					if (!this->IsPlaying()) {
 						return;
 					}
+
+					// we know we are a valid and playing voice; set master LFO to use this mod matrix.
+					for (auto& lfo : this->mpOwner->mLFOs) {
+						lfo.mPhase.SetModMatrix(&this->mModMatrix);
+					}
+
 					// at this point run the graph.
 					// 1. run signals which produce A-Rate outputs, so we can use those buffers to modulate nodes which have A-Rate destinations
 					// 2. mod matrix, which fills buffers with modulation signals. mod sources should be up-to-date

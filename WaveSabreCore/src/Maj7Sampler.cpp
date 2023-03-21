@@ -272,7 +272,7 @@ namespace WaveSabreCore
 
 
 			SamplerVoice::SamplerVoice(SamplerDevice* pDevice, ModMatrixNode& modMatrix, EnvelopeNode* pAmpEnv) :
-				ISoundSourceDevice::Voice(pDevice, modMatrix, pAmpEnv),
+				ISoundSourceDevice::Voice(pDevice, &modMatrix, pAmpEnv),
 				mpSamplerDevice(pDevice)
 			{
 			}
@@ -341,8 +341,8 @@ namespace WaveSabreCore
 			{
 				if (!mpSrcDevice->mEnabledParam.mCachedVal)
 					return 0;
-				float pitchFineMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
-				float freqMod = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
+				float pitchFineMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
+				float freqMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
 
 				midiNote += mpSamplerDevice->mPitchSemisParam.mCachedVal + (mpSamplerDevice->mPitchFineParam.mCachedVal + pitchFineMod) * gSourcePitchFineRangeSemis;
 				float noteHz = math::MIDINoteToFreq(midiNote);

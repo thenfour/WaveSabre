@@ -876,7 +876,6 @@ namespace WaveSabreCore
 				float mDeltaPerSample = 0;
 			};
 
-			//real_t mDestValueDeltas[(size_t)gModulationCount][gModulationSpecDestinationCount] = { 0 };
 			ModDestAlgo mModulatedDestValueDeltas[(size_t)ModDestination::Count];
 			size_t mModulatedDestValueCount = 0;
 
@@ -892,12 +891,6 @@ namespace WaveSabreCore
 				mSourceValues[(size_t)id] = val;
 			}
 
-			//// when something like a note on / note off happens, do a full recalc immediately to pull new sample-accurate values.
-			//void OnRecalcEvent()
-			//{
-			//	mnSampleCount = 0;
-			//}
-
 			template<typename Tmodid>
 			inline real_t GetSourceValue(Tmodid id) const
 			{
@@ -909,20 +902,6 @@ namespace WaveSabreCore
 			{
 				return mDestValues[(size_t)id];
 			}
-
-			//static constexpr ModulationPolarity GetPolarity(ModSource m)
-			//{
-			//	switch (m)
-			//	{
-			//	case ModSource::LFO1:
-			//	case ModSource::LFO2:
-			//	case ModSource::PitchBend:
-			//		return ModulationPolarity::N11;
-			//	}
-			//	return ModulationPolarity::Positive01;
-			//}
-			//
-			//static float InvertValue(float val, bool invertParam, const ModSource modSource);
 
 			void BeginBlock()
 			{

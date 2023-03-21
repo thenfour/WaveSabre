@@ -154,12 +154,12 @@ namespace WaveSabreCore
 			struct Voice
 			{
 				ISoundSourceDevice* mpSrcDevice;
-				ModMatrixNode& mModMatrix;
+				ModMatrixNode* mpModMatrix;
 				EnvelopeNode* mpAmpEnv;
 
-				Voice(ISoundSourceDevice* psrcDevice, ModMatrixNode& modMatrix, EnvelopeNode* pAmpEnv) :
+				Voice(ISoundSourceDevice* psrcDevice, ModMatrixNode* pModMatrix, EnvelopeNode* pAmpEnv) :
 					mpSrcDevice(psrcDevice),
-					mModMatrix(modMatrix),
+					mpModMatrix(pModMatrix),
 					mpAmpEnv(pAmpEnv)
 				{}
 
@@ -175,6 +175,11 @@ namespace WaveSabreCore
 				virtual void BeginBlock() = 0;
 				virtual float GetLastSample() const = 0;
 				//virtual void EndBlock() = 0;
+
+				void SetModMatrix(ModMatrixNode* pModMatrix)
+				{
+					mpModMatrix = pModMatrix;
+				}
 			};
 		};
 
@@ -1230,8 +1235,8 @@ namespace WaveSabreCore
 			WhiteNoiseWaveform mWhiteNoiseWaveform;
 			IOscillatorWaveform* mpSlaveWave = &mSawClipWaveform;
 
-			OscillatorNode(OscillatorDevice* pOscDevice, ModMatrixNode& modMatrix, EnvelopeNode* pAmpEnv) :
-				ISoundSourceDevice::Voice(pOscDevice, modMatrix, pAmpEnv),
+			OscillatorNode(OscillatorDevice* pOscDevice, ModMatrixNode* pModMatrix, EnvelopeNode* pAmpEnv) :
+				ISoundSourceDevice::Voice(pOscDevice, pModMatrix, pAmpEnv),
 				mpOscDevice(pOscDevice)
 			{
 			}
@@ -1313,12 +1318,12 @@ namespace WaveSabreCore
 
 				if (0 == mnSamples) // NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
-					mSyncFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::SyncFrequency);
-					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FrequencyParam);
-					mFMFeedbackModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FMFeedback);
-					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Waveshape);
-					mPhaseModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Phase);
-					mPitchFineModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
+					mSyncFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::SyncFrequency);
+					mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FrequencyParam);
+					mFMFeedbackModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FMFeedback);
+					mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Waveshape);
+					mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Phase);
+					mPitchFineModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
 
 					mFMFeedbackAmt = mpOscDevice->mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
 
@@ -1402,8 +1407,8 @@ namespace WaveSabreCore
 			{
 				if (!mnSamples)// NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
-					mFreqModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
-					mWaveShapeModVal = mModMatrix.GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
+					mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
+					mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
 
 					float freq = mpSrcDevice->mFrequencyParam.GetFrequency(0, mFreqModVal);
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
