@@ -1397,6 +1397,7 @@ public:
 		float centerY = sampleToY(0);
 		drawList->AddLine({ outerTL.x, centerY }, {outerBR.x, centerY }, ImGui::GetColorU32(ImGuiCol_PlotLines), 2.0f);// center line
 		for (size_t iSample = 0; iSample < bb.GetWidth(); ++iSample) {
+			pWaveform->OSC_ADVANCE(1, 0);
 			float sample = pWaveform->NaiveSample(M7::math::fract(float(iSample) / bb.GetWidth() + phaseOffsetN11));
 			sample = (sample + pWaveform->mDCOffset) * pWaveform->mScale;
 			drawList->AddLine({outerTL.x + iSample, centerY }, {outerTL.x + iSample, sampleToY(sample)}, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);

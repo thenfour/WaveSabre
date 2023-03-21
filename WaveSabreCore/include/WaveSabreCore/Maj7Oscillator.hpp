@@ -528,7 +528,7 @@ namespace WaveSabreCore
 			OnePoleFilter mHPFilter;
 			float mCurrentLevel = 0;
 			float mCurrentSample = 0;
-			float mSampleFract = 0;
+
 			// returns Y value at specified phase. instance / stateless.
 			virtual float NaiveSample(float phase01) override
 			{

@@ -6,20 +6,6 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		//enum class ModulationRate : uint8_t
-		//{
-		//	Disabled,
-		//	KRate, // evaluated each buffer.
-		//	ARate,
-		//	Count,
-		//};
-
-		//enum class ModulationPolarity : uint8_t
-		//{
-		//	Positive01,
-		//	N11,
-		//	Count,
-		//};
 
 		enum class ModSource : uint8_t
 		{
@@ -51,6 +37,9 @@ namespace WaveSabreCore
 			Macro5, // krate, 01
 			Macro6, // krate, 01
 			Macro7, // krate, 01
+			Const_1,
+			Const_0_5,
+			Const_0,
 
 			Count,
 			Invalid,
@@ -86,6 +75,9 @@ namespace WaveSabreCore
 			"Macro5", \
 			"Macro6", \
 			"Macro7", \
+			"1 (const)", \
+			"0.5 (const)", \
+			"0 (const)", \
 		}
 #define MODSOURCE_SHORT_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{ \
 			"-", \
@@ -116,6 +108,9 @@ namespace WaveSabreCore
 			"Knob5", \
 			"Knob6", \
 			"Knob7", \
+			"1", \
+			"0.5", \
+			"0", \
         };
 
 		enum class ModDestination : uint8_t

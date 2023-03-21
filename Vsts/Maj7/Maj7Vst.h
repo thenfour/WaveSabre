@@ -431,6 +431,7 @@ namespace WaveSabreCore
 			p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
 			p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
 			p->mPitchBendRange.SetIntValue(2);
+			p->mMaxVoicesParam.SetIntValue(24);
 			// macros all 0
 			// fm matrix all 0
 		}
