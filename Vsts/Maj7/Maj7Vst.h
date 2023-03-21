@@ -325,8 +325,8 @@ namespace WaveSabreCore
 			m->mAuxSource.SetEnumValue(ModSource::None);
 			m->mAuxCurve.SetN11Value(0);
 			m->mAuxAttenuation.SetParamValue(1);
-			m->mInvert.SetBoolValue(false);
-			m->mAuxInvert.SetBoolValue(false);
+			m->mValueMapping.SetEnumValue(ModValueMapping::NoMapping);
+			m->mAuxValueMapping.SetEnumValue(ModValueMapping::NoMapping);
 		}
 
 		static inline void GenerateDefaults_Env(EnvelopeNode* n)

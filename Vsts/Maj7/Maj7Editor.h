@@ -1016,6 +1016,8 @@ public:
 		std::string modDestinationCaptions[(size_t)M7::ModDestination::Count] = MOD_DEST_CAPTIONS;
 		char const* modDestinationCaptionsCstr[(size_t)M7::ModDestination::Count];
 
+		MOD_VALUE_MAPPING_CAPTIONS(modValueMappingCaptions);
+
 		// fix dynamic aux destination names
 		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux1Param2], 0);
 		FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux2Param2], 1);
@@ -1065,7 +1067,8 @@ public:
 			}
 			ImGui::EndDisabled();
 			ImGui::SameLine();
-			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Invert, "Invert");
+			//WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Invert, "Invert");
+			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::ValueMapping, "Mapping", (int)M7::ModValueMapping::Count, M7::ModValueMapping::NoMapping, modValueMappingCaptions);
 			ImGui::SameLine();
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising);
 
@@ -1077,7 +1080,8 @@ public:
 			ImGui::SameLine();
 			WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "SC atten");
 			ImGui::SameLine();
-			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "SCInvert");
+			//WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "SCInvert");
+			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxValueMapping, "AuxMapping", (int)M7::ModValueMapping::Count, M7::ModValueMapping::NoMapping, modValueMappingCaptions);
 			ImGui::SameLine();
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "SC Curve", 0, M7CurveRenderStyle::Rising);
 

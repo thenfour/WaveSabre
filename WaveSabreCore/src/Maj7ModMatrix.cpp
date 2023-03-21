@@ -5,21 +5,43 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-
-
-
-			float ModMatrixNode::InvertValue(float val, bool invertParam, const ModSource modSource)
-			{
-				if (invertParam) {
-					switch (GetPolarity(modSource)) {
-					case ModulationPolarity::N11:
-						return -val;
-					case ModulationPolarity::Positive01:
-						return 1.0f - val;
-					}
-				}
-				return val;
+		inline float MapValue(float x, ModValueMapping mapping)
+		{
+			switch (mapping) {
+			default:
+			case NoMapping:
+				return x;
+			case N11_1N1: // -1,1 => 1,-1 (bipolar invert)
+				return -x;
+			case N11_01: // -1,1 => 0,1 (bipolar to positive)
+				return (x + 1) * 0.5f;
+			case N11_10: // -1,1 => 1,0 (bipolar to invert positive)
+				x = 1-x; // 2,0
+				return x * 0.5f;
+			case P01_10: // 0,1 => 1,0 (positive invert)
+				return 1-x;
+			case P01_N11: // 0,1 => -1,1 (positive to bipolar)
+				return x * 2 - 1;
+			case P01_1N1: // 0,1 => 1,-1 (positive to negative bipolar)
+				x *= 2; // 0,2
+				x = 1 - x; // 1,-1
+				return x;
 			}
+		}
+
+
+			//float ModMatrixNode::InvertValue(float val, bool invertParam, const ModSource modSource)
+			//{
+			//	if (invertParam) {
+			//		switch (GetPolarity(modSource)) {
+			//		case ModulationPolarity::N11:
+			//			return -val;
+			//		case ModulationPolarity::Positive01:
+			//			return 1.0f - val;
+			//		}
+			//	}
+			//	return val;
+			//}
 
 			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
 			{
@@ -65,7 +87,7 @@ namespace WaveSabreCore
 						}
 
 						real_t sourceVal = GetSourceValue(modSource);
-						sourceVal = InvertValue(sourceVal, spec.mInvert.mCachedVal, modSource);
+						sourceVal = MapValue(sourceVal, spec.mValueMapping.mCachedVal);
 						sourceVal = spec.mCurve.ApplyToValue(sourceVal);
 						if (spec.mAuxEnabled.mCachedVal)
 						{
@@ -73,7 +95,7 @@ namespace WaveSabreCore
 							auto auxSource = spec.mAuxSource.mCachedVal;
 							if (auxSource != ModSource::None) {
 								float auxVal = GetSourceValue(auxSource);
-								auxVal = InvertValue(auxVal, spec.mAuxInvert.mCachedVal, auxSource);
+								auxVal = MapValue(auxVal, spec.mAuxValueMapping.mCachedVal);
 								auxVal = spec.mAuxCurve.ApplyToValue(auxVal);
 								// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 								// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66

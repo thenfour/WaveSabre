@@ -1099,8 +1099,8 @@ namespace WaveSabreCore
             Mod1AuxSource,
             Mod1AuxAttenuation,
             Mod1AuxCurve,
-            Mod1Invert,
-            Mod1AuxInvert,
+            Mod1Mapping,
+            Mod1AuxMapping,
 
             Mod2Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod2Source,
@@ -1117,8 +1117,8 @@ namespace WaveSabreCore
             Mod2AuxSource,
             Mod2AuxAttenuation,
             Mod2AuxCurve,
-                Mod2Invert,
-                Mod2AuxInvert,
+                Mod2Mapping,
+                Mod2AuxMapping,
 
             Mod3Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod3Source,
@@ -1135,8 +1135,8 @@ namespace WaveSabreCore
             Mod3AuxSource,
             Mod3AuxAttenuation,
             Mod3AuxCurve,
-                Mod3Invert,
-                Mod3AuxInvert,
+                Mod3Mapping,
+                Mod3AuxMapping,
 
             Mod4Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod4Source,
@@ -1153,8 +1153,8 @@ namespace WaveSabreCore
             Mod4AuxSource,
             Mod4AuxAttenuation,
             Mod4AuxCurve,
-                Mod4Invert,
-                Mod4AuxInvert,
+                Mod4Mapping,
+                Mod4AuxMapping,
 
             Mod5Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod5Source,
@@ -1171,8 +1171,8 @@ namespace WaveSabreCore
             Mod5AuxSource,
             Mod5AuxAttenuation,
             Mod5AuxCurve,
-                Mod5Invert,
-                Mod5AuxInvert,
+                Mod5Mapping,
+                Mod5AuxMapping,
 
             Mod6Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod6Source,
@@ -1189,8 +1189,8 @@ namespace WaveSabreCore
             Mod6AuxSource,
             Mod6AuxAttenuation,
             Mod6AuxCurve,
-                Mod6Invert,
-                Mod6AuxInvert,
+                Mod6Mapping,
+                Mod6AuxMapping,
 
             Mod7Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod7Source,
@@ -1207,8 +1207,8 @@ namespace WaveSabreCore
             Mod7AuxSource,
             Mod7AuxAttenuation,
             Mod7AuxCurve,
-                Mod7Invert,
-                Mod7AuxInvert,
+                Mod7Mapping,
+                Mod7AuxMapping,
 
             Mod8Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod8Source,
@@ -1225,8 +1225,8 @@ namespace WaveSabreCore
             Mod8AuxSource,
             Mod8AuxAttenuation,
             Mod8AuxCurve,
-                Mod8Invert,
-                Mod8AuxInvert,
+                Mod8Mapping,
+                Mod8AuxMapping,
 
                 Mod9Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod9Source,
@@ -1243,8 +1243,8 @@ namespace WaveSabreCore
                 Mod9AuxSource,
                 Mod9AuxAttenuation,
                 Mod9AuxCurve,
-                Mod9Invert,
-                Mod9AuxInvert,
+                Mod9Mapping,
+                Mod9AuxMapping,
 
                 Mod10Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod10Source,
@@ -1261,8 +1261,8 @@ namespace WaveSabreCore
                 Mod10AuxSource,
                 Mod10AuxAttenuation,
                 Mod10AuxCurve,
-                Mod10Invert,
-                Mod10AuxInvert,
+                Mod10Mapping,
+                Mod10AuxMapping,
 
                 Mod11Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod11Source,
@@ -1279,8 +1279,8 @@ namespace WaveSabreCore
                 Mod11AuxSource,
                 Mod11AuxAttenuation,
                 Mod11AuxCurve,
-                Mod11Invert,
-                Mod11AuxInvert,
+                Mod11Mapping,
+                Mod11AuxMapping,
 
                 Mod12Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod12Source,
@@ -1297,8 +1297,8 @@ namespace WaveSabreCore
                 Mod12AuxSource,
                 Mod12AuxAttenuation,
                 Mod12AuxCurve,
-                Mod12Invert,
-                Mod12AuxInvert,
+                Mod12Mapping,
+                Mod12AuxMapping,
 
                 Mod13Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod13Source,
@@ -1315,8 +1315,8 @@ namespace WaveSabreCore
                 Mod13AuxSource,
                 Mod13AuxAttenuation,
                 Mod13AuxCurve,
-                Mod13Invert,
-                Mod13AuxInvert,
+                Mod13Mapping,
+                Mod13AuxMapping,
 
                 Mod14Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod14Source,
@@ -1333,8 +1333,8 @@ namespace WaveSabreCore
                 Mod14AuxSource,
                 Mod14AuxAttenuation,
                 Mod14AuxCurve,
-                Mod14Invert,
-                Mod14AuxInvert,
+                Mod14Mapping,
+                Mod14AuxMapping,
 
                 Mod15Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod15Source,
@@ -1351,8 +1351,8 @@ namespace WaveSabreCore
                 Mod15AuxSource,
                 Mod15AuxAttenuation,
                 Mod15AuxCurve,
-                Mod15Invert,
-                Mod15AuxInvert,
+                Mod15Mapping,
+                Mod15AuxMapping,
 
                 Mod16Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod16Source,
@@ -1369,8 +1369,8 @@ namespace WaveSabreCore
                 Mod16AuxSource,
                 Mod16AuxAttenuation,
                 Mod16AuxCurve,
-                Mod16Invert,
-                Mod16AuxInvert,
+                Mod16Mapping,
+                Mod16AuxMapping,
 
                 Mod17Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod17Source,
@@ -1387,8 +1387,8 @@ namespace WaveSabreCore
                 Mod17AuxSource,
                 Mod17AuxAttenuation,
                 Mod17AuxCurve,
-                Mod17Invert,
-                Mod17AuxInvert,
+                Mod17Mapping,
+                Mod17AuxMapping,
 
                     Mod18Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                     Mod18Source,
@@ -1405,8 +1405,8 @@ namespace WaveSabreCore
                     Mod18AuxSource,
                     Mod18AuxAttenuation,
                     Mod18AuxCurve,
-                    Mod18Invert,
-                    Mod18AuxInvert,
+                    Mod18Mapping,
+                    Mod18AuxMapping,
 
                 Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler1Volume,
@@ -1791,8 +1791,8 @@ namespace WaveSabreCore
 {"M1Asrc"}, \
 {"M1Aatt"}, \
 {"M1Acrv"}, \
-{"M1inv"}, \
-{"M1Ainv"}, \
+{"M1map"}, \
+{"M1Amap"}, \
 {"M2en"}, \
 {"M2src"}, \
 {"M2dest1"}, \
@@ -1808,8 +1808,8 @@ namespace WaveSabreCore
 {"M2Asrc"}, \
 {"M2Aatt"}, \
 {"M2Acrv"}, \
-{"M2inv"}, \
-{"M2Ainv"}, \
+{"M2map"}, \
+{"M2Amap"}, \
 {"M3en"}, \
 {"M3src"}, \
 {"M3dest1"}, \
@@ -1825,8 +1825,8 @@ namespace WaveSabreCore
 {"M3Asrc"}, \
 {"M3Aatt"}, \
 {"M3Acrv"}, \
-{"M3inv"}, \
-{"M3Ainv"}, \
+{"M3map"}, \
+{"M3Amap"}, \
 {"M4en"}, \
 {"M4src"}, \
 {"M4dest1"}, \
@@ -1842,8 +1842,8 @@ namespace WaveSabreCore
 {"M4Asrc"}, \
 {"M4Aatt"}, \
 {"M4Acrv"}, \
-{"M4inv"}, \
-{"M4Ainv"}, \
+{"M4map"}, \
+{"M4Amap"}, \
 {"M5en"}, \
 {"M5src"}, \
 {"M5dest1"}, \
@@ -1859,8 +1859,8 @@ namespace WaveSabreCore
 {"M5Asrc"}, \
 {"M5Aatt"}, \
 {"M5Acrv"}, \
-{"M5inv"}, \
-{"M5Ainv"}, \
+{"M5map"}, \
+{"M5Amap"}, \
 {"M6en"}, \
 {"M6src"}, \
 {"M6dest1"}, \
@@ -1876,8 +1876,8 @@ namespace WaveSabreCore
 {"M6Asrc"}, \
 {"M6Aatt"}, \
 {"M6Acrv"}, \
-{"M6inv"}, \
-{"M6Ainv"}, \
+{"M6map"}, \
+{"M6Amap"}, \
 {"M7en"}, \
 {"M7src"}, \
 {"M7dest1"}, \
@@ -1893,8 +1893,8 @@ namespace WaveSabreCore
 {"M7Asrc"}, \
 {"M7Aatt"}, \
 {"M7Acrv"}, \
-{"M7inv"}, \
-{"M7Ainv"}, \
+{"M7map"}, \
+{"M7Amap"}, \
 {"M8en"}, \
 {"M8src"}, \
 {"M8dest1"}, \
@@ -1910,8 +1910,8 @@ namespace WaveSabreCore
 {"M8Asrc"}, \
 {"M8Aatt"}, \
 {"M8Acrv"}, \
-{"M8inv"}, \
-{"M8Ainv"}, \
+{"M8map"}, \
+{"M8Amap"}, \
 {"M9en"}, \
 {"M9src"}, \
 {"M9dest1"}, \
@@ -1927,8 +1927,8 @@ namespace WaveSabreCore
 {"M9Asrc"}, \
 {"M9Aatt"}, \
 {"M9Acrv"}, \
-{"M9inv"}, \
-{"M9Ainv"}, \
+{"M9map"}, \
+{"M9Amap"}, \
 {"M10en"}, \
 {"M10src"}, \
 {"M10dst1"}, \
@@ -1944,8 +1944,8 @@ namespace WaveSabreCore
 {"M10Asrc"}, \
 {"M10Aatt"}, \
 {"M10Acrv"}, \
-{"M10inv"}, \
-{"M10Ainv"}, \
+{"M10map"}, \
+{"M10Amap"}, \
 {"M11en"}, \
 {"M11src"}, \
 {"M11dst1"}, \
@@ -1961,8 +1961,8 @@ namespace WaveSabreCore
 {"M11Asrc"}, \
 {"M11Aatt"}, \
 {"M11Acrv"}, \
-{"M11inv"}, \
-{"M11Ainv"}, \
+{"M11map"}, \
+{"M11Amap"}, \
 {"M12en"}, \
 {"M12src"}, \
 {"M12dst1"}, \
@@ -1978,8 +1978,8 @@ namespace WaveSabreCore
 {"M12Asrc"}, \
 {"M12Aatt"}, \
 {"M12Acrv"}, \
-{"M12inv"}, \
-{"M12Ainv"}, \
+{"M12map"}, \
+{"M12Amap"}, \
 {"M13en"}, \
 {"M13src"}, \
 {"M13dst1"}, \
@@ -1995,8 +1995,8 @@ namespace WaveSabreCore
 {"M13Asrc"}, \
 {"M13Aatt"}, \
 {"M13Acrv"}, \
-{"M13inv"}, \
-{"M13Ainv"}, \
+{"M13map"}, \
+{"M13Amap"}, \
 {"M14en"}, \
 {"M14src"}, \
 {"M14dst1"}, \
@@ -2012,8 +2012,8 @@ namespace WaveSabreCore
 {"M14Asrc"}, \
 {"M14Aatt"}, \
 {"M14Acrv"}, \
-{"M14inv"}, \
-{"M14Ainv"}, \
+{"M14map"}, \
+{"M14Amap"}, \
 {"M15en"}, \
 {"M15src"}, \
 {"M15dst1"}, \
@@ -2029,8 +2029,8 @@ namespace WaveSabreCore
 {"M15Asrc"}, \
 {"M15Aatt"}, \
 {"M15Acrv"}, \
-{"M15inv"}, \
-{"M15Ainv"}, \
+{"M15map"}, \
+{"M15Amap"}, \
 {"M16en"}, \
 {"M16src"}, \
 {"M16dst1"}, \
@@ -2046,8 +2046,8 @@ namespace WaveSabreCore
 {"M16Asrc"}, \
 {"M16Aatt"}, \
 {"M16Acrv"}, \
-{"M16inv"}, \
-{"M16Ainv"}, \
+{"M16map"}, \
+{"M16Amap"}, \
 {"M17en"}, \
 {"M17src"}, \
 {"M17dst1"}, \
@@ -2063,8 +2063,8 @@ namespace WaveSabreCore
 {"M17Asrc"}, \
 {"M17Aatt"}, \
 {"M17Acrv"}, \
-{"M17inv"}, \
-{"M17Ainv"}, \
+{"M17map"}, \
+{"M17Amap"}, \
 {"M18en"}, \
 {"M18src"}, \
 {"M18dst1"}, \
@@ -2080,8 +2080,8 @@ namespace WaveSabreCore
 {"M18Asrc"}, \
 {"M18Aatt"}, \
 {"M18Acrv"}, \
-{"M18inv"}, \
-{"M18Ainv"}, \
+{"M18map"}, \
+{"M18Amap"}, \
 {"S1En"}, \
 {"S1Vol"}, \
 {"S1KRmin"}, \
@@ -2298,8 +2298,8 @@ namespace WaveSabreCore
             AuxSource,
             AuxAttenuation,
             AuxCurve,
-            Invert,
-            AuxInvert,
+            ValueMapping,
+            AuxValueMapping,
             Count,
         };
         enum class LFOParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE

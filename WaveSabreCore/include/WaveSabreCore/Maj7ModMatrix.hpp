@@ -6,20 +6,20 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		enum class ModulationRate : uint8_t
-		{
-			Disabled,
-			KRate, // evaluated each buffer.
-			ARate,
-			Count,
-		};
+		//enum class ModulationRate : uint8_t
+		//{
+		//	Disabled,
+		//	KRate, // evaluated each buffer.
+		//	ARate,
+		//	Count,
+		//};
 
-		enum class ModulationPolarity : uint8_t
-		{
-			Positive01,
-			N11,
-			Count,
-		};
+		//enum class ModulationPolarity : uint8_t
+		//{
+		//	Positive01,
+		//	N11,
+		//	Count,
+		//};
 
 		enum class ModSource : uint8_t
 		{
@@ -771,6 +771,27 @@ namespace WaveSabreCore
 			SourceAmp,
 		};
 
+		enum ModValueMapping
+		{
+			NoMapping,
+			N11_1N1, // -1,1 => 1,-1 (bipolar invert)
+			N11_01, // -1,1 => 0,1 (bipolar to positive)
+			N11_10, // -1,1 => 1,0 (bipolar to invert positive)
+			P01_10, // 0,1 => 1,0 (positive invert)
+			P01_N11, // 0,1 => -1,1 (positive to bipolar)
+			P01_1N1, // 0,1 => 1,-1 (positive to negative bipolar)
+			Count,
+		};
+#define MOD_VALUE_MAPPING_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModValueMapping::Count]{ \
+			"(thru)", \
+			"-1,1 => 1,-1 (N11 inv)", \
+			"-1,1 => 0,1 (N11 to POS)", \
+			"-1,1 => 1,0 (N11 to POS_inv)", \
+			"0,1 => 1,0 (POS inv)", \
+			"0,1 => -1,1 (POS to N11)", \
+			"0,1 => 1,-1 (POS to N11_inv", \
+        };
+
 		struct ModulationSpec
 		{
 			float* const mParamCache;
@@ -801,13 +822,11 @@ namespace WaveSabreCore
 			BoolParam mAuxEnabled;
 			EnumParam<ModSource> mAuxSource;
 
-			BoolParam mInvert;
-			BoolParam mAuxInvert;
-
+			EnumParam<ModValueMapping> mValueMapping;
+			EnumParam<ModValueMapping> mAuxValueMapping;
 
 			CurveParam mCurve;
 			CurveParam mAuxCurve;
-			//FloatN11Param mScale;
 			Float01Param mAuxAttenuation;
 
 
@@ -823,19 +842,19 @@ namespace WaveSabreCore
 				mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
 				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
 				mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
-				mInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::Invert]),
-				mAuxInvert(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxInvert])
+				mValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::ValueMapping], ModValueMapping::Count),
+				mAuxValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxValueMapping], ModValueMapping::Count)
 			{
 			}
 			void BeginBlock()
 			{
 				mEnabled.CacheValue();
-				mInvert.CacheValue();
 				mSource.CacheValue();
 				for (auto& d : mDestinations) d.CacheValue();
 				for (auto& d : mScales) d.CacheValue();
 				mAuxEnabled.CacheValue();
-				mAuxInvert.CacheValue();
+				mValueMapping.CacheValue();
+				mAuxValueMapping.CacheValue();
 				mAuxSource.CacheValue();
 			}
 
@@ -896,19 +915,19 @@ namespace WaveSabreCore
 				return mDestValues[(size_t)id];
 			}
 
-			static constexpr ModulationPolarity GetPolarity(ModSource m)
-			{
-				switch (m)
-				{
-				case ModSource::LFO1:
-				case ModSource::LFO2:
-				case ModSource::PitchBend:
-					return ModulationPolarity::N11;
-				}
-				return ModulationPolarity::Positive01;
-			}
-			
-			static float InvertValue(float val, bool invertParam, const ModSource modSource);
+			//static constexpr ModulationPolarity GetPolarity(ModSource m)
+			//{
+			//	switch (m)
+			//	{
+			//	case ModSource::LFO1:
+			//	case ModSource::LFO2:
+			//	case ModSource::PitchBend:
+			//		return ModulationPolarity::N11;
+			//	}
+			//	return ModulationPolarity::Positive01;
+			//}
+			//
+			//static float InvertValue(float val, bool invertParam, const ModSource modSource);
 
 			void BeginBlock()
 			{

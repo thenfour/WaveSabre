@@ -562,7 +562,7 @@ namespace WaveSabreCore
 				IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
 				float kt = 0;
 				FrequencyParam fp{ waveshape, kt, freq, 6 };
-				float lfoFreqShape = freq * waveshape * waveshape * 0.25f;
+				float lfoFreqShape = freq * waveshape * waveshape;// *0.25f;
 
 				mHPFilter.SetParams(FilterType::HP, freq < 30 ? lfoFreqShape : fp.GetFrequency(0, 0), 0, 0);
 			}
