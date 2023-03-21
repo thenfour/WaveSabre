@@ -467,6 +467,8 @@ public:
 		Maj7ImGuiParamEnvTime((VstInt32)M7::ParamIndices::PortamentoTime, "Port##mst", 0.4f);
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "##portcurvemst", 0.0f, M7CurveRenderStyle::Rising);
+		ImGui::SameLine();
+		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::MaxVoices, "MaxVox", 1, gMaxMaxVoices, 24, 1);
 
 		static constexpr char const* const voiceModeCaptions[] = { "Poly", "Mono" };
 		ImGui::SameLine(0, 60);

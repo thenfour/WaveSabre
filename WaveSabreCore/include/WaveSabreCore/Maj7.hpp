@@ -278,6 +278,7 @@ namespace WaveSabreCore
 
 			EnumParam<VoiceMode> mVoicingModeParam{ mParamCache[(int)ParamIndices::VoicingMode], WaveSabreCore::VoiceMode::Count};
 			IntParam mUnisonoVoicesParam{ mParamCache[(int)ParamIndices::Unisono], 1, gUnisonoVoiceMax };
+			IntParam mMaxVoicesParam{ mParamCache[(int)ParamIndices::MaxVoices], 1, gMaxMaxVoices };
 
 			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb };
 
@@ -505,6 +506,11 @@ namespace WaveSabreCore
 						this->SetUnisonoVoices(mUnisonoVoicesParam.GetIntValue());
 						break;
 					}
+					case (int)ParamIndices::MaxVoices:
+					{
+						this->SetMaxVoices(mMaxVoicesParam.GetIntValue());
+						break;
+					}
 				}
 
 			}
@@ -572,9 +578,9 @@ namespace WaveSabreCore
 					lfo.mPhase.BeginBlock();
 				}
 
-				for (auto* v : mMaj7Voice)
+				for (size_t iv = 0; iv < mMaxVoices; ++ iv)
 				{
-					v->BeginBlock();
+					mMaj7Voice[iv]->BeginBlock();
 				}
 
 				// very inefficient to calculate all in the loops like that but it's for size-optimization
@@ -583,9 +589,10 @@ namespace WaveSabreCore
 				{
 					float s[2] = { 0 };
 
-					for (auto* v : mMaj7Voice)
+					//for (auto* v : mMaj7Voice)
+					for (size_t iv = 0; iv < mMaxVoices; ++iv)
 					{
-						v->ProcessAndMix(s);
+						mMaj7Voice[iv]->ProcessAndMix(s);
 					}
 
 					for (size_t ioutput = 0; ioutput < 2; ++ioutput) {
@@ -979,7 +986,7 @@ namespace WaveSabreCore
 				}
 			};
 
-			struct Maj7Voice* mMaj7Voice[maxVoices] = { 0 };
+			struct Maj7Voice* mMaj7Voice[gMaxMaxVoices] = { 0 };
 
 		};
 	} // namespace M7

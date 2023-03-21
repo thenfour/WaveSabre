@@ -85,10 +85,10 @@ inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 		}
 		auto it = paramMap.find(ch.mKeyName);
 		if (it == paramMap.end()) {
-			return 0; // unknown param name.
+			continue;// return 0; // unknown param name. just ignore and allow loading.
 		}
 		if (it->second.first) {
-			return 0; // already set. is this a duplicate?
+			continue;// return 0; // already set. is this a duplicate? just ignore.
 		}
 
 		//char str[200];

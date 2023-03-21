@@ -13,6 +13,8 @@
 
 namespace WaveSabreCore
 {
+	static constexpr int gMaxMaxVoices = 64;
+
 	class Maj7SynthDevice : public Device
 	{
 	public:
@@ -33,6 +35,16 @@ namespace WaveSabreCore
 		void SetVoiceMode(VoiceMode voiceMode);
 		VoiceMode GetVoiceMode() const;
 
+		void SetMaxVoices(int x)
+		{
+			AllNotesOff(); // helps make things predictable, reduce cases
+			for (int i = 0; i < gMaxMaxVoices; i++)
+			{
+				mVoices[i]->Kill();
+			}
+			mMaxVoices = x;
+		}
+
 		// zero-initialized POD for code space saving (yes it bloats)
 		struct NoteInfo
 		{
@@ -49,8 +61,8 @@ namespace WaveSabreCore
 
 		int GetCurrentPolyphony() const {
 			int r = 0;
-			for (auto& v : mVoices) {
-				r += v->IsPlaying() ? 1 : 0;
+			for (size_t iv = 0; iv < mMaxVoices; ++ iv) {
+				r += mVoices[iv]->IsPlaying() ? 1 : 0;
 			}
 			return r;
 		}
@@ -111,7 +123,8 @@ namespace WaveSabreCore
 		// always returns a voice. ideally we would look at envelope states to determine the most suitable, but let's just keep it simple and increase max poly
 		Voice* FindFreeVoice() {
 			Voice* playingVoiceToReturn = mVoices[0];
-			for (auto* v : mVoices) {
+			for (size_t iv = 0; iv < mMaxVoices; ++iv) {
+				auto* v = mVoices[iv];
 				if (!v->IsPlaying())
 					return v;
 				if (!playingVoiceToReturn || (v->mNoteInfo.mSequence < playingVoiceToReturn->mNoteInfo.mSequence))
@@ -174,8 +187,10 @@ namespace WaveSabreCore
 				{
 					// this is already playing, in the case you have sustain pedal down.
 					// re-send a note on to the existing.
-					for (auto* pv : mVoices)
+					//for (auto* pv : mVoices)
+					for (size_t iv = 0; iv < mMaxVoices; ++iv)
 					{
+						auto* pv = mVoices[iv];
 						if (pv->mNoteInfo.MidiNoteValue != myNote.MidiNoteValue)
 							continue;
 						pv->BaseNoteOn(myNote, pv->mUnisonVoice, true /* i mean, is it though? */);
@@ -226,8 +241,10 @@ namespace WaveSabreCore
 			case VoiceMode::Polyphonic:
 			default:
 				myNote.mIsMusicallyHeld = false;
-				for (auto* v : mVoices)
+				//for (auto* v : mVoices)
+				for (size_t iv = 0; iv < mMaxVoices; ++iv)
 				{
+					auto* v = mVoices[iv];
 					if (v->mNoteInfo.MidiNoteValue == note) {
 						v->NoteOff();
 					}
@@ -315,10 +332,10 @@ namespace WaveSabreCore
 			return mVoicesUnisono;
 		}
 
-		static constexpr int maxVoices = 48;
 		static constexpr int maxEvents = 64;
 		static constexpr int maxActiveNotes = 128; // should always be 128 for all midi notes.
 
+		int mMaxVoices = 32;
 		int mVoicesUnisono = 1; // # of voices to double.
 		bool mIsPedalDown = false;
 
@@ -326,7 +343,7 @@ namespace WaveSabreCore
 
 		NoteInfo mNoteStates[maxActiveNotes] ; // index = midi note value
 
-		Voice* mVoices[maxVoices] = { 0 }; // allow child class to instantiate derived voice classes; don't template due to bloat.
+		Voice* mVoices[gMaxMaxVoices] = { 0 }; // allow child class to instantiate derived voice classes; don't template due to bloat.
 		VoiceMode mVoiceMode = VoiceMode::Polyphonic;
 
 		Event mEvents[maxEvents];

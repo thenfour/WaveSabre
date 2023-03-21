@@ -840,8 +840,6 @@ namespace WaveSabreCore
             UnisonoDetune,
             OscillatorSpread,
             UnisonoStereoSpread,
-            //OscillatorShapeSpread,
-            //UnisonoShapeSpread,
             FMBrightness,
 
             AuxRouting,
@@ -850,6 +848,8 @@ namespace WaveSabreCore
             PortamentoTime,
             PortamentoCurve,
             PitchBendRange,
+
+            MaxVoices,
 
             Macro1,
             Macro2,
@@ -1563,6 +1563,7 @@ namespace WaveSabreCore
 {"PortTm"}, \
 {"PortCv"}, \
 {"PBRng"}, \
+{"MaxVox"}, \
 {"Macro1"}, \
 {"Macro2"}, \
 {"Macro3"}, \
@@ -2229,6 +2230,8 @@ namespace WaveSabreCore
             PortamentoTime,
             PortamentoCurve,
             PitchBendRange,
+
+            MaxVoices,
 
             Macro1,
             Macro2,
