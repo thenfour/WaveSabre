@@ -1411,7 +1411,7 @@ public:
 
 		// freq & samplerate should be set such that we have `width` samples per 1 cycle.
 		// samples per cycle = srate / freq
-		pWaveform->SetParams(freq, 0, waveshape01, bb.GetWidth());
+		pWaveform->SetParams(freq, 0, waveshape01, bb.GetWidth(), M7::OscillatorIntention::LFO);
 
 		ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
 		ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
