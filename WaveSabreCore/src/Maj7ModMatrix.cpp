@@ -29,26 +29,11 @@ namespace WaveSabreCore
 			}
 		}
 
-
-			//float ModMatrixNode::InvertValue(float val, bool invertParam, const ModSource modSource)
-			//{
-			//	if (invertParam) {
-			//		switch (GetPolarity(modSource)) {
-			//		case ModulationPolarity::N11:
-			//			return -val;
-			//		case ModulationPolarity::Positive01:
-			//			return 1.0f - val;
-			//		}
-			//	}
-			//	return val;
-			//}
-
 			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
 			{
 				auto recalcMask = GetModulationRecalcSampleMask();
 				if (!mnSampleCount)
 				{
-					//memset(mDestValues, 0, sizeof(mDestValues));
 					mModulatedDestValueCount = 0;
 					for (size_t imod = 0; imod < gModulationCount; ++imod)
 					{
@@ -139,12 +124,6 @@ namespace WaveSabreCore
 					} // for each mod
 				} // if needs recalc
 
-				//for (size_t imod = 0; imod < gModulationCount; ++imod)
-				//{
-				//	auto& spec = modSpecs[imod];
-				//	for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
-				//		mDestValues[(size_t)spec.mDestinations[id].mCachedVal] += mDestValueDeltas[imod][id];
-				//	}
 				//} // for each mod
 				for (size_t id = 0; id < mModulatedDestValueCount; ++id) {
 					auto& dvd = mModulatedDestValueDeltas[id];

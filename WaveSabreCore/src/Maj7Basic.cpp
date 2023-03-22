@@ -414,8 +414,8 @@ namespace WaveSabreCore
 		IntParam::IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive) :
 			Float01Param(ref),
 			mMinValueInclusive(minValueInclusive),
-			mMaxValueInclusive(maxValueInclusive),
-			mHalfMinusMinVal(0.5f - minValueInclusive)
+			mMaxValueInclusive(maxValueInclusive)//,
+			//mHalfMinusMinVal(0.5f - minValueInclusive)
 		{
 			CacheValue();
 		}
@@ -435,10 +435,17 @@ namespace WaveSabreCore
 		}
 		void IntParam::SetIntValue(int val) {
 			int c = GetDiscreteValueCount();
-			real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
-			p += mHalfMinusMinVal;
-			p /= c;
-			mParamValue = p;
+			//if (val == this->mMinValueInclusive) {
+			//	mParamValue = 0; // helps compression!
+			//}
+			//else if (val == this->mMaxValueInclusive) {
+			//	mParamValue = 1; // helps compression!
+			//} else {
+				real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
+				p += 0.5f - mMinValueInclusive;
+				p /= c;
+				mParamValue = p;
+			//}
 			CacheValue();
 		}
 

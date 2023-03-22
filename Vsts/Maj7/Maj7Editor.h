@@ -195,8 +195,7 @@ public:
 			}
 
 			if (ImGui::MenuItem("Copy patch to clipboard")) {
-				CopyPatchToClipboard();
-				::MessageBoxA(mCurrentWindow, "Copied to clipboard", "WaveSabre - Maj7", MB_OK);
+				CopyPatchToClipboard(false);
 			}
 
 			if (ImGui::MenuItem("Paste patch from clipboard")) {
@@ -207,63 +206,67 @@ public:
 			}
 
 			ImGui::Separator();
+
 			if (ImGui::MenuItem("Init patch (from VST)")) {
 				GenerateDefaults(pMaj7);
 			}
 
 			if (ImGui::MenuItem("Export as Maj7.cpp defaults to clipboard")) {
-				if (IDYES != ::MessageBoxA(mCurrentWindow, "A new maj7.cpp will be copied to the clipboard, based on 1st item params.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-					return;
+				if (IDYES == ::MessageBoxA(mCurrentWindow, "A new maj7.cpp will be copied to the clipboard, based on 1st item params.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					CopyParamCache();
 				}
-				CopyParamCache();
 			}
 
+			if (ImGui::MenuItem("Copy DIFF patch to clipboard")) {
+				CopyPatchToClipboard(true);
+			}
+
+
 			if (ImGui::MenuItem("Test chunk roundtrip")) {
-				if (IDYES != ::MessageBoxA(mCurrentWindow, "Sure? This could ruin your patch. But hopefully it doesn't?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-					return;
-				}
+				if (IDYES == ::MessageBoxA(mCurrentWindow, "Sure? This could ruin your patch. But hopefully it doesn't?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
 
-				float orig[(size_t)M7::ParamIndices::NumParams];
-				for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
-					orig[i] = pMaj7->GetParam((int)i);
-				}
-
-				void* data;
-				//int n = pMaj7->GetChunk(&data);
-				int n = GetMinifiedChunk(pMaj7, &data);
-				pMaj7->SetChunk(data, n);
-				delete[] data;
-
-
-				float after[(size_t)M7::ParamIndices::NumParams];
-				for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
-					after[i] = pMaj7->GetParam((int)i);
-				}
-
-				//float delta = 0;
-				std::vector<std::string> paramReports;
-
-				using vstn = const char[kVstMaxParamStrLen];
-				static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
-
-				for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
-					if (!M7::math::FloatEquals(orig[i], after[i])) {
-						//delta = abs(orig[i] - after[i]);
-						//bdiff++;
-						char msg[200];
-						sprintf_s(msg, "%s before=%.2f after=%.2f", paramNames[i], orig[i], after[i]);
-						paramReports.push_back(msg);
+					float orig[(size_t)M7::ParamIndices::NumParams];
+					for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
+						orig[i] = pMaj7->GetParam((int)i);
 					}
-				}
 
-				char msg[200];
-				sprintf_s(msg, "Done. %d bytes long. %d params have been messed up.\r\n", n, (int)paramReports.size());
-				std::string smsg{ msg };
-				smsg += "\r\n";
-				for (auto& p : paramReports) {
-					smsg += p;
+					void* data;
+					//int n = pMaj7->GetChunk(&data);
+					int n = GetMinifiedChunk(pMaj7, &data);
+					pMaj7->SetChunk(data, n);
+					delete[] data;
+
+
+					float after[(size_t)M7::ParamIndices::NumParams];
+					for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
+						after[i] = pMaj7->GetParam((int)i);
+					}
+
+					//float delta = 0;
+					std::vector<std::string> paramReports;
+
+					using vstn = const char[kVstMaxParamStrLen];
+					static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+
+					for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
+						if (!M7::math::FloatEquals(orig[i], after[i])) {
+							//delta = abs(orig[i] - after[i]);
+							//bdiff++;
+							char msg[200];
+							sprintf_s(msg, "%s before=%.2f after=%.2f", paramNames[i], orig[i], after[i]);
+							paramReports.push_back(msg);
+						}
+					}
+
+					char msg[200];
+					sprintf_s(msg, "Done. %d bytes long. %d params have been messed up.\r\n", n, (int)paramReports.size());
+					std::string smsg{ msg };
+					smsg += "\r\n";
+					for (auto& p : paramReports) {
+						smsg += p;
+					}
+					::MessageBoxA(mCurrentWindow, smsg.c_str(), "WaveSabre - Maj7", MB_OK);
 				}
-				::MessageBoxA(mCurrentWindow, smsg.c_str(), "WaveSabre - Maj7", MB_OK);
 			}
 
 
@@ -271,23 +274,42 @@ public:
 			if (ImGui::MenuItem("Optimize")) {
 				// the idea is to reset any unused parameters to default values, so they end up being 0 in the minified chunk.
 				// that compresses better. this is a bit tricky though; i guess i should only do this for like, samplers, oscillators, modulations 1-8, and all envelopes.
-				if (IDYES != ::MessageBoxA(mCurrentWindow, "Unused objects will be clobbered; are you sure? Do this as a post-processing step before rendering the minified song.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-					return;
-				}
-				if (IDYES == ::MessageBoxA(mCurrentWindow, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-					CopyPatchToClipboard();
-					::MessageBoxA(mCurrentWindow, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
-				}
-				auto r1 = AnalyzeChunkMinification(pMaj7);
-				OptimizeParams(pMaj7);
-				auto r2 = AnalyzeChunkMinification(pMaj7);
-				char msg[200];
-				sprintf_s(msg, "Done!\r\nBefore: %d bytes; %d nondefaults\r\nAfter: %d bytes; %d nondefaults\r\nShrunk to %d %%",
-					r1.compressedSize, r1.nonZeroParams,
-					r2.compressedSize, r2.nonZeroParams,
-					int(((float)r2.compressedSize / r1.compressedSize) * 100)
+				if (IDYES == ::MessageBoxA(mCurrentWindow, "Unused objects will be clobbered; are you sure? Do this as a post-processing step before rendering the minified song.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					if (IDYES == ::MessageBoxA(mCurrentWindow, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+						CopyPatchToClipboard(false);
+						::MessageBoxA(mCurrentWindow, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
+					}
+					auto r1 = AnalyzeChunkMinification(pMaj7);
+					OptimizeParams(pMaj7, false);
+					auto r2 = AnalyzeChunkMinification(pMaj7);
+					char msg[200];
+					sprintf_s(msg, "Done!\r\nBefore: %d bytes; %d nondefaults\r\nAfter: %d bytes; %d nondefaults\r\nShrunk to %d %%",
+						r1.compressedSize, r1.nonZeroParams,
+						r2.compressedSize, r2.nonZeroParams,
+						int(((float)r2.compressedSize / r1.compressedSize) * 100)
 					);
-				::MessageBoxA(mCurrentWindow, msg, "WaveSabre - Maj7", MB_OK);
+					::MessageBoxA(mCurrentWindow, msg, "WaveSabre - Maj7", MB_OK);
+				}
+			}
+			if (ImGui::MenuItem("Optimize-Aggressive")) {
+				// the idea is to reset any unused parameters to default values, so they end up being 0 in the minified chunk.
+				// that compresses better. this is a bit tricky though; i guess i should only do this for like, samplers, oscillators, modulations 1-8, and all envelopes.
+				if (IDYES == ::MessageBoxA(mCurrentWindow, "Unused objects will be clobbered; are you sure? Do this as a post-processing step before rendering the minified song.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					if (IDYES == ::MessageBoxA(mCurrentWindow, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+						CopyPatchToClipboard(false);
+						::MessageBoxA(mCurrentWindow, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
+					}
+					auto r1 = AnalyzeChunkMinification(pMaj7);
+					OptimizeParams(pMaj7, true);
+					auto r2 = AnalyzeChunkMinification(pMaj7);
+					char msg[200];
+					sprintf_s(msg, "Done!\r\nBefore: %d bytes; %d nondefaults\r\nAfter: %d bytes; %d nondefaults\r\nShrunk to %d %%",
+						r1.compressedSize, r1.nonZeroParams,
+						r2.compressedSize, r2.nonZeroParams,
+						int(((float)r2.compressedSize / r1.compressedSize) * 100)
+					);
+					::MessageBoxA(mCurrentWindow, msg, "WaveSabre - Maj7", MB_OK);
+				}
 			}
 			if (ImGui::MenuItem("Analyze minified chunk")) {
 				auto r = AnalyzeChunkMinification(pMaj7);
@@ -305,16 +327,16 @@ public:
 		}
 	}
 
-	void CopyPatchToClipboard()
+	void CopyPatchToClipboard(bool diff)
 	{
 		void* data;
 		int size;
-		size = mMaj7VST->getChunk(&data, false);
+		size = mMaj7VST->getChunk2(&data, false, diff);
 		if (data && size) {
 			CopyTextToClipboard((const char*)data);
 		}
 		delete[] data;
-		::MessageBoxA(mCurrentWindow, "Copied to clipboard", "WaveSabre - Maj7", MB_OK);
+		::MessageBoxA(mCurrentWindow, "Copied patch to clipboard", "WaveSabre - Maj7", MB_OK);
 	}
 
 	void CopyParamCache()

@@ -16,7 +16,7 @@ namespace WaveSabreCore {
           0.30000001192092895508, // PortTm
           0.5, // PortCv
           0.54081630706787109375, // PBRng
-          0.5,
+          0.3671875, // MaxVox
           0, // Macro1
           0, // Macro2
           0, // Macro3
@@ -65,21 +65,21 @@ namespace WaveSabreCore {
         const float gDefaultModSpecParams[17] = {
           0, // M1en
           0.0002470355830155313015, // M1src
-          0.0002470355830155313015, // M1dest
-          0.0002470355830155313015, // M2dest
-          0.0002470355830155313015, // M3dest
-          0.0002470355830155313015, // M4dest
+          0.0002470355830155313015, // M1dest1
+          0.0002470355830155313015, // M1dest2
+          0.0002470355830155313015, // M1dest3
+          0.0002470355830155313015, // M1dest4
           0.5, // M1curv
-          0.80000001192092895508, // M1scale
-          0.80000001192092895508, // M1scale
-          0.80000001192092895508, // M1scale
-          0.80000001192092895508, // M1scale
+          0.875, // M1scl1
+          0.875, // M1scl2
+          0.875, // M1scl3
+          0.875, // M1scl4
           0, // M1Aen
           0.0002470355830155313015, // M1Asrc
           1, // M1Aatt
           0.5, // M1Acrv
-          0, // M1inv
-          0, // M1Ainv
+          0.0002470355830155313015, // M1map
+          0.0002470355830155313015, // M1Amap
         };
         static_assert((int)M7::LFOParamIndexOffsets::Count == 6, "param count probably changed and this needs to be regenerated.");
         const float gDefaultLFOParams[6] = {

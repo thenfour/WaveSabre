@@ -92,7 +92,7 @@ int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName, int i
 	M7::Maj7* tmpEffect = new M7::Maj7(); // consumes like 30kb of stack so new it.
 	Maj7SetVstChunk(tmpEffect, inpData, inpSize);
 	
-	M7::OptimizeParams(tmpEffect);
+	M7::OptimizeParams(tmpEffect, true);
 
 	*outpSize = GetMinifiedChunk(tmpEffect, outpData);
 	delete tmpEffect;

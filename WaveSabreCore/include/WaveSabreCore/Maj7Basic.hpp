@@ -542,11 +542,9 @@ namespace WaveSabreCore
         // stores an integral parameter as a 0-1 float param
         struct IntParam : Float01Param
         {
-        protected:
             const int mMinValueInclusive;
             const int mMaxValueInclusive;
-            const float mHalfMinusMinVal; // precalc to avoid an add
-        public:
+            //const float mHalfMinusMinVal; // precalc to avoid an add
             int mCachedVal;
             //explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue);
             explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive);
@@ -574,8 +572,6 @@ namespace WaveSabreCore
         {
             static constexpr size_t MaxItems = 2023;
             T mCachedVal;
-            //explicit EnumParam(real_t& ref, T maxValue, T initialValue) : IntParam(ref, 0, MaxItems, (int)initialValue)
-            //{}
             explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, MaxItems)
             {
                 CacheValue();

@@ -91,19 +91,9 @@ inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 			continue;// return 0; // already set. is this a duplicate? just ignore.
 		}
 
-		//char str[200];
-		//sprintf(str, "setting param %s = %f\r\n", ch.mKeyName.c_str(), ch.mNumericValue.Get<float>());
-		//::OutputDebugStringA(str);
-
 		p->SetParam((VstInt32)it->second.second, ch.mNumericValue.Get<float>());
 		it->second.first = true;
 	}
-
-	//for (auto& kv : paramMap) {
-	//	if (!kv.second.first) {
-	//		return 0; // a parameter was not set. well no big deal tbh; worth a warning?
-	//	}
-	//}
 
 	auto samplersArr = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
 	if (samplersArr.IsEOF()) {
@@ -144,122 +134,14 @@ public:
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		return Maj7SetVstChunk(GetMaj7(), data, byteSize);
-
-		//if (!byteSize) return byteSize;
-		//const char* pstr = (const char *)data;
-		//if (strnlen(pstr, byteSize - 1) >= byteSize) return byteSize;
-
-		//using vstn = const char[kVstMaxParamStrLen];
-		//static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
-
-		//clarinoid::MemoryStream memStream {(const uint8_t*)data, (size_t)byteSize};
-		//clarinoid::BufferedStream buffering{ memStream };
-		//clarinoid::TextStream textStream{ buffering };
-		//clarinoid::JsonVariantReader doc{ textStream };
-
-		//// @ root there is exactly 1 KV object.
-		//auto maj7Obj = doc.GetNextObjectItem();
-		//if (maj7Obj.IsEOF()) {
-		//	return 0; // empty doc?
-		//}
-		//if (maj7Obj.mParseResult.IsFailure()) {
-		//	return 0;//return ch.mParseResult;
-		//}
-		//if (maj7Obj.mKeyName != "Maj7") {
-		//	return 0;
-		//}
-
-		//bool tagSatisfied = false;
-		//bool versionSatisfied = false;
-		//while (true) {
-		//	auto ch = maj7Obj.GetNextObjectItem();
-		//	if (ch.mKeyName == "Tag") {
-		//		if (ch.mNumericValue.Get<DWORD>() != M7::Maj7::gChunkTag) {
-		//			return 0; //invalid tag
-		//		}
-		//		tagSatisfied = true;
-		//	}
-		//	if (ch.mKeyName == "Version") {
-		//		if (ch.mNumericValue.Get<uint8_t>() != M7::Maj7::gChunkVersion) {
-		//			return 0; // unknown version
-		//		}
-		//		versionSatisfied = true;
-		//	}
-		//	if (ch.IsEOF())
-		//		break;
-		//}
-		//if (!tagSatisfied || !versionSatisfied)
-		//	return 0;
-
-		//auto paramsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
-		//if (paramsObj.IsEOF()) {
-		//	return 0;
-		//}
-		//if (paramsObj.mParseResult.IsFailure()) {
-		//	return 0;
-		//}
-		//if (paramsObj.mKeyName != "params") {
-		//	return 0;
-		//}
-
-		//std::map<std::string, std::pair<bool, size_t>> paramMap; // maps string name to whether it's been set + which param index is it.
-		//for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
-		//	paramMap[paramNames[i]] = std::make_pair(false, i);
-		//}
-
-		//while (true) {
-		//	auto ch = paramsObj.GetNextObjectItem();
-		//	if (ch.IsEOF())
-		//		break;
-		//	if (ch.mParseResult.IsFailure()) {
-		//		return 0;
-		//	}
-		//	auto it = paramMap.find(ch.mKeyName);
-		//	if (it == paramMap.end()) {
-		//		return 0; // unknown param name.
-		//	}
-		//	if (it->second.first) {
-		//		return 0; // already set. is this a duplicate?
-		//	}
-
-		//	//char str[200];
-		//	//sprintf(str, "setting param %s = %f\r\n", ch.mKeyName.c_str(), ch.mNumericValue.Get<float>());
-		//	//::OutputDebugStringA(str);
-
-		//	setParameter((VstInt32)it->second.second, ch.mNumericValue.Get<float>());
-		//	it->second.first = true;
-		//}
-
-		////for (auto& kv : paramMap) {
-		////	if (!kv.second.first) {
-		////		return 0; // a parameter was not set. well no big deal tbh; worth a warning?
-		////	}
-		////}
-
-		//auto samplersArr = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
-		//if (samplersArr.IsEOF()) {
-		//	return 0;
-		//}
-		//if (samplersArr.mParseResult.IsFailure()) {
-		//	return 0;
-		//}
-		//if (samplersArr.mKeyName != "samplers") {
-		//	return 0;
-		//}
-
-		//for (auto& s : GetMaj7()->mSamplerDevices) {
-		//	auto b64 = samplersArr.GetNextArrayItem();
-		//	if (b64.IsEOF()) break;
-		//	if (b64.mParseResult.IsFailure()) break;
-		//	auto data = clarinoid::base64_decode(b64.mStringValue);
-		//	M7::Deserializer ds{data.data(), data.size()};
-		//	s.Deserialize(ds);
-		//}
-
-		//return byteSize;
 	}
 
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
+	{
+		// the default VST behavior is to output/set RAW values, not diff'd values.
+		return getChunk2(data, isPreset, false);
+	}
+	VstInt32 getChunk2(void** data, bool isPreset, bool diff)
 	{
 		using vstn = const char[kVstMaxParamStrLen];
 		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
@@ -276,13 +158,20 @@ public:
 		maj7Element.BeginObject();
 		maj7Element.Object_MakeKey("Tag").WriteNumberValue(M7::Maj7::gChunkTag);
 		maj7Element.Object_MakeKey("Version").WriteNumberValue(M7::Maj7::gChunkVersion);
+		maj7Element.Object_MakeKey("Format").WriteStringValue(diff ? "DIFF values" : "Absolute values");
 
 		auto paramsElement = doc.Object_MakeKey("params");
 		paramsElement.BeginObject();
 
 		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i)
 		{
-			paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i));
+			if (diff) {
+				float def = GetMaj7()->mDefaultParamCache[i];
+				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i) - def);
+			}
+			else {
+				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i));
+			}
 		}
 
 		auto samplersArray = doc.Object_MakeKey("samplers");
@@ -305,6 +194,9 @@ public:
 		*data = out;
 		return (VstInt32)size;
 	}
+
+
+
 
 	WaveSabreCore::M7::Maj7 *GetMaj7() const;
 };
@@ -549,8 +441,8 @@ namespace WaveSabreCore
 		{
 			int nonZeroParams = 0;
 			int defaultParams = 0;
-			int uncompressedSize = 0;
-			int compressedSize = 0;
+int uncompressedSize = 0;
+int compressedSize = 0;
 		};
 
 		static inline ChunkStats AnalyzeChunkMinification(Maj7* p)
@@ -594,11 +486,96 @@ namespace WaveSabreCore
 			return ret;
 		}
 
-		static inline void OptimizeParams(Maj7* p)
+		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
+		// using the default value when the effective value is the same.
+		template<typename T, typename Tbase, typename Toffset>
+		static inline void OptimizeEnumParam(Maj7* p, EnumParam<T>& param, T itemCount, Tbase baseParam, Toffset paramOffset)
+		{
+			int paramID = (int)baseParam + (int)paramOffset;
+			if (paramID < 0) return; // invalid IDs exist for example in LFo
+			T liveEnumValue = param.GetEnumValue();
+			float defaultParamVal = p->mDefaultParamCache[paramID];
+			EnumParam<T> defParam{ defaultParamVal , itemCount };
+			if (liveEnumValue == defParam.GetEnumValue()) {
+				param.SetParamValue(defaultParamVal);
+			}
+		}
+
+		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
+		// using the default value when the effective value is the same.
+		template<typename Tbase, typename Toffset>
+		static inline void OptimizeIntParam(Maj7* p, IntParam& param, Tbase baseParam, Toffset paramOffset)
+		{
+			int paramID = (int)baseParam + (int)paramOffset;
+			if (paramID < 0) return; // invalid IDs exist for example in LFo
+			int liveIntValue = param.GetIntValue();
+			float defaultParamVal = p->mDefaultParamCache[paramID];
+			IntParam defParam{ defaultParamVal, param.mMinValueInclusive, param.mMaxValueInclusive };
+			if (liveIntValue == defParam.GetIntValue()) {
+				param.SetParamValue(defaultParamVal);
+			}
+		}
+
+		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
+		// using the default value when the effective value is the same.
+		template<typename Tbase, typename Toffset>
+		static inline void OptimizeBoolParam(Maj7* p, BoolParam& param, Tbase baseParam, Toffset paramOffset)
+		{
+			int paramID = (int)baseParam + (int)paramOffset;
+			if (paramID < 0) return; // invalid IDs exist for example in LFo
+			bool liveBoolValue = param.GetBoolValue();
+			float defaultParamVal = p->mDefaultParamCache[paramID];
+			BoolParam defParam{ defaultParamVal };
+			if (liveBoolValue == defParam.GetBoolValue()) {
+				param.SetRawParamValue(defaultParamVal);
+			}
+		}
+
+		static inline void OptimizeEnvelope(Maj7* p, EnvelopeNode& env)
+		{
+			OptimizeBoolParam(p, env.mLegatoRestart, env.mParamBaseID, EnvParamIndexOffsets::LegatoRestart);
+			OptimizeEnumParam(p, env.mMode, EnvelopeMode::Count, env.mParamBaseID, EnvParamIndexOffsets::Mode);
+
+			if (!IsEnvelopeInUse(p, env.mMyModSource)) {
+				memcpy(p->mParamCache + (int)env.mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+				return;
+			}
+			if (env.mMode.GetEnumValue() == EnvelopeMode::OneShot)
+			{
+				env.mSustainLevel.SetParamValue(p->mParamCache[(size_t)env.mParamBaseID + (size_t)EnvParamIndexOffsets::SustainLevel]);
+				env.mReleaseTime.SetParamValue(p->mParamCache[(size_t)env.mParamBaseID + (size_t)EnvParamIndexOffsets::ReleaseTime]);
+				env.mReleaseCurve.SetParamValue(p->mParamCache[(size_t)env.mParamBaseID + (size_t)EnvParamIndexOffsets::ReleaseCurve]);
+			}
+		}
+
+		static inline void OptimizeSource(Maj7* p, ISoundSourceDevice* psrc)
+		{
+			OptimizeBoolParam(p, psrc->mEnabledParam, psrc->mEnabledParamID, 0);
+			OptimizeIntParam(p, psrc->mPitchSemisParam, psrc->mTuneSemisParamID, 0);
+			OptimizeIntParam(p, psrc->mKeyRangeMin, psrc->mKeyRangeMinParamID, 0);
+			OptimizeIntParam(p, psrc->mKeyRangeMax, psrc->mKeyRangeMaxParamID, 0);
+		}
+
+		// if aggressive, then round values which are very close to defaults back to default.
+		static inline void OptimizeParams(Maj7* p, bool aggressive)
 		{
 			// samplers
 			for (auto& s : p->mSamplerDevices)
 			{
+				OptimizeSource(p, &s);
+
+				OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
+				OptimizeEnumParam(p, s.mLoopSource, LoopBoundaryMode::NumLoopBoundaryModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopSource);
+				OptimizeEnumParam(p, s.mInterpolationMode, InterpolationMode::NumInterpolationModes, s.mBaseParamID, SamplerParamIndexOffsets::InterpolationType);
+				OptimizeEnumParam(p, s.mSampleSource, SampleSource::Count, s.mBaseParamID, SamplerParamIndexOffsets::SampleSource);
+
+				OptimizeBoolParam(p, s.mLegatoTrig, s.mBaseParamID, SamplerParamIndexOffsets::LegatoTrig);
+				OptimizeBoolParam(p, s.mReverse, s.mBaseParamID, SamplerParamIndexOffsets::Reverse);
+				OptimizeBoolParam(p, s.mReleaseExitsLoop, s.mBaseParamID, SamplerParamIndexOffsets::ReleaseExitsLoop);
+
+				OptimizeIntParam(p, s.mGmDlsIndex, s.mBaseParamID, SamplerParamIndexOffsets::GmDlsIndex);
+				OptimizeIntParam(p, s.mBaseNote, s.mBaseParamID, SamplerParamIndexOffsets::BaseNote);
+
 				if (!s.mEnabledParam.GetBoolValue()) {
 					s.Reset();
 					memcpy(p->mParamCache + (int)s.mBaseParamID, gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
@@ -608,44 +585,75 @@ namespace WaveSabreCore
 			// oscillators
 			for (auto& s : p->mOscillatorDevices)
 			{
+				OptimizeSource(p, &s);
+				OptimizeEnumParam(p, s.mWaveform, OscillatorWaveform::Count, s.mBaseParamID, OscParamIndexOffsets::Waveform);
+				OptimizeBoolParam(p, s.mPhaseRestart, s.mBaseParamID, OscParamIndexOffsets::PhaseRestart);
+				OptimizeBoolParam(p, s.mSyncEnable, s.mBaseParamID, OscParamIndexOffsets::SyncEnable);
+
 				if (!s.mEnabledParam.GetBoolValue()) {
 					memcpy(p->mParamCache + (int)s.mBaseParamID, gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
 				}
 			}
 
-			// LFO?
-			if (!IsLFOInUse(p, ModSource::LFO1)) {
-				memcpy(p->mParamCache + (int)ParamIndices::LFO1Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
-			}
-			if (!IsLFOInUse(p, ModSource::LFO2)) {
-				memcpy(p->mParamCache + (int)ParamIndices::LFO2Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
-			}
-			if (!IsLFOInUse(p, ModSource::LFO3)) {
-				memcpy(p->mParamCache + (int)ParamIndices::LFO3Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
-			}
-			if (!IsLFOInUse(p, ModSource::LFO4)) {
-				memcpy(p->mParamCache + (int)ParamIndices::LFO4Waveform, gDefaultLFOParams, sizeof(gDefaultLFOParams));
+			// LFO
+			for (auto& lfo : p->mLFOs) {
+				OptimizeSource(p, &lfo.mDevice);
+				OptimizeEnumParam(p, lfo.mDevice.mWaveform, OscillatorWaveform::Count, lfo.mDevice.mBaseParamID, OscParamIndexOffsets::Waveform);
+				OptimizeBoolParam(p, lfo.mDevice.mPhaseRestart, lfo.mDevice.mBaseParamID, OscParamIndexOffsets::PhaseRestart);
+				OptimizeBoolParam(p, lfo.mDevice.mSyncEnable, lfo.mDevice.mBaseParamID, OscParamIndexOffsets::SyncEnable);
 			}
 
 			// envelopes
 			for (auto* env : p->mMaj7Voice[0]->mpAllModEnvelopes) {
-				if (!IsEnvelopeInUse(p, env->mMyModSource)) {
-					memcpy(p->mParamCache + (int)env->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
-				}
+				OptimizeEnvelope(p, *env);
 			}
 			for (auto* psv : p->mMaj7Voice[0]->mSourceVoices) {
-				if (!IsEnvelopeInUse(p, psv->mpAmpEnv->mMyModSource)) {
-					memcpy(p->mParamCache + (int)psv->mpAmpEnv->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
-				}
+				OptimizeEnvelope(p, *psv->mpAmpEnv);
 			}
 
-			// modulations 1-8 (gOptimizeableModulations)
+			// modulations.
+			// optimize hard because there are so many modulations and there's always a lot of fiddling happening here.
 			for (auto& m : p->mModulations) {
-				if (m.mType != ModulationSpecType::General) continue; // don't try to optimize internal stuff. only stuff the user has likely messed with and disabled.
-				if (m.mEnabled.GetBoolValue()) continue;
-				memcpy(p->mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
+				if (!m.mEnabled.GetBoolValue()) {
+					memcpy(p->mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
+				}
+
+				// still, try and optimize the aux part. 
+				if (!m.mAuxEnabled.GetBoolValue()) {
+					m.mAuxAttenuation.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxAttenuation]);
+					m.mAuxCurve.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxCurve]);
+					m.mAuxSource.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxSource]);
+					m.mAuxValueMapping.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxValueMapping]);
+				}
+				// set destination scales
+				for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id) {
+					if (m.mDestinations[id].GetEnumValue() != ModDestination::None)
+						continue;
+					m.mScales[id].SetParamValue(p->mDefaultParamCache[id + (size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::Scale1]);
+				}
+
+				OptimizeBoolParam(p, m.mEnabled, m.mBaseParamID, ModParamIndexOffsets::Enabled);
+				OptimizeBoolParam(p, m.mAuxEnabled, m.mBaseParamID, ModParamIndexOffsets::AuxEnabled);
+
+				OptimizeEnumParam(p, m.mSource, ModSource::Count, m.mBaseParamID, ModParamIndexOffsets::Source);
+				OptimizeEnumParam(p, m.mAuxSource, ModSource::Count, m.mBaseParamID, ModParamIndexOffsets::AuxSource);
+				OptimizeEnumParam(p, m.mValueMapping, ModValueMapping::Count, m.mBaseParamID, ModParamIndexOffsets::ValueMapping);
+				OptimizeEnumParam(p, m.mAuxValueMapping, ModValueMapping::Count, m.mBaseParamID, ModParamIndexOffsets::AuxValueMapping);
+
+				OptimizeEnumParam(p, m.mDestinations[0], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination1);
+				OptimizeEnumParam(p, m.mDestinations[1], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination2);
+				OptimizeEnumParam(p, m.mDestinations[2], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination3);
+				OptimizeEnumParam(p, m.mDestinations[3], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination4);
 			}
-		}
+
+			if (aggressive) {
+				for (size_t i = 0; i < (size_t)ParamIndices::NumParams; ++i) {
+					if (math::FloatEquals(p->mParamCache[i], p->mDefaultParamCache[i], 0.000001f)) {
+						p->mParamCache[i] = p->mDefaultParamCache[i];
+					}
+				}
+			}
+		} // optimizeParams()
 
 	} // namespace M7
 
