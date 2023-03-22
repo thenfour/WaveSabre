@@ -782,10 +782,26 @@ namespace WaveSabreCore
 						mAllAuxNodes[i]->BeginBlock(noteHz, mModMatrix);
 					}
 
+					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
+
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
-						mSourceVoices[i]->BeginBlock();
-						mSourceVoices[i]->mpAmpEnv->BeginBlock();
+						auto* srcVoice = mSourceVoices[i];
+
+						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
+
+						// treat panning as added to modulation value
+						float panParam = myUnisonoPan +
+							srcVoice->mpSrcDevice->mAuxPanParam.mCachedVal +
+							srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
+							mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
+						auto panGains = math::PanToFactor(panParam);
+						float outputVolLin = srcVoice->mpSrcDevice->mVolumeParam.GetLinearGain(volumeMod);
+						srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
+						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
+
+						srcVoice->BeginBlock();
+						srcVoice->mpAmpEnv->BeginBlock();
 					}
 				}
 
@@ -826,7 +842,6 @@ namespace WaveSabreCore
 					mModMatrix.ProcessSample(mpOwner->mModulations); // this sets dest values to 0.
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
-					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 
 					float sourceValues[gSourceCount] = { 0 };
 					float detuneMul[gSourceCount] = { 0 };
@@ -834,18 +849,6 @@ namespace WaveSabreCore
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
-
-						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
-
-						// treat panning as added to modulation value
-						float panParam = myUnisonoPan +
-							srcVoice->mpSrcDevice->mAuxPanParam.mCachedVal +
-							srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
-							mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
-						auto panGains = math::PanToFactor(panParam);
-						float outputVolLin = srcVoice->mpSrcDevice->mVolumeParam.GetLinearGain(volumeMod);
-						srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
-						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
 
 						float hiddenVolumeBacking = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mHiddenVolumeModDestID);
 						VolumeParam hiddenAmpParam{ hiddenVolumeBacking, 0 };
