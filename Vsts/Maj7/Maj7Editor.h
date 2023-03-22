@@ -151,6 +151,128 @@ public:
 		return text;
 	}
 
+
+	std::string LoadContentsOfTextFile(const std::string& path)
+	{
+		HANDLE hFile = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hFile == INVALID_HANDLE_VALUE)
+			return "";
+
+		LARGE_INTEGER fileSize;
+		if (!GetFileSizeEx(hFile, &fileSize))
+		{
+			CloseHandle(hFile);
+			return "";
+		}
+
+		char* fileContents = new char[fileSize.QuadPart + 1];
+
+		DWORD bytesRead;
+		if (!ReadFile(hFile, fileContents, (DWORD)fileSize.QuadPart, &bytesRead, NULL))
+		{
+			delete[] fileContents;
+			CloseHandle(hFile);
+			return "";
+		}
+
+		fileContents[fileSize.QuadPart] = '\0';
+
+		CloseHandle(hFile);
+		std::string result(fileContents);
+		delete[] fileContents;
+		return result;
+	}
+
+
+
+	void OnLoadPatch()
+	{
+		OPENFILENAMEA ofn = { 0 };
+		char szFile[MAX_PATH] = { 0 };
+		ofn.lStructSize = sizeof(ofn);
+		ofn.hwndOwner = this->mCurrentWindow;
+		ofn.lpstrFilter = "Maj7 patches (*.majson;*.json;*.js;*.txt)\0*.majson;*.json;*.js;*.txt\0All Files (*.*)\0*.*\0";
+		ofn.lpstrFile = szFile;
+		ofn.nMaxFile = MAX_PATH;
+		ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST;
+		if (GetOpenFileNameA(&ofn))
+		{
+			// load file contents
+			std::string s = LoadContentsOfTextFile(szFile);
+			if (!s.empty()) {
+				// todo: use an internal setchunk and report load errors
+				mMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
+				::MessageBoxA(mCurrentWindow, "Loaded successfully.", "WaveSabre - Maj7", MB_OK | MB_ICONINFORMATION);
+			}
+		}
+	}
+
+	bool SaveToFile(const std::string& path, const std::string& textContents)
+	{
+		if (!textContents.size()) return false;
+		HANDLE fileHandle = CreateFileA(path.c_str(), GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (fileHandle == INVALID_HANDLE_VALUE) {
+			return false;
+		}
+
+		DWORD bytesWritten;
+		DWORD bytesToWrite =(DWORD)(textContents.size() * sizeof(textContents[0]));
+		BOOL success = WriteFile(fileHandle, textContents.c_str(), bytesToWrite, &bytesWritten, NULL);
+
+		CloseHandle(fileHandle);
+		return (success != 0) && (bytesWritten == static_cast<DWORD>(bytesToWrite));
+	}
+
+	// Function to show a "Save As" dialog box and get the selected file path.
+	std::string GetSaveFilePath(HWND hwnd)
+	{
+		static constexpr size_t gMaxPathLen = 1000;
+		auto buf = std::make_unique<char[]>(gMaxPathLen);
+
+		OPENFILENAMEA ofn = {};
+		ofn.lStructSize = sizeof(OPENFILENAME);
+		ofn.hwndOwner = hwnd;
+		ofn.lpstrFilter = "Maj7 patches (*.majson;*.json;*.js;*.txt)\0*.majson;*.json;*.js;*.txt\0All Files (*.*)\0*.*\0";
+		ofn.lpstrDefExt = "majson";
+		ofn.lpstrFile = buf.get();
+		ofn.nMaxFile = gMaxPathLen;
+		ofn.Flags = OFN_OVERWRITEPROMPT | OFN_PATHMUSTEXIST;
+
+		//ofn.lpstrFileTitle = defaultFileName;
+		//ofn.nMaxFileTitle = lstrlen(defaultFileName);
+
+		if (GetSaveFileName(&ofn) == TRUE)
+		{
+			std::string ret = buf.get();
+			return ret;
+		}
+
+		return "";
+	}
+
+
+	void OnSavePatchPatchAs()
+	{
+		auto path = GetSaveFilePath(this->mCurrentWindow);
+		if (path.empty()) return;
+
+		void* data;
+		int size;
+		std::string contents;
+		size = mMaj7VST->getChunk2(&data, false, false);
+		if (data && size) {
+			contents = (const char*)data;
+		}
+		delete[] data;
+
+		if (!contents.empty())
+		{
+			SaveToFile(path, contents);
+			::MessageBoxA(mCurrentWindow, "Saved successfully.", "WaveSabre - Maj7", MB_OK | MB_ICONINFORMATION);
+		}
+	}
+
+
 	virtual void PopulateMenuBar() override
 	{
 		if (ImGui::BeginMenu("Maj7")) {
@@ -160,7 +282,7 @@ public:
 			}
 
 			ImGui::Separator();
-			if (ImGui::BeginMenu("CPU - Quality Balance"))
+			if (ImGui::BeginMenu("Performance"))
 			{
 				QUALITY_SETTING_CAPTIONS(captions);
 				size_t currentSelectionID = (size_t)M7::GetQualitySetting();
@@ -178,21 +300,24 @@ public:
 				ImGui::EndMenu();
 			}
 
-
 			ImGui::Separator();
-			if (ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector)) {
-				if (!mShowingInspector) mShowingModulationInspector = false;
-			}
-			if (ImGui::MenuItem("Show modulation inspector", nullptr, &mShowingModulationInspector)) {
-				if (mShowingModulationInspector) mShowingInspector = true;
-			}
-			ImGui::MenuItem("Show color expl", nullptr, &mShowingColorExp);
 			ImGui::MenuItem("Show internal modulations", nullptr, &mShowingLockedModulations);
 
 			ImGui::Separator();
-			if (ImGui::MenuItem("Init patch (from core)")) {
+			if (ImGui::MenuItem("Init patch")) {
 				pMaj7->LoadDefaults();
 			}
+
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Load patch...")) {
+				OnLoadPatch();
+			}
+			if (ImGui::MenuItem("Save patch as...")) {
+				OnSavePatchPatchAs();
+			}
+
+			ImGui::Separator();
 
 			if (ImGui::MenuItem("Copy patch to clipboard")) {
 				CopyPatchToClipboard(false);
@@ -204,6 +329,21 @@ public:
 					mMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
 				}
 			}
+
+
+			ImGui::EndMenu();
+		} // maj7 menu
+
+		if (ImGui::BeginMenu("Debug")) {
+
+			ImGui::Separator();
+			if (ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector)) {
+				if (!mShowingInspector) mShowingModulationInspector = false;
+			}
+			if (ImGui::MenuItem("Show modulation inspector", nullptr, &mShowingModulationInspector)) {
+				if (mShowingModulationInspector) mShowingInspector = true;
+			}
+			ImGui::MenuItem("Show color expl", nullptr, &mShowingColorExp);
 
 			ImGui::Separator();
 
@@ -321,10 +461,12 @@ public:
 				s += std::to_string(r.nonZeroParams);
 				s += "\r\nDefault params : ";
 				s += std::to_string(r.defaultParams);
-				::MessageBoxA(mCurrentWindow, s.c_str() , "WaveSabre - Maj7", MB_OK);
+				::MessageBoxA(mCurrentWindow, s.c_str(), "WaveSabre - Maj7", MB_OK);
 			}
+
 			ImGui::EndMenu();
-		}
+		} // debug menu
+
 	}
 
 	void CopyPatchToClipboard(bool diff)
@@ -336,7 +478,7 @@ public:
 			CopyTextToClipboard((const char*)data);
 		}
 		delete[] data;
-		::MessageBoxA(mCurrentWindow, "Copied patch to clipboard", "WaveSabre - Maj7", MB_OK);
+		::MessageBoxA(mCurrentWindow, "Copied patch to clipboard", "WaveSabre - Maj7", MB_OK | MB_ICONINFORMATION);
 	}
 
 	void CopyParamCache()
@@ -1735,15 +1877,15 @@ public:
 			SamplerWaveformDisplay(sampler, isrc, runningVoice);
 
 			if (ImGui::SmallButton("Load from file ...")) {
-				OPENFILENAME ofn = { 0 };
-				TCHAR szFile[MAX_PATH] = { 0 };
+				OPENFILENAMEA ofn = { 0 };
+				char szFile[MAX_PATH] = { 0 };
 				ofn.lStructSize = sizeof(ofn);
 				ofn.hwndOwner = this->mCurrentWindow;
-				ofn.lpstrFilter = TEXT("All Files (*.*)\0*.*\0");
+				ofn.lpstrFilter = "All Files (*.*)\0*.*\0";
 				ofn.lpstrFile = szFile;
 				ofn.nMaxFile = MAX_PATH;
 				ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST;
-				if (GetOpenFileName(&ofn))
+				if (GetOpenFileNameA(&ofn))
 				{
 					mSourceStatusText[isrc].mStatus.clear();
 					LoadSample(szFile, sampler, isrc);
