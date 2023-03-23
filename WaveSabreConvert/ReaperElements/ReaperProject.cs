@@ -79,6 +79,17 @@ namespace ReaperParser.ReaperElements
         public ReaperVst Vst { get; set; }
         public List<ReaperAutomation> Automations { get; set; }
 
+
+        [ReaperTag("BYPASS")]
+        public string _bypass { get; set; }
+        public bool IsBypassed
+        {
+            get
+            {
+                return string.Equals(_bypass, "1");
+            }
+        }
+
         public ReaperMasterFxChain()
         {
             Automations = new List<ReaperAutomation>();

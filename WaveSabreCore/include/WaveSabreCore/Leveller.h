@@ -66,12 +66,15 @@ namespace WaveSabreCore
 
 	struct LevellerBand
 	{
-		LevellerBand(BiquadFilterType type, float* paramCache, LevellerParamIndices baseParamID) :
+		LevellerBand(BiquadFilterType type, float* paramCache, LevellerParamIndices baseParamID, float initialCutoffHz) :
 			mFilterType(type),
 			mFrequency(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Freq], mKTBacking, M7::gFilterCenterFrequency, M7::gFilterFrequencyScale),
 			mVolume(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Gain], gLevellerVolumeMaxDb),
 			mQ(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Q])
 		{
+			mVolume.SetDecibels(0);
+			mQ.SetParamValue(0);
+			mFrequency.SetFrequencyAssumingNoKeytracking(initialCutoffHz);
 		}
 
 		void RecalcFilters()
@@ -100,6 +103,7 @@ namespace WaveSabreCore
 		Leveller() :
 			Device((int)LevellerParamIndices::NumParams)
 		{
+			mMasterVolume.SetDecibels(0);
 		}
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
@@ -142,11 +146,11 @@ namespace WaveSabreCore
 		M7::VolumeParam mMasterVolume{ mParamCache[(int)LevellerParamIndices::MasterVolume], gLevellerVolumeMaxDb};
 
 		LevellerBand mBands[gBandCount] = {
-			{BiquadFilterType::Highpass, mParamCache, LevellerParamIndices::LowCutFreq },
-			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak1Freq },
-			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak2Freq },
-			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak3Freq },
-			{BiquadFilterType::Lowpass, mParamCache, LevellerParamIndices::HighCutFreq },
+			{BiquadFilterType::Highpass, mParamCache, LevellerParamIndices::LowCutFreq, 0 },
+			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak1Freq, 650 },
+			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak2Freq, 2000 },
+			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak3Freq, 7000 },
+			{BiquadFilterType::Lowpass, mParamCache, LevellerParamIndices::HighCutFreq, 22050 },
 		};
 	};
 }

@@ -238,14 +238,14 @@ namespace WaveSabreConvert
                 }
                 if (device == null)
                 {
-                    logger.WriteLine("WARNING: Device skipped (unsupported plugin): " + f.Vst.VstFile);
+                    logger.WriteLine("ERROR: Device skipped (unsupported plugin): " + f.Vst.VstFile);
                 }
                 else
                 {
-                    /*else if (f.Vst.Bypass)  // TODO: Parse out Bypass
+                    if (f.IsBypassed)
                     {
-                        logger.WriteLine("WARNING: Device skipped (bypass enabled): " + projectDevice.PluginDll);
-                    }*/
+                        logger.WriteLine("ERROR: Bypassed devices cause problems: " + f.Vst.VstName);
+                    }
 
                     track.Devices.Add(device);
                     var deviceIndex = track.Devices.IndexOf(device);
@@ -395,18 +395,21 @@ namespace WaveSabreConvert
                 }
                 if (device == null)
                 {
-                    logger.WriteLine("WARNING: Device skipped (unsupported plugin): " + f.Vst.VstFile);
+                    logger.WriteLine("ERROR: Device skipped (unsupported plugin): " + f.Vst.VstFile);
                 }
-                /*else if (f.Vst.Bypass)
+                else
                 {
-                    logger.WriteLine("WARNING: Device skipped (bypass enabled): " + projectDevice.PluginDll);
-                }*/
+                    if (f.IsBypassed)
+                    {
+                        logger.WriteLine("ERROR: Bypassed devices cause problems: " + f.ParentElement.ElementName);
+                    }
 
-                master.Devices.Add(device);
-                var deviceIndex = master.Devices.IndexOf(device);
-                foreach (var a in f.Automations)
-                {
-                    master.Automations.Add(ConvertAutomation(a, deviceIndex, "Master"));
+                    master.Devices.Add(device);
+                    var deviceIndex = master.Devices.IndexOf(device);
+                    foreach (var a in f.Automations)
+                    {
+                        master.Automations.Add(ConvertAutomation(a, deviceIndex, "Master"));
+                    }
                 }
             }
 

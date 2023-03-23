@@ -960,7 +960,7 @@ namespace WaveSabreVstLib
 		{
 			static constexpr float gSegmentMaxWidth = 50;
 			static constexpr float gMaxWidth = gSegmentMaxWidth * 6;
-			static constexpr float innerHeight = 45; // excluding padding
+			static constexpr float innerHeight = 65; // excluding padding
 			static constexpr float padding = 7;
 			static constexpr float gLineThickness = 2.7f;
 			ImU32 lineColor = ImGui::GetColorU32(ImGuiCol_PlotLines);

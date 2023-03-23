@@ -202,6 +202,18 @@ namespace ReaperParser.ReaperElements
         public string Fxid { get; set; }
         [ReaperTag("WET")]
         public float Wet { get; set; }
+
+
+        [ReaperTag("BYPASS")]
+        public string _bypass { get; set; }
+        public bool IsBypassed
+        {
+            get
+            {
+                return string.Equals(_bypass, "1");
+            }
+        }
+
         public ReaperVst Vst { get; set; }
         public List<ReaperAutomation> Automations { get; set; }
 

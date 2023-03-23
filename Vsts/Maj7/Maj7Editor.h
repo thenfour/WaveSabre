@@ -541,6 +541,8 @@ public:
 	ColorMod mModulationDisabledColors{ 0.15f, 0.0f, 0.65f, 0.6f, 0.0f };
 	ColorMod mLockedModulationsColors{ 0.50f, 0.6f, 0.75f, 0.9f, 0.0f };
 
+	ColorMod mModEnvelopeColors{ 0.75f, 0.83f, 0.86f, 0.95f, 0.0f };
+
 	ColorMod mLFOColors{ 0.4f, 0.6f, 0.65f, 0.9f, 0.0f };
 
 	ColorMod mAuxLeftColors{ 0.1f, 1, 1, .9f, 0.5f };
@@ -579,6 +581,7 @@ public:
 		mSamplerDisabledColors.EnsureInitialized();
 		mSamplerColors.EnsureInitialized();
 		mLFOColors.EnsureInitialized();
+		mModEnvelopeColors.EnsureInitialized();
 
 		{
 			auto& style = ImGui::GetStyle();
@@ -753,7 +756,7 @@ public:
 		// modulation shapes
 		if (BeginTabBar2("envelopetabs", ImGuiTabBarFlags_None))
 		{
-			auto modColorModToken = mModulationsColors.Push();
+			auto modColorModToken = mModEnvelopeColors.Push();
 			if (WSBeginTabItem("Mod env 1"))
 			{
 				Envelope("Modulation Envelope 1", (int)M7::ParamIndices::Env1DelayTime);
