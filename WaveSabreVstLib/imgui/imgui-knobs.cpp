@@ -192,7 +192,8 @@ namespace ImGuiKnobs {
             float angle_cos = 0;
             float angle_sin = 0;
 
-            knob(const char* _label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, float speed, float _radius, const char* format, ImGuiKnobFlags flags)
+            knob(const char* _label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, float speed, float _radius, const char* format,
+                ImGuiKnobVariant variant, ImGuiKnobFlags flags)
             {
                 auto screen_pos = ImGui::GetCursorScreenPos();
 
@@ -208,7 +209,12 @@ namespace ImGuiKnobs {
                 t = ((float)*p_value - v_min) / (v_max - v_min);
 
                 // Handle dragging
-                ImGui::InvisibleButton(_label, { radius * 2.0f, radius * 2.0f });
+                ImVec2 knobSize = { radius * 2, radius * 2 };
+                if (variant == ImGuiKnobVariant_ProgressBar) {
+                    knobSize = { radius * 2, radius * 0.33f };
+                }
+
+                ImGui::InvisibleButton(_label, knobSize);
                 auto gid = ImGui::GetID(_label);
                 ImGuiSliderFlags drag_flags = 0;
                 if (!(flags & ImGuiKnobFlags_DragHorizontal)) {
@@ -225,7 +231,7 @@ namespace ImGuiKnobs {
                 angle_min = IMGUIKNOBS_PI * 0.75f;
                 angle_max = IMGUIKNOBS_PI * 2.25f;
                 angle_center = WaveSabreCore::M7::math::map((float)v_center, (float)v_min, (float)v_max, angle_min, angle_max);
-                graphic_rect = { screen_pos, ImVec2{screen_pos.x + radius*2, screen_pos.y + radius*2} };
+                graphic_rect = { screen_pos, screen_pos + knobSize };
                 center = { screen_pos[0] + radius, screen_pos[1] + radius };
                 is_active = ImGui::IsItemActive();
                 is_hovered = ImGui::IsItemHovered();
@@ -275,6 +281,19 @@ namespace ImGuiKnobs {
                 AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, param, linecolor.base, 2.0f);
             }
 
+            void draw_progress_bar(color_set bgcolor, color_set linecolor, color_set tickColor, float center01) {
+                //ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
+                auto* dl = ImGui::GetWindowDrawList();
+                dl->AddRectFilled(graphic_rect.Min, graphic_rect.Max, bgcolor.base);
+
+                // the track is from center to value.
+                float centerX = ImLerp(graphic_rect.Min.x, graphic_rect.Max.x, center01);
+                float valueX = ImLerp(graphic_rect.Min.x, graphic_rect.Max.x, this->t);
+                dl->AddRectFilled({ std::min(centerX, valueX), graphic_rect.Min.y }, { std::max(centerX, valueX), graphic_rect.Max.y }, linecolor.base);
+
+                dl->AddCircleFilled({ valueX, (graphic_rect.Min.y + graphic_rect.Max.y) * 0.5f }, graphic_rect.GetHeight() * 0.6f, tickColor.base);
+            }
+
             void draw_arc(float radius, float size, float start_angle, float end_angle, color_set color, int segments, int bezier_count) {
                 if (fabsf(start_angle - end_angle) < 0.001) return;
                 auto track_radius = radius * this->radius;
@@ -293,7 +312,8 @@ namespace ImGuiKnobs {
         };
 
         template<typename DataType>
-        knob<DataType> knob_with_drag(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, float _speed, const char* format, float size, ImGuiKnobFlags flags, IValueConverter* conv, void* capture) {
+        knob<DataType> knob_with_drag(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default,
+            DataType v_center, float _speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, IValueConverter* conv, void* capture) {
             auto speed = _speed == 0 ? (v_max - v_min) / 250.f : _speed;
             ImGui::PushID(label);
             auto width = size == 0 ? ImGui::GetTextLineHeight() * 3.25f : size * ImGui::GetIO().FontGlobalScale;
@@ -319,9 +339,7 @@ namespace ImGuiKnobs {
             }
 
             // Draw knob
-            //if (!(flags & ImGuiKnobFlags_NoKnob)) {
-                knob<DataType> k(label, data_type, p_value, v_min, v_max, v_default, v_center, speed, width * 0.5f, format, flags);
-            //}
+            knob<DataType> k(label, data_type, p_value, v_min, v_max, v_default, v_center, speed, width * 0.5f, format, variant, flags);
 
             // Draw tooltip
             if (flags & ImGuiKnobFlags_ValueTooltip && (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) || ImGui::IsItemActive())) {
@@ -403,7 +421,7 @@ namespace ImGuiKnobs {
 
     template<typename DataType>
     bool BaseKnob(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, float speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture) {
-        auto knob = detail::knob_with_drag(label, data_type, p_value, v_min, v_max, v_default, v_center, speed, format, size, flags, conv, capture);
+        auto knob = detail::knob_with_drag(label, data_type, p_value, v_min, v_max, v_default, v_center, speed, format, variant, size, flags, conv, capture);
 
         switch (variant) {
         case ImGuiKnobVariant_Tick: {
@@ -468,6 +486,12 @@ namespace ImGuiKnobs {
         case ImGuiKnobVariant_M7Curve: {
             // assumes 0-1 range
             knob.draw_m7_curve(detail::GetTrackColorSet(), detail::GetDotColorSet(), !!(flags & ImGuiKnobFlags_InvertXCurve), !!(flags & ImGuiKnobFlags_InvertYCurve));
+            break;
+        }
+        case ImGuiKnobVariant_ProgressBar: {
+            // assumes 0-1 range
+
+            knob.draw_progress_bar(detail::GetTrackColorSet(), detail::GetPrimaryColorSet(), detail::GetDotColorSet(), (float) v_center);
             break;
         }
         }

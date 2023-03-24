@@ -48,6 +48,7 @@ enum ImGuiKnobVariant_ {
     ImGuiKnobVariant_Stepped = 1 << 5,
     ImGuiKnobVariant_Space = 1 << 6,
     ImGuiKnobVariant_M7Curve = 1 << 7,
+    ImGuiKnobVariant_ProgressBar = 1 << 8,
 };
 
 

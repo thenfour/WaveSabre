@@ -519,6 +519,13 @@ public:
 	{
 		std::string ret = " Voices:";
 		ret += std::to_string(pMaj7->GetCurrentPolyphony());
+
+		auto* v = FindRunningVoice();
+		if (v) {
+			ret += " ";
+			ret += midiNoteToString(v->mNoteInfo.MidiNoteValue);
+		}
+
 		return ret;
 	};
 
@@ -944,8 +951,10 @@ public:
 			};
 			auto ampEnvSource = ampEnvSources[oscID];// ampSourceParam.GetIntValue()];
 
-			Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMin, "KeyRangeMin", 0, 127, 0, 0);
-			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMax, "KeyRangeMax", 0, 127, 127, 127);
+			ImGui::BeginGroup();
+			Maj7ImGuiParamMidiNote(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMin, "KeyRangeMin", 0, 0);
+			Maj7ImGuiParamMidiNote(enabledParamID + (int)M7::OscParamIndexOffsets::KeyRangeMax, "KeyRangeMax", 127, 127);
+			ImGui::EndGroup();
 
 			ImGui::SameLine();
 			{
@@ -1859,8 +1868,12 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::BaseNote, "BaseNote", 0, 127, 60, 60);
 
 			ImGui::SameLine(0, 50); WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LegatoTrig, "Leg.Trig");
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMin, "KeyMin", 0, 127, 0, 0);
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMax, "KeyMax", 0, 127, 127, 127);
+
+			ImGui::SameLine();
+			ImGui::BeginGroup();
+			Maj7ImGuiParamMidiNote((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMin, "KeyMin", 0, 0);
+			Maj7ImGuiParamMidiNote((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMax, "KeyMax", 127, 127);
+			ImGui::EndGroup();
 
 			ImGui::SameLine(0, 50); Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopMode, "LoopMode##mst", (int)WaveSabreCore::LoopMode::NumLoopModes, WaveSabreCore::LoopMode::Repeat, loopModeNames);
 			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopSource, "LoopSrc##mst", (int)WaveSabreCore::LoopBoundaryMode::NumLoopBoundaryModes, WaveSabreCore::LoopBoundaryMode::FromSample, loopBoundaryModeNames);

@@ -24,6 +24,15 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
+	static inline std::string midiNoteToString(int midiNote) {
+		static constexpr char * const noteNames[] = {
+			"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
+		};
+		int note = midiNote % 12;
+		int octave = midiNote / 12 - 1;
+		return std::string(noteNames[note]) + std::to_string(octave) + " (" + std::to_string(midiNote) + ")";
+	}
+
 	static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions()
 	{
 		std::vector<std::pair<std::string, int>> mOptions;
@@ -395,6 +404,28 @@ namespace WaveSabreVstLib
 				return (double)mParam.GetRawParamValue();
 			}
 		};
+
+		struct Maj7MidiNoteConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::IntParam mParam;
+
+			Maj7MidiNoteConverter() :
+				mParam(mBacking, 0, 127)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				return midiNoteToString(mParam.GetIntValue());
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				return 0;
+			}
+		};
+
+		
 
 		struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
 		{
@@ -860,6 +891,22 @@ namespace WaveSabreVstLib
 
 			Maj7FrequencyConverter conv{ centerFreq, scale, ktParamID };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, 0, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void Maj7ImGuiParamMidiNote(VstInt32 paramID, const char* label, int defaultVal, int centerVal) {
+			M7::real_t tempVal = 0;
+			M7::IntParam p{ tempVal, 0, 127 };
+			p.SetIntValue(defaultVal);
+			float defaultParamVal = tempVal;
+			p.SetIntValue(centerVal);
+			float centerParamVal = tempVal;
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			Maj7MidiNoteConverter conv;
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_ProgressBar, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
