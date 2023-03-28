@@ -12,6 +12,7 @@ namespace WaveSabreCore
 	{
 		enum class ParamIndices
 		{
+			Rotation, // placing here simply for future potential use
 			Width,
 			SideHPFrequency,
 			Pan,
@@ -24,6 +25,7 @@ namespace WaveSabreCore
 
 		float mParamCache[(int)ParamIndices::NumParams] = { 0 };
 
+		M7::ScaledRealParam mRotationParam{ mParamCache[(int)ParamIndices::Rotation], -180, 180 };
 		M7::FloatN11Param mWidthParam{ mParamCache[(int)ParamIndices::Width] };
 		M7::FloatN11Param mPanParam { mParamCache[(int)ParamIndices::Pan] };
 		float mKTBacking = 0;
@@ -32,8 +34,10 @@ namespace WaveSabreCore
 
 		M7::OnePoleFilter mFilter;
 
-		Maj7Width() : Device((int)ParamIndices::NumParams)
+		Maj7Width() :
+			Device((int)ParamIndices::NumParams)
 		{
+			mRotationParam.SetRangedValue(0);
 			mWidthParam.SetN11Value(1);
 			mPanParam.SetN11Value(0);
 			mOutputVolume.SetDecibels(0);
@@ -51,6 +55,9 @@ namespace WaveSabreCore
 			{
 				float left = inputs[0][i];
 				float right = inputs[1][i];
+
+				// for rotation, and for a stereo visualization, calculate radius & angle.
+				// for rotation, add to angle and convert back to cartesian.
 
 				float width = mWidthParam.mCachedVal;
 				if (width < 0) {
@@ -90,4 +97,3 @@ namespace WaveSabreCore
 	};
 }
 
-#endif

@@ -27,4 +27,3 @@ struct Maj7WidthEditor : public VstEditor
 
 };
 
-#endif

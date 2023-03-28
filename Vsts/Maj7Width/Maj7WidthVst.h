@@ -19,5 +19,3 @@ public:
 
 	Maj7Width* GetMaj7Width() const;
 };
-
-#endif
