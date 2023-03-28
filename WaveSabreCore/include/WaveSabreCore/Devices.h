@@ -6,6 +6,7 @@
 #include "Adultery.h"
 #include "Specimen.h"
 #include "Maj7.hpp"
+#include "Maj7Width.hpp"
 
 #include "Scissor.h"
 #include "Leveller.h"

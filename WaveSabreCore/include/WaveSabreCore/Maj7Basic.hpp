@@ -86,6 +86,8 @@ namespace WaveSabreCore
         {
             static constexpr real_t gPI = 3.14159265358979323846264338327950288f;
             static constexpr real_t gPITimes2 = gPI * 2;
+            static constexpr float gSqrt2 = 1.41421356237f;
+            static constexpr float gSqrt2Recip = 0.70710678118f;
 
             inline real_t floor(real_t x) {
                 return (real_t)::floor((double)x);
@@ -430,6 +432,16 @@ namespace WaveSabreCore
             FloatPair PanToFactor(float panN11);
         } // namespace math
 
+
+        inline void MSEncode(float left, float right, float* mid, float* side) {
+            *mid = (left + right) * math::gSqrt2Recip;
+            *side = (left - right) * math::gSqrt2Recip;
+        }
+
+        inline void MSDecode(float mid, float side, float* left, float* right) {
+            *left = (mid + side) * math::gSqrt2Recip;
+            *right = (mid - side) * math::gSqrt2Recip;
+        }
 
         // AA correction polynomial to be added THIS sample.
         // x is 0-1 samples after the discontinuity.

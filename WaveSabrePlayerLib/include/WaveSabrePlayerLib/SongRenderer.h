@@ -26,6 +26,7 @@ namespace WaveSabrePlayerLib
 			Adultery,
 			Specimen,
 			Maj7,
+			Maj7Width,
 		};
 
 		typedef WaveSabreCore::Device *(*DeviceFactory)(DeviceId);

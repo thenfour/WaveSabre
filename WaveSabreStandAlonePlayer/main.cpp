@@ -22,6 +22,7 @@ WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)
 	case SongRenderer::DeviceId::Adultery: return new WaveSabreCore::Adultery();
 	case SongRenderer::DeviceId::Specimen: return new WaveSabreCore::Specimen();
 	case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::M7::Maj7();
+	case SongRenderer::DeviceId::Maj7Width: return new WaveSabreCore::Maj7Width();
 	}
 	return nullptr;
 }

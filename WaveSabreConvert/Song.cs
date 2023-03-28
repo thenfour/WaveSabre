@@ -22,6 +22,7 @@ namespace WaveSabreConvert
             Adultery,
             Specimen,
             Maj7,
+            Maj7Width,
         }
 
         public class Receive
