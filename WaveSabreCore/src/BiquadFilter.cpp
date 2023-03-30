@@ -4,10 +4,14 @@
 
 #include <math.h>
 
+// this is an impl of the RBJ cookbook filters. (search term "Cookbook formulae for audio EQ biquad filter coefficients")
+// variants exist for notch, shelves as well.
+
 namespace WaveSabreCore
 {
 	BiquadFilter::BiquadFilter()
 	{
+		thru = false;
 		recalculate = true;
 
 		type = BiquadFilterType::Lowpass;
@@ -24,7 +28,15 @@ namespace WaveSabreCore
 	{
 		if (recalculate)
 		{
-			float w0 = 2.0f * 3.141592f * freq / (float)Helpers::CurrentSampleRate;
+			// these ranges can cause instability and are effectively out of usable range
+			this->thru = false;
+			if (type == BiquadFilterType::Lowpass && freq > 21000) {
+				this->thru = true;
+			}
+			if (type == BiquadFilterType::Highpass && freq < 30) {
+				this->thru = true;
+			}
+			float w0 = M7::math::gPITimes2 * freq / (float)Helpers::CurrentSampleRate;
 			float cosw0 = M7::math::cos(w0);
 			float alpha = M7::math::sin(w0) / (2.0f * q);
 
@@ -38,15 +50,15 @@ namespace WaveSabreCore
 			case BiquadFilterType::Lowpass:
 				a0 += alpha;
 				a2 -= alpha;
-				b0 = b2 = (1.0f - cosw0) / 2.0f;
 				b1 = 1.0f - cosw0;
+				b0 = b2 = b1 / 2.0f;
 				break;
 
 			case BiquadFilterType::Highpass:
 				a0 += alpha;
 				a2 -= alpha;
 				b1 = -(1.0f + cosw0);
-				b0 = b2 = (1.0f + cosw0) / 2.0f;
+				b0 = b2 = -b1 / 2.0f;
 				break;
 			case BiquadFilterType::Peak:
 				{
@@ -68,6 +80,9 @@ namespace WaveSabreCore
 
 			recalculate = false;
 		}
+
+		if (this->thru)
+			return input;
 
 		float output = c1 * input + c2 * lastInput + c3 * lastLastInput - c4 * lastOutput - c5 * lastLastOutput;
 

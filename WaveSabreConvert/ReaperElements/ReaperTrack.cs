@@ -102,12 +102,14 @@ namespace ReaperParser.ReaperElements
         public int ChannelMode { get; set; }
         [ReaperTag("IID")]
         public int ItemId { get; set; }
-        [ReaperTag("SOFFS")]
-        public float StartOffest { get; set; }
+        //[ReaperTag("SOFFS")]
+        public ReaperStartOffset StartOffest { get; set; }
         public ReaperFadeIn FadeIn { get; set; }
         public ReaperFadeOut FadeOut { get; set; }
         public List<ReaperMediaSource> MediaSource { get; set; }
-        
+        public ReaperPlayrate PlayRate { get; set; }
+        public ReaperVolumePan VolumePanning { get; set; }
+
         public ReaperMediaItem()
         {
             MediaSource = new List<ReaperMediaSource>();
@@ -119,6 +121,22 @@ namespace ReaperParser.ReaperElements
     {
         public float Volume { get; set; }
         public float Duration { get; set; }
+    }
+
+    [ReaperTag("SOFFS")]
+    public class ReaperStartOffset : ReaperElement
+    {
+        public float Offset1 { get; set; }
+        public float Offset2 { get; set; } // this value shifts midi events based on some kind of quarter note frames. so 232 with a HASDATA 1 960 QN = (232/960) seconds. but... i'm not 100% certain.
+    }
+
+    [ReaperTag("PLAYRATE")]
+    public class ReaperPlayrate : ReaperElement
+    {
+        public float Rate { get; set; }
+        public bool PreservePitch { get; set; }
+        public float Semitones { get; set; }
+        public int ModeAndPreset { get; set; }
     }
 
     [ReaperTag("FADEOUT")]
@@ -159,7 +177,8 @@ namespace ReaperParser.ReaperElements
                         var m = new ReaperMidiEvent();
                         m.Selected = c.Data[0] == "e" ? true : false;
                         m.PositionDelta = Convert.ToInt32(c.Data[0]);
-                        m.MidiEvent = (ReaperNoteEvent)Convert.ToInt32(c.Data[1], 16);
+                        // remove channel info with & 0xf0
+                        m.MidiEvent = (ReaperNoteEvent)(Convert.ToInt32(c.Data[1], 16) & 0xf0);
                         m.Note = Convert.ToInt32(c.Data[2], 16);
                         m.Velocity = Convert.ToInt32(c.Data[3], 16);
 

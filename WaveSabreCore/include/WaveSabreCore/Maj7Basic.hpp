@@ -179,8 +179,13 @@ namespace WaveSabreCore
                 return (ms * Helpers::CurrentSampleRateF) * oneOver1000;
             }
 
-            inline void* GetCrtProc(const char * const imp) {
+            inline void* GetCrtProc(const char * const imp)
+            {
+#ifdef MIN_SIZE_REL
                 HANDLE h = GetModuleHandleA("msvcrt");
+#else
+                HANDLE h = GetModuleHandleA("ucrtbase");
+#endif
                 return GetProcAddress((HMODULE)h, imp);
             }
 
@@ -204,27 +209,6 @@ namespace WaveSabreCore
             };
 
             extern CrtFns* gCrtFns;
-
-            //template<typename Tfn>
-            //struct CrtMathFn
-            //{
-            //    CrtMathFn(const char *import) : mImport(import) {}
-            //    Tfn pfn = nullptr;
-            //    const char* const mImport;
-            //    double invoke(double x) {
-            //        if (!mfn) {
-            //            mfn = (Tfn);
-            //        }
-            //        return mfn(x);
-            //    }
-            //};
-
-            //inline CrtFns* EnsureCrt() {
-            //    if (!gCrtFns) {
-            //        gCrtFns = new CrtFns();
-            //    }
-            //    //return gCrtFns;
-            //}
 
             inline double CrtSin(double x) {
                 return gCrtFns->crt_sin(x);

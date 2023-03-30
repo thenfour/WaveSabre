@@ -166,6 +166,7 @@ namespace WaveSabreConvert
             IntPtr dllHandle = LoadLibrary(dll);
             if (dllHandle == IntPtr.Zero)
             {
+                Console.WriteLine($"Failed to load the VST DLL from {dll}. (does it exist? is it the right bitness?)");
                 return inputData;
             }
             IntPtr functionHandle = GetProcAddress(dllHandle, "WaveSabreDeviceVSTChunkToMinifiedChunk");

@@ -255,13 +255,13 @@ namespace WaveSabreConvert
                     }
 
                 }
-                track.Events = ConvertMidi(reaperTrack.MediaItems);
+                track.Events = ConvertMidi(reaperTrack.MediaItems, reaperTrack);
             }
 
             return track;
         }
 
-        private List<Song.Event> ConvertMidi(List<ReaperMediaItem> reaperMedia)
+        private List<Song.Event> ConvertMidi(List<ReaperMediaItem> reaperMedia, ReaperTrack track)
         {
             var events = new List<Song.Event>();
 
@@ -271,8 +271,30 @@ namespace WaveSabreConvert
                 if (itemPosition < 0)
                     continue;
 
-                var itemStart = SecondsToSamples(mediaItem.StartOffest);
-                var itemEnd = SecondsToSamples(mediaItem.Length);
+                // this is not "start offset"; it's slip offset. it's the position within the media item that this instance begins on.
+                //var itemStart = SecondsToSamples(mediaItem.StartOffest);
+                if (mediaItem.StartOffest.Offset2 != 0)
+                {
+                    logger.WriteLine($"ERROR: media item midi offsets are not supported; audio will not be aligned. Glue media items before conversion to ensure SOFFS xxx 0. Found in track {track.TrackName}");
+                }
+                if (mediaItem.PlayRate.Rate != 1 || mediaItem.PlayRate.Semitones != 0)
+                {
+                    logger.WriteLine($"ERROR: media item play rate != 1 is not supported; audio will not be aligned. Found in track {track.TrackName}");
+                }
+                if (mediaItem.FadeIn.Duration != 0)
+                {
+                    logger.WriteLine($"ERROR: media item fade in is not supported. Found in track {track.TrackName}");
+                }
+                if (mediaItem.FadeOut.Duration != 0)
+                {
+                    logger.WriteLine($"ERROR: media item fade out is not supported. Found in track {track.TrackName}");
+                }
+                if (mediaItem.VolumePanning.Volume != 1)
+                {
+                    logger.WriteLine($"ERROR: media item volume not supported. Found in track {track.TrackName}");
+                }
+                var slipOffsetSamples = SecondsToSamples(mediaItem.StartOffest.Offset1);
+                var itemEnd = slipOffsetSamples + SecondsToSamples(mediaItem.Length);
 
                 foreach (var source in mediaItem.MediaSource)
                 {
@@ -288,8 +310,10 @@ namespace WaveSabreConvert
                             {
                                 position += e.PositionDelta;
                                 var eventPosition = PositionToSamples((float)position / (float)source.MidiConfig.NoteSize / (float)project.Tempo.Beats);
+                                //eventPosition -= slipOffsetSamples; // convert position-in-media-item to position-in-song.
+                                var timestamp = eventPosition + itemPosition - slipOffsetSamples;
 
-                                if (eventPosition < itemStart)      // before start offset, skip it
+                                if (eventPosition < slipOffsetSamples)      // before instance is in view.
                                     continue;
 
                                 if (eventPosition >= itemEnd)        // end of item close all notes and be done with ti
@@ -300,7 +324,7 @@ namespace WaveSabreConvert
                                         {
                                             events.Add(new Song.Event()
                                             {
-                                                TimeStamp = itemEnd + itemPosition - itemStart,
+                                                TimeStamp = itemEnd + itemPosition - slipOffsetSamples,
                                                 Note = (byte)note,
                                                 Velocity = (byte)0,
                                                 Type = Song.EventType.NoteOff
@@ -316,7 +340,7 @@ namespace WaveSabreConvert
                                     activeNotes[e.Note] = true;
                                     events.Add(new Song.Event()
                                     {
-                                        TimeStamp = eventPosition + itemPosition - itemStart,
+                                        TimeStamp = timestamp,
                                         Note = (byte)e.Note,
                                         Velocity = (byte)e.Velocity,
                                         Type = Song.EventType.NoteOn
@@ -327,7 +351,7 @@ namespace WaveSabreConvert
                                     activeNotes[e.Note] = false;
                                     events.Add(new Song.Event()
                                     {
-                                        TimeStamp = eventPosition + itemPosition - itemStart,
+                                        TimeStamp = timestamp,
                                         Note = (byte)e.Note,
                                         Velocity = (byte)e.Velocity,
                                         Type = Song.EventType.NoteOff
@@ -337,7 +361,7 @@ namespace WaveSabreConvert
                                 {
                                     events.Add(new Song.Event()
                                     {
-                                        TimeStamp = eventPosition + itemPosition - itemStart,
+                                        TimeStamp = timestamp,
                                         Note = (byte)e.Note,
                                         Velocity = (byte)e.Velocity,
                                         Type = Song.EventType.CC,
@@ -348,7 +372,7 @@ namespace WaveSabreConvert
                                 {
                                     events.Add(new Song.Event()
                                     {
-                                        TimeStamp = eventPosition + itemPosition - itemStart,
+                                        TimeStamp = timestamp,
                                         Note = (byte)e.Note,
                                         Velocity = (byte)e.Velocity,
                                         Type = Song.EventType.PitchBend,
@@ -360,6 +384,10 @@ namespace WaveSabreConvert
                                 }
                             }
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Unknown reaper media type: {source.MediaType}");
                     }
                 }
             }

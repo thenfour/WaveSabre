@@ -51,7 +51,7 @@ namespace WaveSabreCore
 			mFilter.SetParams(M7::FilterType::HP, mSideHPFrequencyParam.GetFrequency(0, 0), 0, 0);
 			float masterLinearGain = mOutputVolume.GetLinearGain();
 
-			for (size_t i = 0; i < numSamples; ++i)
+			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{
 				float left = inputs[0][i];
 				float right = inputs[1][i];

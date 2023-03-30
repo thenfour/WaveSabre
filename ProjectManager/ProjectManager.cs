@@ -107,9 +107,10 @@ namespace ProjectManager
                 var tempFile = Path.GetTempPath() + "WaveSabre.bin";
                 GetRid(tempFile);
                 File.WriteAllBytes(tempFile, bin);
+                Console.WriteLine(@"Temp file written to: {tempFile}");
                 var proc = Process.Start(@"WaveSabreStandAlonePlayer.exe", string.Format("\"{0}\"", tempFile));
                 proc.WaitForExit();
-                GetRid(tempFile);
+                //GetRid(tempFile); // for the sake of demoscene dev, it's not so useful to remove this file.
             }
             catch (Exception err)
             {

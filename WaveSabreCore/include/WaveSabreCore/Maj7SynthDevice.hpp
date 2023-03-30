@@ -61,7 +61,7 @@ namespace WaveSabreCore
 
 		int GetCurrentPolyphony() const {
 			int r = 0;
-			for (size_t iv = 0; iv < mMaxVoices; ++ iv) {
+			for (size_t iv = 0; iv < (size_t)mMaxVoices; ++ iv) {
 				r += mVoices[iv]->IsPlaying() ? 1 : 0;
 			}
 			return r;
@@ -123,7 +123,7 @@ namespace WaveSabreCore
 		// always returns a voice. ideally we would look at envelope states to determine the most suitable, but let's just keep it simple and increase max poly
 		Voice* FindFreeVoice() {
 			Voice* playingVoiceToReturn = mVoices[0];
-			for (size_t iv = 0; iv < mMaxVoices; ++iv) {
+			for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv) {
 				auto* v = mVoices[iv];
 				if (!v->IsPlaying())
 					return v;
@@ -188,7 +188,7 @@ namespace WaveSabreCore
 					// this is already playing, in the case you have sustain pedal down.
 					// re-send a note on to the existing.
 					//for (auto* pv : mVoices)
-					for (size_t iv = 0; iv < mMaxVoices; ++iv)
+					for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
 					{
 						auto* pv = mVoices[iv];
 						if (pv->mNoteInfo.MidiNoteValue != myNote.MidiNoteValue)
@@ -241,8 +241,7 @@ namespace WaveSabreCore
 			case VoiceMode::Polyphonic:
 			default:
 				myNote.mIsMusicallyHeld = false;
-				//for (auto* v : mVoices)
-				for (size_t iv = 0; iv < mMaxVoices; ++iv)
+				for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
 				{
 					auto* v = mVoices[iv];
 					if (v->mNoteInfo.MidiNoteValue == note) {

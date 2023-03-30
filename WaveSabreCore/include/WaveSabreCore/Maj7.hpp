@@ -578,7 +578,7 @@ namespace WaveSabreCore
 					lfo.mPhase.BeginBlock();
 				}
 
-				for (size_t iv = 0; iv < mMaxVoices; ++ iv)
+				for (size_t iv = 0; iv < (size_t)mMaxVoices; ++ iv)
 				{
 					mMaj7Voice[iv]->BeginBlock();
 				}
@@ -589,8 +589,7 @@ namespace WaveSabreCore
 				{
 					float s[2] = { 0 };
 
-					//for (auto* v : mMaj7Voice)
-					for (size_t iv = 0; iv < mMaxVoices; ++iv)
+					for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
 					{
 						mMaj7Voice[iv]->ProcessAndMix(s);
 					}

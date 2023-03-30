@@ -24,6 +24,7 @@ namespace WaveSabreCore
 
 	private:
 		bool recalculate;
+		bool thru;
 
 		BiquadFilterType type;
 		float freq;
