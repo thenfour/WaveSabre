@@ -1,7 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
+using System.Security.Principal;
 using System.Text;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace ReaperParser.ReaperElements
 {
@@ -23,32 +26,89 @@ namespace ReaperParser.ReaperElements
         [ReaperTag("LOOP")]
         public bool Loop { get; set; }
 
+        [ReaperTag("TEMPOENVLOCKMODE")]
+        public int TempoEnvelopeLockMode { get; set; }
+
         public ReaperMasterVolumePan MasterVolume { get; set; }
         public ReaperTempo Tempo { get; set; }
+        public TempoEnvelopeEx TempoEnvelope { get; set; }
         public ReaperSelection Selection { get; set; }
         public ReaperZoom Zoom { get; set; }
-        public List<ReaperTrack> Tracks { get; set; }
-        public List<ReaperMasterFxChain> MasterEffectsChain { get; set; }
+        public List<ReaperTrack> Tracks { get; } = new List<ReaperTrack>();
+        public List<ReaperMasterFxChain> MasterEffectsChain { get; } = new List<ReaperMasterFxChain>();
 
-        public ReaperProject()
+        public List<ReaperMarker> Markers { get; } = new List<ReaperMarker>();
+
+        public List<ReaperRegion> Regions { get; } = new List<ReaperRegion>();
+
+        // after parsing, we have a bunch of markers but in order to use regions in a more intuitive way, some transformation should be done.
+        public void NormalizeRegions()
         {
-            Tracks = new List<ReaperTrack>();
-            MasterEffectsChain = new List<ReaperMasterFxChain>();
+            Dictionary<int, ReaperRegion> rgnDict = new Dictionary<int, ReaperRegion>();
+            foreach (var m in Markers)
+            {
+                if (m.Type != "R") continue;
+                if (!rgnDict.ContainsKey(m.ID))
+                {
+                    rgnDict.Add(m.ID, new ReaperRegion());
+                    rgnDict[m.ID].ID = m.ID;
+                }
+                if (!string.IsNullOrEmpty(m.Name) && m.Name != "\"\"") // region end markers have a name of `""`
+                {
+                    rgnDict[m.ID].Name = m.Name;
+                }
+                rgnDict[m.ID].Times.Add(m.Time);
+            }
+            this.Regions.AddRange(rgnDict.Values);
         }
     }
 
-    [ReaperTag("SELECTION")]
-    public class ReaperSelection : ReaperElement
+    public class ReaperRegion
     {
-        public double Start { get; set; }
-        public double End { get; set; }
+        public int ID { get; set; }
+        public List<double> Times { get; } = new List<double>();
+        public bool IsValid { get { return Times.Count == 2; } }
+        public string Name { get; set; }
+        public double TimeStart { get { return Times.Min(); } }
+        public double TimeEnd { get { return Times.Max(); } }
     }
 
-    [ReaperTag("TEMPO")]
-    public class ReaperTempo : ReaperElement
+    [ReaperTag("MARKER")]
+    public class ReaperMarker : ReaperElement
     {
-        public float BPM { get; set; }
-        public int Beats { get; set; }
+        public int ID { get; set; }
+        public double Time { get; set; }
+        public string Name { get; set; }
+
+        public double Beats { get; set; }
+
+        /*
+         according to something:
+0 (no flags): This is the default value and indicates that no flags have been set for the marker.
+1 (region): This flag indicates that the marker is a region marker, which can be used to define a region of the timeline.
+2 (loop): This flag indicates that the marker is a loop point, which can be used to define a section of the timeline that should be looped.
+4 (use marker name for REX): This flag is used when exporting a marker to a REX file, and indicates that the name of the marker should be used as the name of the REX file.
+8 (sync point): This flag indicates that the marker is a sync point, which can be used to synchronize playback with external devices.
+16 (selection endpoint): This flag indicates that the marker is the endpoint of a time selection.
+        */
+        public int Flags { get; set; }
+        public int Color { get; set; }
+
+        public string Type { get; set; }
+        public string Guid { get; set; }
+    }
+
+        [ReaperTag("SELECTION")]
+        public class ReaperSelection : ReaperElement
+        {
+            public double Start { get; set; }
+            public double End { get; set; }
+        }
+        [ReaperTag("TEMPO")]
+        public class ReaperTempo : ReaperElement
+        {
+            public float BPM { get; set; }
+            public int Beats { get; set; }
         public int Bars { get; set; }
     }
 
@@ -67,6 +127,20 @@ namespace ReaperParser.ReaperElements
         public float Pan { get; set; }
         public float VolumeX { get; set; }
         public float VolumeY { get; set; }
+    }
+
+    [ReaperTag("TEMPOENVEX")]
+    public class TempoEnvelopeEx : ReaperElement
+    {
+        public TempoEnvelopeVisability Visibility { get; set; }
+    }
+
+    [ReaperTag("VIS")]
+    public class TempoEnvelopeVisability : ReaperElement
+    {
+        public bool IsVisible { get; set; } // 
+        public int PointType { get; set; } // continuous or points
+        public bool DisplayColor { get; set; }
     }
 
     [ReaperTag("MASTERFXLIST")]

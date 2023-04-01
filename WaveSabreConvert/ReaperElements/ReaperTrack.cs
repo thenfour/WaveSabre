@@ -161,6 +161,11 @@ namespace ReaperParser.ReaperElements
         public string MediaType { get; set; }
         public List<ReaperMidiEvent> MidiEvents { get; set; }
         public ReaperMidiEventConfig MidiConfig { get; set; }
+
+        
+        [ReaperTag("IGNTEMPO")]
+        public bool IgnoreTempo { get; set; }
+
         public ReaperMediaSource()
         {
             MidiEvents = new List<ReaperMidiEvent>();

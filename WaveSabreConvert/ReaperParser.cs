@@ -61,6 +61,8 @@ namespace ReaperParser
                 }
             }
 
+            ((ReaperProject)current).NormalizeRegions();
+
             return (ReaperProject)current;
         }
 

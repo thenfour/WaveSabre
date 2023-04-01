@@ -16,8 +16,8 @@ namespace WaveSabrePlayerLib
 
 		thread = CreateThread(0, 0, threadProc, (LPVOID)this, 0, 0);
 
-		// avoid pulling in a long-named import
-		//SetThreadPriority(thread, THREAD_PRIORITY_HIGHEST);
+		// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
+		SetThreadPriority(thread, THREAD_PRIORITY_HIGHEST);
 	}
 
 	DirectSoundRenderThread::~DirectSoundRenderThread()

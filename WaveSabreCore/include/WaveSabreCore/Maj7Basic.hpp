@@ -234,6 +234,16 @@ namespace WaveSabreCore
                 return gCrtFns->crt_tan(x);
             }
 
+            // MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
+            inline long DoubleToLong(double x) {
+                return (long)x;
+            }
+
+            // MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
+            inline long FloatToLong(float x) {
+                return (long)x;
+            }
+
             inline real_t pow(real_t x, real_t y) {
                 // fasterpow is just too inaccurate.
                 //return fastmath::fastpow(x, y); // this is also not always accurate, just due to ranges. 

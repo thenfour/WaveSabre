@@ -38,8 +38,9 @@
             this.label1 = new System.Windows.Forms.Label();
             this.buttonProjectDetails = new System.Windows.Forms.Button();
             this.buttonExportRenoise = new System.Windows.Forms.Button();
-            this.cbxCareAboutLoop = new System.Windows.Forms.CheckBox();
             this.btnCopyCPP = new System.Windows.Forms.Button();
+            this.cbxBoundsMode = new System.Windows.Forms.ComboBox();
+            this.label2 = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // buttonOpenProject
@@ -139,16 +140,6 @@
             this.buttonExportRenoise.UseVisualStyleBackColor = true;
             this.buttonExportRenoise.Click += new System.EventHandler(this.buttonExportRenoise_Click);
             // 
-            // cbxCareAboutLoop
-            // 
-            this.cbxCareAboutLoop.AutoSize = true;
-            this.cbxCareAboutLoop.Location = new System.Drawing.Point(12, 284);
-            this.cbxCareAboutLoop.Name = "cbxCareAboutLoop";
-            this.cbxCareAboutLoop.Size = new System.Drawing.Size(103, 17);
-            this.cbxCareAboutLoop.TabIndex = 5;
-            this.cbxCareAboutLoop.Text = "Use project loop";
-            this.cbxCareAboutLoop.UseVisualStyleBackColor = true;
-            // 
             // btnCopyCPP
             // 
             this.btnCopyCPP.Location = new System.Drawing.Point(11, 167);
@@ -159,13 +150,32 @@
             this.btnCopyCPP.UseVisualStyleBackColor = true;
             this.btnCopyCPP.Click += new System.EventHandler(this.btnCopyCPP_Click);
             // 
+            // cbxBoundsMode
+            // 
+            this.cbxBoundsMode.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbxBoundsMode.FormattingEnabled = true;
+            this.cbxBoundsMode.Location = new System.Drawing.Point(11, 285);
+            this.cbxBoundsMode.Name = "cbxBoundsMode";
+            this.cbxBoundsMode.Size = new System.Drawing.Size(104, 21);
+            this.cbxBoundsMode.TabIndex = 7;
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(12, 269);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(72, 13);
+            this.label2.TabIndex = 8;
+            this.label2.Text = "Bounds mode";
+            // 
             // ProjectManager
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(766, 407);
+            this.Controls.Add(this.label2);
+            this.Controls.Add(this.cbxBoundsMode);
             this.Controls.Add(this.btnCopyCPP);
-            this.Controls.Add(this.cbxCareAboutLoop);
             this.Controls.Add(this.buttonProjectDetails);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.textBoxOutput);
@@ -194,8 +204,9 @@
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button buttonProjectDetails;
         private System.Windows.Forms.Button buttonExportRenoise;
-        private System.Windows.Forms.CheckBox cbxCareAboutLoop;
         private System.Windows.Forms.Button btnCopyCPP;
+        private System.Windows.Forms.ComboBox cbxBoundsMode;
+        private System.Windows.Forms.Label label2;
     }
 }
 

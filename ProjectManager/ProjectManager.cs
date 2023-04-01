@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
 using WaveSabreConvert;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace ProjectManager
 {
@@ -15,6 +16,10 @@ namespace ProjectManager
         public ProjectManager()
         {
             InitializeComponent();
+
+            cbxBoundsMode.DataSource = Enum.GetValues(typeof(BoundsMode));
+            cbxBoundsMode.DisplayMember = "ToString";
+            cbxBoundsMode.SelectedIndex = 0;
         }
 
         private void buttonOpenProject_Click(object sender, EventArgs e)
@@ -29,20 +34,21 @@ namespace ProjectManager
 
         private void OpenProject(string projectFile)
         {
-            try
-            {
+            //try
+            //{
                 textBoxOutput.Text = "";
                 logger = new EventLogger();
                 logger.OnLog += OnLogEvent;
-                song = new ProjectConverter().Convert(projectFile, logger, new ConvertOptions { mUseProjectLoop = cbxCareAboutLoop.Checked });
+
+                song = new ProjectConverter().Convert(projectFile, logger, new ConvertOptions { mBoundsMode = (BoundsMode)cbxBoundsMode.SelectedItem });
                 fileName = Path.GetFileNameWithoutExtension(projectFile);
                 textBoxOutput.AppendText("Done.");
                 Enable();
-            }
-            catch (Exception err)
-            {
-                MessageBox.Show(err.Message);
-            }
+            //}
+            //catch (Exception err)
+            //{
+            //    MessageBox.Show(err.Message);
+            //}
             
         }
 

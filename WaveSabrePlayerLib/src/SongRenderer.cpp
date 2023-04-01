@@ -83,7 +83,9 @@ namespace WaveSabrePlayerLib
 				renderThreadData->songRenderer = this;
 				renderThreadData->renderThreadIndex = i + 1;
 				additionalRenderThreads[i] = CreateThread(0, 0, renderThreadProc, (LPVOID)renderThreadData, 0, 0);
-				//SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_HIGHEST);
+
+				// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
+				SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_HIGHEST);
 			}
 		}
 	}
@@ -197,8 +199,10 @@ namespace WaveSabrePlayerLib
 						break;
 					}
 				}
-				if (!allDependenciesFinished)
+				if (!allDependenciesFinished) {
+					Sleep(0); // yield so this is not a tight loop when waiting.
 					continue;
+				}
 
 				// We have a free track that we can work on, yay!
 				//  Let's try to mark it so that no other thread takes it

@@ -45,16 +45,32 @@ namespace WaveSabreConvert
             
             song.Tempo = (int)project.Tempo.BPM;
 
-            if (project.Loop && options.mUseProjectLoop)
+            if (project.TempoEnvelope.Visibility.IsVisible)
             {
-                if (project.Selection.Start > project.Selection.End)
-                    trackStart = project.Selection.End;
-                else
-                    trackStart = project.Selection.Start;
+                logger.WriteLine("ERROR: This project has a tempo map which is not supported. Even if there's only 1 point, it can mess everything up. Delete the tempo envelope entirely and try again.");
             }
-            else
+
+            switch (options.mBoundsMode)
             {
-                trackStart = 0;
+                case BoundsMode.Selection:
+                    // TODO (but do we care?)
+                //if (project.Selection.Start > project.Selection.End)
+                //    trackStart = project.Selection.End;
+                //else
+                //    trackStart = project.Selection.Start;
+                //break;
+                case BoundsMode.Regions:
+                    if (project.Regions.Count < 1)
+                    {
+                        logger.WriteLine("ERROR: This project has no regions defined; unable to determine song bounds");
+                        return null;
+                    }
+                    trackStart = project.Regions.Min((rgn) => { return rgn.TimeStart; });
+                    break;
+                case BoundsMode.Events:
+                    trackStart = 0;
+                    // todo: check last event
+                    break;
             }
 
             projectTracks = new List<Song.Track>();
@@ -150,29 +166,36 @@ namespace WaveSabreConvert
                 song.Tracks.Add(track.Track);
             }
 
-            // loop active, detertmine start and end from loop
-            if (project.Loop && options.mUseProjectLoop)
+            switch (options.mBoundsMode)
             {
-                if (project.Selection.Start < project.Selection.End)
-                    song.Length = project.Selection.End - project.Selection.Start;
-                else
-                    song.Length = project.Selection.Start - project.Selection.End;
-                
-                logger.WriteLine("INFO: Loop is active, track start and end points taken from loop");
-            }
-            else  // no loop
-            {
-                var lastEvent = 0;
-                foreach (var t in song.Tracks)
-                {
-                    if (t.Events.Count > 0)
-                    {
-                        var thisLastEvent = t.Events.Max(e => e.TimeStamp);
-                        if (thisLastEvent > lastEvent)
-                            lastEvent = thisLastEvent;
-                    }
-                }
-                song.Length = (double)lastEvent / (double)project.SampleRate;
+                case BoundsMode.Events:
+                    // TODO.
+                    //trackStart = 0;
+                    //var lastEvent = 0;
+                    //foreach (var t in song.Tracks)
+                    //{
+                    //    if (t.Events.Count > 0)
+                    //    {
+                    //        var thisLastEvent = t.Events.Max(e => e.TimeStamp);
+                    //        if (thisLastEvent > lastEvent)
+                    //            lastEvent = thisLastEvent;
+                    //    }
+                    //}
+                    //song.Length = (double)lastEvent / (double)project.SampleRate;
+
+                    //break;
+                case BoundsMode.Selection:
+                    //if (project.Selection.Start < project.Selection.End)
+                    //    song.Length = project.Selection.End - project.Selection.Start;
+                    //else
+                    //    song.Length = project.Selection.Start - project.Selection.End;
+
+                    //logger.WriteLine("INFO: track start and end points taken from selection");
+                    //break;
+                case BoundsMode.Regions:
+                    var songEnd = project.Regions.Max((rgn) => { return rgn.TimeStart; });
+                    song.Length = songEnd - trackStart;
+                    break;
             }
 
             return song;
@@ -303,6 +326,11 @@ namespace WaveSabreConvert
                         bool loop = true;
                         var position = 0;
                         var activeNotes = new bool[128];
+
+                        if (source.IgnoreTempo)
+                        {
+                            logger.WriteLine($"ERROR: Ignore tempo in media item source is unsupported. Found in track {track.TrackName}");
+                        }
 
                         while (loop)
                         {

@@ -86,8 +86,15 @@ namespace WaveSabreConvert
         public void WriteLine(string format, params object[] arg) { }
     }
 
+    public enum BoundsMode
+    {
+        Regions,
+        Selection,
+        Events,
+    }
+
     public class ConvertOptions
     {
-        public bool mUseProjectLoop = false;
+        public BoundsMode mBoundsMode = BoundsMode.Regions;
     }
 }
