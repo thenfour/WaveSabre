@@ -78,6 +78,7 @@ void UpdateStatusText()
     auto totalPrecalcTime = estTotalRenderTime - gpRenderer->gSongLength;
     auto remainingPrecalcTime = totalPrecalcTime - gpRenderer->gRenderTime; // subtract how much you've already waited.
     remainingPrecalcTime.Max0();
+    totalPrecalcTime.Max0();
 
     sprintf(gWindowText, format,
         //gSongLength.GetMinutes(), gSongLength.GetSecondsOfMinute(), gSongLength.GetTenthsOfSecondsOfSeconds(),
@@ -257,6 +258,8 @@ extern "C" int WinMainCRTStartup()
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
 #endif
 {
+    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+
     gWindowText = new char[60000];
     gWindowText[0] = 0;
 

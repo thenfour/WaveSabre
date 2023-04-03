@@ -455,6 +455,31 @@ namespace WaveSabreCore
 
 				// store these values for later when we need to do diffs
 				memcpy(mDefaultParamCache, mParamCache, sizeof(mParamCache));
+				SetVoiceInitialStates();
+			}
+
+			// when you load params or defaults, you need to seed voice initial states so that
+			// when for example a NoteOn happens, the voice will have correct values in its mod matrix.
+			void SetVoiceInitialStates()
+			{
+				int numSamples = GetModulationRecalcSampleMask() + 1;
+				float* outputs[2] = { new float[numSamples], new float[numSamples] };
+				ProcessBlock(0, outputs, numSamples, true);
+				//for (auto& m : mModulations) {
+				//	m.BeginBlock();
+				//}
+				//for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
+				//{
+				//	//mMaj7Voice[iv]->SeedModMatrix();
+				//	for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
+				//	{
+				//		mMaj7Voice[iv]->BeginBlock(true);
+				//	}
+
+				//	for (int i = 0; i <= GetModulationRecalcSampleMask(); ++i) {
+				//		mMaj7Voice[iv]->mModMatrix.ProcessSample(this->mModulations, true);
+				//	}
+				//}
 			}
 
 			virtual void HandlePitchBend(float pbN11) override
@@ -485,6 +510,7 @@ namespace WaveSabreCore
 				for (auto& s : mSamplerDevices) {
 					s.Deserialize(ds);
 				}
+				SetVoiceInitialStates();
 			}
 
 			void SetParam(int index, float value)
@@ -524,6 +550,11 @@ namespace WaveSabreCore
 
 
 			virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) override
+			{
+				ProcessBlock(songPosition, outputs, numSamples, false);
+			}
+
+			void ProcessBlock(double songPosition, float* const* const outputs, int numSamples, bool forceAllVoicesToProcess)
 			{
 				bool sourceEnabled[gSourceCount];
 
@@ -580,7 +611,7 @@ namespace WaveSabreCore
 
 				for (size_t iv = 0; iv < (size_t)mMaxVoices; ++ iv)
 				{
-					mMaj7Voice[iv]->BeginBlock();
+					mMaj7Voice[iv]->BeginBlock(forceAllVoicesToProcess);
 				}
 
 				// very inefficient to calculate all in the loops like that but it's for size-optimization
@@ -591,7 +622,7 @@ namespace WaveSabreCore
 
 					for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
 					{
-						mMaj7Voice[iv]->ProcessAndMix(s);
+						mMaj7Voice[iv]->ProcessAndMix(s, forceAllVoicesToProcess);
 					}
 
 					for (size_t ioutput = 0; ioutput < 2; ++ioutput) {
@@ -721,9 +752,29 @@ namespace WaveSabreCore
 
 				float mMidiNote = 0;
 
-				void BeginBlock()
+				//void SeedModMatrix()
+				//{
+				//	mModMatrix.BeginBlock();
+				//	mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
+				//	mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);  // krate, 01
+				//	mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f); // krate, 01
+				//	mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
+				//	mModMatrix.SetSourceValue(ModSource::UnisonoVoice, float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono); // krate, 01
+				//	mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
+
+				//	mModMatrix.SetSourceValue(ModSource::Const_1, 1);
+				//	mModMatrix.SetSourceValue(ModSource::Const_0_5, 0.5f);
+				//	mModMatrix.SetSourceValue(ModSource::Const_0, 0);
+
+				//	for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
+				//	{
+				//		mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mMacros.Get01Value(iMacro));  // krate, 01
+				//	}
+				//}
+
+				void BeginBlock(bool forceProcessing)
 				{
-					if (!this->IsPlaying()) {
+					if (!forceProcessing && !this->IsPlaying()) {
 						return;
 					}
 
@@ -732,21 +783,11 @@ namespace WaveSabreCore
 						lfo.mPhase.SetModMatrix(&this->mModMatrix);
 					}
 
-					// at this point run the graph.
-					// 1. run signals which produce A-Rate outputs, so we can use those buffers to modulate nodes which have A-Rate destinations
-					// 2. mod matrix, which fills buffers with modulation signals. mod sources should be up-to-date
-					// 3. run signals which are A-Rate destinations.
-					// if we were really ambitious we could make the filter an A-Rate destination as well, with oscillator outputs being A-Rate.
-					for (auto p : mpAllModEnvelopes) {
-						p->BeginBlock();
-					}
-
-					mModMatrix.BeginBlock();
-
 					mMidiNote = mPortamento.GetCurrentMidiNote() + mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 
 					real_t noteHz = math::MIDINoteToFreq(mMidiNote);
 
+					mModMatrix.BeginBlock();
 					mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
 					mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);  // krate, 01
 					mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f); // krate, 01
@@ -754,13 +795,17 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceValue(ModSource::UnisonoVoice, float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono); // krate, 01
 					mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 
-					mModMatrix.SetSourceValue(ModSource::Const_1, 1); 
+					mModMatrix.SetSourceValue(ModSource::Const_1, 1);
 					mModMatrix.SetSourceValue(ModSource::Const_0_5, 0.5f);
 					mModMatrix.SetSourceValue(ModSource::Const_0, 0);
 
 					for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
 					{
 						mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mMacros.Get01Value(iMacro));  // krate, 01
+					}
+
+					for (auto p : mpAllModEnvelopes) {
+						p->BeginBlock();
 					}
 
 					for (size_t i = 0; i < gModLFOCount; ++i) {
@@ -804,9 +849,9 @@ namespace WaveSabreCore
 					}
 				}
 
-				void ProcessAndMix(float* s)
+				void ProcessAndMix(float* s, bool forceProcessing)
 				{
-					if (!this->IsPlaying()) {
+					if (!forceProcessing && !this->IsPlaying()) {
 						return;
 					}
 

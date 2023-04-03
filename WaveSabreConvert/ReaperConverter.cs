@@ -193,7 +193,7 @@ namespace WaveSabreConvert
                     //logger.WriteLine("INFO: track start and end points taken from selection");
                     //break;
                 case BoundsMode.Regions:
-                    var songEnd = project.Regions.Max((rgn) => { return rgn.TimeStart; });
+                    var songEnd = project.Regions.Max((rgn) => { return rgn.TimeEnd; });
                     song.Length = songEnd - trackStart;
                     break;
             }

@@ -34,8 +34,6 @@ namespace WaveSabrePlayerLib
 		};
 
 		const int mThreadCount;
-		//INode* const mNodes;
-		//const int mNodeCount;
 		INodeList* const mNodeList = nullptr;
 		HANDLE* mThreads = nullptr;
 		HANDLE hWorkAvailableEvent = nullptr;
@@ -90,6 +88,7 @@ namespace WaveSabrePlayerLib
 				{
 					mThreads[i] = CreateThread(0, 0, renderThreadProc, this, 0, 0);
 					// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
+					//SetThreadPriority(mThreads[i], THREAD_PRIORITY_HIGHEST);
 					SetThreadPriority(mThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
 				}
 			}
