@@ -8,8 +8,8 @@ static constexpr uint32_t gBlockSizeSamples = 256; // don't try to bite off too 
 
 // these are not about optimization & compiler options but about features.
 // enable one at a time.
-#define WS_EXEPLAYER_RELEASE_FEATURES
-//#define WS_EXEPLAYER_DEBUG_FEATURES
+//#define WS_EXEPLAYER_RELEASE_FEATURES
+#define WS_EXEPLAYER_DEBUG_FEATURES
 
 struct
 {

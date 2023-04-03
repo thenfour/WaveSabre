@@ -67,10 +67,11 @@ void UpdateStatusText()
 
 #else
     static constexpr char format[] =
-        TEXT_INTRO
+        "%s"
         "F5: Play (while playing, click to seek)\r\n"
         "F6: Stop\r\n"
         "F7: Write .WAV file\r\n"
+        "  %s\r\n"
         "\r\n"
         //"Song length: %d:%d.%d\r\n"
         "Render progress %d%% (%d.%02dx real-time) using %d threads\r\n"
@@ -86,7 +87,7 @@ void UpdateStatusText()
     //if (!gpRenderer->IsRenderingComplete()) {
     //    gpRenderer->gRenderTime.SetMilliseconds(GetTickCount() - gpRenderer->renderingStartedTick);
     //}
-    uint32_t renderPercent = gpRenderer->gSongRendered.AsPercentOf(gpRenderer->gSongLength);
+    int32_t renderPercent = gpRenderer->gSongRendered.AsPercentOf(gpRenderer->gSongLength);
 
     //const char* renderStatus = "";
     //if (gpRenderer && isRenderingComplete) {
@@ -111,9 +112,21 @@ void UpdateStatusText()
     remainingPrecalcTime.Max0();
     totalPrecalcTime.Max0();
 
+    gPrecalcProgressPercent = std::max(renderPercent, gpRenderer->gRenderTime.AsPercentOf(WSTime::FromMilliseconds(gMaxPrecalcMilliseconds)));
+
+    char saveIndicatorText[1000] = { 0 };
+    if (gSavedToFilename[0]) {
+        wsprintfA(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
+    }
+    else if (gFilename[0]) {
+        wsprintfA(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
+    }
+
     sprintf(gWindowText, format,
         //gSongLength.GetMinutes(), gSongLength.GetSecondsOfMinute(), gSongLength.GetTenthsOfSecondsOfSeconds(),
         //renderStatus,
+        TEXT_INTRO,
+        saveIndicatorText,
         renderPercent,
         renderRate / 100, renderRate % 100,
         gpRenderer->mProcessorCount,
@@ -129,6 +142,13 @@ void UpdateStatusText()
 
 #endif
 
+}
+
+void WriteWave()
+{
+    WaveWriter::WriteWAV(gFilename, *gpRenderer);
+    strcpy(gSavedToFilename, gFilename);
+    gFilename[0] = 0;
 }
 
 void handleSave() {
@@ -147,11 +167,9 @@ void handleSave() {
         0
     };
     if (::GetSaveFileNameA(&o)) {
-        //SendMessageW(hMain, EM_SETREADONLY, TRUE, 0);
-        //shouldWriteWAV = true;
-        //if (gpRenderer->IsRenderingComplete()) {
-        //    //WriteWAV();
-        //}
+        if (gpRenderer->GetRenderStatus() == Renderer::RenderStatus::Done) {
+            WriteWave();
+        }
     }
 }
 
@@ -252,9 +270,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_RENDERINGCOMPLETE:
     {
         if (gFilename[0]) {
-            WaveWriter::WriteWAV(gFilename, *gpRenderer);
-            strcpy(gSavedToFilename, gFilename);
-            gFilename[0] = 0;
+            WriteWave();
         }
         return 0;
     }
