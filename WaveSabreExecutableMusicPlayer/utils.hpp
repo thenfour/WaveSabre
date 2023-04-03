@@ -47,11 +47,14 @@ public:
         if (pt.GetY() >= this->GetBottom()) return false;
         return true;
     }
-
+    Rect LeftAlignedShrink(int percent) const
+    {
+        return Rect{ mOrig.GetX(), mOrig.GetY(), mWidth * percent / 100, mHeight };
+    }
     RECT GetRECT(/*huhu*/) const {
         return { mOrig.GetX(), mOrig.GetY(), GetRight(), GetBottom() };
     }
-    Rect Offset(int x, int y) const {
+    constexpr Rect Offset(int x, int y) const {
         return Rect{ mOrig.GetX() + x, mOrig.GetY() + y, mWidth, mHeight };
     }
 };
@@ -120,7 +123,7 @@ public:
     int32_t AsPercentOf(const WSTime& rhs) const
     {
         if (mFrames <= 0) return 0;
-        if (mFrames >= rhs.mFrames) return 0;
+        if (mFrames >= rhs.mFrames) return 100;
         return MulDiv(mFrames, 100, rhs.mFrames);
         //return int32_t(mFrames * 100) / int32_t(rhs.mFrames); // avoid __alldiv
     }
@@ -173,11 +176,28 @@ struct GdiDeviceContext
     explicit GdiDeviceContext(HDC dc) : mDC(dc)
     {
     }
-    void DrawText_(const char* sz, const Rect& bounds) const
+    void DrawText_(const char* sz, const Rect& bounds, COLORREF fore, COLORREF shadow) const
     {
         SetBkMode(mDC, TRANSPARENT);
+        SetTextColor(mDC, shadow);
         auto rcText = bounds.GetRECT();
+        auto rcShadow = rcText;
+        rcShadow.left--;
+        rcShadow.top--;
+        ::DrawTextA(mDC, sz, -1, &rcShadow, 0);
+        rcShadow.left += 2;
+        rcShadow.top += 2;
+        ::DrawTextA(mDC, sz, -1, &rcShadow, 0);
+
+        SetTextColor(mDC, fore);
         ::DrawTextA(mDC, sz, -1, &rcText, 0);
+        //DrawText_(gWindowText, grcText.Offset(-1, -1));
+        //dc.DrawText_(gWindowText, grcText.Offset(1, 1));
+        //dc.DrawText_(gWindowText, grcText);
+
+
+
+        //::DrawTextA(mDC, sz, -1, &rcText, 0);
     }
     void SetForeBackColor(COLORREF foreColor, COLORREF backColor) const
     {

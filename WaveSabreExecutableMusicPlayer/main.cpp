@@ -19,9 +19,8 @@ using namespace WaveSabrePlayerLib;
 #include "waveformgen.hpp"
 #include "wavwriter.hpp"
 
-
-//bool shouldWriteWAV = false;
 char gFilename[MAX_PATH] = { 0 };// = DEFAULT_FILENAME;
+char gSavedToFilename[MAX_PATH] = { 0 }; // gets populated upon successful save.
 
 char* gWindowText = nullptr;
 HWND hMain;
@@ -30,18 +29,50 @@ Renderer* gpRenderer = nullptr;
 Player* gpPlayer = nullptr;
 WaveformGen* gpWaveformGen = nullptr;
 
+// position between min(precalctime_max, render_progress)
+int32_t gPrecalcProgressPercent = 0;
+
 void UpdateStatusText()
 {
     auto lock = gpRenderer->gCritsec.Enter();
-    //char sz[2000] = "";
+
+#ifdef WS_EXEPLAYER_RELEASE_FEATURES
+
+    static constexpr char format[] =
+        "%s"
+        "Press F7 to save.\r\n"
+        "  %s\r\n"
+        "\r\n"
+        "%s\r\n"
+        ;
+
+    int32_t renderPercent = gpRenderer->gSongRendered.AsPercentOf(gpRenderer->gSongLength);
+
+    // actual precalc time will be the sooner of: [max_precalc_allowed, complete render]
+    gPrecalcProgressPercent = std::max(renderPercent, gpRenderer->gRenderTime.AsPercentOf(WSTime::FromMilliseconds(gMaxPrecalcMilliseconds)));
+
+    char saveIndicatorText[1000] = { 0 };
+    if (gSavedToFilename[0]) {
+        wsprintfA(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
+    }
+    else if (gFilename[0]) {
+        wsprintfA(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
+    }
+
+    wsprintfA(gWindowText, format,
+        TEXT_INTRO,
+        saveIndicatorText,
+        gPrecalcProgressPercent >= 100 ? "Precalc done: Press F5 to play" : "Wait for precalc before playing..."
+        );
+
+#else
     static constexpr char format[] =
         TEXT_INTRO
-        "F5: Play\r\n"
+        "F5: Play (while playing, click to seek)\r\n"
         "F6: Stop\r\n"
         "F7: Write .WAV file\r\n"
         "\r\n"
         //"Song length: %d:%d.%d\r\n"
-        //"Render status: %s\r\n"
         "Render progress %d%% (%d.%02dx real-time) using %d threads\r\n"
         //"- song rendered: %d:%02d.%d\r\n"
         //"- song remaining: %d:%02d.%d\r\n"
@@ -94,6 +125,10 @@ void UpdateStatusText()
         remainingPrecalcTime.GetMinutes(), remainingPrecalcTime.GetSecondsOfMinute(), remainingPrecalcTime.GetTenthsOfSecondsOfSeconds(),
         totalPrecalcTime.GetMinutes(), totalPrecalcTime.GetSecondsOfMinute(), totalPrecalcTime.GetTenthsOfSecondsOfSeconds()
     );
+
+
+#endif
+
 }
 
 void handleSave() {
@@ -189,11 +224,15 @@ void handlePaint()
 
     RenderWaveform(dc);
 
-    dc.SetForeBackColor(RGB(0,0,0), RGB(0, 0, 0));
-    dc.DrawText_(gWindowText, grcText.Offset(-1, -1));
-    dc.DrawText_(gWindowText, grcText.Offset(1, 1));
-    dc.SetForeBackColor(gColorScheme.TextColor, gColorScheme.WindowBackground);
-    dc.DrawText_(gWindowText, grcText);
+    dc.DrawText_(gWindowText, grcText, gColorScheme.TextColor, gColorScheme.TextShadowColor);
+
+    if (gPrecalcProgressPercent < 100) {
+        dc.HatchFill(grcPrecalcProgress, gColorScheme.PrecalcProgressBackground, gColorScheme.PrecalcProgressBackground);
+        dc.HatchFill(grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gColorScheme.PrecalcProgressForeground, gColorScheme.PrecalcProgressForeground);
+        char sz[100];
+        wsprintfA(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
+        dc.DrawText_(sz, grcPrecalcProgress, gColorScheme.PrecalcTextColor, gColorScheme.PrecalcTextShadowColor);
+    }
 
     // present the back buffer
     BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, dc.mDC, 0, 0, SRCCOPY);
@@ -212,6 +251,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_RENDERINGCOMPLETE:
     {
+        if (gFilename[0]) {
+            WaveWriter::WriteWAV(gFilename, *gpRenderer);
+            strcpy(gSavedToFilename, gFilename);
+            gFilename[0] = 0;
+        }
         return 0;
     }
     case WM_TIMER: {
@@ -222,6 +266,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     {
         return TRUE; // reduce flickering
     }
+#ifdef WS_EXEPLAYER_DEBUG_FEATURES
     case WM_LBUTTONUP:
     {
         Point p{ LOWORD(lParam), HIWORD(lParam) };
@@ -235,21 +280,31 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         }
         return 0;
     }
+#endif
     case WM_KEYDOWN: {
         switch (wParam) {
-        case VK_F5:
-            gpPlayer->PlayFrom(WSTime::FromFrames(0));
-            return 0;
-        case VK_F6:
-            gpPlayer->Reset();
-            return 0;
         case VK_F7:
             handleSave();
+            return 0;
+        case VK_F5:
+#ifdef WS_EXEPLAYER_RELEASE_FEATURES
+            if (gPrecalcProgressPercent >= 100) {
+                gpPlayer->PlayFrom(WSTime::FromFrames(0));
+            }
+#else
+            gpPlayer->PlayFrom(WSTime::FromFrames(0));
+#endif
+            return 0;
+#ifdef WS_EXEPLAYER_DEBUG_FEATURES
+        case VK_F6:
+            gpPlayer->Reset();
             return 0;
         case VK_F8:
             WaveSabrePlayerLib::gpGraphProfiler->Dump();
             return 0;
+#endif
         }
+
         break;
     }
     case WM_PAINT:
@@ -258,7 +313,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
         return 0;
     }
     case WM_CLOSE:
-        ExitProcess(0); // avoid importing postquitmessage and other code
+        ExitProcess(0); // avoid importing postquitmessage and having to release tons of stuff (bits bits bits)
         return 0;
     }
 
@@ -279,7 +334,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
     gWindowText = new char[60000];
     gWindowText[0] = 0;
 
-    hMain = ::CreateWindowExA(0, "EDIT", "", WS_VISIBLE | ES_READONLY | ES_MULTILINE | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+    hMain = ::CreateWindowExA(0, "EDIT", TEXT_INTRO, WS_VISIBLE | ES_READONLY | ES_MULTILINE | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
         CW_USEDEFAULT, CW_USEDEFAULT, grcWindow.GetWidth(), grcWindow.GetHeight(), 0, 0, 0, 0);
 
     auto oldProc = (WNDPROC)::SetWindowLongPtrA(hMain, GWLP_WNDPROC, (LONG)WindowProc);
