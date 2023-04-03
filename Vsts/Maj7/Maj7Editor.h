@@ -492,10 +492,11 @@ public:
 
 		auto GenerateArray = [&](const std::string& arrayName, size_t count, const std::string& countExpr, int baseParamID) {
 			ss << "    static_assert((int)" << countExpr << " == " << count << ", \"param count probably changed and this needs to be regenerated.\");" << std::endl;
-			ss << "    const float " << arrayName << "[" << count << "] = {" << std::endl;
+			ss << "    const int16_t " << arrayName << "[" << count << "] = {" << std::endl;
 			for (size_t i = 0; i < count; ++i) {
 				size_t paramID = baseParamID + i;
-				ss << std::setprecision(20) << "      " << GetEffectX()->getParameter((VstInt32)paramID) << ", // " << paramNames[paramID] << std::endl;
+				float valf = GetEffectX()->getParameter((VstInt32)paramID);
+				ss << std::setprecision(20) << "      " << M7::math::Sample32To16(valf) << ", // " << paramNames[paramID] << " = " << valf << std::endl;
 			}
 			ss << "    };" << std::endl;
 		};

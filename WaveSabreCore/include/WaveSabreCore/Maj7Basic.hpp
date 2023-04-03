@@ -424,6 +424,18 @@ namespace WaveSabreCore
             FloatPair PanToLRVolumeParams(float panN11);
 
             FloatPair PanToFactor(float panN11);
+
+
+            inline float Sample16To32Bit(int16_t s)
+            {
+                return clampN11(float(s) / 32768);
+            }
+
+            inline int16_t Sample32To16(float f)
+            {
+                return int16_t(ClampInclusive(int32_t(f * 32768), -32768, 32767));
+            }
+
         } // namespace math
 
 
@@ -792,7 +804,8 @@ namespace WaveSabreCore
 
             void WriteInt16NormalizedFloat(float f) {
                 auto p = (int16_t*)(GrowBy(sizeof(int16_t)));
-                *p = int16_t(math::ClampInclusive(int32_t(f * 32768), -32768, 32767));
+                *p = math::Sample32To16(f);
+                //*p = int16_t(math::ClampInclusive(int32_t(f * 32768), -32768, 32767));
             }
         };
 
@@ -831,7 +844,8 @@ namespace WaveSabreCore
             float ReadInt16NormalizedFloat() {
                 int16_t ret = *((int16_t*)mpCursor);
                 mpCursor += sizeof(ret);
-                return math::clampN11(float(ret) / 32768);
+                return math::Sample16To32Bit(ret);
+                //return math::clampN11(float(ret) / 32768);
             }
 
             //ByteBitfield ReadByteBitfield() {

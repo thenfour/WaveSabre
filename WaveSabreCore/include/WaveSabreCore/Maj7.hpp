@@ -232,14 +232,13 @@ namespace WaveSabreCore
 			}
 		};
 
-		extern const float gDefaultMasterParams[(int)MainParamIndices::Count];
-		extern const float gDefaultSamplerParams[(int)SamplerParamIndexOffsets::Count];
-		extern const float gDefaultModSpecParams[(int)ModParamIndexOffsets::Count];
-		extern const float gDefaultLFOParams[(int)LFOParamIndexOffsets::Count];
-		extern const float gDefaultEnvelopeParams[(int)EnvParamIndexOffsets::Count];
-		extern const float gDefaultOscillatorParams[(int)OscParamIndexOffsets::Count];
-		extern const float gDefaultAuxParams[(int)AuxParamIndexOffsets::Count];
-
+		extern const int16_t gDefaultMasterParams[(int)MainParamIndices::Count];
+		extern const int16_t gDefaultSamplerParams[(int)SamplerParamIndexOffsets::Count];
+		extern const int16_t gDefaultModSpecParams[(int)ModParamIndexOffsets::Count];
+		extern const int16_t gDefaultLFOParams[(int)LFOParamIndexOffsets::Count];
+		extern const int16_t gDefaultEnvelopeParams[(int)EnvParamIndexOffsets::Count];
+		extern const int16_t gDefaultOscillatorParams[(int)OscParamIndexOffsets::Count];
+		extern const int16_t gDefaultAuxParams[(int)AuxParamIndexOffsets::Count];
 
 		struct Maj7 : public Maj7SynthDevice
 		{
@@ -388,6 +387,14 @@ namespace WaveSabreCore
 				LoadDefaults();
 			}
 
+			void ImportDefaultsArray(int count, const int16_t *src, float* paramCacheOffset)
+			{
+				for (int i = 0; i < count; ++i)
+				{
+					paramCacheOffset[i] = math::Sample16To32Bit(src[i]);
+				}
+			}
+
 			void LoadDefaults()
 			{
 				// aux nodes reset
@@ -402,28 +409,35 @@ namespace WaveSabreCore
 				}
 
 				// now load in all default params
-				memcpy(mParamCache, gDefaultMasterParams, sizeof(gDefaultMasterParams));
+				ImportDefaultsArray(std::size(gDefaultMasterParams), gDefaultMasterParams, mParamCache);
 
 				for (auto& m : mLFOs) {
-					memcpy(mParamCache + (int)m.mDevice.mBaseParamID, gDefaultLFOParams, sizeof(gDefaultLFOParams));
+					//memcpy(, gDefaultLFOParams, sizeof(gDefaultLFOParams));
+					ImportDefaultsArray(std::size(gDefaultLFOParams), gDefaultLFOParams, mParamCache + (int)m.mDevice.mBaseParamID);
 				}
 				for (auto& m : mOscillatorDevices) {
-					memcpy(mParamCache + (int)m.mBaseParamID, gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
+					ImportDefaultsArray(std::size(gDefaultOscillatorParams), gDefaultOscillatorParams, mParamCache + (int)m.mBaseParamID);
+					//memcpy(mParamCache + (int)m.mBaseParamID, gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
 				}
 				for (auto& s : mSamplerDevices) {
-					memcpy(mParamCache + (int)s.mBaseParamID, gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
+					ImportDefaultsArray(std::size(gDefaultSamplerParams), gDefaultSamplerParams, mParamCache + (int)s.mBaseParamID);
+					//memcpy(mParamCache + (int)s.mBaseParamID, gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
 				}
 				for (auto& m : mModulations) {
-					memcpy(mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
+					ImportDefaultsArray(std::size(gDefaultModSpecParams), gDefaultModSpecParams, mParamCache + (int)m.mBaseParamID);
+					//memcpy(mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
 				}
 				for (auto& m : mAuxDevices) {
-					memcpy(m.mParamCache_Offset, gDefaultAuxParams, sizeof(gDefaultAuxParams));
+					ImportDefaultsArray(std::size(gDefaultAuxParams), gDefaultAuxParams, m.mParamCache_Offset);
+					//memcpy(m.mParamCache_Offset, gDefaultAuxParams, sizeof(gDefaultAuxParams));
 				}
 				for (auto* p : mMaj7Voice[0]->mpAllModEnvelopes) {
-					memcpy(mParamCache + (int)p->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+					ImportDefaultsArray(std::size(gDefaultEnvelopeParams), gDefaultEnvelopeParams, mParamCache + (int)p->mParamBaseID);
+					//memcpy(mParamCache + (int)p->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
 				}
 				for (auto* p : mSources) {
-					memcpy(mParamCache + (int)p->mAmpEnvBaseParamID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+					ImportDefaultsArray(std::size(gDefaultEnvelopeParams), gDefaultEnvelopeParams, mParamCache + (int)p->mAmpEnvBaseParamID);
+					//memcpy(mParamCache + (int)p->mAmpEnvBaseParamID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
 					p->InitDevice();
 				}
 
