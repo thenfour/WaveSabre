@@ -752,26 +752,6 @@ namespace WaveSabreCore
 
 				float mMidiNote = 0;
 
-				//void SeedModMatrix()
-				//{
-				//	mModMatrix.BeginBlock();
-				//	mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
-				//	mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);  // krate, 01
-				//	mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f); // krate, 01
-				//	mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
-				//	mModMatrix.SetSourceValue(ModSource::UnisonoVoice, float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono); // krate, 01
-				//	mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
-
-				//	mModMatrix.SetSourceValue(ModSource::Const_1, 1);
-				//	mModMatrix.SetSourceValue(ModSource::Const_0_5, 0.5f);
-				//	mModMatrix.SetSourceValue(ModSource::Const_0, 0);
-
-				//	for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
-				//	{
-				//		mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mMacros.Get01Value(iMacro));  // krate, 01
-				//	}
-				//}
-
 				void BeginBlock(bool forceProcessing)
 				{
 					if (!forceProcessing && !this->IsPlaying()) {

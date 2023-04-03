@@ -11,11 +11,12 @@ struct
     COLORREF TextColor = RGB(255, 255, 0);
     COLORREF TextShadowColor = RGB(0, 0, 0);
     COLORREF WindowBackground = RGB(0, 0, 0);
-    COLORREF WaveformForeground = RGB(0, 96, 96);
-    COLORREF WaveformBackground = RGB(0, 48, 48);
-    COLORREF WaveformUnrenderedHatch1 = RGB(80, 80, 80);
-    COLORREF WaveformUnrenderedHatch2 = RGB(60, 60, 60);
-    COLORREF RenderCursorColor = RGB(0, 255, 255);
+    COLORREF WaveformForeground = RGB(0, 64, 64);
+    COLORREF WaveformBackground = RGB(0, 24, 24);
+    COLORREF WaveformZeroLine = RGB(64, 64, 64);
+    COLORREF WaveformUnrenderedHatch1 = RGB(60, 60, 60);
+    COLORREF WaveformUnrenderedHatch2 = RGB(30, 30, 30);
+    COLORREF RenderCursorColor = RGB(212, 0, 212);
     COLORREF PlayCursorGood = RGB(0, 192, 0);
     COLORREF PlayCursorBad = RGB(255, 0, 0);
 } gColorScheme;
@@ -24,3 +25,5 @@ static constexpr Rect grcWindow{ 0, 0, 1400, 600 };
 static constexpr Rect grcText{ grcWindow };// { 0, 0, 400, 400 };
 static constexpr Rect grcWaveform{ grcWindow };// { 0, 0, 1400, 600 };
 static constexpr uint32_t gGeneralSleepPeriodMS = 30;
+
+static constexpr int gWaveformGradientMaxDistancePixels = 500;

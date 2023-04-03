@@ -86,7 +86,12 @@ struct Renderer
 
     static DWORD WINAPI RenderThread(LPVOID capture)
     {
-        return ((Renderer*)capture)->RenderThread2();
+        ((Renderer*)capture)->RenderThread2();
+        // HACK / TODO: crash when this thread exits. my guess is because i have elided freeing resources to save bits; it's hard to repro and not important so just ... don't return from this thread.
+        while (true) {
+            Sleep(100);
+        }
+        return 0;
     }
 
     DWORD RenderThread2()

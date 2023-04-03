@@ -128,25 +128,41 @@ void RenderWaveform(GdiDeviceContext& dc)
     dc.HatchFill(gpWaveformGen->mRect, gColorScheme.WaveformBackground, gColorScheme.WaveformBackground);
     const auto midY = gpWaveformGen->mRect.GetMidY();
     const auto left = gpWaveformGen->mRect.GetLeft();
+    Point renderCursorP1{ gpWaveformGen->mRect.GetLeft() + gpWaveformGen->mProcessedWidth, gpWaveformGen->mRect.GetTop() };
+    Point renderCursorP2{ renderCursorP1.GetX(), gpWaveformGen->mRect.GetBottom() };
     for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i) {
         auto h = gpWaveformGen->mHeights[i];
-        const Point p1{ left + i, midY - h };
-        const Point p2{ p1.GetX(), midY + h };
-        dc.DrawLine(p1, p2, gColorScheme.WaveformForeground);
+
+        const Point p1{ left + i, midY - h.first };
+        const Point p2{ p1.GetX(), midY + h.second };
+        // distance to render cursor
+        int distToRenderCursor = renderCursorP1.GetX() - p1.GetX();
+        float t = float(distToRenderCursor) / gWaveformGradientMaxDistancePixels;
+        t = WaveSabreCore::M7::math::clamp01(1.0f - t);
+        t = WaveSabreCore::M7::math::modCurve_xN11_kN11(t, -0.95f);
+        COLORREF g = RGB(
+            WaveSabreCore::M7::math::lerp(GetRValue(gColorScheme.WaveformForeground), GetRValue(gColorScheme.RenderCursorColor), t),
+            WaveSabreCore::M7::math::lerp(GetGValue(gColorScheme.WaveformForeground), GetGValue(gColorScheme.RenderCursorColor), t),
+            WaveSabreCore::M7::math::lerp(GetBValue(gColorScheme.WaveformForeground), GetBValue(gColorScheme.RenderCursorColor), t)
+            );
+        
+        dc.DrawLine(p1, p2, g);
     }
     dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gColorScheme.WaveformUnrenderedHatch1, gColorScheme.WaveformUnrenderedHatch2);
     
-    Point p1{ gpWaveformGen->mRect.GetLeft() + gpWaveformGen->mProcessedWidth, gpWaveformGen->mRect.GetTop() };
-    Point p2{ p1.GetX(), gpWaveformGen->mRect.GetBottom() };
-    dc.DrawLine(p1, p2, gColorScheme.RenderCursorColor);
+    Point midLineP1{ left, midY };
+    Point midLineP2{ renderCursorP1.GetX(), midY };
+    dc.DrawLine(midLineP1, midLineP2, gColorScheme.WaveformZeroLine);
+
+    dc.DrawLine(renderCursorP1, renderCursorP2, gColorScheme.RenderCursorColor);
 
     if (gpPlayer->IsPlaying()) {
         auto playFrames = gpPlayer->gPlayTime.GetFrames();
         auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gColorScheme.PlayCursorBad : gColorScheme.PlayCursorGood;
 
-        int playCursorX = playFrames * gpWaveformGen->mRect.GetWidth() / gpRenderer->gSongLength.GetFrames();
+        int playCursorX = MulDiv(playFrames, gpWaveformGen->mRect.GetWidth(), gpRenderer->gSongLength.GetFrames());
         static constexpr int gPlayCursorWidth = 4;
-        Rect rc{ gpWaveformGen->mRect.GetLeft() + playCursorX - gPlayCursorWidth / 2, p1.GetY(), gPlayCursorWidth, gpWaveformGen->mRect.GetHeight() };
+        Rect rc{ gpWaveformGen->mRect.GetLeft() + playCursorX - gPlayCursorWidth / 2, renderCursorP1.GetY(), gPlayCursorWidth, gpWaveformGen->mRect.GetHeight() };
 
         dc.HatchFill(rc, c, c);
     }
