@@ -53,13 +53,13 @@ void UpdateStatusText()
 
     char saveIndicatorText[1000] = { 0 };
     if (gSavedToFilename[0]) {
-        wsprintfA(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
+        sprintf(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
     }
     else if (gFilename[0]) {
-        wsprintfA(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
+        sprintf(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
     }
 
-    wsprintfA(gWindowText, format,
+    sprintf(gWindowText, format,
         TEXT_INTRO,
         saveIndicatorText,
         gPrecalcProgressPercent >= 100 ? "Precalc done: Press F5 to play" : "Wait for precalc before playing..."
@@ -116,10 +116,10 @@ void UpdateStatusText()
 
     char saveIndicatorText[1000] = { 0 };
     if (gSavedToFilename[0]) {
-        wsprintfA(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
+        sprintf(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
     }
     else if (gFilename[0]) {
-        wsprintfA(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
+        sprintf(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
     }
 
     sprintf(gWindowText, format,
@@ -248,7 +248,7 @@ void handlePaint()
         dc.HatchFill(grcPrecalcProgress, gColorScheme.PrecalcProgressBackground, gColorScheme.PrecalcProgressBackground);
         dc.HatchFill(grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gColorScheme.PrecalcProgressForeground, gColorScheme.PrecalcProgressForeground);
         char sz[100];
-        wsprintfA(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
+        sprintf(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
         dc.DrawText_(sz, grcPrecalcProgress, gColorScheme.PrecalcTextColor, gColorScheme.PrecalcTextShadowColor);
     }
 
