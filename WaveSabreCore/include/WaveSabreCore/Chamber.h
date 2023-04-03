@@ -24,6 +24,7 @@ namespace WaveSabreCore
 		};
 
 		static constexpr int numBuffers = 8;
+		static constexpr int numBuffersDiv2 = numBuffers / 2;
 
 		int mode = 1;
 		float lowCutFreq = 200;
@@ -46,18 +47,18 @@ namespace WaveSabreCore
 
 		static constexpr float delayLengths[] =
 		{
-			7.0f,
-			21.0f,
-			17.0f,
-			13.0f,
-			3.0f,
-			11.0f,
-			23.0f,
-			31.0f
+			7,
+			21,
+			17,
+			13,
+			3,
+			11,
+			23,
+			31
 		};
 		static constexpr float multipliers[] =
 		{
-			1.0f, 5.0f, 10.0f
+			1, 5, 10
 		};
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
@@ -98,8 +99,8 @@ namespace WaveSabreCore
 					delayBuffers[j].WriteSample(filteredInputSamples[channelIndex] + feedbackSample * feedback);
 					outputs[channelIndex][i] += inputSamples[channelIndex] * (1.0f - dryWet) + feedbackSample * dryWet;
 				}
-				outputs[0][i] /= numBuffers / 2;
-				outputs[1][i] /= numBuffers / 2;
+				outputs[0][i] /= numBuffersDiv2;
+				outputs[1][i] /= numBuffersDiv2;
 			}
 		}
 

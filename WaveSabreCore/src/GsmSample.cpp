@@ -1,6 +1,8 @@
-#include <WaveSabreCore/GsmSample.h>
 
 #include <string.h>
+
+#include <WaveSabreCore/GsmSample.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 namespace WaveSabreCore
 {
@@ -50,7 +52,9 @@ namespace WaveSabreCore
 		SampleLength = streamHeader.cbDstLengthUsed / sizeof(short);
 		SampleData = new float[SampleLength];
 		for (int i = 0; i < SampleLength; i++)
-			SampleData[i] = (float)((double)uncompressedData[i] / 32768.0);
+		{
+			SampleData[i] = M7::math::Sample16To32Bit(uncompressedData[i]);// (float)((double)uncompressedData[i] / 32768.0);
+		}
 
 		delete [] uncompressedData;
 	}

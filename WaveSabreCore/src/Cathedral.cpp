@@ -1,3 +1,5 @@
+
+#include <cstdint>
 #include <WaveSabreCore/Cathedral.h>
 #include <WaveSabreCore/AllPass.h>
 #include <WaveSabreCore/Comb.h>
@@ -8,9 +10,9 @@ namespace WaveSabreCore
 	Cathedral::Cathedral()
 		: Device((int)ParamIndices::NumParams)
 	{
-		const int CombTuning[] = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };
-		const int AllPassTuning[] = { 556, 441, 341, 225 };
-		const int stereoSpread = 23;
+		static constexpr int16_t CombTuning[] = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };
+		static constexpr int16_t AllPassTuning[] = { 556, 441, 341, 225 };
+		static constexpr int16_t stereoSpread = 23;
 
 		roomSize = 0.5f;
 		damp = 0.0f;

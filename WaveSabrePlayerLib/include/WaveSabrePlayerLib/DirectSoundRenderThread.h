@@ -29,8 +29,8 @@ namespace WaveSabrePlayerLib
 		int bufferSizeBytes;
 
 		HANDLE thread;
-		CriticalSection criticalSection;
-		CriticalSection playPositionCriticalSection;
+		WaveSabreCore::CriticalSection criticalSection;
+		WaveSabreCore::CriticalSection playPositionCriticalSection;
 		bool shutdown;
 
 		int oldPlayCursorPos;

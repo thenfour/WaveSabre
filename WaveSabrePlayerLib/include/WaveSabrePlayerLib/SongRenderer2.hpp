@@ -70,7 +70,7 @@ namespace WaveSabrePlayerLib
 			}
 		}
 
-		CriticalSection mStateLock;
+		WaveSabreCore::CriticalSection mStateLock;
 
 		GraphProcessor(int numThreads, INodeList* nodeList) :
 			mThreadCount(numThreads),
@@ -120,7 +120,7 @@ namespace WaveSabrePlayerLib
 		{
 			ResetEvent(hWorkAvailableEvent);
 
-			gpGraphProfiler->BeginGraph();
+			//gpGraphProfiler->BeginGraph();
 			mNumFrames = numSamples / 2;
 			for (int iNode = 0; iNode < mNodeList->INodeList_NodeCount; ++iNode)
 			{
@@ -132,7 +132,7 @@ namespace WaveSabrePlayerLib
 			auto work = MarkWorkDone_Dispatch_AcceptNewWork({});
 			GraphWorkerLoop(work, true);
 
-			gpGraphProfiler->EndGraph();
+			//gpGraphProfiler->EndGraph();
 		}
 
 		void WorkerThread()
@@ -154,10 +154,10 @@ namespace WaveSabrePlayerLib
 					continue; // it's theoretically possible that we heard about work being available but when we looked for it none was to be found. just go back to waiting.
 				}
 				WaveSabreCore::MxcsrFlagGuard mxcsrFlagGuard;
-				Stopwatch sw;
-				gpGraphProfiler->BeginWork(sw);
+				//Stopwatch sw;
+				//gpGraphProfiler->BeginWork(sw);
 				work.DoTheWork(mNumFrames);
-				gpGraphProfiler->EndWork(sw);
+				//gpGraphProfiler->EndWork(sw);
 				work = MarkWorkDone_Dispatch_AcceptNewWork(work);
 			}
 			SetEvent(hGraphCompleteEvent);
@@ -516,7 +516,7 @@ namespace WaveSabrePlayerLib
 
 		SongRenderer2(const Song* song, int numRenderThreads)
 		{
-			gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
+			//gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
 
 			songBlobPtr = song->blob;
 
@@ -588,10 +588,7 @@ namespace WaveSabrePlayerLib
 			float** masterTrackBuffers = tracks[numTracks - 1].Buffers;
 			for (int i = 0; i < numSamples; i++)
 			{
-				int sample = (int)(masterTrackBuffers[i & 1][i / 2] * 32767.0f);
-				if (sample < -32768) sample = -32768;
-				if (sample > 32767) sample = 32767;
-				buffer[i] = (Sample)sample;
+				buffer[i] = WaveSabreCore::M7::math::Sample32To16(masterTrackBuffers[i & 1][i >> 1]);
 			}
 		}
 

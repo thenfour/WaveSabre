@@ -17,13 +17,14 @@ namespace WaveSabreCore
 
 		float Next(float input);
 
-		void SetType(BiquadFilterType type);
-		void SetFreq(float freq);
-		void SetQ(float q);
-		void SetGain(float gain);
+		void SetParams(BiquadFilterType type, float freq, float q, float gain);
+		//void SetType(BiquadFilterType type);
+		//void SetFreq(float freq);
+		//void SetQ(float q);
+		//void SetGain(float gain);
 
 	private:
-		bool recalculate;
+		//bool recalculate;
 		bool thru;
 
 		BiquadFilterType type;

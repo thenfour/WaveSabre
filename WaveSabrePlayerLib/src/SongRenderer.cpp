@@ -4,12 +4,12 @@ using namespace WaveSabreCore;
 
 namespace WaveSabrePlayerLib
 {
-	GraphRunnerProfiler* gpGraphProfiler = nullptr;
+	//GraphRunnerProfiler* gpGraphProfiler = nullptr;
 
 	SongRenderer::SongRenderer(const SongRenderer::Song *song, int numRenderThreads)
 	{
 		//Helpers::Init();
-		gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
+		//gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
 
 		songBlobPtr = song->blob;
 
@@ -139,7 +139,7 @@ namespace WaveSabrePlayerLib
 		renderThreadNumFloatSamples = numSamples / 2;
 
 		// Dispatch work
-		gpGraphProfiler->BeginGraph();
+		//gpGraphProfiler->BeginGraph();
 		renderThreadsRunning = numRenderThreads;
 		for (int i = 0; i < numRenderThreads; i++)
 			SetEvent(renderThreadStartEvents[i]);
@@ -148,7 +148,7 @@ namespace WaveSabrePlayerLib
 
 		// Wait for render threads to complete their work
 		WaitForSingleObject(renderDoneEvent, INFINITE);
-		gpGraphProfiler->EndGraph();
+		//gpGraphProfiler->EndGraph();
 
 		// Copy final output
 		float **masterTrackBuffers = tracks[numTracks - 1]->Buffers;
@@ -228,10 +228,10 @@ namespace WaveSabrePlayerLib
 				//  Let's try to mark it so that no other thread takes it
 				if ((TrackRenderState)InterlockedCompareExchange((unsigned int *)&trackRenderStates[i], (unsigned int)TrackRenderState::Rendering, (unsigned int)TrackRenderState::Idle) == TrackRenderState::Idle)
 				{
-					Stopwatch sw;
-					gpGraphProfiler->BeginWork(sw);
+					//Stopwatch sw;
+					//gpGraphProfiler->BeginWork(sw);
 					tracks[i]->Run(renderThreadNumFloatSamples);
-					gpGraphProfiler->EndWork(sw);
+					//gpGraphProfiler->EndWork(sw);
 					trackRenderStates[i] = TrackRenderState::Finished;
 					break;
 				}

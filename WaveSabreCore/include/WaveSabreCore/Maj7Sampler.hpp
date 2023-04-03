@@ -30,17 +30,17 @@ namespace WaveSabreCore
 			Count,
 		};
 
-		struct MutexHold
-		{
-			HANDLE mMutex;
-			MutexHold(HANDLE hMutex) : mMutex(hMutex)
-			{
-				WaitForSingleObject(mMutex, INFINITE);
-			}
-			~MutexHold() {
-				ReleaseMutex(mMutex);
-			}
-		};
+		//struct MutexHold
+		//{
+		//	HANDLE mMutex;
+		//	MutexHold(HANDLE hMutex) : mMutex(hMutex)
+		//	{
+		//		WaitForSingleObject(mMutex, INFINITE);
+		//	}
+		//	~MutexHold() {
+		//		ReleaseMutex(mMutex);
+		//	}
+		//};
 
 		struct GmDlsSample : ISampleSource
 		{
@@ -82,19 +82,20 @@ namespace WaveSabreCore
 
 			ISampleSource* mSample = nullptr;
 			float mSampleRateCorrectionFactor = 0;
-			HANDLE mMutex;
+			//HANDLE mMutex;
+			WaveSabreCore::CriticalSection mMutex;
 			char mSamplePath[MAX_PATH] = { 0 };
 
 			void Reset();
 
 			void Deserialize(Deserializer& ds);
 
-			void Serialize(Serializer& s) const;
+			void Serialize(Serializer& s);
 
 			explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
 				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			);
-			virtual ~SamplerDevice();
+			//virtual ~SamplerDevice();
 			// called when loading chunk, or by VST
 			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char* path);
 			void LoadGmDlsSample(int sampleIndex);

@@ -8,29 +8,6 @@
 namespace WaveSabrePlayerLib
 {
 #ifdef MIN_SIZE_REL
-	struct Stopwatch {
-	};
-
-	struct GraphRunnerProfiler
-	{
-		GraphRunnerProfiler(int nMaxParallel) {}
-
-		void BeginGraph()
-		{
-		}
-		void EndGraph()
-		{
-		}
-		void BeginWork(Stopwatch& sw)
-		{
-		}
-		void EndWork(Stopwatch& sw)
-		{
-		}
-		void Dump()
-		{
-		}
-	};
 
 #else // #ifdef MIN_SIZE_REL
 	class Stopwatch {
@@ -167,7 +144,7 @@ namespace WaveSabrePlayerLib
 
 #endif // #ifndef MIN_SIZE_REL
 
-	extern GraphRunnerProfiler* gpGraphProfiler;
+	//extern GraphRunnerProfiler* gpGraphProfiler;
 
 	class SongRenderer
 	{

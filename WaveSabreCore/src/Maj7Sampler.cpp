@@ -58,8 +58,9 @@ namespace WaveSabreCore
 					for (int j = 0; j < mSampleLength; j++)
 					{
 						auto sample = *((short*)wave);
+						//mSampleData[j] = (float)((double)sample / 32768.0);
+						mSampleData[j] = math::Sample16To32Bit(sample);// (float)((double)sample / 32768.0);
 						wave += 2;
-						mSampleData[j] = (float)((double)sample / 32768.0);
 					}
 
 					if (wsmp.loopCount)
@@ -92,7 +93,7 @@ namespace WaveSabreCore
 
 			void SamplerDevice::Deserialize(Deserializer& ds)
 			{
-				auto token = MutexHold{ mMutex };
+				auto token = mMutex.Enter();
 				int sampleSource = ds.ReadUByte();
 				mSampleSource.SetIntValue(sampleSource);
 				if (mSampleSource.GetEnumValue() != SampleSource::Embed) {
@@ -126,9 +127,9 @@ namespace WaveSabreCore
 #endif // MAJ7_INCLUDE_GSM_SUPPORT
 			}
 
-			void SamplerDevice::Serialize(Serializer& s) const
+			void SamplerDevice::Serialize(Serializer& s)
 			{
-				auto token = MutexHold{ mMutex };
+				auto token = mMutex.Enter();
 				// params are already serialized. just serialize the non-param stuff (just sample data).
 				// indicate sample source
 				s.WriteUByte(mSampleSource.GetIntValue());
@@ -190,18 +191,18 @@ namespace WaveSabreCore
 				mSampleSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleSource], SampleSource::Count),
 				mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], -1, WaveSabreCore::GmDls::NumSamples)
 			{
-				mMutex = ::CreateMutex(0, 0, 0);
+				//mMutex = ::CreateMutex(0, 0, 0);
 			}
 
-			SamplerDevice::~SamplerDevice()
-			{
-				CloseHandle(mMutex);
-			}
+			//SamplerDevice::~SamplerDevice()
+			//{
+			//	//CloseHandle(mMutex);
+			//}
 
 			// called when loading chunk, or by VST
 			void SamplerDevice::LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char *path)
 			{
-				auto token = MutexHold{ mMutex };
+				auto token = mMutex.Enter();
 				if (mSample) {
 					delete mSample;
 					mSample = nullptr;
@@ -216,7 +217,7 @@ namespace WaveSabreCore
 
 			void SamplerDevice::LoadGmDlsSample(int sampleIndex)
 			{
-				auto token = MutexHold{ mMutex };
+				auto token = mMutex.Enter();
 				if (mSample) {
 					delete mSample;
 					mSample = nullptr;
@@ -233,7 +234,8 @@ namespace WaveSabreCore
 
 			void SamplerDevice::BeginBlock()
 			{
-				WaitForSingleObject(mMutex, INFINITE);
+				mMutex.ManualEnter();
+				//WaitForSingleObject(mMutex, INFINITE);
 
 				ISoundSourceDevice::BeginBlock();
 
@@ -267,7 +269,7 @@ namespace WaveSabreCore
 			}
 
 			void SamplerDevice::EndBlock() {
-				ReleaseMutex(mMutex);
+				mMutex.ManualLeave();
 			}
 
 
@@ -306,7 +308,7 @@ namespace WaveSabreCore
 					return;
 				}
 
-				auto token = MutexHold{ mpSamplerDevice->mMutex };
+				auto token = mpSamplerDevice->mMutex.Enter();
 
 				mSamplePlayer.SampleData = mpSamplerDevice->mSample->GetSampleData();
 				mSamplePlayer.SampleLength = mpSamplerDevice->mSample->GetSampleLength();

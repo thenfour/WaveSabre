@@ -80,10 +80,11 @@ namespace WaveSabreCore
 		void RecalcFilters()
 		{
 			for (size_t i = 0; i < 2; ++i) {
-				mFilters[i].SetType(mFilterType);
-				mFilters[i].SetFreq(mFrequency.GetFrequency(0, 0));
-				mFilters[i].SetGain(mVolume.GetDecibels());
-				mFilters[i].SetQ(mQ.GetQValue());
+				mFilters[i].SetParams(mFilterType, mFrequency.GetFrequency(0, 0), mQ.GetQValue(), mVolume.GetDecibels());
+				//mFilters[i].SetType(mFilterType);
+				//mFilters[i].SetFreq(mFrequency.GetFrequency(0, 0));
+				//mFilters[i].SetGain(mVolume.GetDecibels());
+				//mFilters[i].SetQ(mQ.GetQValue());
 			}
 		}
 

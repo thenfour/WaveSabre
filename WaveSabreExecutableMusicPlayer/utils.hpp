@@ -181,33 +181,24 @@ struct GdiDeviceContext
         SetBkMode(mDC, TRANSPARENT);
         SetTextColor(mDC, shadow);
         auto rcText = bounds.GetRECT();
-        auto rcShadow = rcText;
-        rcShadow.left--;
-        rcShadow.top--;
-        ::DrawTextA(mDC, sz, -1, &rcShadow, 0);
-        rcShadow.left += 2;
-        rcShadow.top += 2;
-        ::DrawTextA(mDC, sz, -1, &rcShadow, 0);
-
+        auto rcShadow1 = rcText;
+        rcShadow1.left--;
+        rcShadow1.top--;
+        //rcShadow1.left+=2;
+        //rcShadow1.top+=2;
+        ::DrawTextA(mDC, sz, -1, &rcShadow1, 0);
+        //::DrawTextA(mDC, sz, -1, &rcShadow2, 0);
         SetTextColor(mDC, fore);
         ::DrawTextA(mDC, sz, -1, &rcText, 0);
-        //DrawText_(gWindowText, grcText.Offset(-1, -1));
-        //dc.DrawText_(gWindowText, grcText.Offset(1, 1));
-        //dc.DrawText_(gWindowText, grcText);
-
-
-
-        //::DrawTextA(mDC, sz, -1, &rcText, 0);
     }
-    void SetForeBackColor(COLORREF foreColor, COLORREF backColor) const
-    {
-        SetTextColor(mDC, foreColor);
-        SetBkColor(mDC, backColor);
-    }
+    //void SetForeBackColor(COLORREF foreColor, COLORREF backColor) const
+    //{
+    //    SetTextColor(mDC, foreColor);
+    //    SetBkColor(mDC, backColor);
+    //}
     void HatchFill(const Rect& bounds, COLORREF foreColor, COLORREF backColor) const
     {
         SetBkColor(mDC, backColor);
-        //SetBkMode(mDC, OPAQUE);
         HBRUSH hBrush = CreateHatchBrush(HS_BDIAGONAL, foreColor);
         HBRUSH hOldBrush = (HBRUSH)SelectObject(mDC, hBrush);
         RECT rc = bounds.GetRECT();

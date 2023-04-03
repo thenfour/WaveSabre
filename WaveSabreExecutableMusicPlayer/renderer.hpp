@@ -31,7 +31,7 @@ struct Renderer
     DWORD renderingStartedTick = 0;
     WAVEFORMATEX WaveFMT;
     WAVEHDR WaveHDR;
-    WaveSabrePlayerLib::CriticalSection gCritsec;
+    WaveSabreCore::CriticalSection gCritsec;
     HWND mhWndNotify;
     HANDLE mhRenderThread;
     ISampleProcessor* mpAdditionalProcessor = nullptr;

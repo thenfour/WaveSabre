@@ -5,27 +5,27 @@
 
 namespace WaveSabrePlayerLib
 {
-	class CriticalSection
-	{
-	public:
-		class CriticalSectionGuard
-		{
-		public:
-			CriticalSectionGuard(CriticalSection *criticalSection);
-			~CriticalSectionGuard();
+	//class CriticalSection
+	//{
+	//public:
+	//	class CriticalSectionGuard
+	//	{
+	//	public:
+	//		CriticalSectionGuard(CriticalSection *criticalSection);
+	//		~CriticalSectionGuard();
 
-		private:
-			CriticalSection *criticalSection;
-		};
+	//	private:
+	//		CriticalSection *criticalSection;
+	//	};
 
-		CriticalSection();
-		~CriticalSection();
+	//	CriticalSection();
+	//	~CriticalSection();
 
-		CriticalSectionGuard Enter();
+	//	CriticalSectionGuard Enter();
 
-	private:
-		CRITICAL_SECTION criticalSection;
-	};
+	//private:
+	//	CRITICAL_SECTION criticalSection;
+	//};
 }
 
 #endif
