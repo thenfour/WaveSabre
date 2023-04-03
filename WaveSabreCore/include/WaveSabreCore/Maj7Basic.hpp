@@ -789,6 +789,11 @@ namespace WaveSabreCore
             void WriteFloat(float f);
             void WriteUInt32(uint32_t f);
             void WriteBuffer(const uint8_t* buf, size_t n);
+
+            void WriteInt16NormalizedFloat(float f) {
+                auto p = (int16_t*)(GrowBy(sizeof(int16_t)));
+                *p = int16_t(math::ClampInclusive(int32_t(f * 32768), -32768, 32767));
+            }
         };
 
         // attaches to some buffer
@@ -822,6 +827,12 @@ namespace WaveSabreCore
             float ReadFloat();
             // returns a new cursor in the out buffer 
             void ReadBuffer(void* out, size_t numbytes);
+
+            float ReadInt16NormalizedFloat() {
+                int16_t ret = *((int16_t*)mpCursor);
+                mpCursor += sizeof(ret);
+                return math::clampN11(float(ret) / 32768);
+            }
 
             //ByteBitfield ReadByteBitfield() {
             //    return ByteBitfield{ ReadUByte() };

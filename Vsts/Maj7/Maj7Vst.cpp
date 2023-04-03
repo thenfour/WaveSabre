@@ -70,7 +70,8 @@ int GetMinifiedChunk(M7::Maj7* p, void** data)
 		if (af < eps) {
 			f = 0;
 		}
-		s.WriteFloat((float)f);
+		//s.WriteFloat((float)f);
+		s.WriteInt16NormalizedFloat((float)f);
 	}
 
 	for (auto& sd : p->mSamplerDevices) {

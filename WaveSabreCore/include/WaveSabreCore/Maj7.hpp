@@ -465,21 +465,6 @@ namespace WaveSabreCore
 				int numSamples = GetModulationRecalcSampleMask() + 1;
 				float* outputs[2] = { new float[numSamples], new float[numSamples] };
 				ProcessBlock(0, outputs, numSamples, true);
-				//for (auto& m : mModulations) {
-				//	m.BeginBlock();
-				//}
-				//for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-				//{
-				//	//mMaj7Voice[iv]->SeedModMatrix();
-				//	for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-				//	{
-				//		mMaj7Voice[iv]->BeginBlock(true);
-				//	}
-
-				//	for (int i = 0; i <= GetModulationRecalcSampleMask(); ++i) {
-				//		mMaj7Voice[iv]->mModMatrix.ProcessSample(this->mModulations, true);
-				//	}
-				//}
 			}
 
 			virtual void HandlePitchBend(float pbN11) override
@@ -504,7 +489,7 @@ namespace WaveSabreCore
 				auto version = ds.ReadUByte();
 				if (version != gChunkVersion) return; // in the future maybe support other versions? but probably not in the minified code
 				for (int i = 0; i < numParams; ++i) {
-					float f = mDefaultParamCache[i] + ds.ReadFloat();
+					float f = mDefaultParamCache[i] + ds.ReadInt16NormalizedFloat();
 					SetParam(i, f);
 				}
 				for (auto& s : mSamplerDevices) {
