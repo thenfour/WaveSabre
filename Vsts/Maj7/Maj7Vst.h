@@ -287,7 +287,7 @@ namespace WaveSabreCore
 
 		static inline void GenerateDefaults(SamplerDevice* p)
 		{
-			auto token = MutexHold{ p->mMutex };
+			auto token = p->mMutex.Enter();
 			p->Reset();
 			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
 			p->mLegatoTrig.SetBoolValue(true);

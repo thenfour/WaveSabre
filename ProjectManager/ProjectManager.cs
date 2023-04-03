@@ -96,7 +96,7 @@ namespace ProjectManager
                 sfd.FileName = fileName;
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
-                    File.WriteAllBytes(sfd.FileName, bin);
+                    File.WriteAllBytes(sfd.FileName, bin.CompleteSong.GetByteArray());
                 }
             }
             catch (Exception err)
@@ -112,7 +112,7 @@ namespace ProjectManager
                 var bin = new Serializer().SerializeBinary(song);
                 var tempFile = Path.GetTempPath() + "WaveSabre.bin";
                 GetRid(tempFile);
-                File.WriteAllBytes(tempFile, bin);
+                File.WriteAllBytes(tempFile, bin.CompleteSong.GetByteArray());
                 Console.WriteLine(@"Temp file written to: {tempFile}");
                 var proc = Process.Start(@"WaveSabreStandAlonePlayer.exe", string.Format("\"{0}\"", tempFile));
                 proc.WaitForExit();
@@ -144,7 +144,7 @@ namespace ProjectManager
                     var bin = new Serializer().SerializeBinary(song);
                     var tempFile = Path.GetTempPath() + "WaveSabre.bin";
                     GetRid(tempFile);
-                    File.WriteAllBytes(tempFile, bin);
+                    File.WriteAllBytes(tempFile, bin.CompleteSong.GetByteArray());
                     var proc = Process.Start(@"WaveSabreStandAlonePlayer.exe", string.Format("\"{0}\" -w \"{1}\"", tempFile, sfd.FileName));
                     proc.WaitForExit();
                     GetRid(tempFile);

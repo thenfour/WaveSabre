@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using static WaveSabreConvert.Song;
 
 namespace WaveSabreConvert
 {
@@ -120,6 +121,41 @@ namespace WaveSabreConvert
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int WaveSabreFreeChunkDelegate(IntPtr p);
 
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
+        public delegate int WaveSabreTestCompressionDelegate(
+            int inputSize,
+            IntPtr inputData);
+
+        public const string vstpath = @"C:\root\vstpluginlinks\WaveSabre";
+
+        public static int WaveSabreTestCompression(byte[] data)
+        {
+            string dll = FindDeviceDllFullPath(Song.DeviceId.Maj7);
+            IntPtr dllHandle = LoadLibrary(dll);
+            if (dllHandle == IntPtr.Zero)
+            {
+                Console.WriteLine($"Failed to load the VST DLL from {dll}. (does it exist? is it the right bitness?)");
+                return 0;
+            }
+            IntPtr functionHandle = GetProcAddress(dllHandle, "WaveSabreTestCompression");
+            if (functionHandle == IntPtr.Zero)
+            {
+                FreeLibrary(dllHandle);
+                return 0;
+            }
+
+            IntPtr inputBuffer = Marshal.AllocHGlobal(data.Length);
+            Marshal.Copy(data, 0, inputBuffer, data.Length);
+
+            WaveSabreTestCompressionDelegate __imp_WaveSabreTestCompression = Marshal.GetDelegateForFunctionPointer<WaveSabreTestCompressionDelegate>(functionHandle);
+
+            int result = __imp_WaveSabreTestCompression(data.Length, inputBuffer);
+            Marshal.FreeHGlobal(inputBuffer);
+            FreeLibrary(dllHandle);
+
+            return result;
+        }
+
         public static string FindFileInDirectories(IEnumerable<string> directories, string filename)
         {
             foreach (string directory in directories)
@@ -154,7 +190,7 @@ namespace WaveSabreConvert
             string leaf = deviceID.ToString() + ".dll";
             return FindFileInDirectories(
                 new List<string> {
-                    @"C:\root\vstpluginlinks\WaveSabre"
+                    vstpath
                     //Environment.ExpandEnvironmentVariables("%program files.....")
 
                 }, leaf);

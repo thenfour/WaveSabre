@@ -104,3 +104,40 @@ void __cdecl WaveSabreFreeChunk(void* p)
 {
 	M7::Serializer::FreeBuffer(p);
 }
+
+// compresses the given data to test Squishy performance for a given buf.
+// just returns the compressed size
+int __cdecl WaveSabreTestCompression(int inpSize, void* inpData)
+{
+	//ChunkStats ret;
+	//void* data;
+	//int size = GetMinifiedChunk(p, &data);
+	//int size = p->GetChunk(&data);
+	//ret.uncompressedSize = size;
+
+	std::vector<uint8_t> compressedData;
+	compressedData.resize(inpSize);
+	std::vector<uint8_t> encodedProps;
+	encodedProps.resize(inpSize);
+	SizeT compressedSize = inpSize;
+	SizeT encodedPropsSize = inpSize;
+
+	ISzAlloc alloc;
+	alloc.Alloc = [](ISzAllocPtr p, SizeT s) {
+		return malloc(s);
+	};
+	alloc.Free = [](ISzAllocPtr p, void* addr) {
+		free(addr);
+	};
+
+	CLzmaEncProps props;
+	LzmaEncProps_Init(&props);
+	props.level = 5;
+
+	int lzresult = LzmaEncode(&compressedData[0], &compressedSize, (const Byte*)inpData, inpSize, &props, encodedProps.data(), &encodedPropsSize, 0, nullptr, &alloc, &alloc);
+	//ret.compressedSize = ;
+
+	//delete[] data;
+	return (int)compressedSize;
+}
+

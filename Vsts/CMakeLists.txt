@@ -6,7 +6,7 @@ foreach(child ${children})
 		file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/${child}/*.h)
 		aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/${child} sources)
 		file(WRITE "${CMAKE_BINARY_DIR}/${child}.def"
-			"LIBRARY ${child}\nEXPORTS\nVSTPluginMain\nWaveSabreDeviceVSTChunkToMinifiedChunk\nWaveSabreFreeChunk\nmain=VSTPluginMain")
+			"LIBRARY ${child}\nEXPORTS\nVSTPluginMain\nWaveSabreDeviceVSTChunkToMinifiedChunk\nWaveSabreFreeChunk\nWaveSabreTestCompression\nmain=VSTPluginMain")
 		add_library(${child} SHARED
 			${sources} ../Data/data.rc ${CMAKE_BINARY_DIR}/${child}.def)
 		target_link_libraries(${child} WaveSabreCore WaveSabreVstLib)

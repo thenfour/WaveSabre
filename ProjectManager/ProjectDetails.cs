@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using WaveSabreConvert;
@@ -66,12 +67,45 @@ namespace ProjectManager
             }
             var tracks = new TreeNode(string.Format("Tracks: {0}", song.Tracks.Count), trackNodes.ToArray());
 
+            // track data
+            var tracksChunkNode = new TreeNode("Chunks: Tracks");
+            var tracksOrdered = bin.TrackData.Select(kv => new { kv, compressedSize = kv.Value.GetCompressedSize() }).OrderByDescending(kv => kv.compressedSize);
+            foreach (var kvt in tracksOrdered)
+            {
+                tracksChunkNode.Nodes.Add(new TreeNode($"{kvt.kv.Key}: {kvt.kv.Value.GetSize()} bytes ({kvt.compressedSize} compressed)"));
+            }
+
+            // device data
+            var deviceChunkNode = new TreeNode("Chunks: Devices");
+            var devicesOrdered = bin.DeviceChunks.Select(kv => new { kv, compressedSize = kv.Value.GetCompressedSize() }).OrderByDescending(kv => kv.compressedSize);
+            foreach (var kvt in devicesOrdered)
+            {
+                deviceChunkNode.Nodes.Add(new TreeNode($"{kvt.kv.Key}: {kvt.kv.Value.GetSize()} bytes ({kvt.compressedSize} compressed)"));
+            }
+
+            // midi lane data
+            var midiLaneChunkNode = new TreeNode("Chunks: Midi Lanes");
+            var midiLanesOrdered = bin.MidiLaneData.Select(kv => new { kv, compressedSize = kv.Value.GetCompressedSize() }).OrderByDescending(kv => kv.compressedSize);
+            foreach (var kvt in midiLanesOrdered)
+            {
+                int iMidiLane = kvt.kv.Key;
+                // find tracks which reference this midi lane
+                string trackRefs = string.Join(", ", song.Tracks.Where(st => st.MidiLaneId == iMidiLane).Select(st => st.Name));
+                midiLaneChunkNode.Nodes.Add(new TreeNode($"{kvt.kv.Key}: {kvt.kv.Value.GetSize()} bytes ({kvt.compressedSize} compressed) used by tracks {trackRefs}"));
+            }
+
+
             treeViewDetails.Nodes.Add(new TreeNode(string.Format("Tempo: {0}", song.Tempo)));
             treeViewDetails.Nodes.Add(new TreeNode(string.Format("Duration: {0} seconds", song.Length)));
             treeViewDetails.Nodes.Add(new TreeNode(string.Format("Total Device Count: {0}", deviceCount)));
-            treeViewDetails.Nodes.Add(new TreeNode(string.Format("Total Data Size: {0} bytes", bin.Length)));
+            treeViewDetails.Nodes.Add(new TreeNode(string.Format("Total Data Size: {0} bytes ({1} bytes compressed)", bin.CompleteSong.GetSize(), bin.CompleteSong.GetCompressedSize())));
+
             treeViewDetails.Nodes.Add(tracks);
-            treeViewDetails.Nodes[4].Expand();
+            treeViewDetails.Nodes.Add(deviceChunkNode);
+            treeViewDetails.Nodes.Add(midiLaneChunkNode);
+            treeViewDetails.Nodes.Add(tracksChunkNode);
+            treeViewDetails.ExpandAll();
+            //treeViewDetails.Nodes[4].Expand();
         }
     }
 }

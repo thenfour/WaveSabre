@@ -31,7 +31,7 @@ namespace WaveSabreConvert
             return sb.ToString();
         }
 
-        public byte[] SerializeBinary(Song song)
+        public BinaryOutput SerializeBinary(Song song)
         {
             return CreateBinary(song);
         }
@@ -70,10 +70,200 @@ namespace WaveSabreConvert
             sb.AppendLine("}");
         }
 
-        byte[] CreateBinary(Song song)
+        public class BinaryStream
         {
-            var stream = new MemoryStream();
-            var writer = new BinaryWriter(stream);
+            public MemoryStream stream = new MemoryStream();
+            public BinaryWriter writer;
+            public byte[] GetByteArray()
+            {
+                return stream.ToArray();
+            }
+            public int GetCompressedSize()
+            {
+                return Utils.WaveSabreTestCompression(GetByteArray());
+            }
+            public int GetSize()
+            {
+                return (int)stream.Length;
+            }
+            public BinaryStream()
+            {
+                writer = new BinaryWriter(stream);
+            }
+        }
+
+        public class BinaryOutput
+        {
+            public BinaryStream CompleteSong = new BinaryStream();
+            public Dictionary<Song.DeviceId, BinaryStream> DeviceChunks = new Dictionary<Song.DeviceId, BinaryStream>();
+            public Dictionary<int, BinaryStream> MidiLaneData = new Dictionary<int, BinaryStream>();
+            public Dictionary<string, BinaryStream> TrackData = new Dictionary<string, BinaryStream>();
+
+            ///////////////////////////////////////////////////
+            public void Write(int n)
+            {
+                this.CompleteSong.writer.Write(n);
+            }
+            public void Write(double n)
+            {
+                this.CompleteSong.writer.Write(n);
+            }
+            public void Write(byte[] n)
+            {
+                this.CompleteSong.writer.Write(n);
+            }
+            public void Write(byte n)
+            {
+                this.CompleteSong.writer.Write(n);
+            }
+
+
+            ///////////////////////////////////////////////////
+            public void WriteToTrack(string trackID, int n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!TrackData.ContainsKey(trackID))
+                {
+                    TrackData[trackID] = new BinaryStream();
+                }
+                TrackData[trackID].writer.Write(n);
+            }
+            public void WriteToTrack(string trackID, double n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!TrackData.ContainsKey(trackID))
+                {
+                    TrackData[trackID] = new BinaryStream();
+                }
+                TrackData[trackID].writer.Write(n);
+            }
+            public void WriteToTrack(string trackID, float n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!TrackData.ContainsKey(trackID))
+                {
+                    TrackData[trackID] = new BinaryStream();
+                }
+                TrackData[trackID].writer.Write(n);
+            }
+            public void WriteToTrack(string trackID, byte[] n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!TrackData.ContainsKey(trackID))
+                {
+                    TrackData[trackID] = new BinaryStream();
+                }
+                TrackData[trackID].writer.Write(n);
+            }
+            public void WriteToTrack(string trackID, byte n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!TrackData.ContainsKey(trackID))
+                {
+                    TrackData[trackID] = new BinaryStream();
+                }
+                TrackData[trackID].writer.Write(n);
+            }
+
+            ///////////////////////////////////////////////////
+            public void Write(Song.DeviceId d, int n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!DeviceChunks.ContainsKey(d))
+                {
+                    DeviceChunks[d] = new BinaryStream();
+                }
+                DeviceChunks[d].writer.Write(n);
+            }
+            public void Write(Song.DeviceId d, double n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!DeviceChunks.ContainsKey(d))
+                {
+                    DeviceChunks[d] = new BinaryStream();
+                }
+                DeviceChunks[d].writer.Write(n);
+            }
+            public void Write(Song.DeviceId d, float n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!DeviceChunks.ContainsKey(d))
+                {
+                    DeviceChunks[d] = new BinaryStream();
+                }
+                DeviceChunks[d].writer.Write(n);
+            }
+            public void Write(Song.DeviceId d, byte[] n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!DeviceChunks.ContainsKey(d))
+                {
+                    DeviceChunks[d] = new BinaryStream();
+                }
+                DeviceChunks[d].writer.Write(n);
+            }
+            public void Write(Song.DeviceId d, byte n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!DeviceChunks.ContainsKey(d))
+                {
+                    DeviceChunks[d] = new BinaryStream();
+                }
+                DeviceChunks[d].writer.Write(n);
+            }
+
+
+            ///////////////////////////////////////////////////
+            public void WriteMidiLane(int iMidiLane, int n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!MidiLaneData.ContainsKey(iMidiLane))
+                {
+                    MidiLaneData[iMidiLane] = new BinaryStream();
+                }
+                MidiLaneData[iMidiLane].writer.Write(n);
+            }
+            public void WriteMidiLane(int iMidiLane, double n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!MidiLaneData.ContainsKey(iMidiLane))
+                {
+                    MidiLaneData[iMidiLane] = new BinaryStream();
+                }
+                MidiLaneData[iMidiLane].writer.Write(n);
+            }
+            public void WriteMidiLane(int iMidiLane, float n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!MidiLaneData.ContainsKey(iMidiLane))
+                {
+                    MidiLaneData[iMidiLane] = new BinaryStream();
+                }
+                MidiLaneData[iMidiLane].writer.Write(n);
+            }
+            public void WriteMidiLane(int iMidiLane, byte[] n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!MidiLaneData.ContainsKey(iMidiLane))
+                {
+                    MidiLaneData[iMidiLane] = new BinaryStream();
+                }
+                MidiLaneData[iMidiLane].writer.Write(n);
+            }
+            public void WriteMidiLane(int iMidiLane, byte n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!MidiLaneData.ContainsKey(iMidiLane))
+                {
+                    MidiLaneData[iMidiLane] = new BinaryStream();
+                }
+                MidiLaneData[iMidiLane].writer.Write(n);
+            }
+        }
+
+        BinaryOutput CreateBinary(Song song)
+        {
+            BinaryOutput writer = new BinaryOutput();
 
             // song settings
             writer.Write(song.Tempo);
@@ -84,35 +274,37 @@ namespace WaveSabreConvert
             writer.Write(song.Devices.Count);
             foreach (var device in song.Devices)
             {
-                writer.Write((byte)device.Id);
-                writer.Write(device.Chunk.Length);
-                writer.Write(device.Chunk);
+                writer.Write(device.Id, (byte)device.Id);
+                writer.Write(device.Id, device.Chunk.Length);
+                writer.Write(device.Id, device.Chunk);
             }
 
             // serialize all midi lanes
             writer.Write(song.MidiLanes.Count);
-            foreach (var midiLane in song.MidiLanes)
+            //foreach (var midiLane in song.MidiLanes)
+            for (int iMidiLane = 0; iMidiLane < song.MidiLanes.Count; ++ iMidiLane)
             {
-                writer.Write(midiLane.MidiEvents.Count);
+                var midiLane = song.MidiLanes[iMidiLane];
+                writer.WriteMidiLane(iMidiLane, midiLane.MidiEvents.Count);
                 foreach (var e in midiLane.MidiEvents)
                 {
-                    writer.Write(e.TimeFromLastEvent);
+                    writer.WriteMidiLane(iMidiLane, e.TimeFromLastEvent);
                 }
                 foreach (var e in midiLane.MidiEvents)
                 {
                     switch (e.Type)
                     {
                         case Song.EventType.NoteOn:
-                            writer.Write((byte)0);
+                            writer.WriteMidiLane(iMidiLane, (byte)0);
                             break;
                         case Song.EventType.NoteOff:
-                            writer.Write((byte)1);
+                            writer.WriteMidiLane(iMidiLane, (byte)1);
                             break;
                         case Song.EventType.CC:
-                            writer.Write((byte)2);
+                            writer.WriteMidiLane(iMidiLane, (byte)2);
                             break;
                         case Song.EventType.PitchBend:
-                            writer.Write((byte)3);
+                            writer.WriteMidiLane(iMidiLane, (byte)3);
                             break;
                         default:
                             throw new Exception("Unsupported event type");
@@ -130,48 +322,49 @@ namespace WaveSabreConvert
 
             // serialize each track
             writer.Write(song.Tracks.Count);
-            foreach (var track in song.Tracks)
+            //foreach (var track in song.Tracks)
+            for (int iTrack = 0; iTrack < song.Tracks.Count; ++ iTrack)
             {
-                var trackSize = stream.Position;
+                var track = song.Tracks[iTrack];
+                string trackID = $"{track.Name} #{iTrack}";
+                writer.WriteToTrack(trackID, track.Volume);
 
-                writer.Write(track.Volume);
-
-                writer.Write(track.Receives.Count);
+                writer.WriteToTrack(trackID, track.Receives.Count);
                 foreach (var receive in track.Receives)
                 {
-                    writer.Write(receive.SendingTrackIndex);
-                    writer.Write(receive.ReceivingChannelIndex);
-                    writer.Write(receive.Volume);
+                    writer.WriteToTrack(trackID, receive.SendingTrackIndex);
+                    writer.WriteToTrack(trackID, receive.ReceivingChannelIndex);
+                    writer.WriteToTrack(trackID, receive.Volume);
                 }
 
-                writer.Write(track.Devices.Count);
+                writer.WriteToTrack(trackID, track.Devices.Count);
                 foreach (var deviceId in track.DeviceIndices)
                 {
-                    writer.Write(deviceId);
+                    writer.WriteToTrack(trackID, deviceId);
                 }
 
-                writer.Write(track.MidiLaneId);
+                writer.WriteToTrack(trackID, track.MidiLaneId);
 
-                writer.Write(track.Automations.Count);
+                writer.WriteToTrack(trackID, track.Automations.Count);
                 foreach (var automation in track.Automations)
                 {
-                    writer.Write(automation.DeviceIndex);
-                    writer.Write(automation.ParamId);
-                    writer.Write(automation.DeltaCodedPoints.Count);
+                    writer.WriteToTrack(trackID, automation.DeviceIndex);
+                    writer.WriteToTrack(trackID, automation.ParamId);
+                    writer.WriteToTrack(trackID, automation.DeltaCodedPoints.Count);
                     foreach (var point in automation.DeltaCodedPoints)
                     {
-                        writer.Write(point.TimeFromLastPoint);
-                        writer.Write(point.Value);
+                        writer.WriteToTrack(trackID, point.TimeFromLastPoint);
+                        writer.WriteToTrack(trackID, point.Value);
                     }
                 }
             }
 
-            return stream.ToArray();
+            return writer;
         }
 
         void SerializeBlob(StringBuilder sb, Song song)
         {
-            var blob = CreateBinary(song);
+            var blob = CreateBinary(song).CompleteSong.GetByteArray();
 
             sb.AppendLine("const unsigned char SongBlob[] =");
             sb.Append("{");
