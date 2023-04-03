@@ -24,4 +24,3 @@ static constexpr Rect grcWindow{ 0, 0, 1400, 600 };
 static constexpr Rect grcText{ grcWindow };// { 0, 0, 400, 400 };
 static constexpr Rect grcWaveform{ grcWindow };// { 0, 0, 1400, 600 };
 static constexpr uint32_t gGeneralSleepPeriodMS = 30;
-

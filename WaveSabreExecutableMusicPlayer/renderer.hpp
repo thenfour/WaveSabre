@@ -8,6 +8,8 @@ using namespace WaveSabrePlayerLib;
 #include "config.hpp"
 #include "rendered.hpp"
 
+using RendererOfChoice = WaveSabrePlayerLib::SongRenderer2;
+
 struct Renderer
 {
     enum class RenderStatus
@@ -16,13 +18,13 @@ struct Renderer
         Rendering,
         Done,
     };
-    SongRenderer::Song gSong;
+    RendererOfChoice::Song gSong;
     WSTime gSongLength;
     WSTime gSongRendered;
     WSTime gRenderTime;
 
-    SongRenderer* gpRenderer = nullptr;
-    SongRenderer::Sample* gpBuffer = nullptr;
+    RendererOfChoice* gpRenderer = nullptr;
+    RendererOfChoice::Sample* gpBuffer = nullptr;
     int gAllocatedSampleCount = 0; // stereo samples
 
     RenderStatus mRenderStatus = RenderStatus::Idle;
@@ -44,20 +46,20 @@ struct Renderer
         gSong.blob = SongBlob;
         gSong.factory = SongFactory;
         mProcessorCount = sysInfo.dwNumberOfProcessors;
-        gpRenderer = new SongRenderer(&gSong, mProcessorCount);
+        gpRenderer = new RendererOfChoice(&gSong, mProcessorCount);
         gSampleRate = gpRenderer->GetSampleRate();
 
         gSongLength.SetMilliseconds(WaveSabreCore::M7::math::DoubleToLong(gpRenderer->GetLength() * 1000));
-        static_assert(SongRenderer::NumChannels == 2, "everything here assumes stereo");
+        static_assert(RendererOfChoice::NumChannels == 2, "everything here assumes stereo");
         gAllocatedSampleCount = gSongLength.GetStereoSamples() + (gSampleRate * 2); // allocate more than the song requires for good measure.
-        gpBuffer = new SongRenderer::Sample[gAllocatedSampleCount];
-        auto bufferSizeBytes = gAllocatedSampleCount * sizeof(SongRenderer::Sample);
+        gpBuffer = new RendererOfChoice::Sample[gAllocatedSampleCount];
+        auto bufferSizeBytes = gAllocatedSampleCount * sizeof(RendererOfChoice::Sample);
         memset(gpBuffer, 0, bufferSizeBytes);
 
         WaveFMT.wFormatTag = WAVE_FORMAT_PCM;
         WaveFMT.nChannels = 2;
         WaveFMT.nSamplesPerSec = gSampleRate;
-        WaveFMT.wBitsPerSample = sizeof(SongRenderer::Sample) * 8;
+        WaveFMT.wBitsPerSample = sizeof(RendererOfChoice::Sample) * 8;
         WaveFMT.nBlockAlign = (WaveFMT.nChannels * WaveFMT.wBitsPerSample) / 8;
         WaveFMT.nAvgBytesPerSec = WaveFMT.nSamplesPerSec * WaveFMT.nBlockAlign;
         WaveFMT.cbSize = 0;

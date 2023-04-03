@@ -6,6 +6,7 @@ add_library(WaveSabrePlayerLib
 	include/WaveSabrePlayerLib/RealtimePlayer.h
 	include/WaveSabrePlayerLib/IPlayer.h
 	include/WaveSabrePlayerLib/SongRenderer.h
+	include/WaveSabrePlayerLib/SongRenderer2.hpp
 	src/CriticalSection.cpp
 	src/DirectSoundRenderThread.cpp
 	src/IPlayer.cpp

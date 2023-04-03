@@ -205,17 +205,19 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     {
         return TRUE; // reduce flickering
     }
-    //case WM_LBUTTONUP:
-    //{
-    //    Point p{ LOWORD(lParam), HIWORD(lParam) };
-    //    if (!grcWaveform.ContainsPoint(p)) {
-    //        return 0;
-    //    }
-    //    uint64_t xPos = LOWORD(lParam) - grcWaveform.GetLeft();
-    //    uint32_t ms = xPos * gpRenderer->gSongLength.GetMilliseconds() / grcWaveform.GetWidth();
-    //    gpPlayer->PlayFrom(WSTime::FromMilliseconds(ms));
-    //    return 0;
-    //}
+    case WM_LBUTTONUP:
+    {
+        Point p{ LOWORD(lParam), HIWORD(lParam) };
+        if (!grcWaveform.ContainsPoint(p)) {
+            return 0;
+        }
+        uint64_t xPos = LOWORD(lParam) - grcWaveform.GetLeft();
+        uint32_t ms = MulDiv(xPos, gpRenderer->gSongLength.GetMilliseconds(), grcWaveform.GetWidth());
+        if (gpPlayer->IsPlaying()) {
+            gpPlayer->PlayFrom(WSTime::FromMilliseconds(ms));
+        }
+        return 0;
+    }
     case WM_KEYDOWN: {
         switch (wParam) {
         case VK_F5:
@@ -226,6 +228,9 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             return 0;
         case VK_F7:
             handleSave();
+            return 0;
+        case VK_F8:
+            WaveSabrePlayerLib::gpGraphProfiler->Dump();
             return 0;
         }
         break;

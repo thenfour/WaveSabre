@@ -4,6 +4,7 @@
 #include "WaveSabrePlayerLib/IPlayer.h"
 #include "WaveSabrePlayerLib/RealtimePlayer.h"
 #include "WaveSabrePlayerLib/PreRenderPlayer.h"
+#include "WaveSabrePlayerLib/SongRenderer2.hpp"
 #include "WaveSabrePlayerLib/WavWriter.h"
 
 #endif

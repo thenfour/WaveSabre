@@ -1,0 +1,664 @@
+// assumptions: LAST track is the master track.
+
+#pragma once
+
+#include <new>     // for placement new
+#include <WaveSabreCore.h>
+#include "SongRenderer.h"
+
+
+namespace WaveSabrePlayerLib
+{
+	struct GraphProcessor
+	{
+		enum class NodeStatus
+		{
+			Waiting,
+			ReadyToBePickedUp,
+			Processing,
+			Finished,
+		};
+		struct INode
+		{
+			NodeStatus INode_NodeStatus = NodeStatus::Waiting; // populated by graph
+			int INode_NodesDependingOnThis = 0; // populated by graph
+
+			virtual void INode_Run(int numSamples) = 0;
+			int INode_DirectDependencyCount = 0; // populated by child class (num receives)
+			virtual int INode_GetDependencyIndex(int index) const = 0;
+		};
+		struct INodeList
+		{
+			int INodeList_NodeCount = 0; // populated by child class
+			virtual INode* INodeList_GetNode(int i) = 0;
+		};
+
+		const int mThreadCount;
+		//INode* const mNodes;
+		//const int mNodeCount;
+		INodeList* const mNodeList = nullptr;
+		HANDLE* mThreads = nullptr;
+		HANDLE hWorkAvailableEvent = nullptr;
+		HANDLE hGraphCompleteEvent = nullptr;
+
+		void populateNodesDependingOnThis_dfs(int nodeIndex)
+		{
+			INode& node = *mNodeList->INodeList_GetNode(nodeIndex);
+			for (int i = 0; i < node.INode_DirectDependencyCount; i++)
+			{
+				int dependencyIndex = node.INode_GetDependencyIndex(i);
+				mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
+				populateNodesDependingOnThis_dfs(dependencyIndex);
+			}
+		}
+
+		// Function to populate INode_NodesDependingOnThis for each node in the graph, hierarchically
+		void populateNodesDependingOnThis()
+		{
+			for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
+			{
+				mNodeList->INodeList_GetNode(i)->INode_NodesDependingOnThis = 0;
+			}
+
+			for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
+			{
+				INode& node = *mNodeList->INodeList_GetNode(i);
+				for (int j = 0; j < node.INode_DirectDependencyCount; j++)
+				{
+					int dependencyIndex = node.INode_GetDependencyIndex(j);
+					mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
+					populateNodesDependingOnThis_dfs(dependencyIndex);
+				}
+			}
+		}
+
+		CriticalSection mStateLock;
+
+		GraphProcessor(int numThreads, INodeList* nodeList) :
+			mThreadCount(numThreads),
+			mNodeList(nodeList)
+		{
+			populateNodesDependingOnThis();
+
+			hWorkAvailableEvent = CreateEvent(0, FALSE, FALSE, 0); // auto-reset so threads are triggered one at a time to look for work.
+			hGraphCompleteEvent = CreateEvent(0, FALSE, FALSE, 0); // auto-reset because only 1 thread (calling thread) waits on it.
+
+			if (numThreads > 1)
+			{
+				mThreads = new HANDLE[numThreads - 1]; // the calling thread counts but doesn't require a handle.
+				for (int i = 0; i < numThreads - 1; i++)
+				{
+					mThreads[i] = CreateThread(0, 0, renderThreadProc, this, 0, 0);
+					// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
+					SetThreadPriority(mThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
+				}
+			}
+		}
+
+		~GraphProcessor()
+		{
+			// todo
+		}
+
+		// when attempting to accept work, the result can be that there's just no work to be done, etc.
+		struct AcceptWorkResult
+		{
+			INode* mAcceptedWork = nullptr; // non-null and status updated if accepted
+			int mAdditionalNodesReadyToWorkCount = 0; // does not include the one that you just accepted.
+			bool HasWork() { return !!mAcceptedWork; }
+			void DoTheWork(int numSamples) {
+				mAcceptedWork->INode_Run(numSamples);
+			}
+		};
+
+		// variable for workers
+		int mNumFrames = 0;
+
+		std::atomic<int> mNodesToBeProcessed = 0;
+
+		// the "main thread" or caller.
+		void ProcessGraph(int numSamples)
+		{
+			ResetEvent(hWorkAvailableEvent);
+
+			gpGraphProfiler->BeginGraph();
+			mNumFrames = numSamples / 2;
+			for (int iNode = 0; iNode < mNodeList->INodeList_NodeCount; ++iNode)
+			{
+				mNodeList->INodeList_GetNode(iNode)->INode_NodeStatus = NodeStatus::Waiting;
+			}
+			mNodesToBeProcessed = mNodeList->INodeList_NodeCount;
+
+			// workers all want to wait for work.
+			auto work = MarkWorkDone_Dispatch_AcceptNewWork({});
+			GraphWorkerLoop(work, true);
+
+			gpGraphProfiler->EndGraph();
+		}
+
+		void WorkerThread()
+		{
+			while(true) GraphWorkerLoop({}, false);
+		}
+
+		// exits when the entire graph has been completed.
+		// todo: return bool if we're shutting down threads
+		void GraphWorkerLoop(AcceptWorkResult work, bool breakWhenGraphComplete)
+		{
+			// the main thread is a bit different because it needs to be alerted when the graph is complete.
+			while (mNodesToBeProcessed)
+			{
+				if (!work.HasWork()) {
+					work = WaitAndAcceptWork(breakWhenGraphComplete); // if work didn't come from the previous loop
+				}
+				if (!work.HasWork()) {
+					continue; // it's theoretically possible that we heard about work being available but when we looked for it none was to be found. just go back to waiting.
+				}
+				WaveSabreCore::MxcsrFlagGuard mxcsrFlagGuard;
+				Stopwatch sw;
+				gpGraphProfiler->BeginWork(sw);
+				work.DoTheWork(mNumFrames);
+				gpGraphProfiler->EndWork(sw);
+				work = MarkWorkDone_Dispatch_AcceptNewWork(work);
+			}
+			SetEvent(hGraphCompleteEvent);
+		}
+
+		// accepts work, but waits if needed.
+		AcceptWorkResult WaitAndAcceptWork(bool breakWhenGraphComplete)
+		{
+			if (breakWhenGraphComplete) {
+				HANDLE h[2] = { hWorkAvailableEvent , hGraphCompleteEvent };
+				WaitForMultipleObjects(2, h, FALSE, INFINITE); // either event results in the same action
+			}
+			else {
+				WaitForSingleObject(hWorkAvailableEvent, INFINITE);
+			}
+			if (!mNodesToBeProcessed) {
+				return {}; // graph complete.
+			}
+
+			// it may be that another thread picked up the work before this lock is possible.
+			// in that case maybe no work is accepted, even if work was available. just know that this can happen.
+			auto lock = mStateLock.Enter();
+			return UpdateAndScanGraphForWork();
+		}
+
+		// this is the routine that scans all graph,
+		// - accepts the highest priority task
+		// - convert waiting tracks to ready_for_processing
+		// WARNING: ASSUMES a lock has been acquired for states. Caller do this.
+		AcceptWorkResult UpdateAndScanGraphForWork()
+		{
+			// dispatch work if there are any available.
+			// that means taking any waiting work and converting to ready/queued
+			AcceptWorkResult r;
+			int highestPrioAccepted = -1;
+			for (int iNode = 0; iNode < mNodeList->INodeList_NodeCount; ++iNode)
+			{
+				auto& node = *mNodeList->INodeList_GetNode(iNode);
+
+				if (node.INode_NodeStatus == NodeStatus::Waiting)
+				{
+					// look at dependencies; can we promote to ReadyToBePickedUp?
+					bool allClear = true;
+					for (int iDep = 0; iDep < node.INode_DirectDependencyCount; ++iDep) {
+						auto idepnode = node.INode_GetDependencyIndex(iDep);
+						if (mNodeList->INodeList_GetNode(idepnode)->INode_NodeStatus != NodeStatus::Finished) {
+							allClear = false;
+							break;
+						}
+					}
+					if (allClear) {
+						node.INode_NodeStatus = NodeStatus::ReadyToBePickedUp;
+					}
+				}
+
+				if (node.INode_NodeStatus == NodeStatus::ReadyToBePickedUp)
+				{
+					if (node.INode_NodesDependingOnThis > highestPrioAccepted) {
+						highestPrioAccepted = node.INode_NodesDependingOnThis;
+					//if (!r.mAcceptedWork) {
+						r.mAcceptedWork = &node;
+					}
+					r.mAdditionalNodesReadyToWorkCount++;
+				}
+
+			} // for each node
+
+			if (r.HasWork()) {
+				// caller is accepting a node for work. prepare that state.
+				r.mAcceptedWork->INode_NodeStatus = NodeStatus::Processing;
+				-- r.mAdditionalNodesReadyToWorkCount; // deduct the one the caller is accepting.
+			}
+
+			return r;
+		}
+
+		// Q: why a weird function that does 3 things? to avoid locking any more than i need to.
+		AcceptWorkResult MarkWorkDone_Dispatch_AcceptNewWork(AcceptWorkResult doneWork)
+		{
+			AcceptWorkResult r;
+			{
+				auto lock = mStateLock.Enter();
+				if (doneWork.HasWork())
+				{
+					doneWork.mAcceptedWork->INode_NodeStatus = NodeStatus::Finished;
+					--mNodesToBeProcessed;
+				}
+				if (!mNodesToBeProcessed)
+				{
+					return {}; // graph complete.
+				}
+
+				r = UpdateAndScanGraphForWork();
+			}
+			for (int i = 0; i < r.mAdditionalNodesReadyToWorkCount; ++i)
+			{
+				SetEvent(hWorkAvailableEvent);
+			}
+			return r;
+		}
+
+		static DWORD WINAPI renderThreadProc(LPVOID lpParameter)
+		{
+			((GraphProcessor*)lpParameter)->WorkerThread();
+			return 0;
+		}
+
+	}; // class GraphProcessor
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	struct SongRenderer2 : GraphProcessor::INodeList
+	{
+		using Song = SongRenderer::Song;
+		using DeviceId = SongRenderer::DeviceId;
+		using DeviceFactory = SongRenderer::DeviceFactory;
+
+		using EventType = SongRenderer::EventType;
+		using Event = SongRenderer::Event;
+		using Devices = SongRenderer::Devices;
+		using MidiLane = SongRenderer::MidiLane;
+
+		typedef int16_t Sample;
+
+		static constexpr int NumChannels = 2;
+		static constexpr int BitsPerSample = 16;
+		static constexpr int BlockAlign = NumChannels * BitsPerSample / 8;
+
+		struct Track : GraphProcessor::INode
+		{
+			typedef struct
+			{
+				int SendingTrackIndex;
+				int ReceivingChannelIndex;
+				float Volume;
+			} Receive;
+
+			Track(SongRenderer2* songRenderer, DeviceFactory factory)
+			{
+				for (int i = 0; i < numBuffers; i++) Buffers[i] = new float[songRenderer->sampleRate];
+
+				this->songRenderer = songRenderer;
+
+				volume = songRenderer->readFloat();
+
+				INode_DirectDependencyCount = NumReceives = songRenderer->readInt();
+				if (NumReceives)
+				{
+					Receives = new Receive[NumReceives];
+					for (int i = 0; i < NumReceives; i++)
+					{
+						Receives[i].SendingTrackIndex = songRenderer->readInt();
+						Receives[i].ReceivingChannelIndex = songRenderer->readInt();
+						Receives[i].Volume = songRenderer->readFloat();
+					}
+				}
+
+				numDevices = songRenderer->readInt();
+				if (numDevices)
+				{
+					devicesIndicies = new int[numDevices];
+					for (int i = 0; i < numDevices; i++)
+					{
+						devicesIndicies[i] = songRenderer->readInt();
+					}
+				}
+
+				midiLaneId = songRenderer->readInt();
+
+				numAutomations = songRenderer->readInt();
+				if (numAutomations)
+				{
+					automations = new Automation * [numAutomations];
+					for (int i = 0; i < numAutomations; i++)
+					{
+						int deviceIndex = songRenderer->readInt();
+						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]]);
+					}
+				}
+
+				lastSamplePos = 0;
+				accumEventTimestamp = 0;
+				eventIndex = 0;
+			}
+			~Track()
+			{
+				for (int i = 0; i < numBuffers; i++) delete[] Buffers[i];
+
+				if (NumReceives)
+					delete[] Receives;
+
+				if (numDevices)
+				{
+					delete[] devicesIndicies;
+				}
+
+				if (numAutomations)
+				{
+					for (int i = 0; i < numAutomations; i++) delete automations[i];
+					delete[] automations;
+				}
+			}
+
+			virtual int INode_GetDependencyIndex(int index) const override
+			{
+				return this->Receives[index].SendingTrackIndex;
+			}
+
+			virtual void INode_Run(int numSamples) override
+			{
+				MidiLane& lane = songRenderer->midiLanes[midiLaneId];
+				for (; eventIndex < lane.numEvents; eventIndex++)
+				{
+					Event& e = lane.events[eventIndex];
+					int samplesToEvent = accumEventTimestamp + e.TimeStamp - lastSamplePos;
+					if (samplesToEvent >= numSamples) break;
+					for (int i = 0; i < numDevices; i++) {
+						auto pd = songRenderer->devices[devicesIndicies[i]];
+						switch (e.Type)
+						{
+						case EventType::NoteOn:
+							pd->NoteOn(e.Note, e.Velocity, samplesToEvent);
+							break;
+						case EventType::NoteOff:
+							pd->NoteOff(e.Note, samplesToEvent);
+							break;
+						case EventType::CC:
+							pd->MidiCC(e.Note, e.Velocity, samplesToEvent);
+							break;
+						case EventType::PitchBend:
+							pd->PitchBend(e.Note, e.Velocity, samplesToEvent);
+							break;
+						}
+					}
+					accumEventTimestamp += e.TimeStamp;
+				}
+
+				for (int i = 0; i < numAutomations; i++) automations[i]->Run(numSamples);
+
+				for (int i = 0; i < numBuffers; i++) memset(Buffers[i], 0, numSamples * sizeof(float));
+				for (int i = 0; i < NumReceives; i++)
+				{
+					Receive* r = &Receives[i];
+					float** receiveBuffers = songRenderer->tracks[r->SendingTrackIndex].Buffers;
+					for (int j = 0; j < 2; j++)
+					{
+						for (int k = 0; k < numSamples; k++) Buffers[j + r->ReceivingChannelIndex][k] += receiveBuffers[j][k] * r->Volume;
+					}
+				}
+
+				for (int i = 0; i < numDevices; i++) songRenderer->devices[devicesIndicies[i]]->Run((double)lastSamplePos / WaveSabreCore::Helpers::CurrentSampleRate, Buffers, Buffers, numSamples);
+
+				if (volume != 1.0f)
+				{
+					for (int i = 0; i < numBuffers; i++)
+					{
+						for (int j = 0; j < numSamples; j++) Buffers[i][j] *= volume;
+					}
+				}
+
+				lastSamplePos += numSamples;
+			}
+
+		private:
+			static const int numBuffers = 4;
+		public:
+			float* Buffers[numBuffers];
+
+			int NumReceives;
+			Receive* Receives;
+
+		private:
+			class Automation
+			{
+			public:
+				Automation(SongRenderer2* songRenderer, WaveSabreCore::Device* device)
+				{
+					this->device = device;
+					paramId = songRenderer->readInt();
+					numPoints = songRenderer->readInt();
+					points = new Point[numPoints];
+					int lastPointTime = 0;
+					for (int i = 0; i < numPoints; i++)
+					{
+						int absTime = lastPointTime + songRenderer->readInt();
+						points[i].TimeStamp = absTime;
+						lastPointTime = absTime;
+						points[i].Value = (float)((double)songRenderer->readByte() / 255.0);
+					}
+					samplePos = 0;
+					pointIndex = 0;
+				}
+				~Automation()
+				{
+					delete[] points;
+				}
+
+				void Run(int numSamples)
+				{
+					for (; pointIndex < numPoints; pointIndex++)
+					{
+						if (points[pointIndex].TimeStamp > samplePos) break;
+					}
+					if (pointIndex >= numPoints)
+					{
+						device->SetParam(paramId, points[numPoints - 1].Value);
+					}
+					else if (pointIndex <= 0)
+					{
+						device->SetParam(paramId, points[0].Value);
+					}
+					else
+					{
+						int timestampDelta = points[pointIndex].TimeStamp - points[pointIndex - 1].TimeStamp;
+						float mixAmount = timestampDelta > 0 ?
+							(float)(samplePos - points[pointIndex - 1].TimeStamp) / (float)timestampDelta :
+							0.0f;
+						device->SetParam(paramId, WaveSabreCore::M7::math::lerp(points[pointIndex - 1].Value, points[pointIndex].Value, mixAmount));
+					}
+					samplePos += numSamples;
+				}
+
+			private:
+				typedef struct
+				{
+					int TimeStamp;
+					float Value;
+				} Point;
+
+				WaveSabreCore::Device* device;
+				int paramId;
+
+				int numPoints;
+				Point* points;
+
+				int samplePos;
+				int pointIndex;
+			};
+
+			SongRenderer2* songRenderer;
+
+			float volume;
+
+			int numDevices;
+			int* devicesIndicies;
+
+			int midiLaneId;
+
+			int numAutomations;
+			Automation** automations;
+
+			int lastSamplePos;
+			int accumEventTimestamp;
+			int eventIndex;
+		}; // class track
+
+
+		SongRenderer2(const Song* song, int numRenderThreads)
+		{
+			gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
+
+			songBlobPtr = song->blob;
+
+			bpm = readInt();
+			sampleRate = readInt();
+			length = readDouble();
+
+			numDevices = readInt();
+			devices = new WaveSabreCore::Device * [numDevices];
+			for (int i = 0; i < numDevices; i++)
+			{
+				devices[i] = song->factory((DeviceId)readByte());
+				devices[i]->SetSampleRate((float)sampleRate);
+				devices[i]->SetTempo(bpm);
+				int chunkSize = readInt();
+				devices[i]->SetChunk((void*)songBlobPtr, chunkSize);
+				songBlobPtr += chunkSize;
+			}
+
+			numMidiLanes = readInt();
+			midiLanes = new MidiLane[numMidiLanes];
+			for (int i = 0; i < numMidiLanes; i++)
+			{
+				//midiLanes[i] = new MidiLane;
+				int numEvents = readInt();
+				midiLanes[i].numEvents = numEvents;
+				midiLanes[i].events = new Event[numEvents];
+
+				for (int m = 0; m < numEvents; m++)
+				{
+					midiLanes[i].events[m].TimeStamp = readInt();
+				}
+
+				for (int m = 0; m < numEvents; m++)
+				{
+					byte event = readByte();
+					midiLanes[i].events[m].Type = (EventType)event;
+				}
+
+				for (int m = 0; m < numEvents; m++)
+				{
+					midiLanes[i].events[m].Note = readByte();
+				}
+
+				for (int m = 0; m < numEvents; m++)
+				{
+					midiLanes[i].events[m].Velocity = readByte();
+				}
+			}
+
+			numTracks = readInt();
+			this->INodeList_NodeCount = numTracks;
+
+			this->tracks = (Track*)malloc(sizeof(Track) * numTracks);
+			for (int i = 0; i < numTracks; i++)
+			{
+				new (this->tracks + i) Track(this, song->factory);
+			}
+
+			// it's interesting to just create a thread for each track and let the system schedule (and therefore less synchronization in our threads). but it's not more efficient.
+			mpGraphRunner = new GraphProcessor(/*numTracks*/numRenderThreads, this);
+		}
+
+		void RenderSamples(Sample* buffer, int numSamples)
+		{
+			mpGraphRunner->ProcessGraph(numSamples);
+
+			// Copy final output
+			float** masterTrackBuffers = tracks[numTracks - 1].Buffers;
+			for (int i = 0; i < numSamples; i++)
+			{
+				int sample = (int)(masterTrackBuffers[i & 1][i / 2] * 32767.0f);
+				if (sample < -32768) sample = -32768;
+				if (sample > 32767) sample = 32767;
+				buffer[i] = (Sample)sample;
+			}
+		}
+
+		int GetTempo() const
+		{
+			return bpm;
+		}
+		int GetSampleRate() const
+		{
+			return sampleRate;
+		}
+		double GetLength() const
+		{
+			return length;
+		}
+
+		unsigned char readByte()
+		{
+			unsigned char ret = *songBlobPtr;
+			songBlobPtr++;
+			return ret;
+		}
+
+		int readInt()
+		{
+			int ret = *(int*)songBlobPtr;
+			songBlobPtr += sizeof(int);
+			return ret;
+		}
+
+		float readFloat()
+		{
+			float ret = *(float*)songBlobPtr;
+			songBlobPtr += sizeof(float);
+			return ret;
+		}
+
+		double readDouble()
+		{
+			double ret = *(double*)songBlobPtr;
+			songBlobPtr += sizeof(double);
+			return ret;
+		}
+
+		GraphProcessor* mpGraphRunner = nullptr;
+
+		const unsigned char* songBlobPtr;
+		int songDataIndex;
+
+		int bpm;
+		int sampleRate;
+		double length;
+
+		int numDevices;
+		WaveSabreCore::Device** devices;
+
+		int numMidiLanes;
+		MidiLane* midiLanes;
+
+		int numTracks;
+		Track* tracks;
+
+		virtual GraphProcessor::INode* INodeList_GetNode(int i) override {
+			return &tracks[i];
+		}
+
+	}; // class SongRenderer2
+} // namespace WaveSabrePlayerLib
+
