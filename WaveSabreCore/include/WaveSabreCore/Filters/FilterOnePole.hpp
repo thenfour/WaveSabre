@@ -22,9 +22,9 @@ namespace WaveSabreCore
                 return m_beta * (m_z_1L + m_feedbackL * m_delta);
             }
 
-            virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
+            virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
-                if ((m_FilterType == type) && math::FloatEquals(m_cutoffHz, cutoffHz) && math::FloatEquals(m_q, reso) && math::FloatEquals(m_overdrive, saturation))
+                if ((m_FilterType == type) && math::FloatEquals(m_cutoffHz, cutoffHz) && math::FloatEquals(m_q, reso))
                 {
                     return;
                 }
@@ -47,7 +47,6 @@ namespace WaveSabreCore
 
                 m_cutoffHz = cutoffHz;
                 m_q = reso;
-                m_overdrive = saturation;
                 Recalc();
             }
 
@@ -94,7 +93,7 @@ namespace WaveSabreCore
             FilterType m_FilterType = FilterType::LP;
             real m_cutoffHz = 10000;
             real m_q = 0;
-            real m_overdrive = 0;
+            //real m_overdrive = 0;
 
             real m_z_1L = 0; // z-1 storage location, left/mono
 

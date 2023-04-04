@@ -71,8 +71,8 @@ namespace WaveSabreCore
 			for (int i = 0; i < 2; i++)
 			{
 				preDelayBuffers[i].SetLength(preDelay * 500.0f);
-				mLowCutFilter[i].SetParams(M7::FilterType::HP, lowCutFreq, 0, 0);//; .SetFreq(lowCutFreq);
-				mHighCutFilter[i].SetParams(M7::FilterType::LP, highCutFreq, 0, 0);// .SetFreq(highCutFreq);
+				mLowCutFilter[i].SetParams(M7::FilterType::HP, lowCutFreq, 0);//; .SetFreq(lowCutFreq);
+				mHighCutFilter[i].SetParams(M7::FilterType::LP, highCutFreq, 0);// .SetFreq(highCutFreq);
 			}
 
 			for (int i = 0; i < numSamples; i++)

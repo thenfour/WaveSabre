@@ -14,7 +14,7 @@ namespace WaveSabreCore
             MoogLadderFilter()
             {
                 for (auto& lpf : m_LPF) {
-                    lpf.SetParams(FilterType::LP, 0, 0, 0);
+                    lpf.SetParams(FilterType::LP, 0, 0);
                 }
             }
 
@@ -29,9 +29,9 @@ namespace WaveSabreCore
                 Recalc();
             }
 
-            virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
+            virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
-                if (math::FloatEquals(reso, m_resonance) && math::FloatEquals(m_overdrive, saturation) &&
+                if (math::FloatEquals(reso, m_resonance) &&
                     math::FloatEquals(m_cutoffHz, cutoffHz) && (m_FilterType == type))
                 {
                     return;
@@ -60,7 +60,7 @@ namespace WaveSabreCore
                 }
 
                 m_cutoffHz = cutoffHz;
-                m_overdrive = saturation;
+                //m_overdrive = saturation;
                 m_resonance = reso;
                 m_k = Real(3.88) * reso;
                 m_k = math::ClampInclusive(m_k, Real0, Real(3.88));
@@ -239,7 +239,7 @@ namespace WaveSabreCore
 
             FilterType m_FilterType = FilterType::LP4;
             real m_cutoffHz = 10000;
-            real m_overdrive = 0;
+            //real m_overdrive = 0;
 
             real m_resonance = Real(-1); // cached resonance for knowing when recalc is not needed.
 

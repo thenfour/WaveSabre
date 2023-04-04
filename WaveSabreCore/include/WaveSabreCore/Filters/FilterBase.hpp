@@ -73,14 +73,14 @@ namespace WaveSabreCore
             HP4,
         };
 
-        // BINARY FLAGS
-        enum class FilterCapabilities
-        {
-            None = 0,
-            Cutoff = 1,
-            Resonance = 2,
-            Saturation = 4,
-        };
+        //// BINARY FLAGS
+        //enum class FilterCapabilities
+        //{
+        //    None = 0,
+        //    Cutoff = 1,
+        //    Resonance = 2,
+        //    Saturation = 4,
+        //};
 
         struct IFilter
         {
@@ -93,7 +93,7 @@ namespace WaveSabreCore
             //virtual void SetResonance(real amt)
             //{
             //}
-            virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) = 0;
+            virtual void SetParams(FilterType type, real cutoffHz, real reso) = 0;
 
             //virtual real GetGain01AtFrequency(real frequency) = 0;
 
@@ -116,7 +116,7 @@ namespace WaveSabreCore
             //virtual void SetCutoffFrequency(real hz) override
             //{
             //}
-            virtual void SetParams(FilterType type, real cutoffHz, real reso, real saturation) override
+            virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
             }
             //virtual void ProcessInPlace(real* samples, size_t sampleCount) override

@@ -28,6 +28,7 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/Maj7Oscillator.hpp
 	include/WaveSabreCore/Maj7Sampler.hpp
 	include/WaveSabreCore/Maj7GmDls.hpp
+	include/WaveSabreCore/Maj7ParamAccessor.hpp
 	include/WaveSabreCore/Maj7Width.hpp
 	include/WaveSabreCore/MxcsrFlagGuard.h
 	include/WaveSabreCore/ResampleBuffer.h
@@ -68,6 +69,7 @@ add_library(WaveSabreCore
 	src/Maj7Envelope.cpp
 	src/Maj7ModMatrix.cpp
 	src/Maj7Oscillator.cpp
+	src/Maj7ParamAccessor.cpp
 	src/Maj7Sampler.cpp
 	src/Maj7SynthDevice.cpp
 	src/MxcsrFlagGuard.cpp

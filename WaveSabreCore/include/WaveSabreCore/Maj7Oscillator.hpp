@@ -9,12 +9,9 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		static constexpr real_t gSourceFrequencyCenterHz = 1000;
-		static constexpr real_t gSourceFrequencyScale = 10;
 		static constexpr int gSourcePitchSemisRange = 36;
 		static constexpr float gSourcePitchFineRangeSemis = 2;
-		static constexpr real_t gLFOFrequencyCenterHz = 1.5f;
-		static constexpr real_t gLFOFrequencyScale = 8;
+
 		static constexpr float gVarTrapezoidSoftSlope = 0.7f;
 		static constexpr float gVarTrapezoidHardSlope = 0.15f;
 		static constexpr float gOscillatorHeadroomScalar = 0.75f; // scale oscillator outputs down to make room for blepping etc.
@@ -97,7 +94,7 @@ namespace WaveSabreCore
 				mEnabledParam(paramCache[(int)enabledParamID]),
 				mVolumeParam(paramCache[(int)volumeParamID], 0),
 				mAuxPanParam(paramCache[(int)auxPanParamID]),
-				mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale),
+				mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFreqConfig),// gSourceFrequencyCenterHz, gSourceFrequencyScale),
 				mPitchSemisParam(paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange),
 				mPitchFineParam(paramCache[(int)tuneFineParamID]),
 				mKeyRangeMin(paramCache[(int)keyRangeMinParamID], 0, 127),
@@ -130,7 +127,7 @@ namespace WaveSabreCore
 				mEnabledParam(mLFOEnabledBacking),
 				mVolumeParam(mLFOVolumeBacking, 0),
 				mAuxPanParam(mLFOAuxPanBacking),
-				mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFrequencyCenterHz, gLFOFrequencyScale),
+				mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFreqConfig),// gLFOFrequencyCenterHz, gLFOFrequencyScale),
 				mPitchSemisParam(mLFOPitchSemisParamValue, -gSourcePitchSemisRange, gSourcePitchSemisRange),
 				mPitchFineParam(mLFOPitchFineParamValue),
 				mKeyRangeMin(mLFOKeyRangeMinBacking, 0, 127),
@@ -557,10 +554,10 @@ namespace WaveSabreCore
 			virtual void AfterSetParams() override
 			{
 				float kt = 0;
-				FrequencyParam fp{ mShape, kt, mFrequency, 6 };
+				FrequencyParam fp{ mShape, kt, { mFrequency, 6, 0 /*assume never used*/}};
 				float lfoFreqShape = mFrequency * mShape * mShape;// *0.25f;
 
-				mHPFilter.SetParams(FilterType::HP, (mIntention == OscillatorIntention::LFO) ? lfoFreqShape : fp.GetFrequency(0, 0), 0, 0);
+				mHPFilter.SetParams(FilterType::HP, (mIntention == OscillatorIntention::LFO) ? lfoFreqShape : fp.GetFrequency(0, 0), 0);
 			}
 
 		};
@@ -1054,10 +1051,6 @@ namespace WaveSabreCore
 		// nothing additional to add
 		struct OscillatorDevice : ISoundSourceDevice
 		{
-			static constexpr real_t gSyncFrequencyCenterHz = 1000;
-			static constexpr real_t gSyncFrequencyScale = 10;
-			static constexpr real_t gFrequencyMulMax = 64;
-
 			// BASE PARAMS
 			EnumParam<OscillatorWaveform> mWaveform;
 			Float01Param mWaveshape;//	Osc2Waveshape,
@@ -1106,10 +1099,10 @@ namespace WaveSabreCore
 				mPhaseRestart(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseRestart]),
 				mPhaseOffset(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseOffset]),
 				mSyncEnable(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncEnable]),
-				mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFrequencyCenterHz, gSyncFrequencyScale),
+				mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFreqConfig),// gSyncFrequencyCenterHz, gSyncFrequencyScale),
 				mFrequencyMul(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax),
 				mFMFeedback01(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FMFeedback]),
-				mLPFFrequency(mLFPFrequencyBacking, mLFPFrequencyKTBacking, gLFOLPCenterFrequency, gLFOLPFrequencyScale),
+				mLPFFrequency(mLFPFrequencyBacking, mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 
 				mIntention(OscillatorIntention::Audio)
 			{
@@ -1126,10 +1119,10 @@ namespace WaveSabreCore
 				mPhaseRestart(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Restart]),
 				mPhaseOffset(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::PhaseOffset]),
 				mSyncEnable(mLFOSyncEnableBacking),
-				mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOSyncFrequencyKTBacking, gSyncFrequencyCenterHz, gSyncFrequencyScale),
+				mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOSyncFrequencyKTBacking, gSyncFreqConfig),//gSyncFrequencyCenterHz, gSyncFrequencyScale),
 				mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f),
 				mFMFeedback01(mLFOFMFeedbackParamValue),
-				mLPFFrequency(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Sharpness], mLFPFrequencyKTBacking, gLFOLPCenterFrequency, gLFOLPFrequencyScale),
+				mLPFFrequency(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Sharpness], mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 				mIntention(OscillatorIntention::LFO)
 			{
 				mFrequencyMul.SetRangedValue(1);

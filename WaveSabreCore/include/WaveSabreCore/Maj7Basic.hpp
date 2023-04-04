@@ -75,16 +75,68 @@ namespace WaveSabreCore
 
         using real_t = float;
 
+        template<typename Tfirst, typename Tsecond>
+        struct Pair
+        {
+            Tfirst first;
+            Tsecond second;
+        };
+
+        using FloatPair = Pair<float, float>;
+
+        struct FreqParamConfig
+        {
+            const float mCenterFrequency;
+            const float mScale;
+            const float mCenterMidiNote;
+
+            // calculate center midi note with this js in browser console:
+            // let hztomidi = function(hz) { return 12.0 * Math.log2(Math.max(8.0, hz) / 440) + 69; }
+            // hztomidi(1000)
+            // = 83.21309485364912
+
+            // i would prefer a compile-time version but whatev
+            constexpr FreqParamConfig(float centerFrequency, float scale, float centerMidiNote) :
+                mCenterFrequency(centerFrequency),
+                mScale(scale),
+                mCenterMidiNote(centerMidiNote)
+            {
+            }
+        };
+
+
         static constexpr real_t FloatEpsilon = 0.000001f;
         static constexpr float MIN_DECIBEL_GAIN = -60.0f;
 
-        static constexpr real_t gFilterCenterFrequency = 1000.0f;
-        static constexpr real_t gFilterFrequencyScale = 10.0f;
+        static constexpr FreqParamConfig gFilterFreqConfig{ 1000, 10, 83.21309485364912f };
+        //static constexpr real_t gFilterCenterFrequency = 1000.0f;
+        //static constexpr real_t gFilterFrequencyScale = 10.0f;
         static constexpr real_t gFreqParamKTUnity = 0.3f;
         static constexpr size_t gModulationSpecDestinationCount = 4;
 
-        static constexpr real_t gLFOLPCenterFrequency = 20.0f;
-        static constexpr real_t gLFOLPFrequencyScale = 7.0f;
+        static constexpr FreqParamConfig gLFOLPFreqConfig{ 20, 7, 15.486820576352429f };
+        //static constexpr real_t gLFOLPCenterFrequency = 20.0f;
+        //static constexpr real_t gLFOLPFrequencyScale = 7.0f;
+
+        static constexpr FreqParamConfig gBitcrushFreqConfig{ gFilterFreqConfig };
+        //        static constexpr float gBitcrushFreqCenterFreq = 1000;
+        //static constexpr float gBitcrushFreqRange = 10;
+
+        static constexpr FreqParamConfig gSourceFreqConfig{ gFilterFreqConfig };
+
+        //static constexpr real_t gSourceFrequencyCenterHz = 1000;
+        //static constexpr real_t gSourceFrequencyScale = 10;
+
+        static constexpr FreqParamConfig gLFOFreqConfig{ 1.5f, 8, -0.37631656229592636f }; // well midi note here is meaningless and i hope you never use it.
+
+        //static constexpr real_t gLFOFrequencyCenterHz = 1.5f;
+        //static constexpr real_t gLFOFrequencyScale = 8;
+
+        static constexpr FreqParamConfig gSyncFreqConfig{ gFilterFreqConfig };
+
+        //static constexpr real_t gSyncFrequencyCenterHz = 1000;
+        //static constexpr real_t gSyncFrequencyScale = 10;
+        static constexpr real_t gFrequencyMulMax = 64;
 
         static constexpr size_t gModulationCount = 18;
 
@@ -119,15 +171,6 @@ namespace WaveSabreCore
         extern void SetQualitySetting(QualitySetting);
 
         static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
-
-        template<typename Tfirst, typename Tsecond>
-        struct Pair
-        {
-            Tfirst first;
-            Tsecond second;
-        };
-
-        using FloatPair = Pair<float, float>;
 
         namespace math
         {
@@ -735,16 +778,18 @@ namespace WaveSabreCore
         // when KT = 0, 0.5 = 1khz, and each 0.1 param value = +/- octave.
         struct FrequencyParam
         {
-            const float mCenterMidiNote;
-            const float mCenterFrequency;
-            const float mScale;
+            const FreqParamConfig mCfg;
+            //const float mCenterMidiNote;
+            //const float mCenterFrequency;
+            //const float mScale;
 
         public:
             Float01Param mValue;
             Float01Param mKTValue; // how much key tracking to apply. when 0, the frequency doesn't change based on playing note. when 1, it scales completely with the note's frequency.
 
             //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT);
-            explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
+            //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
+            explicit FrequencyParam(real_t& valRef, real_t& ktRef, const FreqParamConfig& mCfg);
             // noteHz is the playing note, to support key-tracking.
             float GetFrequency(float noteHz, float paramModulation) const;
             void SetFrequencyAssumingNoKeytracking(float hz);
@@ -897,39 +942,6 @@ namespace WaveSabreCore
                 } while ((b & 0x80) != 0);
                 return value;
             }
-
-
-
-                //byte event = (b1 & 0xc0) >> 6;
-                //auto& e = midiLanes[i].events[m];
-                //e.Type = (EventType)event;
-                //e.TimeStamp = b1 & 0x1f;
-                //if (b1 & 0x20) {
-                //    // byte stream: [ee1-----][?-------]...
-                //    byte b2 = ds.ReadUByte();
-                //    e.TimeStamp <<= 7;
-                //    e.TimeStamp |= b2 & 0x7f;
-                //    if (b2 & 0x80) {
-                //        // byte stream: [ee1-----][1-------][?-------]...
-                //        byte b3 = ds.ReadUByte();
-                //        e.TimeStamp <<= 7;
-                //        e.TimeStamp |= b3 & 0x7f;
-                //        if (b3 & 0x80) {
-                //            // byte stream: [ee1-----][1-------][1-------][?-------]...
-                //            byte b4 = ds.ReadUByte();
-                //            e.TimeStamp <<= 7;
-                //            e.TimeStamp |= b4 & 0x7f;
-                //            if (b4 & 0x80) {
-                //                // byte stream: [ee1-----][1-------][1-------][1-------][00------]
-                //                byte b5 = ds.ReadUByte();
-                //                e.TimeStamp <<= 6;
-                //                e.TimeStamp |= b5;
-                //            }
-                //        }
-                //    }
-                //}
-
-            //}
 
             float ReadFloat();
             double ReadDouble();

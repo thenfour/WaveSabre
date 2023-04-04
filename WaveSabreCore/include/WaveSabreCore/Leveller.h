@@ -68,7 +68,7 @@ namespace WaveSabreCore
 	{
 		LevellerBand(BiquadFilterType type, float* paramCache, LevellerParamIndices baseParamID, float initialCutoffHz) :
 			mFilterType(type),
-			mFrequency(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Freq], mKTBacking, M7::gFilterCenterFrequency, M7::gFilterFrequencyScale),
+			mFrequency(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Freq], mKTBacking, M7::gFilterFreqConfig),
 			mVolume(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Gain], gLevellerVolumeMaxDb),
 			mQ(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Q])
 		{

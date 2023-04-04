@@ -1,6 +1,7 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/Maj7ParamAccessor.hpp>
 
 namespace WaveSabreCore
 {
@@ -787,78 +788,103 @@ namespace WaveSabreCore
 			"0,1 => 1,-1 (POS to N11_inv", \
         };
 
+
 		struct ModulationSpec
 		{
-			float* const mParamCache;
+			//float* const mParamCache;
+			ParamAccessor mParams;
 			const int mBaseParamID;
 
-			BoolParam mEnabled;
-			EnumParam<ModSource> mSource;
-			EnumParam<ModDestination> mDestinations[gModulationSpecDestinationCount] = {
-				EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination1], ModDestination::Count},
-				EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination2], ModDestination::Count},
-				EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination3], ModDestination::Count},
-				EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination4], ModDestination::Count},
-			};
-			FloatN11Param mScales[gModulationSpecDestinationCount] = {
-				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale1]},
-				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale2]},
-				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale3]},
-				FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale4]},
-			};
+			//BoolParam mEnabled;
+			//EnumParam<ModSource> mSource;
+			//EnumParam<ModDestination> mDestinations[gModulationSpecDestinationCount] = {
+			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination1], ModDestination::Count},
+			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination2], ModDestination::Count},
+			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination3], ModDestination::Count},
+			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination4], ModDestination::Count},
+			//};
+			//FloatN11Param mScales[gModulationSpecDestinationCount] = {
+			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale1]},
+			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale2]},
+			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale3]},
+			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale4]},
+			//};
 			ModulationSpecType mType = ModulationSpecType::General;
 			BoolParam* mpDestSourceEnabledParam = nullptr;
+
+
+			bool mEnabled;
+			ModSource mSource;
+			ModDestination mDestinations[gModulationSpecDestinationCount];
+			float mScales[gModulationSpecDestinationCount];
+			bool mAuxEnabled;
+			ModSource mAuxSource;
+			ModValueMapping mValueMapping;
+			ModValueMapping mAuxValueMapping;
+			float mAuxAttenuation;
 
 			// you may ask why aux (aka sidechain) is necessary.
 			// it's because we don't allow modulation of the modulation scale params, so it's a way of modulating the modulation itself.
 			// now, because all mods are just added together you can absolutely just create a 2nd modulation mapped to the same param.
 			// it's just a huge pain in the butt, plus you have to then make sure you get the scales lined up. modulation values are added
 			// while aux values are used to scale the mod val, which doesn't have a true analog via normal modulations.
-			BoolParam mAuxEnabled;
-			EnumParam<ModSource> mAuxSource;
+			//BoolParam mAuxEnabled;
+			//EnumParam<ModSource> mAuxSource;
 
-			EnumParam<ModValueMapping> mValueMapping;
-			EnumParam<ModValueMapping> mAuxValueMapping;
+			//EnumParam<ModValueMapping> mValueMapping;
+			//EnumParam<ModValueMapping> mAuxValueMapping;
 
 			CurveParam mCurve;
 			CurveParam mAuxCurve;
-			Float01Param mAuxAttenuation;
+			
+			//Float01Param mAuxAttenuation;
 
 
 			ModulationSpec(real_t* paramCache, int baseParamID) :
-				mParamCache(paramCache),
+				mParams(paramCache, baseParamID),
 				mBaseParamID(baseParamID),
-				mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
-				mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
+				//mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
+				//mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
 				//mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
 				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
-				//mScale(paramCache[baseParamID + (int)ModParamIndexOffsets::Scale]),
-				mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled]),
-				mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
-				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve]),
-				mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
-				mValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::ValueMapping], ModValueMapping::Count),
-				mAuxValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxValueMapping], ModValueMapping::Count)
+				//mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled]),
+				//mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
+				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve])
+				//mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
+				//mValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::ValueMapping], ModValueMapping::Count),
+				//mAuxValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxValueMapping], ModValueMapping::Count)
 			{
 			}
 			void BeginBlock()
 			{
-				mEnabled.CacheValue();
-				mSource.CacheValue();
-				for (auto& d : mDestinations) d.CacheValue();
-				for (auto& d : mScales) d.CacheValue();
-				mAuxEnabled.CacheValue();
-				mValueMapping.CacheValue();
-				mAuxValueMapping.CacheValue();
-				mAuxSource.CacheValue();
+				mEnabled = mParams.GetBoolValue(ModParamIndexOffsets::Enabled);
+				mSource = mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
+				for (int i = 0; i < gModulationSpecDestinationCount; ++i) {
+					mDestinations[i] = mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + i);
+				}
+				for (int i = 0; i < gModulationSpecDestinationCount; ++i) {
+					mScales[i] = mParams.GetN11Value((int)ModParamIndexOffsets::Scale1 + i, 0);
+				}
+		
+				//for (auto& d : mScales) d.CacheValue();
+				mAuxEnabled = mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);// .CacheValue();
+				mValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::ValueMapping);
+				mAuxValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::AuxValueMapping);
+				mAuxSource = mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
+				mAuxAttenuation = mParams.Get01Value(ModParamIndexOffsets::AuxAttenuation, 0);
 			}
 
 			void SetSourceAmp(ModSource mAmpEnvModSourceID, ModDestination mHiddenVolumeModDestID, BoolParam* pDestSourceEnabledParam)
 			{
-				mEnabled.SetBoolValue(true);
-				mSource.SetEnumValue(mAmpEnvModSourceID);
-				mDestinations[0].SetEnumValue(mHiddenVolumeModDestID);
-				mScales[0].SetN11Value(1);
+				mParams.SetBoolValue(ModParamIndexOffsets::Enabled, true);
+				//mEnabled.SetBoolValue(true);
+				mParams.SetEnumValue(ModParamIndexOffsets::Source, mAmpEnvModSourceID);
+				//mSource.SetEnumValue(mAmpEnvModSourceID);
+				mParams.SetEnumValue(ModParamIndexOffsets::Destination1, mHiddenVolumeModDestID);
+				//mDestinations[0].SetEnumValue(mHiddenVolumeModDestID);
+				//mScales[0].SetN11Value(1);
+				mParams.SetN11Value(ModParamIndexOffsets::Scale1, 1);
+
 				mType = ModulationSpecType::SourceAmp;
 				mpDestSourceEnabledParam = pDestSourceEnabledParam;
 			}

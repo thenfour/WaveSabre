@@ -48,49 +48,54 @@ namespace WaveSabreCore
 		struct AuxDevice
 		{
 			const AuxLink mLinkToSelf;
-			const AuxDevice* mpAllAuxNodes;
+			AuxDevice* mpAllAuxNodes;
 
-			BoolParam mEnabledParam;
-			EnumParam<AuxLink> mLink;
-			EnumParam<AuxEffectType> mEffectType;
+			ParamAccessor mParams;
+			bool mEnabled;
+			AuxLink mLink;
+			AuxEffectType mEffectType;
+			//BoolParam mEnabledParam;
+			//EnumParam<AuxLink> mLink;
+			//EnumParam<AuxEffectType> mEffectType;
 
-			float* const mParamCache_Offset;
+			//float* const mParamCache_Offset;
 			const int mModDestParam2ID;
-			const int mBaseParamID;
+			//const int mBaseParamID;
 
 			AuxDevice(AuxDevice* allAuxNodes, AuxLink selfLink, int baseParamID, float* paramCache, int modDestParam2ID) :
 				mpAllAuxNodes(allAuxNodes),
 				mLinkToSelf(selfLink),
-				mEnabledParam(paramCache[baseParamID + (int)AuxParamIndexOffsets::Enabled]),
-				mLink(paramCache[baseParamID + (int)AuxParamIndexOffsets::Link], AuxLink::Count),
-				mEffectType(paramCache[baseParamID + (int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
-				mParamCache_Offset(paramCache + baseParamID),
-				mModDestParam2ID(modDestParam2ID),
-				mBaseParamID(baseParamID)
+				mParams(paramCache, baseParamID),
+				//mEnabledParam(paramCache[baseParamID + (int)AuxParamIndexOffsets::Enabled]),
+				//mLink(paramCache[baseParamID + (int)AuxParamIndexOffsets::Link], AuxLink::Count),
+				//mEffectType(paramCache[baseParamID + (int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
+				//mParamCache_Offset(paramCache + baseParamID),
+				mModDestParam2ID(modDestParam2ID)
+				//mBaseParamID(baseParamID)
 			{
 			}
 
 			bool IsLinkedExternally() const
 			{
-				return mLinkToSelf != mLink.mCachedVal;
+				return mLinkToSelf != mLink;
 			}
 
 			// nullptr is a valid return val for safe null effect.
-			IAuxEffect* CreateEffect() const
+			IAuxEffect* CreateEffect()
 			{
 				if (!IsEnabled()) {
 					return nullptr;
 				}
 				// ASSERT: not linked.
-				switch (mEffectType.mCachedVal)
+				switch (mEffectType)
 				{
 				default:
 				case AuxEffectType::None:
 					break;
 				case AuxEffectType::BigFilter:
-					return new FilterAuxNode(mParamCache_Offset, mModDestParam2ID);
+					return new FilterAuxNode(mParams, mModDestParam2ID);
 				case AuxEffectType::Bitcrush:
-					return new BitcrushAuxNode(mParamCache_Offset, mModDestParam2ID);
+					return new BitcrushAuxNode(mParams, mModDestParam2ID);
 				}
 				return nullptr;
 			}
@@ -98,7 +103,7 @@ namespace WaveSabreCore
 			// returns whether this node will process audio. depends on external linking.
 			bool IsEnabled() const
 			{
-				auto link = mLink.mCachedVal;// .GetEnumValue();
+				auto link = mLink;// .GetEnumValue();
 				const AuxDevice* srcNode = this;
 				if (IsLinkedExternally())
 				{
@@ -109,16 +114,16 @@ namespace WaveSabreCore
 						return false; // no chaining; needlessly vexing
 					}
 				}
-				return srcNode->mEnabledParam.mCachedVal;// .GetBoolValue();
+				return srcNode->mEnabled;// .GetBoolValue();
 			}
 
 			// pass in aux nodes due to linking.
 			// for simplicity to avoid circular refs, disable if you link to a linked aux
 			void BeginBlock()
 			{
-				mEnabledParam.CacheValue();
-				mLink.CacheValue();
-				mEffectType.CacheValue();
+				mEnabled = mParams.GetBoolValue(AuxParamIndexOffsets::Enabled);
+				mLink = mParams.GetEnumValue<AuxLink>(AuxParamIndexOffsets::Link);
+				mEffectType = mParams.GetEnumValue<AuxEffectType>(AuxParamIndexOffsets::Type);
 			}
 		};
 
@@ -151,9 +156,9 @@ namespace WaveSabreCore
 			// for simplicity to avoid circular refs, disable if you link to a linked aux
 			void BeginBlock(float noteHz, ModMatrixNode& modMatrix) {
 				if (!mpDevice->IsEnabled()) return;
-				auto link = mpDevice->mLink.mCachedVal;// .GetEnumValue();
-				const AuxDevice* const srcNode = &mpDevice->mpAllAuxNodes[(int)link];
-				auto effectType = srcNode->mEffectType.mCachedVal;// .GetEnumValue();
+				auto link = mpDevice->mLink;// .GetEnumValue();
+				AuxDevice* const srcNode = &mpDevice->mpAllAuxNodes[(int)link];
+				auto effectType = srcNode->mEffectType;// .GetEnumValue();
 
 				// ensure correct engine set up.
 				if (mCurrentEffectLink != link || mCurrentEffectType != effectType || !mpCurrentEffect) {
@@ -428,11 +433,11 @@ namespace WaveSabreCore
 					//memcpy(mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
 				}
 				for (auto& m : mAuxDevices) {
-					ImportDefaultsArray(std::size(gDefaultAuxParams), gDefaultAuxParams, m.mParamCache_Offset);
+					ImportDefaultsArray(std::size(gDefaultAuxParams), gDefaultAuxParams, m.mParams.GetOffsetParamCache());
 					//memcpy(m.mParamCache_Offset, gDefaultAuxParams, sizeof(gDefaultAuxParams));
 				}
 				for (auto* p : mMaj7Voice[0]->mpAllModEnvelopes) {
-					ImportDefaultsArray(std::size(gDefaultEnvelopeParams), gDefaultEnvelopeParams, mParamCache + (int)p->mParamBaseID);
+					ImportDefaultsArray(std::size(gDefaultEnvelopeParams), gDefaultEnvelopeParams, mParamCache + (int)p->mParams.mBaseParamID);
 					//memcpy(mParamCache + (int)p->mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
 				}
 				for (auto* p : mSources) {
@@ -443,22 +448,36 @@ namespace WaveSabreCore
 
 				// and correct stuff
 
-				mAuxDevices[0].mEffectType.SetEnumValue(AuxEffectType::Bitcrush);
-				mAuxDevices[1].mEnabledParam.SetBoolValue(true);
-				mAuxDevices[1].mEffectType.SetEnumValue(AuxEffectType::BigFilter);
-				mAuxDevices[1].mLink.SetEnumValue(AuxLink::Aux2);
-				mAuxDevices[2].mLink.SetEnumValue(AuxLink::Aux1);
-				mAuxDevices[3].mLink.SetEnumValue(AuxLink::Aux2);
+				mAuxDevices[0].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::Bitcrush);
+				mAuxDevices[1].mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, true);
+				mAuxDevices[1].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::BigFilter);
 
-				BitcrushAuxNode a1{ mParamCache + (int)ParamIndices::Aux1Enabled, 0};
-				a1.mFreqParam.mKTValue.SetParamValue(1);
-				a1.mFreqParam.mValue.SetParamValue(0.3f);
+				mAuxDevices[1].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux2);
+				mAuxDevices[2].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux1);
+				mAuxDevices[3].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux2);
 
-				FilterAuxNode f2{ mParamCache + (int)ParamIndices::Aux2Enabled, 0 };
-				f2.mFilterFreqParam.mValue.SetParamValue(M7::gFreqParamKTUnity);
-				f2.mFilterFreqParam.mKTValue.SetParamValue(1.0f);
-				f2.mFilterQParam.SetParamValue(0.15f);
-				f2.mFilterSaturationParam.SetParamValue(0.15f);
+				//mAuxDevices[0].mEffectType.SetEnumValue(AuxEffectType::Bitcrush);
+				//mAuxDevices[1].mEnabledParam.SetBoolValue(true);
+				//mAuxDevices[1].mEffectType.SetEnumValue(AuxEffectType::BigFilter);
+				//mAuxDevices[1].mLink.SetEnumValue(AuxLink::Aux2);
+				//mAuxDevices[2].mLink.SetEnumValue(AuxLink::Aux1);
+				//mAuxDevices[3].mLink.SetEnumValue(AuxLink::Aux2);
+
+				//BitcrushAuxNode a1{ ParamAccessor{ mParamCache, ParamIndices::Aux1Enabled }, 0 };
+				ParamAccessor a1{ mParamCache, ParamIndices::Aux1Enabled };
+				a1.Set01Val(BitcrushAuxParamIndexOffsets::Freq, 0.3f);
+				a1.Set01Val(BitcrushAuxParamIndexOffsets::FreqKT, 1);
+
+				//FilterAuxNode f2{ ParamAccessor{ mParamCache, ParamIndices::Aux2Enabled }, 0 };
+				ParamAccessor f2{ mParamCache, ParamIndices::Aux2Enabled };
+				a1.Set01Val(FilterAuxParamIndexOffsets::Freq, M7::gFreqParamKTUnity);
+				a1.Set01Val(FilterAuxParamIndexOffsets::FreqKT, 1);
+				a1.Set01Val(FilterAuxParamIndexOffsets::Q, 0.15f);
+
+				//f2.mFilterFreqParam.mValue.SetParamValue(M7::gFreqParamKTUnity);
+				//f2.mFilterFreqParam.mKTValue.SetParamValue(1.0f);
+				//f2.mFilterQParam.SetParamValue(0.15f);
+				//f2.mFilterSaturationParam.SetParamValue(0.15f);
 
 				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
 
@@ -794,7 +813,7 @@ namespace WaveSabreCore
 							lfo.mNode.SetPhase(lfo.mDevice.mPhase.mPhase);
 						}
 						lfo.mNode.BeginBlock();
-						lfo.mFilter.SetParams(FilterModel::LP_OnePole, lfo.mDevice.mLPCutoff, 0, 0);
+						lfo.mFilter.SetParams(FilterModel::LP_OnePole, lfo.mDevice.mLPCutoff, 0);
 					}
 
 					// set device-level modded values.

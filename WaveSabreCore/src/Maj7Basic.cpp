@@ -305,11 +305,11 @@ namespace WaveSabreCore
 				//return math::pow2(x / 12.0f);
 			}
 
-			float FrequencyToMIDINote(float hz)
-			{
-				float ret = 12.0f * math::log2(max(8.0f, hz) / 440) + 69;
-				return ret;
-			}
+			//float FrequencyToMIDINote(float hz)
+			//{
+			//	float ret = 12.0f * math::log2(max(8.0f, hz) / 440) + 69;
+			//	return ret;
+			//}
 
 			FloatPair PanToLRVolumeParams(float panN11)
 			{
@@ -535,13 +535,21 @@ namespace WaveSabreCore
 		//    mScale(scale)
 		//{}
 
-		FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/) :
+		FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, const FreqParamConfig& cfg) :
 			mValue(valRef),
 			mKTValue(ktRef),
-			mCenterFrequency(centerFrequency),
-			mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
-			mScale(scale)
-		{}
+			mCfg(cfg)
+		{
+			//
+		}
+
+		//FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/) :
+		//	mValue(valRef),
+		//	mKTValue(ktRef),
+		//	mCenterFrequency(centerFrequency),
+		//	mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
+		//	mScale(scale)
+		//{}
 
 		// noteHz is the playing note, to support key-tracking.
 		float FrequencyParam::GetFrequency(float noteHz, float paramModulation) const
@@ -561,10 +569,10 @@ namespace WaveSabreCore
 			// for each 0.1 param value, it's +/- one octave.
 			// to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
 			float ktFreq = noteHz * 4;
-			float centerFreq = math::lerp(mCenterFrequency, ktFreq, mKTValue.Get01Value());
+			float centerFreq = math::lerp(mCfg.mCenterFrequency, ktFreq, mKTValue.Get01Value());
 
 			param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)   [-.5,+.5]
-			param *= mScale;// 10.0f; // (.3 = -2, .8 = 3) [-15,+15]
+			param *= mCfg.mScale;// 10.0f; // (.3 = -2, .8 = 3) [-15,+15]
 			//float fact = math::pow(2, param);
 			float fact = math::pow2_N16_16(param);
 			return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
@@ -573,7 +581,7 @@ namespace WaveSabreCore
 		void FrequencyParam::SetFrequencyAssumingNoKeytracking(float hz) {
 			// 2 ^ param
 			float  p = math::log2(hz);
-			p /= mScale;
+			p /= mCfg.mScale;
 			p += 0.5f;
 			this->mValue.SetParamValue(math::clamp01(p));
 		}
@@ -584,11 +592,11 @@ namespace WaveSabreCore
 		{
 			float ktNote = playingMidiNote + 24; // center represents playing note + 2 octaves.
 
-			float centerNote = math::lerp(mCenterMidiNote, ktNote, mKTValue.Get01Value());
+			float centerNote = math::lerp(mCfg.mCenterMidiNote, ktNote, mKTValue.Get01Value());
 
 			float param = mValue.Get01Value() + paramModulation;
 
-			param = (param - 0.5f) * mScale;// 10; // rescale from 0-1 to -5 to +5 (octaves)
+			param = (param - 0.5f) * mCfg.mScale;// 10; // rescale from 0-1 to -5 to +5 (octaves)
 			float paramSemis =
 				centerNote + param * 12; // each 1 param = 1 octave. because we're in semis land, it's just a mul.
 			return paramSemis;

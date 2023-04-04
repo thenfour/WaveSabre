@@ -9,18 +9,21 @@ namespace WaveSabreCore
     {
         struct EnvelopeNode
         {
-            const int mParamBaseID;
-            EnvTimeParam mDelayTime;//;{ 0 };
-            EnvTimeParam mAttackTime;//;{ 0 };
-            CurveParam mAttackCurve;//;{ 0 };
-            EnvTimeParam mHoldTime;//;{ 0 };
-            EnvTimeParam mDecayTime;//;{ 0.5f };
-            CurveParam mDecayCurve;//;{ 0 };
-            Float01Param mSustainLevel;//;{ 0.4f };
-            EnvTimeParam mReleaseTime;//;{ 0.2f };
-            CurveParam mReleaseCurve;//;{ 0 };
-            BoolParam mLegatoRestart;// { false };
-            EnumParam< EnvelopeMode> mMode;
+            ParamAccessor mParams;
+            //const int mParamBaseID;
+            //EnvTimeParam mDelayTime;//;{ 0 };
+            //EnvTimeParam mAttackTime;//;{ 0 };
+            //CurveParam mAttackCurve;//;{ 0 };
+            //EnvTimeParam mHoldTime;//;{ 0 };
+            //EnvTimeParam mDecayTime;//;{ 0.5f };
+            //CurveParam mDecayCurve;//;{ 0 };
+            //Float01Param mSustainLevel;//;{ 0.4f };
+            //EnvTimeParam mReleaseTime;//;{ 0.2f };
+            //CurveParam mReleaseCurve;//;{ 0 };
+            //BoolParam mLegatoRestart;// { false };
+            //EnumParam< EnvelopeMode> mMode;
+
+            EnvelopeMode mMode; 
             
             ModSource mMyModSource; // not used by this object, but useful for mappings.
 

@@ -39,13 +39,13 @@ namespace WaveSabreCore
 					{
 						auto& spec = modSpecs[imod];
 						bool skip = false;
-						if (!spec.mEnabled.mCachedVal) skip = true;
-						auto modSource = spec.mSource.mCachedVal;
+						if (!spec.mEnabled) skip = true;
+						auto modSource = spec.mSource;
 						if (modSource == ModSource::None) skip = true;
 						bool anyDestsEnabled = false;
 						if (!skip) {
 							for (auto& d : spec.mDestinations) {
-								if (d.mCachedVal != ModDestination::None) {
+								if (d != ModDestination::None) {
 									anyDestsEnabled = true;
 									break;
 								}
@@ -59,7 +59,7 @@ namespace WaveSabreCore
 						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
 							//mDestValueDeltas[imod][id] = 0;
 							auto lastDest = this->mModSpecLastDestinations[imod][id];
-							auto newDest = skip ? ModDestination::None : spec.mDestinations[id].mCachedVal;
+							auto newDest = skip ? ModDestination::None : spec.mDestinations[id];
 							if (lastDest != newDest) { // if a mod destination changes, then need to reset the value to 0 to erase the effect of the modulation.
 								mDestValues[(size_t)lastDest] = 0;
 							}
@@ -72,19 +72,19 @@ namespace WaveSabreCore
 						}
 
 						real_t sourceVal = GetSourceValue(modSource);
-						sourceVal = MapValue(sourceVal, spec.mValueMapping.mCachedVal);
+						sourceVal = MapValue(sourceVal, spec.mValueMapping);
 						sourceVal = spec.mCurve.ApplyToValue(sourceVal);
-						if (spec.mAuxEnabled.mCachedVal)
+						if (spec.mAuxEnabled)
 						{
 							// attenuate the value
-							auto auxSource = spec.mAuxSource.mCachedVal;
+							auto auxSource = spec.mAuxSource;
 							if (auxSource != ModSource::None) {
 								float auxVal = GetSourceValue(auxSource);
-								auxVal = MapValue(auxVal, spec.mAuxValueMapping.mCachedVal);
+								auxVal = MapValue(auxVal, spec.mAuxValueMapping);
 								auxVal = spec.mAuxCurve.ApplyToValue(auxVal);
 								// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 								// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
-								float auxAtten = spec.mAuxAttenuation.Get01Value();
+								float auxAtten = spec.mAuxAttenuation;
 								float auxScale = math::lerp(1, 1.0f - auxAtten, auxVal);
 								sourceVal *= auxScale;
 							}
@@ -92,10 +92,10 @@ namespace WaveSabreCore
 
 						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
 							const auto& d = spec.mDestinations[id];
-							const ModDestination destid = d.mCachedVal;
+							const ModDestination destid = d;
 							if (destid == ModDestination::None) continue;
 							const float orig = mDestValues[(size_t)destid];
-							const float amt = sourceVal * spec.mScales[id].mCachedVal;
+							const float amt = sourceVal * spec.mScales[id];
 							
 							if (math::FloatEquals(amt, orig)) continue;
 
@@ -105,7 +105,7 @@ namespace WaveSabreCore
 							bool added = false;
 							for (size_t id = 0; id < mModulatedDestValueCount; ++id) {
 								auto& dvd = mModulatedDestValueDeltas[id];
-								if (dvd.mDest == d.mCachedVal) {
+								if (dvd.mDest == d) {
 									// add to existing
 									dvd.mDeltaPerSample += deltaPerSample;
 									added = true;
@@ -116,7 +116,7 @@ namespace WaveSabreCore
 								// create new dest delta thingy
 								auto& dvd = mModulatedDestValueDeltas[mModulatedDestValueCount];
 								mModulatedDestValueCount++;
-								dvd.mDest = d.mCachedVal;
+								dvd.mDest = d;
 								dvd.mDeltaPerSample = deltaPerSample;
 							}
 						}

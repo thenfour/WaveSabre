@@ -604,37 +604,9 @@ namespace WaveSabrePlayerLib
 			return length;
 		}
 
-		//unsigned char readByte()
-		//{
-		//	unsigned char ret = *songBlobPtr;
-		//	songBlobPtr++;
-		//	return ret;
-		//}
-
-		//int readInt()
-		//{
-		//	int ret = *(int*)songBlobPtr;
-		//	songBlobPtr += sizeof(int);
-		//	return ret;
-		//}
-
-		//float readFloat()
-		//{
-		//	float ret = *(float*)songBlobPtr;
-		//	songBlobPtr += sizeof(float);
-		//	return ret;
-		//}
-
-		//double readDouble()
-		//{
-		//	double ret = *(double*)songBlobPtr;
-		//	songBlobPtr += sizeof(double);
-		//	return ret;
-		//}
 
 		GraphProcessor* mpGraphRunner = nullptr;
 
-		//const unsigned char* songBlobPtr;
 		int songDataIndex;
 
 		int bpm;

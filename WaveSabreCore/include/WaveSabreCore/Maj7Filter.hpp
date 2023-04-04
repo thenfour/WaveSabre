@@ -58,7 +58,7 @@ namespace WaveSabreCore
 			IFilter* mSelectedFilter = &mMoog;
             FilterModel mSelectedModel = FilterModel::LP_Moog4;
 
-            void SetParams(FilterModel ctype, float cutoffHz, float reso, float saturation)
+            void SetParams(FilterModel ctype, float cutoffHz, float reso)
             {
                 // select filter & set type
                 FilterType ft = FilterType::LP;
@@ -117,7 +117,7 @@ namespace WaveSabreCore
                     mSelectedFilter = &mMoog;
                     break;
                 }
-                mSelectedFilter->SetParams(ft, cutoffHz, reso, saturation);
+                mSelectedFilter->SetParams(ft, cutoffHz, reso);
                 if (mSelectedModel != ctype) {
                     mSelectedFilter->Reset();
                 }
@@ -136,21 +136,26 @@ namespace WaveSabreCore
         {
             FilterNode mFilter;
 
-            EnumParam<FilterModel> mFilterTypeParam; // FilterType,
-            Float01Param mFilterQParam;// FilterQ,
-            Float01Param mFilterSaturationParam;// FilterSaturation,
-            FrequencyParam mFilterFreqParam;// FilterFrequency,// FilterFrequencyKT,
+            ParamAccessor mParams;
+
+            FilterModel mFilterType;
+            //EnumParam<FilterModel> mFilterTypeParam; // FilterType,
+            //Float01Param mFilterQParam;// FilterQ,
+            //Float01Param mFilterSaturationParam;// FilterSaturation,
+            //FrequencyParam mFilterFreqParam;// FilterFrequency,// FilterFrequencyKT,
+
             int mModDestParam2ID;
             float mNoteHz = 0;
             size_t mnSampleCount = 0;
             ModMatrixNode* mModMatrix = nullptr;
 
-            FilterAuxNode(float* auxParams, int modDestParam2ID) :
+            FilterAuxNode(ParamAccessor& params, int modDestParam2ID) :
+                mParams(params),
                 // !! do not SET initial values; these get instantiated dynamically.
-                mFilterTypeParam(auxParams[(int)FilterAuxParamIndexOffsets::FilterType], FilterModel::Count),
-                mFilterQParam(auxParams[(int)FilterAuxParamIndexOffsets::Q]),
-                mFilterSaturationParam(auxParams[(int)FilterAuxParamIndexOffsets::Saturation]),
-                mFilterFreqParam(auxParams[(int)FilterAuxParamIndexOffsets::Freq], auxParams[(int)FilterAuxParamIndexOffsets::FreqKT], gFilterCenterFrequency, gFilterFrequencyScale),
+                //mFilterTypeParam(auxParams[(int)FilterAuxParamIndexOffsets::FilterType], FilterModel::Count),
+                //mFilterQParam(auxParams[(int)FilterAuxParamIndexOffsets::Q]),
+                //mFilterSaturationParam(auxParams[(int)FilterAuxParamIndexOffsets::Saturation]),
+                //mFilterFreqParam(auxParams[(int)FilterAuxParamIndexOffsets::Freq], auxParams[(int)FilterAuxParamIndexOffsets::FreqKT], gFilterCenterFrequency, gFilterFrequencyScale),
                 mModDestParam2ID(modDestParam2ID)
             {}
 
@@ -159,7 +164,8 @@ namespace WaveSabreCore
                 mModMatrix = &modMatrix;
                 mnSampleCount = 0; // ensure reprocessing after setting these params to avoid corrupt state.
                 mNoteHz = noteHz;
-                mFilterTypeParam.CacheValue();
+                mFilterType = mParams.GetEnumValue<FilterModel>(FilterAuxParamIndexOffsets::FilterType);
+                //mFilterTypeParam.CacheValue();
             }
 
             virtual float AuxProcessSample(float inputSample) override
@@ -169,10 +175,11 @@ namespace WaveSabreCore
                 mnSampleCount = (mnSampleCount + 1) & recalcMask;
                 if (calc) {
                     mFilter.SetParams(
-                        mFilterTypeParam.mCachedVal,
-                        mFilterFreqParam.GetFrequency(mNoteHz, mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq)),
-                        mFilterQParam.Get01Value(mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q)),
-                        mFilterSaturationParam.Get01Value(mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Saturation))
+                        mFilterType,
+                        mParams.GetFrequency(FilterAuxParamIndexOffsets::Freq, FilterAuxParamIndexOffsets::FreqKT, gFilterFreqConfig, mNoteHz, mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq)),
+                        //mFilterFreqParam.GetFrequency(mNoteHz, ),
+                        mParams.Get01Value(FilterAuxParamIndexOffsets::Q, mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q))
+                        //mFilterQParam.Get01Value(mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q))
                     );
                 }
 

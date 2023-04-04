@@ -60,8 +60,8 @@ namespace WaveSabreCore
 
 			for (int i = 0; i < 2; i++)
 			{
-				mLowCutFilter[i].SetParams(M7::FilterType::HP, lowCutFreq, 0, 0);
-				mHighCutFilter[i].SetParams(M7::FilterType::LP, highCutFreq, 0, 0);
+				mLowCutFilter[i].SetParams(M7::FilterType::HP, lowCutFreq, 0);
+				mHighCutFilter[i].SetParams(M7::FilterType::LP, highCutFreq, 0);
 			}
 
 			for (int i = 0; i < numSamples; i++)

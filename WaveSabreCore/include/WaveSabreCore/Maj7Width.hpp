@@ -29,7 +29,7 @@ namespace WaveSabreCore
 		M7::FloatN11Param mWidthParam{ mParamCache[(int)ParamIndices::Width] };
 		M7::FloatN11Param mPanParam { mParamCache[(int)ParamIndices::Pan] };
 		float mKTBacking = 0;
-		M7::FrequencyParam mSideHPFrequencyParam{ mParamCache[(int)ParamIndices::SideHPFrequency], mKTBacking, M7::gFilterCenterFrequency, M7::gFilterFrequencyScale };
+		M7::FrequencyParam mSideHPFrequencyParam{ mParamCache[(int)ParamIndices::SideHPFrequency], mKTBacking, M7::gFilterFreqConfig };
 		M7::VolumeParam mOutputVolume{ mParamCache[(int)ParamIndices::OutputGain], gMaxOutputVolumeDb };
 
 		M7::OnePoleFilter mFilter;
@@ -48,7 +48,7 @@ namespace WaveSabreCore
 		{
 			mWidthParam.CacheValue();
 			mPanParam.CacheValue();
-			mFilter.SetParams(M7::FilterType::HP, mSideHPFrequencyParam.GetFrequency(0, 0), 0, 0);
+			mFilter.SetParams(M7::FilterType::HP, mSideHPFrequencyParam.GetFrequency(0, 0), 0);
 			float masterLinearGain = mOutputVolume.GetLinearGain();
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
