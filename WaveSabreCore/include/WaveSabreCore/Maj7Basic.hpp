@@ -818,17 +818,17 @@ namespace WaveSabreCore
             void SetDecibels(float db);
         };
 
-        struct WSQParam : Float01Param
-        {
-            explicit WSQParam(real_t& ref) : Float01Param(ref) {}
-            float GetQValue() const {
-                return Helpers::ParamToQ(this->mParamValue);
-            }
-            void SetQValue(float f) {
-                mParamValue = Helpers::QToParam(f);
-            }
+        //struct WSQParam : Float01Param
+        //{
+        //    explicit WSQParam(real_t& ref) : Float01Param(ref) {}
+        //    float GetQValue() const {
+        //        return Helpers::ParamToQ(this->mParamValue);
+        //    }
+        //    void SetQValue(float f) {
+        //        mParamValue = Helpers::QToParam(f);
+        //    }
 
-        };
+        //};
 
         // value 0.3 = unity, and each 0.1 param value = 1 octave transposition, when KT = 1.
         // when KT = 0, 0.5 = 1khz, and each 0.1 param value = +/- octave.

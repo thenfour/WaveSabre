@@ -293,9 +293,9 @@ namespace WaveSabreCore
 
 			//Float01ParamArray mMacros { &mParamCache[(int)ParamIndices::Macro1], gMacroCount };
 
-			Float01ParamArray mFMMatrix{ &mParamCache[(int)ParamIndices::FMAmt2to1], gFMMatrixSize };
+			//Float01ParamArray mFMMatrix{ &mParamCache[(int)ParamIndices::FMAmt2to1], gFMMatrixSize };
 
-			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness] };
+			//Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness] };
 
 			//IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], gPitchBendCfg };
 
@@ -930,20 +930,21 @@ namespace WaveSabreCore
 						auto po = static_cast<OscillatorNode*>(srcVoice);
 						const size_t x = i * (gOscillatorCount - 1);
 
-						auto matrixVal1 = mpOwner->mParams.Get01Value(x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt2to1 + x));
-						auto matrixVal2 = mpOwner->mParams.Get01Value(x + 1, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt3to1 + x));
-						auto matrixVal3 = mpOwner->mParams.Get01Value(x + 2, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt4to1 + x));
-						//sourceValues[i] = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale,
-						//	sourceValues[i < 1 ? 1 : 0], matrixVal1 * globalFMScale,
-						//	sourceValues[i < 2 ? 2 : 1], matrixVal2 * globalFMScale,
-						//	sourceValues[i < 3 ? 3 : 2], matrixVal3 * globalFMScale
-						//) * srcVoice->mAmpEnvGain;
+						auto matrixVal1 = mpOwner->mParams.Get01Value((int)ParamIndices::FMAmt2to1 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt2to1 + x));
+						auto matrixVal2 = mpOwner->mParams.Get01Value((int)ParamIndices::FMAmt2to1 + x + 1, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt3to1 + x));
+						auto matrixVal3 = mpOwner->mParams.Get01Value((int)ParamIndices::FMAmt2to1 + x + 2, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt4to1 + x));
 
 						sourceValues[i] = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale,
-							sourceValues[i < 1 ? 1 : 0], mpOwner->mFMMatrix.Get01Value(x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt2to1 + x)) * globalFMScale,
-							sourceValues[i < 2 ? 2 : 1], mpOwner->mFMMatrix.Get01Value(1 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt3to1 + x)) * globalFMScale,
-							sourceValues[i < 3 ? 3 : 2], mpOwner->mFMMatrix.Get01Value(2 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt4to1 + x)) * globalFMScale
+							sourceValues[i < 1 ? 1 : 0], matrixVal1 * globalFMScale,
+							sourceValues[i < 2 ? 2 : 1], matrixVal2 * globalFMScale,
+							sourceValues[i < 3 ? 3 : 2], matrixVal3 * globalFMScale
 						) * srcVoice->mAmpEnvGain;
+
+						//sourceValues[i] = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale,
+						//	sourceValues[i < 1 ? 1 : 0], mpOwner->mFMMatrix.Get01Value(x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt2to1 + x)) * globalFMScale,
+						//	sourceValues[i < 2 ? 2 : 1], mpOwner->mFMMatrix.Get01Value(1 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt3to1 + x)) * globalFMScale,
+						//	sourceValues[i < 3 ? 3 : 2], mpOwner->mFMMatrix.Get01Value(2 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt4to1 + x)) * globalFMScale
+						//) * srcVoice->mAmpEnvGain;
 					}
 
 					float sl = 0;

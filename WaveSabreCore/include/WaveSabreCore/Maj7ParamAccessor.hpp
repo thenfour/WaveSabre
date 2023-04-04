@@ -252,6 +252,15 @@ namespace WaveSabreCore
 				SetFrequencyAssumingNoKeytracking__((int)freqOffset, cfg, hz);
 			}
 
+
+			float GetWSQValue__(int offset) const;
+			template<typename Toffset>
+			float GetWSQValue(Toffset offset) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				return GetWSQValue__((int)offset);
+			}
+
 		};
 
 	} // namespace M7

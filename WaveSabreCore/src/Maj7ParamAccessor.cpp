@@ -180,6 +180,25 @@ namespace WaveSabreCore
 			this->SetRawVal__(freqOffset, p);
 		}
 
+		float ParamAccessor::GetWSQValue__(int offset) const
+		{
+			return Helpers::ParamToQ(GetRawVal__(offset));
+		}
+		//struct WSQParam : Float01Param
+		//{
+		//	explicit WSQParam(real_t& ref) : Float01Param(ref) {}
+		//	float GetQValue() const {
+		//		return Helpers::ParamToQ(this->mParamValue);
+		//	}
+		//	void SetQValue(float f) {
+		//		mParamValue = Helpers::QToParam(f);
+		//	}
+
+		//};
+
+
+
+
 	} // namespace M7
 
 

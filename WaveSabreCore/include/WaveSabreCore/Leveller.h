@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/Maj7ParamAccessor.hpp>
 #include "Device.h"
 #include "BiquadFilter.h"
 
@@ -69,34 +70,39 @@ namespace WaveSabreCore
 	struct LevellerBand
 	{
 		LevellerBand(BiquadFilterType type, float* paramCache, LevellerParamIndices baseParamID, float initialCutoffHz) :
-			mFilterType(type),
-			mFrequency(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Freq], mKTBacking, M7::gFilterFreqConfig),
-			mVolume(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Gain], gLevellerBandVolumeCfg),
-			mQ(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Q])
+			mParams(paramCache, baseParamID),
+			mFilterType(type)//,
+			//mFrequency(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Freq], mKTBacking, M7::gFilterFreqConfig),
+			//mVolume(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Gain], gLevellerBandVolumeCfg),
+			//mQ(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Q])
 		{
-			mVolume.SetDecibels(0);
-			mQ.SetParamValue(0);
-			mFrequency.SetFrequencyAssumingNoKeytracking(initialCutoffHz);
+			mParams.SetDecibels(LevellerBandParamOffsets::Gain, gLevellerBandVolumeCfg, 0);
+			mParams.Set01Val(LevellerBandParamOffsets::Q, 0);
+			mParams.SetFrequencyAssumingNoKeytracking(LevellerBandParamOffsets::Freq, M7::gFilterFreqConfig, initialCutoffHz);
 		}
 
 		void RecalcFilters()
 		{
 			for (size_t i = 0; i < 2; ++i) {
-				mFilters[i].SetParams(mFilterType, mFrequency.GetFrequency(0, 0), mQ.GetQValue(), mVolume.GetDecibels());
-				//mFilters[i].SetType(mFilterType);
-				//mFilters[i].SetFreq(mFrequency.GetFrequency(0, 0));
-				//mFilters[i].SetGain(mVolume.GetDecibels());
-				//mFilters[i].SetQ(mQ.GetQValue());
+				mFilters[i].SetParams(
+					mFilterType,
+					mParams.GetFrequency(LevellerBandParamOffsets::Freq, -1, M7::gFilterFreqConfig, 0, 0),
+					mParams.GetWSQValue(LevellerBandParamOffsets::Q),
+					mParams.GetDecibels(LevellerBandParamOffsets::Gain, gLevellerBandVolumeCfg)
+					//mQ.GetQValue()
+					//mVolume.GetDecibels()
+				);
 			}
 		}
 
+		M7::ParamAccessor mParams;
 		BiquadFilter mFilters[2];
-		float mKTBacking = 0;
+		//float mKTBacking = 0;
 
 		BiquadFilterType mFilterType;
-		M7::FrequencyParam mFrequency;
-		M7::VolumeParam mVolume;
-		M7::WSQParam mQ;
+		//M7::FrequencyParam mFrequency;
+		//M7::VolumeParam mVolume;
+		//M7::WSQParam mQ;
 	};
 
 	struct Leveller : public Device
@@ -106,13 +112,15 @@ namespace WaveSabreCore
 		Leveller() :
 			Device((int)LevellerParamIndices::NumParams)
 		{
-			mMasterVolume.SetDecibels(0);
+			mParams.SetDecibels(LevellerParamIndices::MasterVolume, gLevellerVolumeCfg, 0);
+			//mMasterVolume.SetDecibels(0);
 		}
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
 			auto recalcMask = M7::GetModulationRecalcSampleMask();
-			float masterGain = mMasterVolume.GetLinearGain();
+			float masterGain = mParams.GetLinearVolume(LevellerParamIndices::MasterVolume, gLevellerVolumeCfg);
+			//float masterGain = mMasterVolume.GetLinearGain();
 			for (int iSample = 0; iSample < numSamples; iSample++)
 			{
 				float s1 = inputs[0][iSample];
@@ -144,9 +152,10 @@ namespace WaveSabreCore
 		}
 
 	private:
-		float mParamCache[(size_t)LevellerParamIndices::NumParams * 2] = { 0 };
+		float mParamCache[(size_t)LevellerParamIndices::NumParams] = { 0 };
+		M7::ParamAccessor mParams{ mParamCache, 0 };
 
-		M7::VolumeParam mMasterVolume{ mParamCache[(int)LevellerParamIndices::MasterVolume], gLevellerVolumeCfg};
+		//M7::VolumeParam mMasterVolume{ mParamCache[(int)LevellerParamIndices::MasterVolume], gLevellerVolumeCfg};
 
 		LevellerBand mBands[gBandCount] = {
 			{BiquadFilterType::Highpass, mParamCache, LevellerParamIndices::LowCutFreq, 0 },
