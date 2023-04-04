@@ -653,11 +653,11 @@ namespace WaveSabreCore
 		}
 
 
-		Deserializer::Deserializer(const uint8_t* p, size_t n) :
+		Deserializer::Deserializer(const uint8_t* p) :
 			mpData(p),
-			mpCursor(p),
-			mSize(n),
-			mpEnd(p + n)
+			mpCursor(p)//,
+			//mSize(n),
+			//mpEnd(p + n)
 		{}
 		//int8_t ReadSByte() {
 		//    int8_t ret = *((int8_t*)mpCursor);
@@ -689,6 +689,12 @@ namespace WaveSabreCore
 
 		float Deserializer::ReadFloat() {
 			float ret = *((float*)mpCursor);
+			mpCursor += sizeof(ret);
+			return ret;
+		}
+
+		double Deserializer::ReadDouble() {
+			double ret = *((double*)mpCursor);
 			mpCursor += sizeof(ret);
 			return ret;
 		}

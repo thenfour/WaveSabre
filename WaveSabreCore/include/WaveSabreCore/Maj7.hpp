@@ -494,7 +494,7 @@ namespace WaveSabreCore
 			virtual void SetChunk(void* data, int size) override
 			{
 				LoadDefaults();
-				Deserializer ds{ (const uint8_t*)data, (size_t)size };
+				Deserializer ds{ (const uint8_t*)data };
 
 				auto tag = ds.ReadUInt32();
 				if (tag != gChunkTag) return;

@@ -861,9 +861,9 @@ namespace WaveSabreCore
         {
             const uint8_t* mpData;
             const uint8_t* mpCursor;
-            const uint8_t* mpEnd;
-            size_t mSize;
-            explicit Deserializer(const uint8_t* p, size_t n);
+            //const uint8_t* mpEnd;
+            //size_t mSize;
+            explicit Deserializer(const uint8_t* p);
             //int8_t ReadSByte() {
             //    int8_t ret = *((int8_t*)mpCursor);
             //    mpCursor += sizeof(ret);
@@ -885,6 +885,7 @@ namespace WaveSabreCore
             uint32_t ReadUInt32();
 
             float ReadFloat();
+            double ReadDouble();
             // returns a new cursor in the out buffer 
             void ReadBuffer(void* out, size_t numbytes);
 

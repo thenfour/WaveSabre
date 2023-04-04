@@ -294,46 +294,46 @@ namespace WaveSabrePlayerLib
 				float Volume;
 			} Receive;
 
-			Track(SongRenderer2* songRenderer, DeviceFactory factory)
+			Track(SongRenderer2* songRenderer, DeviceFactory factory, WaveSabreCore::M7::Deserializer& ds)
 			{
 				for (int i = 0; i < numBuffers; i++) Buffers[i] = new float[songRenderer->sampleRate];
 
 				this->songRenderer = songRenderer;
 
-				volume = songRenderer->readFloat();
+				volume = ds.ReadFloat();
 
-				INode_DirectDependencyCount = NumReceives = songRenderer->readInt();
+				INode_DirectDependencyCount = NumReceives = ds.ReadUInt32();
 				if (NumReceives)
 				{
 					Receives = new Receive[NumReceives];
 					for (int i = 0; i < NumReceives; i++)
 					{
-						Receives[i].SendingTrackIndex = songRenderer->readInt();
-						Receives[i].ReceivingChannelIndex = songRenderer->readInt();
-						Receives[i].Volume = songRenderer->readFloat();
+						Receives[i].SendingTrackIndex = ds.ReadUInt32();
+						Receives[i].ReceivingChannelIndex = ds.ReadUInt32();
+						Receives[i].Volume = ds.ReadFloat();
 					}
 				}
 
-				numDevices = songRenderer->readInt();
+				numDevices = ds.ReadUInt32();
 				if (numDevices)
 				{
 					devicesIndicies = new int[numDevices];
 					for (int i = 0; i < numDevices; i++)
 					{
-						devicesIndicies[i] = songRenderer->readInt();
+						devicesIndicies[i] = ds.ReadUInt32();
 					}
 				}
 
-				midiLaneId = songRenderer->readInt();
+				midiLaneId = ds.ReadUInt32();
 
-				numAutomations = songRenderer->readInt();
+				numAutomations = ds.ReadUInt32();
 				if (numAutomations)
 				{
 					automations = new Automation * [numAutomations];
 					for (int i = 0; i < numAutomations; i++)
 					{
-						int deviceIndex = songRenderer->readInt();
-						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]]);
+						int deviceIndex = ds.ReadUInt32();
+						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]], ds);
 					}
 				}
 
@@ -432,19 +432,19 @@ namespace WaveSabrePlayerLib
 			class Automation
 			{
 			public:
-				Automation(SongRenderer2* songRenderer, WaveSabreCore::Device* device)
+				Automation(SongRenderer2* songRenderer, WaveSabreCore::Device* device, WaveSabreCore::M7::Deserializer& ds)
 				{
 					this->device = device;
-					paramId = songRenderer->readInt();
-					numPoints = songRenderer->readInt();
+					paramId = ds.ReadUInt32();
+					numPoints = ds.ReadUInt32();
 					points = new Point[numPoints];
 					int lastPointTime = 0;
 					for (int i = 0; i < numPoints; i++)
 					{
-						int absTime = lastPointTime + songRenderer->readInt();
+						int absTime = lastPointTime + ds.ReadUInt32();
 						points[i].TimeStamp = absTime;
 						lastPointTime = absTime;
-						points[i].Value = (float)((double)songRenderer->readByte() / 255.0);
+						points[i].Value = (float)ds.ReadUByte() / 255.0f;
 					}
 					samplePos = 0;
 					pointIndex = 0;
@@ -518,58 +518,59 @@ namespace WaveSabrePlayerLib
 		{
 			//gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
 
-			songBlobPtr = song->blob;
+			//songBlobPtr = song->blob;
+			WaveSabreCore::M7::Deserializer ds{ (const uint8_t*)song->blob };
 
-			bpm = readInt();
-			sampleRate = readInt();
-			length = readDouble();
+			bpm = ds.ReadUInt32();
+			sampleRate = ds.ReadUInt32();
+			length = ds.ReadDouble();
 
-			numDevices = readInt();
+			numDevices = ds.ReadUInt32();
 			devices = new WaveSabreCore::Device * [numDevices];
 			for (int i = 0; i < numDevices; i++)
 			{
-				devices[i] = song->factory((DeviceId)readByte());
+				devices[i] = song->factory((DeviceId)ds.ReadUByte());
 				devices[i]->SetSampleRate((float)sampleRate);
 				devices[i]->SetTempo(bpm);
-				int chunkSize = readInt();
-				devices[i]->SetChunk((void*)songBlobPtr, chunkSize);
-				songBlobPtr += chunkSize;
+				int chunkSize = ds.ReadUInt32();
+				devices[i]->SetChunk((void*)ds.mpCursor, chunkSize);
+				ds.mpCursor += chunkSize;
 			}
 
-			numMidiLanes = readInt();
+			numMidiLanes = ds.ReadUInt32();
 			midiLanes = new MidiLane[numMidiLanes];
 			for (int i = 0; i < numMidiLanes; i++)
 			{
-				int numEvents = readInt();
+				int numEvents = ds.ReadUInt32();
 				midiLanes[i].numEvents = numEvents;
 				midiLanes[i].events = new Event[numEvents];
 
 				for (int m = 0; m < numEvents; m++)
 				{
 					// byte stream: [ee?-----]...
-					auto b1 = readByte();
+					auto b1 = ds.ReadUByte();
 					byte event = (b1 & 0xc0) >> 6;
 					auto& e = midiLanes[i].events[m];
 					e.Type = (EventType)event;
 					e.TimeStamp = b1 & 0x1f;
 					if (b1 & 0x20) {
 						// byte stream: [ee1-----][?-------]...
-						byte b2 = readByte();
+						byte b2 = ds.ReadUByte();
 						e.TimeStamp <<= 7;
 						e.TimeStamp |= b2 & 0x7f;
 						if (b2 & 0x80) {
 							// byte stream: [ee1-----][1-------][?-------]...
-							byte b3 = readByte();
+							byte b3 = ds.ReadUByte();
 							e.TimeStamp <<= 7;
 							e.TimeStamp |= b3 & 0x7f;
 							if (b3 & 0x80) {
 								// byte stream: [ee1-----][1-------][1-------][?-------]...
-								byte b4 = readByte();
+								byte b4 = ds.ReadUByte();
 								e.TimeStamp <<= 7;
 								e.TimeStamp |= b4 & 0x7f;
 								if (b4 & 0x80) {
 									// byte stream: [ee1-----][1-------][1-------][1-------][00------]
-									byte b5 = readByte();
+									byte b5 = ds.ReadUByte();
 									e.TimeStamp <<= 6;
 									e.TimeStamp |= b5;
 								}
@@ -580,24 +581,24 @@ namespace WaveSabrePlayerLib
 
 				for (int m = 0; m < numEvents; m++)
 				{
-					midiLanes[i].events[m].Note = readByte();
+					midiLanes[i].events[m].Note = ds.ReadUByte();
 				}
 
 				for (int m = 0; m < numEvents; m++)
 				{
 					if (midiLanes[i].events[m].Type == EventType::NoteOff)
 						continue; // note off events skip this byte.
-					midiLanes[i].events[m].Velocity = readByte();
+					midiLanes[i].events[m].Velocity = ds.ReadUByte();
 				}
 			}
 
-			numTracks = readInt();
+			numTracks = ds.ReadUInt32();
 			this->INodeList_NodeCount = numTracks;
 
 			this->tracks = (Track*)malloc(sizeof(Track) * numTracks);
 			for (int i = 0; i < numTracks; i++)
 			{
-				new (this->tracks + i) Track(this, song->factory);
+				new (this->tracks + i) Track(this, song->factory, ds);
 			}
 
 			// it's interesting to just create a thread for each track and let the system schedule (and therefore less synchronization in our threads). but it's not more efficient.
@@ -629,37 +630,37 @@ namespace WaveSabrePlayerLib
 			return length;
 		}
 
-		unsigned char readByte()
-		{
-			unsigned char ret = *songBlobPtr;
-			songBlobPtr++;
-			return ret;
-		}
+		//unsigned char readByte()
+		//{
+		//	unsigned char ret = *songBlobPtr;
+		//	songBlobPtr++;
+		//	return ret;
+		//}
 
-		int readInt()
-		{
-			int ret = *(int*)songBlobPtr;
-			songBlobPtr += sizeof(int);
-			return ret;
-		}
+		//int readInt()
+		//{
+		//	int ret = *(int*)songBlobPtr;
+		//	songBlobPtr += sizeof(int);
+		//	return ret;
+		//}
 
-		float readFloat()
-		{
-			float ret = *(float*)songBlobPtr;
-			songBlobPtr += sizeof(float);
-			return ret;
-		}
+		//float readFloat()
+		//{
+		//	float ret = *(float*)songBlobPtr;
+		//	songBlobPtr += sizeof(float);
+		//	return ret;
+		//}
 
-		double readDouble()
-		{
-			double ret = *(double*)songBlobPtr;
-			songBlobPtr += sizeof(double);
-			return ret;
-		}
+		//double readDouble()
+		//{
+		//	double ret = *(double*)songBlobPtr;
+		//	songBlobPtr += sizeof(double);
+		//	return ret;
+		//}
 
 		GraphProcessor* mpGraphRunner = nullptr;
 
-		const unsigned char* songBlobPtr;
+		//const unsigned char* songBlobPtr;
 		int songDataIndex;
 
 		int bpm;
