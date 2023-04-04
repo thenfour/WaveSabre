@@ -362,6 +362,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_TIMER: {
         UpdateStatusText();
         ::InvalidateRect(hwnd, NULL, FALSE);
+        return 0;
     }
     //case WM_ERASEBKGND: // this is actually not required now that i'm handling WM_PAINT and double-buffer
     //{
@@ -401,7 +402,7 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             gpPlayer->Reset();
             return 0;
         case VK_F8:
-            WaveSabrePlayerLib::gpGraphProfiler->Dump();
+            //WaveSabrePlayerLib::gpGraphProfiler->Dump();
             return 0;
 #endif
         }
