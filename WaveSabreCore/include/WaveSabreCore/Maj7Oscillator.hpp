@@ -9,9 +9,6 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		static constexpr int gSourcePitchSemisRange = 36;
-		static constexpr float gSourcePitchFineRangeSemis = 2;
-
 		static constexpr float gVarTrapezoidSoftSlope = 0.7f;
 		static constexpr float gVarTrapezoidHardSlope = 0.15f;
 		static constexpr float gOscillatorHeadroomScalar = 0.75f; // scale oscillator outputs down to make room for blepping etc.
@@ -95,10 +92,10 @@ namespace WaveSabreCore
 				mVolumeParam(paramCache[(int)volumeParamID], 0),
 				mAuxPanParam(paramCache[(int)auxPanParamID]),
 				mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFreqConfig),// gSourceFrequencyCenterHz, gSourceFrequencyScale),
-				mPitchSemisParam(paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange),
+				mPitchSemisParam(paramCache[(int)tuneSemisParamID], gSourcePitchSemisRange),
 				mPitchFineParam(paramCache[(int)tuneFineParamID]),
-				mKeyRangeMin(paramCache[(int)keyRangeMinParamID], 0, 127),
-				mKeyRangeMax(paramCache[(int)keyRangeMaxParamID], 0, 127)
+				mKeyRangeMin(paramCache[(int)keyRangeMinParamID], gKeyRangeCfg),
+				mKeyRangeMax(paramCache[(int)keyRangeMaxParamID], gKeyRangeCfg)
 			{
 			}
 
@@ -128,10 +125,10 @@ namespace WaveSabreCore
 				mVolumeParam(mLFOVolumeBacking, 0),
 				mAuxPanParam(mLFOAuxPanBacking),
 				mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFreqConfig),// gLFOFrequencyCenterHz, gLFOFrequencyScale),
-				mPitchSemisParam(mLFOPitchSemisParamValue, -gSourcePitchSemisRange, gSourcePitchSemisRange),
+				mPitchSemisParam(mLFOPitchSemisParamValue, gSourcePitchSemisRange),
 				mPitchFineParam(mLFOPitchFineParamValue),
-				mKeyRangeMin(mLFOKeyRangeMinBacking, 0, 127),
-				mKeyRangeMax(mLFOKeyRangeMaxBacking, 0, 127)
+				mKeyRangeMin(mLFOKeyRangeMinBacking, gKeyRangeCfg),
+				mKeyRangeMax(mLFOKeyRangeMaxBacking, gKeyRangeCfg)
 			{
 			}
 

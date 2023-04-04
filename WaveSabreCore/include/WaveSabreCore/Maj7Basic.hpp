@@ -104,6 +104,16 @@ namespace WaveSabreCore
             }
         };
 
+        struct IntParamConfig
+        {
+            const int mMinValInclusive;
+            const int mMaxValInclusive;
+            constexpr int GetDiscreteValueCount() const
+            {
+                return mMaxValInclusive - mMinValInclusive + 1;
+            }
+        };
+
 
         static constexpr real_t FloatEpsilon = 0.000001f;
         static constexpr float MIN_DECIBEL_GAIN = -60.0f;
@@ -134,9 +144,31 @@ namespace WaveSabreCore
 
         static constexpr FreqParamConfig gSyncFreqConfig{ gFilterFreqConfig };
 
+        static constexpr IntParamConfig gSourcePitchSemisRange{ -36, 36 };
+        static constexpr IntParamConfig gKeyRangeCfg { 0, 127 };
+        //static constexpr int gSourcePitchSemisRange = 36;
+        static constexpr float gSourcePitchFineRangeSemis = 2;
+
+        static constexpr int gPitchBendMaxRange = 24;
+        static constexpr int gUnisonoVoiceMax = 12;
+
+        static constexpr IntParamConfig gPitchBendCfg{ -gPitchBendMaxRange,gPitchBendMaxRange };
+        static constexpr IntParamConfig gUnisonoVoiceCfg { 1, gUnisonoVoiceMax };
+
+        static constexpr int gMaxMaxVoices = 64;
+        static constexpr IntParamConfig gMaxVoicesCfg{ 1, gMaxMaxVoices };
+
+        static constexpr int gGmDlsSampleCount = 495;
+        static constexpr IntParamConfig gGmDlsIndexParamCfg { -1, gGmDlsSampleCount };
+        //-1, WaveSabreCore::GmDls::NumSamples
+
+
         //static constexpr real_t gSyncFrequencyCenterHz = 1000;
         //static constexpr real_t gSyncFrequencyScale = 10;
         static constexpr real_t gFrequencyMulMax = 64;
+
+
+
 
         static constexpr size_t gModulationCount = 18;
 
@@ -650,13 +682,14 @@ namespace WaveSabreCore
         // stores an integral parameter as a 0-1 float param
         struct IntParam : Float01Param
         {
-            const int mMinValueInclusive;
-            const int mMaxValueInclusive;
+            IntParamConfig mCfg;
+            //const int mMinValueInclusive;
+            //const int mMaxValueInclusive;
             //const float mHalfMinusMinVal; // precalc to avoid an add
             int mCachedVal;
             //explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue);
-            explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive);
-            int GetDiscreteValueCount() const;
+            explicit IntParam(real_t& ref, const IntParamConfig& cfg);
+//            int GetDiscreteValueCount() const;
             // we want to split the float 0-1 range into equal portions. so if you have 3 values (0 - 2 inclusive),
             //     0      1        2
             // |------|-------|-------|
@@ -679,8 +712,9 @@ namespace WaveSabreCore
         struct EnumParam : IntParam
         {
             static constexpr size_t MaxItems = 2023;
+            static constexpr IntParamConfig gEnumIntCfg{ 0, MaxItems };
             T mCachedVal;
-            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, 0, MaxItems)
+            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, gEnumIntCfg)
             {
                 CacheValue();
             }

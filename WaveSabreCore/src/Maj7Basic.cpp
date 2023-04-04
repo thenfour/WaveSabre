@@ -411,30 +411,31 @@ namespace WaveSabreCore
 		//{
 		//    SetIntValue(initialValue);
 		//}
-		IntParam::IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive) :
+		IntParam::IntParam(real_t& ref, const IntParamConfig& cfg) :
 			Float01Param(ref),
-			mMinValueInclusive(minValueInclusive),
-			mMaxValueInclusive(maxValueInclusive)//,
+			mCfg(cfg)
+			//mMinValueInclusive(minValueInclusive),
+			//mMaxValueInclusive(maxValueInclusive)//,
 			//mHalfMinusMinVal(0.5f - minValueInclusive)
 		{
 			CacheValue();
 		}
 
-		int IntParam::GetDiscreteValueCount() const {
-			return mMaxValueInclusive - mMinValueInclusive + 1;
-		}
+		//int IntParam::GetDiscreteValueCount() const {
+		//	return mMaxValueInclusive - mMinValueInclusive + 1;
+		//}
 		// we want to split the float 0-1 range into equal portions. so if you have 3 values (0 - 2 inclusive),
 		//     0      1        2
 		// |------|-------|-------|
 		// 0     .33     .66     1.00
 		int IntParam::GetIntValue() const {
-			int c = GetDiscreteValueCount();
+			int c = mCfg.GetDiscreteValueCount();
 			int r = (int)(mParamValue * c);
 			r = math::ClampI(r, 0, c - 1);
-			return r + mMinValueInclusive;
+			return r + mCfg.mMinValInclusive;
 		}
 		void IntParam::SetIntValue(int val) {
-			int c = GetDiscreteValueCount();
+			int c = mCfg.GetDiscreteValueCount();
 			//if (val == this->mMinValueInclusive) {
 			//	mParamValue = 0; // helps compression!
 			//}
@@ -442,7 +443,7 @@ namespace WaveSabreCore
 			//	mParamValue = 1; // helps compression!
 			//} else {
 				real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
-				p += 0.5f - mMinValueInclusive;
+				p += 0.5f - mCfg.mMinValInclusive;
 				p /= c;
 				mParamValue = p;
 			//}

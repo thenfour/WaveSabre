@@ -10,11 +10,10 @@
 #include <WaveSabreCore/Helpers.h>
 #include "SynthDevice.h"
 #include <algorithm>
+#include <WaveSabreCore/Maj7Basic.hpp>
 
 namespace WaveSabreCore
 {
-	static constexpr int gMaxMaxVoices = 64;
-
 	class Maj7SynthDevice : public Device
 	{
 	public:
@@ -38,7 +37,7 @@ namespace WaveSabreCore
 		void SetMaxVoices(int x)
 		{
 			AllNotesOff(); // helps make things predictable, reduce cases
-			for (int i = 0; i < gMaxMaxVoices; i++)
+			for (int i = 0; i < M7::gMaxMaxVoices; i++)
 			{
 				mVoices[i]->Kill();
 			}
@@ -342,7 +341,7 @@ namespace WaveSabreCore
 
 		NoteInfo mNoteStates[maxActiveNotes] ; // index = midi note value
 
-		Voice* mVoices[gMaxMaxVoices] = { 0 }; // allow child class to instantiate derived voice classes; don't template due to bloat.
+		Voice* mVoices[M7::gMaxMaxVoices] = { 0 }; // allow child class to instantiate derived voice classes; don't template due to bloat.
 		VoiceMode mVoiceMode = VoiceMode::Polyphonic;
 
 		Event mEvents[maxEvents];

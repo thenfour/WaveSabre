@@ -38,6 +38,13 @@ namespace WaveSabreCore
 
 			float* GetOffsetParamCache() { return mParamCache + mBaseParamID; }
 
+			template<typename Toffset>
+			int GetParamIndex(Toffset offset) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				return mBaseParamID + (int)offset;
+			}
+
 			float GetRawVal__(int offset) const;
 			template<typename T>
 			float GetRawVal(T offset) const {
@@ -66,18 +73,20 @@ namespace WaveSabreCore
 				return GetBoolValue__((int)offset);
 			}
 
-			int GetIntValue__(int offset, int minValIncl, int maxValIncl) const;
+			int GetIntValue__(int offset, const IntParamConfig& cfg) const;
 			template<typename T>
-			int GetIntValue(T offset, int minValIncl, int maxValIncl) const {
+			int GetIntValue(T offset, const IntParamConfig& cfg) const {
 				static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
-				return GetIntValue__((int)offset, minValIncl, maxValIncl);
+				return GetIntValue__((int)offset, cfg);
 			}
+
+			static constexpr IntParamConfig gEnumIntConfig{ 0, MaxEnumItems };
 
 			template<typename Tenum, typename Toffset>
 			Tenum GetEnumValue(Toffset offset) const {
 				static_assert(std::is_enum_v<Tenum>, "");
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				return (Tenum)GetIntValue__((int)offset, 0, MaxEnumItems);
+				return (Tenum)GetIntValue__((int)offset, gEnumIntConfig);
 			}
 
 			static constexpr real_t gEnvTimeCenterValue = 375; // the MS at 0.5 param value.
@@ -126,11 +135,11 @@ namespace WaveSabreCore
 				SetRawVal__((int)offset, v ? 1.0f : 0.0f);
 			}
 
-			void SetIntValue__(int offset, int minValIncl, int maxValIncl, int val);
+			void SetIntValue__(int offset, const IntParamConfig& cfg, int val);
 			template<typename T>
-			void SetIntValue(T offset, int minValIncl, int maxValIncl, int val) {
+			void SetIntValue(T offset, const IntParamConfig& cfg, int val) {
 				static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
-				SetIntValue__((int)offset, minValIncl, maxValIncl, val);
+				SetIntValue__((int)offset, cfg, val);
 			}
 
 			template<typename Tenum, typename Toffset>
@@ -138,7 +147,7 @@ namespace WaveSabreCore
 			{
 				static_assert(std::is_enum_v<Tenum>, "");
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				SetIntValue__((int)offset, 0, MaxEnumItems, (int)val);
+				SetIntValue__((int)offset, gEnumIntConfig, (int)val);
 			}
 			void SetN11Value__(int offset, float v) const;
 			template<typename T>

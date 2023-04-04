@@ -255,8 +255,6 @@ namespace WaveSabreCore
 				Count,
 			};
 
-			static constexpr int gPitchBendMaxRange = 24;
-			static constexpr int gUnisonoVoiceMax = 12;
 			static constexpr size_t gOscillatorCount = 4;
 			static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
 			static constexpr size_t gSamplerCount = 4;
@@ -281,8 +279,8 @@ namespace WaveSabreCore
 			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
 
 			EnumParam<VoiceMode> mVoicingModeParam{ mParamCache[(int)ParamIndices::VoicingMode], WaveSabreCore::VoiceMode::Count};
-			IntParam mUnisonoVoicesParam{ mParamCache[(int)ParamIndices::Unisono], 1, gUnisonoVoiceMax };
-			IntParam mMaxVoicesParam{ mParamCache[(int)ParamIndices::MaxVoices], 1, gMaxMaxVoices };
+			IntParam mUnisonoVoicesParam{ mParamCache[(int)ParamIndices::Unisono], gUnisonoVoiceCfg };
+			IntParam mMaxVoicesParam{ mParamCache[(int)ParamIndices::MaxVoices], gMaxVoicesCfg };
 
 			VolumeParam mMasterVolume{ mParamCache[(int)ParamIndices::MasterVolume], gMasterVolumeMaxDb };
 
@@ -292,7 +290,7 @@ namespace WaveSabreCore
 
 			Float01Param mFMBrightness{ mParamCache[(int)ParamIndices::FMBrightness] };
 
-			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], -gPitchBendMaxRange, gPitchBendMaxRange };
+			IntParam mPitchBendRange{ mParamCache[(int)ParamIndices::PitchBendRange], gPitchBendCfg };
 
 			EnumParam<AuxRoute> mAuxRoutingParam{ mParamCache[(int)ParamIndices::AuxRouting], AuxRoute::Count };
 			FloatN11Param mAuxWidth{ mParamCache[(int)ParamIndices::AuxWidth] };

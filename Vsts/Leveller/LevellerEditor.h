@@ -23,10 +23,10 @@ public:
 			if (WSBeginTabItem(label)) {
 
 				float f1 = 0, f2 = 0;
-				M7::FrequencyParam fp {f1, f2,M7::gFilterCenterFrequency, M7::gFilterFrequencyScale };
+				M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };// :gFilterCenterFrequency, M7::gFilterFrequencyScale};
 				fp.SetFrequencyAssumingNoKeytracking(defaultFreqParamHz);
 
-				Maj7ImGuiParamFrequency((int)paramOffset + (int)LevellerBandParamOffsets::Freq, -1, "Freq", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, f1);
+				Maj7ImGuiParamFrequency((int)paramOffset + (int)LevellerBandParamOffsets::Freq, -1, "Freq", M7::gFilterFreqConfig, f1);
 				if (showGain) {
 					Maj7ImGuiParamVolume((int)paramOffset + (int)LevellerBandParamOffsets::Gain, "Gain", gLevellerVolumeMaxDb, 0);
 				}

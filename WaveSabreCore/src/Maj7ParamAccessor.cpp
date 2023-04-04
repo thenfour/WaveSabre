@@ -21,19 +21,19 @@ namespace WaveSabreCore
 		float ParamAccessor::GetBoolValue__(int offset) const {
 			return (GetRawVal__(offset) > 0.5f);
 		}
-		int ParamAccessor::GetIntValue__(int offset, int minValIncl, int maxValIncl) const {
-			int c = maxValIncl - minValIncl + 1;
+		int ParamAccessor::GetIntValue__(int offset, const IntParamConfig& cfg) const {
+			int c = cfg.GetDiscreteValueCount();// maxValIncl - minValIncl + 1;
 			int r = (int)(GetRawVal__(offset) * c);
 			r = math::ClampI(r, 0, c - 1);
-			return r + minValIncl;
+			return r + cfg.mMinValInclusive;
 		}
 		void ParamAccessor::SetRawVal__(int offset, float v) const {
 			mParamCache[mBaseParamID + offset] = v;
 		}
-		void ParamAccessor::SetIntValue__(int offset, int minValIncl, int maxValIncl, int val) {
-			int c = maxValIncl - minValIncl + 1;
+		void ParamAccessor::SetIntValue__(int offset, const IntParamConfig& cfg, int val) {
+			int c = cfg.GetDiscreteValueCount();
 			real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
-			p += 0.5f - minValIncl;
+			p += 0.5f - cfg.mMinValInclusive;
 			p /= c;
 			SetRawVal__(offset, p);
 		}
@@ -43,8 +43,8 @@ namespace WaveSabreCore
 
 		float ParamAccessor::GetEnvTimeMilliseconds__(int offset, float mod) const
 		{
-			float param = this->Get01Value__(offset, mod); // apply current modulation value.
-			//param = math::clamp01(param);
+			float param = this->GetRawVal__(offset) + mod; // apply current modulation value.
+			param = math::clamp01(param);
 			param -= 0.5f;       // -.5 to .5
 			param *= gEnvTimeRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
 			float fact = math::pow2_N16_16(param);

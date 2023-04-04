@@ -208,38 +208,70 @@ namespace WaveSabreCore
 	{
 		static inline void GenerateDefaults(ModulationSpec* m)
 		{
-			m->mEnabled.SetBoolValue(false);
-			m->mSource.SetEnumValue(ModSource::None);
-			for (auto& d : m->mDestinations) d.SetEnumValue(ModDestination::None);
-			for (auto& d : m->mScales) d.SetN11Value(0.75f);
+			m->mParams.SetBoolValue(ModParamIndexOffsets::Enabled, false);
+			//m->mEnabled.SetBoolValue(false);
+			m->mParams.SetEnumValue(ModParamIndexOffsets::Source, ModSource::None);
+			//m->mSource.SetEnumValue(ModSource::None);
+
+			for (size_t i = 0; i < std::size(m->mDestinations); ++i) {
+				m->mParams.SetEnumValue((int)ModParamIndexOffsets::Destination1 + i, ModDestination::None);
+			}
+
+			//for (auto& d : m->mDestinations) d.SetEnumValue(ModDestination::None);
+			
+			for (size_t i = 0; i < std::size(m->mScales); ++i) {
+				m->mParams.SetN11Value((int)ModParamIndexOffsets::Scale1 + i, 0.75f);
+			}
+
+			//for (auto& d : m->mScales) d.SetN11Value(0.75f);
 			m->mCurve.SetN11Value(0);
-			m->mAuxEnabled.SetBoolValue(false);
-			m->mAuxSource.SetEnumValue(ModSource::None);
+			m->mParams.SetBoolValue(ModParamIndexOffsets::AuxEnabled, false);
+			//m->mAuxEnabled.SetBoolValue(false);
+			
+			m->mParams.SetEnumValue(ModParamIndexOffsets::AuxSource, ModSource::None);
+			//m->mAuxSource.SetEnumValue(ModSource::None);
 			m->mAuxCurve.SetN11Value(0);
-			m->mAuxAttenuation.SetParamValue(1);
-			m->mValueMapping.SetEnumValue(ModValueMapping::NoMapping);
-			m->mAuxValueMapping.SetEnumValue(ModValueMapping::NoMapping);
+			m->mParams.Set01Val(ModParamIndexOffsets::AuxAttenuation, 1);
+			//m->mAuxAttenuation.SetParamValue(1);
+
+			m->mParams.SetEnumValue(ModParamIndexOffsets::ValueMapping, ModValueMapping::NoMapping);
+			m->mParams.SetEnumValue(ModParamIndexOffsets::AuxValueMapping, ModValueMapping::NoMapping);
 		}
 
 		static inline void GenerateDefaults_Env(EnvelopeNode* n)
 		{
-			n->mDelayTime.SetParamValue(0);
-			n->mAttackTime.SetParamValue(0.05f);
-			n->mAttackCurve.SetN11Value(0.5f);
-			n->mHoldTime.SetParamValue(0);
-			n->mDecayTime.SetParamValue(0.5f);
-			n->mDecayCurve.SetN11Value(-0.5f);
-			n->mSustainLevel.SetParamValue(0.4f);
-			n->mReleaseTime.SetParamValue(0.2f);
-			n->mReleaseCurve.SetN11Value(-0.5f);
-			n->mLegatoRestart.SetBoolValue(true); // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
+			n->mParams.Set01Val(M7::EnvParamIndexOffsets::DelayTime, 0);
+			n->mParams.Set01Val(M7::EnvParamIndexOffsets::AttackTime, 0.05f);
+			n->mParams.SetN11Value(M7::EnvParamIndexOffsets::AttackCurve, 0.5f);
+			n->mParams.Set01Val(M7::EnvParamIndexOffsets::HoldTime, 0);
+			n->mParams.Set01Val(M7::EnvParamIndexOffsets::DecayTime, 0.5f);
+			n->mParams.SetN11Value(M7::EnvParamIndexOffsets::DecayCurve, -0.5f);
+			n->mParams.Set01Val(M7::EnvParamIndexOffsets::SustainLevel, 0.4f);
+			n->mParams.Set01Val(M7::EnvParamIndexOffsets::ReleaseTime, 0.2f);
+			n->mParams.SetN11Value(M7::EnvParamIndexOffsets::ReleaseCurve, -0.5f);
+			n->mParams.SetBoolValue(M7::EnvParamIndexOffsets::LegatoRestart, true);
+
+			//n->mDelayTime.SetParamValue(0);
+			//n->mAttackTime.SetParamValue(0.05f);
+			//n->mAttackCurve.SetN11Value(0.5f);
+			//n->mHoldTime.SetParamValue(0);
+			//n->mDecayTime.SetParamValue(0.5f);
+			//n->mDecayCurve.SetN11Value(-0.5f);
+			//n->mSustainLevel.SetParamValue(0.4f);
+			//n->mReleaseTime.SetParamValue(0.2f);
+			//n->mReleaseCurve.SetN11Value(-0.5f);
+			//n->mLegatoRestart.SetBoolValue(true); // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
 		}
 
 		static inline void GenerateDefaults(AuxDevice* p)
 		{
-			p->mEnabledParam.SetBoolValue(false);
-			p->mLink.SetEnumValue(p->mLinkToSelf);// (paramCache_Offset[(int)AuxParamIndexOffsets::Link], AuxLink::Count),
-			p->mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
+			p->mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, false);
+			//p->mEnabledParam.SetBoolValue(false);
+			p->mParams.SetEnumValue(AuxParamIndexOffsets::Link, p->mLinkToSelf);
+			//p->mLink.SetEnumValue(p->mLinkToSelf);// (paramCache_Offset[(int)AuxParamIndexOffsets::Link], AuxLink::Count),
+			p->mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::None);
+			//);
+			//p->mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
 		}
 
 		static inline void GenerateDefaults_Source(ISoundSourceDevice* p)
@@ -387,14 +419,17 @@ namespace WaveSabreCore
 			// AND the modulation destination is not some disabled thing. The VAST majority of these "disabled destinations" would just be the hidden volume / pre-fm volume source param,
 			// so to simplify the logic just check for that.
 			for (auto& m : p->mModulations) {
-				if (!m.mEnabled.GetBoolValue()) {
+				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {// m.mEnabled.GetBoolValue()) {
 					continue;
 				}
-				if ((m.mSource.GetEnumValue() == modSource) || (m.mAuxEnabled.GetBoolValue() && (m.mAuxSource.GetEnumValue() == modSource))) {
+				auto src__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
+				auto auxEnabled__ = m.mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+				auto auxModSource__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
+				if ((src__ == modSource) || (auxEnabled__ && (auxModSource__ == modSource))) {
 					// it's referenced by aux or main source. check that the destination is enabled.
 					for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
 					{
-						auto dest = m.mDestinations[id].GetEnumValue();
+						auto dest = m.mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + id); // m.mDestinations[id].GetEnumValue();
 						bool isHiddenVolumeDest = false;
 						for (auto& src : p->mSources)
 						{
@@ -426,10 +461,14 @@ namespace WaveSabreCore
 			// that's it. we don't nede to be any more specific than that because there are no default modspecs that contain lfos.
 			// therefore if it's enabled we assume the user means it.
 			for (auto& m : p->mModulations) {
-				if (!m.mEnabled.GetBoolValue()) {
+				auto menabled = m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled);
+				if (!menabled) {// m.mEnabled.GetBoolValue()) {
 					continue;
 				}
-				if ((m.mSource.GetEnumValue() == modSource) || (m.mAuxEnabled.GetBoolValue() && (m.mAuxSource.GetEnumValue() == modSource))) {
+				auto src__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
+				auto auxEnabled__ = m.mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+				auto auxModSource__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
+				if ((src__ == modSource) || (auxEnabled__ && (auxModSource__ == modSource))) {
 					// it's referenced by aux or main source.
 					return true;
 				}
@@ -501,6 +540,18 @@ int compressedSize = 0;
 			}
 		}
 
+		template<typename Tenum, typename Toffset>
+		static inline void OptimizeEnumParam(Maj7* p, ParamAccessor& params, Toffset offset)
+		{
+			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
+			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
+
+			ParamAccessor dp{ p->mDefaultParamCache, params.mBaseParamID };
+			if (dp.GetEnumValue<Tenum>(offset) == params.GetEnumValue<Tenum>(offset)) {
+				params.SetRawVal(offset, dp.GetRawVal(offset));
+			}
+		}
+
 		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
 		// using the default value when the effective value is the same.
 		template<typename Tbase, typename Toffset>
@@ -510,18 +561,31 @@ int compressedSize = 0;
 			if (paramID < 0) return; // invalid IDs exist for example in LFo
 			int liveIntValue = param.GetIntValue();
 			float defaultParamVal = p->mDefaultParamCache[paramID];
-			IntParam defParam{ defaultParamVal, param.mMinValueInclusive, param.mMaxValueInclusive };
+			IntParam defParam{ defaultParamVal, param.mCfg };
 			if (liveIntValue == defParam.GetIntValue()) {
 				param.SetParamValue(defaultParamVal);
+			}
+		}
+
+
+		template<typename Toffset>
+		static inline void OptimizeIntParam(Maj7* p, ParamAccessor& params, const IntParamConfig& cfg, Toffset offset)
+		{
+			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
+			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
+
+			ParamAccessor dp{ p->mDefaultParamCache, params.mBaseParamID };
+			if (dp.GetIntValue(offset, cfg) == params.GetIntValue(offset, cfg)) {
+				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
 		}
 
 		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
 		// using the default value when the effective value is the same.
 		template<typename Tbase, typename Toffset>
-		static inline void OptimizeBoolParam(Maj7* p, BoolParam& param, Tbase baseParam, Toffset paramOffset)
+		static inline void OptimizeBoolParam(Maj7* p, BoolParam& param, Tbase baseParam, Toffset offset)
 		{
-			int paramID = (int)baseParam + (int)paramOffset;
+			int paramID = (int)baseParam + (int)offset;
 			if (paramID < 0) return; // invalid IDs exist for example in LFo
 			bool liveBoolValue = param.GetBoolValue();
 			float defaultParamVal = p->mDefaultParamCache[paramID];
@@ -531,20 +595,39 @@ int compressedSize = 0;
 			}
 		}
 
+		template<typename Toffset>
+		static inline void OptimizeBoolParam(Maj7* p, ParamAccessor& params, Toffset offset)
+		{
+			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
+			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
+			//bool liveBoolValue = params.GetBoolValue(offset);// param.GetBoolValue();
+			ParamAccessor dp{ p->mDefaultParamCache, params.mBaseParamID };
+			if (dp.GetBoolValue(offset) == params.GetBoolValue(offset)) {
+				params.SetRawVal(offset, dp.GetRawVal(offset));
+			}
+			////BoolParam defParam{ defaultParamVal };
+			//if (liveBoolValue == defParam.GetBoolValue()) {
+			//	float defaultParamVal = p->mDefaultParamCache[paramID];
+			//	param.SetRawParamValue(defaultParamVal);
+			//}
+		}
+
+
 		static inline void OptimizeEnvelope(Maj7* p, EnvelopeNode& env)
 		{
-			OptimizeBoolParam(p, env.mLegatoRestart, env.mParamBaseID, EnvParamIndexOffsets::LegatoRestart);
-			OptimizeEnumParam(p, env.mMode, EnvelopeMode::Count, env.mParamBaseID, EnvParamIndexOffsets::Mode);
+			OptimizeBoolParam(p, env.mParams, EnvParamIndexOffsets::LegatoRestart);
+			OptimizeEnumParam<EnvelopeMode>(p, env.mParams, EnvParamIndexOffsets::Mode);
 
 			if (!IsEnvelopeInUse(p, env.mMyModSource)) {
-				memcpy(p->mParamCache + (int)env.mParamBaseID, gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+				memcpy(env.mParams.GetOffsetParamCache(), gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
 				return;
 			}
-			if (env.mMode.GetEnumValue() == EnvelopeMode::OneShot)
+			if (env.mParams.GetEnumValue<EnvelopeMode>(EnvParamIndexOffsets::Mode) == EnvelopeMode::OneShot)
 			{
-				env.mSustainLevel.SetParamValue(p->mParamCache[(size_t)env.mParamBaseID + (size_t)EnvParamIndexOffsets::SustainLevel]);
-				env.mReleaseTime.SetParamValue(p->mParamCache[(size_t)env.mParamBaseID + (size_t)EnvParamIndexOffsets::ReleaseTime]);
-				env.mReleaseCurve.SetParamValue(p->mParamCache[(size_t)env.mParamBaseID + (size_t)EnvParamIndexOffsets::ReleaseCurve]);
+				ParamAccessor defaults{ p->mDefaultParamCache, env.mParams.mBaseParamID };
+				env.mParams.Set01Val(EnvParamIndexOffsets::SustainLevel, defaults.GetRawVal(EnvParamIndexOffsets::SustainLevel));
+				env.mParams.Set01Val(EnvParamIndexOffsets::ReleaseTime, defaults.GetRawVal(EnvParamIndexOffsets::ReleaseTime));
+				env.mParams.Set01Val(EnvParamIndexOffsets::ReleaseCurve, defaults.GetRawVal(EnvParamIndexOffsets::ReleaseCurve));
 			}
 		}
 
@@ -613,37 +696,51 @@ int compressedSize = 0;
 
 			// modulations.
 			// optimize hard because there are so many modulations and there's always a lot of fiddling happening here.
-			for (auto& m : p->mModulations) {
-				if (!m.mEnabled.GetBoolValue()) {
+			for (auto& m : p->mModulations)
+			{
+				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {
 					memcpy(p->mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
 				}
 
 				// still, try and optimize the aux part. 
-				if (!m.mAuxEnabled.GetBoolValue()) {
-					m.mAuxAttenuation.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxAttenuation]);
-					m.mAuxCurve.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxCurve]);
-					m.mAuxSource.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxSource]);
-					m.mAuxValueMapping.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxValueMapping]);
+				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled)) {
+
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxAttenuation, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxAttenuation]);
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxCurve, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxCurve]);
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxSource, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxSource]);
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxValueMapping, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxValueMapping]);
+
+					//m.mAuxAttenuation.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxAttenuation]);
+					//m.mAuxCurve.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxCurve]);
+					//m.mAuxSource.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxSource]);
+					//m.mAuxValueMapping.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxValueMapping]);
 				}
 				// set destination scales
-				for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id) {
-					if (m.mDestinations[id].GetEnumValue() != ModDestination::None)
+				for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
+				{
+					if (m.mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + id) /* m.mDestinations[id].GetEnumValue() */ != ModDestination::None)
+						//if (m.mDestinations[id].GetEnumValue() != ModDestination::None)
+					{
 						continue;
-					m.mScales[id].SetParamValue(p->mDefaultParamCache[id + (size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::Scale1]);
+					}
+
+					m.mParams.SetRawVal((int)ModParamIndexOffsets::Destination1 + id, gDefaultModSpecParams[(int)ModParamIndexOffsets::Destination1 + id]);
+
+					//m.mScales[id].SetParamValue(p->mDefaultParamCache[id + (size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::Scale1]);
 				}
 
-				OptimizeBoolParam(p, m.mEnabled, m.mBaseParamID, ModParamIndexOffsets::Enabled);
-				OptimizeBoolParam(p, m.mAuxEnabled, m.mBaseParamID, ModParamIndexOffsets::AuxEnabled);
+				OptimizeBoolParam(p, m.mParams, ModParamIndexOffsets::Enabled);
+				OptimizeBoolParam(p, m.mParams, ModParamIndexOffsets::AuxEnabled);
 
-				OptimizeEnumParam(p, m.mSource, ModSource::Count, m.mBaseParamID, ModParamIndexOffsets::Source);
-				OptimizeEnumParam(p, m.mAuxSource, ModSource::Count, m.mBaseParamID, ModParamIndexOffsets::AuxSource);
-				OptimizeEnumParam(p, m.mValueMapping, ModValueMapping::Count, m.mBaseParamID, ModParamIndexOffsets::ValueMapping);
-				OptimizeEnumParam(p, m.mAuxValueMapping, ModValueMapping::Count, m.mBaseParamID, ModParamIndexOffsets::AuxValueMapping);
+				OptimizeEnumParam< ModSource>(p, m.mParams, ModParamIndexOffsets::Source);
+				OptimizeEnumParam < ModSource>(p, m.mParams, ModParamIndexOffsets::AuxSource);
+				OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::ValueMapping);
+				OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::AuxValueMapping);
 
-				OptimizeEnumParam(p, m.mDestinations[0], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination1);
-				OptimizeEnumParam(p, m.mDestinations[1], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination2);
-				OptimizeEnumParam(p, m.mDestinations[2], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination3);
-				OptimizeEnumParam(p, m.mDestinations[3], ModDestination::Count, m.mBaseParamID, ModParamIndexOffsets::Destination4);
+				OptimizeEnumParam< ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination1);
+				OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination2);
+				OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination3);
+				OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination4);
 			}
 
 			if (aggressive) {

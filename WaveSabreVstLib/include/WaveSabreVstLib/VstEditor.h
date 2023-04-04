@@ -46,7 +46,7 @@ namespace WaveSabreVstLib
 		auto ptr = gmDls + GmDls::WaveListOffset;
 
 		// Walk wave pool entries
-		for (int i = 0; i < GmDls::NumSamples; i++)
+		for (int i = 0; i < M7::gGmDlsSampleCount; i++)
 		{
 			// Walk wave list
 			auto waveListTag = *((unsigned int*)ptr); // Should be 'LIST'
@@ -387,8 +387,8 @@ namespace WaveSabreVstLib
 			float mBacking;
 			WaveSabreCore::M7::IntParam mParam;
 
-			Maj7IntConverter(int v_min, int v_max) :
-				mParam(mBacking, v_min, v_max)
+			Maj7IntConverter(const M7::IntParamConfig& cfg) :
+				mParam(mBacking, cfg)
 			{
 			}
 
@@ -411,7 +411,7 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::IntParam mParam;
 
 			Maj7MidiNoteConverter() :
-				mParam(mBacking, 0, 127)
+				mParam(mBacking, M7::gKeyRangeCfg)
 			{
 			}
 
@@ -434,8 +434,8 @@ namespace WaveSabreVstLib
 			WaveSabreCore::M7::FrequencyParam mParam;
 			VstInt32 mKTParamID;
 
-			Maj7FrequencyConverter(M7::real_t centerFreq, M7::real_t scale, VstInt32 ktParamID /*pass -1 if no KT*/) :
-				mParam(mBacking, mBackingKT, centerFreq, scale),
+			Maj7FrequencyConverter(M7::FreqParamConfig cfg, VstInt32 ktParamID /*pass -1 if no KT*/) :
+				mParam(mBacking, mBackingKT, cfg),
 				mKTParamID(ktParamID)
 			{
 			}
@@ -867,29 +867,29 @@ namespace WaveSabreVstLib
 			}
 		}
 
-		void Maj7ImGuiParamInt(VstInt32 paramID, const char* label, int v_min, int v_max, int v_defaultScaled, int v_centerScaled) {
+		void Maj7ImGuiParamInt(VstInt32 paramID, const char* label, const M7::IntParamConfig& cfg, int v_defaultScaled, int v_centerScaled) {
 			WaveSabreCore::M7::real_t tempVal;
-			M7::IntParam p{ tempVal , v_min, v_max };
+			M7::IntParam p{ tempVal , cfg };
 			p.SetIntValue(v_defaultScaled);
 			float defaultParamVal = p.Get01Value();
 			p.SetIntValue(v_centerScaled);
 			float centerParamVal = p.Get01Value();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
-			Maj7IntConverter conv{ v_min, v_max };
+			Maj7IntConverter conv{ cfg };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
 		}
 
-		void Maj7ImGuiParamFrequency(VstInt32 paramID, VstInt32 ktParamID, const char* label, M7::real_t centerFreq, M7::real_t scale, M7::real_t defaultParamValue) {
+		void Maj7ImGuiParamFrequency(VstInt32 paramID, VstInt32 ktParamID, const char* label, M7::FreqParamConfig cfg, M7::real_t defaultParamValue) {
 			M7::real_t tempVal = 0;
 			M7::real_t tempValKT = 0;
-			M7::FrequencyParam p{ tempVal, tempValKT, centerFreq, scale};
+			M7::FrequencyParam p{ tempVal, tempValKT, cfg };
 			p.mValue.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
-			Maj7FrequencyConverter conv{ centerFreq, scale, ktParamID };
+			Maj7FrequencyConverter conv{ cfg, ktParamID };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, 0, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
@@ -898,7 +898,7 @@ namespace WaveSabreVstLib
 
 		void Maj7ImGuiParamMidiNote(VstInt32 paramID, const char* label, int defaultVal, int centerVal) {
 			M7::real_t tempVal = 0;
-			M7::IntParam p{ tempVal, 0, 127 };
+			M7::IntParam p{ tempVal, M7::gKeyRangeCfg };
 			p.SetIntValue(defaultVal);
 			float defaultParamVal = tempVal;
 			p.SetIntValue(centerVal);

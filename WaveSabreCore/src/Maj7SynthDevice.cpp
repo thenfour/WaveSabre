@@ -112,7 +112,7 @@ namespace WaveSabreCore
 
 	void Maj7SynthDevice::AllNotesOff()
 	{
-		for (int i = 0; i < gMaxMaxVoices; i++)
+		for (int i = 0; i < M7::gMaxMaxVoices; i++)
 		{
 			if (!mVoices[i]) continue;
 			mVoices[i]->NoteOff();
@@ -155,7 +155,7 @@ namespace WaveSabreCore
 	void Maj7SynthDevice::SetVoiceMode(VoiceMode voiceMode)
 	{
 		AllNotesOff();
-		for (int i = 0; i < gMaxMaxVoices; i++)
+		for (int i = 0; i < M7::gMaxMaxVoices; i++)
 		{
 			mVoices[i]->Kill();
 		}

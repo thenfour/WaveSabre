@@ -16,6 +16,12 @@ void __cdecl WaveSabreFreeChunk(void* p)
 	M7::Serializer::FreeBuffer(p);
 }
 
+int __cdecl WaveSabreTestCompression(int inpSize, void* inpData)
+{
+	// implemented in maj7.dll
+	return 0;
+}
+
 
 
 AudioEffect *createEffectInstance(audioMasterCallback audioMaster)

@@ -505,9 +505,9 @@ public:
 		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mSamplerDevices[0].mBaseParamID);
 		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mModulations[0].mBaseParamID);
 		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFOs[0].mDevice.mBaseParamID);
-		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mOsc1AmpEnv.mParamBaseID);
+		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mOsc1AmpEnv.mParams.mBaseParamID);
 		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mBaseParamID);
-		GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mAuxDevices[0].mBaseParamID);
+		GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mAuxDevices[0].mParams.mBaseParamID);
 
 		ss << "  } // namespace M7" << std::endl;
 		ss << "} // namespace WaveSabreCore" << std::endl;
@@ -621,7 +621,7 @@ public:
 
 		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, -6.0f);
 		ImGui::SameLine();
-		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", 1, M7::Maj7::gUnisonoVoiceMax, 1, 0);
+		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);
 
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorDetune, "OscDetune##mst");
@@ -638,13 +638,13 @@ public:
 		//WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoShapeSpread, "UniShape##mst");
 
 		ImGui::SameLine(0, 60);
-		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", -M7::Maj7::gPitchBendMaxRange, M7::Maj7::gPitchBendMaxRange, 2, 0);
+		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", M7::gPitchBendCfg, 2, 0);
 		ImGui::SameLine();
 		Maj7ImGuiParamEnvTime((VstInt32)M7::ParamIndices::PortamentoTime, "Port##mst", 0.4f);
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "##portcurvemst", 0.0f, M7CurveRenderStyle::Rising);
 		ImGui::SameLine();
-		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::MaxVoices, "MaxVox", 1, gMaxMaxVoices, 24, 1);
+		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::MaxVoices, "MaxVox", M7::gMaxVoicesCfg, 24, 1);
 
 		static constexpr char const* const voiceModeCaptions[] = { "Poly", "Mono" };
 		ImGui::SameLine(0, 60);
@@ -926,15 +926,15 @@ public:
 			//ImGui::SameLine(); WaveformGraphic(waveformParam.GetEnumValue(), waveshapeParam.Get01Value());
 			//ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform");
 			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape");
-			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, M7::gFreqParamKTUnity);
+			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "KT", 0, 1, 1, 1);
-			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PitchFine, "FineTune", 0);
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::OscillatorDevice::gFrequencyMulMax, 1, 0);
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::gFrequencyMulMax, 1, 0);
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, "Phase", 0);
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
-			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::OscillatorDevice::gSyncFrequencyCenterHz, M7::OscillatorDevice::gSyncFrequencyScale, M7::gFreqParamKTUnity);
+			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::gSyncFreqConfig, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT", 0, 1, 1, 1);
 
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Aux pan", 0);
@@ -977,11 +977,11 @@ public:
 		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, &phaseCursor);
 
 		ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, "Shape");
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFrequencyCenterHz, M7::gLFOFrequencyScale, 0.4f);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFreqConfig, 0.4f);
 		ImGui::SameLine(0, 60); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase");
 		ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
 
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::gLFOLPCenterFrequency, M7::gLFOLPFrequencyScale, 0.5f);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::gLFOLPFreqConfig, 0.5f);
 
 		//}
 		ImGui::PopID();
@@ -1075,12 +1075,12 @@ public:
 		auto ret = std::string{ "Aux " } + std::to_string(iaux + 1);
 		if (a.IsLinkedExternally()) {
 			ret += " (*Aux ";
-			ret += std::to_string(a.mLink.GetIntValue() + 1);
+			ret += std::to_string((int)a.mParams.GetEnumValue<M7::AuxLink>(M7::AuxParamIndexOffsets::Link) + 1);
 			ret += ")###";
 			ret += idsuffix;
 			return ret;
 		}
-		switch (a.mEffectType.GetEnumValue())
+		switch (a.mParams.GetEnumValue<M7::AuxEffectType>(M7::AuxParamIndexOffsets::Type))// a.mEffectType.GetEnumValue())
 		{
 		case M7::AuxEffectType::BigFilter:
 			ret += " (Filter)";
@@ -1114,7 +1114,7 @@ public:
 			return;
 		}
 		char const* const* suffixes;
-		switch (a.mEffectType.GetEnumValue())
+		switch (a.mParams.GetEnumValue<M7::AuxEffectType>(M7::AuxParamIndexOffsets::Type))
 		{
 		case M7::AuxEffectType::BigFilter:
 		{
@@ -1212,7 +1212,7 @@ public:
 			modDestinationCaptionsCstr[i] = modDestinationCaptions[i].c_str();
 		}
 
-		ColorMod& cm = spec.mEnabled.GetBoolValue() ? (isLocked ? mLockedModulationsColors : mModulationsColors) : mModulationDisabledColors;
+		ColorMod& cm = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::Enabled) ? (isLocked ? mLockedModulationsColors : mModulationsColors) : mModulationDisabledColors;
 		auto token = cm.Push();
 
 		if (WSBeginTabItem(GetModulationName(spec, imod).c_str()))
@@ -1256,7 +1256,7 @@ public:
 			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising);
 
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "SC Enable");
-			ColorMod& cmaux = spec.mAuxEnabled.GetBoolValue() ? mNopColors : mModulationDisabledColors;
+			ColorMod& cmaux = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled) ? mNopColors : mModulationDisabledColors;
 			auto auxToken = cmaux.Push();
 			ImGui::SameLine();
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "SC Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
@@ -1308,7 +1308,7 @@ public:
 	{
 		static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
 		Maj7ImGuiParamEnumCombo((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FilterType, "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, M7::gFreqParamKTUnity);
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gFilterFreqConfig, M7::gFreqParamKTUnity);
 		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::FreqKT, "KT##filt", 0, 1, 1, 1);
 		ImGui::SameLine(); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Q, "Q##filt");
 		//ImGui::SameLine(0, 60); WSImGuiParamKnob((int)auxInfo.mEnabledParamID + (int)M7::FilterAuxParamIndexOffsets::Saturation, "Saturation##filt");
@@ -1316,7 +1316,7 @@ public:
 
 	void AuxBitcrush(const AuxInfo& auxInfo)
 	{
-		Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gBitcrushFreqCenterFreq, M7::gBitcrushFreqRange, M7::gFreqParamKTUnity);
+		Maj7ImGuiParamFrequency((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::Freq, (int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "Freq##filt", M7::gBitcrushFreqConfig, M7::gFreqParamKTUnity);
 		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)auxInfo.mEnabledParamID + (int)M7::BitcrushAuxParamIndexOffsets::FreqKT, "KT##filt", 0, 1, 1, 1);
 	}
 
@@ -1353,7 +1353,7 @@ public:
 		float paramValues[(int)M7::AuxParamIndexOffsets::Count];
 		auto a = GetDummyAuxDevice(paramValues, iaux);
 
-		ColorMod& cm = a.mEnabledParam.GetBoolValue() ? *auxTabColors[iaux] : *auxTabDisabledColors[iaux];
+		ColorMod& cm = a.mParams.GetBoolValue(M7::AuxParamIndexOffsets::Enabled) ? *auxTabColors[iaux] : *auxTabDisabledColors[iaux];
 		auto token = cm.Push();
 
 		std::string labelWithID = GetAuxName(iaux, idSuffix);
@@ -1416,29 +1416,30 @@ public:
 						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param4, paramValues[(int)M7::AuxParamIndexOffsets::Param4]);
 						GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Param5, paramValues[(int)M7::AuxParamIndexOffsets::Param5]);
 
-						auto srcLink = srcNode.mLink.GetEnumValue();
-						auto origLink = a.mLink.GetEnumValue();
+						auto srcLink = srcNode.mParams.GetEnumValue<M7::AuxLink>(M7::AuxParamIndexOffsets::Link);// srcNode.mLink.GetEnumValue();
+						auto origLink = a.mParams.GetEnumValue<M7::AuxLink>(M7::AuxParamIndexOffsets::Link); //a.mLink.GetEnumValue();
 
 						// if source links to itself, then we should now link to ourself.
 						if (srcLink == srcNode.mLinkToSelf) {
-							a.mLink.SetEnumValue(a.mLinkToSelf);
-							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mLink.GetRawParamValue());
+							//a.mLink.SetEnumValue(a.mLinkToSelf);
+							a.mParams.SetEnumValue(M7::AuxParamIndexOffsets::Link, a.mLinkToSelf);
+							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mParams.GetRawVal(M7::AuxParamIndexOffsets::Link) /*a.mLink.GetRawParamValue()*/);
 						}
 						else if (srcLink == a.mLinkToSelf) {
 							// if you are swapping ORIG with SRC and SRC links to ORIG, now ORIG will need to point to SRC
-							a.mLink.SetEnumValue(srcNode.mLinkToSelf);
-							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mLink.GetRawParamValue());
+							a.mParams.SetEnumValue(M7::AuxParamIndexOffsets::Link, a.mLinkToSelf);
+							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mParams.GetRawVal(M7::AuxParamIndexOffsets::Link) /*a.mLink.GetRawParamValue()*/);
 						}
 
 						// if we linked to ourself, then source should now link to itself
 						if (origLink == a.mLinkToSelf) {
-							srcNode.mLink.SetEnumValue(srcNode.mLinkToSelf);
-							GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, srcNode.mLink.GetRawParamValue());
+							srcNode.mParams.SetEnumValue(M7::AuxParamIndexOffsets::Link, srcNode.mLinkToSelf);
+							GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, srcNode.mParams.GetRawVal(M7::AuxParamIndexOffsets::Link));
 						}
 						else if (origLink == srcNode.mLinkToSelf) {
 							// similar logic as above.
-							srcNode.mLink.SetEnumValue(a.mLinkToSelf);
-							GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, srcNode.mLink.GetRawParamValue());
+							srcNode.mParams.SetEnumValue(M7::AuxParamIndexOffsets::Link, srcNode.mLinkToSelf);
+							GetEffectX()->setParameter((int)srcAuxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, srcNode.mParams.GetRawVal(M7::AuxParamIndexOffsets::Link));
 						}
 					}
 					ImGui::PopID();
@@ -1469,8 +1470,9 @@ public:
 
 						// if the original aux was linking to itself, then we should now link to ourself.
 						if (!srcNode.IsLinkedExternally()) {
-							a.mLink.SetEnumValue(a.mLinkToSelf);
-							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mLink.GetRawParamValue());
+							//a.mLink.SetEnumValue(a.mLinkToSelf);
+							a.mParams.SetEnumValue<M7::AuxLink>(M7::AuxParamIndexOffsets::Link, a.mLinkToSelf);
+							GetEffectX()->setParameter((int)auxInfo.mEnabledParamID + (int)M7::AuxParamIndexOffsets::Link, a.mParams.GetRawVal(M7::AuxParamIndexOffsets::Link));// a.mLink.GetRawParamValue());
 						}
 					}
 					ImGui::PopID();
@@ -1482,7 +1484,7 @@ public:
 				ColorMod& cm = (a.IsLinkedExternally()) ? *auxTabDisabledColors[auxInfo.mIndex] : mNopColors;
 				auto colorToken = cm.Push();
 
-				switch (a.mEffectType.GetEnumValue())
+				switch (a.mParams.GetEnumValue<M7::AuxEffectType>(M7::AuxParamIndexOffsets::Type))// a.mEffectType.GetEnumValue())
 				{
 				default:
 					ImGui::TextUnformatted("Nothing to see.");
@@ -1862,11 +1864,11 @@ public:
 			WSImGuiParamCheckbox((int)sampler.mEnabledParamID, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mVolumeParamID, "Volume", 0, 0);
 
-			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFrequencyCenterHz, M7::gSourceFrequencyScale, M7::gFreqParamKTUnity);
+			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)sampler.mFreqKTParamID, "KT", 0, 1, 1, 1);
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", -M7::gSourcePitchSemisRange, M7::gSourcePitchSemisRange, 0, 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneFine, "FineTune", 0);
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::BaseNote, "BaseNote", 0, 127, 60, 60);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::BaseNote, "BaseNote", M7::gKeyRangeCfg, 60, 60);
 
 			ImGui::SameLine(0, 50); WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LegatoTrig, "Leg.Trig");
 
@@ -1952,7 +1954,7 @@ public:
 			else if (sampler.mSampleSource.GetEnumValue() == M7::SampleSource::GmDls) {
 				auto* p = static_cast<M7::GmDlsSample*>(sampler.mSample);
 				const char* name = "(none)";
-				if (p->mSampleIndex >= 0 && p->mSampleIndex < GmDls::NumSamples) {
+				if (p->mSampleIndex >= 0 && p->mSampleIndex < M7::gGmDlsSampleCount) {
 					name = mGmDlsOptions[p->mSampleIndex].first.c_str();
 				}
 				ImGui::Text("GmDls : %s (%d)", name, p->mSampleIndex);

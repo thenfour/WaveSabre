@@ -8,7 +8,7 @@ namespace WaveSabreCore
 
 	GmDlsSample::GmDlsSample(int sampleIndex)
 			{
-				if (sampleIndex >= GmDls::NumSamples) return;
+				if (sampleIndex >= gGmDlsSampleCount) return;
 				mSampleIndex = sampleIndex;
 				auto gmDls = GmDls::Load();
 
@@ -187,9 +187,9 @@ namespace WaveSabreCore
 				mInterpolationMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::InterpolationType], InterpolationMode::NumInterpolationModes),
 				mLoopStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopStart]),
 				mLoopLength(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength]),
-				mBaseNote(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], 0, 127),
+				mBaseNote(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], gKeyRangeCfg),
 				mSampleSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleSource], SampleSource::Count),
-				mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], -1, WaveSabreCore::GmDls::NumSamples)
+				mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], gGmDlsIndexParamCfg)
 			{
 				//mMutex = ::CreateMutex(0, 0, 0);
 			}
@@ -222,7 +222,7 @@ namespace WaveSabreCore
 					delete mSample;
 					mSample = nullptr;
 				}
-				if (sampleIndex < 0 || sampleIndex >= GmDls::NumSamples) {
+				if (sampleIndex < 0 || sampleIndex >= gGmDlsSampleCount) {
 					return;
 				}
 

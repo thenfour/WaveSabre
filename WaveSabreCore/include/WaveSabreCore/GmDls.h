@@ -7,7 +7,6 @@ namespace WaveSabreCore
 	{
 	public:
 		static constexpr int WaveListOffset = 0x00044602;
-		static constexpr int NumSamples = 495;
 
 		static unsigned char *Load();
 	};
