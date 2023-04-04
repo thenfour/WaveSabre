@@ -218,10 +218,11 @@ namespace WaveSabreCore
 			//explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
 			// noteHz is the playing note, to support key-tracking.
 			float GetFrequency__(int freqOffset, int ktOffset, const FreqParamConfig& cfg, float noteHz, float mod) const;
-			template<typename Toffset>
-			float GetFrequency(Toffset freqOffset, Toffset ktOffset, const FreqParamConfig& cfg, float noteHz, float mod) const
+			template<typename Toffset, typename TktOffset>
+			float GetFrequency(Toffset freqOffset, TktOffset ktOffset /* -1 means no kt */, const FreqParamConfig& cfg, float noteHz, float mod) const
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				static_assert(std::is_integral_v<TktOffset> || std::is_enum_v<TktOffset>, "");
 				return GetFrequency__((int)freqOffset, (int)ktOffset, cfg, noteHz, mod);
 			}
 

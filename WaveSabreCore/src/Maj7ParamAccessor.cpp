@@ -141,7 +141,7 @@ namespace WaveSabreCore
 			// for each 0.1 param value, it's +/- one octave.
 			// to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
 			float ktFreq = noteHz * 4;
-			float ktParamVal = Get01Value__(ktOffset, 0);
+			float ktParamVal = (ktOffset < 0) ? 0 : Get01Value__(ktOffset, 0);
 			float centerFreq = math::lerp(cfg.mCenterFrequency, ktFreq, ktParamVal);
 
 			param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)   [-.5,+.5]
