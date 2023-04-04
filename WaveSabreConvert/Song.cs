@@ -40,10 +40,10 @@ namespace WaveSabreConvert
 
         public enum EventType
         {
-            NoteOn,
-            NoteOff,
-            CC,
-            PitchBend,
+            NoteOff = 0, // 00
+            NoteOn = 1, // 01
+            CC = 2, // 10
+            PitchBend = 3, // 10
         }
 
         public class Event

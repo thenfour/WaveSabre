@@ -11,87 +11,90 @@ namespace WaveSabrePlayerLib
 		//Helpers::Init();
 		//gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
 
-		songBlobPtr = song->blob;
+		// TODO: rendering is obsolete here but so is this class.
 
-		bpm = readInt();
-		sampleRate = readInt();
-		length = readDouble();
+		//songBlobPtr = song->blob;
 
-		numDevices = readInt();
-		devices = new Device *[numDevices];
-		for (int i = 0; i < numDevices; i++)
-		{
-			devices[i] = song->factory((DeviceId)readByte());
-			devices[i]->SetSampleRate((float)sampleRate);
-			devices[i]->SetTempo(bpm);
-			int chunkSize = readInt();
-			devices[i]->SetChunk((void *)songBlobPtr, chunkSize);
-			songBlobPtr += chunkSize;
-		}
+		//bpm = readInt();
+		//sampleRate = readInt();
+		//length = readDouble();
 
-		numMidiLanes = readInt();
-		midiLanes = new MidiLane *[numMidiLanes];
-		for (int i = 0; i < numMidiLanes; i++)
-		{
-			midiLanes[i] = new MidiLane;
-			int numEvents = readInt();
-			midiLanes[i]->numEvents = numEvents;
-			midiLanes[i]->events = new Event[numEvents];
+		//numDevices = readInt();
+		//devices = new Device *[numDevices];
+		//for (int i = 0; i < numDevices; i++)
+		//{
+		//	devices[i] = song->factory((DeviceId)readByte());
+		//	devices[i]->SetSampleRate((float)sampleRate);
+		//	devices[i]->SetTempo(bpm);
+		//	int chunkSize = readInt();
+		//	devices[i]->SetChunk((void *)songBlobPtr, chunkSize);
+		//	songBlobPtr += chunkSize;
+		//}
 
-			for (int m = 0; m < numEvents; m++)
-			{
-				midiLanes[i]->events[m].TimeStamp = readInt();
-			}
+		//numMidiLanes = readInt();
+		//midiLanes = new MidiLane *[numMidiLanes];
+		//for (int i = 0; i < numMidiLanes; i++)
+		//{
+		//	midiLanes[i] = new MidiLane;
+		//	int numEvents = readInt();
+		//	midiLanes[i]->numEvents = numEvents;
+		//	midiLanes[i]->events = new Event[numEvents];
 
-			for (int m = 0; m < numEvents; m++)
-			{
-				byte event = readByte();
-				midiLanes[i]->events[m].Type = (EventType)event;
-			}
+		//	for (int m = 0; m < numEvents; m++)
+		//	{
+		//		//midiLanes[i]->events[m].TimeStamp = readInt();
+		//	}
 
-			for (int m = 0; m < numEvents; m++)
-			{
-				midiLanes[i]->events[m].Note = readByte();
-			}
+		//	//for (int m = 0; m < numEvents; m++)
+		//	//{
+		//	//	byte event = readByte();
+		//	//	midiLanes[i]->events[m].Type = (EventType)event;
+		//	//}
 
-			for (int m = 0; m < numEvents; m++)
-			{
-				midiLanes[i]->events[m].Velocity = readByte();
-			}
-		}
+		//	for (int m = 0; m < numEvents; m++)
+		//	{
+		//		midiLanes[i]->events[m].Note = readByte();
+		//	}
 
-		numTracks = readInt();
-		tracks = new Track *[numTracks];
-		trackRenderStates = new TrackRenderState[numTracks];
-		for (int i = 0; i < numTracks; i++)
-		{
-			tracks[i] = new Track(this, song->factory);
-			trackRenderStates[i] = TrackRenderState::Finished;
-		}
+		//	for (int m = 0; m < numEvents; m++)
+		//	{
+		//		if (midiLanes[i]->events[m].Type 
+		//		midiLanes[i]->events[m].Velocity = readByte();
+		//	}
+		//}
 
-		this->numRenderThreads = numRenderThreads;
+		//numTracks = readInt();
+		//tracks = new Track *[numTracks];
+		//trackRenderStates = new TrackRenderState[numTracks];
+		//for (int i = 0; i < numTracks; i++)
+		//{
+		//	tracks[i] = new Track(this, song->factory);
+		//	trackRenderStates[i] = TrackRenderState::Finished;
+		//}
 
-		renderThreadShutdown = false;
-		renderThreadStartEvents = new HANDLE[numRenderThreads];
-		for (int i = 0; i < numRenderThreads; i++)
-			renderThreadStartEvents[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
-		renderDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+		//this->numRenderThreads = numRenderThreads;
 
-		if (numRenderThreads > 1)
-		{
-			additionalRenderThreads = new HANDLE[numRenderThreads - 1];
-			for (int i = 0; i < numRenderThreads - 1; i++)
-			{
-				auto renderThreadData = new RenderThreadData();
-				renderThreadData->songRenderer = this;
-				renderThreadData->renderThreadIndex = i + 1;
-				additionalRenderThreads[i] = CreateThread(0, 0, renderThreadProc, (LPVOID)renderThreadData, 0, 0);
+		//renderThreadShutdown = false;
+		//renderThreadStartEvents = new HANDLE[numRenderThreads];
+		//for (int i = 0; i < numRenderThreads; i++)
+		//	renderThreadStartEvents[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
+		//renderDoneEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-				// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
-				//SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_HIGHEST);
-				SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
-			}
-		}
+		//if (numRenderThreads > 1)
+		//{
+		//	additionalRenderThreads = new HANDLE[numRenderThreads - 1];
+		//	for (int i = 0; i < numRenderThreads - 1; i++)
+		//	{
+		//		auto renderThreadData = new RenderThreadData();
+		//		renderThreadData->songRenderer = this;
+		//		renderThreadData->renderThreadIndex = i + 1;
+		//		additionalRenderThreads[i] = CreateThread(0, 0, renderThreadProc, (LPVOID)renderThreadData, 0, 0);
+
+		//		// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
+		//		//SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_HIGHEST);
+		//		SetThreadPriority(additionalRenderThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
+		//	}
+		//}
 	}
 
 	SongRenderer::~SongRenderer()

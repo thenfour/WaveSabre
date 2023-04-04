@@ -193,8 +193,8 @@ namespace WaveSabrePlayerLib
 	//private:
 		enum class EventType
 		{
-			NoteOn = 0,
-			NoteOff = 1,
+			NoteOff = 0,
+			NoteOn = 1,
 			CC = 2,
 			PitchBend = 3,
 		};

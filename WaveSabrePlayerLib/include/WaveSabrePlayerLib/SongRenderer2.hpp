@@ -540,20 +540,42 @@ namespace WaveSabrePlayerLib
 			midiLanes = new MidiLane[numMidiLanes];
 			for (int i = 0; i < numMidiLanes; i++)
 			{
-				//midiLanes[i] = new MidiLane;
 				int numEvents = readInt();
 				midiLanes[i].numEvents = numEvents;
 				midiLanes[i].events = new Event[numEvents];
 
 				for (int m = 0; m < numEvents; m++)
 				{
-					midiLanes[i].events[m].TimeStamp = readInt();
-				}
-
-				for (int m = 0; m < numEvents; m++)
-				{
-					byte event = readByte();
-					midiLanes[i].events[m].Type = (EventType)event;
+					// byte stream: [ee?-----]...
+					auto b1 = readByte();
+					byte event = (b1 & 0xc0) >> 6;
+					auto& e = midiLanes[i].events[m];
+					e.Type = (EventType)event;
+					e.TimeStamp = b1 & 0x1f;
+					if (b1 & 0x20) {
+						// byte stream: [ee1-----][?-------]...
+						byte b2 = readByte();
+						e.TimeStamp <<= 7;
+						e.TimeStamp |= b2 & 0x7f;
+						if (b2 & 0x80) {
+							// byte stream: [ee1-----][1-------][?-------]...
+							byte b3 = readByte();
+							e.TimeStamp <<= 7;
+							e.TimeStamp |= b3 & 0x7f;
+							if (b3 & 0x80) {
+								// byte stream: [ee1-----][1-------][1-------][?-------]...
+								byte b4 = readByte();
+								e.TimeStamp <<= 7;
+								e.TimeStamp |= b4 & 0x7f;
+								if (b4 & 0x80) {
+									// byte stream: [ee1-----][1-------][1-------][1-------][00------]
+									byte b5 = readByte();
+									e.TimeStamp <<= 6;
+									e.TimeStamp |= b5;
+								}
+							}
+						}
+					}
 				}
 
 				for (int m = 0; m < numEvents; m++)
@@ -563,6 +585,8 @@ namespace WaveSabrePlayerLib
 
 				for (int m = 0; m < numEvents; m++)
 				{
+					if (midiLanes[i].events[m].Type == EventType::NoteOff)
+						continue; // note off events skip this byte.
 					midiLanes[i].events[m].Velocity = readByte();
 				}
 			}

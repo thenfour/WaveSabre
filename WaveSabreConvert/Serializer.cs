@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.IO;
+using static WaveSabreConvert.Song;
 
 namespace WaveSabreConvert
 {
@@ -223,6 +224,15 @@ namespace WaveSabreConvert
                 }
                 MidiLaneData[iMidiLane].writer.Write(n);
             }
+            public void WriteMidiLane(int iMidiLane, UInt32 n)
+            {
+                this.CompleteSong.writer.Write(n);
+                if (!MidiLaneData.ContainsKey(iMidiLane))
+                {
+                    MidiLaneData[iMidiLane] = new BinaryStream();
+                }
+                MidiLaneData[iMidiLane].writer.Write(n);
+            }
             public void WriteMidiLane(int iMidiLane, double n)
             {
                 this.CompleteSong.writer.Write(n);
@@ -264,6 +274,14 @@ namespace WaveSabreConvert
         BinaryOutput CreateBinary(Song song)
         {
             BinaryOutput writer = new BinaryOutput();
+            //int minTimeFromLastEvent = int.MaxValue;
+            //int maxTimeFromLastEvent = int.MinValue;
+            Dictionary<int, int> timestampByteCounts = new Dictionary<int, int>();
+            timestampByteCounts[0] = 0;
+            timestampByteCounts[1] = 0;
+            timestampByteCounts[2] = 0;
+            timestampByteCounts[3] = 0;
+            timestampByteCounts[4] = 0;
 
             // song settings
             writer.Write(song.Tempo);
@@ -281,42 +299,102 @@ namespace WaveSabreConvert
 
             // serialize all midi lanes
             writer.Write(song.MidiLanes.Count);
-            //foreach (var midiLane in song.MidiLanes)
             for (int iMidiLane = 0; iMidiLane < song.MidiLanes.Count; ++ iMidiLane)
             {
                 var midiLane = song.MidiLanes[iMidiLane];
+
                 writer.WriteMidiLane(iMidiLane, midiLane.MidiEvents.Count);
                 foreach (var e in midiLane.MidiEvents)
                 {
-                    writer.WriteMidiLane(iMidiLane, e.TimeFromLastEvent);
-                }
-                foreach (var e in midiLane.MidiEvents)
-                {
-                    switch (e.Type)
+                    if (e.TimeFromLastEvent < 0)
                     {
-                        case Song.EventType.NoteOn:
-                            writer.WriteMidiLane(iMidiLane, (byte)0);
-                            break;
-                        case Song.EventType.NoteOff:
-                            writer.WriteMidiLane(iMidiLane, (byte)1);
-                            break;
-                        case Song.EventType.CC:
-                            writer.WriteMidiLane(iMidiLane, (byte)2);
-                            break;
-                        case Song.EventType.PitchBend:
-                            writer.WriteMidiLane(iMidiLane, (byte)3);
-                            break;
-                        default:
-                            throw new Exception("Unsupported event type");
+                        Console.WriteLine($"Negative time deltas break things. wut?");
                     }
+                    //writer.WriteMidiLane(iMidiLane, e.TimeFromLastEvent);
+                    // some things:
+                    // 1. delta times tend to be either very big or very small. suggests the need for a variable length integer.
+                    // 2. the event type is 2 bits and we're trying to pack them somewhere.
+                    // 3. delta times can be pretty big, we should support uint32 sizes.
+
+                    // so timefromlastevent is actually a 31-bit signed int where only positive part is used. but in theory we should
+                    // support the full 32-bits. it's not a problem when using varlen ints.
+                    // byte stream: [eec-----][c-------][c-------][c-------][00------]
+                    //               |||       |         |         |
+                    //               |||       |         |         |set to 1 to read the next byte. if 0, then the number is 26-bits (0-67,108,863). if 1 then it's 32 bits
+                    //               |||       |         |set to 1 to read the next byte. if 0, then the number is 19-bits (0-524,287)
+                    //               |||       |set to 1 to read the next byte. if 0, then the number is 12-bits (0-4095)
+                    //               |||set 1 to read the next byte. if 0 then it's a 5-bit value 0-31
+                    //               ||
+                    //               ||event type
+
+                    // those bits get placed into the int in that order (first bit = highest bit; we just apply & shift as we go.
+                    const uint _5bitMask = (1 << 5) - 1;
+                    const uint _12bitMask = (1 << 12) - 1;
+                    const uint _19bitMask = (1 << 19) - 1;
+                    const uint _26bitMask = (1 << 26) - 1;
+                    int eventType = (int)e.Type;
+                    if (eventType < 0 || eventType > 3)
+                    {
+                        Console.WriteLine($"ERROR: unsupportable event type");
+                    }
+                    if (e.TimeFromLastEvent <= _5bitMask)
+                    {
+                        byte value = (byte)((eventType << 6) | e.TimeFromLastEvent);
+                        writer.WriteMidiLane(iMidiLane, value);
+                        timestampByteCounts[0]++;
+                    }
+                    else if (e.TimeFromLastEvent <= _12bitMask)
+                    {
+                        // byte stream: [ee1-----][0-------]
+                        byte value = (byte)(eventType << 6);
+                        writer.WriteMidiLane(iMidiLane, (byte)(value | 0x20 | (e.TimeFromLastEvent >> 7)));
+                        writer.WriteMidiLane(iMidiLane, (byte)(e.TimeFromLastEvent & 0x7F));
+                        timestampByteCounts[1]++;
+                    }
+                    else if (e.TimeFromLastEvent <= _19bitMask)
+                    {
+                        // byte stream: [ee1-----][1-------][0-------]
+                        byte value = (byte)(eventType << 6);
+                        writer.WriteMidiLane(iMidiLane, (byte)(value | 0x20 | (e.TimeFromLastEvent >> 14)));
+                        writer.WriteMidiLane(iMidiLane, (byte)(0x80 | (e.TimeFromLastEvent >> 7) & 0x7F));
+                        writer.WriteMidiLane(iMidiLane, (byte)(e.TimeFromLastEvent & 0x7F));
+                        timestampByteCounts[2]++;
+                    }
+                    else if (e.TimeFromLastEvent <= _26bitMask)
+                    {
+                        // byte stream: [ee1-----][1-------][1-------][0-------]
+                        byte value = (byte)(eventType << 6);
+                        writer.WriteMidiLane(iMidiLane, (byte)(value | 0x20 | (e.TimeFromLastEvent >> 21)));
+                        writer.WriteMidiLane(iMidiLane, (byte)(0x80 | (e.TimeFromLastEvent >> 14) & 0x7F));
+                        writer.WriteMidiLane(iMidiLane, (byte)(0x80 | (e.TimeFromLastEvent >> 7) & 0x7F));
+                        writer.WriteMidiLane(iMidiLane, (byte)(e.TimeFromLastEvent & 0x7F));
+                        timestampByteCounts[3]++;
+                    }
+                    else
+                    {
+                        // byte stream: [ee1-----][1-------][1-------][1-------][00------]
+                        //                           7          7        7         6
+                        byte value = (byte)(eventType << 6);
+                        writer.WriteMidiLane(iMidiLane, (byte)(value | 0x20 | (e.TimeFromLastEvent >> 27)));
+                        writer.WriteMidiLane(iMidiLane, (byte)(0x80 | (e.TimeFromLastEvent >> 20) & 0x7F));
+                        writer.WriteMidiLane(iMidiLane, (byte)(0x80 | (e.TimeFromLastEvent >> 13) & 0x7F));
+                        writer.WriteMidiLane(iMidiLane, (byte)(0x80 | (e.TimeFromLastEvent >> 6) & 0x7F));
+                        writer.WriteMidiLane(iMidiLane, (byte)(e.TimeFromLastEvent & 0x3F));
+                        timestampByteCounts[4]++;
+                    }
+
                 }
                 foreach (var e in midiLane.MidiEvents)
                 {
-                    writer.Write(e.Note);
+                    writer.WriteMidiLane(iMidiLane, (byte)e.Note);
                 }
                 foreach (var e in midiLane.MidiEvents)
                 {
-                    writer.Write(e.Velocity);
+                    if (e.Type == EventType.NoteOff)
+                    {
+                        continue;
+                    }
+                    writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
                 }
             }
 
