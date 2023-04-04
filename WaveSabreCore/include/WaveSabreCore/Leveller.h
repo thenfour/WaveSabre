@@ -9,8 +9,10 @@
 
 namespace WaveSabreCore
 {
-	static constexpr float gLevellerVolumeMaxDb = 12;
-
+	//static constexpr float gLevellerVolumeMaxDb = 12;
+	static constexpr M7::VolumeParamConfig gLevellerVolumeCfg{ 3.9810717055349722f, 12.0f };
+	static constexpr M7::VolumeParamConfig gLevellerBandVolumeCfg{ gLevellerVolumeCfg };
+	
 	enum class LevellerParamIndices : uint8_t
 	{
 		MasterVolume,
@@ -69,7 +71,7 @@ namespace WaveSabreCore
 		LevellerBand(BiquadFilterType type, float* paramCache, LevellerParamIndices baseParamID, float initialCutoffHz) :
 			mFilterType(type),
 			mFrequency(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Freq], mKTBacking, M7::gFilterFreqConfig),
-			mVolume(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Gain], gLevellerVolumeMaxDb),
+			mVolume(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Gain], gLevellerBandVolumeCfg),
 			mQ(paramCache[(int)baseParamID + (int)LevellerBandParamOffsets::Q])
 		{
 			mVolume.SetDecibels(0);
@@ -144,7 +146,7 @@ namespace WaveSabreCore
 	private:
 		float mParamCache[(size_t)LevellerParamIndices::NumParams * 2] = { 0 };
 
-		M7::VolumeParam mMasterVolume{ mParamCache[(int)LevellerParamIndices::MasterVolume], gLevellerVolumeMaxDb};
+		M7::VolumeParam mMasterVolume{ mParamCache[(int)LevellerParamIndices::MasterVolume], gLevellerVolumeCfg};
 
 		LevellerBand mBands[gBandCount] = {
 			{BiquadFilterType::Highpass, mParamCache, LevellerParamIndices::LowCutFreq, 0 },

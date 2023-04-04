@@ -23,8 +23,10 @@ namespace WaveSabreCore
 			NumParams,
 		};
 
-		static constexpr float gMaxOutputVolumeLinear = 2;
+		//static constexpr float gMaxOutputVolumeLinear = 2;
 		//static constexpr float gMaxOutputVolumeDb = 12;
+		static constexpr M7::VolumeParamConfig gVolumeCfg{ 3.9810717055349722f, 12.0f };
+
 
 		float mParamCache[(int)ParamIndices::NumParams] = { 0 };
 		M7::ParamAccessor mParams;
@@ -60,7 +62,7 @@ namespace WaveSabreCore
 			//mWidthParam.CacheValue();
 			//mPanParam.CacheValue();
 			mFilter.SetParams(M7::FilterType::HP, mParams.GetFrequency(ParamIndices::SideHPFrequency, -1, M7::gFilterFreqConfig, 0, 0), 0);
-			float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gMaxOutputVolumeLinear);// mOutputVolume.GetLinearGain();
+			float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg);// mOutputVolume.GetLinearGain();
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{

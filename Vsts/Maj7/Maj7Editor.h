@@ -165,7 +165,7 @@ public:
 			return "";
 		}
 
-		char* fileContents = new char[fileSize.QuadPart + 1];
+		char* fileContents = new char[(int)(fileSize.QuadPart + 1)];
 
 		DWORD bytesRead;
 		if (!ReadFile(hFile, fileContents, (DWORD)fileSize.QuadPart, &bytesRead, NULL))
@@ -619,7 +619,7 @@ public:
 
 		auto runningVoice = FindRunningVoice();
 
-		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::Maj7::gMasterVolumeMaxDb, -6.0f);
+		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::gMasterVolumeCfg, -6.0f);
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);
 
@@ -918,7 +918,7 @@ public:
 
 		if (WSBeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
-			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", 0, 0);
+			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::gUnityVolumeCfg, 0);
 
 			//ImGui::SameLine(); Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform", M7::OscillatorWaveform::Count, 0, gWaveformCaptions);
 
@@ -1862,7 +1862,7 @@ public:
 
 		if (WSBeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox((int)sampler.mEnabledParamID, "Enabled");
-			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mVolumeParamID, "Volume", 0, 0);
+			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mVolumeParamID, "Volume", M7::gUnityVolumeCfg, 0);
 
 			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)sampler.mFreqKTParamID, "KT", 0, 1, 1, 1);
@@ -1939,10 +1939,11 @@ public:
 			}
 
 			//ImGui::SameLine();
+			auto sampleSource = sampler.mParams.GetEnumValue<M7::SampleSource>(M7::SamplerParamIndexOffsets::SampleSource);
 			if (!sampler.mSample) {
 				ImGui::Text("No sample loaded");
 			}
-			else if (sampler.mSampleSource.GetEnumValue() == M7::SampleSource::Embed) {
+			else if (sampleSource == M7::SampleSource::Embed) {
 				auto* p = static_cast<WaveSabreCore::GsmSample*>(sampler.mSample);
 				ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%) / %d Samples / path:%s", p->UncompressedSize, p->CompressedSize, (p->CompressedSize * 100) / p->UncompressedSize, p->SampleLength, sampler.mSamplePath);
 
@@ -1951,7 +1952,7 @@ public:
 				}
 
 			}
-			else if (sampler.mSampleSource.GetEnumValue() == M7::SampleSource::GmDls) {
+			else if (sampleSource == M7::SampleSource::GmDls) {
 				auto* p = static_cast<M7::GmDlsSample*>(sampler.mSample);
 				const char* name = "(none)";
 				if (p->mSampleIndex >= 0 && p->mSampleIndex < M7::gGmDlsSampleCount) {
@@ -2078,7 +2079,11 @@ public:
 			cursor = (float)sv->mSamplePlayer.samplePos;
 			cursor /= sampler.mSample->GetSampleLength();
 		}
-		WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampler.mSampleStart.Get01Value(), sampler.mLoopStart.Get01Value(), sampler.mLoopLength.Get01Value(), cursor);
+
+		auto sampleStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::SampleStart, 0);
+		auto loopStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopStart, 0);
+		auto loopLength = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopLength, 0);
+		WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampleStart, loopStart, loopLength, cursor);
 	}
 
 }; // class maj7editor

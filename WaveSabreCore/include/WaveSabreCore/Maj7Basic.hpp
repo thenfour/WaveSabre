@@ -114,6 +114,21 @@ namespace WaveSabreCore
             }
         };
 
+        struct VolumeParamConfig
+        {
+            const float mMaxValLinear;
+            const float mMaxValDb;
+            // plug into a browser console to convert around
+            //let todb = function(aLinearValue, aMinDecibels) {
+            //    const LOG10E = Math.LOG10E || Math.log(10); // Constant value of log base 10 of e
+            //    const decibels = 20 * Math.log10(aLinearValue); // Calculate decibels using logarithmic function
+            //    return (decibels != = -Infinity) ? decibels : aMinDecibels; // Check for infinite value and return the result or minimum decibels
+            //}
+            //let tolinear = function(aDecibelValue) {
+            //    return Math.pow(10, aDecibelValue / 20);
+            //}
+        };
+
 
         static constexpr real_t FloatEpsilon = 0.000001f;
         static constexpr float MIN_DECIBEL_GAIN = -60.0f;
@@ -166,6 +181,11 @@ namespace WaveSabreCore
         //static constexpr real_t gSyncFrequencyCenterHz = 1000;
         //static constexpr real_t gSyncFrequencyScale = 10;
         static constexpr real_t gFrequencyMulMax = 64;
+
+
+        //static constexpr real_t gMasterVolumeMaxDb = 6;
+        static constexpr VolumeParamConfig gMasterVolumeCfg{ 1.9952623149688795f, 6.0f };
+        static constexpr VolumeParamConfig gUnityVolumeCfg{ 1, 0 };
 
 
 
@@ -779,7 +799,8 @@ namespace WaveSabreCore
         struct VolumeParam : Float01Param
         {
         private:
-            const float mMaxVolumeLinearGain;// 1.122f = +1 db.
+            //const float mMaxVolumeLinearGain;// 1.122f = +1 db.
+            VolumeParamConfig mCfg;
 
             float ParamToLinear(float x) const;
             float LinearToParam(float x) const;
@@ -788,10 +809,11 @@ namespace WaveSabreCore
 
         public:
             //explicit VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01);
-            explicit VolumeParam(real_t& ref, real_t maxDecibels);
+            //explicit VolumeParam(real_t& ref, real_t maxDecibels);
+            explicit VolumeParam(real_t& ref, const VolumeParamConfig& cfg);
             float GetLinearGain(float modVal = 0.0f) const;
             float GetDecibels() const;
-            float IsSilent() const;
+            bool IsSilent() const;
             void SetLinearValue(float f);
             void SetDecibels(float db);
         };

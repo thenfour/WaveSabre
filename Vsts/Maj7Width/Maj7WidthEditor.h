@@ -23,7 +23,7 @@ struct Maj7WidthEditor : public VstEditor
 		ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0);
 		ImGui::SameLine(); Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SideHPFrequency, -1, "Side HPF", M7::gFilterFreqConfig, 0);
 	//} M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, 0);
-		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gMaxOutputVolumeDb, 0);
+		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0);
 	}
 
 };

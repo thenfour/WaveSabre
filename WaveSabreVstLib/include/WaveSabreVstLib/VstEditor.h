@@ -537,8 +537,8 @@ namespace WaveSabreVstLib
 			float mBacking;
 			WaveSabreCore::M7::VolumeParam mParam;
 
-			M7VolumeConverter(M7::real_t maxDb) :
-				mParam(mBacking, maxDb)
+			M7VolumeConverter(const M7::VolumeParamConfig& cfg) :
+				mParam(mBacking, cfg)
 			{
 			}
 
@@ -966,16 +966,16 @@ namespace WaveSabreVstLib
 			}
 		}
 
-		void Maj7ImGuiParamVolume(VstInt32 paramID, const char* label, M7::real_t maxDb, M7::real_t v_defaultDB) {
+		void Maj7ImGuiParamVolume(VstInt32 paramID, const char* label, const M7::VolumeParamConfig& cfg, M7::real_t v_defaultDB) {
 			WaveSabreCore::M7::real_t tempVal;
-			M7::VolumeParam p{ tempVal, maxDb };
+			M7::VolumeParam p{ tempVal, cfg };
 			p.SetDecibels(v_defaultDB);
 			float defaultParamVal = p.GetRawParamValue();
 			p.SetDecibels(0);
 			float centerParamVal = p.GetRawParamValue();
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
-			M7VolumeConverter conv{ maxDb };
+			M7VolumeConverter conv{ cfg };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));

@@ -31,7 +31,7 @@ AdulteryEditor::AdulteryEditor(AudioEffect* audioEffect, Adultery* adultery)
 	auto ptr = gmDls + GmDls::WaveListOffset;
 
 	// Walk wave pool entries
-	for (int i = 0; i < GmDls::NumSamples; i++)
+	for (int i = 0; i < M7::gGmDlsSampleCount; i++)
 	{
 		// Walk wave list
 		auto waveListTag = *((unsigned int*)ptr); // Should be 'LIST'

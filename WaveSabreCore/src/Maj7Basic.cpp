@@ -480,11 +480,11 @@ namespace WaveSabreCore
 		{
 			if (x <= 0)
 				return 0;
-			return x * x * mMaxVolumeLinearGain;
+			return x * x * mCfg.mMaxValLinear;// mMaxVolumeLinearGain;
 		}
 		float VolumeParam::LinearToParam(float x) const
 		{ // expensive
-			return math::sqrt(x / mMaxVolumeLinearGain);
+			return math::sqrt(x / mCfg.mMaxValLinear);// mMaxVolumeLinearGain);
 		}
 
 		float VolumeParam::ParamToDecibels(float x) const
@@ -500,10 +500,17 @@ namespace WaveSabreCore
 		//    Float01Param(ref, initialParamValue01),
 		//    mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
 		//{}
-		VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels) :
+		//VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels) :
+		//	Float01Param(ref),
+		//	mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
+		//{}
+
+		VolumeParam::VolumeParam(real_t& ref, const VolumeParamConfig& cfg) :
 			Float01Param(ref),
-			mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
-		{}
+			mCfg(cfg)
+		{
+
+		}
 
 		float VolumeParam::GetLinearGain(float modVal) const
 		{
@@ -514,7 +521,7 @@ namespace WaveSabreCore
 			return ParamToDecibels(mParamValue);
 		}
 
-		float VolumeParam::IsSilent() const
+		bool VolumeParam::IsSilent() const
 		{
 			return math::IsSilentGain(GetLinearGain());
 		}

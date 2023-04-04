@@ -184,34 +184,41 @@ namespace WaveSabreCore
 			static float ParamToDecibelsVolume__(float maxLinear, float x);
 			static float DecibelsToParamVolume__(float maxLinear, float db);
 
-			float GetLinearVolume__(int offset, float maxLinear, float mod) const;
-			float GetDecibels__(int offset, float maxLinear, float mod) const;
-			void SetLinearVolume__(int offset, float maxLinear, float f);
-			void SetDecibels__(int offset, float maxLinear, float db);
+			float GetLinearVolume__(int offset, const VolumeParamConfig& cfg, float mod) const;
+			float GetDecibels__(int offset, const VolumeParamConfig& cfg, float mod) const;
+			void SetLinearVolume__(int offset, const VolumeParamConfig& cfg, float f);
+			void SetDecibels__(int offset, const VolumeParamConfig& cfg, float db);
 
 			template<typename Toffset>
-			float GetLinearVolume(Toffset offset, float maxLinear, float mod = 0.0f) const
+			float GetLinearVolume(Toffset offset, const VolumeParamConfig& cfg, float mod = 0.0f) const
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				return GetLinearVolume__((int)offset, maxLinear, mod);
+				return GetLinearVolume__((int)offset, cfg, mod);
 			}
 			template<typename Toffset>
-			float GetDecibels(Toffset offset, float maxLinear, float mod = 0.0f) const
+			float GetDecibels(Toffset offset, const VolumeParamConfig& cfg, float mod = 0.0f) const
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				return GetDecibels__((int)offset, maxLinear, mod);
+				return GetDecibels__((int)offset, cfg, mod);
 			}
 			template<typename Toffset>
-			void SetLinearVolume(Toffset offset, float maxLinear, float f)
+			void SetLinearVolume(Toffset offset, const VolumeParamConfig& cfg, float f)
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				SetLinearVolume__((int)offset, maxLinear, f);
+				SetLinearVolume__((int)offset, cfg, f);
 			}
 			template<typename Toffset>
-			void SetDecibels(Toffset offset, float maxLinear, float db)
+			void SetDecibels(Toffset offset, const VolumeParamConfig& cfg, float db)
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				SetDecibels__((int)offset, maxLinear, db);
+				SetDecibels__((int)offset, cfg, db);
+			}
+			bool IsSilentVolume__(int offset, const VolumeParamConfig& cfg) const;
+			template<typename Toffset>
+			bool  IsSilentVolume(Toffset offset, const VolumeParamConfig& cfg) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				return IsSilentVolume__((int)offset, cfg);
 			}
 
 

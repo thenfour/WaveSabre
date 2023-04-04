@@ -190,8 +190,8 @@ namespace WaveSabreCore
 			}
 
 			float pEnv = pitchEnv.GetValue();
-			double freq1 = M7::math::MIDINoteToFreq(baseNote + pEnv * falcon->pitchEnvAmt1 + M7::math::sin(vibratoPhase) * falcon->VibratoAmount);
-			double freq2 = M7::math::MIDINoteToFreq(baseNote + pEnv * falcon->pitchEnvAmt2 + M7::math::sin(vibratoPhase) * falcon->VibratoAmount);
+			double freq1 = (double)M7::math::MIDINoteToFreq((float)baseNote + pEnv * falcon->pitchEnvAmt1 + M7::math::sin((float)vibratoPhase) * falcon->VibratoAmount);
+			double freq2 = (double)M7::math::MIDINoteToFreq((float)baseNote + pEnv * falcon->pitchEnvAmt2 + M7::math::sin((float)vibratoPhase) * falcon->VibratoAmount);
 			osc1Phase += freq1 * osc1RatioScalar;
 			osc2Phase += freq2 * osc2RatioScalar;
 			vibratoPhase += vibratoFreq;
@@ -234,6 +234,6 @@ namespace WaveSabreCore
 	double Falcon::ratioScalar(double coarse, double fine)
 	{
 		double fineBase = (fine - .5) * 2.0;
-		return 1.0 + M7::math::floor(coarse * 32.99) + fineBase * fineBase * fineBase;
+		return 1.0 + (double)M7::math::floor((float)(coarse * 32.99)) + fineBase * fineBase * fineBase;
 	}
 }

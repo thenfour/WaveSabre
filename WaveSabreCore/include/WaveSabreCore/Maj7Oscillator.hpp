@@ -89,7 +89,7 @@ namespace WaveSabreCore
 				mHiddenVolumeModDestID(hiddenVolumeModDestID),
 
 				mEnabledParam(paramCache[(int)enabledParamID]),
-				mVolumeParam(paramCache[(int)volumeParamID], 0),
+				mVolumeParam(paramCache[(int)volumeParamID], gUnityVolumeCfg),
 				mAuxPanParam(paramCache[(int)auxPanParamID]),
 				mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFreqConfig),// gSourceFrequencyCenterHz, gSourceFrequencyScale),
 				mPitchSemisParam(paramCache[(int)tuneSemisParamID], gSourcePitchSemisRange),
@@ -122,7 +122,7 @@ namespace WaveSabreCore
 				mFreqParamID(freqParamID),
 				mModDestBaseID(modDestBaseID),
 				mEnabledParam(mLFOEnabledBacking),
-				mVolumeParam(mLFOVolumeBacking, 0),
+				mVolumeParam(mLFOVolumeBacking, gUnityVolumeCfg),
 				mAuxPanParam(mLFOAuxPanBacking),
 				mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFreqConfig),// gLFOFrequencyCenterHz, gLFOFrequencyScale),
 				mPitchSemisParam(mLFOPitchSemisParamValue, gSourcePitchSemisRange),

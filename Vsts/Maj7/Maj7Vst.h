@@ -322,40 +322,56 @@ namespace WaveSabreCore
 			auto token = p->mMutex.Enter();
 			p->Reset();
 			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
-			p->mLegatoTrig.SetBoolValue(true);
-			p->mReverse.SetBoolValue(false);
-			p->mReleaseExitsLoop.SetBoolValue(true);
-			p->mSampleStart.SetParamValue(0);
-			p->mFrequencyParam.mKTValue.SetParamValue(1);
-			p->mLoopMode.SetEnumValue(LoopMode::Repeat);
-			p->mLoopSource.SetEnumValue(LoopBoundaryMode::FromSample);
-			p->mInterpolationMode.SetEnumValue(InterpolationMode::Linear);
-			p->mLoopStart.SetParamValue(0);
-			p->mLoopLength.SetParamValue(1);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength], 1),
-			p->mBaseNote.SetIntValue(60);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], 0, 127, 60),
-			p->mSampleSource.SetEnumValue(SampleSource::Embed);
-			p->mGmDlsIndex.SetIntValue(-1);
+			p->mParams.SetBoolValue(SamplerParamIndexOffsets::LegatoTrig, true);
+			//p->mLegatoTrig.SetBoolValue(true);
+			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Reverse, false);
+			//p->mReverse.SetBoolValue(false);
+			//p->mReleaseExitsLoop.SetBoolValue(true);
+			p->mParams.SetBoolValue(SamplerParamIndexOffsets::ReleaseExitsLoop, true);
+			p->mParams.Set01Val(SamplerParamIndexOffsets::SampleStart, 0);
+			//p->mSampleStart.SetParamValue(0);
+			//p->mFrequencyParam.mKTValue.SetParamValue(1);
+			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 1);
+			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopMode, LoopMode::Repeat);
+			//p->mLoopMode.SetEnumValue(LoopMode::Repeat);
+			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopSource, LoopBoundaryMode::FromSample);
+			//p->mLoopSource.SetEnumValue(LoopBoundaryMode::FromSample);
+			p->mParams.SetEnumValue(SamplerParamIndexOffsets::InterpolationType, InterpolationMode::Linear);
+			//p->mInterpolationMode.SetEnumValue(InterpolationMode::Linear);
+
+			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopStart, 0);
+			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopLength, 1);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::BaseNote, M7::gKeyRangeCfg, 60);
+
+			//p->mLoopStart.SetParamValue(0);
+			//p->mLoopLength.SetParamValue(1);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength], 1),
+			//p->mBaseNote.SetIntValue(60);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], 0, 127, 60),
+			p->mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::Embed);
+			//p->mSampleSource.SetEnumValue(SampleSource::Embed);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg, -1);
+			//p->mGmDlsIndex.SetIntValue(-1);
 		}
 
 		//enum class MainParamIndices : uint8_t
 		static inline void GenerateMasterParamDefaults(Maj7* p)
 		{
-			p->mMasterVolume.SetDecibels(-6);//MasterVolume,
-			p->mUnisonoVoicesParam.SetIntValue(1);
-			p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
+			p->mParams.SetDecibels(ParamIndices::MasterVolume, gMasterVolumeCfg, -6);
+			//p->mMasterVolume.SetDecibels(-6);//MasterVolume,
+			p->mParams.SetIntValue(ParamIndices::Unisono, gUnisonoVoiceCfg, 1);//p->mUnisonoVoicesParam.SetIntValue(1);
+			p->mParams.SetEnumValue(ParamIndices::VoicingMode, VoiceMode::Polyphonic);//p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
 			// OscillatorDetune, = 0
 			// UnisonoDetune, = 0
 			// OscillatorSpread, = 0
 			// UnisonoStereoSpread, = 0
 			// OscillatorShapeSpread, = 0
 			// UnisonoShapeSpread, = 0
-			p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,
-			p->mAuxRoutingParam.SetEnumValue(AuxRoute::TwoTwo);// AuxRouting,
-			p->mAuxWidth.SetN11Value(1);// AuxWidth
-			p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
-			p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
-			p->mPitchBendRange.SetIntValue(2);
-			p->mMaxVoicesParam.SetIntValue(24);
+			p->mParams.Set01Val(ParamIndices::FMBrightness, 0.5f);//p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,
+			p->mParams.SetEnumValue(ParamIndices::AuxRouting, AuxRoute::TwoTwo);//p->mAuxRoutingParam.SetEnumValue(AuxRoute::TwoTwo);// AuxRouting,
+			p->mParams.SetN11Value(ParamIndices::AuxWidth, 1);//p->mAuxWidth.SetN11Value(1);// AuxWidth
+			p->mParams.Set01Val(ParamIndices::PortamentoTime, 0.3f);//p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
+			p->mParams.SetN11Value(ParamIndices::PortamentoCurve, 0);////p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
+			p->mParams.SetIntValue(ParamIndices::PitchBendRange, gPitchBendCfg, 2);//p->mPitchBendRange.SetIntValue(2);
+			p->mParams.SetIntValue(ParamIndices::MaxVoices, gMaxVoicesCfg, 24);//p->mMaxVoicesParam.SetIntValue(24);
 			// macros all 0
 			// fm matrix all 0
 		}
@@ -407,8 +423,8 @@ namespace WaveSabreCore
 			GenerateMasterParamDefaults(p);
 
 			// Apply dynamic state
-			p->SetVoiceMode(p->mVoicingModeParam.GetEnumValue());
-			p->SetUnisonoVoices(p->mUnisonoVoicesParam.GetIntValue());
+			p->SetVoiceMode(p->mParams.GetEnumValue<VoiceMode>(ParamIndices::VoicingMode));// mVoicingModeParam.GetEnumValue());
+			p->SetUnisonoVoices(p->mParams.GetIntValue(ParamIndices::Unisono, gUnisonoVoiceCfg));// p->mUnisonoVoicesParam.GetIntValue());
 			// NOTE: samplers will always be empty here
 		}
 
@@ -647,17 +663,19 @@ int compressedSize = 0;
 			{
 				OptimizeSource(p, &s);
 
-				OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
-				OptimizeEnumParam(p, s.mLoopSource, LoopBoundaryMode::NumLoopBoundaryModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopSource);
-				OptimizeEnumParam(p, s.mInterpolationMode, InterpolationMode::NumInterpolationModes, s.mBaseParamID, SamplerParamIndexOffsets::InterpolationType);
-				OptimizeEnumParam(p, s.mSampleSource, SampleSource::Count, s.mBaseParamID, SamplerParamIndexOffsets::SampleSource);
+				OptimizeEnumParam<LoopMode>(p, s.mParams,SamplerParamIndexOffsets::LoopMode);
 
-				OptimizeBoolParam(p, s.mLegatoTrig, s.mBaseParamID, SamplerParamIndexOffsets::LegatoTrig);
-				OptimizeBoolParam(p, s.mReverse, s.mBaseParamID, SamplerParamIndexOffsets::Reverse);
-				OptimizeBoolParam(p, s.mReleaseExitsLoop, s.mBaseParamID, SamplerParamIndexOffsets::ReleaseExitsLoop);
+				//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
+				OptimizeEnumParam< LoopBoundaryMode>(p, s.mParams, SamplerParamIndexOffsets::LoopSource);
+				OptimizeEnumParam < InterpolationMode>(p, s.mParams, SamplerParamIndexOffsets::InterpolationType);
+				OptimizeEnumParam < SampleSource>(p, s.mParams, SamplerParamIndexOffsets::SampleSource);
 
-				OptimizeIntParam(p, s.mGmDlsIndex, s.mBaseParamID, SamplerParamIndexOffsets::GmDlsIndex);
-				OptimizeIntParam(p, s.mBaseNote, s.mBaseParamID, SamplerParamIndexOffsets::BaseNote);
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::LegatoTrig);
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Reverse);
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::ReleaseExitsLoop);
+
+				OptimizeIntParam(p, s.mParams, gGmDlsIndexParamCfg, SamplerParamIndexOffsets::GmDlsIndex);
+				OptimizeIntParam(p, s.mParams, gKeyRangeCfg, SamplerParamIndexOffsets::BaseNote);
 
 				if (!s.mEnabledParam.GetBoolValue()) {
 					s.Reset();

@@ -97,23 +97,27 @@ namespace WaveSabreCore
 			return LinearToParamVolume__(maxLinear, math::DecibelsToLinear(db));
 		}
 
-		float ParamAccessor::GetLinearVolume__(int offset, float maxLinear, float mod) const
+		float ParamAccessor::GetLinearVolume__(int offset, const VolumeParamConfig& cfg, float mod) const
 		{
-			return ParamToLinearVolume__(maxLinear, Get01Value__(offset, mod));
+			return ParamToLinearVolume__(cfg.mMaxValLinear, Get01Value__(offset, mod));
 		}
-		float ParamAccessor::GetDecibels__(int offset, float maxLinear, float mod) const
+		float ParamAccessor::GetDecibels__(int offset, const VolumeParamConfig& cfg, float mod) const
 		{
-			return ParamToDecibelsVolume__(maxLinear, Get01Value__(offset, mod));
+			return ParamToDecibelsVolume__(cfg.mMaxValLinear, Get01Value__(offset, mod));
 		}
-		void ParamAccessor::SetLinearVolume__(int offset, float maxLinear, float f)
+		void ParamAccessor::SetLinearVolume__(int offset, const VolumeParamConfig& cfg, float f)
 		{
-			SetRawVal__(offset, LinearToParamVolume__(maxLinear, f));
+			SetRawVal__(offset, LinearToParamVolume__(cfg.mMaxValLinear, f));
 		}
-		void ParamAccessor::SetDecibels__(int offset, float maxLinear, float db)
+		void ParamAccessor::SetDecibels__(int offset, const VolumeParamConfig& cfg, float db)
 		{
-			SetRawVal__(offset, DecibelsToParamVolume__(maxLinear, db));
+			SetRawVal__(offset, DecibelsToParamVolume__(cfg.mMaxValLinear, db));
 		}
 
+		bool ParamAccessor::IsSilentVolume__(int offset, const VolumeParamConfig& cfg) const
+		{
+			return math::IsSilentGain(GetLinearVolume__(offset, cfg, 0));
+		}
 
 
 		//explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
