@@ -149,6 +149,14 @@ namespace WaveSabreCore
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
 				SetIntValue__((int)offset, gEnumIntConfig, (int)val);
 			}
+
+			// allows setting an enum value, as an integer, without having to cast.
+			template<typename T>
+			void SetEnumIntValue(T offset, int val) {
+				static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
+				SetIntValue__((int)offset, gEnumIntConfig, val);
+			}
+
 			void SetN11Value__(int offset, float v) const;
 			template<typename T>
 			void SetN11Value(T offset, float v) const {

@@ -94,10 +94,11 @@ namespace WaveSabreCore
 			void SamplerDevice::Deserialize(Deserializer& ds)
 			{
 				auto token = mMutex.Enter();
-				int sampleSource = ds.ReadUByte();
-				mSampleSource.SetIntValue(sampleSource);
-				if (mSampleSource.GetEnumValue() != SampleSource::Embed) {
-					LoadGmDlsSample(mGmDlsIndex.GetIntValue());
+				SampleSource sampleSource = (SampleSource)ds.ReadUByte();
+				mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, sampleSource);
+				//mSampleSource.SetIntValue(sampleSource);
+				if (sampleSource != SampleSource::Embed) {
+					LoadGmDlsSample(mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg));// mGmDlsIndex.GetIntValue());
 					return;
 				}
 				if (!ds.ReadUByte()) { // indicator whether there's a sample serialized or not.
@@ -132,8 +133,9 @@ namespace WaveSabreCore
 				auto token = mMutex.Enter();
 				// params are already serialized. just serialize the non-param stuff (just sample data).
 				// indicate sample source
-				s.WriteUByte(mSampleSource.GetIntValue());
-				if (mSampleSource.GetEnumValue() != SampleSource::Embed) {
+				auto sampleSrc = mParams.GetEnumValue<SampleSource>(SamplerParamIndexOffsets::SampleSource);
+				s.WriteUByte((uint8_t)sampleSrc);// mSampleSource.GetIntValue());
+				if (sampleSrc != SampleSource::Embed) {
 					return;
 				}
 #ifdef MAJ7_INCLUDE_GSM_SUPPORT
@@ -178,18 +180,19 @@ namespace WaveSabreCore
 					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::AuxMix)),
 					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::HiddenVolume))
 				),
-				mLegatoTrig(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LegatoTrig]),
-				mReverse(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::Reverse]),
-				mReleaseExitsLoop(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::ReleaseExitsLoop]),
-				mSampleStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleStart]),
-				mLoopMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopMode], LoopMode::NumLoopModes),
-				mLoopSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopSource], LoopBoundaryMode::NumLoopBoundaryModes),
-				mInterpolationMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::InterpolationType], InterpolationMode::NumInterpolationModes),
-				mLoopStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopStart]),
-				mLoopLength(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength]),
-				mBaseNote(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], gKeyRangeCfg),
-				mSampleSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleSource], SampleSource::Count),
-				mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], gGmDlsIndexParamCfg)
+				mParams(paramCache, baseParamID)
+				//mLegatoTrig(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LegatoTrig]),
+				//mReverse(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::Reverse]),
+				//mReleaseExitsLoop(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::ReleaseExitsLoop]),
+				//mSampleStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleStart]),
+				//mLoopMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopMode], LoopMode::NumLoopModes),
+				//mLoopSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopSource], LoopBoundaryMode::NumLoopBoundaryModes),
+				//mInterpolationMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::InterpolationType], InterpolationMode::NumInterpolationModes),
+				//mLoopStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopStart]),
+				//mLoopLength(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength]),
+				//mBaseNote(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], gKeyRangeCfg),
+				//mSampleSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleSource], SampleSource::Count),
+				//mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], gGmDlsIndexParamCfg)
 			{
 				//mMutex = ::CreateMutex(0, 0, 0);
 			}
@@ -226,8 +229,10 @@ namespace WaveSabreCore
 					return;
 				}
 
-				mSampleSource.SetEnumValue(SampleSource::GmDls);
-				mGmDlsIndex.SetIntValue(sampleIndex);
+				mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::GmDls);
+				//mSampleSource.SetEnumValue(SampleSource::GmDls);
+				mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg, sampleIndex);
+				//mGmDlsIndex.SetIntValue(sampleIndex);
 				mSampleLoadSequence++;
 				mSample = new GmDlsSample(sampleIndex);
 			}
@@ -264,7 +269,8 @@ namespace WaveSabreCore
 				if (!mSample) {
 					return;
 				}
-				float base_hz = math::MIDINoteToFreq((float)mBaseNote.GetIntValue());
+				//float base_hz = math::MIDINoteToFreq((float)mBaseNote.GetIntValue());
+				float base_hz = math::MIDINoteToFreq((float)mParams.GetIntValue(SamplerParamIndexOffsets::BaseNote, gKeyRangeCfg));
 				mSampleRateCorrectionFactor = mSample->GetSampleRate() / (2 * base_hz * Helpers::CurrentSampleRateF);// WHY * 2? because it corresponds more naturally to other synth octave ranges.
 			}
 
@@ -281,19 +287,21 @@ namespace WaveSabreCore
 
 			void SamplerVoice::ConfigPlayer()
 			{
-				mSamplePlayer.SampleStart = mpSamplerDevice->mSampleStart.Get01Value();
-				mSamplePlayer.LoopStart = mpSamplerDevice->mLoopStart.Get01Value();
-				mSamplePlayer.LoopLength = mpSamplerDevice->mLoopLength.Get01Value();
-				if (!mNoteIsOn && mpSamplerDevice->mReleaseExitsLoop.GetBoolValue()) {
+				mSamplePlayer.SampleStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::SampleStart, 0);// mpSamplerDevice->mSampleStart.Get01Value();
+				mSamplePlayer.LoopStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopStart, 0); //mpSamplerDevice->mLoopStart.Get01Value();
+				mSamplePlayer.LoopLength = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopLength, 0); //mpSamplerDevice->mLoopLength.Get01Value();
+				if (!mNoteIsOn && mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::ReleaseExitsLoop)) {// mReleaseExitsLoop.GetBoolValue()) {
+				//if (!mNoteIsOn && mpSamplerDevice->mReleaseExitsLoop.GetBoolValue()) {
 					mSamplePlayer.LoopMode = LoopMode::Disabled;
 				}
 				else
 				{
-					mSamplePlayer.LoopMode = mpSamplerDevice->mLoopMode.GetEnumValue();
+					//mSamplePlayer.LoopMode = mpSamplerDevice->mLoopMode.GetEnumValue();
+					mSamplePlayer.LoopMode = mpSamplerDevice->mParams.GetEnumValue<LoopMode>(SamplerParamIndexOffsets::LoopMode);
 				}
-				mSamplePlayer.LoopBoundaryMode = mpSamplerDevice->mLoopSource.GetEnumValue();
-				mSamplePlayer.InterpolationMode = mpSamplerDevice->mInterpolationMode.GetEnumValue();
-				mSamplePlayer.Reverse = mpSamplerDevice->mReverse.GetBoolValue();
+				mSamplePlayer.LoopBoundaryMode = mpSamplerDevice->mParams.GetEnumValue<LoopBoundaryMode>(SamplerParamIndexOffsets::LoopSource); //mpSamplerDevice->mLoopSource.GetEnumValue();
+				mSamplePlayer.InterpolationMode = mpSamplerDevice->mParams.GetEnumValue<InterpolationMode>(SamplerParamIndexOffsets::InterpolationType); //mpSamplerDevice->mInterpolationMode.GetEnumValue();
+				mSamplePlayer.Reverse = mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Reverse);//mpSamplerDevice->mReverse.GetBoolValue();
 			}
 
 			void SamplerVoice::NoteOn(bool legato) 
@@ -304,9 +312,12 @@ namespace WaveSabreCore
 				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
 					return;
 				}
-				if (legato && !mpSamplerDevice->mLegatoTrig.GetBoolValue()) {
+				if (legato && !mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::LegatoTrig)) {
 					return;
 				}
+				//if (legato && !mpSamplerDevice->mLegatoTrig.GetBoolValue()) {
+				//	return;
+				//}
 
 				auto token = mpSamplerDevice->mMutex.Enter();
 

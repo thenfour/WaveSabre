@@ -30,18 +30,6 @@ namespace WaveSabreCore
 			Count,
 		};
 
-		//struct MutexHold
-		//{
-		//	HANDLE mMutex;
-		//	MutexHold(HANDLE hMutex) : mMutex(hMutex)
-		//	{
-		//		WaitForSingleObject(mMutex, INFINITE);
-		//	}
-		//	~MutexHold() {
-		//		ReleaseMutex(mMutex);
-		//	}
-		//};
-
 		struct GmDlsSample : ISampleSource
 		{
 			int mSampleIndex = 0;
@@ -63,20 +51,21 @@ namespace WaveSabreCore
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		struct SamplerDevice : ISoundSourceDevice
 		{
-			BoolParam mLegatoTrig;
-			BoolParam mReverse;
-			BoolParam mReleaseExitsLoop;
-			EnumParam<LoopMode> mLoopMode;
-			EnumParam<LoopBoundaryMode> mLoopSource;
-			EnumParam<InterpolationMode> mInterpolationMode;
-			EnumParam<SampleSource> mSampleSource;
+			ParamAccessor mParams;
+			//BoolParam mLegatoTrig;
+			//BoolParam mReverse;
+			//BoolParam mReleaseExitsLoop;
+			//EnumParam<LoopMode> mLoopMode;
+			//EnumParam<LoopBoundaryMode> mLoopSource;
+			//EnumParam<InterpolationMode> mInterpolationMode;
+			//EnumParam<SampleSource> mSampleSource;
 
-			IntParam mGmDlsIndex;
-			IntParam mBaseNote;
+			//IntParam mGmDlsIndex;
+			//IntParam mBaseNote;
 
-			Float01Param mSampleStart;
-			Float01Param mLoopStart;
-			Float01Param mLoopLength; // 0-1 ?
+			//Float01Param mSampleStart;
+			//Float01Param mLoopStart;
+			//Float01Param mLoopLength; // 0-1 ?
 
 			int mSampleLoadSequence = 0; // just an ID to let the VST editor know when the sample data has changed
 
