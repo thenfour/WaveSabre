@@ -884,6 +884,53 @@ namespace WaveSabreCore
 
             uint32_t ReadUInt32();
 
+            uint32_t ReadVarUInt32()
+            {
+                uint32_t value = 0;
+                uint32_t shift = 0;
+                // byte stream: [c-------]...
+                uint8_t b = 0;
+                do {
+                    b = ReadUByte();
+                    value |= static_cast<uint32_t>(b & 0x7f) << shift;
+                    shift += 7;
+                } while ((b & 0x80) != 0);
+                return value;
+            }
+
+
+
+                //byte event = (b1 & 0xc0) >> 6;
+                //auto& e = midiLanes[i].events[m];
+                //e.Type = (EventType)event;
+                //e.TimeStamp = b1 & 0x1f;
+                //if (b1 & 0x20) {
+                //    // byte stream: [ee1-----][?-------]...
+                //    byte b2 = ds.ReadUByte();
+                //    e.TimeStamp <<= 7;
+                //    e.TimeStamp |= b2 & 0x7f;
+                //    if (b2 & 0x80) {
+                //        // byte stream: [ee1-----][1-------][?-------]...
+                //        byte b3 = ds.ReadUByte();
+                //        e.TimeStamp <<= 7;
+                //        e.TimeStamp |= b3 & 0x7f;
+                //        if (b3 & 0x80) {
+                //            // byte stream: [ee1-----][1-------][1-------][?-------]...
+                //            byte b4 = ds.ReadUByte();
+                //            e.TimeStamp <<= 7;
+                //            e.TimeStamp |= b4 & 0x7f;
+                //            if (b4 & 0x80) {
+                //                // byte stream: [ee1-----][1-------][1-------][1-------][00------]
+                //                byte b5 = ds.ReadUByte();
+                //                e.TimeStamp <<= 6;
+                //                e.TimeStamp |= b5;
+                //            }
+                //        }
+                //    }
+                //}
+
+            //}
+
             float ReadFloat();
             double ReadDouble();
             // returns a new cursor in the out buffer 

@@ -111,7 +111,7 @@ inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 		if (b64.IsEOF()) break;
 		if (b64.mParseResult.IsFailure()) break;
 		auto data = clarinoid::base64_decode(b64.mStringValue);
-		M7::Deserializer ds{ data.data(), data.size() };
+		M7::Deserializer ds{ data.data() };
 		s.Deserialize(ds);
 	}
 

@@ -68,7 +68,7 @@ namespace ProjectManager
             var tracks = new TreeNode(string.Format("Tracks: {0}", song.Tracks.Count), trackNodes.ToArray());
 
             // track data
-            var tracksChunkNode = new TreeNode("Chunks: Tracks");
+            var tracksChunkNode = new TreeNode($"Chunks: Tracks: {bin.AllTrackData.GetSize()} bytes ({bin.AllTrackData.GetCompressedSize()} compressed)");
             var tracksOrdered = bin.TrackData.Select(kv => new { kv, compressedSize = kv.Value.GetCompressedSize() }).OrderByDescending(kv => kv.compressedSize);
             foreach (var kvt in tracksOrdered)
             {
@@ -76,7 +76,7 @@ namespace ProjectManager
             }
 
             // device data
-            var deviceChunkNode = new TreeNode("Chunks: Devices");
+            var deviceChunkNode = new TreeNode($"Chunks: Devices: {bin.AllDeviceChunks.GetSize()} bytes ({bin.AllDeviceChunks.GetCompressedSize()} compressed)");
             var devicesOrdered = bin.DeviceChunks.Select(kv => new { kv, compressedSize = kv.Value.GetCompressedSize() }).OrderByDescending(kv => kv.compressedSize);
             foreach (var kvt in devicesOrdered)
             {
@@ -84,7 +84,7 @@ namespace ProjectManager
             }
 
             // midi lane data
-            var midiLaneChunkNode = new TreeNode("Chunks: Midi Lanes");
+            var midiLaneChunkNode = new TreeNode($"Chunks: Midi Lanes: {bin.AllMidiLanes.GetSize()} bytes ({bin.AllMidiLanes.GetCompressedSize()} compressed)");
             var midiLanesOrdered = bin.MidiLaneData.Select(kv => new { kv, compressedSize = kv.Value.GetCompressedSize() }).OrderByDescending(kv => kv.compressedSize);
             foreach (var kvt in midiLanesOrdered)
             {

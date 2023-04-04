@@ -302,37 +302,37 @@ namespace WaveSabrePlayerLib
 
 				volume = ds.ReadFloat();
 
-				INode_DirectDependencyCount = NumReceives = ds.ReadUInt32();
+				INode_DirectDependencyCount = NumReceives = ds.ReadVarUInt32();
 				if (NumReceives)
 				{
 					Receives = new Receive[NumReceives];
 					for (int i = 0; i < NumReceives; i++)
 					{
-						Receives[i].SendingTrackIndex = ds.ReadUInt32();
-						Receives[i].ReceivingChannelIndex = ds.ReadUInt32();
+						Receives[i].SendingTrackIndex = ds.ReadVarUInt32();
+						Receives[i].ReceivingChannelIndex = ds.ReadVarUInt32();
 						Receives[i].Volume = ds.ReadFloat();
 					}
 				}
 
-				numDevices = ds.ReadUInt32();
+				numDevices = ds.ReadVarUInt32();
 				if (numDevices)
 				{
 					devicesIndicies = new int[numDevices];
 					for (int i = 0; i < numDevices; i++)
 					{
-						devicesIndicies[i] = ds.ReadUInt32();
+						devicesIndicies[i] = ds.ReadVarUInt32();
 					}
 				}
 
-				midiLaneId = ds.ReadUInt32();
+				midiLaneId = ds.ReadVarUInt32();
 
-				numAutomations = ds.ReadUInt32();
+				numAutomations = ds.ReadVarUInt32();
 				if (numAutomations)
 				{
 					automations = new Automation * [numAutomations];
 					for (int i = 0; i < numAutomations; i++)
 					{
-						int deviceIndex = ds.ReadUInt32();
+						int deviceIndex = ds.ReadVarUInt32();
 						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]], ds);
 					}
 				}
@@ -435,13 +435,13 @@ namespace WaveSabrePlayerLib
 				Automation(SongRenderer2* songRenderer, WaveSabreCore::Device* device, WaveSabreCore::M7::Deserializer& ds)
 				{
 					this->device = device;
-					paramId = ds.ReadUInt32();
-					numPoints = ds.ReadUInt32();
+					paramId = ds.ReadVarUInt32();
+					numPoints = ds.ReadVarUInt32();
 					points = new Point[numPoints];
 					int lastPointTime = 0;
 					for (int i = 0; i < numPoints; i++)
 					{
-						int absTime = lastPointTime + ds.ReadUInt32();
+						int absTime = lastPointTime + ds.ReadVarUInt32();
 						points[i].TimeStamp = absTime;
 						lastPointTime = absTime;
 						points[i].Value = (float)ds.ReadUByte() / 255.0f;
@@ -532,7 +532,7 @@ namespace WaveSabrePlayerLib
 				devices[i] = song->factory((DeviceId)ds.ReadUByte());
 				devices[i]->SetSampleRate((float)sampleRate);
 				devices[i]->SetTempo(bpm);
-				int chunkSize = ds.ReadUInt32();
+				int chunkSize = ds.ReadVarUInt32();
 				devices[i]->SetChunk((void*)ds.mpCursor, chunkSize);
 				ds.mpCursor += chunkSize;
 			}
@@ -547,36 +547,10 @@ namespace WaveSabrePlayerLib
 
 				for (int m = 0; m < numEvents; m++)
 				{
-					// byte stream: [ee?-----]...
-					auto b1 = ds.ReadUByte();
-					byte event = (b1 & 0xc0) >> 6;
 					auto& e = midiLanes[i].events[m];
-					e.Type = (EventType)event;
-					e.TimeStamp = b1 & 0x1f;
-					if (b1 & 0x20) {
-						// byte stream: [ee1-----][?-------]...
-						byte b2 = ds.ReadUByte();
-						e.TimeStamp <<= 7;
-						e.TimeStamp |= b2 & 0x7f;
-						if (b2 & 0x80) {
-							// byte stream: [ee1-----][1-------][?-------]...
-							byte b3 = ds.ReadUByte();
-							e.TimeStamp <<= 7;
-							e.TimeStamp |= b3 & 0x7f;
-							if (b3 & 0x80) {
-								// byte stream: [ee1-----][1-------][1-------][?-------]...
-								byte b4 = ds.ReadUByte();
-								e.TimeStamp <<= 7;
-								e.TimeStamp |= b4 & 0x7f;
-								if (b4 & 0x80) {
-									// byte stream: [ee1-----][1-------][1-------][1-------][00------]
-									byte b5 = ds.ReadUByte();
-									e.TimeStamp <<= 6;
-									e.TimeStamp |= b5;
-								}
-							}
-						}
-					}
+					auto t = ds.ReadVarUInt32();
+					e.Type = (EventType)(t & 3);
+					e.TimeStamp = t >> 2;
 				}
 
 				for (int m = 0; m < numEvents; m++)
