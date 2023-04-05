@@ -55,6 +55,16 @@ namespace WaveSabreCore
 			SetParam(i, params[i]);
 	}
 
+	void Device::SetMaj7StyleChunk(M7::Deserializer& ds)
+	{
+		LoadDefaults();
+		for (int i = 0; i < numParams; ++i)
+		{
+			float f = GetParam(i) + ds.ReadInt16NormalizedFloat();
+			SetParam(i, f);
+		}
+	}
+
 	int Device::GetChunk(void **data)
 	{
 		int chunkSize = numParams * sizeof(float) + sizeof(int);

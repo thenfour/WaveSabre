@@ -10,7 +10,7 @@
 
 
 extern int GetMinifiedChunk(M7::Maj7* p, void** data);
-
+extern std::unique_ptr<float[]> GenerateDefaultParamCache();
 
 inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 {
@@ -145,7 +145,8 @@ public:
 	{
 		using vstn = const char[kVstMaxParamStrLen];
 		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
-
+		
+		auto defaultParamCache = GenerateDefaultParamCache();
 		clarinoid::MemoryStream memStream;
 		clarinoid::BufferedStream buffering{ memStream };
 		clarinoid::TextStream textStream{ buffering };
@@ -166,7 +167,7 @@ public:
 		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i)
 		{
 			if (diff) {
-				float def = GetMaj7()->mDefaultParamCache[i];
+				float def = defaultParamCache[i];
 				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i) - def);
 			}
 			else {
@@ -224,13 +225,13 @@ namespace WaveSabreCore
 			}
 
 			//for (auto& d : m->mScales) d.SetN11Value(0.75f);
-			m->mCurve.SetN11Value(0);
+			m->mParams.SetN11Value(ModParamIndexOffsets::Curve, 0);// mCurve.SetN11Value(0);
 			m->mParams.SetBoolValue(ModParamIndexOffsets::AuxEnabled, false);
 			//m->mAuxEnabled.SetBoolValue(false);
 			
 			m->mParams.SetEnumValue(ModParamIndexOffsets::AuxSource, ModSource::None);
 			//m->mAuxSource.SetEnumValue(ModSource::None);
-			m->mAuxCurve.SetN11Value(0);
+			m->mParams.SetN11Value(ModParamIndexOffsets::AuxCurve, 0); //m->mAuxCurve.SetN11Value(0);
 			m->mParams.Set01Val(ModParamIndexOffsets::AuxAttenuation, 1);
 			//m->mAuxAttenuation.SetParamValue(1);
 
@@ -541,9 +542,11 @@ int compressedSize = 0;
 			//int size = p->GetChunk(&data);
 			ret.uncompressedSize = size;
 
+			auto defaultParamCache = GenerateDefaultParamCache();
+
 			//int numNonZeroParams = 0;
 			for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
-				float d = p->mParamCache[i] - p->mDefaultParamCache[i];
+				float d = p->mParamCache[i] - defaultParamCache[i];
 				if (fabsf(d) > 0.00001f) ret.nonZeroParams++;
 				else ret.defaultParams++;
 			}
@@ -576,18 +579,18 @@ int compressedSize = 0;
 
 		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
 		// using the default value when the effective value is the same.
-		template<typename T, typename Tbase, typename Toffset>
-		static inline void OptimizeEnumParam(Maj7* p, EnumParam<T>& param, T itemCount, Tbase baseParam, Toffset paramOffset)
-		{
-			int paramID = (int)baseParam + (int)paramOffset;
-			if (paramID < 0) return; // invalid IDs exist for example in LFo
-			T liveEnumValue = param.GetEnumValue();
-			float defaultParamVal = p->mDefaultParamCache[paramID];
-			EnumParam<T> defParam{ defaultParamVal , itemCount };
-			if (liveEnumValue == defParam.GetEnumValue()) {
-				param.SetParamValue(defaultParamVal);
-			}
-		}
+		//template<typename T, typename Tbase, typename Toffset>
+		//static inline void OptimizeEnumParam(Maj7* p, EnumParam<T>& param, T itemCount, Tbase baseParam, Toffset paramOffset)
+		//{
+		//	int paramID = (int)baseParam + (int)paramOffset;
+		//	if (paramID < 0) return; // invalid IDs exist for example in LFo
+		//	T liveEnumValue = param.GetEnumValue();
+		//	float defaultParamVal = p->mDefaultParamCache[paramID];
+		//	EnumParam<T> defParam{ defaultParamVal , itemCount };
+		//	if (liveEnumValue == defParam.GetEnumValue()) {
+		//		param.SetParamValue(defaultParamVal);
+		//	}
+		//}
 
 		template<typename Tenum, typename Toffset>
 		static inline void OptimizeEnumParam(Maj7* p, ParamAccessor& params, Toffset offset)
@@ -595,7 +598,8 @@ int compressedSize = 0;
 			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
 			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
 
-			ParamAccessor dp{ p->mDefaultParamCache, params.mBaseParamID };
+			auto defaultParamCache = GenerateDefaultParamCache();
+			ParamAccessor dp{ defaultParamCache.get(), params.mBaseParamID};
 			if (dp.GetEnumValue<Tenum>(offset) == params.GetEnumValue<Tenum>(offset)) {
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
@@ -603,18 +607,18 @@ int compressedSize = 0;
 
 		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
 		// using the default value when the effective value is the same.
-		template<typename Tbase, typename Toffset>
-		static inline void OptimizeIntParam(Maj7* p, IntParam& param, Tbase baseParam, Toffset paramOffset)
-		{
-			int paramID = (int)baseParam + (int)paramOffset;
-			if (paramID < 0) return; // invalid IDs exist for example in LFo
-			int liveIntValue = param.GetIntValue();
-			float defaultParamVal = p->mDefaultParamCache[paramID];
-			IntParam defParam{ defaultParamVal, param.mCfg };
-			if (liveIntValue == defParam.GetIntValue()) {
-				param.SetParamValue(defaultParamVal);
-			}
-		}
+		//template<typename Tbase, typename Toffset>
+		//static inline void OptimizeIntParam(Maj7* p, IntParam& param, Tbase baseParam, Toffset paramOffset)
+		//{
+		//	int paramID = (int)baseParam + (int)paramOffset;
+		//	if (paramID < 0) return; // invalid IDs exist for example in LFo
+		//	int liveIntValue = param.GetIntValue();
+		//	float defaultParamVal = p->mDefaultParamCache[paramID];
+		//	IntParam defParam{ defaultParamVal, param.mCfg };
+		//	if (liveIntValue == defParam.GetIntValue()) {
+		//		param.SetParamValue(defaultParamVal);
+		//	}
+		//}
 
 
 		template<typename Toffset>
@@ -623,7 +627,8 @@ int compressedSize = 0;
 			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
 			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
 
-			ParamAccessor dp{ p->mDefaultParamCache, params.mBaseParamID };
+			auto defaultParamCache = GenerateDefaultParamCache();
+			ParamAccessor dp{ defaultParamCache.get(), params.mBaseParamID };
 			if (dp.GetIntValue(offset, cfg) == params.GetIntValue(offset, cfg)) {
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
@@ -631,34 +636,29 @@ int compressedSize = 0;
 
 		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
 		// using the default value when the effective value is the same.
-		template<typename Tbase, typename Toffset>
-		static inline void OptimizeBoolParam(Maj7* p, BoolParam& param, Tbase baseParam, Toffset offset)
-		{
-			int paramID = (int)baseParam + (int)offset;
-			if (paramID < 0) return; // invalid IDs exist for example in LFo
-			bool liveBoolValue = param.GetBoolValue();
-			float defaultParamVal = p->mDefaultParamCache[paramID];
-			BoolParam defParam{ defaultParamVal };
-			if (liveBoolValue == defParam.GetBoolValue()) {
-				param.SetRawParamValue(defaultParamVal);
-			}
-		}
+		//template<typename Tbase, typename Toffset>
+		//static inline void OptimizeBoolParam(Maj7* p, BoolParam& param, Tbase baseParam, Toffset offset)
+		//{
+		//	int paramID = (int)baseParam + (int)offset;
+		//	if (paramID < 0) return; // invalid IDs exist for example in LFo
+		//	bool liveBoolValue = param.GetBoolValue();
+		//	float defaultParamVal = p->mDefaultParamCache[paramID];
+		//	BoolParam defParam{ defaultParamVal };
+		//	if (liveBoolValue == defParam.GetBoolValue()) {
+		//		param.SetRawParamValue(defaultParamVal);
+		//	}
+		//}
 
 		template<typename Toffset>
 		static inline void OptimizeBoolParam(Maj7* p, ParamAccessor& params, Toffset offset)
 		{
 			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
 			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
-			//bool liveBoolValue = params.GetBoolValue(offset);// param.GetBoolValue();
-			ParamAccessor dp{ p->mDefaultParamCache, params.mBaseParamID };
+			auto defaultParamCache = GenerateDefaultParamCache();
+			ParamAccessor dp{ defaultParamCache.get(), params.mBaseParamID };
 			if (dp.GetBoolValue(offset) == params.GetBoolValue(offset)) {
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
-			////BoolParam defParam{ defaultParamVal };
-			//if (liveBoolValue == defParam.GetBoolValue()) {
-			//	float defaultParamVal = p->mDefaultParamCache[paramID];
-			//	param.SetRawParamValue(defaultParamVal);
-			//}
 		}
 
 		template<size_t N>
@@ -674,6 +674,8 @@ int compressedSize = 0;
 			OptimizeBoolParam(p, env.mParams, EnvParamIndexOffsets::LegatoRestart);
 			OptimizeEnumParam<EnvelopeMode>(p, env.mParams, EnvParamIndexOffsets::Mode);
 
+			auto defaultParamCache = GenerateDefaultParamCache();
+
 			if (!IsEnvelopeInUse(p, env.mMyModSource)) {
 				//memcpy(env.mParams.GetOffsetParamCache(), gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
 				Copy16bitDefaults(env.mParams.GetOffsetParamCache(), gDefaultEnvelopeParams);
@@ -681,7 +683,7 @@ int compressedSize = 0;
 			}
 			if (env.mParams.GetEnumValue<EnvelopeMode>(EnvParamIndexOffsets::Mode) == EnvelopeMode::OneShot)
 			{
-				ParamAccessor defaults{ p->mDefaultParamCache, env.mParams.mBaseParamID };
+				ParamAccessor defaults{ defaultParamCache.get(), env.mParams.mBaseParamID};
 				env.mParams.Set01Val(EnvParamIndexOffsets::SustainLevel, defaults.GetRawVal(EnvParamIndexOffsets::SustainLevel));
 				env.mParams.Set01Val(EnvParamIndexOffsets::ReleaseTime, defaults.GetRawVal(EnvParamIndexOffsets::ReleaseTime));
 				env.mParams.Set01Val(EnvParamIndexOffsets::ReleaseCurve, defaults.GetRawVal(EnvParamIndexOffsets::ReleaseCurve));
@@ -691,36 +693,36 @@ int compressedSize = 0;
 		// if aggressive, then round values which are very close to defaults back to default.
 		static inline void OptimizeParams(Maj7* p, bool aggressive)
 		{
-			//// samplers
-			//for (auto& s : p->mSamplerDevices)
-			//{
-			//	// enabled, pitch semis, keyrange min, keyrange max.
-			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Enabled);
-			//	OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, SamplerParamIndexOffsets::TuneSemis);
-			//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMin);
-			//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMax);
+			// samplers
+			for (auto& s : p->mSamplerDevices)
+			{
+				// enabled, pitch semis, keyrange min, keyrange max.
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Enabled);
+				OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, SamplerParamIndexOffsets::TuneSemis);
+				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMin);
+				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMax);
 
-			//	OptimizeEnumParam<LoopMode>(p, s.mParams,SamplerParamIndexOffsets::LoopMode);
+				OptimizeEnumParam<LoopMode>(p, s.mParams,SamplerParamIndexOffsets::LoopMode);
 
-			//	//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
-			//	OptimizeEnumParam< LoopBoundaryMode>(p, s.mParams, SamplerParamIndexOffsets::LoopSource);
-			//	OptimizeEnumParam < InterpolationMode>(p, s.mParams, SamplerParamIndexOffsets::InterpolationType);
-			//	OptimizeEnumParam < SampleSource>(p, s.mParams, SamplerParamIndexOffsets::SampleSource);
+				//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
+				OptimizeEnumParam< LoopBoundaryMode>(p, s.mParams, SamplerParamIndexOffsets::LoopSource);
+				OptimizeEnumParam < InterpolationMode>(p, s.mParams, SamplerParamIndexOffsets::InterpolationType);
+				OptimizeEnumParam < SampleSource>(p, s.mParams, SamplerParamIndexOffsets::SampleSource);
 
-			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::LegatoTrig);
-			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Reverse);
-			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::ReleaseExitsLoop);
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::LegatoTrig);
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Reverse);
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::ReleaseExitsLoop);
 
-			//	OptimizeIntParam(p, s.mParams, gGmDlsIndexParamCfg, SamplerParamIndexOffsets::GmDlsIndex);
-			//	OptimizeIntParam(p, s.mParams, gKeyRangeCfg, SamplerParamIndexOffsets::BaseNote);
+				OptimizeIntParam(p, s.mParams, gGmDlsIndexParamCfg, SamplerParamIndexOffsets::GmDlsIndex);
+				OptimizeIntParam(p, s.mParams, gKeyRangeCfg, SamplerParamIndexOffsets::BaseNote);
 
-			//	if (!s.IsEnabled()) {
-			//		s.Reset();
-			//		//memcpy(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
-			//		Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams);
-			//		s.mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);
-			//	}
-			//}
+				if (!s.IsEnabled()) {
+					s.Reset();
+					//memcpy(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
+					Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams);
+					s.mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);
+				}
+			}
 
 			// oscillators
 			for (auto& s : p->mOscillatorDevices)
@@ -806,8 +808,9 @@ int compressedSize = 0;
 
 			if (aggressive) {
 				for (size_t i = 0; i < (size_t)ParamIndices::NumParams; ++i) {
-					if (math::FloatEquals(p->mParamCache[i], p->mDefaultParamCache[i], 0.000001f)) {
-						p->mParamCache[i] = p->mDefaultParamCache[i];
+					auto defaultParamCache = GenerateDefaultParamCache();
+					if (math::FloatEquals(p->mParamCache[i], defaultParamCache[i], 0.000001f)) {
+						p->mParamCache[i] = defaultParamCache[i];
 					}
 				}
 			}

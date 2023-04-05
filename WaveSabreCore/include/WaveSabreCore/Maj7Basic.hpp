@@ -211,6 +211,23 @@ namespace WaveSabreCore
             Count,
         };
 
+        static constexpr uint16_t gAudioRecalcSampleMaskValues[] = {
+            127, // Potato,
+            63, // Carrot,
+            31, // Cauliflower,
+            7, // Celery,
+            1, // Artichoke,
+        };
+
+        static constexpr uint16_t gModulationRecalcSampleMaskValues[] = {
+            127, // Potato,
+            63, // Carrot,
+            31, // Cauliflower,
+            15, // Celery,
+            7, // Artichoke,
+        };
+
+
         #define QUALITY_SETTING_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::QualitySetting::Count]{ \
                 "Potato", \
                 "Carrot", \
@@ -623,6 +640,8 @@ namespace WaveSabreCore
         // if an odd number of items, then 1 = centered @ 0.0f.
         // then, the remaining even # of items gets + and - respectively, distributed between 0 - 1.
         void BipolarDistribute(size_t count, const bool* enabled, float* outp);
+
+        void ImportDefaultsArray(size_t count, const int16_t* src, float* paramCacheOffset);
 
         // raw param values are stored in a huge array. the various sub-objects (osc, filters, envelopes)
         // will refer to param values in that array using this. sub classes of this class can do whatever

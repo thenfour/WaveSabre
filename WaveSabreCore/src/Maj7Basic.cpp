@@ -11,22 +11,6 @@ namespace WaveSabreCore
 			math::gLuts = new math::LUTs();
 		}
 
-		static uint16_t gAudioRecalcSampleMaskValues[] = {
-			127, // Potato,
-			63, // Carrot,
-			31, // Cauliflower,
-			7, // Celery,
-			1, // Artichoke,
-		};
-
-		static uint16_t gModulationRecalcSampleMaskValues[] = {
-			127, // Potato,
-			63, // Carrot,
-			31, // Cauliflower,
-			15, // Celery,
-			7, // Artichoke,
-		};
-
 		uint16_t gAudioOscRecalcSampleMask = gAudioRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
 		uint16_t gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
 		QualitySetting gQualitySetting = QualitySetting::Celery;
@@ -360,6 +344,15 @@ namespace WaveSabreCore
 				outp[iElement] = val;
 			}
 		}
+
+		void ImportDefaultsArray(size_t count, const int16_t* src, float* paramCacheOffset)
+		{
+			for (size_t i = 0; i < count; ++i)
+			{
+				paramCacheOffset[i] = math::Sample16To32Bit(src[i]);
+			}
+		}
+
 
 		//Float01Param::Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
 		Float01Param::Float01Param(real_t& ref) : Float01RefParam(ref) {}

@@ -1,8 +1,14 @@
 #ifndef __WAVESABRECORE_DEVICE_H__
 #define __WAVESABRECORE_DEVICE_H__
 
+//#include <WaveSabreCore/Maj7Basic.hpp>
+
 namespace WaveSabreCore
 {
+	namespace M7
+	{
+		struct Deserializer;
+	}
 	class Device
 	{
 	public:
@@ -23,11 +29,12 @@ namespace WaveSabreCore
 		virtual void SetParam(int index, float value);
 		virtual float GetParam(int index) const;
 
-		//virtual void SetChunkForVST(void* data, int size) { SetChunkMinified(data, size); }
-		//virtual int GetChunkForVST(void** data) { return GetChunkMinified(data); }
-
 		virtual void SetChunk(void* data, int size);
 		virtual int GetChunk(void** data);
+
+		// support for maj7 style chunks, which are 16-bit and differential from default values
+		virtual void LoadDefaults() {}
+		virtual void SetMaj7StyleChunk(M7::Deserializer& ds);
 
 	protected:
 		virtual void clearOutputs(float **outputs, int numSamples);

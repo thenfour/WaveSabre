@@ -43,7 +43,14 @@ M7::Maj7* Maj7Vst::GetMaj7() const
 }
 
 
-
+std::unique_ptr<float[]> GenerateDefaultParamCache()
+{
+	M7::Maj7* tmpEffect = new M7::Maj7(); // consumes like 30kb of stack so new it.
+	auto ret = std::make_unique<float[]>((int)M7::ParamIndices::NumParams);
+	std::copy(std::begin(tmpEffect->mParamCache), std::end(tmpEffect->mParamCache), ret.get());
+	delete tmpEffect;
+	return ret;
+}
 
 // assumes that p has had its default param cache filled.
 int GetMinifiedChunk(M7::Maj7* p, void** data)
@@ -62,9 +69,11 @@ int GetMinifiedChunk(M7::Maj7* p, void** data)
 	s.WriteUByte((uint8_t)M7::Maj7::ChunkFormat::Minified);
 	s.WriteUByte(M7::Maj7::gChunkVersion);
 
+	auto defaultParamCache = GenerateDefaultParamCache();
+
 	for (int i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
 		double f = p->mParamCache[i];
-		f -= p->mDefaultParamCache[i];
+		f -= defaultParamCache[i];
 		static constexpr double eps = 0.0000001;
 		double af = f < 0 ? -f : f;
 		if (af < eps) {

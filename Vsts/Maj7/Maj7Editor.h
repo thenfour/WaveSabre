@@ -105,85 +105,6 @@ public:
 		return false;
 	}
 
-	void CopyTextToClipboard(const std::string& s) {
-
-		if (!OpenClipboard(NULL)) return;
-		HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, s.size() + 1);
-		if (!hMem) {
-			CloseClipboard();
-			return;
-		}
-		char* pMem = (char*)GlobalLock(hMem);
-		if (!pMem) {
-			GlobalFree(hMem);
-			CloseClipboard();
-			return;
-		}
-		strcpy(pMem, s.c_str());
-		GlobalUnlock(hMem);
-
-		EmptyClipboard();
-		SetClipboardData(CF_TEXT, hMem);
-
-		CloseClipboard();
-	}
-
-	std::string GetClipboardText() {
-		if (!OpenClipboard(NULL)) return {};
-		HANDLE hData = GetClipboardData(CF_TEXT);
-		if (!hData) {
-			CloseClipboard();
-			return {};
-		}
-
-		char* pMem = (char*)GlobalLock(hData);
-		if (pMem == NULL) {
-			CloseClipboard();
-			return {};
-		}
-
-		std::string text = pMem;
-
-		// Unlock the global memory and close the clipboard
-		GlobalUnlock(hData);
-		CloseClipboard();
-
-		return text;
-	}
-
-
-	std::string LoadContentsOfTextFile(const std::string& path)
-	{
-		HANDLE hFile = CreateFileA(path.c_str(), GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hFile == INVALID_HANDLE_VALUE)
-			return "";
-
-		LARGE_INTEGER fileSize;
-		if (!GetFileSizeEx(hFile, &fileSize))
-		{
-			CloseHandle(hFile);
-			return "";
-		}
-
-		char* fileContents = new char[(int)(fileSize.QuadPart + 1)];
-
-		DWORD bytesRead;
-		if (!ReadFile(hFile, fileContents, (DWORD)fileSize.QuadPart, &bytesRead, NULL))
-		{
-			delete[] fileContents;
-			CloseHandle(hFile);
-			return "";
-		}
-
-		fileContents[fileSize.QuadPart] = '\0';
-
-		CloseHandle(hFile);
-		std::string result(fileContents);
-		delete[] fileContents;
-		return result;
-	}
-
-
 
 	void OnLoadPatch()
 	{
@@ -1063,7 +984,7 @@ public:
 		{
 			paramValues[i] = tempParamValues[i];
 		}
-		return M7::AuxDevice{ nullptr, auxInfo.mSelfLink, 0, paramValues, (int)auxInfo.mModParam2ID };
+		return M7::AuxDevice{ paramValues, nullptr, auxInfo.mSelfLink, 0, (int)auxInfo.mModParam2ID };
 	}
 
 	std::string GetAuxName(int iaux, std::string idsuffix)
@@ -1714,7 +1635,7 @@ public:
 	{
 		std::ifstream input(path, std::ios::in | std::ios::binary | std::ios::ate);
 		if (!input.is_open()) return SetStatus(isrc, StatusStyle::Error, "Could not open file.");
-		auto inputSize = input.tellg();
+		size_t inputSize = (size_t)input.tellg();
 		auto inputBuf = std::make_unique<char[]>(inputSize);// new unsigned char[(unsigned int)inputSize];
 		input.seekg(0, std::ios::beg);
 		input.read((char*)inputBuf.get(), inputSize);

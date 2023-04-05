@@ -3,7 +3,6 @@
 // size-optimizations:
 // (profile w sizebench!)
 // - use fixed-point in oscillators. there's absolutely no reason to be using chonky floating point instructions there.
-// - re-order params so likely-zeros are grouped together.
 
 // Pitch params in order of processing:
 // x                                  Units        Level
@@ -62,7 +61,7 @@ namespace WaveSabreCore
 			const int mModDestParam2ID;
 			//const int mBaseParamID;
 
-			AuxDevice(AuxDevice* allAuxNodes, AuxLink selfLink, int baseParamID, float* paramCache, int modDestParam2ID) :
+			AuxDevice(float* paramCache, AuxDevice* allAuxNodes, AuxLink selfLink, int baseParamID, int modDestParam2ID) :
 				mpAllAuxNodes(allAuxNodes),
 				mLinkToSelf(selfLink),
 				mParams(paramCache, baseParamID),
@@ -313,7 +312,7 @@ namespace WaveSabreCore
 			};
 
 			float mParamCache[(int)ParamIndices::NumParams];
-			float mDefaultParamCache[(int)ParamIndices::NumParams];
+			//float mDefaultParamCache[(int)ParamIndices::NumParams];
 			ParamAccessor mParams{ mParamCache, 0 };
 
 			// these are not REALLY lfos, they are used to track phase at the device level, for when an LFO's phase should be synced between all voices.
@@ -354,10 +353,10 @@ namespace WaveSabreCore
 			};
 
 			AuxDevice mAuxDevices[gAuxNodeCount] = {
-				AuxDevice { mAuxDevices, AuxLink::Aux1, (int)ParamIndices::Aux1Enabled, mParamCache, (int)ModDestination::Aux1Param2 },
-				AuxDevice { mAuxDevices, AuxLink::Aux2, (int)ParamIndices::Aux2Enabled, mParamCache, (int)ModDestination::Aux2Param2 },
-				AuxDevice { mAuxDevices, AuxLink::Aux3, (int)ParamIndices::Aux3Enabled, mParamCache, (int)ModDestination::Aux3Param2 },
-				AuxDevice { mAuxDevices, AuxLink::Aux4, (int)ParamIndices::Aux4Enabled, mParamCache, (int)ModDestination::Aux4Param2 },
+				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux1, (int)ParamIndices::Aux1Enabled, (int)ModDestination::Aux1Param2 },
+				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux2, (int)ParamIndices::Aux2Enabled, (int)ModDestination::Aux2Param2 },
+				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux3, (int)ParamIndices::Aux3Enabled, (int)ModDestination::Aux3Param2 },
+				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux4, (int)ParamIndices::Aux4Enabled, (int)ModDestination::Aux4Param2 },
 			};
 
 			ISoundSourceDevice* mSources[gSourceCount] = {
@@ -387,15 +386,7 @@ namespace WaveSabreCore
 				LoadDefaults();
 			}
 
-			void ImportDefaultsArray(size_t count, const int16_t *src, float* paramCacheOffset)
-			{
-				for (size_t i = 0; i < count; ++i)
-				{
-					paramCacheOffset[i] = math::Sample16To32Bit(src[i]);
-				}
-			}
-
-			void LoadDefaults()
+			virtual void LoadDefaults() override
 			{
 				// aux nodes reset
 				for (size_t i = 0; i < std::size(mVoices); ++i) {
@@ -482,7 +473,7 @@ namespace WaveSabreCore
 				// NOTE: samplers will always be empty here
 
 				// store these values for later when we need to do diffs
-				memcpy(mDefaultParamCache, mParamCache, sizeof(mParamCache));
+				//memcpy(mDefaultParamCache, mParamCache, sizeof(mParamCache));
 				SetVoiceInitialStates();
 			}
 
@@ -491,7 +482,9 @@ namespace WaveSabreCore
 			void SetVoiceInitialStates()
 			{
 				int numSamples = GetModulationRecalcSampleMask() + 1;
-				float* outputs[2] = { new float[numSamples], new float[numSamples] };
+				float x[gModulationRecalcSampleMaskValues[0] * 2];
+				memset(x, 0, sizeof(x));
+				float* outputs[2] = { x, x };
 				ProcessBlock(0, outputs, numSamples, true);
 			}
 
@@ -507,19 +500,14 @@ namespace WaveSabreCore
 			// minified
 			virtual void SetChunk(void* data, int size) override
 			{
-				LoadDefaults();
 				Deserializer ds{ (const uint8_t*)data };
-
 				auto tag = ds.ReadUInt32();
 				if (tag != gChunkTag) return;
 				auto format = (ChunkFormat)ds.ReadUByte();
 				if (format != ChunkFormat::Minified) return;
 				auto version = ds.ReadUByte();
 				if (version != gChunkVersion) return; // in the future maybe support other versions? but probably not in the minified code
-				for (int i = 0; i < numParams; ++i) {
-					float f = mDefaultParamCache[i] + ds.ReadInt16NormalizedFloat();
-					SetParam(i, f);
-				}
+				SetMaj7StyleChunk(ds);
 				for (auto& s : mSamplerDevices) {
 					s.Deserialize(ds);
 				}
