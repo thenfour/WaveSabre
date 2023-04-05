@@ -289,7 +289,7 @@ namespace WaveSabreCore
 
 			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
 
-			AuxRoute mAuxRoutingCachedVal;
+			//AuxRoute mAuxRoutingCachedVal;
 
 			ModulationSpec mModulations[gModulationCount] {
 				{ mParamCache, (int)ParamIndices::Mod1Enabled },
@@ -576,7 +576,7 @@ namespace WaveSabreCore
 
 				// cache values
 				//mAuxRoutingParam.CacheValue();
-				mAuxRoutingCachedVal = mParams.GetEnumValue<AuxRoute>(ParamIndices::AuxRouting);
+				//mAuxRoutingCachedVal = mParams.GetEnumValue<AuxRoute>(ParamIndices::AuxRouting);
 
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					auto* src = mSources[i];
@@ -962,34 +962,34 @@ namespace WaveSabreCore
 					sl = mAuxNodes[0].ProcessSample(sl);
 					sl = mAuxNodes[1].ProcessSample(sl);
 
-					switch (mpOwner->mAuxRoutingCachedVal) {
-					case AuxRoute::FourZero:
-						// L = aux1 -> aux2 -> aux3 -> aux4 -> *
-						// R = *
-						sl = mAuxNodes[2].ProcessSample(sl);
-						sl = mAuxNodes[3].ProcessSample(sl);
-						break;
-					case AuxRoute::SerialMono:
-						// L = aux1 -> aux2 -> aux3 -> aux4 -> *
-						// R = 
-						// for the sake of being pleasant this swaps l/r channels as well for continuity with other settings
-						sl = mAuxNodes[2].ProcessSample(sl);
-						sr = mAuxNodes[3].ProcessSample(sl);
-						sl = 0;
-						break;
-					case AuxRoute::ThreeOne:
-						// L = aux1 -> aux2 -> aux3 -> *
-						// R = aux4 -> *
-						sl = mAuxNodes[2].ProcessSample(sl);
-						sr = mAuxNodes[3].ProcessSample(sr);
-						break;
-					case AuxRoute::TwoTwo:
+					//switch (mpOwner->mAuxRoutingCachedVal) {
+					//case AuxRoute::FourZero:
+					//	// L = aux1 -> aux2 -> aux3 -> aux4 -> *
+					//	// R = *
+					//	sl = mAuxNodes[2].ProcessSample(sl);
+					//	sl = mAuxNodes[3].ProcessSample(sl);
+					//	break;
+					//case AuxRoute::SerialMono:
+					//	// L = aux1 -> aux2 -> aux3 -> aux4 -> *
+					//	// R = 
+					//	// for the sake of being pleasant this swaps l/r channels as well for continuity with other settings
+					//	sl = mAuxNodes[2].ProcessSample(sl);
+					//	sr = mAuxNodes[3].ProcessSample(sl);
+					//	sl = 0;
+					//	break;
+					//case AuxRoute::ThreeOne:
+					//	// L = aux1 -> aux2 -> aux3 -> *
+					//	// R = aux4 -> *
+					//	sl = mAuxNodes[2].ProcessSample(sl);
+					//	sr = mAuxNodes[3].ProcessSample(sr);
+					//	break;
+					//case AuxRoute::TwoTwo:
 						// L = aux1 -> aux2 -> *
 						// R = aux3 -> aux4 -> *
 						sr = mAuxNodes[2].ProcessSample(sr);
 						sr = mAuxNodes[3].ProcessSample(sr);
-						break;
-					}
+						//break;
+					//}
 
 					s[0] += sl * mpOwner->mAuxOutputGains[0] + sr * mpOwner->mAuxOutputGains[1];
 					s[1] += sl * mpOwner->mAuxOutputGains[1] + sr * mpOwner->mAuxOutputGains[0];
