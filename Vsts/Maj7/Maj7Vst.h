@@ -661,6 +661,13 @@ int compressedSize = 0;
 			//}
 		}
 
+		template<size_t N>
+		static inline void Copy16bitDefaults(float* dest, const int16_t (&src)[N])
+		{
+			for (size_t i = 0; i < N; ++i) {
+				dest[i] = M7::math::Sample16To32Bit(src[i]);
+			}
+		}
 
 		static inline void OptimizeEnvelope(Maj7* p, EnvelopeNode& env)
 		{
@@ -668,7 +675,8 @@ int compressedSize = 0;
 			OptimizeEnumParam<EnvelopeMode>(p, env.mParams, EnvParamIndexOffsets::Mode);
 
 			if (!IsEnvelopeInUse(p, env.mMyModSource)) {
-				memcpy(env.mParams.GetOffsetParamCache(), gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+				//memcpy(env.mParams.GetOffsetParamCache(), gDefaultEnvelopeParams, sizeof(gDefaultEnvelopeParams));
+				Copy16bitDefaults(env.mParams.GetOffsetParamCache(), gDefaultEnvelopeParams);
 				return;
 			}
 			if (env.mParams.GetEnumValue<EnvelopeMode>(EnvParamIndexOffsets::Mode) == EnvelopeMode::OneShot)
@@ -683,34 +691,36 @@ int compressedSize = 0;
 		// if aggressive, then round values which are very close to defaults back to default.
 		static inline void OptimizeParams(Maj7* p, bool aggressive)
 		{
-			// samplers
-			for (auto& s : p->mSamplerDevices)
-			{
-				// enabled, pitch semis, keyrange min, keyrange max.
-				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Enabled);
-				OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, SamplerParamIndexOffsets::TuneSemis);
-				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMin);
-				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMax);
+			//// samplers
+			//for (auto& s : p->mSamplerDevices)
+			//{
+			//	// enabled, pitch semis, keyrange min, keyrange max.
+			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Enabled);
+			//	OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, SamplerParamIndexOffsets::TuneSemis);
+			//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMin);
+			//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMax);
 
-				OptimizeEnumParam<LoopMode>(p, s.mParams,SamplerParamIndexOffsets::LoopMode);
+			//	OptimizeEnumParam<LoopMode>(p, s.mParams,SamplerParamIndexOffsets::LoopMode);
 
-				//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
-				OptimizeEnumParam< LoopBoundaryMode>(p, s.mParams, SamplerParamIndexOffsets::LoopSource);
-				OptimizeEnumParam < InterpolationMode>(p, s.mParams, SamplerParamIndexOffsets::InterpolationType);
-				OptimizeEnumParam < SampleSource>(p, s.mParams, SamplerParamIndexOffsets::SampleSource);
+			//	//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
+			//	OptimizeEnumParam< LoopBoundaryMode>(p, s.mParams, SamplerParamIndexOffsets::LoopSource);
+			//	OptimizeEnumParam < InterpolationMode>(p, s.mParams, SamplerParamIndexOffsets::InterpolationType);
+			//	OptimizeEnumParam < SampleSource>(p, s.mParams, SamplerParamIndexOffsets::SampleSource);
 
-				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::LegatoTrig);
-				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Reverse);
-				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::ReleaseExitsLoop);
+			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::LegatoTrig);
+			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Reverse);
+			//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::ReleaseExitsLoop);
 
-				OptimizeIntParam(p, s.mParams, gGmDlsIndexParamCfg, SamplerParamIndexOffsets::GmDlsIndex);
-				OptimizeIntParam(p, s.mParams, gKeyRangeCfg, SamplerParamIndexOffsets::BaseNote);
+			//	OptimizeIntParam(p, s.mParams, gGmDlsIndexParamCfg, SamplerParamIndexOffsets::GmDlsIndex);
+			//	OptimizeIntParam(p, s.mParams, gKeyRangeCfg, SamplerParamIndexOffsets::BaseNote);
 
-				if (!s.IsEnabled()) {
-					s.Reset();
-					memcpy(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
-				}
-			}
+			//	if (!s.IsEnabled()) {
+			//		s.Reset();
+			//		//memcpy(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
+			//		Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams);
+			//		s.mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);
+			//	}
+			//}
 
 			// oscillators
 			for (auto& s : p->mOscillatorDevices)
@@ -727,7 +737,9 @@ int compressedSize = 0;
 				OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::SyncEnable);
 
 				if (!s.IsEnabled()) {
-					memcpy(p->mParams.GetOffsetParamCache(), gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
+					//memcpy(p->mParams.GetOffsetParamCache(), gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
+					Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultOscillatorParams);
+					s.mParams.SetBoolValue(OscParamIndexOffsets::Enabled, false);
 				}
 			}
 
@@ -748,43 +760,34 @@ int compressedSize = 0;
 			for (auto& env : p->mMaj7Voice[0]->mAllEnvelopes) {
 				OptimizeEnvelope(p, env);
 			}
-			//for (auto* psv : p->mMaj7Voice[0]->mSourceVoices) {
-			//	OptimizeEnvelope(p, *psv->mpAmpEnv);
-			//}
 
 			// modulations.
 			// optimize hard because there are so many modulations and there's always a lot of fiddling happening here.
 			for (auto& m : p->mModulations)
 			{
 				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {
-					memcpy(p->mParams.GetOffsetParamCache(), gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
+					Copy16bitDefaults(m.mParams.GetOffsetParamCache(), gDefaultModSpecParams);
+					m.mParams.SetBoolValue(ModParamIndexOffsets::Enabled, false);
 				}
 
 				// still, try and optimize the aux part. 
 				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled)) {
 
-					m.mParams.SetRawVal(ModParamIndexOffsets::AuxAttenuation, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxAttenuation]);
-					m.mParams.SetRawVal(ModParamIndexOffsets::AuxCurve, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxCurve]);
-					m.mParams.SetRawVal(ModParamIndexOffsets::AuxSource, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxSource]);
-					m.mParams.SetRawVal(ModParamIndexOffsets::AuxValueMapping, gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxValueMapping]);
-
-					//m.mAuxAttenuation.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxAttenuation]);
-					//m.mAuxCurve.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxCurve]);
-					//m.mAuxSource.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxSource]);
-					//m.mAuxValueMapping.SetParamValue(p->mParamCache[(size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::AuxValueMapping]);
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxAttenuation, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxAttenuation]));
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxCurve, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxCurve]));
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxSource, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxSource]));
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxValueMapping, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxValueMapping]));
 				}
 				// set destination scales
 				for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
 				{
-					if (m.mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + id) /* m.mDestinations[id].GetEnumValue() */ != ModDestination::None)
-						//if (m.mDestinations[id].GetEnumValue() != ModDestination::None)
+					if (m.mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + id) != ModDestination::None)
 					{
 						continue;
 					}
 
-					m.mParams.SetRawVal((int)ModParamIndexOffsets::Destination1 + id, gDefaultModSpecParams[(int)ModParamIndexOffsets::Destination1 + id]);
-
-					//m.mScales[id].SetParamValue(p->mDefaultParamCache[id + (size_t)m.mBaseParamID + (size_t)ModParamIndexOffsets::Scale1]);
+					m.mParams.SetRawVal((int)ModParamIndexOffsets::Destination1 + id, M7::math::Sample16To32Bit(gDefaultModSpecParams[(int)ModParamIndexOffsets::Destination1 + id]));
+					m.mParams.SetRawVal((int)ModParamIndexOffsets::Scale1 + id, M7::math::Sample16To32Bit(gDefaultModSpecParams[(int)ModParamIndexOffsets::Scale1 + id]));
 				}
 
 				OptimizeBoolParam(p, m.mParams, ModParamIndexOffsets::Enabled);
@@ -808,6 +811,8 @@ int compressedSize = 0;
 					}
 				}
 			}
+
+
 		} // optimizeParams()
 
 	} // namespace M7

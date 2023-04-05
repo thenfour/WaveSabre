@@ -165,7 +165,8 @@ namespace ReaperParser.ReaperElements
                 }
                 catch (FormatException)
                 {
-                    Console.WriteLine($"Warning: format exception for type \"{propTypeName}\" & value \"{value}\"");
+                    // so this was interesting for a while but it's something that you 1) cannot control and 2) has no effect. so don't show it.
+                    //Console.WriteLine($"Warning: format exception for type \"{propTypeName}\" & value \"{value}\"");
                 }
             }
         }
