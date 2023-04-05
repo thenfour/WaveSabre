@@ -73,7 +73,7 @@ namespace WaveSabreCore
 
 						real_t sourceVal = GetSourceValue(modSource);
 						sourceVal = MapValue(sourceVal, spec.mValueMapping);
-						sourceVal = spec.mCurve.ApplyToValue(sourceVal);
+						sourceVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::Curve, sourceVal);// spec.mCurve.ApplyToValue(sourceVal);
 						if (spec.mAuxEnabled)
 						{
 							// attenuate the value
@@ -81,7 +81,7 @@ namespace WaveSabreCore
 							if (auxSource != ModSource::None) {
 								float auxVal = GetSourceValue(auxSource);
 								auxVal = MapValue(auxVal, spec.mAuxValueMapping);
-								auxVal = spec.mAuxCurve.ApplyToValue(auxVal);
+								auxVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::AuxCurve, auxVal);//spec.mAuxCurve.ApplyToValue(auxVal);
 								// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 								// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
 								float auxAtten = spec.mAuxAttenuation;

@@ -95,7 +95,11 @@ namespace WaveSabreCore
 				case AuxEffectType::BigFilter:
 					return new FilterAuxNode(mParams, mModDestParam2ID);
 				case AuxEffectType::Bitcrush:
+#ifdef MAJ7_INCLUDE_BITCRUSH_AUX
 					return new BitcrushAuxNode(mParams, mModDestParam2ID);
+#else
+					break;
+#endif // MAJ7_INCLUDE_BITCRUSH_AUX
 				}
 				return nullptr;
 			}
@@ -908,8 +912,10 @@ namespace WaveSabreCore
 						auto* srcVoice = mSourceVoices[i];
 
 						float hiddenVolumeBacking = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mHiddenVolumeModDestID);
-						VolumeParam hiddenAmpParam{ hiddenVolumeBacking, gUnityVolumeCfg };
-						float ampEnvGain = hiddenAmpParam.GetLinearGain(0);
+						//VolumeParam hiddenAmpParam{ hiddenVolumeBacking, gUnityVolumeCfg };
+						ParamAccessor hiddenAmpParam{ &hiddenVolumeBacking, 0 };
+
+						float ampEnvGain = hiddenAmpParam.GetLinearVolume(0, gUnityVolumeCfg);
 						srcVoice->mAmpEnvGain = ampEnvGain;
 						sourceValues[i] = srcVoice->GetLastSample() * ampEnvGain;
 

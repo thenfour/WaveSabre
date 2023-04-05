@@ -20,6 +20,8 @@ using std::max;
 #define cast_uint32_t (uint32_t)
 #endif
 
+//#ifdef MAJ7_INCLUDE_BITCRUSH_AUX
+
 namespace WaveSabreCore
 {
     class CriticalSection

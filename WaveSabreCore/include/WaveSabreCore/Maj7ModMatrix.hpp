@@ -834,22 +834,22 @@ namespace WaveSabreCore
 			//EnumParam<ModValueMapping> mValueMapping;
 			//EnumParam<ModValueMapping> mAuxValueMapping;
 
-			CurveParam mCurve;
-			CurveParam mAuxCurve;
+			//CurveParam mCurve;
+			//CurveParam mAuxCurve;
 			
 			//Float01Param mAuxAttenuation;
 
 
 			ModulationSpec(real_t* paramCache, int baseParamID) :
-				mParams(paramCache, baseParamID),
+				mParams(paramCache, baseParamID)
 				//mBaseParamID(baseParamID),
 				//mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
 				//mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
 				//mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
-				mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
+				//mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
 				//mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled]),
 				//mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
-				mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve])
+				//mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve])
 				//mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
 				//mValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::ValueMapping], ModValueMapping::Count),
 				//mAuxValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxValueMapping], ModValueMapping::Count)

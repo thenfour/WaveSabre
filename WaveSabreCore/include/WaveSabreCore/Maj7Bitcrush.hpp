@@ -10,6 +10,7 @@ namespace WaveSabreCore
 {
     namespace M7
     {
+#ifdef MAJ7_INCLUDE_BITCRUSH_AUX
         // very naive sample crushing. there are many ways to make a cleaner signal (blep, oversampling, filtering, interpolation),
         // but gritty broken-sounding is kinda what crushing is all about, plus very tiny code size.
         struct BitcrushAuxNode : IAuxEffect
@@ -57,6 +58,8 @@ namespace WaveSabreCore
                 return currentValue;
             }
         };
+
+#endif // MAJ7_INCLUDE_BITCRUSH_AUX
 
     } // namespace M7
 
