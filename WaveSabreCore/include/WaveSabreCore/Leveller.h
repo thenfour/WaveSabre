@@ -59,7 +59,7 @@ namespace WaveSabreCore
 }
 
 	static_assert((int)LevellerParamIndices::NumParams == 16, "param count probably changed and this needs to be regenerated.");
-	const int16_t gLevellerDefaults16[16] = {
+	static constexpr int16_t gLevellerDefaults16[16] = {
 	  16422, // MstVol = 0.50118720531463623047
 	  0, // HPFreq = 0
 	  0, // _none1 = 0

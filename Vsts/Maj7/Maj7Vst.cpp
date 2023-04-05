@@ -43,13 +43,18 @@ M7::Maj7* Maj7Vst::GetMaj7() const
 }
 
 
-std::unique_ptr<float[]> GenerateDefaultParamCache()
+float* GenerateDefaultParamCache()
 {
-	M7::Maj7* tmpEffect = new M7::Maj7(); // consumes like 30kb of stack so new it.
-	auto ret = std::make_unique<float[]>((int)M7::ParamIndices::NumParams);
-	std::copy(std::begin(tmpEffect->mParamCache), std::end(tmpEffect->mParamCache), ret.get());
-	delete tmpEffect;
-	return ret;
+	static float* gCached = nullptr;
+	if (gCached == nullptr) {
+		M7::Maj7* tmpEffect = new M7::Maj7(); // consumes like 30kb of stack so new it.
+		//auto ret = std::make_unique<float[]>((int)M7::ParamIndices::NumParams);
+		gCached = new float[(int)M7::ParamIndices::NumParams];
+		//std::copy(std::begin(tmpEffect->mParamCache), std::end(tmpEffect->mParamCache), ret.get());
+		memcpy(gCached, tmpEffect->mParamCache, sizeof(tmpEffect->mParamCache));
+		delete tmpEffect;
+	}
+	return gCached;
 }
 
 // assumes that p has had its default param cache filled.

@@ -91,6 +91,83 @@ namespace WaveSabreVstLib
 
 
 
+	static inline void GenerateDefaults(Leveller* p)
+	{
+		p->mParams.SetDecibels(LevellerParamIndices::MasterVolume, gLevellerVolumeCfg, 0);
+
+		p->mParams.SetRawVal(LevellerParamIndices::LowCutFreq, 0);
+		p->mParams.SetRawVal(LevellerParamIndices::LowCutQ, 0);
+
+		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak1Freq, M7::gFilterFreqConfig, 650);
+		p->mParams.SetDecibels(LevellerParamIndices::Peak1Gain, gLevellerBandVolumeCfg, 0);
+		p->mParams.SetRawVal(LevellerParamIndices::Peak1Q, 0);
+
+		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak2Freq, M7::gFilterFreqConfig, 2000);
+		p->mParams.SetDecibels(LevellerParamIndices::Peak2Gain, gLevellerBandVolumeCfg, 0);
+		p->mParams.SetRawVal(LevellerParamIndices::Peak2Q, 0);
+
+		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak3Freq, M7::gFilterFreqConfig, 7000);
+		p->mParams.SetDecibels(LevellerParamIndices::Peak3Gain, gLevellerBandVolumeCfg, 0);
+		p->mParams.SetRawVal(LevellerParamIndices::Peak3Q, 0);
+
+		p->mParams.SetRawVal(LevellerParamIndices::HighCutFreq, 1);
+		p->mParams.SetRawVal(LevellerParamIndices::HighCutQ, 0);
+	}
+
+	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
+	// in the case of Leveller, there's no adjustment necessary as it was already using ParamAccessor.
+	static inline void AdjustLegacyParams(Leveller* p)
+	{
+		//
+	}
+
+	static inline void GenerateDefaults(Echo* p)
+	{
+		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, 3);
+		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, 0);
+		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, 4);
+		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, 0);
+		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, 20);
+		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, 20000 - 20);
+		p->mParams.Set01Val(Echo::ParamIndices::Feedback, 0.5f);
+		p->mParams.Set01Val(Echo::ParamIndices::Cross, 0);
+		p->mParams.Set01Val(Echo::ParamIndices::DryWet, 0.5f);
+	}
+
+	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
+	static inline void AdjustLegacyParams(Echo* p)
+	{
+		//void Echo::SetParam(int index, float value)
+		//{
+		//	switch ((ParamIndices)index)
+		//	{
+		//	case ParamIndices::LeftDelayCoarse: leftDelayCoarse = (int)(value * 16.0f); break;
+		//	case ParamIndices::LeftDelayFine: leftDelayFine = (int)(value * 200.0f); break;
+		//	case ParamIndices::RightDelayCoarse: rightDelayCoarse = (int)(value * 16.0f); break;
+		//	case ParamIndices::RightDelayFine: rightDelayFine = (int)(value * 200.0f); break;
+		//	case ParamIndices::LowCutFreq: lowCutFreq = Helpers::ParamToFrequency(value); break;
+		//	case ParamIndices::HighCutFreq: highCutFreq = Helpers::ParamToFrequency(value); break;
+		//	case ParamIndices::Feedback: feedback = value; break;
+		//	case ParamIndices::Cross: cross = value; break;
+		//	case ParamIndices::DryWet: dryWet = value; break;
+		//	}
+		//}
+
+		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayCoarse] * 16));
+		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayFine] * 200));
+		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayCoarse] * 16));
+		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayFine] * 200));
+
+		float lowCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::LowCutFreq]);
+		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, lowCut);
+
+		float hiCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::HighCutFreq]);
+		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, hiCut);
+	}
+
+
+
+
 	// returns params as a minified chunk
 	template<size_t paramCount>
 	inline int GetSimpleMinifiedChunk(const float(&paramCache)[paramCount], const int16_t(&defaults16)[paramCount], void** data)
@@ -114,8 +191,8 @@ namespace WaveSabreVstLib
 	}
 
 	// see impl of int Device::GetChunk(void **data)
-	template<size_t paramCount>
-	inline int SetOldVstChunk(void* data, int byteSize, float(&paramCache)[paramCount])
+	template<typename TDevice, size_t paramCount>
+	inline int SetOldVstChunk(TDevice* pDevice, void* data, int byteSize, float(&paramCache)[paramCount])
 	{
 		if (byteSize != sizeof(float) * paramCount + sizeof(int))
 			return 0;
@@ -124,20 +201,21 @@ namespace WaveSabreVstLib
 		for (int i = 0; i < paramCount; ++i) {
 			paramCache[i] = src[i];
 		}
+		AdjustLegacyParams(pDevice);
 		return byteSize;
 	}
 
 
 	// reads JSON and populates params. return bytes read.
 	// we want to support the old chunk style as well.
-	template<size_t paramCount>
-	inline int SetSimpleJSONVstChunk(const std::string& expectedKeyName, void* data, int byteSize, float(&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
+	template<typename TDevice, size_t paramCount>
+	inline int SetSimpleJSONVstChunk(TDevice* pDevice, const std::string& expectedKeyName, void* data, int byteSize, float(&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
 	{
 		if (!byteSize) return byteSize;
 		const char* pstr = (const char*)data;
 
 		if (strnlen(pstr, byteSize - 1) >= (size_t)byteSize) {
-			return SetOldVstChunk(data, byteSize, paramCache);
+			return SetOldVstChunk(pDevice, data, byteSize, paramCache);
 		}
 
 		//using vstn = const char[kVstMaxParamStrLen];
@@ -151,13 +229,13 @@ namespace WaveSabreVstLib
 		// @ root there is exactly 1 KV object.
 		auto maj7Obj = doc.GetNextObjectItem();
 		if (maj7Obj.IsEOF()) {
-			return SetOldVstChunk(data, byteSize, paramCache); // empty doc?
+			return SetOldVstChunk(pDevice, data, byteSize, paramCache); // empty doc?
 		}
 		if (maj7Obj.mParseResult.IsFailure()) {
-			return SetOldVstChunk(data, byteSize, paramCache);//return ch.mParseResult;
+			return SetOldVstChunk(pDevice, data, byteSize, paramCache);//return ch.mParseResult;
 		}
 		if (expectedKeyName != maj7Obj.mKeyName) {
-			return SetOldVstChunk(data, byteSize, paramCache);
+			return SetOldVstChunk(pDevice, data, byteSize, paramCache);
 		}
 
 		// todo: read meta data / version / format info?
@@ -264,7 +342,7 @@ namespace WaveSabreVstLib
 
 		//auto GenerateArray = [&](const std::string& arrayName, size_t count, const std::string& countExpr, int baseParamID) {
 		ss << "static_assert((int)" << paramCountExpr << " == " << paramCount << ", \"param count probably changed and this needs to be regenerated.\");" << std::endl;
-		ss << "const int16_t " << symbolName << "[" << paramCount << "] = {" << std::endl;
+		ss << "static constexpr int16_t " << symbolName << "[" << paramCount << "] = {" << std::endl;
 		for (size_t i = 0; i < paramCount; ++i) {
 			//size_t paramID = baseParamID + i;
 			float valf = paramCache[i];
@@ -286,29 +364,6 @@ namespace WaveSabreVstLib
 		ImGui::SetClipboardText(ss.str().c_str());
 
 		::MessageBoxA(hWnd, "Code copied", "WaveSabre", MB_OK);
-	}
-
-	static inline void GenerateDefaults(Leveller* p)
-	{
-		p->mParams.SetDecibels(LevellerParamIndices::MasterVolume, gLevellerVolumeCfg, 0);
-
-		p->mParams.SetRawVal(LevellerParamIndices::LowCutFreq, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::LowCutQ, 0);
-
-		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak1Freq, M7::gFilterFreqConfig, 650);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak1Gain, gLevellerBandVolumeCfg, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::Peak1Q, 0);
-
-		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak2Freq, M7::gFilterFreqConfig, 2000);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak2Gain, gLevellerBandVolumeCfg, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::Peak2Q, 0);
-
-		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak3Freq, M7::gFilterFreqConfig, 7000);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak3Gain, gLevellerBandVolumeCfg, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::Peak3Q, 0);
-
-		p->mParams.SetRawVal(LevellerParamIndices::HighCutFreq, 1);
-		p->mParams.SetRawVal(LevellerParamIndices::HighCutQ, 0);
 	}
 
 	template<size_t paramCount, typename TDevice>

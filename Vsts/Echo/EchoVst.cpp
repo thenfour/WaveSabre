@@ -7,9 +7,12 @@ using namespace WaveSabreCore;
 // no conversion required
 int  __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
-	*outpSize = 0;
-	*outpData = nullptr;
-	return 0;
+	Echo* tmpEffect = new Echo();
+	ECHO_PARAM_VST_NAMES(paramNames);
+	SetSimpleJSONVstChunk(tmpEffect, Echo::gJSONTagName, inpData, inpSize, tmpEffect->mParamCache, paramNames);
+	*outpSize = GetSimpleMinifiedChunk(tmpEffect->mParamCache, Echo::gDefaults16, outpData);
+	delete tmpEffect;
+	return *outpSize;
 }
 
 void __cdecl WaveSabreFreeChunk(void* p)
@@ -36,18 +39,21 @@ EchoVst::EchoVst(audioMasterCallback audioMaster)
 
 void EchoVst::getParameterName(VstInt32 index, char *text)
 {
-	switch ((Echo::ParamIndices)index)
-	{
-	case Echo::ParamIndices::LeftDelayCoarse: vst_strncpy(text, "LDly Crs", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::LeftDelayFine: vst_strncpy(text, "LDly Fin", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::RightDelayCoarse: vst_strncpy(text, "RDly Crs", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::RightDelayFine: vst_strncpy(text, "RDly Fin", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::LowCutFreq: vst_strncpy(text, "LC Freq", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::HighCutFreq: vst_strncpy(text, "HC Freq", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::Feedback: vst_strncpy(text, "Feedback", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::Cross: vst_strncpy(text, "Cross", kVstMaxParamStrLen); break;
-	case Echo::ParamIndices::DryWet: vst_strncpy(text, "Dry/Wet", kVstMaxParamStrLen); break;
-	}
+	ECHO_PARAM_VST_NAMES(paramNames);
+	vst_strncpy(text, paramNames[index], kVstMaxParamStrLen);
+
+	//switch ((Echo::ParamIndices)index)
+	//{
+	//case Echo::ParamIndices::LeftDelayCoarse: vst_strncpy(text, "LDly Crs", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::LeftDelayFine: vst_strncpy(text, "LDly Fin", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::RightDelayCoarse: vst_strncpy(text, "RDly Crs", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::RightDelayFine: vst_strncpy(text, "RDly Fin", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::LowCutFreq: vst_strncpy(text, "LC Freq", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::HighCutFreq: vst_strncpy(text, "HC Freq", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::Feedback: vst_strncpy(text, "Feedback", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::Cross: vst_strncpy(text, "Cross", kVstMaxParamStrLen); break;
+	//case Echo::ParamIndices::DryWet: vst_strncpy(text, "Dry/Wet", kVstMaxParamStrLen); break;
+	//}
 }
 
 bool EchoVst::getEffectName(char *name)

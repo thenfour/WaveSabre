@@ -16,7 +16,6 @@ public:
 	LevellerEditor(AudioEffect* audioEffect)
 		: VstEditor(audioEffect, 700, 500),
 		mpLevellerVST((LevellerVst*)audioEffect)//,
-		
 	{
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
 	}

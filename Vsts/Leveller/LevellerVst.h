@@ -25,7 +25,7 @@ public:
 	{
 		LEVELLER_PARAM_VST_NAMES(paramNames);
 		auto* p = (WaveSabreCore::Leveller*)getDevice();
-		return SetSimpleJSONVstChunk("WSLeveller", data, byteSize, p->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(p, "WSLeveller", data, byteSize, p->mParamCache, paramNames);
 	}
 
 };

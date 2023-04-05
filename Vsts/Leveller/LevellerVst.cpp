@@ -9,7 +9,7 @@ int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int i
 {
 	Leveller* tmpEffect = new Leveller();
 	LEVELLER_PARAM_VST_NAMES(paramNames);
-	SetSimpleJSONVstChunk("WSLeveller", inpData, inpSize, tmpEffect->mParamCache, paramNames);
+	SetSimpleJSONVstChunk(tmpEffect, "WSLeveller", inpData, inpSize, tmpEffect->mParamCache, paramNames);
 	*outpSize = GetSimpleMinifiedChunk(tmpEffect->mParamCache, gLevellerDefaults16, outpData);
 	delete tmpEffect;
 	return *outpSize;

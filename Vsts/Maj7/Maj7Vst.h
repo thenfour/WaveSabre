@@ -9,7 +9,7 @@
 
 
 extern int GetMinifiedChunk(M7::Maj7* p, void** data);
-extern std::unique_ptr<float[]> GenerateDefaultParamCache();
+extern float* GenerateDefaultParamCache();
 
 inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 {
@@ -598,7 +598,7 @@ int compressedSize = 0;
 			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
 
 			auto defaultParamCache = GenerateDefaultParamCache();
-			ParamAccessor dp{ defaultParamCache.get(), params.mBaseParamID};
+			ParamAccessor dp{ defaultParamCache, params.mBaseParamID};
 			if (dp.GetEnumValue<Tenum>(offset) == params.GetEnumValue<Tenum>(offset)) {
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
@@ -627,7 +627,7 @@ int compressedSize = 0;
 			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
 
 			auto defaultParamCache = GenerateDefaultParamCache();
-			ParamAccessor dp{ defaultParamCache.get(), params.mBaseParamID };
+			ParamAccessor dp{ defaultParamCache, params.mBaseParamID };
 			if (dp.GetIntValue(offset, cfg) == params.GetIntValue(offset, cfg)) {
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
@@ -654,7 +654,7 @@ int compressedSize = 0;
 			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
 			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
 			auto defaultParamCache = GenerateDefaultParamCache();
-			ParamAccessor dp{ defaultParamCache.get(), params.mBaseParamID };
+			ParamAccessor dp{ defaultParamCache, params.mBaseParamID };
 			if (dp.GetBoolValue(offset) == params.GetBoolValue(offset)) {
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
@@ -682,7 +682,7 @@ int compressedSize = 0;
 			}
 			if (env.mParams.GetEnumValue<EnvelopeMode>(EnvParamIndexOffsets::Mode) == EnvelopeMode::OneShot)
 			{
-				ParamAccessor defaults{ defaultParamCache.get(), env.mParams.mBaseParamID};
+				ParamAccessor defaults{ defaultParamCache, env.mParams.mBaseParamID};
 				env.mParams.Set01Val(EnvParamIndexOffsets::SustainLevel, defaults.GetRawVal(EnvParamIndexOffsets::SustainLevel));
 				env.mParams.Set01Val(EnvParamIndexOffsets::ReleaseTime, defaults.GetRawVal(EnvParamIndexOffsets::ReleaseTime));
 				env.mParams.Set01Val(EnvParamIndexOffsets::ReleaseCurve, defaults.GetRawVal(EnvParamIndexOffsets::ReleaseCurve));
@@ -692,6 +692,8 @@ int compressedSize = 0;
 		// if aggressive, then round values which are very close to defaults back to default.
 		static inline void OptimizeParams(Maj7* p, bool aggressive)
 		{
+			auto defaultParamCache = GenerateDefaultParamCache();
+
 			// samplers
 			for (auto& s : p->mSamplerDevices)
 			{
@@ -807,7 +809,6 @@ int compressedSize = 0;
 
 			if (aggressive) {
 				for (size_t i = 0; i < (size_t)ParamIndices::NumParams; ++i) {
-					auto defaultParamCache = GenerateDefaultParamCache();
 					if (math::FloatEquals(p->mParamCache[i], defaultParamCache[i], 0.000001f)) {
 						p->mParamCache[i] = defaultParamCache[i];
 					}
