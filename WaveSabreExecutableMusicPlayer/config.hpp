@@ -18,8 +18,8 @@ struct
     COLORREF TextColor = RGB(255, 255, 0);
     COLORREF TextShadowColor = RGB(0, 0, 0);
     COLORREF WindowBackground = RGB(0, 0, 0);
-    COLORREF WaveformForeground = RGB(16, 48, 48);
     COLORREF WaveformBackground = RGB(12, 16, 16);
+    COLORREF WaveformForeground = RGB(16, 48, 48);
     COLORREF WaveformZeroLine = RGB(48, 48, 48);
     COLORREF WaveformUnrenderedHatch1 = RGB(60, 60, 60);
     COLORREF WaveformUnrenderedHatch2 = RGB(30, 30, 30);

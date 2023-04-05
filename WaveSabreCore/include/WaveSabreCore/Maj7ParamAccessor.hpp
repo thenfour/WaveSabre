@@ -261,6 +261,14 @@ namespace WaveSabreCore
 				return GetWSQValue__((int)offset);
 			}
 
+			void SetWSQValue__(int offset, float q);
+			template<typename Toffset>
+			void SetWSQValue(Toffset offset, float q) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				SetWSQValue__((int)offset, q);
+			}
+
 		};
 
 	} // namespace M7

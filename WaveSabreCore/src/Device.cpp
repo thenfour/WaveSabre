@@ -65,6 +65,7 @@ namespace WaveSabreCore
 		}
 	}
 
+	// outputs all float params in a contiguous array, followed by a int32 of the chunk size that was just written (which tbh is pretty useless but maybe it was used as a sort of checksum at some point?)
 	int Device::GetChunk(void **data)
 	{
 		int chunkSize = numParams * sizeof(float) + sizeof(int);

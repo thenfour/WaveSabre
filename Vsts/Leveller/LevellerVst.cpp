@@ -4,11 +4,15 @@
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
-// no conversion required
+
 int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
-	*outpSize = 0;
-	return 0;
+	Leveller* tmpEffect = new Leveller();
+	LEVELLER_PARAM_VST_NAMES(paramNames);
+	SetSimpleJSONVstChunk("WSLeveller", inpData, inpSize, tmpEffect->mParamCache, paramNames);
+	*outpSize = GetSimpleMinifiedChunk(tmpEffect->mParamCache, gLevellerDefaults16, outpData);
+	delete tmpEffect;
+	return *outpSize;
 }
 
 void __cdecl WaveSabreFreeChunk(void* p)
@@ -20,6 +24,10 @@ int __cdecl WaveSabreTestCompression(int inpSize, void* inpData)
 	// implemented in maj7.dll
 	return 0;
 }
+
+
+
+
 
 
 AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
@@ -35,8 +43,7 @@ LevellerVst::LevellerVst(audioMasterCallback audioMaster)
 
 void LevellerVst::getParameterName(VstInt32 index, char *text)
 {
-	using vstn = const char[kVstMaxParamStrLen];
-	static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = LEVELLER_PARAM_VST_NAMES;
+	LEVELLER_PARAM_VST_NAMES(paramNames);
 	vst_strncpy(text, paramNames[index], kVstMaxParamStrLen);
 }
 

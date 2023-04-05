@@ -93,9 +93,10 @@ namespace WaveSabreVstLib
 			return mCPUUsage.GetValue();
 		}
 
+		WaveSabreCore::Device* getDevice() const;
+
 	protected:
 		void setEditor(class VstEditor *editor);
-		WaveSabreCore::Device *getDevice() const;
 
 	private:
 		int numParams, numInputs, numOutputs;

@@ -6,7 +6,6 @@
 #include "LzmaEnc.h"
 
 #include <WaveSabreVstLib.h>
-#include "Serialization.hpp"
 
 
 extern int GetMinifiedChunk(M7::Maj7* p, void** data);

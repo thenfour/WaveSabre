@@ -173,7 +173,7 @@ namespace WaveSabreCore
 		void ParamAccessor::SetFrequencyAssumingNoKeytracking__(int freqOffset, const FreqParamConfig& cfg, float hz)
 		{
 			// 2 ^ param
-			float  p = math::log2(hz);
+			float  p = math::log2(hz / cfg.mCenterFrequency);
 			p /= cfg.mScale;
 			p += 0.5f;
 			//this->mValue.SetParamValue(math::clamp01(p));
@@ -184,20 +184,10 @@ namespace WaveSabreCore
 		{
 			return Helpers::ParamToQ(GetRawVal__(offset));
 		}
-		//struct WSQParam : Float01Param
-		//{
-		//	explicit WSQParam(real_t& ref) : Float01Param(ref) {}
-		//	float GetQValue() const {
-		//		return Helpers::ParamToQ(this->mParamValue);
-		//	}
-		//	void SetQValue(float f) {
-		//		mParamValue = Helpers::QToParam(f);
-		//	}
-
-		//};
-
-
-
+		void ParamAccessor::SetWSQValue__(int offset, float q)
+		{
+			SetRawVal__(offset, Helpers::QToParam(q));
+		}
 
 	} // namespace M7
 
