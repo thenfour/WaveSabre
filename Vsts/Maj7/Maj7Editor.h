@@ -502,11 +502,11 @@ public:
 		};
 
 		GenerateArray("gDefaultMasterParams", (int)M7::MainParamIndices::Count, "M7::MainParamIndices::Count", 0);
-		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mSamplerDevices[0].mBaseParamID);
-		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mModulations[0].mBaseParamID);
-		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFOs[0].mDevice.mBaseParamID);
-		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mOsc1AmpEnv.mParams.mBaseParamID);
-		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mBaseParamID);
+		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mSamplerDevices[0].mParams.mBaseParamID);
+		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mModulations[0].mParams.mBaseParamID);
+		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFOs[0].mDevice.mParams.mBaseParamID);
+		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::Osc1AmpEnvIndex].mParams.mBaseParamID);
+		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mParams.mBaseParamID);
 		GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mAuxDevices[0].mParams.mBaseParamID);
 
 		ss << "  } // namespace M7" << std::endl;
@@ -863,10 +863,10 @@ public:
 				ImGui::Button(txt);
 				ImGui::PopStyleColor(3);
 				static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
-				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc1AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp1");
-				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc2AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp2");
-				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc3AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp3");
-				ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc4AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp4");
+				//ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc1AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp1");
+				//ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc2AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp2");
+				//ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc3AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp3");
+				//ImGui::SameLine(); ImGui::ProgressBar(pv->mOsc4AmpEnv.GetLastOutputLevel(), ImVec2{ 50, 0 }, "Amp4");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetLastSample()), ImVec2{ 50, 0 }, "Osc1");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetLastSample()), ImVec2{ 50, 0 }, "Osc2");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetLastSample()), ImVec2{ 50, 0 }, "Osc3");
@@ -1154,14 +1154,14 @@ public:
 	{
 		char ret[200];
 
-		float enabledBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled);
+		float enabledBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Enabled));
 		M7::BoolParam mEnabled {enabledBacking};
 		if (!mEnabled.GetBoolValue()) {
 			sprintf_s(ret, "Mod %d###mod%d", imod, imod);
 			return ret;
 		}
 
-		float srcBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Source);
+		float srcBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Source));
 		M7::EnumParam<M7::ModSource> mSource{ srcBacking, M7::ModSource::Count };
 		auto src = mSource.GetEnumValue();
 		if (src == M7::ModSource::None) {
@@ -1169,7 +1169,7 @@ public:
 			return ret;
 		}
 
-		float destBacking = GetEffectX()->getParameter(spec.mBaseParamID + (int)M7::ModParamIndexOffsets::Destination1);
+		float destBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Destination1));
 		M7::EnumParam<M7::ModDestination> mDestination{ destBacking, M7::ModDestination::Count };
 		auto dest = mDestination.GetEnumValue();
 		if (dest == M7::ModDestination::None) {
@@ -1289,8 +1289,8 @@ public:
 						M7::ModulationSpec& destSpec = this->pMaj7->mModulations[n];
 						for (int iparam = 0; iparam < (int)M7::ModParamIndexOffsets::Count; ++ iparam) {
 
-							float p = GetEffectX()->getParameter(srcSpec.mBaseParamID + iparam);
-							GetEffectX()->setParameter(destSpec.mBaseParamID + iparam, p);
+							float p = GetEffectX()->getParameter(srcSpec.mParams.GetParamIndex(iparam));
+							GetEffectX()->setParameter(destSpec.mParams.GetParamIndex(iparam), p);
 						}
 					}
 					ImGui::PopID();
@@ -1854,42 +1854,42 @@ public:
 
 	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc, Maj7::Maj7Voice* runningVoice)
 	{
-		ColorMod& cm = sampler.mEnabledParam.GetBoolValue() ? mSamplerColors : mSamplerDisabledColors;
+		ColorMod& cm = sampler.IsEnabled() ? mSamplerColors : mSamplerDisabledColors;
 		auto token = cm.Push();
 		static constexpr char const* const interpModeNames[] = { "Nearest", "Linear" };
 		static constexpr char const* const loopModeNames[] = { "Disabled", "Repeat", "Pingpong" };
 		static constexpr char const* const loopBoundaryModeNames[] = { "FromSample", "Manual" };
 
 		if (WSBeginTabItem(labelWithID)) {
-			WSImGuiParamCheckbox((int)sampler.mEnabledParamID, "Enabled");
-			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mVolumeParamID, "Volume", M7::gUnityVolumeCfg, 0);
+			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled), "Enabled");
+			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Volume), "Volume", M7::gUnityVolumeCfg, 0);
 
-			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mFreqParamID, (int)sampler.mFreqKTParamID, "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity);
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)sampler.mFreqKTParamID, "KT", 0, 1, 1, 1);
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneSemis, "Transp", M7::gSourcePitchSemisRange, 0, 0);
-			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::TuneFine, "FineTune", 0);
-			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::BaseNote, "BaseNote", M7::gKeyRangeCfg, 60, 60);
+			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqParam), (int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqKT), "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity);
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqKT), "KT", 0, 1, 1, 1);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::TuneSemis), "Transp", M7::gSourcePitchSemisRange, 0, 0);
+			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::TuneFine), "FineTune", 0);
+			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::BaseNote), "BaseNote", M7::gKeyRangeCfg, 60, 60);
 
-			ImGui::SameLine(0, 50); WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LegatoTrig, "Leg.Trig");
+			ImGui::SameLine(0, 50); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LegatoTrig), "Leg.Trig");
 
 			ImGui::SameLine();
 			ImGui::BeginGroup();
-			Maj7ImGuiParamMidiNote((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMin, "KeyMin", 0, 0);
-			Maj7ImGuiParamMidiNote((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::KeyRangeMax, "KeyMax", 127, 127);
+			Maj7ImGuiParamMidiNote((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::KeyRangeMin), "KeyMin", 0, 0);
+			Maj7ImGuiParamMidiNote((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::KeyRangeMax), "KeyMax", 127, 127);
 			ImGui::EndGroup();
 
-			ImGui::SameLine(0, 50); Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopMode, "LoopMode##mst", (int)WaveSabreCore::LoopMode::NumLoopModes, WaveSabreCore::LoopMode::Repeat, loopModeNames);
-			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopSource, "LoopSrc##mst", (int)WaveSabreCore::LoopBoundaryMode::NumLoopBoundaryModes, WaveSabreCore::LoopBoundaryMode::FromSample, loopBoundaryModeNames);
-			ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::ReleaseExitsLoop, "Rel");
-			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::InterpolationType, "Interp.##mst", (int)WaveSabreCore::InterpolationMode::NumInterpolationModes, WaveSabreCore::InterpolationMode::Linear, interpModeNames);
+			ImGui::SameLine(0, 50); Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopMode), "LoopMode##mst", (int)WaveSabreCore::LoopMode::NumLoopModes, WaveSabreCore::LoopMode::Repeat, loopModeNames);
+			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopSource), "LoopSrc##mst", (int)WaveSabreCore::LoopBoundaryMode::NumLoopBoundaryModes, WaveSabreCore::LoopBoundaryMode::FromSample, loopBoundaryModeNames);
+			ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop), "Rel");
+			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::InterpolationType), "Interp.##mst", (int)WaveSabreCore::InterpolationMode::NumInterpolationModes, WaveSabreCore::InterpolationMode::Linear, interpModeNames);
 
-			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::AuxMix, "Aux pan", 0);			
+			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::AuxMix), "Aux pan", 0);
 
 			ImGui::BeginGroup();
-			WSImGuiParamCheckbox((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::Reverse, "Reverse");
-			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::SampleStart, "SampleStart");
-			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopStart, "LoopBeg");
-			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::LoopLength, "LoopLen");
+			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Reverse), "Reverse");
+			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::SampleStart), "SampleStart");
+			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopStart), "LoopBeg");
+			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopLength), "LoopLen");
 			ImGui::EndGroup();
 
 			ImGui::SameLine();
@@ -1922,7 +1922,7 @@ public:
 			{
 				ImGui::InputText("sampleFilter", mGmDlsFilter, std::size(mGmDlsFilter));
 				ImGui::BeginListBox("sample");
-				int sampleIndex = (int)GetEffectX()->getParameter((int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::GmDlsIndex);
+				int sampleIndex = (int)GetEffectX()->getParameter((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::GmDlsIndex));
 				auto matches = (std::strlen(mGmDlsFilter) > 0) ? autocomplete(mGmDlsFilter, mGmDlsOptions) : mGmDlsOptions;
 				for (auto& x : matches) {
 					bool isSelected = sampleIndex == x.second;
@@ -1984,7 +1984,7 @@ public:
 
 			{
 				//ColorMod::Token ampEnvColorModToken{ (ampSourceParam.GetIntValue() != oscID) ? mPinkColors.mNewColors : nullptr };
-				Envelope("Amplitude Envelope", (int)sampler.mBaseParamID + (int)M7::SamplerParamIndexOffsets::AmpEnvDelayTime);
+				Envelope("Amplitude Envelope", (int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::AmpEnvDelayTime));
 			}
 			ImGui::EndTabItem();
 		} // if begin tab item

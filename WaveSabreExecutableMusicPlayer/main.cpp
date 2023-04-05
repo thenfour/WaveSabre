@@ -443,7 +443,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
     hMain = ::CreateWindowExA(0, "EDIT", TEXT_INTRO, WS_VISIBLE | ES_READONLY | ES_MULTILINE | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
         CW_USEDEFAULT, CW_USEDEFAULT, grcWindow.GetWidth(), grcWindow.GetHeight(), 0, 0, 0, 0);
 
-    auto oldProc = (WNDPROC)::SetWindowLongPtrA(hMain, GWLP_WNDPROC, (LONG)WindowProc);
+    auto oldProc = (WNDPROC)::SetWindowLongPtrA(hMain, GWLP_WNDPROC, (LONG_PTR)WindowProc);
 
     gpRenderer = new Renderer(hMain);
     gpPlayer = new Player(*gpRenderer);

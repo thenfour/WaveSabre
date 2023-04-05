@@ -274,54 +274,85 @@ namespace WaveSabreCore
 			//p->mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
 		}
 
-		static inline void GenerateDefaults_Source(ISoundSourceDevice* p)
-		{
-			p->mEnabledParam.SetBoolValue(false);
-			p->mVolumeParam.SetDecibels(0);
-			p->mAuxPanParam.SetN11Value(0);
-			p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
-			p->mFrequencyParam.mKTValue.SetParamValue(0);
-			p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
-			p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
-			p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
-			p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
-		}
+		//static inline void GenerateDefaults_Source(ISoundSourceDevice* p)
+		//{
+		//	//p->mEnabledParam.SetBoolValue(false);
+		//	//p->mVolumeParam.SetDecibels(0);
+		//	//p->mAuxPanParam.SetN11Value(0);
+		//	//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
+		//	//p->mFrequencyParam.mKTValue.SetParamValue(0);
+		//	//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
+		//	//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
+		//	//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
+		//	//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
+		//}
 
 		static inline void GenerateDefaults_LFO(OscillatorDevice* p)
 		{
-			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
-			p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
-			p->mWaveshape.SetParamValue(0.5f);
-			p->mPhaseOffset.SetN11Value(0);
-			p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
-			p->mFrequencyMul.SetRangedValue(1);
-			p->mIntention = OscillatorIntention::LFO;
-			p->mEnabledParam.SetBoolValue(true);
-			p->mFrequencyParam.mValue.SetParamValue(0.6f);
-			p->mFrequencyParam.mKTValue.SetParamValue(0);
-			p->mSyncFrequency.mKTValue.SetParamValue(0);
-			p->mLPFFrequency.mValue.SetParamValue(0.5f);
+			//p->mParams.SetBoolValue(LFOParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
+			//p->mParams.SetDecibels(LFOParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
+			//p->mParams.SetN11Value(LFOParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
+			p->mParams.Set01Val(LFOParamIndexOffsets::FrequencyParam, 0.6f);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
+			//p->mParams.Set01Val(LFOParamIndexOffsets::FreqKT, 0);//p->mFrequencyParam.mKTValue.SetParamValue(0);
+			//p->mParams.SetIntValue(LFOParamIndexOffsets::TuneSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
+			//p->mParams.SetN11Value(LFOParamIndexOffsets::TuneFine, 0);//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
+			//p->mParams.SetIntValue(LFOParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
+			//p->mParams.SetIntValue(LFOParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
+
+			//GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
+			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::TriTrunc);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
+			p->mParams.Set01Val(LFOParamIndexOffsets::Waveshape, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
+			p->mParams.SetN11Value(LFOParamIndexOffsets::PhaseOffset, 0);// p->mPhaseOffset.SetN11Value(0);
+			//p->mParams.Set01Val(LFOParamIndexOffsets::Syncfr, 0.5f);// p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
+			// p->mFrequencyMul.SetRangedValue(1);
+			// p->mIntention = OscillatorIntention::LFO;
+			// p->mEnabledParam.SetBoolValue(true);
+			// p->mFrequencyParam.mValue.SetParamValue(0.6f);
+			// p->mFrequencyParam.mKTValue.SetParamValue(0);
+			// p->mSyncFrequency.mKTValue.SetParamValue(0);
+			// p->mLPFFrequency.mValue.SetParamValue(0.5f);
+			p->mParams.Set01Val(LFOParamIndexOffsets::Sharpness, 0.5f);
+			p->mParams.SetBoolValue(LFOParamIndexOffsets::Restart, false);
 		}
 
 		static inline void GenerateDefaults_Audio(OscillatorDevice* p)
 		{
-			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
-			p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
-			p->mWaveshape.SetParamValue(0.5f);
-			p->mPhaseOffset.SetN11Value(0);
-			p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
-			p->mFrequencyMul.SetRangedValue(1);
-			p->mIntention = OscillatorIntention::Audio;
-			p->mEnabledParam.SetBoolValue(false);
-			p->mFrequencyParam.mKTValue.SetParamValue(1);
-			p->mSyncFrequency.mKTValue.SetParamValue(1);
+			p->mParams.SetBoolValue(OscParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
+			p->mParams.SetDecibels(OscParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
+			p->mParams.SetN11Value(OscParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
+			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
+			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParamKT, 1);//p->mFrequencyParam.mKTValue.SetParamValue(0);
+			p->mParams.SetIntValue(OscParamIndexOffsets::PitchSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
+			p->mParams.SetN11Value(OscParamIndexOffsets::PitchFine, 0);//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
+			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
+			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
+
+			//GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
+			p->mParams.SetEnumValue(OscParamIndexOffsets::Waveform, OscillatorWaveform::SineClip);//p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
+			p->mParams.Set01Val(OscParamIndexOffsets::Waveshape, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
+			p->mParams.SetN11Value(OscParamIndexOffsets::PhaseOffset, 0);//p->mPhaseOffset.SetN11Value(0);
+			p->mParams.Set01Val(OscParamIndexOffsets::SyncFrequency, M7::gFreqParamKTUnity);//p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
+			p->mParams.Set01Val(OscParamIndexOffsets::SyncFrequencyKT, 1);//p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
+			p->mParams.SetRangedValue(OscParamIndexOffsets::FreqMul, 0.0f, gFrequencyMulMax, 1);//p->mFrequencyMul.SetRangedValue(1);
+			//p->mSyncFrequency.mKTValue.SetParamValue(1);
 		}
 
 		static inline void GenerateDefaults(SamplerDevice* p)
 		{
 			auto token = p->mMutex.Enter();
 			p->Reset();
-			GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
+
+			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
+			p->mParams.SetDecibels(SamplerParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
+			p->mParams.SetN11Value(SamplerParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
+			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
+			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 0);//p->mFrequencyParam.mKTValue.SetParamValue(0);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::TuneSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
+			p->mParams.SetN11Value(SamplerParamIndexOffsets::TuneFine, 0);//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
+
+			//GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::LegatoTrig, true);
 			//p->mLegatoTrig.SetBoolValue(true);
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Reverse, false);
@@ -411,10 +442,12 @@ namespace WaveSabreCore
 			for (auto& m : p->mAuxDevices) {
 				GenerateDefaults(&m);
 			}
-			for (auto p : p->mMaj7Voice[0]->mpAllModEnvelopes)
-			{
-				GenerateDefaults_Env(p);
-			}
+			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv1Index]);
+			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv2Index]);
+			//for (auto p : p->mMaj7Voice[0]->mpAllModEnvelopes)
+			//{
+			//	GenerateDefaults_Env(p);
+			//}
 			for (auto p : p->mMaj7Voice[0]->mSourceVoices)
 			{
 				GenerateDefaults_Env(p->mpAmpEnv);
@@ -454,7 +487,7 @@ namespace WaveSabreCore
 								// the mod spec is modulating from this env to a hidden volume control; likely a built-in modulationspec for osc vol.
 								// if that source is enabled, then consider this used.
 								// otherwise keep looking.
-								if (src->mEnabledParam.GetBoolValue()) {
+								if (src->IsEnabled()) {
 									return true;
 								}
 							}
@@ -647,21 +680,17 @@ int compressedSize = 0;
 			}
 		}
 
-		static inline void OptimizeSource(Maj7* p, ISoundSourceDevice* psrc)
-		{
-			OptimizeBoolParam(p, psrc->mEnabledParam, psrc->mEnabledParamID, 0);
-			OptimizeIntParam(p, psrc->mPitchSemisParam, psrc->mTuneSemisParamID, 0);
-			OptimizeIntParam(p, psrc->mKeyRangeMin, psrc->mKeyRangeMinParamID, 0);
-			OptimizeIntParam(p, psrc->mKeyRangeMax, psrc->mKeyRangeMaxParamID, 0);
-		}
-
 		// if aggressive, then round values which are very close to defaults back to default.
 		static inline void OptimizeParams(Maj7* p, bool aggressive)
 		{
 			// samplers
 			for (auto& s : p->mSamplerDevices)
 			{
-				OptimizeSource(p, &s);
+				// enabled, pitch semis, keyrange min, keyrange max.
+				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Enabled);
+				OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, SamplerParamIndexOffsets::TuneSemis);
+				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMin);
+				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMax);
 
 				OptimizeEnumParam<LoopMode>(p, s.mParams,SamplerParamIndexOffsets::LoopMode);
 
@@ -677,47 +706,58 @@ int compressedSize = 0;
 				OptimizeIntParam(p, s.mParams, gGmDlsIndexParamCfg, SamplerParamIndexOffsets::GmDlsIndex);
 				OptimizeIntParam(p, s.mParams, gKeyRangeCfg, SamplerParamIndexOffsets::BaseNote);
 
-				if (!s.mEnabledParam.GetBoolValue()) {
+				if (!s.IsEnabled()) {
 					s.Reset();
-					memcpy(p->mParamCache + (int)s.mBaseParamID, gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
+					memcpy(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
 				}
 			}
 
 			// oscillators
 			for (auto& s : p->mOscillatorDevices)
 			{
-				OptimizeSource(p, &s);
-				OptimizeEnumParam(p, s.mWaveform, OscillatorWaveform::Count, s.mBaseParamID, OscParamIndexOffsets::Waveform);
-				OptimizeBoolParam(p, s.mPhaseRestart, s.mBaseParamID, OscParamIndexOffsets::PhaseRestart);
-				OptimizeBoolParam(p, s.mSyncEnable, s.mBaseParamID, OscParamIndexOffsets::SyncEnable);
+				// enabled, pitch semis, keyrange min, keyrange max.
+				OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::Enabled);
+				OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, OscParamIndexOffsets::PitchSemis);
+				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, OscParamIndexOffsets::KeyRangeMin);
+				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, OscParamIndexOffsets::KeyRangeMax);
 
-				if (!s.mEnabledParam.GetBoolValue()) {
-					memcpy(p->mParamCache + (int)s.mBaseParamID, gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
+				//OptimizeSource(p, &s);
+				OptimizeEnumParam<M7::OscillatorWaveform>(p, s.mParams, OscParamIndexOffsets::Waveform);
+				OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::PhaseRestart);
+				OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::SyncEnable);
+
+				if (!s.IsEnabled()) {
+					memcpy(p->mParams.GetOffsetParamCache(), gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
 				}
 			}
 
 			// LFO
 			for (auto& lfo : p->mLFOs) {
-				OptimizeSource(p, &lfo.mDevice);
-				OptimizeEnumParam(p, lfo.mDevice.mWaveform, OscillatorWaveform::Count, lfo.mDevice.mBaseParamID, OscParamIndexOffsets::Waveform);
-				OptimizeBoolParam(p, lfo.mDevice.mPhaseRestart, lfo.mDevice.mBaseParamID, OscParamIndexOffsets::PhaseRestart);
-				OptimizeBoolParam(p, lfo.mDevice.mSyncEnable, lfo.mDevice.mBaseParamID, OscParamIndexOffsets::SyncEnable);
+				//OptimizeSource(p, &lfo.mDevice);
+				//OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::);
+				//OptimizeIntParam(p, lfo.mDevice.mParams, M7::gSourcePitchSemisRange, LFOParamIndexOffsets::PitchSemis);
+				//OptimizeIntParam(p, lfo.mDevice.mParams, M7::gKeyRangeCfg, LFOParamIndexOffsets::KeyRangeMin);
+				//OptimizeIntParam(p, lfo.mDevice.mParams, M7::gKeyRangeCfg, LFOParamIndexOffsets::KeyRangeMax);
+
+				OptimizeEnumParam<M7::OscillatorWaveform>(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Waveform);
+				OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Restart);
+				//OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::SyncEnable);
 			}
 
 			// envelopes
-			for (auto* env : p->mMaj7Voice[0]->mpAllModEnvelopes) {
-				OptimizeEnvelope(p, *env);
+			for (auto& env : p->mMaj7Voice[0]->mAllEnvelopes) {
+				OptimizeEnvelope(p, env);
 			}
-			for (auto* psv : p->mMaj7Voice[0]->mSourceVoices) {
-				OptimizeEnvelope(p, *psv->mpAmpEnv);
-			}
+			//for (auto* psv : p->mMaj7Voice[0]->mSourceVoices) {
+			//	OptimizeEnvelope(p, *psv->mpAmpEnv);
+			//}
 
 			// modulations.
 			// optimize hard because there are so many modulations and there's always a lot of fiddling happening here.
 			for (auto& m : p->mModulations)
 			{
 				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {
-					memcpy(p->mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
+					memcpy(p->mParams.GetOffsetParamCache(), gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
 				}
 
 				// still, try and optimize the aux part. 

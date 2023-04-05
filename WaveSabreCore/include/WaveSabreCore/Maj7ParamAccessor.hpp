@@ -66,9 +66,9 @@ namespace WaveSabreCore
 				return Get01Value__((int)offset, mod);
 			}
 
-			float GetBoolValue__(int offset) const;
+			bool GetBoolValue__(int offset) const;
 			template<typename T>
-			float GetBoolValue(T offset) const {
+			bool GetBoolValue(T offset) const {
 				static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
 				return GetBoolValue__((int)offset);
 			}
@@ -175,7 +175,7 @@ namespace WaveSabreCore
 			template<typename Toffset>
 			void SetRangedValue(Toffset offset, float minIncl, float maxIncl, float value) {
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				SetRangedValue((int)offset, minIncl, maxIncl, value);
+				SetRangedValue__((int)offset, minIncl, maxIncl, value);
 			}
 
 			// a volume param which goes from silent to a maxdb value

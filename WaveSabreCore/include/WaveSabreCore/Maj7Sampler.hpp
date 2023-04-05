@@ -67,7 +67,13 @@ namespace WaveSabreCore
 			//Float01Param mLoopStart;
 			//Float01Param mLoopLength; // 0-1 ?
 
-			int mSampleLoadSequence = 0; // just an ID to let the VST editor know when the sample data has changed
+			bool mEnabledCached;
+			//float mAuxPanCached;
+			//int mPitchSemisCached;
+			//float mPitchFineCached;
+
+
+			//int mSampleLoadSequence = 0; // just an ID to let the VST editor know when the sample data has changed
 
 			ISampleSource* mSample = nullptr;
 			float mSampleRateCorrectionFactor = 0;
@@ -91,6 +97,28 @@ namespace WaveSabreCore
 			virtual void BeginBlock() override;
 
 			virtual void EndBlock() override;
+
+			virtual bool IsEnabled() const override {
+				return mParams.GetBoolValue(OscParamIndexOffsets::Enabled);
+			}
+			virtual bool MatchesKeyRange(int midiNote) const override {
+				if (mParams.GetIntValue(SamplerParamIndexOffsets::KeyRangeMin, gKeyRangeCfg) > midiNote)
+					return false;
+				if (mParams.GetIntValue(SamplerParamIndexOffsets::KeyRangeMax, gKeyRangeCfg) < midiNote)
+					return false;
+				return true;
+			}
+
+			virtual float GetAuxPan() const override
+			{
+				return mParams.GetN11Value(SamplerParamIndexOffsets::AuxMix, 0);
+			}
+
+			virtual float GetLinearVolume(float mod) const override
+			{
+				return mParams.GetLinearVolume(SamplerParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
+			}
+
 
 		}; // struct SamplerDevice
 

@@ -67,7 +67,7 @@ struct Renderer
         WaveHDR =
         {
           (LPSTR)gpBuffer,
-          bufferSizeBytes,
+          (DWORD)bufferSizeBytes,
           0,
         };
     }

@@ -18,7 +18,7 @@ namespace WaveSabreCore
 			return math::clamp01(GetRawVal__(offset) + mod);
 		}
 
-		float ParamAccessor::GetBoolValue__(int offset) const {
+		bool ParamAccessor::GetBoolValue__(int offset) const {
 			return (GetRawVal__(offset) > 0.5f);
 		}
 		int ParamAccessor::GetIntValue__(int offset, const IntParamConfig& cfg) const {

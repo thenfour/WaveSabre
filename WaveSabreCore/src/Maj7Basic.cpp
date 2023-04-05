@@ -51,6 +51,7 @@ namespace WaveSabreCore
 			return gQualitySetting;
 		}
 
+		bool gAlwaysTrue = true;
 
 		namespace math
 		{

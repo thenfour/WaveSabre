@@ -129,6 +129,7 @@ namespace WaveSabreCore
             //}
         };
 
+        extern bool gAlwaysTrue;
 
         static constexpr real_t FloatEpsilon = 0.000001f;
         static constexpr float MIN_DECIBEL_GAIN = -60.0f;

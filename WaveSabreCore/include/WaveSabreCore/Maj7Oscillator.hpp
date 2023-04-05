@@ -16,18 +16,21 @@ namespace WaveSabreCore
 		// sampler, oscillator, LFO @ device level
 		struct ISoundSourceDevice
 		{
-			const ParamIndices mBaseParamID;
-			const ParamIndices mAmpEnvBaseParamID;
-			const ParamIndices mEnabledParamID;
-			const ParamIndices mVolumeParamID;
-			const ParamIndices mAuxPanParamID;
+			ParamAccessor mParams;
+			bool mEnabledCache;
 
-			const ParamIndices mTuneSemisParamID;
-			const ParamIndices mTuneFineParamID;
-			const ParamIndices mFreqParamID;
-			const ParamIndices mFreqKTParamID;
-			const ParamIndices mKeyRangeMinParamID;
-			const ParamIndices mKeyRangeMaxParamID;
+			//const ParamIndices mBaseParamID;
+			//const ParamIndices mAmpEnvBaseParamID;
+			//const ParamIndices mEnabledParamID;
+			//const ParamIndices mVolumeParamID;
+			//const ParamIndices mAuxPanParamID;
+
+			//const ParamIndices mTuneSemisParamID;
+			//const ParamIndices mTuneFineParamID;
+			//const ParamIndices mFreqParamID;
+			//const ParamIndices mFreqKTParamID;
+			//const ParamIndices mKeyRangeMinParamID;
+			//const ParamIndices mKeyRangeMaxParamID;
 
 			const ModSource mAmpEnvModSourceID;
 			const ModDestination mModDestBaseID;
@@ -35,113 +38,119 @@ namespace WaveSabreCore
 			const ModDestination mAuxPanModDestID;
 			const ModDestination mHiddenVolumeModDestID;
 
-			BoolParam mEnabledParam;
-			VolumeParam mVolumeParam;
-			FloatN11Param mAuxPanParam;
-			FrequencyParam mFrequencyParam;
-			IntParam mPitchSemisParam;
-			FloatN11Param mPitchFineParam;
+			//BoolParam mEnabledParam;
+			//VolumeParam mVolumeParam;
+			//FloatN11Param mAuxPanParam;
+			//FrequencyParam mFrequencyParam;
+			//IntParam mPitchSemisParam;
+			//FloatN11Param mPitchFineParam;
 
-			IntParam mKeyRangeMin;
-			IntParam mKeyRangeMax;
+			//IntParam mKeyRangeMin;
+			//IntParam mKeyRangeMax;
 
 			ModulationSpec* mAmpEnvModulation;
 
+			virtual bool IsEnabled() const = 0;
+			virtual bool MatchesKeyRange(int midiNote) const = 0;
+			virtual float GetAuxPan() const = 0; // does not account for modulation
+			virtual float GetLinearVolume(float mod) const = 0;
 			// device-level values set at the beginning of block processing
 			float mDetuneDeviceModAmt = 0;
 			float mAuxPanDeviceModAmt = 0;
 			//float mShapeDeviceModAmt = 0;
 
 			// LFO backing values (they don't have params)
-			float mLFOVolumeParamValue = 1.0f;
-			float mLFOAuxPanBacking = 0;
-			float mLFOPitchSemisParamValue = 0.5f;
-			float mLFOPitchFineParamValue = 0.5f;
-			float mLFOEnabledBacking = 1;
-			float mLFOVolumeBacking = 1;
-			float mLFOFreqKTBacking = 0;
-			float mLFOKeyRangeMinBacking = 0;
-			float mLFOKeyRangeMaxBacking = 0;
+			//float mLFOVolumeParamValue = 1.0f;
+			//float mLFOAuxPanBacking = 0;
+			//float mLFOPitchSemisParamValue = 0.5f;
+			//float mLFOPitchFineParamValue = 0.5f;
+			//float mLFOEnabledBacking = 1;
+			//float mLFOVolumeBacking = 1;
+			//float mLFOFreqKTBacking = 0;
+			//float mLFOKeyRangeMinBacking = 0;
+			//float mLFOKeyRangeMaxBacking = 0;
 
 			virtual ~ISoundSourceDevice()
 			{}
 
-			ISoundSourceDevice(float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ParamIndices enabledParamID, ParamIndices volumeParamID, ParamIndices auxPanParamID,
-				ParamIndices tuneSemisParamID, ParamIndices tuneFineParamID, ParamIndices freqParamID, ParamIndices freqKTParamID, ParamIndices keyRangeMinParamID, ParamIndices keyRangeMaxParamID,
+			ISoundSourceDevice(float* paramCache, ModulationSpec* ampEnvModulation, ParamIndices baseParamID,
+				//ParamIndices ampEnvBaseParamID, ParamIndices enabledParamID, ParamIndices volumeParamID, ParamIndices auxPanParamID,
+				//ParamIndices tuneSemisParamID, ParamIndices tuneFineParamID, ParamIndices freqParamID, ParamIndices freqKTParamID, ParamIndices keyRangeMinParamID, ParamIndices keyRangeMaxParamID,
 				ModSource ampEnvModSourceID, ModDestination modDestBaseID, ModDestination volumeModDestID, ModDestination auxPanModDestID, ModDestination hiddenVolumeModDestID
 			) :
-
+				mParams(paramCache, baseParamID),
 				mAmpEnvModulation(ampEnvModulation),
-				mBaseParamID(baseParamID),
-				mAmpEnvBaseParamID(ampEnvBaseParamID),
-				mEnabledParamID(enabledParamID),
-				mVolumeParamID(volumeParamID),
-				mAuxPanParamID(auxPanParamID),
-				mTuneSemisParamID(tuneSemisParamID),
-				mTuneFineParamID(tuneFineParamID), mFreqParamID(freqParamID), mFreqKTParamID(freqKTParamID),
-				mKeyRangeMinParamID(keyRangeMinParamID),
-				mKeyRangeMaxParamID(keyRangeMaxParamID),
+				//mBaseParamID(baseParamID),
+				//mAmpEnvBaseParamID(ampEnvBaseParamID),
+				//mEnabledParamID(enabledParamID),
+				//mVolumeParamID(volumeParamID),
+				//mAuxPanParamID(auxPanParamID),
+				//mTuneSemisParamID(tuneSemisParamID),
+				//mTuneFineParamID(tuneFineParamID), mFreqParamID(freqParamID), mFreqKTParamID(freqKTParamID),
+				//mKeyRangeMinParamID(keyRangeMinParamID),
+				//mKeyRangeMaxParamID(keyRangeMaxParamID),
 				mAmpEnvModSourceID(ampEnvModSourceID),
 				mVolumeModDestID(volumeModDestID),
 				mAuxPanModDestID(auxPanModDestID),
 				mModDestBaseID(modDestBaseID),
-				mHiddenVolumeModDestID(hiddenVolumeModDestID),
+				mHiddenVolumeModDestID(hiddenVolumeModDestID)
 
-				mEnabledParam(paramCache[(int)enabledParamID]),
-				mVolumeParam(paramCache[(int)volumeParamID], gUnityVolumeCfg),
-				mAuxPanParam(paramCache[(int)auxPanParamID]),
-				mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFreqConfig),// gSourceFrequencyCenterHz, gSourceFrequencyScale),
-				mPitchSemisParam(paramCache[(int)tuneSemisParamID], gSourcePitchSemisRange),
-				mPitchFineParam(paramCache[(int)tuneFineParamID]),
-				mKeyRangeMin(paramCache[(int)keyRangeMinParamID], gKeyRangeCfg),
-				mKeyRangeMax(paramCache[(int)keyRangeMaxParamID], gKeyRangeCfg)
+				//mEnabledParam(paramCache[(int)enabledParamID]),
+				//mVolumeParam(paramCache[(int)volumeParamID], gUnityVolumeCfg),
+				//mAuxPanParam(paramCache[(int)auxPanParamID]),
+				//mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFreqConfig),// gSourceFrequencyCenterHz, gSourceFrequencyScale),
+				//mPitchSemisParam(paramCache[(int)tuneSemisParamID], gSourcePitchSemisRange),
+				//mPitchFineParam(paramCache[(int)tuneFineParamID]),
+				//mKeyRangeMin(paramCache[(int)keyRangeMinParamID], gKeyRangeCfg),
+				//mKeyRangeMax(paramCache[(int)keyRangeMaxParamID], gKeyRangeCfg)
 			{
 			}
 
-			// for LFOs
-			ISoundSourceDevice(float* paramCache,
-				ParamIndices baseParamID, ParamIndices freqParamID,
-				ModDestination modDestBaseID
-			) :
-				mAmpEnvBaseParamID(ParamIndices::Invalid),
-				mEnabledParamID(ParamIndices::Invalid),
-				mVolumeParamID(ParamIndices::Invalid),
-				mAuxPanParamID(ParamIndices::Invalid),
-				mTuneSemisParamID(ParamIndices::Invalid),
-				mTuneFineParamID(ParamIndices::Invalid),
-				mFreqKTParamID(ParamIndices::Invalid),
-				mKeyRangeMinParamID(ParamIndices::Invalid),
-				mKeyRangeMaxParamID(ParamIndices::Invalid),
-				mAmpEnvModSourceID(ModSource::Invalid),
-				mVolumeModDestID(ModDestination::Invalid),
-				mAuxPanModDestID(ModDestination::Invalid),
-				mHiddenVolumeModDestID(ModDestination::Invalid),
-				mAmpEnvModulation(nullptr),
-				mBaseParamID(baseParamID),
-				mFreqParamID(freqParamID),
-				mModDestBaseID(modDestBaseID),
-				mEnabledParam(mLFOEnabledBacking),
-				mVolumeParam(mLFOVolumeBacking, gUnityVolumeCfg),
-				mAuxPanParam(mLFOAuxPanBacking),
-				mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFreqConfig),// gLFOFrequencyCenterHz, gLFOFrequencyScale),
-				mPitchSemisParam(mLFOPitchSemisParamValue, gSourcePitchSemisRange),
-				mPitchFineParam(mLFOPitchFineParamValue),
-				mKeyRangeMin(mLFOKeyRangeMinBacking, gKeyRangeCfg),
-				mKeyRangeMax(mLFOKeyRangeMaxBacking, gKeyRangeCfg)
-			{
-			}
+			//// for LFOs
+			//ISoundSourceDevice(float* paramCache,
+			//	ParamIndices baseParamID, ParamIndices freqParamID,
+			//	ModDestination modDestBaseID
+			//) :
+			//	mParams(paramCache, baseParamID),
+			//	//mAmpEnvBaseParamID(ParamIndices::Invalid),
+			//	//mEnabledParamID(ParamIndices::Invalid),
+			//	//mVolumeParamID(ParamIndices::Invalid),
+			//	//mAuxPanParamID(ParamIndices::Invalid),
+			//	//mTuneSemisParamID(ParamIndices::Invalid),
+			//	//mTuneFineParamID(ParamIndices::Invalid),
+			//	//mFreqKTParamID(ParamIndices::Invalid),
+			//	//mKeyRangeMinParamID(ParamIndices::Invalid),
+			//	//mKeyRangeMaxParamID(ParamIndices::Invalid),
+			//	mAmpEnvModSourceID(ModSource::Invalid),
+			//	mVolumeModDestID(ModDestination::Invalid),
+			//	mAuxPanModDestID(ModDestination::Invalid),
+			//	mHiddenVolumeModDestID(ModDestination::Invalid),
+			//	mAmpEnvModulation(nullptr),
+			//	//mBaseParamID(baseParamID),
+			//	//mFreqParamID(freqParamID),
+			//	mModDestBaseID(modDestBaseID)
+			//	//mEnabledParam(mLFOEnabledBacking),
+			//	//mVolumeParam(mLFOVolumeBacking, gUnityVolumeCfg),
+			//	//mAuxPanParam(mLFOAuxPanBacking),
+			//	//mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFreqConfig),// gLFOFrequencyCenterHz, gLFOFrequencyScale),
+			//	//mPitchSemisParam(mLFOPitchSemisParamValue, gSourcePitchSemisRange),
+			//	//mPitchFineParam(mLFOPitchFineParamValue),
+			//	//mKeyRangeMin(mLFOKeyRangeMinBacking, gKeyRangeCfg),
+			//	//mKeyRangeMax(mLFOKeyRangeMaxBacking, gKeyRangeCfg)
+			//{
+			//}
 
 			void InitDevice() {
-				mAmpEnvModulation->SetSourceAmp(mAmpEnvModSourceID, mHiddenVolumeModDestID, &mEnabledParam);
+				mAmpEnvModulation->SetSourceAmp(mAmpEnvModSourceID, mHiddenVolumeModDestID, &mEnabledCache);
 			}
 
 			virtual void BeginBlock()
 			{
-				mEnabledParam.CacheValue();
-				mAuxPanParam.CacheValue();
-				mPitchSemisParam.CacheValue();
-				mPitchFineParam.CacheValue();
+				mEnabledCache = this->IsEnabled();
+				//mEnabledParam.CacheValue();
+				//mAuxPanParam.CacheValue();
+				//mPitchSemisParam.CacheValue();
+				//mPitchFineParam.CacheValue();
 			}
 			virtual void EndBlock() = 0;
 
@@ -168,6 +177,7 @@ namespace WaveSabreCore
 				virtual void NoteOff() = 0;
 				virtual void BeginBlock() = 0;
 				virtual float GetLastSample() const = 0;
+				//virtual float GetLinearVolume() const = 0;
 				//virtual void EndBlock() = 0;
 
 				void SetModMatrix(ModMatrixNode* pModMatrix)
@@ -1049,57 +1059,81 @@ namespace WaveSabreCore
 		struct OscillatorDevice : ISoundSourceDevice
 		{
 			// BASE PARAMS
-			EnumParam<OscillatorWaveform> mWaveform;
-			Float01Param mWaveshape;//	Osc2Waveshape,
-			BoolParam mPhaseRestart;//	Osc2PhaseRestart,
-			FloatN11Param mPhaseOffset;//	Osc2PhaseOffset,
-			BoolParam mSyncEnable;//	Osc2SyncEnable,
-			FrequencyParam mSyncFrequency;//	Osc2SyncFrequency,//	Osc2SyncFrequencyKT,
-			ScaledRealParam mFrequencyMul;//	Osc2FreqMul,. FM8 allows 0-64
-			Float01Param mFMFeedback01;// Osc2FMFeedback,
+			//EnumParam<OscillatorWaveform> mWaveform;
+			//Float01Param mWaveshape;//	Osc2Waveshape,
+			//BoolParam mPhaseRestart;//	Osc2PhaseRestart,
+			//FloatN11Param mPhaseOffset;//	Osc2PhaseOffset,
+			//BoolParam mSyncEnable;//	Osc2SyncEnable,
+			//FrequencyParam mSyncFrequency;//	Osc2SyncFrequency,//	Osc2SyncFrequencyKT,
+			//ScaledRealParam mFrequencyMul;//	Osc2FreqMul,. FM8 allows 0-64
+			//Float01Param mFMFeedback01;// Osc2FMFeedback,
 
 			OscillatorIntention mIntention;
 
-			FrequencyParam mLPFFrequency;// { mParamCache[(int)ParamIndices::LFO1Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
+			//FrequencyParam mLPFFrequency;// { mParamCache[(int)ParamIndices::LFO1Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
 
 			// backing values for LFO which don't have these params in main cache
-			float mLFOSyncFrequencyParamValue = 1.0f;
-			float mLFOSyncFrequencyKTBacking = 1.0f;
-			float mLFOFrequencyMulParamValue = 0.5f;
-			float mLFOFMFeedbackParamValue = 0.0f;
-			float mLFOSyncEnableBacking = 0;
-			float mLFPFrequencyBacking = 0;
-			float mLFPFrequencyKTBacking = 0;
+			//float mLFOSyncFrequencyParamValue = 1.0f;
+			//float mLFOSyncFrequencyKTBacking = 1.0f;
+			//float mLFOFrequencyMulParamValue = 0.5f;
+			//float mLFOFMFeedbackParamValue = 0.0f;
+			//float mLFOSyncEnableBacking = 0;
+			//float mLFPFrequencyBacking = 0;
+			//float mLFPFrequencyKTBacking = 0;
+
+			virtual bool IsEnabled() const override {
+				return mParams.GetBoolValue(OscParamIndexOffsets::Enabled);
+			}
+			virtual bool MatchesKeyRange(int midiNote) const override {
+				if (mIntention == OscillatorIntention::LFO) return true;
+				if (mParams.GetIntValue(OscParamIndexOffsets::KeyRangeMin, gKeyRangeCfg) > midiNote)
+					return false;
+				if (mParams.GetIntValue(OscParamIndexOffsets::KeyRangeMax, gKeyRangeCfg) < midiNote)
+					return false;
+				return true;
+			}
+
+			virtual float GetAuxPan() const override
+			{
+				// only valid for audio (no lfo)
+				return mParams.GetN11Value(OscParamIndexOffsets::AuxMix, 0);
+			}
+
+			virtual float GetLinearVolume(float mod) const override
+			{
+				return mParams.GetLinearVolume(OscParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
+			}
+
 
 			// for Audio
 			explicit OscillatorDevice(OscillatorIntentionAudio, float* paramCache, ModulationSpec* ampEnvModulation,
 				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			) :
-				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID, ampEnvBaseParamID,
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Enabled)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Volume)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::AuxMix)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::PitchSemis)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::PitchFine)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParam)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParamKT)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMin)),
-					(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMax)),
+				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID,// ampEnvBaseParamID,
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Enabled)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Volume)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::AuxMix)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::PitchSemis)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::PitchFine)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParam)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParamKT)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMin)),
+					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMax)),
 					ampEnvModSourceID,
 					modDestBaseID,
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::Volume)),
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::AuxMix)),
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::PreFMVolume))
 					),
-				mWaveform(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count),
-				mWaveshape(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveshape]),
-				mPhaseRestart(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseRestart]),
-				mPhaseOffset(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseOffset]),
-				mSyncEnable(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncEnable]),
-				mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFreqConfig),// gSyncFrequencyCenterHz, gSyncFrequencyScale),
-				mFrequencyMul(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax),
-				mFMFeedback01(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FMFeedback]),
-				mLPFFrequency(mLFPFrequencyBacking, mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
+				//mWaveform(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count),
+				//mWaveshape(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveshape]),
+				//mPhaseRestart(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseRestart]),
+				//mPhaseOffset(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseOffset]),
+				//mSyncEnable(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncEnable]),
+				//mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFreqConfig),// gSyncFrequencyCenterHz, gSyncFrequencyScale),
+				//mFrequencyMul(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax),
+				//mFMFeedback01(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FMFeedback]),
+				//mLPFFrequency(mLFPFrequencyBacking, mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 
 				mIntention(OscillatorIntention::Audio)
 			{
@@ -1107,36 +1141,52 @@ namespace WaveSabreCore
 
 			// for LFO, we internalize many params
 			explicit OscillatorDevice(OscillatorIntentionLFO, float* paramCache, ParamIndices paramBaseID, ModDestination modDestBaseID) :
-				ISoundSourceDevice(paramCache, paramBaseID,
-					(ParamIndices)(int(paramBaseID) + int(LFOParamIndexOffsets::FrequencyParam)),
-					modDestBaseID
-				),
-				mWaveform(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Waveform], OscillatorWaveform::Count),
-				mWaveshape(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Waveshape]),
-				mPhaseRestart(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Restart]),
-				mPhaseOffset(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::PhaseOffset]),
-				mSyncEnable(mLFOSyncEnableBacking),
-				mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOSyncFrequencyKTBacking, gSyncFreqConfig),//gSyncFrequencyCenterHz, gSyncFrequencyScale),
-				mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f),
-				mFMFeedback01(mLFOFMFeedbackParamValue),
-				mLPFFrequency(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Sharpness], mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
+				ISoundSourceDevice(paramCache, nullptr, paramBaseID,
+					ModSource::Invalid, // amp env mod source doesn't exist for lfo
+					modDestBaseID,
+					ModDestination::Invalid, // volume mod dest
+					ModDestination::Invalid, // AuxMix mod dest
+					ModDestination::Invalid // PreFMVolume mod dest
+					)
+					//
+					//(ParamIndices)(int(paramBaseID) + int(LFOParamIndexOffsets::FrequencyParam)),
+					//modDestBaseID
+				,
+				//mWaveform(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Waveform], OscillatorWaveform::Count),
+				//mWaveshape(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Waveshape]),
+				//mPhaseRestart(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Restart]),
+				//mPhaseOffset(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::PhaseOffset]),
+				//mSyncEnable(mLFOSyncEnableBacking),
+				//mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOSyncFrequencyKTBacking, gSyncFreqConfig),//gSyncFrequencyCenterHz, gSyncFrequencyScale),
+				//mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f),
+				//mFMFeedback01(mLFOFMFeedbackParamValue),
+				//mLPFFrequency(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Sharpness], mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 				mIntention(OscillatorIntention::LFO)
 			{
-				mFrequencyMul.SetRangedValue(1);
+				//mFrequencyMul.SetRangedValue(1);
+			}
+
+			bool GetPhaseRestart() const {
+				return mParams.GetBoolValue((mIntention == OscillatorIntention::Audio) ? (int)OscParamIndexOffsets::PhaseRestart : (int)LFOParamIndexOffsets::Restart);
+			}
+			// only for LFO
+			float GetLPFFrequency() const {
+				return mParams.GetFrequency(LFOParamIndexOffsets::Sharpness, -1, gLFOLPFreqConfig, 0, 0);
 			}
 
 			virtual void BeginBlock() override {
 				ISoundSourceDevice::BeginBlock();
 				//mWaveform.CacheValue();
 				//mPhaseRestart.CacheValue();
-				mPhaseOffset.CacheValue();
-				mSyncEnable.CacheValue();
-				mFrequencyMul.CacheValue();
+				//mPhaseOffset.CacheValue();
+				//mSyncEnable.CacheValue();
+				//mFrequencyMul.CacheValue();
 			}
 			virtual void EndBlock() override {}
 
 		};
 
+		/////////////////////////////////////////////////////////////////////////////
 		struct OscillatorNode : ISoundSourceDevice::Voice
 		{
 			OscillatorDevice* mpOscDevice = nullptr;
@@ -1193,21 +1243,31 @@ namespace WaveSabreCore
 			virtual void NoteOn(bool legato) override
 			{
 				if (legato) return;
-				if (mpOscDevice->mPhaseRestart.GetBoolValue()) {
+				if (mpOscDevice->GetPhaseRestart()) {
 					mpSlaveWave->OSC_RESTART(0);
-					mPhase = math::fract(mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal));
+					//float f = mpOscDevice->mParams.GetN11Value(OscParamIndexOffsets::PhaseOffset, mPhaseModVal);
+					mPhase = GetPhaseOffset();// math::fract(f);
 				}
+			}
+
+			float GetPhaseOffset()
+			{
+				int po = mpOscDevice->mIntention == OscillatorIntention::Audio ? (int)OscParamIndexOffsets::PhaseOffset : (int)LFOParamIndexOffsets::PhaseOffset;
+				float f = mpOscDevice->mParams.GetN11Value(po, mPhaseModVal);
+				return math::fract(f);
 			}
 
 			virtual void NoteOff() override {}
 
 			virtual void BeginBlock() override
 			{
-				if (!this->mpSrcDevice->mEnabledParam.GetBoolValue()) {
+				if (!this->mpSrcDevice->IsEnabled()) {
 					return;
 				}
 				mnSamples = 0; // ensure reprocessing after setting these params to avoid corrupt state.
-				switch (mpOscDevice->mWaveform.GetEnumValue()) {
+				//switch (mpOscDevice->mWaveform.GetEnumValue()) {
+				auto w = mpOscDevice->mParams.GetEnumValue<OscillatorWaveform>(mpOscDevice->mIntention == OscillatorIntention::Audio ? (int)OscParamIndexOffsets::Waveform : (int)LFOParamIndexOffsets::Waveform);
+				switch (w) {
 				case OscillatorWaveform::Pulse:
 					mpSlaveWave = &mPulsePWMWaveform;
 					break;
@@ -1250,10 +1310,12 @@ namespace WaveSabreCore
 
 			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount)
 			{
-				if (!this->mpSrcDevice->mEnabledParam.mCachedVal) {
+				if (!this->mpSrcDevice->mEnabledCache) {
 					mOutSample = mCurrentSample = 0;
 					return 0;
 				}
+
+				bool syncEnable = mpOscDevice->mParams.GetBoolValue(OscParamIndexOffsets::SyncEnable);
 
 				if (0 == mnSamples) // NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
@@ -1264,7 +1326,8 @@ namespace WaveSabreCore
 					mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Phase);
 					mPitchFineModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
 
-					mFMFeedbackAmt = mpOscDevice->mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
+					mFMFeedbackAmt = mpOscDevice->mParams.Get01Value(OscParamIndexOffsets::FMFeedback, mFMFeedbackModVal) * fmScale * 0.5f;
+					//mFMFeedbackAmt = mpOscDevice->mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
 
 					// - osc pitch semis                  note         oscillator                  
 					// - osc fine (semis)                 note         oscillator                   
@@ -1273,10 +1336,12 @@ namespace WaveSabreCore
 					// - osc mul (Hz)                     hz           oscillator             
 					// - osc detune (semis)               hz+semis     oscillator                         
 					// - unisono detune (semis)           hz+semis     oscillator                             
-					midiNote += mpSrcDevice->mPitchSemisParam.mCachedVal + (mpSrcDevice->mPitchFineParam.mCachedVal + mPitchFineModVal) * gSourcePitchFineRangeSemis;
+					int pitchSemis = mpSrcDevice->mParams.GetIntValue(OscParamIndexOffsets::PitchSemis, gSourcePitchSemisRange);
+					float pitchFine = mpSrcDevice->mParams.GetN11Value(OscParamIndexOffsets::PitchFine, mPitchFineModVal) * gSourcePitchFineRangeSemis;
+					midiNote += pitchSemis + pitchFine;// (mpSrcDevice->mPitchFineParam.mCachedVal + mPitchFineModVal)* gSourcePitchFineRangeSemis;
 					float noteHz = math::MIDINoteToFreq(midiNote);
-					float freq = mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
-					freq *= mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
+					float freq = mpSrcDevice->mParams.GetFrequency(OscParamIndexOffsets::FrequencyParam, OscParamIndexOffsets::FrequencyParamKT, gSourceFreqConfig, noteHz, mFreqModVal);//mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
+					freq *= mpOscDevice->mParams.GetScaledRealValue(OscParamIndexOffsets::FreqMul, 0.0f, gFrequencyMulMax, 0); //mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
 					freq *= detuneFreqMul;
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);
@@ -1285,8 +1350,11 @@ namespace WaveSabreCore
 					double newDT = (double)freq / Helpers::CurrentSampleRate;
 					mPhaseIncrement = newDT;
 
-					float slaveFreq = mpOscDevice->mSyncEnable.mCachedVal ? mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
-					mpSlaveWave->SetParams(slaveFreq, mpOscDevice->mPhaseOffset.mCachedVal + mPhaseModVal, mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate, OscillatorIntention::Audio);
+					float slaveFreq = syncEnable ?
+						mpOscDevice->mParams.GetFrequency(OscParamIndexOffsets::SyncFrequency, OscParamIndexOffsets::SyncFrequencyKT, gSyncFreqConfig, noteHz, mSyncFreqModVal)
+						: freq; // mpOscDevice->mSyncFrequency.GetFrequency(noteHz, mSyncFreqModVal) : freq;
+					float waveshape = mpOscDevice->mParams.Get01Value(OscParamIndexOffsets::Waveshape, mWaveShapeModVal);
+					mpSlaveWave->SetParams(slaveFreq, GetPhaseOffset(), waveshape, Helpers::CurrentSampleRate, OscillatorIntention::Audio);
 				}
 
 				mnSamples = (mnSamples + 1) & GetAudioOscillatorRecalcSampleMask();
@@ -1311,7 +1379,7 @@ namespace WaveSabreCore
 					//+ mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal)
 					;
 
-				if (mPhase >= mPhaseIncrement || !mpOscDevice->mSyncEnable.mCachedVal) // did not cross cycle. advance 1 sample
+				if (mPhase >= mPhaseIncrement || !syncEnable) // did not cross cycle. advance 1 sample
 				{
 					auto bleps = mpSlaveWave->OSC_ADVANCE(1, 0);
 					mPrevSample += bleps.first;
@@ -1349,12 +1417,14 @@ namespace WaveSabreCore
 					mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
 					mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
 
-					float freq = mpSrcDevice->mFrequencyParam.GetFrequency(0, mFreqModVal);
+					//float freq = mpSrcDevice->mFrequencyParam.GetFrequency(0, mFreqModVal);
+					float freq = mpSrcDevice->mParams.GetFrequency(LFOParamIndexOffsets::FrequencyParam, -1, gLFOFreqConfig, 0, mFreqModVal);
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);
 					mCurrentFreq = freq;
 
-					mpSlaveWave->SetParams(freq, mpOscDevice->mPhaseOffset.mCachedVal + mPhaseModVal, mpOscDevice->mWaveshape.Get01Value(mWaveShapeModVal), Helpers::CurrentSampleRate, OscillatorIntention::LFO);
+					float waveshape = mpOscDevice->mParams.Get01Value(LFOParamIndexOffsets::Waveshape, mWaveShapeModVal);
+					mpSlaveWave->SetParams(freq, GetPhaseOffset(), waveshape, Helpers::CurrentSampleRate, OscillatorIntention::LFO);
 
 					double newDT = (double)freq / Helpers::CurrentSampleRate;
 					mPhaseIncrement = newDT;

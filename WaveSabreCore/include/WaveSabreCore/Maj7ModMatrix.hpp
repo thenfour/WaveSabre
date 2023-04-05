@@ -793,7 +793,7 @@ namespace WaveSabreCore
 		{
 			//float* const mParamCache;
 			ParamAccessor mParams;
-			const int mBaseParamID;
+			//const int mBaseParamID;
 
 			//BoolParam mEnabled;
 			//EnumParam<ModSource> mSource;
@@ -810,7 +810,7 @@ namespace WaveSabreCore
 			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale4]},
 			//};
 			ModulationSpecType mType = ModulationSpecType::General;
-			BoolParam* mpDestSourceEnabledParam = nullptr;
+			bool const * mpDestSourceEnabledCached = &gAlwaysTrue;
 
 
 			bool mEnabled;
@@ -842,7 +842,7 @@ namespace WaveSabreCore
 
 			ModulationSpec(real_t* paramCache, int baseParamID) :
 				mParams(paramCache, baseParamID),
-				mBaseParamID(baseParamID),
+				//mBaseParamID(baseParamID),
 				//mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
 				//mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
 				//mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
@@ -874,7 +874,7 @@ namespace WaveSabreCore
 				mAuxAttenuation = mParams.Get01Value(ModParamIndexOffsets::AuxAttenuation, 0);
 			}
 
-			void SetSourceAmp(ModSource mAmpEnvModSourceID, ModDestination mHiddenVolumeModDestID, BoolParam* pDestSourceEnabledParam)
+			void SetSourceAmp(ModSource mAmpEnvModSourceID, ModDestination mHiddenVolumeModDestID, const bool* pDestSourceEnabledCached)
 			{
 				mParams.SetBoolValue(ModParamIndexOffsets::Enabled, true);
 				//mEnabled.SetBoolValue(true);
@@ -886,7 +886,7 @@ namespace WaveSabreCore
 				mParams.SetN11Value(ModParamIndexOffsets::Scale1, 1);
 
 				mType = ModulationSpecType::SourceAmp;
-				mpDestSourceEnabledParam = pDestSourceEnabledParam;
+				mpDestSourceEnabledCached = pDestSourceEnabledCached;
 			}
 
 		};

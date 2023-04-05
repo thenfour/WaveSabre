@@ -164,16 +164,16 @@ namespace WaveSabreCore
 			SamplerDevice::SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
 				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			) :
-				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID, ampEnvBaseParamID,
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Enabled)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Volume)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::AuxMix)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneSemis)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneFine)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqParam)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqKT)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::KeyRangeMin)),
-					(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::KeyRangeMax)),
+				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID, //ampEnvBaseParamID,
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Enabled)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Volume)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::AuxMix)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneSemis)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneFine)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqParam)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqKT)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::KeyRangeMin)),
+					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::KeyRangeMax)),
 					ampEnvModSourceID,
 					modDestBaseID,
 					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::Volume)),
@@ -233,7 +233,7 @@ namespace WaveSabreCore
 				//mSampleSource.SetEnumValue(SampleSource::GmDls);
 				mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg, sampleIndex);
 				//mGmDlsIndex.SetIntValue(sampleIndex);
-				mSampleLoadSequence++;
+				//mSampleLoadSequence++;
 				mSample = new GmDlsSample(sampleIndex);
 			}
 
@@ -241,6 +241,13 @@ namespace WaveSabreCore
 			{
 				mMutex.ManualEnter();
 				//WaitForSingleObject(mMutex, INFINITE);
+
+
+				mEnabledCached = mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled);
+				//mAuxPanCached = mParams.GetN11Value(SamplerParamIndexOffsets::AuxMix, );
+				//int mPitchSemisCached;
+				//float mPitchFineCached;
+
 
 				ISoundSourceDevice::BeginBlock();
 
@@ -309,7 +316,7 @@ namespace WaveSabreCore
 				if (!mpSamplerDevice->mSample) {
 					return;
 				}
-				if (!mpSamplerDevice->mEnabledParam.GetBoolValue()) {
+				if (!mpSrcDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled)) {
 					return;
 				}
 				if (legato && !mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::LegatoTrig)) {
@@ -338,12 +345,13 @@ namespace WaveSabreCore
 
 			void SamplerVoice::BeginBlock(/*real_t midiNote, float detuneFreqMul, float fmScale,*/)
 			{
-				mpSamplerDevice->mEnabledParam.CacheValue();
-				if (!mpSrcDevice->mEnabledParam.mCachedVal)
+				//mEnabledCached = mpSrcDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled);
+				if (!mpSamplerDevice->mEnabledCached)// >mEnabledParam.mCachedVal)
 					return;
 				if (!mpSamplerDevice->mSample) {
 					return;
 				}
+
 
 				ConfigPlayer();
 				mSamplePlayer.RunPrep();
@@ -352,14 +360,20 @@ namespace WaveSabreCore
 
 			float SamplerVoice::ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale)
 			{
-				if (!mpSrcDevice->mEnabledParam.mCachedVal)
+				if (!mpSrcDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled))
 					return 0;
 				float pitchFineMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
 				float freqMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
 
-				midiNote += mpSamplerDevice->mPitchSemisParam.mCachedVal + (mpSamplerDevice->mPitchFineParam.mCachedVal + pitchFineMod) * gSourcePitchFineRangeSemis;
+				//midiNote += mpSamplerDevice->mPitchSemisParam.mCachedVal + (mpSamplerDevice->mPitchFineParam.mCachedVal + pitchFineMod) * gSourcePitchFineRangeSemis;
+
+				int pitchSemis = mpSamplerDevice->mParams.GetIntValue(SamplerParamIndexOffsets::TuneSemis, gSourcePitchSemisRange);
+				float pitchFine = mpSamplerDevice->mParams.GetN11Value(SamplerParamIndexOffsets::TuneFine, pitchFineMod) * gSourcePitchFineRangeSemis;
+				midiNote += pitchSemis + pitchFine;
+
 				float noteHz = math::MIDINoteToFreq(midiNote);
-				float freq = mpSamplerDevice->mFrequencyParam.GetFrequency(noteHz, freqMod);
+				//float freq = mpSamplerDevice->mFrequencyParam.GetFrequency(noteHz, freqMod);
+				float freq = mpSamplerDevice->mParams.GetFrequency(SamplerParamIndexOffsets::FreqParam, SamplerParamIndexOffsets::FreqKT, gSourceFreqConfig, noteHz, freqMod);
 				freq *= detuneFreqMul;
 
 				float rate = freq * mpSamplerDevice->mSampleRateCorrectionFactor;

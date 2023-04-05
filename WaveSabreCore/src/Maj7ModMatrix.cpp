@@ -51,7 +51,7 @@ namespace WaveSabreCore
 								}
 							}
 							if (!anyDestsEnabled) skip = true;
-							if (spec.mpDestSourceEnabledParam && !spec.mpDestSourceEnabledParam->mCachedVal) {
+							if (!(*spec.mpDestSourceEnabledCached)) {
 								skip = true;
 							}
 						}
