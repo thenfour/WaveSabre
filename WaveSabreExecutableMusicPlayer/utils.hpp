@@ -176,17 +176,32 @@ struct GdiDeviceContext
     explicit GdiDeviceContext(HDC dc) : mDC(dc)
     {
     }
-    void DrawText_(const char* sz, const Rect& bounds, COLORREF fore, COLORREF shadow) const
+    //void DrawText_(const char* sz, const Rect& bounds, COLORREF fore, COLORREF shadow) const
+    //{
+    //    SetBkMode(mDC, TRANSPARENT);
+    //    //SetTextColor(mDC, shadow);
+    //    auto rcText = bounds.GetRECT();
+    //    //auto rcShadow1 = rcText;
+    //    //rcShadow1.left--;
+    //    //rcShadow1.top--;
+    //    //rcShadow1.left+=2;
+    //    //rcShadow1.top+=2;
+    //    //::DrawTextA(mDC, sz, -1, &rcShadow1, 0);
+    //    //::DrawTextA(mDC, sz, -1, &rcShadow2, 0);
+    //    SetTextColor(mDC, fore);
+    //    ::DrawTextA(mDC, sz, -1, &rcText, 0);
+    //}
+    void DrawText_(const char* sz, const Rect& bounds, COLORREF fore) const
     {
         SetBkMode(mDC, TRANSPARENT);
-        SetTextColor(mDC, shadow);
+        //SetTextColor(mDC, shadow);
         auto rcText = bounds.GetRECT();
-        auto rcShadow1 = rcText;
-        rcShadow1.left--;
-        rcShadow1.top--;
+        //auto rcShadow1 = rcText;
+        //rcShadow1.left--;
+        //rcShadow1.top--;
         //rcShadow1.left+=2;
         //rcShadow1.top+=2;
-        ::DrawTextA(mDC, sz, -1, &rcShadow1, 0);
+        //::DrawTextA(mDC, sz, -1, &rcShadow1, 0);
         //::DrawTextA(mDC, sz, -1, &rcShadow2, 0);
         SetTextColor(mDC, fore);
         ::DrawTextA(mDC, sz, -1, &rcText, 0);
@@ -196,26 +211,37 @@ struct GdiDeviceContext
     //    SetTextColor(mDC, foreColor);
     //    SetBkColor(mDC, backColor);
     //}
-    void HatchFill(const Rect& bounds, COLORREF foreColor, COLORREF backColor) const
+    //void HatchFill(const Rect& bounds, COLORREF foreColor, COLORREF backColor) const
+    //{
+    //    SetBkColor(mDC, backColor);
+    //    HBRUSH hBrush = CreateHatchBrush(HS_BDIAGONAL, foreColor);
+    //    HBRUSH hOldBrush = (HBRUSH)SelectObject(mDC, hBrush);
+    //    RECT rc = bounds.GetRECT();
+    //    FillRect(mDC, &rc, hBrush);
+    //    SelectObject(mDC, hOldBrush);
+    //    DeleteObject(hBrush);
+    //}
+
+    void SolidFill(const Rect& bounds, COLORREF foreColor) const
     {
-        SetBkColor(mDC, backColor);
-        HBRUSH hBrush = CreateHatchBrush(HS_BDIAGONAL, foreColor);
+        HBRUSH hBrush = CreateSolidBrush(foreColor);
         HBRUSH hOldBrush = (HBRUSH)SelectObject(mDC, hBrush);
         RECT rc = bounds.GetRECT();
         FillRect(mDC, &rc, hBrush);
         SelectObject(mDC, hOldBrush);
         DeleteObject(hBrush);
     }
-    void DrawLine(const Point& p1, const Point& p2, COLORREF color) const
-    {
-        // Draw a red line from (10, 10) to (100, 100)
-        HPEN hPen = CreatePen(PS_SOLID, 1, color);
-        HPEN hOldPen = (HPEN)SelectObject(mDC, hPen);
-        MoveToEx(mDC, p1.GetX(), p1.GetY(), NULL);
-        LineTo(mDC, p2.GetX(), p2.GetY());
-        SelectObject(mDC, hOldPen);
-        DeleteObject(hPen);
-    }
+
+    //void DrawLine(const Point& p1, const Point& p2, COLORREF color) const
+    //{
+    //    // Draw a red line from (10, 10) to (100, 100)
+    //    HPEN hPen = CreatePen(PS_SOLID, 1, color);
+    //    HPEN hOldPen = (HPEN)SelectObject(mDC, hPen);
+    //    MoveToEx(mDC, p1.GetX(), p1.GetY(), NULL);
+    //    LineTo(mDC, p2.GetX(), p2.GetY());
+    //    SelectObject(mDC, hOldPen);
+    //    DeleteObject(hPen);
+    //}
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

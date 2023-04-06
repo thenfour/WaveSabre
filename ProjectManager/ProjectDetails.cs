@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Windows.Forms;
 using WaveSabreConvert;
 
@@ -8,6 +9,26 @@ namespace ProjectManager
 {
     public partial class ProjectDetails : Form
     {
+        public static string ConvertTreeViewToString(TreeView treeView)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            foreach (TreeNode node in treeView.Nodes)
+            {
+                BuildTreeString(node, stringBuilder, 0);
+            }
+            return stringBuilder.ToString();
+        }
+
+        public static void BuildTreeString(TreeNode node, StringBuilder stringBuilder, int level)
+        {
+            stringBuilder.Append(new string('\t', level));
+            stringBuilder.AppendLine(node.Text);
+            foreach (TreeNode childNode in node.Nodes)
+            {
+                BuildTreeString(childNode, stringBuilder, level + 1);
+            }
+        }
+
         public ProjectDetails(Song song)
         {
             InitializeComponent();
@@ -106,6 +127,18 @@ namespace ProjectManager
             treeViewDetails.Nodes.Add(tracksChunkNode);
             treeViewDetails.ExpandAll();
             //treeViewDetails.Nodes[4].Expand();
+        }
+
+        private void btnClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void btnCopy_Click(object sender, EventArgs e)
+        {
+            string s = ConvertTreeViewToString(treeViewDetails);
+            Clipboard.SetText(s);
+            MessageBox.Show($"Copied {s.Length} chars to clipboard");
         }
     }
 }

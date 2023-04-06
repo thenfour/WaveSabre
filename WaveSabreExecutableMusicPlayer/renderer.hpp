@@ -34,7 +34,7 @@ struct Renderer
     WaveSabreCore::CriticalSection gCritsec;
     HWND mhWndNotify;
     HANDLE mhRenderThread;
-    ISampleProcessor* mpAdditionalProcessor = nullptr;
+    //ISampleProcessor* mpAdditionalProcessor = nullptr;
     DWORD mProcessorCount = 0;
 
     Renderer(HWND hWndNotify) : 
@@ -72,9 +72,15 @@ struct Renderer
         };
     }
 
-    void Begin(ISampleProcessor* pAdditionalProcessor)
+    //void Begin(ISampleProcessor* pAdditionalProcessor)
+    //{
+    //    mpAdditionalProcessor = pAdditionalProcessor;
+    //    renderingStartedTick = GetTickCount();
+    //    mhRenderThread = ::CreateThread(0, 0, RenderThread, this, 0, 0);
+    //}
+
+    void Begin()
     {
-        mpAdditionalProcessor = pAdditionalProcessor;
         renderingStartedTick = GetTickCount();
         mhRenderThread = ::CreateThread(0, 0, RenderThread, this, 0, 0);
     }
@@ -103,7 +109,7 @@ struct Renderer
             gSongRendered.SetStereoSamples(i);
             gRenderTime.SetMilliseconds(GetTickCount() - renderingStartedTick);
 
-            mpAdditionalProcessor->ProcessSamples(gpBuffer + i, gBlockSizeSamples);
+            //mpAdditionalProcessor->ProcessSamples(gpBuffer + i, gBlockSizeSamples);
         }
 
         mRenderStatus = RenderStatus::Done;

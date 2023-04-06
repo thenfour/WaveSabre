@@ -281,6 +281,8 @@ namespace WaveSabreConvert
             }
         }
 
+        // things not worth doing:
+        // creating a note map which indexes note values to a map. it actually causes bloat.
         BinaryOutput CreateBinary(Song song)
         {
             BinaryOutput writer = new BinaryOutput();
@@ -307,11 +309,79 @@ namespace WaveSabreConvert
                 writer.Write(device.Id, device.Chunk);
             }
 
+            // serialize note map. this maps note value key to a real note value. the idea is that the most common notes will output as 0.
+            // considering tracks like drums / hihats / arps / staccato basslines have so many repeated notes, this works.
+            Dictionary<int, int> noteCounts = new Dictionary<int, int>();
+            for (int i = 0; i < 128; ++i)
+            {
+                noteCounts[i] = 0;
+            }
+
+            for (int iMidiLane = 0; iMidiLane < song.MidiLanes.Count; ++iMidiLane)
+            {
+                var midiLane = song.MidiLanes[iMidiLane];
+                foreach (var e in midiLane.MidiEvents)
+                {
+                    switch (e.Type)
+                    {
+                        case EventType.NoteOff:
+                        case EventType.NoteOn:
+                            noteCounts[e.Note]++;
+                            break;
+                    }
+                }
+            }
+
+            // note map maps key => note value
+            //var s = noteCounts.OrderByDescending(kv => kv.Value).ToList(); // list of [notevalue, count] ordered desc by count
+            //Dictionary<int, int> noteValToK = new Dictionary<int, int>(); // map notevalue to serializeable key
+            //int noteMapSize = s.Count(kv => kv.Value > 0);
+            //writer.Write(noteMapSize);
+            //for (int i = 0; i < noteMapSize; ++i)
+            //{
+            //    writer.Write(s[i].Key);
+            //}
+            //for (int i = 0; i < 128; ++i)
+            //{
+            //    noteValToK[s[i].Key] = i;
+            //}
+            //for (int i = 0; i < noteMapSize; ++i)
+            //{
+            //    writer.Write(s[i].Key);
+            //    noteValToK[s[i].Key] = i;
+            //}
+
+            var usedNotes = noteCounts.Where(kv => kv.Value > 0).Select(kv => kv.Key).OrderBy(o => o).ToList();
+            //var noteValueToKMap = noteCounts.OrderBy(kv => kv.Value > 0 ? 0 : 1).ThenBy(kv => kv.Key).Select(kv => kv.Key).ToList(); // list of [notevalue, count] ordered by note value (no special ordering basically)
+            int noteMapSize = usedNotes.Count;
+            //writer.Write((byte)noteMapSize);
+            for (int i = 0; i < noteMapSize; ++i)
+            {
+                //writer.Write((byte)usedNotes[i]);
+            }
+            var noteValueToKMap = new Dictionary<int, int>(); // inverse of usedNotes; maps notevalue to index.
+            Dictionary<int, int> noteKeyCounts = new Dictionary<int, int>();
+            for (int noteVal = 0; noteVal < 128; ++noteVal)
+            {
+                noteValueToKMap[noteVal] = 0;
+                int foundIndex = usedNotes.FindIndex(v => v == noteVal);
+                if (foundIndex >= 0)
+                {
+                    noteValueToKMap[noteVal] = foundIndex;
+                }
+                noteKeyCounts[noteVal] = 0;
+            }
+
             // serialize all midi lanes
             writer.Write(song.MidiLanes.Count);
             for (int iMidiLane = 0; iMidiLane < song.MidiLanes.Count; ++ iMidiLane)
             {
                 var midiLane = song.MidiLanes[iMidiLane];
+
+                // write whether note ons incur velocities
+                // find all tracks using this
+                bool fixedVel = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixedvelocity"));
+                writer.WriteMidiLane(iMidiLane, (byte)(fixedVel ? 1 : 0));
 
                 writer.WriteMidiLane(iMidiLane, midiLane.MidiEvents.Count);
                 foreach (var e in midiLane.MidiEvents)
@@ -358,11 +428,28 @@ namespace WaveSabreConvert
                 }
                 foreach (var e in midiLane.MidiEvents)
                 {
-                    if (e.Type == EventType.NoteOff)
+                    switch (e.Type)
                     {
-                        continue;
+                        case EventType.NoteOff:
+                            continue;
+                        case EventType.NoteOn:
+                            if (fixedVel)
+                            {
+                                continue;
+                            }
+                            //int newCurrent = e.Velocity;
+                            //byte b = Utils.ByteDeltaEncode(currentVel, newCurrent);
+                            //currentVel = newCurrent;
+                            //writer.WriteMidiLane(iMidiLane, b);
+                            //writer.WriteMidiLane(iMidiLane, (byte)(e.Velocity / 2));
+                            writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
+                            break;
+                        case EventType.CC:
+                        default:
+                            writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
+                            break;
                     }
-                    writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
+
                 }
             }
 

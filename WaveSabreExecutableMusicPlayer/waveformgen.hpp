@@ -47,7 +47,8 @@ struct WaveformGen : ISampleProcessor
         auto height1 = SampleToHeight(s0);
         //auto height2 = SampleToHeight(s1);
         auto& slot = mHeights[mProcessedWidth];
-        slot = height1;
+        //slot = height1;
+        slot = std::max(slot, height1);
         //slot.first = std::max(slot.first, height1);
         //slot.second = std::max(slot.second, height2);
 

@@ -11,6 +11,7 @@ namespace WaveSabreConvert
 {
     static class Utils
     {
+
         const string encodingTable = ".ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+";
 
         public static byte[] Dejucer(string s)
