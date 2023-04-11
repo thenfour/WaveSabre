@@ -281,19 +281,14 @@ namespace WaveSabreConvert
             }
         }
 
-        // things not worth doing:
-        // creating a note map which indexes note values to a map. it actually causes bloat.
         BinaryOutput CreateBinary(Song song)
         {
             BinaryOutput writer = new BinaryOutput();
-            //int minTimeFromLastEvent = int.MaxValue;
-            //int maxTimeFromLastEvent = int.MinValue;
-            Dictionary<int, int> timestampByteCounts = new Dictionary<int, int>();
-            timestampByteCounts[0] = 0;
-            timestampByteCounts[1] = 0;
-            timestampByteCounts[2] = 0;
-            timestampByteCounts[3] = 0;
-            timestampByteCounts[4] = 0;
+
+            // song header.
+            // TODO: Organize header version numbers in some structured way. But currently it's not easy to predict what
+            // would be the best way to do this so stay simple until the next change is required, and clean this up.
+            writer.Write(("WSBR0001".Select(ch => Convert.ToByte(ch)).ToArray()));
 
             // song settings
             writer.Write(song.Tempo);
@@ -307,69 +302,6 @@ namespace WaveSabreConvert
                 writer.Write(device.Id, (byte)device.Id);
                 writer.WriteVarUint32(device.Id, (UInt32)device.Chunk.Length);
                 writer.Write(device.Id, device.Chunk);
-            }
-
-            // serialize note map. this maps note value key to a real note value. the idea is that the most common notes will output as 0.
-            // considering tracks like drums / hihats / arps / staccato basslines have so many repeated notes, this works.
-            Dictionary<int, int> noteCounts = new Dictionary<int, int>();
-            for (int i = 0; i < 128; ++i)
-            {
-                noteCounts[i] = 0;
-            }
-
-            for (int iMidiLane = 0; iMidiLane < song.MidiLanes.Count; ++iMidiLane)
-            {
-                var midiLane = song.MidiLanes[iMidiLane];
-                foreach (var e in midiLane.MidiEvents)
-                {
-                    switch (e.Type)
-                    {
-                        case EventType.NoteOff:
-                        case EventType.NoteOn:
-                            noteCounts[e.Note]++;
-                            break;
-                    }
-                }
-            }
-
-            // note map maps key => note value
-            //var s = noteCounts.OrderByDescending(kv => kv.Value).ToList(); // list of [notevalue, count] ordered desc by count
-            //Dictionary<int, int> noteValToK = new Dictionary<int, int>(); // map notevalue to serializeable key
-            //int noteMapSize = s.Count(kv => kv.Value > 0);
-            //writer.Write(noteMapSize);
-            //for (int i = 0; i < noteMapSize; ++i)
-            //{
-            //    writer.Write(s[i].Key);
-            //}
-            //for (int i = 0; i < 128; ++i)
-            //{
-            //    noteValToK[s[i].Key] = i;
-            //}
-            //for (int i = 0; i < noteMapSize; ++i)
-            //{
-            //    writer.Write(s[i].Key);
-            //    noteValToK[s[i].Key] = i;
-            //}
-
-            var usedNotes = noteCounts.Where(kv => kv.Value > 0).Select(kv => kv.Key).OrderBy(o => o).ToList();
-            //var noteValueToKMap = noteCounts.OrderBy(kv => kv.Value > 0 ? 0 : 1).ThenBy(kv => kv.Key).Select(kv => kv.Key).ToList(); // list of [notevalue, count] ordered by note value (no special ordering basically)
-            int noteMapSize = usedNotes.Count;
-            //writer.Write((byte)noteMapSize);
-            for (int i = 0; i < noteMapSize; ++i)
-            {
-                //writer.Write((byte)usedNotes[i]);
-            }
-            var noteValueToKMap = new Dictionary<int, int>(); // inverse of usedNotes; maps notevalue to index.
-            Dictionary<int, int> noteKeyCounts = new Dictionary<int, int>();
-            for (int noteVal = 0; noteVal < 128; ++noteVal)
-            {
-                noteValueToKMap[noteVal] = 0;
-                int foundIndex = usedNotes.FindIndex(v => v == noteVal);
-                if (foundIndex >= 0)
-                {
-                    noteValueToKMap[noteVal] = foundIndex;
-                }
-                noteKeyCounts[noteVal] = 0;
             }
 
             // serialize all midi lanes
@@ -390,28 +322,6 @@ namespace WaveSabreConvert
                     {
                         Console.WriteLine($"Negative time deltas break things. wut?");
                     }
-                    //writer.WriteMidiLane(iMidiLane, e.TimeFromLastEvent);
-                    // some things:
-                    // 1. delta times tend to be either very big or very small. suggests the need for a variable length integer.
-                    // 2. the event type is 2 bits and we're trying to pack them somewhere.
-                    // 3. delta times can be pretty big, we should support uint32 sizes.
-
-                    // so timefromlastevent is actually a 31-bit signed int where only positive part is used. but in theory we should
-                    // support the full 32-bits. it's not a problem when using varlen ints.
-                    // byte stream: [eec-----][c-------][c-------][c-------][00------]
-                    //               |||       |         |         |
-                    //               |||       |         |         |set to 1 to read the next byte. if 0, then the number is 26-bits (0-67,108,863). if 1 then it's 32 bits
-                    //               |||       |         |set to 1 to read the next byte. if 0, then the number is 19-bits (0-524,287)
-                    //               |||       |set to 1 to read the next byte. if 0, then the number is 12-bits (0-4095)
-                    //               |||set 1 to read the next byte. if 0 then it's a 5-bit value 0-31
-                    //               ||
-                    //               ||event type
-
-                    // those bits get placed into the int in that order (first bit = highest bit; we just apply & shift as we go.
-                    //const uint _5bitMask = (1 << 5) - 1;
-                    //const uint _12bitMask = (1 << 12) - 1;
-                    //const uint _19bitMask = (1 << 19) - 1;
-                    //const uint _26bitMask = (1 << 26) - 1;
                     int eventType = (int)e.Type;
                     if (eventType < 0 || eventType > 3)
                     {
@@ -437,11 +347,6 @@ namespace WaveSabreConvert
                             {
                                 continue;
                             }
-                            //int newCurrent = e.Velocity;
-                            //byte b = Utils.ByteDeltaEncode(currentVel, newCurrent);
-                            //currentVel = newCurrent;
-                            //writer.WriteMidiLane(iMidiLane, b);
-                            //writer.WriteMidiLane(iMidiLane, (byte)(e.Velocity / 2));
                             writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
                             break;
                         case EventType.CC:
@@ -455,7 +360,6 @@ namespace WaveSabreConvert
 
             // serialize each track
             writer.Write(song.Tracks.Count);
-            //foreach (var track in song.Tracks)
             for (int iTrack = 0; iTrack < song.Tracks.Count; ++ iTrack)
             {
                 var track = song.Tracks[iTrack];

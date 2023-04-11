@@ -37,27 +37,7 @@ inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 		return 0;
 	}
 
-	bool tagSatisfied = false;
-	bool versionSatisfied = false;
-	while (true) {
-		auto ch = maj7Obj.GetNextObjectItem();
-		if (ch.mKeyName == "Tag") {
-			if (ch.mNumericValue.Get<DWORD>() != M7::Maj7::gChunkTag) {
-				return 0; //invalid tag
-			}
-			tagSatisfied = true;
-		}
-		if (ch.mKeyName == "Version") {
-			if (ch.mNumericValue.Get<uint8_t>() != M7::Maj7::gChunkVersion) {
-				return 0; // unknown version
-			}
-			versionSatisfied = true;
-		}
-		if (ch.IsEOF())
-			break;
-	}
-	if (!tagSatisfied || !versionSatisfied)
-		return 0;
+	maj7Obj.EnsureClosed();
 
 	auto paramsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
 	if (paramsObj.IsEOF()) {
@@ -156,8 +136,6 @@ public:
 
 		auto maj7Element = doc.Object_MakeKey("Maj7");
 		maj7Element.BeginObject();
-		maj7Element.Object_MakeKey("Tag").WriteNumberValue(M7::Maj7::gChunkTag);
-		maj7Element.Object_MakeKey("Version").WriteNumberValue(M7::Maj7::gChunkVersion);
 		maj7Element.Object_MakeKey("Format").WriteStringValue(diff ? "DIFF values" : "Absolute values");
 
 		auto paramsElement = doc.Object_MakeKey("params");

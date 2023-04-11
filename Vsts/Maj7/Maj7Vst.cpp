@@ -70,10 +70,6 @@ int GetMinifiedChunk(M7::Maj7* p, void** data)
 	//     0.0000001
 	M7::Serializer s;
 
-	s.WriteUInt32(M7::Maj7::gChunkTag);
-	s.WriteUByte((uint8_t)M7::Maj7::ChunkFormat::Minified);
-	s.WriteUByte(M7::Maj7::gChunkVersion);
-
 	auto defaultParamCache = GenerateDefaultParamCache();
 
 	for (int i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {

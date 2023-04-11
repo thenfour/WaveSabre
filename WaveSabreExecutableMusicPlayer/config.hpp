@@ -4,7 +4,7 @@
 
 //static constexpr uint32_t gSongPaddingMS = 3000; // additional padding to add at the end of the track to account for fadeouts whatever
 static constexpr uint32_t gBlockSizeSamples = 256; // don't try to bite off too much; modulations will be too loose. try to replicate DAW behavior. Note these are samples not frames. 128 sample buffer probably means 256 here.
-#define TEXT_INTRO "(song title here)\r\nby tenfour/RBBS for Revision 2023\r\n\r\n"
+#define TEXT_INTRO "Bright Velvet\r\nby tenfour/RBBS for Revision 2023\r\n\r\n"
 
 // these are not about optimization & compiler options but about features.
 // enable one at a time.
@@ -33,7 +33,7 @@ struct
     COLORREF PrecalcTextShadowColor = PrecalcProgressForeground;
 } gColorScheme;
 
-static constexpr Rect grcWindow{ 0, 0, 1400, 600 };
+static constexpr Rect grcWindow{ 0, 0, 500, 500 };
 static constexpr Rect grcText{ grcWindow.Offset(20, 10) };// { 0, 0, 400, 400 };
 static constexpr Rect grcWaveform{ grcWindow };// { 0, 0, 1400, 600 };
 static constexpr uint32_t gGeneralSleepPeriodMS = 30;

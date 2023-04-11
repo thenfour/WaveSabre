@@ -516,10 +516,10 @@ namespace WaveSabrePlayerLib
 
 		SongRenderer2(const Song* song, int numRenderThreads)
 		{
-			//gpGraphProfiler = new GraphRunnerProfiler(numRenderThreads);
-
-			//songBlobPtr = song->blob;
 			WaveSabreCore::M7::Deserializer ds{ (const uint8_t*)song->blob };
+
+			ds.ReadUInt32(); // assert(r = WSBR)
+			ds.ReadUInt32(); // assert 4-byte version
 
 			bpm = ds.ReadUInt32();
 			sampleRate = ds.ReadUInt32();

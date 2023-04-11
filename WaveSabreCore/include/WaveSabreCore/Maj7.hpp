@@ -258,14 +258,6 @@ namespace WaveSabreCore
 
 		struct Maj7 : public Maj7SynthDevice
 		{
-			static constexpr DWORD gChunkTag = MAKEFOURCC('M', 'a', 'j', '7');
-			static constexpr uint8_t gChunkVersion = 0;
-			enum class ChunkFormat : uint8_t
-			{
-				Minified,
-				Count,
-			};
-
 			static constexpr size_t gOscillatorCount = 4;
 			static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
 			static constexpr size_t gSamplerCount = 4;
@@ -501,12 +493,6 @@ namespace WaveSabreCore
 			virtual void SetChunk(void* data, int size) override
 			{
 				Deserializer ds{ (const uint8_t*)data };
-				auto tag = ds.ReadUInt32();
-				if (tag != gChunkTag) return;
-				auto format = (ChunkFormat)ds.ReadUByte();
-				if (format != ChunkFormat::Minified) return;
-				auto version = ds.ReadUByte();
-				if (version != gChunkVersion) return; // in the future maybe support other versions? but probably not in the minified code
 				SetMaj7StyleChunk(ds);
 				for (auto& s : mSamplerDevices) {
 					s.Deserialize(ds);
