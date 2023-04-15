@@ -602,7 +602,7 @@ public:
 		{
 			auto colorModToken = mFMColors.Push();
 			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
-			if (WSBeginTabItem("Phase Mod Matrix")) {
+			if (WSBeginTabItem("\"Frequency Modulation\"")) {
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
