@@ -221,8 +221,8 @@ public:
 				ImGui::EndMenu();
 			}
 
-			ImGui::Separator();
-			ImGui::MenuItem("Show internal modulations", nullptr, &mShowingLockedModulations);
+			//ImGui::Separator();
+			//ImGui::MenuItem("Show internal modulations", nullptr, &mShowingLockedModulations);
 
 			ImGui::Separator();
 			if (ImGui::MenuItem("Init patch")) {
@@ -492,7 +492,7 @@ public:
 	bool mShowingInspector = false;
 	bool mShowingModulationInspector = false;
 	bool mShowingColorExp = false;
-	bool mShowingLockedModulations = false;
+	//bool mShowingLockedModulations = false;
 
 
 	virtual void renderImgui() override
@@ -1114,7 +1114,7 @@ public:
 	void ModulationSection(int imod, M7::ModulationSpec& spec, int enabledParamID)
 	{
 		bool isLocked = spec.mType != M7::ModulationSpecType::General;
-		if (isLocked && !mShowingLockedModulations) return;
+		//if (isLocked && !mShowingLockedModulations) return;
 
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
 		std::string modDestinationCaptions[(size_t)M7::ModDestination::Count] = MOD_DEST_CAPTIONS;
