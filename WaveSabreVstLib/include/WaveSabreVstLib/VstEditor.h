@@ -982,25 +982,6 @@ namespace WaveSabreVstLib
 			}
 		}
 
-		//static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertCurveParam, const M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
-		//{
-		//	ImVec2 p = pos;
-		//	segments = std::max(segments, 2);
-
-		//	// begin point
-		//	dl->PathLineTo(pos);
-
-		//	for (int i = 0; i < segments; ++i) {
-		//		float x2 = float(i + 1) / segments; // end of the line
-		//		float y2 = param.ApplyToValue(invertCurveParam ? 1.0f - x2 : x2);
-		//		y2 = invertCurveParam ? 1.0f - y2 : y2;
-		//		ImVec2 e = { pos.x + size.x * x2, pos.y + y2 * size.y };
-		//		dl->PathLineTo(e);
-		//	}
-
-		//	dl->PathStroke(color, 0, thickness);
-		//}
-
 		template<typename Tenum>
 		void Maj7ImGuiEnvelopeGraphic(const char* label,
 			Tenum delayTimeParamID)

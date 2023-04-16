@@ -408,62 +408,6 @@ namespace WaveSabreVstLib
 				}
 			}
 
-			//if (ImGui::MenuItem("Test chunk roundtrip")) {
-			//	if (IDYES == ::MessageBoxA(mCurrentWindow, "Sure? This could ruin your patch. But hopefully it doesn't?", vstName.c_str(), MB_YESNO | MB_ICONQUESTION)) {
-
-			//		static constexpr size_t paramCount = std::size(p->mParamCache);
-			//		float orig[paramCount];
-			//		for (size_t i = 0; i < paramCount; ++i) {
-			//			orig[i] = p->GetParam((int)i);
-			//		}
-
-			//		void* data;
-			//		int n = GetMinifiedChunk(pMaj7, &data);
-			//		pMaj7->SetChunk(data, n);
-			//		delete[] data;
-
-			//		float after[paramCount];
-			//		for (size_t i = 0; i < paramCount; ++i) {
-			//			after[i] = pMaj7->GetParam((int)i);
-			//		}
-
-			//		std::vector<std::string> paramReports;
-
-			//		using vstn = const char[kVstMaxParamStrLen];
-			//		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
-
-			//		for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
-			//			if (!M7::math::FloatEquals(orig[i], after[i])) {
-			//				char msg[200];
-			//				sprintf_s(msg, "%s before=%.2f after=%.2f", paramNames[i], orig[i], after[i]);
-			//				paramReports.push_back(msg);
-			//			}
-			//		}
-
-			//		char msg[200];
-			//		sprintf_s(msg, "Done. %d bytes long. %d params have been messed up.\r\n", n, (int)paramReports.size());
-			//		std::string smsg{ msg };
-			//		smsg += "\r\n";
-			//		for (auto& p : paramReports) {
-			//			smsg += p;
-			//		}
-			//		::MessageBoxA(mCurrentWindow, smsg.c_str(), vstName.c_str(), MB_OK);
-			//	}
-			//}
-
-			//if (ImGui::MenuItem("Analyze minified chunk")) {
-			//	auto r = AnalyzeChunkMinification(p);
-			//	std::string s = "uncompressed = ";
-			//	s += std::to_string(r.uncompressedSize);
-			//	s += " bytes.\r\nLZMA compressed this to ";
-			//	s += std::to_string(r.compressedSize);
-			//	s += " bytes.\r\nNon-default params set: ";
-			//	s += std::to_string(r.nonZeroParams);
-			//	s += "\r\nDefault params : ";
-			//	s += std::to_string(r.defaultParams);
-			//	::MessageBoxA(mCurrentWindow, s.c_str(), vstName.c_str(), MB_OK);
-			//}
-
 			ImGui::EndMenu();
 		} // debug menu
 	}

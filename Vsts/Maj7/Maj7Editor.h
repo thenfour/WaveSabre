@@ -15,51 +15,6 @@
 
 using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
-//
-//template<typename T>
-//struct ComPtr
-//{
-//private:
-//	T* mp = nullptr;
-//	void Release() {
-//		if (mp) {
-//			mp->Release();
-//			mp = nullptr;
-//		}
-//	}
-//public:
-//	~ComPtr() {
-//		Release();
-//	}
-//	void Set(T* p, bool incrRef) {
-//		Release();
-//		if (p) {
-//			mp = p;
-//			if (incrRef) {
-//				mp->AddRef();
-//			}
-//		}
-//	}
-//	T** GetReceivePtr() { // many COM Calls return an interface with a reference for the caller. this receives the object and assumes a ref has already been added to keep.
-//		Release();
-//		return &mp;
-//	}
-//	T* get() {
-//		return mp;
-//	}
-//	T* operator ->() {
-//		return mp;
-//	}
-//	bool operator !() {
-//		return !!mp;
-//	}
-//};
-//
-//// the "default param cache
-//static inline void NewPatch(M7::Maj7* pmaj7)
-//{
-//	//
-//}
 
 class Maj7Editor : public VstEditor
 {
@@ -540,6 +495,30 @@ public:
 
 		auto runningVoice = FindRunningVoice();
 
+#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+		MAJ7_OUTPUT_STREAM_CAPTIONS(outputStreamCaptions);
+		auto elementCount = std::size(outputStreamCaptions);
+		for (int iOutput = 0; iOutput < 2; ++iOutput)
+		{
+			ImGui::PushID(iOutput);
+			ImGui::Text("Output stream %d", iOutput);
+			ImGui::SameLine();
+			if (ImGui::BeginCombo("##outputStream", outputStreamCaptions[(int)pMaj7->mOutputStreams[iOutput]]))
+			{
+				auto selectedIndex = (int)pMaj7->mOutputStreams[iOutput];
+				for (int n = 0; n < (int)elementCount; n++)
+				{
+					const bool is_selected = (selectedIndex == n);
+					if (ImGui::Selectable(outputStreamCaptions[n], is_selected))
+					{
+						pMaj7->mOutputStreams[iOutput] = (decltype(pMaj7->mOutputStreams[iOutput]))n;
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::PopID();
+		}
+#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
 		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::gMasterVolumeCfg, -6.0f);
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);

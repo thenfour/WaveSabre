@@ -35,6 +35,9 @@
 #include <WaveSabreCore/Maj7Sampler.hpp>
 #include <WaveSabreCore/Maj7GmDls.hpp>
 
+#ifdef _DEBUG
+#	define MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif
 
 //#include <Windows.h>
 //#undef min
@@ -44,6 +47,77 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
+		// even if this doesn't strictly need to have #ifdef, better to make it clear to callers that this depends on built config.
+#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+		enum class OutputStream
+		{
+			Master,
+			Osc1,
+			Osc2,
+			Osc3,
+			Osc4,
+			ModSource_LFO1,
+			ModSource_LFO2,
+			ModSource_LFO3,
+			ModSource_LFO4,
+			ModSource_Osc1AmpEnv,
+			ModSource_Osc2AmpEnv,
+			ModSource_Osc3AmpEnv,
+			ModSource_Osc4AmpEnv,
+			ModSource_ModEnv1,
+			ModSource_ModEnv2,
+			ModDest_Osc1PreFMVolume,
+			ModDest_Osc2PreFMVolume,
+			ModDest_Osc3PreFMVolume,
+			ModDest_Osc4PreFMVolume,
+			ModDest_FMFeedback1,
+			ModDest_FMFeedback2,
+			ModDest_FMFeedback3,
+			ModDest_FMFeedback4,
+			ModDest_Osc1Freq,
+			ModDest_Osc2Freq,
+			ModDest_Osc3Freq,
+			ModDest_Osc4Freq,
+			ModDest_Osc1SyncFreq,
+			ModDest_Osc2SyncFreq,
+			ModDest_Osc3SyncFreq,
+			ModDest_Osc4SyncFreq,
+			Count,
+		};
+#define MAJ7_OUTPUT_STREAM_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::OutputStream::Count]{ \
+                "Master", \
+"Osc1", \
+"Osc2", \
+"Osc3", \
+"Osc4", \
+                "ModSource_LFO1", \
+                "ModSource_LFO2", \
+                "ModSource_LFO3", \
+                "ModSource_LFO4", \
+			"ModSource_Osc1AmpEnv", \
+		"ModSource_Osc2AmpEnv", \
+			"ModSource_Osc3AmpEnv", \
+			"ModSource_Osc4AmpEnv", \
+			"ModSource_ModEnv1", \
+			"ModSource_ModEnv2", \
+			"ModDest_Osc1PreFMVolume", \
+                "ModDest_Osc2PreFMVolume", \
+                "ModDest_Osc3PreFMVolume", \
+                "ModDest_Osc4PreFMVolume", \
+				"ModDest_FMFeedback1", \
+				"ModDest_FMFeedback2", \
+				"ModDest_FMFeedback3", \
+				"ModDest_FMFeedback4", \
+				"ModDest_Osc1Freq", \
+				"ModDest_Osc2Freq", \
+				"ModDest_Osc3Freq", \
+				"ModDest_Osc4Freq", \
+				"ModDest_Osc1SyncFreq", \
+				"ModDest_Osc2SyncFreq", \
+				"ModDest_Osc3SyncFreq", \
+				"ModDest_Osc4SyncFreq", \
+        };
+#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
 		struct AuxDevice
 		{
 			const AuxLink mLinkToSelf;
@@ -267,6 +341,10 @@ namespace WaveSabreCore
 
 			static constexpr size_t gModEnvCount = 2;
 			static constexpr size_t gModLFOCount = 4;
+
+#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+			OutputStream mOutputStreams[2] = {OutputStream::Master, OutputStream::Master };
+#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			// BASE PARAMS & state
 			DCFilter mDCFilters[2];
@@ -622,7 +700,11 @@ namespace WaveSabreCore
 						o *= masterGain;
 						o = mDCFilters[ioutput].ProcessSample(o);
 						o = math::clampN11(o);
+#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+						outputs[ioutput][iSample] = SelectStreamValue(mOutputStreams[ioutput], o);
+#else
 						outputs[ioutput][iSample] = o;
+#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
 					}
 
 					// advance phase of master LFOs
@@ -637,6 +719,81 @@ namespace WaveSabreCore
 					src->EndBlock();
 				}
 			}
+
+#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+			float SelectStreamValue(OutputStream s, float masterValue)
+			{
+				switch (s) {
+				default:
+				case OutputStream::Master:
+					return masterValue;
+				case OutputStream::ModSource_LFO1:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO1);
+				case OutputStream::ModSource_LFO2:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO2);
+				case OutputStream::ModSource_LFO3:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO3);
+				case OutputStream::ModSource_LFO4:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO4);
+				case OutputStream::ModDest_Osc1PreFMVolume:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc1PreFMVolume);
+				case OutputStream::ModDest_Osc2PreFMVolume:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc2PreFMVolume);
+				case OutputStream::ModDest_Osc3PreFMVolume:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc3PreFMVolume);
+				case OutputStream::ModDest_Osc4PreFMVolume:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc4PreFMVolume);
+				case OutputStream::ModDest_FMFeedback1:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc1FMFeedback);
+				case OutputStream::ModDest_FMFeedback2:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc2FMFeedback);
+				case OutputStream::ModDest_FMFeedback3:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc3FMFeedback);
+				case OutputStream::ModDest_FMFeedback4:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc4FMFeedback);
+				case OutputStream::ModDest_Osc1Freq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc1FrequencyParam);
+				case OutputStream::ModDest_Osc2Freq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc2FrequencyParam);
+				case OutputStream::ModDest_Osc3Freq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc3FrequencyParam);
+				case OutputStream::ModDest_Osc4Freq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc4FrequencyParam);
+				case OutputStream::ModDest_Osc1SyncFreq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc1SyncFrequency);
+				case OutputStream::ModDest_Osc2SyncFreq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc2SyncFrequency);
+				case OutputStream::ModDest_Osc3SyncFreq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc3SyncFrequency);
+				case OutputStream::ModDest_Osc4SyncFreq:
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc4SyncFrequency);
+
+				case OutputStream::ModSource_Osc1AmpEnv:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::Osc1AmpEnv);
+				case OutputStream::ModSource_Osc2AmpEnv:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::Osc2AmpEnv);
+				case OutputStream::ModSource_Osc3AmpEnv:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::Osc3AmpEnv);
+				case OutputStream::ModSource_Osc4AmpEnv:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::Osc4AmpEnv);
+				case OutputStream::ModSource_ModEnv1:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::ModEnv1);
+				case OutputStream::ModSource_ModEnv2:
+					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::ModEnv2);
+
+				case OutputStream::Osc1:
+					return this->mMaj7Voice[0]->mOscillator1.GetLastSample();
+				case OutputStream::Osc2:
+					return this->mMaj7Voice[0]->mOscillator2.GetLastSample();
+				case OutputStream::Osc3:
+					return this->mMaj7Voice[0]->mOscillator3.GetLastSample();
+				case OutputStream::Osc4:
+					return this->mMaj7Voice[0]->mOscillator4.GetLastSample();
+
+				}
+			}
+#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 
 			struct Maj7Voice : public Maj7SynthDevice::Voice
 			{
