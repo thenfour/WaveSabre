@@ -19,34 +19,11 @@ namespace WaveSabreCore
 			ParamAccessor mParams;
 			bool mEnabledCache;
 
-			//const ParamIndices mBaseParamID;
-			//const ParamIndices mAmpEnvBaseParamID;
-			//const ParamIndices mEnabledParamID;
-			//const ParamIndices mVolumeParamID;
-			//const ParamIndices mAuxPanParamID;
-
-			//const ParamIndices mTuneSemisParamID;
-			//const ParamIndices mTuneFineParamID;
-			//const ParamIndices mFreqParamID;
-			//const ParamIndices mFreqKTParamID;
-			//const ParamIndices mKeyRangeMinParamID;
-			//const ParamIndices mKeyRangeMaxParamID;
-
 			const ModSource mAmpEnvModSourceID;
 			const ModDestination mModDestBaseID;
 			const ModDestination mVolumeModDestID;
 			const ModDestination mAuxPanModDestID;
 			const ModDestination mHiddenVolumeModDestID;
-
-			//BoolParam mEnabledParam;
-			//VolumeParam mVolumeParam;
-			//FloatN11Param mAuxPanParam;
-			//FrequencyParam mFrequencyParam;
-			//IntParam mPitchSemisParam;
-			//FloatN11Param mPitchFineParam;
-
-			//IntParam mKeyRangeMin;
-			//IntParam mKeyRangeMax;
 
 			ModulationSpec* mAmpEnvModulation;
 
@@ -57,88 +34,22 @@ namespace WaveSabreCore
 			// device-level values set at the beginning of block processing
 			float mDetuneDeviceModAmt = 0;
 			float mAuxPanDeviceModAmt = 0;
-			//float mShapeDeviceModAmt = 0;
-
-			// LFO backing values (they don't have params)
-			//float mLFOVolumeParamValue = 1.0f;
-			//float mLFOAuxPanBacking = 0;
-			//float mLFOPitchSemisParamValue = 0.5f;
-			//float mLFOPitchFineParamValue = 0.5f;
-			//float mLFOEnabledBacking = 1;
-			//float mLFOVolumeBacking = 1;
-			//float mLFOFreqKTBacking = 0;
-			//float mLFOKeyRangeMinBacking = 0;
-			//float mLFOKeyRangeMaxBacking = 0;
 
 			virtual ~ISoundSourceDevice()
 			{}
 
 			ISoundSourceDevice(float* paramCache, ModulationSpec* ampEnvModulation, ParamIndices baseParamID,
-				//ParamIndices ampEnvBaseParamID, ParamIndices enabledParamID, ParamIndices volumeParamID, ParamIndices auxPanParamID,
-				//ParamIndices tuneSemisParamID, ParamIndices tuneFineParamID, ParamIndices freqParamID, ParamIndices freqKTParamID, ParamIndices keyRangeMinParamID, ParamIndices keyRangeMaxParamID,
 				ModSource ampEnvModSourceID, ModDestination modDestBaseID, ModDestination volumeModDestID, ModDestination auxPanModDestID, ModDestination hiddenVolumeModDestID
 			) :
 				mParams(paramCache, baseParamID),
 				mAmpEnvModulation(ampEnvModulation),
-				//mBaseParamID(baseParamID),
-				//mAmpEnvBaseParamID(ampEnvBaseParamID),
-				//mEnabledParamID(enabledParamID),
-				//mVolumeParamID(volumeParamID),
-				//mAuxPanParamID(auxPanParamID),
-				//mTuneSemisParamID(tuneSemisParamID),
-				//mTuneFineParamID(tuneFineParamID), mFreqParamID(freqParamID), mFreqKTParamID(freqKTParamID),
-				//mKeyRangeMinParamID(keyRangeMinParamID),
-				//mKeyRangeMaxParamID(keyRangeMaxParamID),
 				mAmpEnvModSourceID(ampEnvModSourceID),
 				mVolumeModDestID(volumeModDestID),
 				mAuxPanModDestID(auxPanModDestID),
 				mModDestBaseID(modDestBaseID),
 				mHiddenVolumeModDestID(hiddenVolumeModDestID)
-
-				//mEnabledParam(paramCache[(int)enabledParamID]),
-				//mVolumeParam(paramCache[(int)volumeParamID], gUnityVolumeCfg),
-				//mAuxPanParam(paramCache[(int)auxPanParamID]),
-				//mFrequencyParam(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFreqConfig),// gSourceFrequencyCenterHz, gSourceFrequencyScale),
-				//mPitchSemisParam(paramCache[(int)tuneSemisParamID], gSourcePitchSemisRange),
-				//mPitchFineParam(paramCache[(int)tuneFineParamID]),
-				//mKeyRangeMin(paramCache[(int)keyRangeMinParamID], gKeyRangeCfg),
-				//mKeyRangeMax(paramCache[(int)keyRangeMaxParamID], gKeyRangeCfg)
 			{
 			}
-
-			//// for LFOs
-			//ISoundSourceDevice(float* paramCache,
-			//	ParamIndices baseParamID, ParamIndices freqParamID,
-			//	ModDestination modDestBaseID
-			//) :
-			//	mParams(paramCache, baseParamID),
-			//	//mAmpEnvBaseParamID(ParamIndices::Invalid),
-			//	//mEnabledParamID(ParamIndices::Invalid),
-			//	//mVolumeParamID(ParamIndices::Invalid),
-			//	//mAuxPanParamID(ParamIndices::Invalid),
-			//	//mTuneSemisParamID(ParamIndices::Invalid),
-			//	//mTuneFineParamID(ParamIndices::Invalid),
-			//	//mFreqKTParamID(ParamIndices::Invalid),
-			//	//mKeyRangeMinParamID(ParamIndices::Invalid),
-			//	//mKeyRangeMaxParamID(ParamIndices::Invalid),
-			//	mAmpEnvModSourceID(ModSource::Invalid),
-			//	mVolumeModDestID(ModDestination::Invalid),
-			//	mAuxPanModDestID(ModDestination::Invalid),
-			//	mHiddenVolumeModDestID(ModDestination::Invalid),
-			//	mAmpEnvModulation(nullptr),
-			//	//mBaseParamID(baseParamID),
-			//	//mFreqParamID(freqParamID),
-			//	mModDestBaseID(modDestBaseID)
-			//	//mEnabledParam(mLFOEnabledBacking),
-			//	//mVolumeParam(mLFOVolumeBacking, gUnityVolumeCfg),
-			//	//mAuxPanParam(mLFOAuxPanBacking),
-			//	//mFrequencyParam(paramCache[(int)freqParamID], mLFOFreqKTBacking, gLFOFreqConfig),// gLFOFrequencyCenterHz, gLFOFrequencyScale),
-			//	//mPitchSemisParam(mLFOPitchSemisParamValue, gSourcePitchSemisRange),
-			//	//mPitchFineParam(mLFOPitchFineParamValue),
-			//	//mKeyRangeMin(mLFOKeyRangeMinBacking, gKeyRangeCfg),
-			//	//mKeyRangeMax(mLFOKeyRangeMaxBacking, gKeyRangeCfg)
-			//{
-			//}
 
 			void InitDevice() {
 				mAmpEnvModulation->SetSourceAmp(mAmpEnvModSourceID, mHiddenVolumeModDestID, &mEnabledCache);
@@ -147,10 +58,6 @@ namespace WaveSabreCore
 			virtual void BeginBlock()
 			{
 				mEnabledCache = this->IsEnabled();
-				//mEnabledParam.CacheValue();
-				//mAuxPanParam.CacheValue();
-				//mPitchSemisParam.CacheValue();
-				//mPitchFineParam.CacheValue();
 			}
 			virtual void EndBlock() = 0;
 
@@ -177,8 +84,6 @@ namespace WaveSabreCore
 				virtual void NoteOff() = 0;
 				virtual void BeginBlock() = 0;
 				virtual float GetLastSample() const = 0;
-				//virtual float GetLinearVolume() const = 0;
-				//virtual void EndBlock() = 0;
 
 				void SetModMatrix(ModMatrixNode* pModMatrix)
 				{
@@ -192,10 +97,8 @@ namespace WaveSabreCore
 			Pulse,
 			PulseTristate,
 			SawClip,
-			//SineAsym,
 			SineClip,
 			SineHarmTrunc,
-			//SineTrunc,
 			TriClip, // aka one-pole tri trunc for some reason
 			TriSquare,
 			TriTrunc,
@@ -406,13 +309,6 @@ namespace WaveSabreCore
 					return mFlatValue;
 				}
 				return math::sin(math::gPITimes2 * phase01);
-				//(phase01 < this.edge1) ? (
-				//	  sin($pi * 2 * phase01)
-				//	) : (phase01 < this.edge2) ? (
-				//		this.flatValue; // the Y value that gets sustained
-				//  ) : (
-				//	sin($pi * 2 * phase01)
-				//	);
 			}
 
 			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
@@ -437,20 +333,10 @@ namespace WaveSabreCore
 			}
 
 			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
-//				virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
-				//mPhaseIncrement += mDTDT * samples;
-				//double phaseToAdvance = samples * mPhaseIncrement;
-				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
-
-				//std::pair<float, float> bleps{ 0.0f,0.0f };
-
 				float scale = float(mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1));
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge1, scale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge2, scale, samples, samplesTillNextSample);
-
-				//this->mPhase = newPhase;
-				//return bleps;
 			}
 		};
 
@@ -460,7 +346,6 @@ namespace WaveSabreCore
 		{
 			virtual float NaiveSample(float phase01) override
 			{
-				//   (phase01 < shape) ? -1 : 1;
 				return phase01 < mShape ? -1.0f : 1.0f;
 			}
 
@@ -475,19 +360,9 @@ namespace WaveSabreCore
 			}
 
 			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
-				//virtual std::pair<float, float> OSC_ADVANCE(float samples, float samplesTillNextSample) override
 			{
-				//mPhaseIncrement += mDTDT * samples;
-				//double phaseToAdvance = samples * mPhaseIncrement;
-				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
-
-				//std::pair<float, float> bleps{ 0.0f,0.0f };
-
 				OSC_ACCUMULATE_BLEP(bleps, newPhase, 0, -1, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLEP(bleps, newPhase, mShape, 1, samples, samplesTillNextSample);
-
-				//this->mPhase = newPhase;
-				//return bleps;
 			}
 		};
 
@@ -881,18 +756,6 @@ namespace WaveSabreCore
 				tx = math::fract(tx);
 				tx -= 0.5f;
 				tx = math::abs(tx) * 4 - 1;
-/*
-  (phase01 >= shape) ? (
-	0
-  ) : (
-	// within pulsewidth, do a full tri, but starting at 0, ascending, ending at 0
-	tx = (phase01-shape)/ shape;
-	tx -= .25;
-	tx = fract(tx);
-	tx -= .5;
-	tx = abs(tx)*4-1;
-  );
-*/
 				return tx;
 			}
 
@@ -908,17 +771,6 @@ namespace WaveSabreCore
 					return 2 / mShape;
 				}
 				return 0;
-				/*
-  (phase01 < shape*.25) ? (
-	OSC_GENERAL_SLOPE(shape)
-  ) : (phase01 < shape*.75) ? (
-	-OSC_GENERAL_SLOPE(shape)
-  ) : (phase01 < shape) ?(
-	OSC_GENERAL_SLOPE(shape)
-  ) : (
-	0
-  );
-				*/
 			}
 
 			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
@@ -957,35 +809,24 @@ namespace WaveSabreCore
 
 			virtual float NaiveSample(float t) override
 			{
-/*
-  //--------------------------------------------------------
-  // edge    0   t1  t2        t3  1
-  //         |    |  |          |  |
-  //         -----,                , +1
-  //               \              /
-  //                \            /
-  //                 `----------`    -1
-  // width   |----|
-  // slope        |--|          |--|
+				/*
+				  //--------------------------------------------------------
+				  // edge    0   t1  t2        t3  1
+				  //         |    |  |          |  |
+				  //         -----,                , +1
+				  //               \              /
+				  //                \            /
+				  //                 `----------`    -1
+				  // width   |----|
+				  // slope        |--|          |--|
 
-  // derivative
-  // edge    0   t1  t2        t3  1
-  //         |    |  |          |  |
-  //                            ---- ((slope*2))
-  //         -----   -----------     0
-  //              ---                -((slope*2))
-
-  (t < this.t1) ? (
-	1
-  ) : (t < this.t2) ? (
-	1-2*(t - this.t1) / this.slope
-  ) : (t < this.t3) ? (
-	-1
-  ) : (
-	-1+2*(t - this.t3) / this.slope
-  );
-
-*/
+				  // derivative
+				  // edge    0   t1  t2        t3  1
+				  //         |    |  |          |  |
+				  //                            ---- ((slope*2))
+				  //         -----   -----------     0
+				  //              ---                -((slope*2))
+				*/
 				if (t < mT1) {
 					return 1;
 				}
@@ -1000,17 +841,6 @@ namespace WaveSabreCore
 
 			virtual float NaiveSampleSlope(float t) override
 			{
-/*
-  (t < this.t1) ? (
-    0
-  ) : (t < this.t2) ? (
-    -1/this.slope
-  ) : (t < this.t3) ? (
-    0
-  ) : (
-    1/this.slope
-  );
-*/
 				if (t < mT1) {
 					return 0;
 				}
@@ -1058,31 +888,10 @@ namespace WaveSabreCore
 		// nothing additional to add
 		struct OscillatorDevice : ISoundSourceDevice
 		{
-			// BASE PARAMS
-			//EnumParam<OscillatorWaveform> mWaveform;
-			//Float01Param mWaveshape;//	Osc2Waveshape,
-			//BoolParam mPhaseRestart;//	Osc2PhaseRestart,
-			//FloatN11Param mPhaseOffset;//	Osc2PhaseOffset,
-			//BoolParam mSyncEnable;//	Osc2SyncEnable,
-			//FrequencyParam mSyncFrequency;//	Osc2SyncFrequency,//	Osc2SyncFrequencyKT,
-			//ScaledRealParam mFrequencyMul;//	Osc2FreqMul,. FM8 allows 0-64
-			//Float01Param mFMFeedback01;// Osc2FMFeedback,
-
 			OscillatorIntention mIntention;
 
-			//FrequencyParam mLPFFrequency;// { mParamCache[(int)ParamIndices::LFO1Sharpness], mAlways0, gLFOLPCenterFrequency, gLFOLPFrequencyScale };
-
-			// backing values for LFO which don't have these params in main cache
-			//float mLFOSyncFrequencyParamValue = 1.0f;
-			//float mLFOSyncFrequencyKTBacking = 1.0f;
-			//float mLFOFrequencyMulParamValue = 0.5f;
-			//float mLFOFMFeedbackParamValue = 0.0f;
-			//float mLFOSyncEnableBacking = 0;
-			//float mLFPFrequencyBacking = 0;
-			//float mLFPFrequencyKTBacking = 0;
-
 			virtual bool IsEnabled() const override {
-				return mParams.GetBoolValue(OscParamIndexOffsets::Enabled);
+				return (mIntention == OscillatorIntention::LFO) || mParams.GetBoolValue(OscParamIndexOffsets::Enabled);
 			}
 			virtual bool MatchesKeyRange(int midiNote) const override {
 				if (mIntention == OscillatorIntention::LFO) return true;
@@ -1110,31 +919,12 @@ namespace WaveSabreCore
 				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			) :
 				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID,// ampEnvBaseParamID,
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Enabled)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::Volume)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::AuxMix)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::PitchSemis)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::PitchFine)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParam)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::FrequencyParamKT)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMin)),
-					//(ParamIndices)(int(baseParamID) + int(OscParamIndexOffsets::KeyRangeMax)),
 					ampEnvModSourceID,
 					modDestBaseID,
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::Volume)),
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::AuxMix)),
 					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::PreFMVolume))
 					),
-				//mWaveform(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveform], OscillatorWaveform::Count),
-				//mWaveshape(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::Waveshape]),
-				//mPhaseRestart(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseRestart]),
-				//mPhaseOffset(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::PhaseOffset]),
-				//mSyncEnable(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncEnable]),
-				//mSyncFrequency(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequency], paramCache[(int)baseParamID + (int)OscParamIndexOffsets::SyncFrequencyKT], gSyncFreqConfig),// gSyncFrequencyCenterHz, gSyncFrequencyScale),
-				//mFrequencyMul(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FreqMul], 0.0f, gFrequencyMulMax),
-				//mFMFeedback01(paramCache[(int)baseParamID + (int)OscParamIndexOffsets::FMFeedback]),
-				//mLPFFrequency(mLFPFrequencyBacking, mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
-
 				mIntention(OscillatorIntention::Audio)
 			{
 			}
@@ -1148,22 +938,9 @@ namespace WaveSabreCore
 					ModDestination::Invalid, // AuxMix mod dest
 					ModDestination::Invalid // PreFMVolume mod dest
 					)
-					//
-					//(ParamIndices)(int(paramBaseID) + int(LFOParamIndexOffsets::FrequencyParam)),
-					//modDestBaseID
 				,
-				//mWaveform(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Waveform], OscillatorWaveform::Count),
-				//mWaveshape(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Waveshape]),
-				//mPhaseRestart(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Restart]),
-				//mPhaseOffset(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::PhaseOffset]),
-				//mSyncEnable(mLFOSyncEnableBacking),
-				//mSyncFrequency(mLFOSyncFrequencyParamValue, mLFOSyncFrequencyKTBacking, gSyncFreqConfig),//gSyncFrequencyCenterHz, gSyncFrequencyScale),
-				//mFrequencyMul(mLFOFrequencyMulParamValue, 0.0f, 64.0f),
-				//mFMFeedback01(mLFOFMFeedbackParamValue),
-				//mLPFFrequency(paramCache[int(paramBaseID) + (int)LFOParamIndexOffsets::Sharpness], mLFPFrequencyKTBacking, gLFOLPFreqConfig),//gLFOLPCenterFrequency, gLFOLPFrequencyScale),
 				mIntention(OscillatorIntention::LFO)
 			{
-				//mFrequencyMul.SetRangedValue(1);
 			}
 
 			bool GetPhaseRestart() const {
@@ -1176,11 +953,6 @@ namespace WaveSabreCore
 
 			virtual void BeginBlock() override {
 				ISoundSourceDevice::BeginBlock();
-				//mWaveform.CacheValue();
-				//mPhaseRestart.CacheValue();
-				//mPhaseOffset.CacheValue();
-				//mSyncEnable.CacheValue();
-				//mFrequencyMul.CacheValue();
 			}
 			virtual void EndBlock() override {}
 
@@ -1245,7 +1017,6 @@ namespace WaveSabreCore
 				if (legato) return;
 				if (mpOscDevice->GetPhaseRestart()) {
 					mpSlaveWave->OSC_RESTART(0);
-					//float f = mpOscDevice->mParams.GetN11Value(OscParamIndexOffsets::PhaseOffset, mPhaseModVal);
 					mPhase = GetPhaseOffset();// math::fract(f);
 				}
 			}

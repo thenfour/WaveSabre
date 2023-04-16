@@ -56,6 +56,10 @@ namespace WaveSabreCore
 			Osc2,
 			Osc3,
 			Osc4,
+			LFO1,
+			LFO2,
+			LFO3,
+			LFO4,
 			ModSource_LFO1,
 			ModSource_LFO2,
 			ModSource_LFO3,
@@ -90,6 +94,10 @@ namespace WaveSabreCore
 "Osc2", \
 "Osc3", \
 "Osc4", \
+"LFO1", \
+"LFO2", \
+"LFO3", \
+"LFO4", \
                 "ModSource_LFO1", \
                 "ModSource_LFO2", \
                 "ModSource_LFO3", \
@@ -727,6 +735,16 @@ namespace WaveSabreCore
 				default:
 				case OutputStream::Master:
 					return masterValue;
+
+				case OutputStream::LFO1:
+					return this->mMaj7Voice[0]->mLFOs[0].mNode.GetLastSample();
+				case OutputStream::LFO2:
+					return this->mMaj7Voice[0]->mLFOs[1].mNode.GetLastSample();
+				case OutputStream::LFO3:
+					return this->mMaj7Voice[0]->mLFOs[2].mNode.GetLastSample();
+				case OutputStream::LFO4:
+					return this->mMaj7Voice[0]->mLFOs[3].mNode.GetLastSample();
+
 				case OutputStream::ModSource_LFO1:
 					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO1);
 				case OutputStream::ModSource_LFO2:
