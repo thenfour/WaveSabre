@@ -142,102 +142,6 @@ namespace WaveSabreVstLib
 		static constexpr double gNormalKnobSpeed = 0.0015f;
 		static constexpr double gSlowKnobSpeed = 0.000003f;
 
-		struct ColorMod
-		{
-			float mHueAdd;
-			float mSaturationMul;
-			float mValueMul;
-			float mTextValue;
-			float mTextDisabledValue;
-
-			bool mInitialized = false;
-			ImVec4 mNewColors[ImGuiCol_COUNT];
-
-			struct Token
-			{
-				ImVec4 mOldColors[ImGuiCol_COUNT];
-				bool isSet = false;
-				Token(ImVec4* newColors) {
-					isSet = !!newColors;
-					if (isSet) {
-						memcpy(mOldColors, ImGui::GetStyle().Colors, sizeof(mOldColors));
-						memcpy(ImGui::GetStyle().Colors, newColors, sizeof(mOldColors));
-					}
-				}
-				Token(Token&& rhs)
-				{
-					isSet = rhs.isSet;
-					rhs.isSet = false;
-					memcpy(mOldColors, rhs.mOldColors, sizeof(mOldColors));
-				}
-				Token& operator =(Token&& rhs)
-				{
-					isSet = rhs.isSet;
-					rhs.isSet = false;
-					memcpy(mOldColors, rhs.mOldColors, sizeof(mOldColors));
-					return *this;
-				}
-				Token() {
-
-				}
-				~Token() {
-					if (isSet) {
-						memcpy(ImGui::GetStyle().Colors, mOldColors, sizeof(mOldColors));
-					}
-				}
-			};
-			Token Push()
-			{
-				if (!this->mInitialized) {
-					return { nullptr };
-				}
-				return { mNewColors };
-			}
-
-			void EnsureInitialized() {
-				if (mInitialized) return;
-				ImGuiStyle& style = ImGui::GetStyle();
-
-				// correct some things in default style.
-				{
-					ImVec4 color = style.Colors[ImGuiCol_TabActive];
-					float h, s, v;
-					ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-					auto newcolor = ImColor::HSV(h, s, 1);
-					style.Colors[ImGuiCol_TabActive] = newcolor.Value;
-				}
-
-				mInitialized = true;
-				for (size_t i = 0; i < ImGuiCol_COUNT; ++i) {
-					ImVec4 color = style.Colors[i];
-					float h, s, v;
-					ImGui::ColorConvertRGBtoHSV(color.x, color.y, color.z, h, s, v);
-					auto newcolor = ImColor::HSV(h + mHueAdd, s * mSaturationMul, v * mValueMul);
-					mNewColors[i] = newcolor.Value;
-				}
-				mNewColors[ImGuiCol_Text] = ImColor::HSV(0, 0, mTextValue);
-				mNewColors[ImGuiCol_TextDisabled] = ImColor::HSV(0, 0, mTextDisabledValue);
-			}
-
-			ColorMod(float hueAdd, float satMul, float valMul, float textVal, float textDisabledVal) :
-				mHueAdd(hueAdd),
-				mSaturationMul(satMul),
-				mValueMul(valMul),
-				mTextValue(textVal),
-				mTextDisabledValue(textDisabledVal)
-			{
-			}
-
-			// really just for the NOP color
-			ColorMod() :
-				mHueAdd(0),
-				mSaturationMul(1),
-				mValueMul(1),
-				mTextValue(.8f),
-				mTextDisabledValue(.4f)
-			{
-			}
-		};
 
 		ImRect tabBarBB;
 		ImU32 tabBarStoredSeparatorColor;
@@ -532,6 +436,28 @@ namespace WaveSabreVstLib
 			}
 		};
 
+		struct Float01Converter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::Float01Param mParam;
+
+			Float01Converter() :
+				mParam(mBacking)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				char s[100] = { 0 };
+				sprintf_s(s, "%0.3f", mParam.Get01Value());
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				return 0;
+			}
+		};
+
 		struct M7VolumeConverter : ImGuiKnobs::IValueConverter
 		{
 			float mBacking;
@@ -613,7 +539,7 @@ namespace WaveSabreVstLib
 			case ParamBehavior::VibratoFreq:
 			{
 				static VibratoFreqConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
+				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
 				if (r) {
 					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
 				}
@@ -622,7 +548,7 @@ namespace WaveSabreVstLib
 			case ParamBehavior::Db:
 			{
 				static DbConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.5f, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
+				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.5f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
 				if (r) {
 					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
 				}
@@ -631,7 +557,7 @@ namespace WaveSabreVstLib
 			case ParamBehavior::FilterQ:
 			{
 				static FilterQConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
+				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
 				if (r) {
 					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
 				}
@@ -641,7 +567,7 @@ namespace WaveSabreVstLib
 			case ParamBehavior::Frequency:
 			{
 				static FrequencyConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0.0f, 1.0f, 0.5f, 0.0f, 0.003f, 0.0001f, "%.2fHz", ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
+				r = ImGuiKnobs::Knob(name, &paramValue, 0.0f, 1.0f, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, "%.2fHz", ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
 
 				if (r) {
 					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
@@ -651,7 +577,7 @@ namespace WaveSabreVstLib
 			case ParamBehavior::Default01:
 			default:
 			{
-				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly);
+				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly);
 				if (r) {
 					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
 				}
@@ -849,7 +775,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			ScaledFloatConverter conv{ v_min, v_max };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -861,7 +787,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 			const float v_default = 0;
 			//const float size = ImGui::GetTextLineHeight()* 2.5f;// default is 3.25f;
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, 0, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_NoKnob, 10, nullptr, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_NoKnob, 10, nullptr, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -877,7 +803,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			Maj7IntConverter conv{ cfg };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -890,7 +816,7 @@ namespace WaveSabreVstLib
 			p.mValue.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			Maj7FrequencyConverter conv{ cfg, ktParamID };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, 0, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -906,7 +832,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			Maj7MidiNoteConverter conv;
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_ProgressBar, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_ProgressBar, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -919,13 +845,13 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			EnvTimeConverter conv{ };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
 		}
 
-		void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled, float size = 0.0f) {
+		void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled, float size = 0.0f, ImGuiKnobs::ModInfo modInfo = {}) {
 			WaveSabreCore::M7::real_t tempVal;
 			M7::FloatN11Param p{ tempVal };
 			p.SetN11Value(v_defaultScaled);
@@ -933,7 +859,20 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			FloatN11Converter conv{ };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, size, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, size, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
+		void Maj7ImGuiParamFloat01(VstInt32 paramID, const char* label, M7::real_t v_default01, float size = 0.0f, ImGuiKnobs::ModInfo modInfo = {}) {
+			WaveSabreCore::M7::real_t tempVal = v_default01;
+			M7::Float01Param p{ tempVal };
+			float defaultParamVal = p.Get01Value();
+			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			Float01Converter conv{ };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, size, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -960,13 +899,13 @@ namespace WaveSabreVstLib
 			else if (style == M7CurveRenderStyle::Falling) {
 				flags |= ImGuiKnobFlags_InvertYCurve | ImGuiKnobFlags_InvertXCurve;
 			}
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_M7Curve, 0, flags, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_M7Curve, 0, flags, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
 		}
 
-		void Maj7ImGuiParamVolume(VstInt32 paramID, const char* label, const M7::VolumeParamConfig& cfg, M7::real_t v_defaultDB) {
+		void Maj7ImGuiParamVolume(VstInt32 paramID, const char* label, const M7::VolumeParamConfig& cfg, M7::real_t v_defaultDB, ImGuiKnobs::ModInfo modInfo) {
 			WaveSabreCore::M7::real_t tempVal;
 			M7::VolumeParam p{ tempVal, cfg };
 			p.SetDecibels(v_defaultDB);
@@ -976,7 +915,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			M7VolumeConverter conv{ cfg };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -1283,6 +1222,48 @@ namespace WaveSabreVstLib
 
 			ImGui::Dummy(size);
 		}
+
+
+		void MeterN11_Horiz(ImVec2 size, float xN11)
+		{
+			VUMeterColors colors;
+			colors.background = ColorFromHTML("462e2e");
+			colors.foreground = ColorFromHTML("ed4d4d");
+			colors.tick = ColorFromHTML("00ffff");
+			colors.clipTick = colors.foreground;
+
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			ImRect bb;
+			bb.Min = ImGui::GetCursorPos();
+			bb.Min = window->DC.CursorPos;
+			bb.Max = bb.Min + size;
+			ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
+
+			auto ValToX = [&](float xN11__) {
+				float x01 = xN11__ * .5f + .5f;
+				x01 = M7::math::clamp01(x01);
+				return M7::math::lerp(bb.Min.x, bb.Max.x, x01);
+			};
+
+			auto* dl = ImGui::GetWindowDrawList();
+
+			float xzero = ValToX(0);
+			float xval = ValToX(xN11);
+			float xthumb = xval;
+			float xmin = std::min(xzero, xval);
+			float xmax = std::max(xzero, xval);
+
+			static constexpr float gHalfZeroTickWidth = 1.f;
+			static constexpr float gHalfValTickWidth = 1.f;
+
+			dl->AddRectFilled({ xmin, bb.Min.y }, { xmax, bb.Max.y }, colors.foreground);
+			dl->AddRectFilled({ xzero - gHalfZeroTickWidth, bb.Min.y }, { xzero + gHalfZeroTickWidth, bb.Max.y }, colors.tick);
+			dl->AddRectFilled({ xval - gHalfValTickWidth, bb.Min.y }, { xval + gHalfValTickWidth, bb.Max.y }, colors.tick);
+
+			ImGui::Dummy(size);
+		}
+
+
 
 		GuiContextRestorer PushMyImGuiContext(const char *why) {
 			return { mImGuiContext, why };

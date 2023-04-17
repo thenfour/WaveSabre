@@ -11,33 +11,33 @@ namespace WaveSabreCore
 		enum class ModSource : uint8_t
 		{
 			None,
-			Osc1AmpEnv, // arate, 01
-			Osc2AmpEnv, // arate, 01
-			Osc3AmpEnv, // arate, 01
+			Osc1AmpEnv,
+			Osc2AmpEnv,
+			Osc3AmpEnv,
 			Osc4AmpEnv,
 			Sampler1AmpEnv,
 			Sampler2AmpEnv,
 			Sampler3AmpEnv,
 			Sampler4AmpEnv,
-			ModEnv1, // arate, 01
-			ModEnv2, // arate, 01
-			LFO1, // arate, N11
-			LFO2, // arate, N11
-			LFO3, // arate, N11
-			LFO4, // arate, N11
-			PitchBend, // krate, N11
-			Velocity, // krate, 01
-			NoteValue, // krate, 01
-			RandomTrigger, // krate, 01
-			UnisonoVoice, // krate, 01
-			SustainPedal, // krate, 01
-			Macro1, // krate, 01
-			Macro2, // krate, 01
-			Macro3, // krate, 01
-			Macro4, // krate, 01
-			Macro5, // krate, 01
-			Macro6, // krate, 01
-			Macro7, // krate, 01
+			ModEnv1,
+			ModEnv2,
+			LFO1,
+			LFO2,
+			LFO3,
+			LFO4,
+			PitchBend,
+			Velocity,
+			NoteValue,
+			RandomTrigger,
+			UnisonoVoice,
+			SustainPedal,
+			Macro1,
+			Macro2,
+			Macro3,
+			Macro4,
+			Macro5,
+			Macro6,
+			Macro7,
 			Const_1,
 			Const_0_5,
 			Const_0,
@@ -791,27 +791,9 @@ namespace WaveSabreCore
 
 		struct ModulationSpec
 		{
-			//float* const mParamCache;
 			ParamAccessor mParams;
-			//const int mBaseParamID;
-
-			//BoolParam mEnabled;
-			//EnumParam<ModSource> mSource;
-			//EnumParam<ModDestination> mDestinations[gModulationSpecDestinationCount] = {
-			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination1], ModDestination::Count},
-			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination2], ModDestination::Count},
-			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination3], ModDestination::Count},
-			//	EnumParam<ModDestination>{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Destination4], ModDestination::Count},
-			//};
-			//FloatN11Param mScales[gModulationSpecDestinationCount] = {
-			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale1]},
-			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale2]},
-			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale3]},
-			//	FloatN11Param{mParamCache[mBaseParamID + (int)ModParamIndexOffsets::Scale4]},
-			//};
 			ModulationSpecType mType = ModulationSpecType::General;
 			bool const * mpDestSourceEnabledCached = &gAlwaysTrue;
-
 
 			bool mEnabled;
 			ModSource mSource;
@@ -823,36 +805,11 @@ namespace WaveSabreCore
 			ModValueMapping mAuxValueMapping;
 			float mAuxAttenuation;
 
-			// you may ask why aux (aka sidechain) is necessary.
-			// it's because we don't allow modulation of the modulation scale params, so it's a way of modulating the modulation itself.
-			// now, because all mods are just added together you can absolutely just create a 2nd modulation mapped to the same param.
-			// it's just a huge pain in the butt, plus you have to then make sure you get the scales lined up. modulation values are added
+			// why aux (aka sidechain) is necessary. modulation values are added
 			// while aux values are used to scale the mod val, which doesn't have a true analog via normal modulations.
-			//BoolParam mAuxEnabled;
-			//EnumParam<ModSource> mAuxSource;
-
-			//EnumParam<ModValueMapping> mValueMapping;
-			//EnumParam<ModValueMapping> mAuxValueMapping;
-
-			//CurveParam mCurve;
-			//CurveParam mAuxCurve;
-			
-			//Float01Param mAuxAttenuation;
-
 
 			ModulationSpec(real_t* paramCache, int baseParamID) :
 				mParams(paramCache, baseParamID)
-				//mBaseParamID(baseParamID),
-				//mEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::Enabled]),
-				//mSource(paramCache[baseParamID + (int)ModParamIndexOffsets::Source], ModSource::Count),
-				//mDestination(paramCache[baseParamID + (int)ModParamIndexOffsets::Destination], ModDestination::Count),
-				//mCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::Curve]),
-				//mAuxEnabled(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxEnabled]),
-				//mAuxSource(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxSource], ModSource::Count),
-				//mAuxCurve(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxCurve])
-				//mAuxAttenuation(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxAttenuation]),
-				//mValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::ValueMapping], ModValueMapping::Count),
-				//mAuxValueMapping(paramCache[baseParamID + (int)ModParamIndexOffsets::AuxValueMapping], ModValueMapping::Count)
 			{
 			}
 			void BeginBlock()
@@ -866,8 +823,7 @@ namespace WaveSabreCore
 					mScales[i] = mParams.GetN11Value((int)ModParamIndexOffsets::Scale1 + i, 0);
 				}
 		
-				//for (auto& d : mScales) d.CacheValue();
-				mAuxEnabled = mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);// .CacheValue();
+				mAuxEnabled = mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
 				mValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::ValueMapping);
 				mAuxValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::AuxValueMapping);
 				mAuxSource = mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
@@ -877,12 +833,8 @@ namespace WaveSabreCore
 			void SetSourceAmp(ModSource mAmpEnvModSourceID, ModDestination mHiddenVolumeModDestID, const bool* pDestSourceEnabledCached)
 			{
 				mParams.SetBoolValue(ModParamIndexOffsets::Enabled, true);
-				//mEnabled.SetBoolValue(true);
 				mParams.SetEnumValue(ModParamIndexOffsets::Source, mAmpEnvModSourceID);
-				//mSource.SetEnumValue(mAmpEnvModSourceID);
 				mParams.SetEnumValue(ModParamIndexOffsets::Destination1, mHiddenVolumeModDestID);
-				//mDestinations[0].SetEnumValue(mHiddenVolumeModDestID);
-				//mScales[0].SetN11Value(1);
 				mParams.SetN11Value(ModParamIndexOffsets::Scale1, 1);
 
 				mType = ModulationSpecType::SourceAmp;

@@ -115,10 +115,9 @@ namespace WaveSabreVstLib
 	}
 
 	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
-	// in the case of Leveller, there's no adjustment necessary as it was already using ParamAccessor.
 	static inline void AdjustLegacyParams(Leveller* p)
 	{
-		//
+		// in the case of Leveller, there's no adjustment necessary as it was already using ParamAccessor.
 	}
 
 	static inline void GenerateDefaults(Echo* p)
@@ -137,22 +136,6 @@ namespace WaveSabreVstLib
 	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
 	static inline void AdjustLegacyParams(Echo* p)
 	{
-		//void Echo::SetParam(int index, float value)
-		//{
-		//	switch ((ParamIndices)index)
-		//	{
-		//	case ParamIndices::LeftDelayCoarse: leftDelayCoarse = (int)(value * 16.0f); break;
-		//	case ParamIndices::LeftDelayFine: leftDelayFine = (int)(value * 200.0f); break;
-		//	case ParamIndices::RightDelayCoarse: rightDelayCoarse = (int)(value * 16.0f); break;
-		//	case ParamIndices::RightDelayFine: rightDelayFine = (int)(value * 200.0f); break;
-		//	case ParamIndices::LowCutFreq: lowCutFreq = Helpers::ParamToFrequency(value); break;
-		//	case ParamIndices::HighCutFreq: highCutFreq = Helpers::ParamToFrequency(value); break;
-		//	case ParamIndices::Feedback: feedback = value; break;
-		//	case ParamIndices::Cross: cross = value; break;
-		//	case ParamIndices::DryWet: dryWet = value; break;
-		//	}
-		//}
-
 		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayCoarse] * 16));
 		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayFine] * 200));
 		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayCoarse] * 16));
@@ -218,9 +201,6 @@ namespace WaveSabreVstLib
 			return SetOldVstChunk(pDevice, data, byteSize, paramCache);
 		}
 
-		//using vstn = const char[kVstMaxParamStrLen];
-		//static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
-
 		clarinoid::MemoryStream memStream{ (const uint8_t*)data, (size_t)byteSize };
 		clarinoid::BufferedStream buffering{ memStream };
 		clarinoid::TextStream textStream{ buffering };
@@ -282,10 +262,6 @@ namespace WaveSabreVstLib
 	template<size_t paramCount>
 	inline int GetSimpleJSONVstChunk(const std::string& keyName, void** data, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
 	{
-		//using vstn = const char[kVstMaxParamStrLen];
-		//static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
-
-		//auto defaultParamCache = GenerateDefaultParamCache();
 		clarinoid::MemoryStream memStream;
 		clarinoid::BufferedStream buffering{ memStream };
 		clarinoid::TextStream textStream{ buffering };
@@ -296,7 +272,6 @@ namespace WaveSabreVstLib
 
 		auto maj7Element = doc.Object_MakeKey(keyName);
 		maj7Element.BeginObject();
-		//maj7Element.Object_MakeKey("Info").WriteStringValue("WaveSabre - Maj7 fork by tenfour"); // mostly this is to avoid a bug in the serializer; it doesn't like empty objects
 
 		auto paramsElement = doc.Object_MakeKey("params");
 		paramsElement.BeginObject();
@@ -333,34 +308,16 @@ namespace WaveSabreVstLib
 	template<size_t paramCount>
 	void CopyParamCache(HWND hWnd, const std::string& symbolName, const std::string& paramCountExpr, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
 	{
-		//using vstn = const char[kVstMaxParamStrLen];
-		//static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 		std::stringstream ss;
-		//ss << "#include <WaveSabreCore/Maj7.hpp>" << std::endl;
-		//ss << "namespace WaveSabreCore {" << std::endl;
-		//ss << "  namespace M7 {" << std::endl;
 
-		//auto GenerateArray = [&](const std::string& arrayName, size_t count, const std::string& countExpr, int baseParamID) {
 		ss << "static_assert((int)" << paramCountExpr << " == " << paramCount << ", \"param count probably changed and this needs to be regenerated.\");" << std::endl;
 		ss << "static constexpr int16_t " << symbolName << "[" << paramCount << "] = {" << std::endl;
 		for (size_t i = 0; i < paramCount; ++i) {
-			//size_t paramID = baseParamID + i;
 			float valf = paramCache[i];
 			ss << std::setprecision(20) << "  " << M7::math::Sample32To16(valf) << ", // " << paramNames[i] << " = " << valf << std::endl;
 		}
 		ss << "};" << std::endl;
-		//};
 
-		//GenerateArray("gDefaultMasterParams", (int)M7::MainParamIndices::Count, "M7::MainParamIndices::Count", 0);
-		//GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mSamplerDevices[0].mParams.mBaseParamID);
-		//GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mModulations[0].mParams.mBaseParamID);
-		//GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFOs[0].mDevice.mParams.mBaseParamID);
-		//GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::Osc1AmpEnvIndex].mParams.mBaseParamID);
-		//GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mParams.mBaseParamID);
-		//GenerateArray("gDefaultAuxParams", (int)M7::AuxParamIndexOffsets::Count, "M7::AuxParamIndexOffsets::Count", (int)pMaj7->mAuxDevices[0].mParams.mBaseParamID);
-
-		//ss << "  } // namespace M7" << std::endl;
-		//ss << "} // namespace WaveSabreCore" << std::endl;
 		ImGui::SetClipboardText(ss.str().c_str());
 
 		::MessageBoxA(hWnd, "Code copied", "WaveSabre", MB_OK);
@@ -369,8 +326,6 @@ namespace WaveSabreVstLib
 	template<size_t paramCount, typename TDevice>
 	inline void PopulateStandardMenuBar(HWND hWnd, const std::string& vstName, TDevice* pDevice, VstPlug* pVst, const std::string& defaultsArrayName, const std::string& paramCountExpr, const std::string& jsonKeyName, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
 	{
-		//Leveller* p = mpLeveller;
-		//LevellerVst* pVST = mpLevellerVST;
 		if (ImGui::BeginMenu(vstName.c_str())) 
 		{
 			bool b = false;
@@ -411,10 +366,4 @@ namespace WaveSabreVstLib
 			ImGui::EndMenu();
 		} // debug menu
 	}
-
-
-
-
-
-
 } // namespace WaveSabreVstLib

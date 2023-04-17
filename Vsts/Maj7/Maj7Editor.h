@@ -26,8 +26,66 @@ class Maj7Editor : public VstEditor
 	bool mShowingGmDlsList = false;
 	char mGmDlsFilter[100] = { 0 };
 
-
 public:
+
+	struct RenderContext
+	{
+		M7::Maj7::Maj7Voice* mpActiveVoice = nullptr;
+		float mModSourceValues[(int)M7::ModSource::Count];
+		ImGuiKnobs::ModInfo mModDestValues[(int)M7::ModDestination::Count];
+
+		static M7::Maj7::Maj7Voice* FindRunningVoice(M7::Maj7* pMaj7) {
+			M7::Maj7::Maj7Voice* playingVoiceToReturn = nullptr;// pMaj7->mMaj7Voice[0];
+			for (auto* v : pMaj7->mMaj7Voice)
+			{
+				if (!v->IsPlaying())
+					continue;
+				if (!playingVoiceToReturn || (v->mNoteInfo.mSequence > playingVoiceToReturn->mNoteInfo.mSequence))
+				{
+					playingVoiceToReturn = v;
+				}
+			}
+			return playingVoiceToReturn;
+		}
+
+
+		void Init(M7::Maj7* pMaj7)
+		{
+			mpActiveVoice = FindRunningVoice(pMaj7);
+			// dont hate me
+			memset(mModSourceValues, 0, sizeof(mModSourceValues));
+			memset(mModDestValues, 0, sizeof(mModDestValues));
+			if (mpActiveVoice) {
+				for (int i = 0; i < (int)M7::ModSource::Count; ++i)
+				{
+					mModSourceValues[i] = mpActiveVoice->mModMatrix.GetSourceValue(i);
+				}
+				for (int i = 0; i < (int)M7::ModDestination::Count; ++i)
+				{
+					mModDestValues[i].mValue = mpActiveVoice->mModMatrix.GetDestinationValue(i);
+				}
+			}
+
+			for (auto& m : pMaj7->mModulations)
+			{
+				if (!m.mEnabled)
+					continue;
+				if (m.mSource == M7::ModSource::None)
+					continue;
+				for (size_t i = 0; i < std::size(m.mDestinations); ++ i)
+				{
+					//m.mScales[i]
+					mModDestValues[(int)m.mDestinations[i]].mEnabled = true;
+					// extents
+					mModDestValues[(int)m.mDestinations[i]].mExtentMax += std::abs(m.mScales[i]);
+					mModDestValues[(int)m.mDestinations[i]].mExtentMin = mModDestValues[(int)m.mDestinations[i]].mExtentMax;
+				}
+			}
+		}
+	};
+
+	RenderContext mRenderContext;
+
 	Maj7Editor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1120, 950),
 		mMaj7VST((Maj7Vst*)audioEffect),
@@ -397,29 +455,14 @@ public:
 		std::string ret = " Voices:";
 		ret += std::to_string(pMaj7->GetCurrentPolyphony());
 
-		auto* v = FindRunningVoice();
-		if (v) {
+		//auto* v = FindRunningVoice();
+		if (mRenderContext.mpActiveVoice) {
 			ret += " ";
-			ret += midiNoteToString(v->mNoteInfo.MidiNoteValue);
+			ret += midiNoteToString(mRenderContext.mpActiveVoice->mNoteInfo.MidiNoteValue);
 		}
 
 		return ret;
 	};
-
-	// always returns a voice. ideally we would look at envelope states to determine the most suitable, but let's just keep it simple and increase max poly
-	M7::Maj7::Maj7Voice* FindRunningVoice() {
-		M7::Maj7::Maj7Voice* playingVoiceToReturn = nullptr;// pMaj7->mMaj7Voice[0];
-		for (auto* v : pMaj7->mMaj7Voice) {
-			if (!v->IsPlaying())
-				continue;
-			if (!playingVoiceToReturn || (v->mNoteInfo.mSequence > playingVoiceToReturn->mNoteInfo.mSequence))
-			{
-				playingVoiceToReturn = v;
-			}
-		}
-		return playingVoiceToReturn;
-	}
-
 
 	ColorMod mModulationsColors{ 0.15f, 0.6f, 0.65f, 0.9f, 0.0f };
 	ColorMod mModulationDisabledColors{ 0.15f, 0.0f, 0.65f, 0.6f, 0.0f };
@@ -467,6 +510,8 @@ public:
 		mLFOColors.EnsureInitialized();
 		mModEnvelopeColors.EnsureInitialized();
 
+		mRenderContext.Init(this->pMaj7);
+
 		{
 			auto& style = ImGui::GetStyle();
 			style.FramePadding.x = 7;
@@ -483,17 +528,17 @@ public:
 			static float colorValueVarAmt = 1;
 			static float colorTextVal = 0.9f;
 			static float colorTextDisabledVal = 0.5f;
-			bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
-			ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, 0, gNormalKnobSpeed, gSlowKnobSpeed);
+			bool b1 = ImGuiKnobs::Knob("hue", &colorHueVarAmt, -1.0f, 1.0f, 0.0f, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b2 = ImGuiKnobs::Knob("sat", &colorSaturationVarAmt, 0.0f, 1.0f, 0.0f, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b3 = ImGuiKnobs::Knob("val", &colorValueVarAmt, 0.0f, 1.0f, 0.0f, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b4 = ImGuiKnobs::Knob("txt", &colorTextVal, 0.0f, 1.0f, 0.0f, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed);
+			ImGui::SameLine(); bool b5 = ImGuiKnobs::Knob("txtD", &colorTextDisabledVal, 0.0f, 1.0f, 0.0f, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed);
 			ColorMod xyz{ colorHueVarAmt , colorSaturationVarAmt, colorValueVarAmt, colorTextVal, colorTextDisabledVal };
 			xyz.EnsureInitialized();
 			colorExplorerToken = std::move(xyz.Push());
 		}
 
-		auto runningVoice = FindRunningVoice();
+		//auto runningVoice = FindRunningVoice();
 
 #ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
 		MAJ7_OUTPUT_STREAM_CAPTIONS(outputStreamCaptions);
@@ -519,7 +564,7 @@ public:
 			ImGui::PopID();
 		}
 #endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
-		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::gMasterVolumeCfg, -6.0f);
+		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::gMasterVolumeCfg, -6.0f, {});
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);
 
@@ -565,10 +610,10 @@ public:
 			Oscillator("Oscillator D", (int)M7::ParamIndices::Osc4Enabled, isrc ++);
 
 			static_assert(M7::Maj7::gSamplerCount == 4, "sampler count");
-			Sampler("Sampler 1", pMaj7->mSamplerDevices[0], isrc ++, runningVoice);
-			Sampler("Sampler 2", pMaj7->mSamplerDevices[1], isrc ++, runningVoice);
-			Sampler("Sampler 3", pMaj7->mSamplerDevices[2], isrc ++, runningVoice);
-			Sampler("Sampler 4", pMaj7->mSamplerDevices[3], isrc ++, runningVoice);
+			Sampler("Sampler 1", pMaj7->mSamplerDevices[0], isrc ++);
+			Sampler("Sampler 2", pMaj7->mSamplerDevices[1], isrc ++);
+			Sampler("Sampler 3", pMaj7->mSamplerDevices[2], isrc++);
+			Sampler("Sampler 4", pMaj7->mSamplerDevices[3], isrc++);
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -808,6 +853,11 @@ public:
 		}
 	}
 
+	ImGuiKnobs::ModInfo GetModInfo(M7::ModDestination d)
+	{
+		return mRenderContext.mModDestValues[(int)d];
+	}
+
 	void Oscillator(const char* labelWithID, int enabledParamID, int oscID)
 	{
 		float enabledBacking;
@@ -816,16 +866,20 @@ public:
 		ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
 		auto token = cm.Push();
 
+		auto lGetModInfo = [&](M7::OscModParamIndexOffsets x) {
+			return GetModInfo((M7::ModDestination)((int)pMaj7->mOscillatorDevices[oscID].mModDestBaseID + (int)x));
+		};
+
 		if (WSBeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
-			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::gUnityVolumeCfg, 0);
+			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::gUnityVolumeCfg, 0, lGetModInfo(M7::OscModParamIndexOffsets::Volume ));
 
 			//ImGui::SameLine(); Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform", M7::OscillatorWaveform::Count, 0, gWaveformCaptions);
 
 			ImGui::SameLine(); WaveformParam(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, nullptr);
-			//ImGui::SameLine(); WaveformGraphic(waveformParam.GetEnumValue(), waveshapeParam.Get01Value());
-			//ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, "Waveform");
-			ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape");
+			//ImGui::SameLine(); WSImGuiParamKnob(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape");
+			ImGui::SameLine(); Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape", 0.5f, 0, lGetModInfo(M7::OscModParamIndexOffsets::Waveshape));
+
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "KT", 0, 1, 1, 1);
 			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", M7::gSourcePitchSemisRange, 0, 0);
@@ -1121,7 +1175,12 @@ public:
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
 			ImGui::EndDisabled();
 			ImGui::SameLine();
+			ImGui::BeginGroup();
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
+
+			MeterN11_Horiz(ImVec2{115.0f, 13.0f}, mRenderContext.mModSourceValues[(int)spec.mSource]);
+
+			ImGui::EndGroup();
 			ImGui::SameLine();
 			ImGui::BeginDisabled(isLocked);
 			{
@@ -1159,7 +1218,10 @@ public:
 			ColorMod& cmaux = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled) ? mNopColors : mModulationDisabledColors;
 			auto auxToken = cmaux.Push();
 			ImGui::SameLine();
+			ImGui::BeginGroup();
 			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "SC Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
+			MeterN11_Horiz(ImVec2{ 115.0f, 13.0f }, mRenderContext.mModSourceValues[(int)spec.mAuxSource]);
+			ImGui::EndGroup();
 			ImGui::SameLine();
 			WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "SC atten");
 			ImGui::SameLine();
@@ -1562,53 +1624,6 @@ public:
 		}
 	} // waveform param
 
-	//void AuxDistortionGraphic(ImRect bb, int iaux)
-	//{
-	//	float innerHeight = bb.GetHeight() - 4;
-
-	//	ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
-	//	ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
-
-	//	auto drawList = ImGui::GetWindowDrawList();
-
-	//	auto sampleToY = [&](float sample) {
-	//		float c = outerBR.y - float(bb.GetHeight()) * 0.5f;
-	//		float h = float(innerHeight) * 0.5f * sample;
-	//		return c - h;
-	//	};
-
-	//	float paramValues[(int)M7::AuxParamIndexOffsets::Count];
-	//	M7::AuxNode an = GetDummyAuxNode(paramValues, iaux);
-	//	auto pdist = an.CreateEffect(nullptr);
-	//	if (pdist == nullptr)
-	//	{
-	//		//ImGui::Text("Error creating distortion node."); its normal when aux is disabled.
-	//		return;
-	//	}
-	//	size_t nSamples = (size_t)bb.GetWidth();
-	//	M7::ModMatrixNode mm;
-	//	pdist->AuxBeginBlock(0, (int)nSamples, mm);
-
-	//	std::vector<float> wave;
-	//	wave.reserve(nSamples);
-	//	float maxRectify = 0.001f;
-	//	for (size_t iSample = 0; iSample < nSamples; ++iSample)
-	//	{
-	//		float s = M7::math::fract(float(iSample) / nSamples) * 2 - 1;
-	//		s = pdist->AuxProcessSample(s);
-	//		maxRectify = std::max(maxRectify, std::abs(s));
-	//		wave.push_back(s);
-	//	}
-
-	//	ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f); // background
-	//	float centerY = sampleToY(0);
-	//	drawList->AddLine({ outerTL.x, centerY }, { outerBR.x, centerY }, ImGui::GetColorU32(ImGuiCol_PlotLines), 2.0f);// center line
-	//	for (size_t iSample = 0; iSample < nSamples; ++iSample)
-	//	{
-	//		float s = wave[iSample] / maxRectify;
-	//		drawList->AddLine({ outerTL.x + iSample, centerY }, { outerTL.x + iSample, sampleToY(s) }, ImGui::GetColorU32(ImGuiCol_PlotHistogram), 1);
-	//	}
-	//}
 
 	bool LoadSample(const char* path, M7::SamplerDevice& sampler, size_t isrc)
 	{
@@ -1752,7 +1767,7 @@ public:
 		return suggestions;
 	}
 
-	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc, Maj7::Maj7Voice* runningVoice)
+	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc)
 	{
 		ColorMod& cm = sampler.IsEnabled() ? mSamplerColors : mSamplerDisabledColors;
 		auto token = cm.Push();
@@ -1760,9 +1775,13 @@ public:
 		static constexpr char const* const loopModeNames[] = { "Disabled", "Repeat", "Pingpong" };
 		static constexpr char const* const loopBoundaryModeNames[] = { "FromSample", "Manual" };
 
+		auto GetModDest = [&](M7::SamplerModParamIndexOffsets x) {
+			return (M7::ModDestination)((int)pMaj7->mSources[isrc]->mModDestBaseID + (int)x);
+		};
+
 		if (WSBeginTabItem(labelWithID)) {
 			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled), "Enabled");
-			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Volume), "Volume", M7::gUnityVolumeCfg, 0);
+			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Volume), "Volume", M7::gUnityVolumeCfg, 0, GetModInfo(GetModDest(M7::SamplerModParamIndexOffsets::Volume)));
 
 			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqParam), (int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqKT), "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity);
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqKT), "KT", 0, 1, 1, 1);
@@ -1793,7 +1812,7 @@ public:
 			ImGui::EndGroup();
 
 			ImGui::SameLine();
-			SamplerWaveformDisplay(sampler, isrc, runningVoice);
+			SamplerWaveformDisplay(sampler, isrc);
 
 			if (ImGui::SmallButton("Load from file ...")) {
 				OPENFILENAMEA ofn = { 0 };
@@ -1950,7 +1969,7 @@ public:
 	}
 
 	// TODO: cache this image in a texture.
-	void SamplerWaveformDisplay(M7::SamplerDevice& sampler, size_t isrc, Maj7::Maj7Voice* runningVoice)
+	void SamplerWaveformDisplay(M7::SamplerDevice& sampler, size_t isrc)
 	{
 		auto sourceInfo = this->mSourceStatusText[isrc];
 		//ImGuiIO& io = ImGui::GetIO();
@@ -1974,8 +1993,8 @@ public:
 		}
 
 		float cursor = 0;
-		if (runningVoice) {
-			M7::SamplerVoice* sv = static_cast<M7::SamplerVoice*>(runningVoice->mSourceVoices[isrc]);
+		if (mRenderContext.mpActiveVoice) {
+			M7::SamplerVoice* sv = static_cast<M7::SamplerVoice*>(mRenderContext.mpActiveVoice->mSourceVoices[isrc]);
 			cursor = (float)sv->mSamplePlayer.samplePos;
 			cursor /= sampler.mSample->GetSampleLength();
 		}

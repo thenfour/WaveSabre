@@ -160,9 +160,11 @@ namespace ImGuiKnobs {
             draw_list->AddBezierCurve(start, arc1, arc2, end, color, thickness, num_segments);
         }
 
-        void draw_arc(ImVec2 center, float radius, float start_angle, float end_angle, float thickness, ImColor color, int num_segments, int bezier_count) {
+        void draw_arc(ImVec2 center, float radius, float start_angle__, float end_angle__, float thickness, ImColor color, int num_segments, int bezier_count) {
             // Overlap and angle of ends of bezier curves needs work, only looks good when not transperant
             auto overlap = thickness * radius * 0.00001f * IMGUIKNOBS_PI;
+            float start_angle = std::min(start_angle__, end_angle__);
+            float end_angle = std::max(start_angle__, end_angle__);
             auto delta = end_angle - start_angle;
             auto bez_step = 1.0f / bezier_count;
             auto mid_angle = start_angle + overlap;
@@ -192,7 +194,11 @@ namespace ImGuiKnobs {
             float angle_cos = 0;
             float angle_sin = 0;
 
-            knob(const char* _label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, float speed, float _radius, const char* format,
+            float angle_modMin = 0;
+            float angle_modMax = 0;
+            float angle_modVal = 0;
+
+            knob(const char* _label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, ModInfo modInfo, float speed, float _radius, const char* format,
                 ImGuiKnobVariant variant, ImGuiKnobFlags flags)
             {
                 auto screen_pos = ImGui::GetCursorScreenPos();
@@ -230,7 +236,18 @@ namespace ImGuiKnobs {
 
                 angle_min = IMGUIKNOBS_PI * 0.75f;
                 angle_max = IMGUIKNOBS_PI * 2.25f;
-                angle_center = WaveSabreCore::M7::math::map((float)v_center, (float)v_min, (float)v_max, angle_min, angle_max);
+
+                auto valToAngle = [&](float val) {
+                    val = WaveSabreCore::M7::math::clamp(val, (float)v_min, (float)v_max);
+                    return WaveSabreCore::M7::math::map((float)val, (float)v_min, (float)v_max, angle_min, angle_max);
+                };
+
+                angle_center = valToAngle((float)v_center);// WaveSabreCore::M7::math::map((float)v_center, (float)v_min, (float)v_max, angle_min, angle_max);
+
+                angle_modMin = valToAngle(*p_value - modInfo.mExtentMin);
+                angle_modMax = valToAngle(*p_value + modInfo.mExtentMax);
+                angle_modVal = valToAngle(*p_value + modInfo.mValue);
+
                 graphic_rect = { screen_pos, screen_pos + knobSize };
                 center = { screen_pos[0] + radius, screen_pos[1] + radius };
                 is_active = ImGui::IsItemActive();
@@ -313,7 +330,8 @@ namespace ImGuiKnobs {
 
         template<typename DataType>
         knob<DataType> knob_with_drag(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default,
-            DataType v_center, float _speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, IValueConverter* conv, void* capture) {
+            DataType v_center, ModInfo modInfo, float _speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, IValueConverter* conv, void* capture)
+        {
             auto speed = _speed == 0 ? (v_max - v_min) / 250.f : _speed;
             ImGui::PushID(label);
             auto width = size == 0 ? ImGui::GetTextLineHeight() * 3.25f : size * ImGui::GetIO().FontGlobalScale;
@@ -339,7 +357,7 @@ namespace ImGuiKnobs {
             }
 
             // Draw knob
-            knob<DataType> k(label, data_type, p_value, v_min, v_max, v_default, v_center, speed, width * 0.5f, format, variant, flags);
+            knob<DataType> k(label, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, width * 0.5f, format, variant, flags);
 
             // Draw tooltip
             if (flags & ImGuiKnobFlags_ValueTooltip && (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) || ImGui::IsItemActive())) {
@@ -416,12 +434,36 @@ namespace ImGuiKnobs {
 
             return { colors[ImGuiCol_FrameBg], colors[ImGuiCol_FrameBg], colors[ImGuiCol_FrameBg] };
         }
+
+        color_set GetModulationBackgroundColorSet() {
+            //auto c = ImColor{.8f, .2f, 0.2f, 1.0f};
+            //auto c = ImColor{ .0f, .8f, 0.8f, 1.0f };
+            auto* colors = ImGui::GetStyle().Colors;
+            auto c = ColorMod::GetModifiedColor(colors[ImGuiCol_ButtonHovered], 0.6f, 1.0f, 0.5f);
+            return { c, c, c };
+        }
+
+        color_set GetModulationForegroundColorSet() {
+            //auto c = ImColor{.8f, .2f, 0.2f, 1.0f};
+            //auto c = ImColor{ .0f, .8f, 0.8f, 1.0f };
+            auto* colors = ImGui::GetStyle().Colors;
+            auto c = ColorMod::GetModifiedColor(colors[ImGuiCol_ButtonHovered], 0.6f, 1.0f, 1.0f);
+            return { c, c, c };
+        }
+
+        color_set GetModulationDotColorSet() {
+            auto c = ImColor{.8f, .2f, 0.2f, 1.0f};
+            return { c, c, c };
+        } 
+
     }// namespace detail
 
 
     template<typename DataType>
-    bool BaseKnob(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, float speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture) {
-        auto knob = detail::knob_with_drag(label, data_type, p_value, v_min, v_max, v_default, v_center, speed, format, variant, size, flags, conv, capture);
+    bool BaseKnob(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center,
+        ModInfo modInfo,
+        float speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture) {
+        auto knob = detail::knob_with_drag(label, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, format, variant, size, flags, conv, capture);
 
         switch (variant) {
         case ImGuiKnobVariant_Tick: {
@@ -439,20 +481,33 @@ namespace ImGuiKnobs {
         case ImGuiKnobVariant_Wiper: {
             knob.draw_circle(0.7f, detail::GetSecondaryColorSet(), true, 32);
             knob.draw_arc(0.8f, 0.41f, knob.angle_min, knob.angle_max, detail::GetTrackColorSet(), 16, 2);
-
-            //if (knob.t > 0.01f) {
-                knob.draw_arc(0.8f, 0.43f, knob.angle_min, knob.angle, detail::GetPrimaryColorSet(), 16, 2);
-            //}
+            knob.draw_arc(0.8f, 0.43f, knob.angle_min, knob.angle, detail::GetPrimaryColorSet(), 16, 2);
             break;
         }
         case ImGuiKnobVariant_WiperOnly: {
-            knob.draw_arc(0.8f, 1.00f, knob.angle_min, knob.angle_max, detail::GetTrackColorSet(), 32, 2);
+            knob.draw_arc(0.8f, 1.00f, knob.angle_min, knob.angle_max, detail::GetTrackColorSet(), 32, 2); // background from min to max angle
+            knob.draw_arc(0.8f, 0.9f, knob.angle_center, knob.angle, detail::GetPrimaryColorSet(), 16, 2); // swept track area from center to value
 
-            //if (knob.t > 0.01) {
-                knob.draw_arc(0.8f, 0.9f, knob.angle_center, knob.angle, detail::GetPrimaryColorSet(), 16, 2);
-            //}
+            auto modBackgroundColorSet = detail::GetModulationBackgroundColorSet();
+            auto modForegroundColorSet = detail::GetModulationForegroundColorSet();
+            //auto modDotColorSet = detail::GetModulationDotColorSet();
+            if (modInfo.mEnabled)
+            {
+                // draw modulation indicator in the center.
+                ImGui::GetWindowDrawList()->AddCircleFilled(
+                    knob.center,
+                    0.2f * knob.radius,
+                    modBackgroundColorSet.active,
+                    6);
 
-            knob.draw_dot(0.25f, 0.85f, knob.angle, detail::GetDotColorSet(), true, 12);
+                // draw modulation ring on the outer rim of the track
+                // void draw_arc(float radius, float size, float start_angle, float end_angle, color_set color, int segments, int bezier_count) {
+                knob.draw_arc(0.98f, 0.3f, knob.angle_modMin, knob.angle_modMax, modBackgroundColorSet, 6, 2); // swept track area from center to value
+
+                knob.draw_arc(0.98f, 0.3f, knob.angle_modVal, knob.angle, modForegroundColorSet, 6, 2); // swept track area from center to value
+            }
+
+            knob.draw_dot(0.25f, 0.85f, knob.angle, detail::GetDotColorSet(), true, 12); // yellow handle
 
             break;
         }
@@ -499,18 +554,23 @@ namespace ImGuiKnobs {
         return knob.value_changed;
     }
 
-    bool Knob(const char* label, float* p_value, float v_min, float v_max, float v_default, float v_center, float normalSpeed, float slowSpeed,
+    bool Knob(const char* label, float* p_value, float v_min, float v_max, float v_default, float v_center, ModInfo modInfo,
+        float normalSpeed, float slowSpeed,
         const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%.3f" : format;
-        return BaseKnob(label, ImGuiDataType_Float, p_value, v_min, v_max, v_default, v_center, ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
+        return BaseKnob(label, ImGuiDataType_Float, p_value, v_min, v_max, v_default, v_center,
+            modInfo,
+            ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
     }
 
     bool KnobInt(const char* label, int* p_value, int v_min, int v_max, int v_default, int v_center, float normalSpeed, float slowSpeed,
         const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%i" : format;
-        return BaseKnob(label, ImGuiDataType_S32, p_value, v_min, v_max, v_default, v_center, ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
+        return BaseKnob(label, ImGuiDataType_S32, p_value, v_min, v_max, v_default, v_center,
+            ModInfo{},
+            ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
     }
 
 }// namespace ImGuiKnobs
