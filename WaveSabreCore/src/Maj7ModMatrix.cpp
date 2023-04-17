@@ -32,12 +32,21 @@ namespace WaveSabreCore
 			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
 			{
 				auto recalcMask = GetModulationRecalcSampleMask();
+				auto recalcSpan = recalcMask + 1;
+
 				if (!mnSampleCount)
 				{
+					// begin by resetting our modulated deltas array to 0, effectively setting all deltas to 0.
+					// we will populate this array in 2 stages:
+					// 1. accumulate the theoretical dest value
+					// 2. turn that dest value into a delta based on current val.
 					mModulatedDestValueCount = 0;
+
 					for (size_t imod = 0; imod < gModulationCount; ++imod)
 					{
 						auto& spec = modSpecs[imod];
+
+						// enabled...
 						bool skip = false;
 						if (!spec.mEnabled) skip = true;
 						auto modSource = spec.mSource;
@@ -57,7 +66,6 @@ namespace WaveSabreCore
 						}
 
 						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
-							//mDestValueDeltas[imod][id] = 0;
 							auto lastDest = this->mModSpecLastDestinations[imod][id];
 							auto newDest = skip ? ModDestination::None : spec.mDestinations[id];
 							if (lastDest != newDest) { // if a mod destination changes, then need to reset the value to 0 to erase the effect of the modulation.
@@ -94,20 +102,15 @@ namespace WaveSabreCore
 							const auto& d = spec.mDestinations[id];
 							const ModDestination destid = d;
 							if (destid == ModDestination::None) continue;
-							const float orig = mDestValues[(size_t)destid];
-							const float amt = sourceVal * spec.mScales[id];
+							const float target = (sourceVal * spec.mScales[id]);
 							
-							if (math::FloatEquals(amt, orig)) continue;
-
-							const float deltaPerSample = (amt - orig) / (recalcMask + 1);
-
 							// get this dest/delta combo in mModulatedDestValueDeltas somehow...
 							bool added = false;
 							for (size_t id = 0; id < mModulatedDestValueCount; ++id) {
 								auto& dvd = mModulatedDestValueDeltas[id];
 								if (dvd.mDest == d) {
 									// add to existing
-									dvd.mDeltaPerSample += deltaPerSample;
+									dvd.mDeltaPerSample += target;
 									added = true;
 									break;
 								}
@@ -117,11 +120,18 @@ namespace WaveSabreCore
 								auto& dvd = mModulatedDestValueDeltas[mModulatedDestValueCount];
 								mModulatedDestValueCount++;
 								dvd.mDest = d;
-								dvd.mDeltaPerSample = deltaPerSample;
+								dvd.mDeltaPerSample = target;
 							}
 						}
 
 					} // for each mod
+
+					// for each dest/delta combo calculated... calculate the deltas.
+					for (size_t id = 0; id < mModulatedDestValueCount; ++id) {
+						auto& dvd = mModulatedDestValueDeltas[id];
+						// right now `mDeltaPerSample` represents the target abs values. turn them into deltas.
+						dvd.mDeltaPerSample = (dvd.mDeltaPerSample - mDestValues[(size_t)dvd.mDest]) / recalcSpan;
+					}
 				} // if needs recalc
 
 				//} // for each mod

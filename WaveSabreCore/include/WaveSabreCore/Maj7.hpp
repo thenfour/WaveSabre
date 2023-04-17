@@ -60,6 +60,8 @@ namespace WaveSabreCore
 			LFO2,
 			LFO3,
 			LFO4,
+			ModMatrix_NormRecalcSample,
+			LFO1_NormRecalcSample,
 			ModSource_LFO1,
 			ModSource_LFO2,
 			ModSource_LFO3,
@@ -98,6 +100,8 @@ namespace WaveSabreCore
 "LFO2", \
 "LFO3", \
 "LFO4", \
+"ModMatrix_NormRecalcSample", \
+"LFO1_NormRecalcSample", \
                 "ModSource_LFO1", \
                 "ModSource_LFO2", \
                 "ModSource_LFO3", \
@@ -744,7 +748,10 @@ namespace WaveSabreCore
 					return this->mMaj7Voice[0]->mLFOs[2].mNode.GetLastSample();
 				case OutputStream::LFO4:
 					return this->mMaj7Voice[0]->mLFOs[3].mNode.GetLastSample();
-
+				case OutputStream::ModMatrix_NormRecalcSample:
+					return float(this->mMaj7Voice[0]->mModMatrix.mnSampleCount) / GetModulationRecalcSampleMask();
+				case OutputStream::LFO1_NormRecalcSample:
+					return float(this->mMaj7Voice[0]->mLFOs[0].mNode.mnSamples) / GetAudioOscillatorRecalcSampleMask();
 				case OutputStream::ModSource_LFO1:
 					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO1);
 				case OutputStream::ModSource_LFO2:
@@ -772,7 +779,7 @@ namespace WaveSabreCore
 				case OutputStream::ModDest_Osc1Freq:
 					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc1FrequencyParam);
 				case OutputStream::ModDest_Osc2Freq:
-					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc2FrequencyParam);
+					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc1FrequencyParam);
 				case OutputStream::ModDest_Osc3Freq:
 					return this->mMaj7Voice[0]->mModMatrix.GetDestinationValue(ModDestination::Osc3FrequencyParam);
 				case OutputStream::ModDest_Osc4Freq:
