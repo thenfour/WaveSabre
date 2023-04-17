@@ -887,6 +887,10 @@ namespace WaveSabreCore
 
 				void BeginBlock(bool forceProcessing)
 				{
+					for (auto& p : mAllEnvelopes) {
+						p.BeginBlock();
+					}
+
 					if (!forceProcessing && !this->IsPlaying()) {
 						return;
 					}
@@ -917,10 +921,6 @@ namespace WaveSabreCore
 					{
 						//mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mMacros.Get01Value(iMacro));  // krate, 01
 						mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mParams.Get01Value((int)ParamIndices::Macro1 + iMacro, 0));  // krate, 01
-					}
-
-					for (auto& p : mAllEnvelopes) {
-						p.BeginBlock();
 					}
 
 					for (size_t i = 0; i < gModLFOCount; ++i)
@@ -968,14 +968,17 @@ namespace WaveSabreCore
 
 				void ProcessAndMix(float* s, bool forceProcessing)
 				{
-					if (!forceProcessing && !this->IsPlaying()) {
-						return;
-					}
-
-					for (auto& env : mAllEnvelopes) 
+					// NB: process envelopes before short-circuiting due to being not playing.
+					// this is for issue#31; mod envelopes need to be able to release down to 0 even when the source envs are not playing.
+					// if mod envs get suspended rudely, then they'll "wake up" at the wrong value.
+					for (auto& env : mAllEnvelopes)
 					{
 						float l = env.ProcessSample();
 						mModMatrix.SetSourceValue(env.mMyModSource, l);
+					}
+
+					if (!forceProcessing && !this->IsPlaying()) {
+						return;
 					}
 
 					for (size_t i = 0; i < gModLFOCount; ++i) {
