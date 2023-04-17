@@ -13,8 +13,6 @@
 #ifdef MAJ7_INCLUDE_GSM_SUPPORT
 #include "GsmSample.h"
 #endif // MAJ7_INCLUDE_GSM_SUPPORT
-//#include "Specimen.h"
-//#include "Adultery.h"
 #include "SamplePlayer.h"
 #include "Maj7Oscillator.hpp"
 
@@ -52,32 +50,11 @@ namespace WaveSabreCore
 		struct SamplerDevice : ISoundSourceDevice
 		{
 			ParamAccessor mParams;
-			//BoolParam mLegatoTrig;
-			//BoolParam mReverse;
-			//BoolParam mReleaseExitsLoop;
-			//EnumParam<LoopMode> mLoopMode;
-			//EnumParam<LoopBoundaryMode> mLoopSource;
-			//EnumParam<InterpolationMode> mInterpolationMode;
-			//EnumParam<SampleSource> mSampleSource;
-
-			//IntParam mGmDlsIndex;
-			//IntParam mBaseNote;
-
-			//Float01Param mSampleStart;
-			//Float01Param mLoopStart;
-			//Float01Param mLoopLength; // 0-1 ?
 
 			bool mEnabledCached;
-			//float mAuxPanCached;
-			//int mPitchSemisCached;
-			//float mPitchFineCached;
-
-
-			//int mSampleLoadSequence = 0; // just an ID to let the VST editor know when the sample data has changed
 
 			ISampleSource* mSample = nullptr;
 			float mSampleRateCorrectionFactor = 0;
-			//HANDLE mMutex;
 			WaveSabreCore::CriticalSection mMutex;
 			char mSamplePath[MAX_PATH] = { 0 };
 

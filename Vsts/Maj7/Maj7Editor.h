@@ -1790,9 +1790,10 @@ public:
 			}
 			else
 			{
-				ImGui::InputText("sampleFilter", mGmDlsFilter, std::size(mGmDlsFilter));
+				ImGui::InputText("Filter#gmdlslist", mGmDlsFilter, std::size(mGmDlsFilter));
 				ImGui::BeginListBox("sample");
-				int sampleIndex = (int)GetEffectX()->getParameter((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::GmDlsIndex));
+				int sampleIndex = (int)sampler.mParams.GetIntValue(M7::SamplerParamIndexOffsets::GmDlsIndex, M7::gGmDlsIndexParamCfg);
+
 				auto matches = (std::strlen(mGmDlsFilter) > 0) ? autocomplete(mGmDlsFilter, mGmDlsOptions) : mGmDlsOptions;
 				for (auto& x : matches) {
 					bool isSelected = sampleIndex == x.second;
@@ -1826,7 +1827,7 @@ public:
 				auto* p = static_cast<M7::GmDlsSample*>(sampler.mSample);
 				const char* name = "(none)";
 				if (p->mSampleIndex >= 0 && p->mSampleIndex < M7::gGmDlsSampleCount) {
-					name = mGmDlsOptions[p->mSampleIndex].first.c_str();
+					name = mGmDlsOptions[p->mSampleIndex + 1].first.c_str();
 				}
 				ImGui::Text("GmDls : %s (%d)", name, p->mSampleIndex);
 			}
