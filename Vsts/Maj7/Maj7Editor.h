@@ -21,7 +21,7 @@ class Maj7Editor : public VstEditor
 	Maj7Vst* mMaj7VST;
 	M7::Maj7* pMaj7;
 	static constexpr int gSamplerWaveformWidth = 700;
-	static constexpr int gSamplerWaveformHeight = 100;
+	static constexpr int gSamplerWaveformHeight = 80;
 	std::vector<std::pair<std::string, int>> mGmDlsOptions;
 	bool mShowingGmDlsList = false;
 	char mGmDlsFilter[100] = { 0 };
@@ -545,8 +545,10 @@ public:
 		for (int iOutput = 0; iOutput < 2; ++iOutput)
 		{
 			ImGui::PushID(iOutput);
+			if (iOutput > 0) ImGui::SameLine();
 			ImGui::Text("Output stream %d", iOutput);
 			ImGui::SameLine();
+			ImGui::SetNextItemWidth(200);
 			if (ImGui::BeginCombo("##outputStream", outputStreamCaptions[(int)pMaj7->mOutputStreams[iOutput]]))
 			{
 				auto selectedIndex = (int)pMaj7->mOutputStreams[iOutput];
@@ -1153,6 +1155,8 @@ public:
 				//WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Invert, "Invert");
 				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::ValueMapping, "Mapping", (int)M7::ModValueMapping::Count, M7::ModValueMapping::NoMapping, modValueMappingCaptions);
 
+				Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
+
 				ImGui::EndGroup();
 			}
 			ImGui::SameLine();
@@ -1182,24 +1186,24 @@ public:
 				ImGui::EndGroup();
 			}
 			ImGui::EndDisabled();
-			ImGui::SameLine();
-			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
 
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "SC Enable");
 			ColorMod& cmaux = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled) ? mNopColors : mModulationDisabledColors;
 			auto auxToken = cmaux.Push();
 			ImGui::SameLine();
-			ImGui::BeginGroup();
-			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "SC Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
-			MeterN11_Horiz(ImVec2{ 115.0f, 13.0f }, mRenderContext.mModSourceValues[(int)spec.mAuxSource]);
-			ImGui::EndGroup();
+			{
+				ImGui::BeginGroup();
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "SC Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
+				MeterN11_Horiz(ImVec2{ 115.0f, 13.0f }, mRenderContext.mModSourceValues[(int)spec.mAuxSource]);
+				//ImGui::SameLine();
+				//WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "SCInvert");
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxValueMapping, "AuxMapping", (int)M7::ModValueMapping::Count, M7::ModValueMapping::NoMapping, modValueMappingCaptions);
+				//ImGui::SameLine();
+				Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "SC Curve", 0, M7CurveRenderStyle::Rising, {});
+				ImGui::EndGroup();
+			}
 			ImGui::SameLine();
 			WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "SC atten");
-			ImGui::SameLine();
-			//WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "SCInvert");
-			Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxValueMapping, "AuxMapping", (int)M7::ModValueMapping::Count, M7::ModValueMapping::NoMapping, modValueMappingCaptions);
-			ImGui::SameLine();
-			Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "SC Curve", 0, M7CurveRenderStyle::Rising, {});
 
 
 			ImGui::SameLine();
