@@ -290,11 +290,11 @@ namespace ImGuiKnobs {
                     is_active ? color.active : (is_hovered ? color.hovered : color.base));
             }
 
-            void draw_m7_curve(color_set bgcolor, color_set linecolor, bool invertX, bool invertY) {
-                ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
-                float val;
-                WaveSabreCore::M7::CurveParam param {val };
-                param.SetParamValue(this->t);
+            void draw_m7_curve(color_set linecolor, float val, bool invertX, bool invertY) {
+                //ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
+                float backing;
+                WaveSabreCore::M7::CurveParam param { backing };
+                param.SetParamValue(val);
                 AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, param, linecolor.base, 2.0f);
             }
 
@@ -439,7 +439,7 @@ namespace ImGuiKnobs {
             //auto c = ImColor{.8f, .2f, 0.2f, 1.0f};
             //auto c = ImColor{ .0f, .8f, 0.8f, 1.0f };
             auto* colors = ImGui::GetStyle().Colors;
-            auto c = ColorMod::GetModifiedColor(colors[ImGuiCol_ButtonHovered], 0.6f, 1.0f, 0.5f);
+            auto c = ColorMod::GetModifiedColor(colors[ImGuiCol_ButtonHovered], 0.69f, 1.0f, 0.5f);
             return { c, c, c };
         }
 
@@ -447,7 +447,7 @@ namespace ImGuiKnobs {
             //auto c = ImColor{.8f, .2f, 0.2f, 1.0f};
             //auto c = ImColor{ .0f, .8f, 0.8f, 1.0f };
             auto* colors = ImGui::GetStyle().Colors;
-            auto c = ColorMod::GetModifiedColor(colors[ImGuiCol_ButtonHovered], 0.6f, 1.0f, 1.0f);
+            auto c = ColorMod::GetModifiedColor(colors[ImGuiCol_ButtonHovered], 0.69f, 1.0f, 1.0f);
             return { c, c, c };
         }
 
@@ -485,12 +485,13 @@ namespace ImGuiKnobs {
             break;
         }
         case ImGuiKnobVariant_WiperOnly: {
-            knob.draw_arc(0.8f, 1.00f, knob.angle_min, knob.angle_max, detail::GetTrackColorSet(), 32, 2); // background from min to max angle
-            knob.draw_arc(0.8f, 0.9f, knob.angle_center, knob.angle, detail::GetPrimaryColorSet(), 16, 2); // swept track area from center to value
+            //knob.draw_arc(0.8f, 1.00f, knob.angle_min, knob.angle_max, detail::GetTrackColorSet(), 32, 2); // background from min to max angle
+            knob.draw_arc(0.8f, 0.86f, knob.angle_min, knob.angle_max, detail::GetTrackColorSet(), 32, 2); // background from min to max angle
+            //knob.draw_arc(0.8f, 0.9f, knob.angle_center, knob.angle, detail::GetPrimaryColorSet(), 16, 2); // swept track area from center to value
+            knob.draw_arc(0.8f, 0.86f, knob.angle_center, knob.angle, detail::GetPrimaryColorSet(), 16, 2); // swept track area from center to value
 
             auto modBackgroundColorSet = detail::GetModulationBackgroundColorSet();
             auto modForegroundColorSet = detail::GetModulationForegroundColorSet();
-            //auto modDotColorSet = detail::GetModulationDotColorSet();
             if (modInfo.mEnabled)
             {
                 // draw modulation indicator in the center.
@@ -498,16 +499,16 @@ namespace ImGuiKnobs {
                     knob.center,
                     0.2f * knob.radius,
                     modBackgroundColorSet.active,
-                    6);
+                    9);
 
                 // draw modulation ring on the outer rim of the track
                 // void draw_arc(float radius, float size, float start_angle, float end_angle, color_set color, int segments, int bezier_count) {
-                knob.draw_arc(0.98f, 0.3f, knob.angle_modMin, knob.angle_modMax, modBackgroundColorSet, 6, 2); // swept track area from center to value
+                knob.draw_arc(0.98f, 0.3f, knob.angle_modMin, knob.angle_modMax, modBackgroundColorSet, 9, 2); // swept track area from center to value
 
-                knob.draw_arc(0.98f, 0.3f, knob.angle_modVal, knob.angle, modForegroundColorSet, 6, 2); // swept track area from center to value
+                knob.draw_arc(0.98f, 0.3f, knob.angle_modVal, knob.angle, modForegroundColorSet, 9, 2); // swept track area from center to value
             }
 
-            knob.draw_dot(0.25f, 0.85f, knob.angle, detail::GetDotColorSet(), true, 12); // yellow handle
+            knob.draw_dot(0.25f, 0.85f, knob.angle, detail::GetDotColorSet(), true, 9); // yellow handle
 
             break;
         }
@@ -540,7 +541,17 @@ namespace ImGuiKnobs {
         }
         case ImGuiKnobVariant_M7Curve: {
             // assumes 0-1 range
-            knob.draw_m7_curve(detail::GetTrackColorSet(), detail::GetDotColorSet(), !!(flags & ImGuiKnobFlags_InvertXCurve), !!(flags & ImGuiKnobFlags_InvertYCurve));
+            ImGui::RenderFrame(knob.graphic_rect.Min, knob.graphic_rect.Max, detail::GetTrackColorSet().base, false, 3);
+            if (modInfo.mEnabled)
+            {
+                auto modBackgroundColorSet = detail::GetModulationBackgroundColorSet();
+                auto modForegroundColorSet = detail::GetModulationForegroundColorSet();
+                knob.draw_m7_curve(modBackgroundColorSet, knob.t - modInfo.mExtentMin, !!(flags & ImGuiKnobFlags_InvertXCurve), !!(flags & ImGuiKnobFlags_InvertYCurve));
+                knob.draw_m7_curve(modBackgroundColorSet, knob.t + modInfo.mExtentMax, !!(flags & ImGuiKnobFlags_InvertXCurve), !!(flags & ImGuiKnobFlags_InvertYCurve));
+                knob.draw_m7_curve(modForegroundColorSet, knob.t + modInfo.mValue, !!(flags & ImGuiKnobFlags_InvertXCurve), !!(flags & ImGuiKnobFlags_InvertYCurve));
+            }
+            knob.draw_m7_curve(detail::GetDotColorSet(), knob.t, !!(flags & ImGuiKnobFlags_InvertXCurve), !!(flags & ImGuiKnobFlags_InvertYCurve));
+
             break;
         }
         case ImGuiKnobVariant_ProgressBar: {

@@ -7,20 +7,8 @@ namespace WaveSabreCore
     {
         EnvelopeNode::EnvelopeNode(ModMatrixNode& modMatrix, ModDestination modDestIDDelayTime, real_t* paramCache, int paramBaseID, ModSource myModSource) :
             mParams(paramCache, paramBaseID),
-            //mParamBaseID(paramBaseID),
             mModMatrix(modMatrix),
             mModDestBase((int)modDestIDDelayTime),
-            //mDelayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DelayTime]),
-            //mAttackTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackTime]),
-            //mAttackCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::AttackCurve]),
-            //mHoldTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::HoldTime]),
-            //mDecayTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DecayTime]),
-            //mDecayCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::DecayCurve]),
-            //mSustainLevel(paramCache[paramBaseID + (int)EnvParamIndexOffsets::SustainLevel]),
-            //mReleaseTime(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseTime]),
-            //mReleaseCurve(paramCache[paramBaseID + (int)EnvParamIndexOffsets::ReleaseCurve]),
-            //mLegatoRestart(paramCache[paramBaseID + (int)EnvParamIndexOffsets::LegatoRestart]),
-            //mMode(paramCache[paramBaseID + (int)EnvParamIndexOffsets::Mode], EnvelopeMode::Count),
             mMyModSource(myModSource)
         {
         }

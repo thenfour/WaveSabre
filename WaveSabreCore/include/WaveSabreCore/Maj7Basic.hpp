@@ -20,8 +20,6 @@ using std::max;
 #define cast_uint32_t (uint32_t)
 #endif
 
-//#ifdef MAJ7_INCLUDE_BITCRUSH_AUX
-
 namespace WaveSabreCore
 {
     class CriticalSection
@@ -2587,7 +2585,7 @@ namespace WaveSabreCore
             unused__AuxType,
             FilterType, // filter type
             // FROM here, must be identical to FilterAuxModIndexOffsets (param2 - 5)
-            Q, // filter Q
+            Q, // param2: filter Q
             Saturation, // filter saturation
             Freq, // filter freq
             FreqKT, // filter KT
@@ -2650,37 +2648,37 @@ namespace WaveSabreCore
 //            " (n/a)", \
 //        }
 //
-
-        // BITCRUSH AUX INFO  ------------------------------------------------------------
-        enum class BitcrushAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & BitcrushAuxModIndexOffsets
-        {
-            unused__Enabled,
-            unused__Link,
-            unused__AuxType,
-            unused__1, // param 1
-            // FROM here, must be identical to DistortionAuxModIndexOffsets (param2 - 5)
-            unused__2, // param 2
-            unused__3, // param 3
-            Freq, // param 4
-            FreqKT, // param 5
-            Count,
-        };
-
-        enum class BitcrushAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
-        {
-            unused__2, // param 2
-            unused__3, // param 3
-            Freq, // param 4
-            unused__5, // param 5
-            Count,
-        };
-        static_assert((int)BitcrushAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
-#define BITCRUSH_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::BitcrushAuxParamIndexOffsets::Count] { \
-            " (n/a)", \
-			" (n/a)", \
-			" (Bitcrush frequency)", \
-            " (n/a)", \
-        }
+//
+//        // BITCRUSH AUX INFO  ------------------------------------------------------------
+//        enum class BitcrushAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & BitcrushAuxModIndexOffsets
+//        {
+//            unused__Enabled,
+//            unused__Link,
+//            unused__AuxType,
+//            unused__1, // param 1
+//            // FROM here, must be identical to DistortionAuxModIndexOffsets (param2 - 5)
+//            unused__2, // param 2
+//            unused__3, // param 3
+//            Freq, // param 4
+//            FreqKT, // param 5
+//            Count,
+//        };
+//
+//        enum class BitcrushAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+//        {
+//            unused__2, // param 2
+//            unused__3, // param 3
+//            Freq, // param 4
+//            unused__5, // param 5
+//            Count,
+//        };
+//        static_assert((int)BitcrushAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
+//#define BITCRUSH_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::BitcrushAuxParamIndexOffsets::Count] { \
+//            " (n/a)", \
+//			" (n/a)", \
+//			" (Bitcrush frequency)", \
+//            " (n/a)", \
+//        }
 
 
         // ------------------------------------------------------------
@@ -2732,13 +2730,12 @@ namespace WaveSabreCore
             None,
             BigFilter,
             //Distortion,
-            Bitcrush,
+            //Bitcrush,
             Count,
         };
         #define AUX_EFFECT_TYPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxEffectType::Count] { \
             "None", \
 			"BigFilter", \
-			"Bitcrush", \
         }
 
         struct IAuxEffect

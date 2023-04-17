@@ -179,12 +179,6 @@ namespace WaveSabreCore
 					break;
 				case AuxEffectType::BigFilter:
 					return new FilterAuxNode(mParams, mModDestParam2ID);
-				case AuxEffectType::Bitcrush:
-#ifdef MAJ7_INCLUDE_BITCRUSH_AUX
-					return new BitcrushAuxNode(mParams, mModDestParam2ID);
-#else
-					break;
-#endif // MAJ7_INCLUDE_BITCRUSH_AUX
 				}
 				return nullptr;
 			}
@@ -516,7 +510,8 @@ namespace WaveSabreCore
 
 				// and correct stuff
 
-				mAuxDevices[0].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::Bitcrush);
+				mAuxDevices[0].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::BigFilter);
+
 				mAuxDevices[1].mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, true);
 				mAuxDevices[1].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::BigFilter);
 
@@ -533,8 +528,8 @@ namespace WaveSabreCore
 
 				//BitcrushAuxNode a1{ ParamAccessor{ mParamCache, ParamIndices::Aux1Enabled }, 0 };
 				ParamAccessor a1{ mParamCache, ParamIndices::Aux1Enabled };
-				a1.Set01Val(BitcrushAuxParamIndexOffsets::Freq, 0.3f);
-				a1.Set01Val(BitcrushAuxParamIndexOffsets::FreqKT, 1);
+				//a1.Set01Val(BitcrushAuxParamIndexOffsets::Freq, 0.3f);
+				//a1.Set01Val(BitcrushAuxParamIndexOffsets::FreqKT, 1);
 
 				//FilterAuxNode f2{ ParamAccessor{ mParamCache, ParamIndices::Aux2Enabled }, 0 };
 				ParamAccessor f2{ mParamCache, ParamIndices::Aux2Enabled };
