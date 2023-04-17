@@ -136,33 +136,32 @@ namespace WaveSabreCore
 			AuxDevice* mpAllAuxNodes;
 
 			ParamAccessor mParams;
-			bool mEnabled;
-			AuxLink mLink;
-			AuxEffectType mEffectType;
-			//BoolParam mEnabledParam;
-			//EnumParam<AuxLink> mLink;
-			//EnumParam<AuxEffectType> mEffectType;
+			//bool mEnabled;
+			//AuxLink mLink;
+			//AuxEffectType mEffectType;
 
-			//float* const mParamCache_Offset;
 			const int mModDestParam2ID;
-			//const int mBaseParamID;
 
 			AuxDevice(float* paramCache, AuxDevice* allAuxNodes, AuxLink selfLink, int baseParamID, int modDestParam2ID) :
 				mpAllAuxNodes(allAuxNodes),
 				mLinkToSelf(selfLink),
 				mParams(paramCache, baseParamID),
-				//mEnabledParam(paramCache[baseParamID + (int)AuxParamIndexOffsets::Enabled]),
-				//mLink(paramCache[baseParamID + (int)AuxParamIndexOffsets::Link], AuxLink::Count),
-				//mEffectType(paramCache[baseParamID + (int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
-				//mParamCache_Offset(paramCache + baseParamID),
 				mModDestParam2ID(modDestParam2ID)
-				//mBaseParamID(baseParamID)
 			{
+			}
+
+			auto GetLink() const
+			{
+				return mParams.GetEnumValue<AuxLink>(AuxParamIndexOffsets::Link);
+			}
+			auto GetEffectType() const
+			{
+				return mParams.GetEnumValue<AuxEffectType>(AuxParamIndexOffsets::Type);
 			}
 
 			bool IsLinkedExternally() const
 			{
-				return mLinkToSelf != mLink;
+				return mLinkToSelf != GetLink();
 			}
 
 			// nullptr is a valid return val for safe null effect.
@@ -172,7 +171,7 @@ namespace WaveSabreCore
 					return nullptr;
 				}
 				// ASSERT: not linked.
-				switch (mEffectType)
+				switch (GetEffectType())
 				{
 				default:
 				case AuxEffectType::None:
@@ -186,7 +185,7 @@ namespace WaveSabreCore
 			// returns whether this node will process audio. depends on external linking.
 			bool IsEnabled() const
 			{
-				auto link = mLink;// .GetEnumValue();
+				auto link = GetLink();// .GetEnumValue();
 				const AuxDevice* srcNode = this;
 				if (IsLinkedExternally())
 				{
@@ -197,16 +196,16 @@ namespace WaveSabreCore
 						return false; // no chaining; needlessly vexing
 					}
 				}
-				return srcNode->mEnabled;// .GetBoolValue();
+				return srcNode->mParams.GetBoolValue(AuxParamIndexOffsets::Enabled);// .GetBoolValue();
 			}
 
 			// pass in aux nodes due to linking.
 			// for simplicity to avoid circular refs, disable if you link to a linked aux
 			void BeginBlock()
 			{
-				mEnabled = mParams.GetBoolValue(AuxParamIndexOffsets::Enabled);
-				mLink = mParams.GetEnumValue<AuxLink>(AuxParamIndexOffsets::Link);
-				mEffectType = mParams.GetEnumValue<AuxEffectType>(AuxParamIndexOffsets::Type);
+				//mEnabled = mParams.GetBoolValue(AuxParamIndexOffsets::Enabled);
+				//mLink = mParams.GetEnumValue<AuxLink>(AuxParamIndexOffsets::Link);
+				//mEffectType = mParams.GetEnumValue<AuxEffectType>(AuxParamIndexOffsets::Type);
 			}
 		};
 
@@ -239,9 +238,9 @@ namespace WaveSabreCore
 			// for simplicity to avoid circular refs, disable if you link to a linked aux
 			void BeginBlock(float noteHz, ModMatrixNode& modMatrix) {
 				if (!mpDevice->IsEnabled()) return;
-				auto link = mpDevice->mLink;// .GetEnumValue();
+				auto link = mpDevice->GetLink();// .GetEnumValue();
 				AuxDevice* const srcNode = &mpDevice->mpAllAuxNodes[(int)link];
-				auto effectType = srcNode->mEffectType;// .GetEnumValue();
+				auto effectType = srcNode->GetEffectType();// .GetEnumValue();
 
 				// ensure correct engine set up.
 				if (mCurrentEffectLink != link || mCurrentEffectType != effectType || !mpCurrentEffect) {
@@ -274,21 +273,11 @@ namespace WaveSabreCore
 			float mCurrentNote = 0;
 			float mSlideCursorSamples = 0;
 
-			//enum class ParamOffsets
-			//{
-			//	Time,
-			//	Curve,
-			//};
-
 		public:
 			ParamAccessor mParams;
-			//EnvTimeParam mTime;
-			//CurveParam mCurve;
 
-			PortamentoCalc(float* paramCache) : //float& timeParamBacking, float& curveParamBacking) :
+			PortamentoCalc(float* paramCache) :
 				mParams(paramCache, 0)
-				//mTime(timeParamBacking),
-				//mCurve(curveParamBacking)
 			{}
 
 			// advances cursor; call this at the end of buffer processing. next buffer will call
@@ -519,28 +508,11 @@ namespace WaveSabreCore
 				mAuxDevices[2].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux1);
 				mAuxDevices[3].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux2);
 
-				//mAuxDevices[0].mEffectType.SetEnumValue(AuxEffectType::Bitcrush);
-				//mAuxDevices[1].mEnabledParam.SetBoolValue(true);
-				//mAuxDevices[1].mEffectType.SetEnumValue(AuxEffectType::BigFilter);
-				//mAuxDevices[1].mLink.SetEnumValue(AuxLink::Aux2);
-				//mAuxDevices[2].mLink.SetEnumValue(AuxLink::Aux1);
-				//mAuxDevices[3].mLink.SetEnumValue(AuxLink::Aux2);
-
-				//BitcrushAuxNode a1{ ParamAccessor{ mParamCache, ParamIndices::Aux1Enabled }, 0 };
 				ParamAccessor a1{ mParamCache, ParamIndices::Aux1Enabled };
-				//a1.Set01Val(BitcrushAuxParamIndexOffsets::Freq, 0.3f);
-				//a1.Set01Val(BitcrushAuxParamIndexOffsets::FreqKT, 1);
-
-				//FilterAuxNode f2{ ParamAccessor{ mParamCache, ParamIndices::Aux2Enabled }, 0 };
 				ParamAccessor f2{ mParamCache, ParamIndices::Aux2Enabled };
 				a1.Set01Val(FilterAuxParamIndexOffsets::Freq, M7::gFreqParamKTUnity);
 				a1.Set01Val(FilterAuxParamIndexOffsets::FreqKT, 1);
 				a1.Set01Val(FilterAuxParamIndexOffsets::Q, 0.15f);
-
-				//f2.mFilterFreqParam.mValue.SetParamValue(M7::gFreqParamKTUnity);
-				//f2.mFilterFreqParam.mKTValue.SetParamValue(1.0f);
-				//f2.mFilterQParam.SetParamValue(0.15f);
-				//f2.mFilterSaturationParam.SetParamValue(0.15f);
 
 				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
 
@@ -886,17 +858,6 @@ namespace WaveSabreCore
 				SamplerVoice mSampler3;
 				SamplerVoice mSampler4;
 
-				//EnvelopeNode mOsc1AmpEnv;
-				//EnvelopeNode mOsc2AmpEnv;
-				//EnvelopeNode mOsc3AmpEnv;
-				//EnvelopeNode mOsc4AmpEnv;
-				//EnvelopeNode mSampler1AmpEnv;
-				//EnvelopeNode mSampler2AmpEnv;
-				//EnvelopeNode mSampler3AmpEnv;
-				//EnvelopeNode mSampler4AmpEnv;
-				//EnvelopeNode mModEnv1;
-				//EnvelopeNode mModEnv2;
-
 				EnvelopeNode mAllEnvelopes[gSourceCount + gModEnvCount];
 				static constexpr size_t Osc1AmpEnvIndex = 0;
 				static constexpr size_t Osc2AmpEnvIndex = 1;
@@ -909,8 +870,6 @@ namespace WaveSabreCore
 				static constexpr size_t ModEnv1Index = 8;
 				static constexpr size_t ModEnv2Index = 9;
 
-				//EnvelopeNode* mpAllModEnvelopes[gModEnvCount];
-
 				ISoundSourceDevice::Voice* mSourceVoices[gSourceCount] = {
 					&mOscillator1,
 					&mOscillator2,
@@ -922,10 +881,6 @@ namespace WaveSabreCore
 					&mSampler4,
 				};
 
-				//AuxNode mAux1;
-				//AuxNode mAux2;
-				//AuxNode mAux3;
-				//AuxNode mAux4;
 				AuxNode mAuxNodes[gAuxNodeCount];
 
 				float mMidiNote = 0;
@@ -1023,12 +978,6 @@ namespace WaveSabreCore
 						mModMatrix.SetSourceValue(env.mMyModSource, l);
 					}
 
-					//float l = mModEnv1.ProcessSample();
-					//mModMatrix.SetSourceValue(ModSource::ModEnv1,l );
-
-					//l = mModEnv2.ProcessSample();
-					//mModMatrix.SetSourceValue(ModSource::ModEnv2, l);
-
 					for (size_t i = 0; i < gModLFOCount; ++i) {
 						auto& lfo = mLFOs[i];
 						float s = lfo.mNode.ProcessSampleForLFO(false);
@@ -1044,8 +993,6 @@ namespace WaveSabreCore
 							srcVoice->mpAmpEnv->kill();
 							continue;
 						}
-
-						//mModMatrix.SetSourceValue(srcVoice->mpSrcDevice->mAmpEnvModSourceID, srcVoice->mpAmpEnv->ProcessSample());
 					}
 
 					// process modulations here. sources have just been set, and past here we're getting many destination values.
