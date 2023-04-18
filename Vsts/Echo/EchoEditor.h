@@ -47,10 +47,10 @@ public:
 		WSImGuiParamKnob((VstInt32)WaveSabreCore::Echo::ParamIndices::DryWet, "DRY/WET");
 
 
-		Maj7ImGuiParamFrequency((int)Echo::ParamIndices::LowCutFreq, -1, "Lowcut", M7::gFilterFreqConfig, 0);
+		Maj7ImGuiParamFrequency((int)Echo::ParamIndices::LowCutFreq, -1, "Lowcut", M7::gFilterFreqConfig, 0, {});
 		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Echo::ParamIndices::LowCutFreq, "LC FREQ", ParamBehavior::Frequency);
 		ImGui::SameLine();
-		Maj7ImGuiParamFrequency((int)Echo::ParamIndices::HighCutFreq, -1, "Highcut", M7::gFilterFreqConfig, 1);
+		Maj7ImGuiParamFrequency((int)Echo::ParamIndices::HighCutFreq, -1, "Highcut", M7::gFilterFreqConfig, 1, {});
 		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Echo::ParamIndices::HighCutFreq, "HC FREQ", ParamBehavior::Frequency);
 
 	}
