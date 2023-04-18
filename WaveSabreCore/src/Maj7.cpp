@@ -1,8 +1,8 @@
 #include <WaveSabreCore/Maj7.hpp>
 namespace WaveSabreCore {
     namespace M7 {
-        static_assert((int)M7::MainParamIndices::Count == 33, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultMasterParams[33] = {
+        static_assert((int)M7::MainParamIndices::Count == 32, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultMasterParams[32] = {
           16422, // Master = 0.50118720531463623047
           8, // PolyMon = 0.0002470355830155313015
           1365, // Unisono = 0.041666667908430099487
@@ -11,7 +11,6 @@ namespace WaveSabreCore {
           0, // OscSpr = 0
           0, // UniSpr = 0
           16384, // FMBrigh = 0.5
-          8, // XRout = 0.0002470355830155313015
           32767, // XWidth = 1
           9830, // PortTm = 0.30000001192092895508
           16384, // PortCv = 0.5
@@ -125,16 +124,13 @@ namespace WaveSabreCore {
           0, // O1FMFb = 0
           16384, // O1Xmix = 0.5
         };
-        static_assert((int)M7::AuxParamIndexOffsets::Count == 8, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultAuxParams[8] = {
+        static_assert((int)M7::FilterParamIndexOffsets::Count == 5, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultFilterParams[5] = {
           0, // X1En = 0
-          8, // X1Link = 0.0002470355830155313015
-          8, // X1Type = 0.0002470355830155313015
+          0, // X1Type = 0.0002470355830155313015
           0, // X1P1 = 0
           0, // X1P2 = 0
           0, // X1P3 = 0
-          0, // X1P4 = 0
-          0, // X1P5 = 0
         };
     } // namespace M7
 } // namespace WaveSabreCore

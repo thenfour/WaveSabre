@@ -247,24 +247,25 @@ namespace WaveSabreCore
 			FMAmt2to4, // arate, 01
 			FMAmt3to4, // arate, 01
 
-			// aux param 1 is not a mod destination. just keeps things slightly more compact and there's ALWAYS 1 param like this anyway so it's not necessary.
-			// typically param 1 is an enum like FilterType or DistortionType.
-			Aux1Param2,
-			Aux1Param3,
-			Aux1Param4,
-			Aux1Param5,
-			Aux2Param2,
-			Aux2Param3,
-			Aux2Param4,
-			Aux2Param5,
-			Aux3Param2,
-			Aux3Param3,
-			Aux3Param4,
-			Aux3Param5,
-			Aux4Param2,
-			Aux4Param3,
-			Aux4Param4,
-			Aux4Param5,
+				// for compatibility reasons, retain the same values as previous aux values.
+				Filter1Q, // Aux1Param2
+				Aux1Param3_unused, // Aux1Param3
+				Filter1Freq, // Aux1Param4
+				Aux1Param5_unused, // Aux1Param5
+
+				Filter2Q, // Aux2Param2
+				Aux2Param3_unused, // Aux2Param3
+				Filter2Freq, // Aux2Param4
+				Aux2Param5_unused, // Aux2Param5
+
+				Aux3Param2_unused, // Aux3Param2
+				Aux3Param3_unused, // Aux3Param3
+				Aux3Param4_unused, // Aux3Param4
+				Aux3Param5_unused, // Aux3Param5
+				Aux4Param2_unused, // Aux4Param2
+				Aux4Param3_unused, // Aux4Param3
+				Aux4Param4_unused, // Aux4Param4
+				Aux4Param5_unused, // Aux4Param5
 
 
 			Sampler1Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
@@ -492,22 +493,22 @@ namespace WaveSabreCore
 			"FMAmt1to4", \
 			"FMAmt2to4", \
 			"FMAmt3to4", \
-			"Aux1Param2", \
-			"Aux1Param3", \
-			"Aux1Param4", \
-			"Aux1Param5", \
-			"Aux2Param2", \
-			"Aux2Param3", \
-			"Aux2Param4", \
-			"Aux2Param5", \
-			"Aux3Param2", \
-			"Aux3Param3", \
-			"Aux3Param4", \
-			"Aux3Param5", \
-			"Aux4Param2", \
-			"Aux4Param3", \
-			"Aux4Param4", \
-			"Aux4Param5", \
+			"Filt1Q", \
+			"-",\
+			"Filt1Freq", \
+			"-",\
+			"Filt2Q", \
+			"-",\
+			"Filt2Freq", \
+			"-",\
+			"-",\
+			"-",\
+			"-",\
+			"-",\
+			"-",\
+			"-",\
+			"-",\
+			"-",\
 			"Sampler1Volume", \
 		"Sampler1HiddenVolume", \
 			"Sampler1PitchFine", \
@@ -680,22 +681,22 @@ namespace WaveSabreCore
 "FM1to4", \
 "FM2to4", \
 "FM3to4", \
-"Aux1P2", \
-"Aux1P3", \
-"Aux1P4", \
-"Aux1P5", \
-"Aux2P2", \
-"Aux2P3", \
-"Aux2P4", \
-"Aux2P5", \
-"Aux3P2", \
-"Aux3P3", \
-"Aux3P4", \
-"Aux3P5", \
-"Aux4P2", \
-"Aux4P3", \
-"Aux4P4", \
-"Aux4P5", \
+"Flt1Q", \
+"-",\
+"Flt1Freq", \
+"-",\
+"Flt2Q", \
+"-",\
+"Flt2Freq", \
+"-",\
+"-",\
+"-",\
+"-",\
+"-",\
+"-",\
+"-",\
+"-",\
+"-",\
 "S1Vol", \
 "S1PreVol", \
 "S1Fine", \

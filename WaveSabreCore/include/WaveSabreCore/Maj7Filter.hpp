@@ -132,54 +132,44 @@ namespace WaveSabreCore
 		}; // FilterNode
 
 
-        struct FilterAuxNode : IAuxEffect
+        struct FilterAuxNode// : IAuxEffect
         {
-            FilterNode mFilter;
+            FilterNode mFilter; // stereo. cpu optimization: combine into a stereo filter to eliminate double recalc. but it's more code size.
 
             ParamAccessor mParams;
 
             FilterModel mFilterType;
-            //EnumParam<FilterModel> mFilterTypeParam; // FilterType,
-            //Float01Param mFilterQParam;// FilterQ,
-            //Float01Param mFilterSaturationParam;// FilterSaturation,
-            //FrequencyParam mFilterFreqParam;// FilterFrequency,// FilterFrequencyKT,
-
-            int mModDestParam2ID;
+            ModDestination mModDestBase;
             float mNoteHz = 0;
             size_t mnSampleCount = 0;
             ModMatrixNode* mModMatrix = nullptr;
+            bool mEnabledCached = false;
 
-            FilterAuxNode(ParamAccessor& params, int modDestParam2ID) :
-                mParams(params),
-                // !! do not SET initial values; these get instantiated dynamically.
-                //mFilterTypeParam(auxParams[(int)FilterAuxParamIndexOffsets::FilterType], FilterModel::Count),
-                //mFilterQParam(auxParams[(int)FilterAuxParamIndexOffsets::Q]),
-                //mFilterSaturationParam(auxParams[(int)FilterAuxParamIndexOffsets::Saturation]),
-                //mFilterFreqParam(auxParams[(int)FilterAuxParamIndexOffsets::Freq], auxParams[(int)FilterAuxParamIndexOffsets::FreqKT], gFilterCenterFrequency, gFilterFrequencyScale),
-                mModDestParam2ID(modDestParam2ID)
+            FilterAuxNode(float* paramCache, ParamIndices baseParamID, ModDestination modDestBase) :
+                mParams(paramCache, baseParamID),
+                mModDestBase(modDestBase)
             {}
 
-            virtual void AuxBeginBlock(float noteHz, ModMatrixNode& modMatrix) override
+            void AuxBeginBlock(float noteHz, ModMatrixNode& modMatrix)
             {
                 mModMatrix = &modMatrix;
                 mnSampleCount = 0; // ensure reprocessing after setting these params to avoid corrupt state.
                 mNoteHz = noteHz;
-                mFilterType = mParams.GetEnumValue<FilterModel>(FilterAuxParamIndexOffsets::FilterType);
-                //mFilterTypeParam.CacheValue();
+                mFilterType = mParams.GetEnumValue<FilterModel>(FilterParamIndexOffsets::FilterType);
+                mEnabledCached = mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);
             }
 
-            virtual float AuxProcessSample(float inputSample) override
+            float AuxProcessSample(float inputSample)
             {
+                if (!mEnabledCached) return inputSample;
                 auto recalcMask = GetModulationRecalcSampleMask();
                 bool calc = (mnSampleCount == 0);
                 mnSampleCount = (mnSampleCount + 1) & recalcMask;
                 if (calc) {
                     mFilter.SetParams(
                         mFilterType,
-                        mParams.GetFrequency(FilterAuxParamIndexOffsets::Freq, FilterAuxParamIndexOffsets::FreqKT, gFilterFreqConfig, mNoteHz, mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Freq)),
-                        //mFilterFreqParam.GetFrequency(mNoteHz, ),
-                        mParams.Get01Value(FilterAuxParamIndexOffsets::Q, mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q))
-                        //mFilterQParam.Get01Value(mModMatrix->GetDestinationValue(mModDestParam2ID + (int)FilterAuxModIndexOffsets::Q))
+                        mParams.GetFrequency(FilterParamIndexOffsets::Freq, FilterParamIndexOffsets::FreqKT, gFilterFreqConfig, mNoteHz, mModMatrix->GetDestinationValue((int)mModDestBase + (int)FilterAuxModDestOffsets::Freq)),
+                        mParams.Get01Value(FilterParamIndexOffsets::Q, mModMatrix->GetDestinationValue((int)mModDestBase + (int)FilterAuxModDestOffsets::Q))
                     );
                 }
 

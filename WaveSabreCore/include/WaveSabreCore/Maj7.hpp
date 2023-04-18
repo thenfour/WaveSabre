@@ -130,136 +130,118 @@ namespace WaveSabreCore
 				"ModDest_Osc4SyncFreq", \
         };
 #endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
-		struct AuxDevice
-		{
-			const AuxLink mLinkToSelf;
-			AuxDevice* mpAllAuxNodes;
-
-			ParamAccessor mParams;
-			//bool mEnabled;
-			//AuxLink mLink;
-			//AuxEffectType mEffectType;
-
-			const int mModDestParam2ID;
-
-			AuxDevice(float* paramCache, AuxDevice* allAuxNodes, AuxLink selfLink, int baseParamID, int modDestParam2ID) :
-				mpAllAuxNodes(allAuxNodes),
-				mLinkToSelf(selfLink),
-				mParams(paramCache, baseParamID),
-				mModDestParam2ID(modDestParam2ID)
-			{
-			}
-
-			auto GetLink() const
-			{
-				return mParams.GetEnumValue<AuxLink>(AuxParamIndexOffsets::Link);
-			}
-			auto GetEffectType() const
-			{
-				return mParams.GetEnumValue<AuxEffectType>(AuxParamIndexOffsets::Type);
-			}
-
-			bool IsLinkedExternally() const
-			{
-				return mLinkToSelf != GetLink();
-			}
-
-			// nullptr is a valid return val for safe null effect.
-			IAuxEffect* CreateEffect()
-			{
-				if (!IsEnabled()) {
-					return nullptr;
-				}
-				// ASSERT: not linked.
-				switch (GetEffectType())
-				{
-				default:
-				case AuxEffectType::None:
-					break;
-				case AuxEffectType::BigFilter:
-					return new FilterAuxNode(mParams, mModDestParam2ID);
-				}
-				return nullptr;
-			}
-
-			// returns whether this node will process audio. depends on external linking.
-			bool IsEnabled() const
-			{
-				auto link = GetLink();// .GetEnumValue();
-				const AuxDevice* srcNode = this;
-				if (IsLinkedExternally())
-				{
-					if (!mpAllAuxNodes) return false;
-					srcNode = &mpAllAuxNodes[(int)link];
-					if (srcNode->IsLinkedExternally())
-					{
-						return false; // no chaining; needlessly vexing
-					}
-				}
-				return srcNode->mParams.GetBoolValue(AuxParamIndexOffsets::Enabled);// .GetBoolValue();
-			}
-
-			// pass in aux nodes due to linking.
-			// for simplicity to avoid circular refs, disable if you link to a linked aux
-			void BeginBlock()
-			{
-				//mEnabled = mParams.GetBoolValue(AuxParamIndexOffsets::Enabled);
-				//mLink = mParams.GetEnumValue<AuxLink>(AuxParamIndexOffsets::Link);
-				//mEffectType = mParams.GetEnumValue<AuxEffectType>(AuxParamIndexOffsets::Type);
-			}
-		};
 
 
-		struct AuxNode
-		{
-			AuxDevice* mpDevice = nullptr;
-			AuxLink mCurrentEffectLink;
-			AuxEffectType mCurrentEffectType = AuxEffectType::None;
-			IAuxEffect* mpCurrentEffect = nullptr;
+		//struct FilterDevice
+		//{
+		//	//const AuxLink mLinkToSelf;
+		//	//AuxDevice* mpAllAuxNodes;
 
-			AuxNode(AuxDevice* pDevice) :
-				mpDevice(pDevice),
-				mCurrentEffectLink(pDevice->mLinkToSelf)
-			{
-			}
+		//	ParamAccessor mParams;
+		//	const int mModDestParam2ID;
 
-			virtual ~AuxNode()
-			{
-				delete mpCurrentEffect;
-			}
+		//	FilterDevice(float* paramCache, int baseParamID, int modDestParam2ID) :
+		//		mParams(paramCache, baseParamID),
+		//		mModDestParam2ID(modDestParam2ID)
+		//	{
+		//	}
 
-			void Reset()
-			{
-				delete mpCurrentEffect;
-				mpCurrentEffect = nullptr;
-			}
+		//	//auto GetLink() const
+		//	//{
+		//	//	return mParams.GetEnumValue<AuxLink>(AuxParamIndexOffsets::Link);
+		//	//}
+		//	//auto GetEffectType() const
+		//	//{
+		//	//	return mParams.GetEnumValue<AuxEffectType>(AuxParamIndexOffsets::Type);
+		//	//}
 
-			// pass in aux nodes due to linking.
-			// for simplicity to avoid circular refs, disable if you link to a linked aux
-			void BeginBlock(float noteHz, ModMatrixNode& modMatrix) {
-				if (!mpDevice->IsEnabled()) return;
-				auto link = mpDevice->GetLink();// .GetEnumValue();
-				AuxDevice* const srcNode = &mpDevice->mpAllAuxNodes[(int)link];
-				auto effectType = srcNode->GetEffectType();// .GetEnumValue();
+		//	//bool IsLinkedExternally() const
+		//	//{
+		//	//	return mLinkToSelf != GetLink();
+		//	//}
 
-				// ensure correct engine set up.
-				if (mCurrentEffectLink != link || mCurrentEffectType != effectType || !mpCurrentEffect) {
-					delete mpCurrentEffect;
-					mpCurrentEffect = srcNode->CreateEffect();
-					mCurrentEffectLink = link;
-					mCurrentEffectType = effectType;
-				}
-				if (!mpCurrentEffect) return;
+		//	// nullptr is a valid return val for safe null effect.
+		//	//IAuxEffect* CreateEffect()
+		//	//{
+		//	//	if (!IsEnabled()) {
+		//	//		return nullptr;
+		//	//	}
+		//	//	// ASSERT: not linked.
+		//	//	switch (GetEffectType())
+		//	//	{
+		//	//	default:
+		//	//	case AuxEffectType::None:
+		//	//		break;
+		//	//	case AuxEffectType::BigFilter:
+		//	//		return new FilterAuxNode(mParams, mModDestParam2ID);
+		//	//	}
+		//	//	return nullptr;
+		//	//}
 
-				return mpCurrentEffect->AuxBeginBlock(noteHz, modMatrix);
-			}
+		//	// returns whether this node will process audio. depends on external linking.
+		//	bool IsEnabled() const
+		//	{
+		//		return mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);// .GetBoolValue();
+		//	}
 
-			float ProcessSample(float inp) {
-				if (!mpDevice->IsEnabled()) return inp;
-				if (!mpCurrentEffect) return inp;
-				return mpCurrentEffect->AuxProcessSample(inp);
-			}
-		};
+		//	// pass in aux nodes due to linking.
+		//	// for simplicity to avoid circular refs, disable if you link to a linked aux
+		//	void BeginBlock()
+		//	{
+		//	}
+		//};
+
+
+		//struct AuxNode
+		//{
+		//	AuxDevice* mpDevice = nullptr;
+		//	AuxLink mCurrentEffectLink;
+		//	AuxEffectType mCurrentEffectType = AuxEffectType::None;
+		//	IAuxEffect* mpCurrentEffect = nullptr;
+
+		//	AuxNode(AuxDevice* pDevice) :
+		//		mpDevice(pDevice),
+		//		mCurrentEffectLink(pDevice->mLinkToSelf)
+		//	{
+		//	}
+
+		//	virtual ~AuxNode()
+		//	{
+		//		delete mpCurrentEffect;
+		//	}
+
+		//	void Reset()
+		//	{
+		//		delete mpCurrentEffect;
+		//		mpCurrentEffect = nullptr;
+		//	}
+
+		//	// pass in aux nodes due to linking.
+		//	// for simplicity to avoid circular refs, disable if you link to a linked aux
+		//	void BeginBlock(float noteHz, ModMatrixNode& modMatrix) {
+		//		if (!mpDevice->IsEnabled()) return;
+		//		auto link = mpDevice->GetLink();// .GetEnumValue();
+		//		AuxDevice* const srcNode = &mpDevice->mpAllAuxNodes[(int)link];
+		//		auto effectType = srcNode->GetEffectType();// .GetEnumValue();
+
+		//		// ensure correct engine set up.
+		//		if (mCurrentEffectLink != link || mCurrentEffectType != effectType || !mpCurrentEffect) {
+		//			delete mpCurrentEffect;
+		//			mpCurrentEffect = srcNode->CreateEffect();
+		//			mCurrentEffectLink = link;
+		//			mCurrentEffectType = effectType;
+		//		}
+		//		if (!mpCurrentEffect) return;
+
+		//		return mpCurrentEffect->AuxBeginBlock(noteHz, modMatrix);
+		//	}
+
+		//	float ProcessSample(float inp) {
+		//		if (!mpDevice->IsEnabled()) return inp;
+		//		if (!mpCurrentEffect) return inp;
+		//		return mpCurrentEffect->AuxProcessSample(inp);
+		//	}
+		//};
 
 
 		// this does not operate on frequencies, it operates on target midi note value (0-127).
@@ -323,7 +305,7 @@ namespace WaveSabreCore
 		extern const int16_t gDefaultLFOParams[(int)LFOParamIndexOffsets::Count];
 		extern const int16_t gDefaultEnvelopeParams[(int)EnvParamIndexOffsets::Count];
 		extern const int16_t gDefaultOscillatorParams[(int)OscParamIndexOffsets::Count];
-		extern const int16_t gDefaultAuxParams[(int)AuxParamIndexOffsets::Count];
+		extern const int16_t gDefaultFilterParams[(int)FilterParamIndexOffsets::Count];
 
 		struct Maj7 : public Maj7SynthDevice
 		{
@@ -331,7 +313,7 @@ namespace WaveSabreCore
 			static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
 			static constexpr size_t gSamplerCount = 4;
 			static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
-			static constexpr size_t gAuxNodeCount = 4;
+			//static constexpr size_t gAuxNodeCount = 4;
 			static constexpr size_t gMacroCount = 7;
 
 			static constexpr size_t gModEnvCount = 2;
@@ -417,12 +399,12 @@ namespace WaveSabreCore
 				SamplerDevice{ mParamCache, &mModulations[gModulationCount - 1], ParamIndices::Sampler4Enabled, ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume },
 			};
 
-			AuxDevice mAuxDevices[gAuxNodeCount] = {
-				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux1, (int)ParamIndices::Aux1Enabled, (int)ModDestination::Aux1Param2 },
-				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux2, (int)ParamIndices::Aux2Enabled, (int)ModDestination::Aux2Param2 },
-				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux3, (int)ParamIndices::Aux3Enabled, (int)ModDestination::Aux3Param2 },
-				AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux4, (int)ParamIndices::Aux4Enabled, (int)ModDestination::Aux4Param2 },
-			};
+			//AuxDevice mAuxDevices[gAuxNodeCount] = {
+			//	AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux1, (int)ParamIndices::Aux1Enabled, (int)ModDestination::Aux1Param2 },
+			//	AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux2, (int)ParamIndices::Aux2Enabled, (int)ModDestination::Aux2Param2 },
+			//	AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux3, (int)ParamIndices::Aux3Enabled, (int)ModDestination::Aux3Param2 },
+			//	AuxDevice { mParamCache, mAuxDevices, AuxLink::Aux4, (int)ParamIndices::Aux4Enabled, (int)ModDestination::Aux4Param2 },
+			//};
 
 			ISoundSourceDevice* mSources[gSourceCount] = {
 				&mOscillatorDevices[0],
@@ -454,11 +436,11 @@ namespace WaveSabreCore
 			virtual void LoadDefaults() override
 			{
 				// aux nodes reset
-				for (size_t i = 0; i < std::size(mVoices); ++i) {
-					for (auto& x : mMaj7Voice[i]->mAuxNodes) {
-						x.Reset();
-					}
-				}
+				//for (size_t i = 0; i < std::size(mVoices); ++i) {
+				//	for (auto& x : mMaj7Voice[i]->mAuxNodes) {
+				//		x.Reset();
+				//	}
+				//}
 				// samplers reset
 				for (auto& s : mSamplerDevices) {
 					s.Reset();
@@ -483,8 +465,8 @@ namespace WaveSabreCore
 					ImportDefaultsArray(std::size(gDefaultModSpecParams), gDefaultModSpecParams, m.mParams.GetOffsetParamCache());// mParamCache + (int)m.mBaseParamID);
 					//memcpy(mParamCache + (int)m.mBaseParamID, gDefaultModSpecParams, sizeof(gDefaultModSpecParams));
 				}
-				for (auto& m : mAuxDevices) {
-					ImportDefaultsArray(std::size(gDefaultAuxParams), gDefaultAuxParams, m.mParams.GetOffsetParamCache());
+				for (auto& m : mMaj7Voice[0]->mFilters) {
+					ImportDefaultsArray(std::size(gDefaultFilterParams), gDefaultFilterParams, m[0].mParams.GetOffsetParamCache());
 					//memcpy(m.mParamCache_Offset, gDefaultAuxParams, sizeof(gDefaultAuxParams));
 				}
 				for (auto& m : mMaj7Voice[0]->mAllEnvelopes) {
@@ -499,20 +481,20 @@ namespace WaveSabreCore
 
 				// and correct stuff
 
-				mAuxDevices[0].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::BigFilter);
+				//mAuxDevices[0].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::BigFilter);
 
-				mAuxDevices[1].mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, true);
-				mAuxDevices[1].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::BigFilter);
+				//mAuxDevices[1].mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, true);
+				//mAuxDevices[1].mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::BigFilter);
 
-				mAuxDevices[1].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux2);
-				mAuxDevices[2].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux1);
-				mAuxDevices[3].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux2);
+				//mAuxDevices[1].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux2);
+				//mAuxDevices[2].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux1);
+				//mAuxDevices[3].mParams.SetEnumValue(AuxParamIndexOffsets::Link, AuxLink::Aux2);
 
-				ParamAccessor a1{ mParamCache, ParamIndices::Aux1Enabled };
-				ParamAccessor f2{ mParamCache, ParamIndices::Aux2Enabled };
-				a1.Set01Val(FilterAuxParamIndexOffsets::Freq, M7::gFreqParamKTUnity);
-				a1.Set01Val(FilterAuxParamIndexOffsets::FreqKT, 1);
-				a1.Set01Val(FilterAuxParamIndexOffsets::Q, 0.15f);
+				//ParamAccessor a1{ mParamCache, ParamIndices::Aux1Enabled };
+				//ParamAccessor f2{ mParamCache, ParamIndices::Aux2Enabled };
+				//a1.Set01Val(FilterAuxParamIndexOffsets::Freq, M7::gFreqParamKTUnity);
+				//a1.Set01Val(FilterAuxParamIndexOffsets::FreqKT, 1);
+				//a1.Set01Val(FilterAuxParamIndexOffsets::Q, 0.15f);
 
 				mParamCache[(int)ParamIndices::Osc1Enabled] = 1.0f;
 
@@ -618,9 +600,9 @@ namespace WaveSabreCore
 				for (auto& m : mModulations) {
 					m.BeginBlock();
 				}
-				for (size_t i = 0; i < gAuxNodeCount; ++i) {
-					mAuxDevices[i].BeginBlock();
-				}
+				//for (size_t i = 0; i < gAuxNodeCount; ++i) {
+				//	mAuxDevices[i].BeginBlock();
+				//}
 
 				float sourceModDistribution[gSourceCount];
 				BipolarDistribute(gSourceCount, sourceEnabled, sourceModDistribution);
@@ -812,11 +794,14 @@ namespace WaveSabreCore
 					mSampler2(&owner->mSamplerDevices[1], mModMatrix, &mAllEnvelopes[5]),
 					mSampler3(&owner->mSamplerDevices[2], mModMatrix, &mAllEnvelopes[6]),
 					mSampler4(&owner->mSamplerDevices[3], mModMatrix, &mAllEnvelopes[7]),
-					mAuxNodes{
-						AuxNode(&owner->mAuxDevices[0]),
-						AuxNode(&owner->mAuxDevices[1]),
-						AuxNode(&owner->mAuxDevices[2]),
-						AuxNode(&owner->mAuxDevices[3])
+					mFilters{
+						{FilterAuxNode(owner->mParamCache, ParamIndices::Filter1Enabled, ModDestination::Filter1Q),
+						FilterAuxNode(owner->mParamCache, ParamIndices::Filter1Enabled, ModDestination::Filter1Q),
+						},
+						{
+						FilterAuxNode(owner->mParamCache, ParamIndices::Filter2Enabled, ModDestination::Filter2Q),
+						FilterAuxNode(owner->mParamCache, ParamIndices::Filter2Enabled, ModDestination::Filter2Q),
+						}
 					}
 				{
 				}
@@ -881,7 +866,7 @@ namespace WaveSabreCore
 					&mSampler4,
 				};
 
-				AuxNode mAuxNodes[gAuxNodeCount];
+				FilterAuxNode mFilters[2][2]; // [filtercount][channel]
 
 				float mMidiNote = 0;
 
@@ -938,9 +923,10 @@ namespace WaveSabreCore
 					mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness);
 					mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
 
-					for (auto& a : mAuxNodes)
+					for (auto& a : mFilters)
 					{
-						a.BeginBlock(noteHz, mModMatrix);
+						a[0].AuxBeginBlock(noteHz, mModMatrix);
+						a[1].AuxBeginBlock(noteHz, mModMatrix);
 					}
 
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
@@ -1050,51 +1036,25 @@ namespace WaveSabreCore
 
 					}
 
-					float sl = 0;
-					float sr = 0;
+					float q[2] = { 0 };
 
-					for (size_t i = 0; i < gSourceCount; ++i) {
-						sl += sourceValues[i] * mSourceVoices[i]->mOutputGain[0];
-						sr += sourceValues[i] * mSourceVoices[i]->mOutputGain[1];
+					for (size_t i = 0; i < gSourceCount; ++i)
+					{
+						for (size_t ich = 0; ich < 2; ++ich)
+						{
+							q[ich] += sourceValues[i] * mSourceVoices[i]->mOutputGain[ich];
+						}
 					}
 
-					// send through aux
-					//AuxDevice* const allAuxDevices = &mpOwner->mAuxDevices[0];
-					sl = mAuxNodes[0].ProcessSample(sl);
-					sl = mAuxNodes[1].ProcessSample(sl);
+					// send through serial filter
+					for (size_t ich = 0; ich < 2; ++ich)
+					{
+						q[ich] = mFilters[0][ich].AuxProcessSample(q[ich]);
+						q[ich] = mFilters[1][ich].AuxProcessSample(q[ich]);
+					}
 
-					//switch (mpOwner->mAuxRoutingCachedVal) {
-					//case AuxRoute::FourZero:
-					//	// L = aux1 -> aux2 -> aux3 -> aux4 -> *
-					//	// R = *
-					//	sl = mAuxNodes[2].ProcessSample(sl);
-					//	sl = mAuxNodes[3].ProcessSample(sl);
-					//	break;
-					//case AuxRoute::SerialMono:
-					//	// L = aux1 -> aux2 -> aux3 -> aux4 -> *
-					//	// R = 
-					//	// for the sake of being pleasant this swaps l/r channels as well for continuity with other settings
-					//	sl = mAuxNodes[2].ProcessSample(sl);
-					//	sr = mAuxNodes[3].ProcessSample(sl);
-					//	sl = 0;
-					//	break;
-					//case AuxRoute::ThreeOne:
-					//	// L = aux1 -> aux2 -> aux3 -> *
-					//	// R = aux4 -> *
-					//	sl = mAuxNodes[2].ProcessSample(sl);
-					//	sr = mAuxNodes[3].ProcessSample(sr);
-					//	break;
-					//case AuxRoute::TwoTwo:
-						// L = aux1 -> aux2 -> *
-						// R = aux3 -> aux4 -> *
-						sr = mAuxNodes[2].ProcessSample(sr);
-						sr = mAuxNodes[3].ProcessSample(sr);
-						//break;
-					//}
-
-					s[0] += sl * mpOwner->mAuxOutputGains[0] + sr * mpOwner->mAuxOutputGains[1];
-					s[1] += sl * mpOwner->mAuxOutputGains[1] + sr * mpOwner->mAuxOutputGains[0];
-					//s[1] += mModMatrix.mDestValueDeltas[8];
+					s[0] += q[0] * mpOwner->mAuxOutputGains[0] + q[1] * mpOwner->mAuxOutputGains[1];
+					s[1] += q[0] * mpOwner->mAuxOutputGains[1] + q[1] * mpOwner->mAuxOutputGains[0];
 
 					mPortamento.Advance(1,
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime)

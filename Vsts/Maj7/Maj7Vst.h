@@ -62,7 +62,24 @@ inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 		if (ch.mParseResult.IsFailure()) {
 			return 0;
 		}
-		auto it = paramMap.find(ch.mKeyName);
+		auto keyName = ch.mKeyName;
+		// #26 - redesign of aux devices means we should adjust some param key names.
+		// aux params need to be converted to filter params.
+		if (keyName == "X1En") keyName = "F1En";
+		if (keyName == "X1P1") keyName = "F1Type"; // model
+		if (keyName == "X1P2") keyName = "F1Q"; // Q
+		if (keyName == "X1P3") keyName = "F1En"; // saturation
+		if (keyName == "X1P4") keyName = "F1Freq"; // freq
+		if (keyName == "X1P5") keyName = "F1FKT"; // kt
+
+		if (keyName == "X2En") keyName = "F2En";
+		if (keyName == "X2P1") keyName = "F2Type"; // model
+		if (keyName == "X2P2") keyName = "F2Q"; // Q
+		if (keyName == "X2P3") keyName = "F2En"; // saturation
+		if (keyName == "X2P4") keyName = "F2Freq"; // freq
+		if (keyName == "X2P5") keyName = "F2FKT"; // kt
+
+		auto it = paramMap.find(keyName);
 		if (it == paramMap.end()) {
 			continue;// return 0; // unknown param name. just ignore and allow loading.
 		}
@@ -241,15 +258,24 @@ namespace WaveSabreCore
 			//n->mLegatoRestart.SetBoolValue(true); // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
 		}
 
-		static inline void GenerateDefaults(AuxDevice* p)
+		//static inline void GenerateDefaults(AuxDevice* p)
+		//{
+		//	p->mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, false);
+		//	//p->mEnabledParam.SetBoolValue(false);
+		//	p->mParams.SetEnumValue(AuxParamIndexOffsets::Link, p->mLinkToSelf);
+		//	//p->mLink.SetEnumValue(p->mLinkToSelf);// (paramCache_Offset[(int)AuxParamIndexOffsets::Link], AuxLink::Count),
+		//	p->mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::None);
+		//	//);
+		//	//p->mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
+		//}
+
+		static inline void GenerateDefaults(FilterAuxNode* p)
 		{
-			p->mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, false);
-			//p->mEnabledParam.SetBoolValue(false);
-			p->mParams.SetEnumValue(AuxParamIndexOffsets::Link, p->mLinkToSelf);
-			//p->mLink.SetEnumValue(p->mLinkToSelf);// (paramCache_Offset[(int)AuxParamIndexOffsets::Link], AuxLink::Count),
-			p->mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::None);
-			//);
-			//p->mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
+			p->mParams.SetBoolValue(FilterParamIndexOffsets::Enabled, false);
+			p->mParams.SetEnumValue<FilterModel>(FilterParamIndexOffsets::FilterType, FilterModel::LP_Moog4);
+			p->mParams.Set01Val(FilterParamIndexOffsets::Freq, 0.3f);
+			p->mParams.Set01Val(FilterParamIndexOffsets::FreqKT, 1.0f);
+			p->mParams.Set01Val(FilterParamIndexOffsets::Q, 0.2f);
 		}
 
 		//static inline void GenerateDefaults_Source(ISoundSourceDevice* p)
@@ -375,7 +401,7 @@ namespace WaveSabreCore
 			// OscillatorShapeSpread, = 0
 			// UnisonoShapeSpread, = 0
 			p->mParams.Set01Val(ParamIndices::FMBrightness, 0.5f);//p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,
-			p->mParams.SetEnumValue(ParamIndices::AuxRouting, AuxRoute::TwoTwo);//p->mAuxRoutingParam.SetEnumValue(AuxRoute::TwoTwo);// AuxRouting,
+			//p->mParams.SetEnumValue(ParamIndices::AuxRouting, AuxRoute::TwoTwo);//p->mAuxRoutingParam.SetEnumValue(AuxRoute::TwoTwo);// AuxRouting,
 			p->mParams.SetN11Value(ParamIndices::AuxWidth, 1);//p->mAuxWidth.SetN11Value(1);// AuxWidth
 			p->mParams.Set01Val(ParamIndices::PortamentoTime, 0.3f);//p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
 			p->mParams.SetN11Value(ParamIndices::PortamentoCurve, 0);////p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
@@ -417,8 +443,8 @@ namespace WaveSabreCore
 			for (auto& m : p->mModulations) {
 				GenerateDefaults(&m);
 			}
-			for (auto& m : p->mAuxDevices) {
-				GenerateDefaults(&m);
+			for (auto& m : p->mMaj7Voice[0]->mFilters) {
+				GenerateDefaults(&m[0]);
 			}
 			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv1Index]);
 			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv2Index]);

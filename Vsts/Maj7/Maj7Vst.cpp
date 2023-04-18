@@ -119,12 +119,6 @@ void __cdecl WaveSabreFreeChunk(void* p)
 // just returns the compressed size
 int __cdecl WaveSabreTestCompression(int inpSize, void* inpData)
 {
-	//ChunkStats ret;
-	//void* data;
-	//int size = GetMinifiedChunk(p, &data);
-	//int size = p->GetChunk(&data);
-	//ret.uncompressedSize = size;
-
 	std::vector<uint8_t> compressedData;
 	compressedData.resize(inpSize);
 	std::vector<uint8_t> encodedProps;

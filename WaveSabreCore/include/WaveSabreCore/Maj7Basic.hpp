@@ -1052,7 +1052,7 @@ namespace WaveSabreCore
             UnisonoStereoSpread,
             FMBrightness,
 
-            AuxRouting,
+            //AuxRouting,
             AuxWidth, // N11 to invert
 
             PortamentoTime,
@@ -1258,41 +1258,35 @@ namespace WaveSabreCore
                 LFO4FrequencyParam,
                 LFO4Sharpness,
 
-                Aux1Enabled,
-                Aux1Link,
-                Aux1Type,
-                Aux1Param1, // filter type
-                Aux1Param2, // filter Q
-                Aux1Param3, // filter saturation
-                Aux1Param4, // filter freq
-                Aux1Param5, // filter KT
+                Filter1Enabled,
+                Filter1Type,
+                Filter1Q,
+                Filter1Freq,
+                Filter1FreqKT,
 
-                Aux2Enabled,
-                Aux2Link,
-                Aux2Type,
-                Aux2Param1, // filter type
-                Aux2Param2, // filter Q
-                Aux2Param3, // filter saturation
-                Aux2Param4, // filter freq
-                Aux2Param5, // filter KT
+                Filter2Enabled,
+                Filter2Type,
+                Filter2Q,
+                Filter2Freq,
+                Filter2FreqKT,
 
-                Aux3Enabled,
-                Aux3Link,
-                Aux3Type,
-                Aux3Param1, // filter type
-                Aux3Param2, // filter Q
-                Aux3Param3, // filter saturation
-                Aux3Param4, // filter freq
-                Aux3Param5, // filter KT
+                //Aux1Enabled,
+                //Aux1Link,
+                //Aux1Type,
+                //Aux1Param1, // filter type
+                //Aux1Param2, // filter Q
+                //Aux1Param3, // filter saturation
+                //Aux1Param4, // filter freq
+                //Aux1Param5, // filter KT
 
-                Aux4Enabled,
-                Aux4Link,
-                Aux4Type,
-                Aux4Param1, // filter type
-                Aux4Param2, // filter Q
-                Aux4Param3, // filter saturation
-                Aux4Param4, // filter freq
-                Aux4Param5, // filter KT
+                //Aux2Enabled,
+                //Aux2Link,
+                //Aux2Type,
+                //Aux2Param1, // filter type
+                //Aux2Param2, // filter Q
+                //Aux2Param3, // filter saturation
+                //Aux2Param4, // filter freq
+                //Aux2Param5, // filter KT
 
             Mod1Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod1Source,
@@ -1768,7 +1762,6 @@ namespace WaveSabreCore
 {"OscSpr"}, \
 {"UniSpr"}, \
 {"FMBrigh"}, \
-{"XRout"}, \
 {"XWidth"}, \
 {"PortTm"}, \
 {"PortCv"}, \
@@ -1955,38 +1948,16 @@ namespace WaveSabreCore
 {"LFO4ph"}, \
 {"LFO4fr"}, \
 {"LFO4lp"}, \
-{"X1En"}, \
-{"X1Link"}, \
-{"X1Type"}, \
-{"X1P1"}, \
-{"X1P2"}, \
-{"X1P3"}, \
-{"X1P4"}, \
-{"X1P5"}, \
-{"X2En"}, \
-{"X2Link"}, \
-{"X2Type"}, \
-{"X2P1"}, \
-{"X2P2"}, \
-{"X2P3"}, \
-{"X2P4"}, \
-{"X2P5"}, \
-{"X3En"}, \
-{"X3Link"}, \
-{"X3Type"}, \
-{"X31"}, \
-{"X32"}, \
-{"X33"}, \
-{"X34"}, \
-{"X35"}, \
-{"X4En"}, \
-{"X4Link"}, \
-{"X4Type"}, \
-{"X41"}, \
-{"X42"}, \
-{"X43"}, \
-{"X44"}, \
-{"X45"}, \
+{"F1En"}, \
+{"F1Type"}, \
+{"F1Q"}, \
+{"F1Freq"}, \
+{"F1FKT"}, \
+{"F2En"}, \
+{"F2Type"}, \
+{"F2Q"}, \
+{"F2Freq"}, \
+{"F2FKT"}, \
 {"M1en"}, \
 {"M1src"}, \
 {"M1dest1"}, \
@@ -2434,7 +2405,6 @@ namespace WaveSabreCore
             UnisonoStereoSpread,
             FMBrightness,
 
-            AuxRouting,
             AuxWidth, // N11 to invert
 
             PortamentoTime,
@@ -2564,49 +2534,45 @@ namespace WaveSabreCore
             Count = AmpEnvDelayTime,
         };
 
-        enum class AuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & FilterAuxParamIndexOffsets
-        {
-            Enabled,
-            Link,
-            Type,
-            Param1, // filter type
-            Param2, // filter Q
-            Param3, // filter saturation
-            Param4, // filter freq
-            Param5, // filter KT
-            Count,
-        };
+        //enum class AuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & FilterAuxParamIndexOffsets
+        //{
+        //    Enabled,
+        //    Link,
+        //    Type,
+        //    Param1, // filter type
+        //    Param2, // filter Q
+        //    Param3, // filter saturation
+        //    Param4, // filter freq
+        //    Param5, // filter KT
+        //    Count,
+        //};
 
         // FILTER AUX INFO  ------------------------------------------------------------
-        enum class FilterAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
+        enum class FilterParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
         {
-            unused__Enabled,
-            unused__Link,
-            unused__AuxType,
+            Enabled,
             FilterType, // filter type
-            // FROM here, must be identical to FilterAuxModIndexOffsets (param2 - 5)
             Q, // param2: filter Q
-            Saturation, // filter saturation
             Freq, // filter freq
             FreqKT, // filter KT
             Count,
         };
 
-        enum class FilterAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+        enum class FilterAuxModDestOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
         {
             Q, // filter Q
-            Saturation, // filter saturation
+            unused_2,
             Freq, // filter freq
-            FreqKT, // filter KT
+            unused_4,
             Count,
         };
-        static_assert((int)FilterAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
-        #define FILTER_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::FilterAuxModIndexOffsets::Count] { \
-            " (Filter Q)", \
-			" (Filter Saturation)", \
-			" (Filter Frequency)", \
-            " (n/a)", \
-        }
+        //static_assert((int)FilterAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
+   //     #define FILTER_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::FilterAuxModIndexOffsets::Count] { \
+   //         " (Filter Q)", \
+			//" (Filter Saturation)", \
+			//" (Filter Frequency)", \
+   //         " (n/a)", \
+   //     }
 
 
         // ------------------------------------------------------------
@@ -2681,69 +2647,69 @@ namespace WaveSabreCore
 //        }
 
 
-        // ------------------------------------------------------------
-        enum class AuxLink : uint8_t
-        {
-            // THESE ARE USED AS INDICES 0-3
-            Aux1,
-            Aux2,
-            Aux3,
-            Aux4,
-            Count,
-        };
-        #define AUX_LINK_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxLink::Count] { \
-            "Aux 1", \
-			"Aux 2", \
-			"Aux 3", \
-            "Aux 4", \
-        }
+   //     // ------------------------------------------------------------
+   //     enum class AuxLink : uint8_t
+   //     {
+   //         // THESE ARE USED AS INDICES 0-3
+   //         Aux1,
+   //         Aux2,
+   //         Aux3,
+   //         Aux4,
+   //         Count,
+   //     };
+   //     #define AUX_LINK_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxLink::Count] { \
+   //         "Aux 1", \
+			//"Aux 2", \
+			//"Aux 3", \
+   //         "Aux 4", \
+   //     }
 
-        enum class AuxRoute : uint8_t
-        {
-            // A -- aux1 - aux2 --------------- L
-            // B ---------------- aux3 - aux4 - R
-            TwoTwo,
+   //     enum class AuxRoute : uint8_t
+   //     {
+   //         // A -- aux1 - aux2 --------------- L
+   //         // B ---------------- aux3 - aux4 - R
+   //         TwoTwo,
 
-            // A -- aux1 - aux2 - aux3 -------- L
-            // B ----------------------- aux4 - R
-            ThreeOne,
+   //         // A -- aux1 - aux2 - aux3 -------- L
+   //         // B ----------------------- aux4 - R
+   //         ThreeOne,
 
-            // A -- aux1 - aux2 - aux3 - aux4 - L
-            // B -------------------------------R
-            FourZero,
+   //         // A -- aux1 - aux2 - aux3 - aux4 - L
+   //         // B -------------------------------R
+   //         FourZero,
 
-            // A -- aux1 - aux2 - aux3 - aux4 - L
-            // B -^                             R
-            SerialMono,
+   //         // A -- aux1 - aux2 - aux3 - aux4 - L
+   //         // B -^                             R
+   //         SerialMono,
 
-            Count,
-        };
-        #define AUX_ROUTE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxRoute::Count] { \
-            "TwoTwo", \
-			"ThreeOne", \
-			"FourZero", \
-			"Serial (mono)", \
-        }
+   //         Count,
+   //     };
+   //     #define AUX_ROUTE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxRoute::Count] { \
+   //         "TwoTwo", \
+			//"ThreeOne", \
+			//"FourZero", \
+			//"Serial (mono)", \
+   //     }
 
-        enum class AuxEffectType : uint8_t
-        {
-            None,
-            BigFilter,
-            //Distortion,
-            //Bitcrush,
-            Count,
-        };
-        #define AUX_EFFECT_TYPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxEffectType::Count] { \
-            "None", \
-			"BigFilter", \
-        }
+   //     enum class AuxEffectType : uint8_t
+   //     {
+   //         None,
+   //         BigFilter,
+   //         //Distortion,
+   //         //Bitcrush,
+   //         Count,
+   //     };
+   //     #define AUX_EFFECT_TYPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxEffectType::Count] { \
+   //         "None", \
+			//"BigFilter", \
+   //     }
 
-        struct IAuxEffect
-        {
-            virtual ~IAuxEffect() {}
-            virtual void AuxBeginBlock(float noteHz, struct ModMatrixNode& modMatrix) = 0;
-            virtual float AuxProcessSample(float inp) = 0;
-        };
+   //     struct IAuxEffect
+   //     {
+   //         virtual ~IAuxEffect() {}
+   //         virtual void AuxBeginBlock(float noteHz, struct ModMatrixNode& modMatrix) = 0;
+   //         virtual float AuxProcessSample(float inp) = 0;
+   //     };
 
         enum FMMatrixIndices
         {
