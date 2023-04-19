@@ -22,8 +22,6 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/Maj7Basic.hpp
 	include/WaveSabreCore/Maj7Envelope.hpp
 	include/WaveSabreCore/Maj7Filter.hpp
-	include/WaveSabreCore/Maj7Bitcrush.hpp
-	include/WaveSabreCore/Maj7Distortion.hpp
 	include/WaveSabreCore/Maj7ModMatrix.hpp
 	include/WaveSabreCore/Maj7Oscillator.hpp
 	include/WaveSabreCore/Maj7Sampler.hpp

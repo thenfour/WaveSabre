@@ -27,8 +27,6 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7Envelope.hpp>
 #include <WaveSabreCore/Maj7Filter.hpp>
-#include <WaveSabreCore/Maj7Distortion.hpp>
-#include <WaveSabreCore/Maj7Bitcrush.hpp>
 #include <WaveSabreCore/Maj7ModMatrix.hpp>
 
 #include <WaveSabreCore/Maj7Oscillator.hpp>
@@ -394,19 +392,16 @@ namespace WaveSabreCore
 				{
 					case (int)ParamIndices::VoicingMode:
 					{
-						//this->SetVoiceMode(mVoicingModeParam.GetEnumValue());
 						this->SetVoiceMode(mParams.GetEnumValue<VoiceMode>(ParamIndices::VoicingMode));
 						break;
 					}
 					case (int)ParamIndices::Unisono:
 					{
-//						this->SetUnisonoVoices(mUnisonoVoicesParam.GetIntValue());
 						this->SetUnisonoVoices(mParams.GetIntValue(ParamIndices::Unisono, gUnisonoVoiceCfg));
 						break;
 					}
 					case (int)ParamIndices::MaxVoices:
 					{
-						//this->SetMaxVoices(mMaxVoicesParam.GetIntValue());
 						this->SetMaxVoices(mParams.GetIntValue(ParamIndices::MaxVoices, gMaxVoicesCfg));
 						break;
 					}
@@ -473,7 +468,6 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < gModLFOCount; ++i) {
 					auto& lfo = mLFOs[i];
 					lfo.mDevice.BeginBlock();
-					//lfo.mLPCutoff = lfo.mDevice.GetLPFFrequency();// .mLPFFrequency.GetFrequency(0, 0);
 					lfo.mPhase.BeginBlock();
 				}
 
@@ -722,22 +716,20 @@ namespace WaveSabreCore
 						lfo.mPhase.SetModMatrix(&this->mModMatrix);
 					}
 
-					//mMidiNote = mPortamento.GetCurrentMidiNote() + mpOwner->mPitchBendRange.GetIntValue() * mpOwner->mPitchBendN11;
 					mMidiNote = mPortamento.GetCurrentMidiNote() + mpOwner->mParams.GetIntValue(ParamIndices::PitchBendRange, gPitchBendCfg) * mpOwner->mPitchBendN11;
 
 					real_t noteHz = math::MIDINoteToFreq(mMidiNote);
 
 					mModMatrix.BeginBlock();
-					mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11); 
-					mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);  
-					mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f); 
+					mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11);
+					mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);
+					mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f);
 					mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01);
 					float iuv = 1;
 					if (mpOwner->mVoicesUnisono > 1) {
 						iuv = float(mUnisonVoice) / (mpOwner->mVoicesUnisono - 1);
 					}
 					mModMatrix.SetSourceValue(ModSource::UnisonoVoice, iuv);
-					//if (float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono)
 					mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 
 					mModMatrix.SetSourceValue(ModSource::Const_1, 1);
@@ -748,14 +740,13 @@ namespace WaveSabreCore
 
 					for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
 					{
-						//mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mMacros.Get01Value(iMacro));  // krate, 01
 						mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mParams.Get01Value((int)ParamIndices::Macro1 + iMacro, 0));  // krate, 01
 					}
 
 					for (size_t i = 0; i < gModLFOCount; ++i)
 					{
 						auto& lfo = mLFOs[i];
-						if (!lfo.mNode.mpOscDevice->GetPhaseRestart()) { //->mPhaseRestart.GetBoolValue()) {
+						if (!lfo.mNode.mpOscDevice->GetPhaseRestart()) {
 							// sync phase with device-level. TODO: also check that modulations aren't creating per-voice variation?
 							lfo.mNode.SetPhase(lfo.mDevice.mPhase.mPhase);
 						}
@@ -765,7 +756,6 @@ namespace WaveSabreCore
 							mModMatrix.GetDestinationValue((int)lfo.mDevice.mDevice.mModDestBaseID + (int)LFOModParamIndexOffsets::Sharpness));
 
 						lfo.mFilter.SetParams(FilterModel::LP_OnePole, freq, 0);
-						//lfo.mFilter.SetParams(FilterModel::LP_OnePole, lfo.mDevice.mDevice.GetLPFFrequency(mModMatrix), 0);
 					}
 
 					// set device-level modded values.
@@ -848,14 +838,13 @@ namespace WaveSabreCore
 						auto* srcVoice = mSourceVoices[i];
 
 						float hiddenVolumeBacking = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mHiddenVolumeModDestID);
-						//VolumeParam hiddenAmpParam{ hiddenVolumeBacking, gUnityVolumeCfg };
 						ParamAccessor hiddenAmpParam{ &hiddenVolumeBacking, 0 };
 
 						float ampEnvGain = hiddenAmpParam.GetLinearVolume(0, gUnityVolumeCfg);
 						srcVoice->mAmpEnvGain = ampEnvGain;
 						sourceValues[i] = srcVoice->GetLastSample() * ampEnvGain;
 
-						float semis = myUnisonoDetune + srcVoice->mpSrcDevice->mDetuneDeviceModAmt * 2;// mpOwner->mOscDetuneAmts[i];
+						float semis = myUnisonoDetune + srcVoice->mpSrcDevice->mDetuneDeviceModAmt * 2;
 						float det = detuneMul[i] = math::SemisToFrequencyMul(semis);
 
 						if (i >= gOscillatorCount)
@@ -865,8 +854,7 @@ namespace WaveSabreCore
 						}
 					}
 
-					//float globalFMScale = 3 * mpOwner->mFMBrightness.Get01Value(mpOwner->mFMBrightnessMod);
-					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mpOwner->mFMBrightnessMod);// mFMBrightness.Get01Value(mpOwner->mFMBrightnessMod);
+					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mpOwner->mFMBrightnessMod);
 
 					for (size_t i = 0; i < gOscillatorCount; ++i) {
 						auto* srcVoice = mSourceVoices[i];
@@ -933,18 +921,15 @@ namespace WaveSabreCore
 				}
 
 				virtual void NoteOff() override {
-					//mModMatrix.OnRecalcEvent();
 					for (auto& srcVoice : mSourceVoices)
 					{
 						srcVoice->NoteOff();
-						//srcVoice->mpAmpEnv->noteOff();
 					}
 
 					for (auto& p : mAllEnvelopes)
 					{
 						p.noteOff();
 					}
-
 				}
 
 				virtual void Kill() override {

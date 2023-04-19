@@ -21,6 +21,7 @@ namespace WaveSabreCore
             enum class EnvelopeStage : uint8_t
             {
                 Idle,    // output = 0
+                FixedDelay, // output = 0; a 1-sample delay which allows the mod matrix to catch up and properly calculate the subsequent stages.
                 Delay,   // output = 0
                 Attack,  // output = curve from 0 to 1
                 Hold,    // output = 1
@@ -65,6 +66,7 @@ namespace WaveSabreCore
         private:
             void RecalcState();
 
+            int mFixedDelaySamplesRemaining = 0;
             size_t mnSampleCount = 0;
             EnvelopeStage mStage = EnvelopeStage::Idle;
             real_t mStagePos01 = 0;      // where in the current stage are we?

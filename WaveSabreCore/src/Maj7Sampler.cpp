@@ -276,9 +276,6 @@ namespace WaveSabreCore
 				mSamplePlayer.LoopBoundaryMode = mpSamplerDevice->mParams.GetEnumValue<LoopBoundaryMode>(SamplerParamIndexOffsets::LoopSource); //mpSamplerDevice->mLoopSource.GetEnumValue();
 				mSamplePlayer.InterpolationMode = mpSamplerDevice->mParams.GetEnumValue<InterpolationMode>(SamplerParamIndexOffsets::InterpolationType); //mpSamplerDevice->mInterpolationMode.GetEnumValue();
 				mSamplePlayer.Reverse = mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Reverse);//mpSamplerDevice->mReverse.GetBoolValue();
-
-				auto ms = mpSamplerDevice->mParams.GetEnvTimeMilliseconds(SamplerParamIndexOffsets::Delay, mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::Delay));
-				mDelayStep = math::CalculateInc01PerSampleForMS(ms);
 			}
 
 			void SamplerVoice::NoteOn(bool legato) 
@@ -300,6 +297,11 @@ namespace WaveSabreCore
 				mSamplePlayer.SampleLoopStart = mpSamplerDevice->mSample->GetSampleLoopStart(); // used for boundary mode from sample
 				mSamplePlayer.SampleLoopLength = mpSamplerDevice->mSample->GetSampleLoopLength(); // used for boundary mode from sample
 				mNoteIsOn = true;
+				// this is a subtle but important thing. DO NOT calculate the delay step yet here. on the 1st note (see #35)
+				// the mod matrix hasn't run yet and will cause the delay stage to always be skipped. so we have to:
+				// 1. set step to 0 to ensure a sample is always processed (and with it, the mod matrix)
+				// 2. make sure we calculate delaystep *after* handling delay complete
+				mDelayStep = 0;
 				mDelayPos01 = 0;
 				ConfigPlayer();
 			}
@@ -311,7 +313,6 @@ namespace WaveSabreCore
 
 			void SamplerVoice::BeginBlock(/*real_t midiNote, float detuneFreqMul, float fmScale,*/)
 			{
-				//mEnabledCached = mpSrcDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled);
 				if (!mpSamplerDevice->mEnabledCached)// >mEnabledParam.mCachedVal)
 					return;
 				if (!mpSamplerDevice->mSample) {
@@ -328,12 +329,15 @@ namespace WaveSabreCore
 				if (!mpSrcDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled))
 					return 0;
 
+				// see above for subtle info about handling modulated delay
 				if (mDelayPos01 < 1) {
 					mDelayPos01 += mDelayStep;
 					if (mDelayPos01 >= 1) {
 						mSamplePlayer.InitPos(); // play.
 					}
 				}
+				auto ms = mpSamplerDevice->mParams.GetEnvTimeMilliseconds(SamplerParamIndexOffsets::Delay, mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::Delay));
+				mDelayStep = math::CalculateInc01PerSampleForMS(ms);
 
 				float pitchFineMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
 				float freqMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
