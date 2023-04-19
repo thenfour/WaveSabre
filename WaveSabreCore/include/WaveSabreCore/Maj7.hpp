@@ -738,6 +738,8 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceValue(ModSource::Const_1, 1);
 					mModMatrix.SetSourceValue(ModSource::Const_0_5, 0.5f);
 					mModMatrix.SetSourceValue(ModSource::Const_0, 0);
+					mModMatrix.SetSourceValue(ModSource::Const_N0_5, -0.5f);
+					mModMatrix.SetSourceValue(ModSource::Const_N1, -1);
 
 					for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
 					{

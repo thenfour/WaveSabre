@@ -233,8 +233,10 @@ namespace WaveSabreCore
 			m->mParams.Set01Val(ModParamIndexOffsets::AuxAttenuation, 1);
 			//m->mAuxAttenuation.SetParamValue(1);
 
-			m->mParams.SetEnumValue(ModParamIndexOffsets::ValueMapping, ModValueMapping::NoMapping);
-			m->mParams.SetEnumValue(ModParamIndexOffsets::AuxValueMapping, ModValueMapping::NoMapping);
+			m->mParams.SetRangedValue(ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);
+			m->mParams.SetRangedValue(ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+			m->mParams.SetRangedValue(ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
+			m->mParams.SetRangedValue(ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
 		}
 
 		static inline void GenerateDefaults_Env(EnvelopeNode* n)
@@ -249,29 +251,7 @@ namespace WaveSabreCore
 			n->mParams.Set01Val(M7::EnvParamIndexOffsets::ReleaseTime, 0.2f);
 			n->mParams.SetN11Value(M7::EnvParamIndexOffsets::ReleaseCurve, -0.5f);
 			n->mParams.SetBoolValue(M7::EnvParamIndexOffsets::LegatoRestart, true);
-
-			//n->mDelayTime.SetParamValue(0);
-			//n->mAttackTime.SetParamValue(0.05f);
-			//n->mAttackCurve.SetN11Value(0.5f);
-			//n->mHoldTime.SetParamValue(0);
-			//n->mDecayTime.SetParamValue(0.5f);
-			//n->mDecayCurve.SetN11Value(-0.5f);
-			//n->mSustainLevel.SetParamValue(0.4f);
-			//n->mReleaseTime.SetParamValue(0.2f);
-			//n->mReleaseCurve.SetN11Value(-0.5f);
-			//n->mLegatoRestart.SetBoolValue(true); // because for polyphonic, holding pedal and playing a note already playing is legato and should retrig. make this opt-out.
 		}
-
-		//static inline void GenerateDefaults(AuxDevice* p)
-		//{
-		//	p->mParams.SetBoolValue(AuxParamIndexOffsets::Enabled, false);
-		//	//p->mEnabledParam.SetBoolValue(false);
-		//	p->mParams.SetEnumValue(AuxParamIndexOffsets::Link, p->mLinkToSelf);
-		//	//p->mLink.SetEnumValue(p->mLinkToSelf);// (paramCache_Offset[(int)AuxParamIndexOffsets::Link], AuxLink::Count),
-		//	p->mParams.SetEnumValue(AuxParamIndexOffsets::Type, AuxEffectType::None);
-		//	//);
-		//	//p->mEffectType.SetEnumValue(AuxEffectType::None);// (paramCache_Offset[(int)AuxParamIndexOffsets::Type], AuxEffectType::Count),
-		//}
 
 		static inline void GenerateDefaults(FilterAuxNode* p)
 		{
@@ -285,19 +265,6 @@ namespace WaveSabreCore
 			p->mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
 			p->mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
 		}
-
-		//static inline void GenerateDefaults_Source(ISoundSourceDevice* p)
-		//{
-		//	//p->mEnabledParam.SetBoolValue(false);
-		//	//p->mVolumeParam.SetDecibels(0);
-		//	//p->mAuxPanParam.SetN11Value(0);
-		//	//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
-		//	//p->mFrequencyParam.mKTValue.SetParamValue(0);
-		//	//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
-		//	//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
-		//	//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
-		//	//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
-		//}
 
 		static inline void GenerateDefaults_LFO(OscillatorDevice* p)
 		{
@@ -811,7 +778,8 @@ int compressedSize = 0;
 					m.mParams.SetRawVal(ModParamIndexOffsets::AuxAttenuation, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxAttenuation]));
 					m.mParams.SetRawVal(ModParamIndexOffsets::AuxCurve, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxCurve]));
 					m.mParams.SetRawVal(ModParamIndexOffsets::AuxSource, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxSource]));
-					m.mParams.SetRawVal(ModParamIndexOffsets::AuxValueMapping, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxValueMapping]));
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxRangeMin, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxRangeMin]));
+					m.mParams.SetRawVal(ModParamIndexOffsets::AuxRangeMax, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxRangeMax]));
 				}
 				// set destination scales
 				for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
@@ -830,8 +798,8 @@ int compressedSize = 0;
 
 				OptimizeEnumParam< ModSource>(p, m.mParams, ModParamIndexOffsets::Source);
 				OptimizeEnumParam < ModSource>(p, m.mParams, ModParamIndexOffsets::AuxSource);
-				OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::ValueMapping);
-				OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::AuxValueMapping);
+				//OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::ValueMapping);
+				//OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::AuxValueMapping);
 
 				OptimizeEnumParam< ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination1);
 				OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination2);

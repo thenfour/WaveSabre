@@ -30,6 +30,8 @@ public:
 
 	struct RenderContext
 	{
+		M7::Maj7* mpMaj7;
+		M7::ModMatrixNode* mpModMatrix = nullptr;
 		M7::Maj7::Maj7Voice* mpActiveVoice = nullptr;
 		float mModSourceValues[(int)M7::ModSource::Count];
 		ImGuiKnobs::ModInfo mModDestValues[(int)M7::ModDestination::Count];
@@ -51,11 +53,13 @@ public:
 
 		void Init(M7::Maj7* pMaj7)
 		{
+			mpMaj7 = pMaj7;
 			mpActiveVoice = FindRunningVoice(pMaj7);
 			// dont hate me
 			memset(mModSourceValues, 0, sizeof(mModSourceValues));
 			memset(mModDestValues, 0, sizeof(mModDestValues));
 			if (mpActiveVoice) {
+				mpModMatrix = &mpActiveVoice->mModMatrix;
 				for (int i = 0; i < (int)M7::ModSource::Count; ++i)
 				{
 					mModSourceValues[i] = mpActiveVoice->mModMatrix.GetSourceValue(i);
@@ -64,6 +68,10 @@ public:
 				{
 					mModDestValues[i].mValue = mpActiveVoice->mModMatrix.GetDestinationValue(i);
 				}
+			}
+			else
+			{
+				mpModMatrix = &pMaj7->mMaj7Voice[0]->mModMatrix;
 			}
 
 			for (auto& m : pMaj7->mModulations)
@@ -115,6 +123,45 @@ public:
 		mSourceStatusText[isrc].mStatusStyle = style;
 		mSourceStatusText[isrc].mStatus = str;
 		return false;
+	}
+
+
+	void Sort(float& a, float& b)
+	{
+		float low = std::min(a, b);
+		b = std::max(a, b);
+		a = low;
+	}
+
+	std::tuple<bool, float, float> Intersect(float a1, float a2, float b1, float b2)
+	{
+		Sort(a1, a2);
+		Sort(b1, b2);
+		if (a1 <= b2 && a2 >= b1) {
+			// there is an intersection.
+			return std::make_tuple(true, std::max(b1, a1), std::min(b2, a2));
+		}
+		return std::make_tuple(false, 0.0f, 0.0f);
+	}
+
+	void TooltipF(const char* format, ...)
+	{
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort))
+		{
+			ImGui::BeginTooltip();
+			ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+
+			char buffer[1024];
+
+			va_list args;
+			va_start(args, format);
+			vsnprintf(buffer, sizeof(buffer), format, args);
+			va_end(args);
+
+			ImGui::TextUnformatted(buffer);
+			ImGui::PopTextWrapPos();
+			ImGui::EndTooltip();
+		}
 	}
 
 
@@ -600,10 +647,10 @@ public:
 		{
 			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
 			int isrc = 0;
-			Oscillator("Oscillator A", (int)M7::ParamIndices::Osc1Enabled, isrc ++, (int)M7::ModDestination::Osc1AmpEnvDelayTime);
-			Oscillator("Oscillator B", (int)M7::ParamIndices::Osc2Enabled, isrc ++, (int)M7::ModDestination::Osc2AmpEnvDelayTime);
-			Oscillator("Oscillator C", (int)M7::ParamIndices::Osc3Enabled, isrc ++, (int)M7::ModDestination::Osc3AmpEnvDelayTime);
-			Oscillator("Oscillator D", (int)M7::ParamIndices::Osc4Enabled, isrc ++, (int)M7::ModDestination::Osc4AmpEnvDelayTime);
+			Oscillator("Oscillator 1", (int)M7::ParamIndices::Osc1Enabled, isrc ++, (int)M7::ModDestination::Osc1AmpEnvDelayTime);
+			Oscillator("Oscillator 2", (int)M7::ParamIndices::Osc2Enabled, isrc ++, (int)M7::ModDestination::Osc2AmpEnvDelayTime);
+			Oscillator("Oscillator 3", (int)M7::ParamIndices::Osc3Enabled, isrc ++, (int)M7::ModDestination::Osc3AmpEnvDelayTime);
+			Oscillator("Oscillator 4", (int)M7::ParamIndices::Osc4Enabled, isrc ++, (int)M7::ModDestination::Osc4AmpEnvDelayTime);
 
 			static_assert(M7::Maj7::gSamplerCount == 4, "sampler count");
 			Sampler("Sampler 1", pMaj7->mSamplerDevices[0], isrc++, (int)M7::ModDestination::Sampler1AmpEnvDelayTime);
@@ -815,15 +862,15 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape", 0.5f, 0.5f, 0, lGetModInfo(M7::OscModParamIndexOffsets::Waveshape));
 
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::OscModParamIndexOffsets::FrequencyParam));
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "KT", 0, 1, 1, 1, {});
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "KT", 0, 1, 1, 1, 0, {});
 			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PitchFine, "FineTune", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::PitchFine));
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::gFrequencyMulMax, 1, 0, {});
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::gFrequencyMulMax, 1, 0, 0, {});
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::Phase));
 			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::gSyncFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::OscModParamIndexOffsets::SyncFrequency));
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT", 0, 1, 1, 1, {});
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT", 0, 1, 1, 1, 0, {});
 
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Aux pan", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::AuxMix));
 
@@ -891,7 +938,7 @@ public:
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve(delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayCurve, "Curve##Decay", 0, M7CurveRenderStyle::Falling, lGetModInfo(M7::EnvModParamIndexOffsets::DecayCurve));
 		ImGui::SameLine();
-		WSImGuiParamKnob(delayTimeParamID + (int)M7::EnvParamIndexOffsets::SustainLevel, "Sustain");
+		Maj7ImGuiParamFloat01(delayTimeParamID + (int)M7::EnvParamIndexOffsets::SustainLevel, "Sustain", 0.4f, 0, 0, lGetModInfo(M7::EnvModParamIndexOffsets::SustainLevel));
 		ImGui::SameLine();
 		Maj7ImGuiParamEnvTime(delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseTime, "Release", 0, lGetModInfo(M7::EnvModParamIndexOffsets::ReleaseTime));
 		ImGui::SameLine();
@@ -959,30 +1006,213 @@ public:
 		return ret;
 	}
 
+	struct ModMeterStyle
+	{
+		ImColor background;
+		ImColor backgroundOob;
+		ImColor foreground;
+		ImColor foregorundOob;
+		ImColor foregroundTick;
+		ImColor boundaryIndicator;
+		ImColor zeroTick;
+		ImVec2 meterSize;
+		float gHalfTickWidth;
+		float gTickHeight;
+
+		ModMeterStyle Modification(float saturationMul, float valMul, float width, float height) {
+			ModMeterStyle ret {
+				ColorMod::GetModifiedColor(background, 0, saturationMul, valMul),
+				ColorMod::GetModifiedColor(backgroundOob, 0, saturationMul, valMul),
+				ColorMod::GetModifiedColor(foreground, 0, saturationMul, valMul),
+				ColorMod::GetModifiedColor(foregorundOob, 0, saturationMul, valMul),
+				ColorMod::GetModifiedColor(foregroundTick, 0, saturationMul, valMul),
+				ColorMod::GetModifiedColor(boundaryIndicator, 0, saturationMul, valMul),
+				ColorMod::GetModifiedColor(zeroTick, 0, saturationMul, valMul),
+				meterSize,
+				gHalfTickWidth,
+				gTickHeight,
+			};
+			ret.meterSize.x = width;
+			ret.meterSize.y = height;
+			return ret;
+		}
+	};
+
+	ModMeterStyle mBaseModMeterStyle{
+		ColorFromHTML("0d350d"),
+		ColorFromHTML("404040"),
+		ColorFromHTML("228822"),
+		ColorFromHTML("882222"),
+		ColorFromHTML("40ff40"),
+		ColorFromHTML("854ecb"),
+		ColorFromHTML("000000"),
+		{ 175, 9 },
+		0.5f,
+		2.0f,
+	};
+
+	ModMeterStyle mIntermediateLargeModMeterStyle = mBaseModMeterStyle.Modification(1, 1, 175, 9);
+	ModMeterStyle mIntermediateSmallModMeterStyle = mBaseModMeterStyle.Modification(.3f, 0.85f, 175, 6);
+
+	ModMeterStyle mIntermediateSmallModMeterStyleDisabled = mBaseModMeterStyle.Modification(0, 0.7f, 175, 6);
+	ModMeterStyle mIntermediateLargeModMeterStyleDisabled = mBaseModMeterStyle.Modification(0, 0.7f, 175, 9);
+
+	ModMeterStyle mPrimaryModMeterStyle = mBaseModMeterStyle.Modification(1, 1, 250, 18);
+	ModMeterStyle mPrimaryModMeterStyleDisabled = mBaseModMeterStyle.Modification(0, 0.7f, 250, 18);
+
+	void AddRect(float x1, float x2, float y1, float y2, const ImColor& color)
+	{
+		ImGui::GetWindowDrawList()->AddRectFilled(ImVec2{ std::min(x1,x2), std::min(y1,y2) }, ImVec2{ std::max(x1,x2), std::max(y1,y2) }, color);
+	}
+
+	// rangemin/max are the window being shown.
+	// boundmin/max are the area within the window which are colored green.
+	void ModMeter_Horiz(M7::ModulationSpec& spec, ImVec2 orig, ImVec2 size, float windowMin, float windowMax, float srcBound1, float srcBound2, float highlightBound1, float highlightBound2, float x, const ModMeterStyle& style)
+	{
+		auto ValToX = [&](float x_) {
+			// map x from [rangemin,rangemax] to rect.
+			return M7::math::map_clamped(x_, windowMin, windowMax, orig.x, orig.x + size.x);
+		};
+
+		auto* dl = ImGui::GetWindowDrawList();
+
+		// background oob
+		dl->AddRectFilled(orig, orig + size, style.backgroundOob);
+
+		// background, in src bound
+		float xSrcBound1 = ValToX(srcBound1);
+		float xSrcBound2 = ValToX(srcBound2);
+		auto srcBoundIntersection = Intersect(xSrcBound1, xSrcBound2, orig.x, orig.x + size.x);
+		if (std::get<0>(srcBoundIntersection)) {
+			AddRect(std::get<1>(srcBoundIntersection), std::get<2>(srcBoundIntersection), orig.y, orig.y + size.y, style.background);
+		}
+
+		// oob area
+		float xzero = ValToX(0);
+		float xval = ValToX(x);
+		AddRect(xzero, xval, orig.y, orig.y + size.y, style.foregorundOob);
+
+		// in-bound highlight area
+		float xHighlightBound1 = ValToX(highlightBound1);
+		float xHighlightBound2 = ValToX(highlightBound2);
+		auto highlightRangeIntersection = Intersect(xHighlightBound1, xHighlightBound2, xzero, xval);
+		if (std::get<0>(highlightRangeIntersection)) {
+			AddRect(std::get<1>(highlightRangeIntersection), std::get<2>(highlightRangeIntersection), orig.y, orig.y + size.y, style.foreground);
+		}
+
+		// foreground tick
+		AddRect(xval - style.gHalfTickWidth, xval + style.gHalfTickWidth, orig.y, orig.y + size.y, style.foregroundTick);
+
+		// zero tick
+		AddRect(xzero - style.gHalfTickWidth, xzero + style.gHalfTickWidth, orig.y, orig.y + size.y, style.zeroTick);
+
+		// .5 ticks
+		float windowBoundLow = std::min(windowMax, windowMin);
+		float windowBoundHigh = std::max(windowMax, windowMin);
+		windowBoundLow = floorf(windowBoundLow * 2) * 0.5f;// round down to 0.5.
+		for (float f = windowBoundLow; f < windowBoundHigh; f += 0.5f)
+		{
+			float xtick = ValToX(f);
+			if (xtick <= (orig.x + 4.0f)) continue; // don't show ticks that are close to the edge; looks ugly.
+			if (xtick >= (orig.x + size.x - 4.0f)) continue; // don't show ticks that are close to the edge; looks ugly.
+			AddRect(xtick - style.gHalfTickWidth, xtick + style.gHalfTickWidth, orig.y, orig.y + style.gTickHeight, style.zeroTick);
+			AddRect(xtick - style.gHalfTickWidth, xtick + style.gHalfTickWidth, orig.y + size.y - style.gTickHeight, orig.y + size.y, style.zeroTick);
+		}
+
+		ImGui::Dummy(size);
+	}
+
+	// draws:
+	// - source value, colored by whether it falls in the source range
+	// - range arrows
+	// - result value scaled and curved -1,1
+	// returns the resulting value.
+	float ModMeter(M7::ModulationSpec& spec, M7::ModSource modSource, M7::ModParamIndexOffsets curveParam, M7::ModParamIndexOffsets rangeMinParam, M7::ModParamIndexOffsets rangeMaxParam, bool isTargetN11, bool isEnabled)
+	{
+		float srcVal = mRenderContext.mModSourceValues[(int)modSource];
+		float rangeMin = spec.mParams.GetScaledRealValue(rangeMinParam, -3, 3, 0);
+		float rangeMax = spec.mParams.GetScaledRealValue(rangeMaxParam, -3, 3, 0);
+		float resultingValue = mRenderContext.mpModMatrix->MapValue(spec, modSource, curveParam, rangeMinParam, rangeMaxParam, isTargetN11);
+
+		auto& smallStyle = *(isEnabled ? &mIntermediateSmallModMeterStyle : &mIntermediateSmallModMeterStyleDisabled);
+		auto& largeStyle = *(isEnabled ? &mIntermediateLargeModMeterStyle : &mIntermediateLargeModMeterStyleDisabled);
+
+		ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+		float sourceWindowMin = std::min(std::min(- 1.0f, rangeMin), rangeMax);
+		float sourceWindowMax = std::max(std::max(1.0f, rangeMin), rangeMax);
+		ModMeter_Horiz(spec, window->DC.CursorPos, smallStyle.meterSize, sourceWindowMin, sourceWindowMax, -1, 1, rangeMin, rangeMax, srcVal, smallStyle);
+		TooltipF("Raw input signal");
+
+		// get highlight area of the total source window
+		float highlightWindowMin = M7::math::map_clamped(rangeMin, sourceWindowMin, sourceWindowMax, 0, smallStyle.meterSize.x);
+		float highlightWindowMax = M7::math::map_clamped(rangeMax, sourceWindowMin, sourceWindowMax, 0, smallStyle.meterSize.x);
+
+		// little handle indicators
+		static constexpr ImVec2 gHandleSize{ 5, 5 };
+		static constexpr float gHandleThickness = 2;
+		static constexpr float gHandleMarginX = 2;
+
+		auto pos = window->DC.CursorPos;
+		ModMeter_Horiz(spec, { window->DC.CursorPos.x + highlightWindowMin, window->DC.CursorPos.y }, { highlightWindowMax - highlightWindowMin, smallStyle.meterSize.y },
+			rangeMin, rangeMax, rangeMin, rangeMax, rangeMin, rangeMax, srcVal, smallStyle);
+		TooltipF("Selected range to use for modulation");
+
+		AddRect(
+			pos.x + highlightWindowMin - gHandleSize.x - gHandleMarginX,
+			pos.x + highlightWindowMin - gHandleMarginX,
+			pos.y,
+			pos.y + gHandleThickness,
+			smallStyle.boundaryIndicator);
+
+		AddRect(
+			pos.x + highlightWindowMin - gHandleThickness - gHandleMarginX,
+			pos.x + highlightWindowMin - gHandleMarginX,
+			pos.y,
+			pos.y + gHandleSize.y,
+			smallStyle.boundaryIndicator);
+
+		AddRect( // TOP
+			pos.x + highlightWindowMax + gHandleMarginX,
+			pos.x + highlightWindowMax + gHandleMarginX + gHandleSize.x,
+			pos.y,
+			pos.y + gHandleThickness,
+			smallStyle.boundaryIndicator);
+
+		AddRect( // BOTTOM
+			pos.x + highlightWindowMax + gHandleMarginX,
+			pos.x + highlightWindowMax + gHandleMarginX + gHandleThickness,
+			pos.y,
+			pos.y + gHandleSize.y,
+			smallStyle.boundaryIndicator);
+
+		// show output value.
+		ModMeter_Horiz(spec, window->DC.CursorPos, largeStyle.meterSize, isTargetN11 ? -1 : 0, 1, -1, 1, -1, 1, resultingValue, largeStyle);
+		TooltipF("Value after selected range and curve applied");
+
+		return resultingValue;
+	}
+
+
 	void ModulationSection(int imod, M7::ModulationSpec& spec, int enabledParamID)
 	{
 		bool isLocked = spec.mType != M7::ModulationSpecType::General;
-		//if (isLocked && !mShowingLockedModulations) return;
 
 		static constexpr char const* const modSourceCaptions[] = MOD_SOURCE_CAPTIONS;
 		std::string modDestinationCaptions[(size_t)M7::ModDestination::Count] = MOD_DEST_CAPTIONS;
 		char const* modDestinationCaptionsCstr[(size_t)M7::ModDestination::Count];
-
-		MOD_VALUE_MAPPING_CAPTIONS(modValueMappingCaptions);
-
-		// fix dynamic aux destination names
-		//FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux1Param2], 0);
-		//FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux2Param2], 1);
-		//FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux3Param2], 2);
-		//FillAuxParamNames(&modDestinationCaptions[(int)M7::ModDestination::Aux4Param2], 3);
 
 		for (size_t i = 0; i < (size_t)M7::ModDestination::Count; ++i)
 		{
 			modDestinationCaptionsCstr[i] = modDestinationCaptions[i].c_str();
 		}
 
-		ColorMod& cm = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::Enabled) ? (isLocked ? mLockedModulationsColors : mModulationsColors) : mModulationDisabledColors;
+		bool isEnabled = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::Enabled);
+
+		ColorMod& cm = isEnabled ? (isLocked ? mLockedModulationsColors : mModulationsColors) : mModulationDisabledColors;
 		auto token = cm.Push();
+
+		float modVal = 0;
 
 		if (WSBeginTabItem(GetModulationName(spec, imod).c_str()))
 		{
@@ -992,16 +1222,18 @@ public:
 			ImGui::SameLine();
 			{
 				ImGui::BeginGroup();
+				ImGui::PushID("main");
 
 				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
 
-				MeterN11_Horiz(ImVec2{ 115.0f, 13.0f }, mRenderContext.mModSourceValues[(int)spec.mSource]);
-				//ImGui::SameLine();
-				//WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Invert, "Invert");
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::ValueMapping, "Mapping", (int)M7::ModValueMapping::Count, M7::ModValueMapping::NoMapping, modValueMappingCaptions);
+				Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMin, "RangeMin", -3, 3, -1, -1, 30, {});
+				ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMax, "Max", -3, 3, 1, 1, 30, {});
 
-				Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
+				ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
 
+				modVal = ModMeter(spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
+
+				ImGui::PopID();
 				ImGui::EndGroup();
 			}
 			ImGui::SameLine();
@@ -1032,23 +1264,33 @@ public:
 			}
 			ImGui::EndDisabled();
 
-			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "SC Enable");
-			ColorMod& cmaux = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled) ? mNopColors : mModulationDisabledColors;
+			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
+			bool isAuxEnabled = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
+
+			ColorMod& cmaux = isAuxEnabled ? mNopColors : mModulationDisabledColors;
 			auto auxToken = cmaux.Push();
+			ImGui::PushID("aux");
 			ImGui::SameLine();
 			{
 				ImGui::BeginGroup();
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "SC Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
-				MeterN11_Horiz(ImVec2{ 115.0f, 13.0f }, mRenderContext.mModSourceValues[(int)spec.mAuxSource]);
-				//ImGui::SameLine();
-				//WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxInvert, "SCInvert");
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxValueMapping, "AuxMapping", (int)M7::ModValueMapping::Count, M7::ModValueMapping::NoMapping, modValueMappingCaptions);
-				//ImGui::SameLine();
-				Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "SC Curve", 0, M7CurveRenderStyle::Rising, {});
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "Aux Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
+
+				Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMin, "AuxRangeMin", -3, 3, 0, 0, 30, {});
+				ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMax, "Max", -3, 3, 1, 1, 30, {});
+
+				ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "Aux Curve", 0, M7CurveRenderStyle::Rising, {});
+
+				float auxVal = ModMeter(spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
+
+				float auxAtten = spec.mParams.Get01Value(M7::ModParamIndexOffsets::AuxAttenuation, 0);
+				float auxScale = M7::math::lerp(1, 1.0f - auxAtten, auxVal);
+				modVal *= auxScale;
+
 				ImGui::EndGroup();
 			}
 			ImGui::SameLine();
-			WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "SC atten");
+			WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "Atten");
+			ImGui::PopID();
 
 
 			ImGui::SameLine();
@@ -1080,11 +1322,15 @@ public:
 				ImGui::EndPopup();
 			}
 
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+			ModMeter_Horiz(spec, window->DC.CursorPos, mPrimaryModMeterStyle.meterSize, -1, 1, -1, 1, -1, 1, modVal, isEnabled ? mPrimaryModMeterStyle : mPrimaryModMeterStyleDisabled);
+			TooltipF("Modulation output value before it's scaled to the various destinations");
 
 			ImGui::EndTabItem();
 
 		}
 	}
+
 
 	void AuxEffectTab(const char* labelID, int ifilter/*, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[]*/)
 	{
@@ -1103,9 +1349,9 @@ public:
 
 			WSImGuiParamCheckbox(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
 
-			Maj7ImGuiParamEnumCombo(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq), filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "Freq##filt", M7::gFilterFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::FilterAuxModDestOffsets::Freq));
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "KT##filt", 0, 1, 1, 1, {});
+			ImGui::SameLine(); Maj7ImGuiParamEnumCombo(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
+			ImGui::SameLine(); Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq), filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "Freq##filt", M7::gFilterFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::FilterAuxModDestOffsets::Freq));
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "KT##filt", 0, 1, 1, 1, 0, {});
 			ImGui::SameLine(); Maj7ImGuiParamFloat01(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Q), "Q##filt", 0, 0, 0, lGetModInfo(M7::FilterAuxModDestOffsets::Q));
 
 			ImGui::EndTabItem();
@@ -1430,7 +1676,7 @@ public:
 			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqParam),
 				(int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqKT), "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity,
 				lGetModInfo(M7::SamplerModParamIndexOffsets::FrequencyParam));
-			ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqKT), "KT", 0, 1, 1, 1, {});
+			ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqKT), "KT", 0, 1, 1, 1, 0, {});
 			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::TuneSemis), "Transp", M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::TuneFine), "FineTune", 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::PitchFine));
 			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::BaseNote), "BaseNote", M7::gKeyRangeCfg, 60, 60);

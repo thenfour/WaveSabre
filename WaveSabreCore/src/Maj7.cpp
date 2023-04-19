@@ -17,7 +17,7 @@ namespace WaveSabreCore {
           16384, // PortCv = 0.5
           17721, // PBRng = 0.54081630706787109375
           12032, // MaxVox = 0.3671875
-          31644, // Macro1 = 0.96571481227874755859
+          0, // Macro1 = 0
           0, // Macro2 = 0
           0, // Macro3 = 0
           0, // Macro4 = 0
@@ -60,8 +60,8 @@ namespace WaveSabreCore {
           32767, // S1RelX = 1
           16384, // S1AxMix = 0.5
         };
-        static_assert((int)M7::ModParamIndexOffsets::Count == 17, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultModSpecParams[17] = {
+        static_assert((int)M7::ModParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultModSpecParams[19] = {
           0, // M1en = 0
           8, // M1src = 0.0002470355830155313015
           8, // M1dest1 = 0.0002470355830155313015
@@ -77,8 +77,10 @@ namespace WaveSabreCore {
           8, // M1Asrc = 0.0002470355830155313015
           32767, // M1Aatt = 1
           16384, // M1Acrv = 0.5
-          8, // M1map = 0.0002470355830155313015
-          8, // M1Amap = 0.0002470355830155313015
+          10922, // M1rngA = 0.3333333432674407959
+          21845, // M1rngB = 0.6666666865348815918
+          16384, // M1rngXA = 0.5
+          21845, // M1rngXB = 0.6666666865348815918
         };
         static_assert((int)M7::LFOParamIndexOffsets::Count == 6, "param count probably changed and this needs to be regenerated.");
         const int16_t gDefaultLFOParams[6] = {

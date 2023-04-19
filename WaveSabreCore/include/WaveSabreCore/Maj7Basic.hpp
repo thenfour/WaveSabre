@@ -325,6 +325,11 @@ namespace WaveSabreCore
                 float t = lerp_rev(inp_min, inp_max, inp);
                 return lerp(out_min, out_max, t);
             }
+            inline float map_clamped(float inp, float inp_min, float inp_max, float out_min, float out_max)
+            {
+                float t = lerp_rev(inp_min, inp_max, inp);
+                return lerp(out_min, out_max, clamp01(t));
+            }
 
             real_t CalculateInc01PerSampleForMS(real_t ms);
 
@@ -829,8 +834,6 @@ namespace WaveSabreCore
             float DecibelsToParam(float db) const;
 
         public:
-            //explicit VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01);
-            //explicit VolumeParam(real_t& ref, real_t maxDecibels);
             explicit VolumeParam(real_t& ref, const VolumeParamConfig& cfg);
             float GetLinearGain(float modVal = 0.0f) const;
             float GetDecibels() const;
@@ -839,26 +842,11 @@ namespace WaveSabreCore
             void SetDecibels(float db);
         };
 
-        //struct WSQParam : Float01Param
-        //{
-        //    explicit WSQParam(real_t& ref) : Float01Param(ref) {}
-        //    float GetQValue() const {
-        //        return Helpers::ParamToQ(this->mParamValue);
-        //    }
-        //    void SetQValue(float f) {
-        //        mParamValue = Helpers::QToParam(f);
-        //    }
-
-        //};
-
         // value 0.3 = unity, and each 0.1 param value = 1 octave transposition, when KT = 1.
         // when KT = 0, 0.5 = 1khz, and each 0.1 param value = +/- octave.
         struct FrequencyParam
         {
             const FreqParamConfig mCfg;
-            //const float mCenterMidiNote;
-            //const float mCenterFrequency;
-            //const float mScale;
 
         public:
             Float01Param mValue;
@@ -888,68 +876,6 @@ namespace WaveSabreCore
             }
         };
 
-        //template<typename T, typename = std::enable_if_t<std::is_integral_v<T>&& std::is_unsigned_v<T>>>
-        //struct Bitfield
-        //{
-        //    T mVal = 0;
-        //    Bitfield() {}
-        //    explicit Bitfield(T val) : mVal(val) {}
-
-        //    template<size_t bit>
-        //    bool ReadBit() {
-        //        return !!(mVal & (1 << bit));
-        //    }
-        //    bool ReadBit(size_t bit) {
-        //        return !!(mVal & (1 << bit));
-        //    }
-        //    template<size_t firstBit, size_t numBits>
-        //    T ReadBits() {
-        //        return (mVal >> firstBit) & ((1 << numBits) - 1);
-        //    }
-        //    template<size_t firstBit, size_t numBits, typename Tenum>
-        //    Tenum ReadEnum() {
-        //        static_assert(std::is_enum_v<Tenum>, "Tenum must be an enumeration type");
-        //        return (Tenum)ExtractBits(firstBit, numBits);
-        //    }
-
-        //    template<size_t bit>
-        //    void WriteBit(bool b)
-        //    {
-        //        T mask = 1 << bit;
-        //        if (b) { mVal |= mask; }
-        //        else { mVal &= ~mask; }
-        //    }
-
-        //    void WriteBit(size_t bit, bool b)
-        //    {
-        //        T mask = 1 << bit;
-        //        if (b) { mVal |= mask; }
-        //        else { mVal &= ~mask; }
-        //    }
-
-        //    template<size_t firstBit, size_t numBits>
-        //    T WriteValue(T valueToWrite)
-        //    {
-        //        static_assert(firstBit + numBits <= sizeof(T) * 8, "Bits out of range");
-        //        static constexpr T mask = (1 << numBits) - 1;
-        //        T encodedVal = valueToWrite & mask;
-        //        encodedVal <<= firstBit;
-        //        //T maskedVal = mVal & ~(mask << shift); assume the space is already vacant.
-        //        T result = (mVal | encodedVal);
-        //        mVal = result;
-        //        return result;
-        //    }
-
-        //    template<size_t firstBit, size_t numBits, typename Tenum>
-        //    void WriteEnum(Tenum valueToWrite)
-        //    {
-        //        static_assert(std::is_enum_v<Tenum>, "Tenum must be an enumeration type");
-        //        WriteValue<firstBit, numBits>(static_cast<std::underlying_type_t<Tenum>>(valueToWrite));
-        //    }
-        //};
-
-        //using ByteBitfield = Bitfield<uint8_t>;
-        //using WordBitfield = Bitfield<uint16_t>;
 
         struct Serializer
         {
@@ -1295,31 +1221,6 @@ namespace WaveSabreCore
                 unused__Aux4Param4, // filter freq
                 unused__Aux4Param5, // filter KT
 
-
-
-
-
-
-
-
-                //Aux1Enabled,
-                //Aux1Link,
-                //Aux1Type,
-                //Aux1Param1, // filter type
-                //Aux1Param2, // filter Q
-                //Aux1Param3, // filter saturation
-                //Aux1Param4, // filter freq
-                //Aux1Param5, // filter KT
-
-                //Aux2Enabled,
-                //Aux2Link,
-                //Aux2Type,
-                //Aux2Param1, // filter type
-                //Aux2Param2, // filter Q
-                //Aux2Param3, // filter saturation
-                //Aux2Param4, // filter freq
-                //Aux2Param5, // filter KT
-
             Mod1Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod1Source,
                     Mod1Destination1,
@@ -1335,8 +1236,10 @@ namespace WaveSabreCore
             Mod1AuxSource,
             Mod1AuxAttenuation,
             Mod1AuxCurve,
-            Mod1Mapping,
-            Mod1AuxMapping,
+                Mod1SrcRangeMin,
+                Mod1SrcRangeMax,
+                Mod1AuxRangeMin,
+                Mod1AuxRangeMax,
 
             Mod2Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod2Source,
@@ -1353,8 +1256,10 @@ namespace WaveSabreCore
             Mod2AuxSource,
             Mod2AuxAttenuation,
             Mod2AuxCurve,
-                Mod2Mapping,
-                Mod2AuxMapping,
+                Mod2SrcRangeMin,
+                Mod2SrcRangeMax,
+                Mod2AuxRangeMin,
+                Mod2AuxRangeMax,
 
             Mod3Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod3Source,
@@ -1371,8 +1276,10 @@ namespace WaveSabreCore
             Mod3AuxSource,
             Mod3AuxAttenuation,
             Mod3AuxCurve,
-                Mod3Mapping,
-                Mod3AuxMapping,
+                    Mod3SrcRangeMin,
+                    Mod3SrcRangeMax,
+                    Mod3AuxRangeMin,
+                    Mod3AuxRangeMax,
 
             Mod4Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod4Source,
@@ -1389,8 +1296,10 @@ namespace WaveSabreCore
             Mod4AuxSource,
             Mod4AuxAttenuation,
             Mod4AuxCurve,
-                Mod4Mapping,
-                Mod4AuxMapping,
+                    Mod4SrcRangeMin,
+                    Mod4SrcRangeMax,
+                    Mod4AuxRangeMin,
+                    Mod4AuxRangeMax,
 
             Mod5Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod5Source,
@@ -1407,8 +1316,10 @@ namespace WaveSabreCore
             Mod5AuxSource,
             Mod5AuxAttenuation,
             Mod5AuxCurve,
-                Mod5Mapping,
-                Mod5AuxMapping,
+                    Mod5SrcRangeMin,
+                    Mod5SrcRangeMax,
+                    Mod5AuxRangeMin,
+                    Mod5AuxRangeMax,
 
             Mod6Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod6Source,
@@ -1425,8 +1336,10 @@ namespace WaveSabreCore
             Mod6AuxSource,
             Mod6AuxAttenuation,
             Mod6AuxCurve,
-                Mod6Mapping,
-                Mod6AuxMapping,
+                    Mod6SrcRangeMin,
+                    Mod6SrcRangeMax,
+                    Mod6AuxRangeMin,
+                    Mod6AuxRangeMax,
 
             Mod7Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod7Source,
@@ -1443,8 +1356,10 @@ namespace WaveSabreCore
             Mod7AuxSource,
             Mod7AuxAttenuation,
             Mod7AuxCurve,
-                Mod7Mapping,
-                Mod7AuxMapping,
+                    Mod7SrcRangeMin,
+                    Mod7SrcRangeMax,
+                    Mod7AuxRangeMin,
+                    Mod7AuxRangeMax,
 
             Mod8Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod8Source,
@@ -1461,8 +1376,10 @@ namespace WaveSabreCore
             Mod8AuxSource,
             Mod8AuxAttenuation,
             Mod8AuxCurve,
-                Mod8Mapping,
-                Mod8AuxMapping,
+                        Mod8SrcRangeMin,
+                        Mod8SrcRangeMax,
+                        Mod8AuxRangeMin,
+                        Mod8AuxRangeMax,
 
                 Mod9Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod9Source,
@@ -1479,8 +1396,10 @@ namespace WaveSabreCore
                 Mod9AuxSource,
                 Mod9AuxAttenuation,
                 Mod9AuxCurve,
-                Mod9Mapping,
-                Mod9AuxMapping,
+                        Mod9SrcRangeMin,
+                        Mod9SrcRangeMax,
+                        Mod9AuxRangeMin,
+                        Mod9AuxRangeMax,
 
                 Mod10Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod10Source,
@@ -1497,8 +1416,10 @@ namespace WaveSabreCore
                 Mod10AuxSource,
                 Mod10AuxAttenuation,
                 Mod10AuxCurve,
-                Mod10Mapping,
-                Mod10AuxMapping,
+                        Mod10SrcRangeMin,
+                        Mod10SrcRangeMax,
+                        Mod10AuxRangeMin,
+                        Mod10AuxRangeMax,
 
                 Mod11Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod11Source,
@@ -1515,8 +1436,10 @@ namespace WaveSabreCore
                 Mod11AuxSource,
                 Mod11AuxAttenuation,
                 Mod11AuxCurve,
-                Mod11Mapping,
-                Mod11AuxMapping,
+                        Mod11SrcRangeMin,
+                        Mod11SrcRangeMax,
+                        Mod11AuxRangeMin,
+                        Mod11AuxRangeMax,
 
                 Mod12Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod12Source,
@@ -1533,8 +1456,10 @@ namespace WaveSabreCore
                 Mod12AuxSource,
                 Mod12AuxAttenuation,
                 Mod12AuxCurve,
-                Mod12Mapping,
-                Mod12AuxMapping,
+                        Mod12SrcRangeMin,
+                        Mod12SrcRangeMax,
+                        Mod12AuxRangeMin,
+                        Mod12AuxRangeMax,
 
                 Mod13Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod13Source,
@@ -1551,8 +1476,10 @@ namespace WaveSabreCore
                 Mod13AuxSource,
                 Mod13AuxAttenuation,
                 Mod13AuxCurve,
-                Mod13Mapping,
-                Mod13AuxMapping,
+                            Mod13SrcRangeMin,
+                            Mod13SrcRangeMax,
+                            Mod13AuxRangeMin,
+                            Mod13AuxRangeMax,
 
                 Mod14Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod14Source,
@@ -1569,8 +1496,10 @@ namespace WaveSabreCore
                 Mod14AuxSource,
                 Mod14AuxAttenuation,
                 Mod14AuxCurve,
-                Mod14Mapping,
-                Mod14AuxMapping,
+                            Mod14SrcRangeMin,
+                            Mod14SrcRangeMax,
+                            Mod14AuxRangeMin,
+                            Mod14AuxRangeMax,
 
                 Mod15Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod15Source,
@@ -1587,8 +1516,10 @@ namespace WaveSabreCore
                 Mod15AuxSource,
                 Mod15AuxAttenuation,
                 Mod15AuxCurve,
-                Mod15Mapping,
-                Mod15AuxMapping,
+                            Mod15SrcRangeMin,
+                            Mod15SrcRangeMax,
+                            Mod15AuxRangeMin,
+                            Mod15AuxRangeMax,
 
                 Mod16Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod16Source,
@@ -1605,8 +1536,10 @@ namespace WaveSabreCore
                 Mod16AuxSource,
                 Mod16AuxAttenuation,
                 Mod16AuxCurve,
-                Mod16Mapping,
-                Mod16AuxMapping,
+                            Mod16SrcRangeMin,
+                            Mod16SrcRangeMax,
+                            Mod16AuxRangeMin,
+                            Mod16AuxRangeMax,
 
                 Mod17Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                 Mod17Source,
@@ -1623,8 +1556,10 @@ namespace WaveSabreCore
                 Mod17AuxSource,
                 Mod17AuxAttenuation,
                 Mod17AuxCurve,
-                Mod17Mapping,
-                Mod17AuxMapping,
+                            Mod17SrcRangeMin,
+                            Mod17SrcRangeMax,
+                            Mod17AuxRangeMin,
+                            Mod17AuxRangeMax,
 
                     Mod18Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
                     Mod18Source,
@@ -1641,8 +1576,10 @@ namespace WaveSabreCore
                     Mod18AuxSource,
                     Mod18AuxAttenuation,
                     Mod18AuxCurve,
-                    Mod18Mapping,
-                    Mod18AuxMapping,
+                                Mod18SrcRangeMin,
+                                Mod18SrcRangeMax,
+                                Mod18AuxRangeMin,
+                                Mod18AuxRangeMax,
 
                 Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler1Volume,
@@ -2028,8 +1965,10 @@ namespace WaveSabreCore
 {"M1Asrc"}, \
 {"M1Aatt"}, \
 {"M1Acrv"}, \
-{"M1map"}, \
-{"M1Amap"}, \
+{"M1rngA"}, \
+{"M1rngB"}, \
+{"M1rngXA"}, \
+{"M1rngXB"}, \
 {"M2en"}, \
 {"M2src"}, \
 {"M2dest1"}, \
@@ -2045,8 +1984,10 @@ namespace WaveSabreCore
 {"M2Asrc"}, \
 {"M2Aatt"}, \
 {"M2Acrv"}, \
-{"M2map"}, \
-{"M2Amap"}, \
+{"M2rngA"}, \
+{"M2rngB"}, \
+{"M2rngXA"}, \
+{"M2rngXB"}, \
 {"M3en"}, \
 {"M3src"}, \
 {"M3dest1"}, \
@@ -2062,8 +2003,10 @@ namespace WaveSabreCore
 {"M3Asrc"}, \
 {"M3Aatt"}, \
 {"M3Acrv"}, \
-{"M3map"}, \
-{"M3Amap"}, \
+{"M3rngA"}, \
+{"M3rngB"}, \
+{"M3rngXA"}, \
+{"M3rngXB"}, \
 {"M4en"}, \
 {"M4src"}, \
 {"M4dest1"}, \
@@ -2079,8 +2022,10 @@ namespace WaveSabreCore
 {"M4Asrc"}, \
 {"M4Aatt"}, \
 {"M4Acrv"}, \
-{"M4map"}, \
-{"M4Amap"}, \
+{"M4rngA"}, \
+{"M4rngB"}, \
+{"M4rngXA"}, \
+{"M4rngXB"}, \
 {"M5en"}, \
 {"M5src"}, \
 {"M5dest1"}, \
@@ -2096,8 +2041,10 @@ namespace WaveSabreCore
 {"M5Asrc"}, \
 {"M5Aatt"}, \
 {"M5Acrv"}, \
-{"M5map"}, \
-{"M5Amap"}, \
+{"M5rngA"}, \
+{"M5rngB"}, \
+{"M5rngXA"}, \
+{"M5rngXB"}, \
 {"M6en"}, \
 {"M6src"}, \
 {"M6dest1"}, \
@@ -2113,8 +2060,10 @@ namespace WaveSabreCore
 {"M6Asrc"}, \
 {"M6Aatt"}, \
 {"M6Acrv"}, \
-{"M6map"}, \
-{"M6Amap"}, \
+{"M6rngA"}, \
+{"M6rngB"}, \
+{"M6rngXA"}, \
+{"M6rngXB"}, \
 {"M7en"}, \
 {"M7src"}, \
 {"M7dest1"}, \
@@ -2130,8 +2079,10 @@ namespace WaveSabreCore
 {"M7Asrc"}, \
 {"M7Aatt"}, \
 {"M7Acrv"}, \
-{"M7map"}, \
-{"M7Amap"}, \
+{"M7rngA"}, \
+{"M7rngB"}, \
+{"M7rngXA"}, \
+{"M7rngXB"}, \
 {"M8en"}, \
 {"M8src"}, \
 {"M8dest1"}, \
@@ -2147,8 +2098,10 @@ namespace WaveSabreCore
 {"M8Asrc"}, \
 {"M8Aatt"}, \
 {"M8Acrv"}, \
-{"M8map"}, \
-{"M8Amap"}, \
+{"M8rngA"}, \
+{"M8rngB"}, \
+{"M8rngXA"}, \
+{"M8rngXB"}, \
 {"M9en"}, \
 {"M9src"}, \
 {"M9dest1"}, \
@@ -2164,8 +2117,10 @@ namespace WaveSabreCore
 {"M9Asrc"}, \
 {"M9Aatt"}, \
 {"M9Acrv"}, \
-{"M9map"}, \
-{"M9Amap"}, \
+{"M9rngA"}, \
+{"M9rngB"}, \
+{"M9rngXA"}, \
+{"M9rngXB"}, \
 {"M10en"}, \
 {"M10src"}, \
 {"M10dst1"}, \
@@ -2181,8 +2136,10 @@ namespace WaveSabreCore
 {"M10Asrc"}, \
 {"M10Aatt"}, \
 {"M10Acrv"}, \
-{"M10map"}, \
-{"M10Amap"}, \
+{"M10rgA"}, \
+{"M10rgB"}, \
+{"M10rgXA"}, \
+{"M10rgXB"}, \
 {"M11en"}, \
 {"M11src"}, \
 {"M11dst1"}, \
@@ -2198,8 +2155,10 @@ namespace WaveSabreCore
 {"M11Asrc"}, \
 {"M11Aatt"}, \
 {"M11Acrv"}, \
-{"M11map"}, \
-{"M11Amap"}, \
+{"M11rgA"}, \
+{"M11rgB"}, \
+{"M11rgXA"}, \
+{"M11rgXB"}, \
 {"M12en"}, \
 {"M12src"}, \
 {"M12dst1"}, \
@@ -2215,8 +2174,10 @@ namespace WaveSabreCore
 {"M12Asrc"}, \
 {"M12Aatt"}, \
 {"M12Acrv"}, \
-{"M12map"}, \
-{"M12Amap"}, \
+{"M12rgA"}, \
+{"M12rgB"}, \
+{"M12rgXA"}, \
+{"M12rgXB"}, \
 {"M13en"}, \
 {"M13src"}, \
 {"M13dst1"}, \
@@ -2232,8 +2193,10 @@ namespace WaveSabreCore
 {"M13Asrc"}, \
 {"M13Aatt"}, \
 {"M13Acrv"}, \
-{"M13map"}, \
-{"M13Amap"}, \
+{"M13rgA"}, \
+{"M13rgB"}, \
+{"M13rgXA"}, \
+{"M13rgXB"}, \
 {"M14en"}, \
 {"M14src"}, \
 {"M14dst1"}, \
@@ -2249,8 +2212,10 @@ namespace WaveSabreCore
 {"M14Asrc"}, \
 {"M14Aatt"}, \
 {"M14Acrv"}, \
-{"M14map"}, \
-{"M14Amap"}, \
+{"M14rgA"}, \
+{"M14rgB"}, \
+{"M14rgXA"}, \
+{"M14rgXB"}, \
 {"M15en"}, \
 {"M15src"}, \
 {"M15dst1"}, \
@@ -2266,8 +2231,10 @@ namespace WaveSabreCore
 {"M15Asrc"}, \
 {"M15Aatt"}, \
 {"M15Acrv"}, \
-{"M15map"}, \
-{"M15Amap"}, \
+{"M15rgA"}, \
+{"M15rgB"}, \
+{"M15rgXA"}, \
+{"M15rgXB"}, \
 {"M16en"}, \
 {"M16src"}, \
 {"M16dst1"}, \
@@ -2283,8 +2250,10 @@ namespace WaveSabreCore
 {"M16Asrc"}, \
 {"M16Aatt"}, \
 {"M16Acrv"}, \
-{"M16map"}, \
-{"M16Amap"}, \
+{"M16rgA"}, \
+{"M16rgB"}, \
+{"M16rgXA"}, \
+{"M16rgXB"}, \
 {"M17en"}, \
 {"M17src"}, \
 {"M17dst1"}, \
@@ -2300,8 +2269,10 @@ namespace WaveSabreCore
 {"M17Asrc"}, \
 {"M17Aatt"}, \
 {"M17Acrv"}, \
-{"M17map"}, \
-{"M17Amap"}, \
+{"M17rgA"}, \
+{"M17rgB"}, \
+{"M17rgXA"}, \
+{"M17rgXB"}, \
 {"M18en"}, \
 {"M18src"}, \
 {"M18dst1"}, \
@@ -2317,8 +2288,10 @@ namespace WaveSabreCore
 {"M18Asrc"}, \
 {"M18Aatt"}, \
 {"M18Acrv"}, \
-{"M18map"}, \
-{"M18Amap"}, \
+{"M18rgA"}, \
+{"M18rgB"}, \
+{"M18rgXA"}, \
+{"M18rgXB"}, \
 {"S1En"}, \
 {"S1Vol"}, \
 {"S1KRmin"}, \
@@ -2536,8 +2509,12 @@ namespace WaveSabreCore
             AuxSource,
             AuxAttenuation,
             AuxCurve,
-            ValueMapping,
-            AuxValueMapping,
+
+            SrcRangeMin,
+            SrcRangeMax,
+            AuxRangeMin,
+            AuxRangeMax,
+
             Count,
         };
         enum class LFOParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE

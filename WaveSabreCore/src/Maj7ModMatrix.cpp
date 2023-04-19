@@ -5,28 +5,27 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		inline float MapValue(float x, ModValueMapping mapping)
+		// dest range 
+		float ModMatrixNode::MapValue(ModulationSpec& spec, ModSource src, ModParamIndexOffsets curveParam, ModParamIndexOffsets srcRangeMinParam, ModParamIndexOffsets srcRangeMaxParam, bool isDestN11)
 		{
-			switch (mapping) {
-			default:
-			case NoMapping:
-				return x;
-			case N11_1N1: // -1,1 => 1,-1 (bipolar invert)
-				return -x;
-			case N11_01: // -1,1 => 0,1 (bipolar to positive)
-				return (x + 1) * 0.5f;
-			case N11_10: // -1,1 => 1,0 (bipolar to invert positive)
-				x = 1-x; // 2,0
-				return x * 0.5f;
-			case P01_10: // 0,1 => 1,0 (positive invert)
-				return 1-x;
-			case P01_N11: // 0,1 => -1,1 (positive to bipolar)
-				return x * 2 - 1;
-			case P01_1N1: // 0,1 => 1,-1 (positive to negative bipolar)
-				x *= 2; // 0,2
-				x = 1 - x; // 1,-1
-				return x;
+			// make sourceVal from 0-1
+			float val = GetSourceValue(src);
+			float rangeMin = spec.mParams.GetScaledRealValue(srcRangeMinParam, -3, 3, 0);
+			float rangeMax = spec.mParams.GetScaledRealValue(srcRangeMaxParam, -3, 3, 0);
+			if (math::FloatEquals(rangeMin, rangeMax, 0.0001f)) {
+				return 0;
 			}
+
+			val = math::lerp_rev(rangeMin, rangeMax, GetSourceValue(src));
+			// but it should actually be -1 to 1.
+			if (isDestN11) {
+				val = val * 2 - 1;
+				val = math::clampN11(val);
+			}
+			else {
+				val = math::clamp01(val);
+			}
+			return spec.mParams.ApplyCurveToValue(curveParam, val);
 		}
 
 			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
@@ -79,17 +78,21 @@ namespace WaveSabreCore
 							continue;
 						}
 
-						real_t sourceVal = GetSourceValue(modSource);
-						sourceVal = MapValue(sourceVal, spec.mValueMapping);
-						sourceVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::Curve, sourceVal);// spec.mCurve.ApplyToValue(sourceVal);
+						//real_t sourceVal = GetSourceValue(modSource);
+						//sourceVal = MapValue(sourceVal, spec.mValueMapping);
+						//sourceVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::Curve, sourceVal);// spec.mCurve.ApplyToValue(sourceVal);
+						float sourceVal = MapValue(spec, modSource, ModParamIndexOffsets::Curve, ModParamIndexOffsets::SrcRangeMin, ModParamIndexOffsets::SrcRangeMax, true);
 						if (spec.mAuxEnabled)
 						{
 							// attenuate the value
 							auto auxSource = spec.mAuxSource;
 							if (auxSource != ModSource::None) {
-								float auxVal = GetSourceValue(auxSource);
-								auxVal = MapValue(auxVal, spec.mAuxValueMapping);
-								auxVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::AuxCurve, auxVal);//spec.mAuxCurve.ApplyToValue(auxVal);
+
+								float auxVal = MapValue(spec, auxSource, ModParamIndexOffsets::AuxCurve, ModParamIndexOffsets::AuxRangeMin, ModParamIndexOffsets::AuxRangeMax, false);
+								//float auxVal = GetSourceValue(auxSource);
+								//auxVal = MapValue(auxVal, spec.mAuxValueMapping);
+								//auxVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::AuxCurve, auxVal);//spec.mAuxCurve.ApplyToValue(auxVal);
+
 								// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 								// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
 								float auxAtten = spec.mAuxAttenuation;

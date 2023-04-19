@@ -41,6 +41,8 @@ namespace WaveSabreCore
 			Const_1,
 			Const_0_5,
 			Const_0,
+			Const_N0_5,
+			Const_N1,
 
 			Count,
 			Invalid,
@@ -79,6 +81,8 @@ namespace WaveSabreCore
 			"1 (const)", \
 			"0.5 (const)", \
 			"0 (const)", \
+			"-0.5 (const)", \
+			"-1 (const)", \
 		}
 #define MODSOURCE_SHORT_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{ \
 			"-", \
@@ -112,6 +116,8 @@ namespace WaveSabreCore
 			"1", \
 			"0.5", \
 			"0", \
+			"-.5", \
+			"-1", \
         };
 
 		enum class ModDestination : uint8_t
@@ -768,27 +774,27 @@ namespace WaveSabreCore
 			SourceAmp,
 		};
 
-		enum ModValueMapping
-		{
-			NoMapping,
-			N11_1N1, // -1,1 => 1,-1 (bipolar invert)
-			N11_01, // -1,1 => 0,1 (bipolar to positive)
-			N11_10, // -1,1 => 1,0 (bipolar to invert positive)
-			P01_10, // 0,1 => 1,0 (positive invert)
-			P01_N11, // 0,1 => -1,1 (positive to bipolar)
-			P01_1N1, // 0,1 => 1,-1 (positive to negative bipolar)
-			Count,
-		};
-#define MOD_VALUE_MAPPING_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModValueMapping::Count]{ \
-			"(thru)", \
-			"-1,1 => 1,-1 (N11 inv)", \
-			"-1,1 => 0,1 (N11 to POS)", \
-			"-1,1 => 1,0 (N11 to POS_inv)", \
-			"0,1 => 1,0 (POS inv)", \
-			"0,1 => -1,1 (POS to N11)", \
-			"0,1 => 1,-1 (POS to N11_inv", \
-        };
-
+//		enum ModValueMapping
+//		{
+//			NoMapping,
+//			N11_1N1, // -1,1 => 1,-1 (bipolar invert)
+//			N11_01, // -1,1 => 0,1 (bipolar to positive)
+//			N11_10, // -1,1 => 1,0 (bipolar to invert positive)
+//			P01_10, // 0,1 => 1,0 (positive invert)
+//			P01_N11, // 0,1 => -1,1 (positive to bipolar)
+//			P01_1N1, // 0,1 => 1,-1 (positive to negative bipolar)
+//			Count,
+//		};
+//#define MOD_VALUE_MAPPING_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModValueMapping::Count]{ \
+//			"(thru)", \
+//			"-1,1 => 1,-1 (N11 inv)", \
+//			"-1,1 => 0,1 (N11 to POS)", \
+//			"-1,1 => 1,0 (N11 to POS_inv)", \
+//			"0,1 => 1,0 (POS inv)", \
+//			"0,1 => -1,1 (POS to N11)", \
+//			"0,1 => 1,-1 (POS to N11_inv", \
+//        };
+//
 
 		struct ModulationSpec
 		{
@@ -802,8 +808,8 @@ namespace WaveSabreCore
 			float mScales[gModulationSpecDestinationCount];
 			bool mAuxEnabled;
 			ModSource mAuxSource;
-			ModValueMapping mValueMapping;
-			ModValueMapping mAuxValueMapping;
+			//ModValueMapping mValueMapping;
+			//ModValueMapping mAuxValueMapping;
 			float mAuxAttenuation;
 
 			// why aux (aka sidechain) is necessary. modulation values are added
@@ -825,8 +831,8 @@ namespace WaveSabreCore
 				}
 		
 				mAuxEnabled = mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
-				mValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::ValueMapping);
-				mAuxValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::AuxValueMapping);
+				//mValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::ValueMapping);
+				//mAuxValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::AuxValueMapping);
 				mAuxSource = mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
 				mAuxAttenuation = mParams.Get01Value(ModParamIndexOffsets::AuxAttenuation, 0);
 			}
@@ -899,6 +905,8 @@ namespace WaveSabreCore
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.
 			// the result will be placed 
 			void ProcessSample(ModulationSpec(&modSpecs)[gModulationCount]);
+
+			float MapValue(ModulationSpec& spec, ModSource src, ModParamIndexOffsets curveParam, ModParamIndexOffsets srcRangeMinParam, ModParamIndexOffsets srcRangeMaxParam, bool isDestN11);
 		};
 	} // namespace M7
 

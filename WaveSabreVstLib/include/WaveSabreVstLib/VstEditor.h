@@ -765,7 +765,7 @@ namespace WaveSabreVstLib
 			ImGui::PopID();
 		}
 
-		void Maj7ImGuiParamScaledFloat(VstInt32 paramID, const char* label, M7::real_t v_min, M7::real_t v_max, M7::real_t v_defaultScaled, float v_centerScaled, ImGuiKnobs::ModInfo modInfo) {
+		void Maj7ImGuiParamScaledFloat(VstInt32 paramID, const char* label, M7::real_t v_min, M7::real_t v_max, M7::real_t v_defaultScaled, float v_centerScaled, float sizePixels, ImGuiKnobs::ModInfo modInfo) {
 			WaveSabreCore::M7::real_t tempVal;
 			M7::ScaledRealParam p{ tempVal , v_min, v_max };
 			p.SetRangedValue(v_defaultScaled);
@@ -775,7 +775,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
 			ScaledFloatConverter conv{ v_min, v_max };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, sizePixels, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
@@ -1219,46 +1219,6 @@ namespace WaveSabreVstLib
 			drawTick(-30, "30db");
 			drawTick(-40, "40db");
 			drawTick(-50, "50db");
-
-			ImGui::Dummy(size);
-		}
-
-
-		void MeterN11_Horiz(ImVec2 size, float xN11)
-		{
-			VUMeterColors colors;
-			colors.background = ColorFromHTML("462e2e");
-			colors.foreground = ColorFromHTML("ed4d4d");
-			colors.tick = ColorFromHTML("00ffff");
-			colors.clipTick = colors.foreground;
-
-			ImGuiWindow* window = ImGui::GetCurrentWindow();
-			ImRect bb;
-			bb.Min = ImGui::GetCursorPos();
-			bb.Min = window->DC.CursorPos;
-			bb.Max = bb.Min + size;
-			ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
-
-			auto ValToX = [&](float xN11__) {
-				float x01 = xN11__ * .5f + .5f;
-				x01 = M7::math::clamp01(x01);
-				return M7::math::lerp(bb.Min.x, bb.Max.x, x01);
-			};
-
-			auto* dl = ImGui::GetWindowDrawList();
-
-			float xzero = ValToX(0);
-			float xval = ValToX(xN11);
-			float xthumb = xval;
-			float xmin = std::min(xzero, xval);
-			float xmax = std::max(xzero, xval);
-
-			static constexpr float gHalfZeroTickWidth = 1.f;
-			static constexpr float gHalfValTickWidth = 1.f;
-
-			dl->AddRectFilled({ xmin, bb.Min.y }, { xmax, bb.Max.y }, colors.foreground);
-			dl->AddRectFilled({ xzero - gHalfZeroTickWidth, bb.Min.y }, { xzero + gHalfZeroTickWidth, bb.Max.y }, colors.tick);
-			dl->AddRectFilled({ xval - gHalfValTickWidth, bb.Min.y }, { xval + gHalfValTickWidth, bb.Max.y }, colors.tick);
 
 			ImGui::Dummy(size);
 		}
