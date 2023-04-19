@@ -1602,6 +1602,7 @@ namespace WaveSabreCore
                 Sampler1InterpolationType,
                 Sampler1ReleaseExitsLoop,
                 Sampler1AuxMix,
+                    Sampler1Delay,
 
                 Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                 Sampler1AmpEnvAttackTime,
@@ -1636,7 +1637,8 @@ namespace WaveSabreCore
                     Sampler2InterpolationType,
                 Sampler2ReleaseExitsLoop,
                 Sampler2AuxMix,
-                           
+                                Sampler2Delay,
+
                     Sampler2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                     Sampler2AmpEnvAttackTime,
                     Sampler2AmpEnvAttackCurve,
@@ -1670,7 +1672,8 @@ namespace WaveSabreCore
                 Sampler3InterpolationType,
                 Sampler3ReleaseExitsLoop,
                 Sampler3AuxMix,
-                       
+                        Sampler3Delay,
+
                 Sampler3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                 Sampler3AmpEnvAttackTime,
                 Sampler3AmpEnvAttackCurve,
@@ -1704,7 +1707,8 @@ namespace WaveSabreCore
                 Sampler4InterpolationType,
                     Sampler4ReleaseExitsLoop,
                     Sampler4AuxMix,
-                       
+                    Sampler4Delay,
+
                 Sampler4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                 Sampler4AmpEnvAttackTime,
                 Sampler4AmpEnvAttackCurve,
@@ -2313,6 +2317,7 @@ namespace WaveSabreCore
 {"S1Intrp"}, \
 {"S1RelX"}, \
 {"S1AxMix"}, \
+{"S1Dly"}, \
 {"S1Edlt"}, \
 {"S1Eatt"}, \
 {"S1Eatc"}, \
@@ -2345,6 +2350,7 @@ namespace WaveSabreCore
 {"S2Intrp"}, \
 {"S2RelX"}, \
 {"S2AxMix"}, \
+{"S2Dly"}, \
 {"S2Edlt"}, \
 {"S2Eatt"}, \
 {"S2Eatc"}, \
@@ -2377,6 +2383,7 @@ namespace WaveSabreCore
 {"S3Intrp"}, \
 {"S3RelX"}, \
 {"S3AxMix"}, \
+{"S3Dly"}, \
 {"S3Edlt"}, \
 {"S3Eatt"}, \
 {"S3Eatc"}, \
@@ -2409,6 +2416,7 @@ namespace WaveSabreCore
 {"S4Intrp"}, \
 {"S4RelX"}, \
 {"S4AxMix"}, \
+{"S4Dly"}, \
 {"S4Edlt"}, \
 {"S4Eatt"}, \
 {"S4Eatc"}, \
@@ -2488,6 +2496,7 @@ namespace WaveSabreCore
             InterpolationType,
             ReleaseExitsLoop,
             AuxMix,
+            Delay,
             AmpEnvDelayTime,
             Count = AmpEnvDelayTime,
         };
@@ -2566,18 +2575,6 @@ namespace WaveSabreCore
             Count = AmpEnvDelayTime,
         };
 
-        //enum class AuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & FilterAuxParamIndexOffsets
-        //{
-        //    Enabled,
-        //    Link,
-        //    Type,
-        //    Param1, // filter type
-        //    Param2, // filter Q
-        //    Param3, // filter saturation
-        //    Param4, // filter freq
-        //    Param5, // filter KT
-        //    Count,
-        //};
 
         // FILTER AUX INFO  ------------------------------------------------------------
         enum class FilterParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
@@ -2601,14 +2598,6 @@ namespace WaveSabreCore
             unused_4,
             Count,
         };
-        //static_assert((int)FilterAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
-   //     #define FILTER_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::FilterAuxModIndexOffsets::Count] { \
-   //         " (Filter Q)", \
-			//" (Filter Saturation)", \
-			//" (Filter Frequency)", \
-   //         " (n/a)", \
-   //     }
-
 
         // ------------------------------------------------------------
         enum class EnvelopeMode : uint8_t
@@ -2618,133 +2607,6 @@ namespace WaveSabreCore
             Count,
         };
 
-//        // DISTORTION AUX INFO  ------------------------------------------------------------
-//        enum class DistortionAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & DistortionAuxModIndexOffsets
-//        {
-//            unused__Enabled,
-//            unused__Link,
-//            unused__AuxType,
-//            DistortionStyle, // param 1
-//            // FROM here, must be identical to DistortionAuxModIndexOffsets (param2 - 5)
-//            Drive, // param 2
-//            Threshold, // param 3
-//            Shape, // param 4
-//            OutputVolume, // param 5
-//            Count,
-//        };
-//
-//        enum class DistortionAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
-//        {
-//            Drive, // param 2
-//            Threshold, // param 3
-//            Shape, // param 4
-//            OutputVolume, // param 5
-//            Count,
-//        };
-//        static_assert((int)DistortionAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
-//#define DISTORTION_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::DistortionAuxModIndexOffsets::Count] { \
-//            " (Dist gain)", \
-//			" (Dist threshold)", \
-//			" (Dist shape)", \
-//            " (n/a)", \
-//        }
-//
-//
-//        // BITCRUSH AUX INFO  ------------------------------------------------------------
-//        enum class BitcrushAuxParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & BitcrushAuxModIndexOffsets
-//        {
-//            unused__Enabled,
-//            unused__Link,
-//            unused__AuxType,
-//            unused__1, // param 1
-//            // FROM here, must be identical to DistortionAuxModIndexOffsets (param2 - 5)
-//            unused__2, // param 2
-//            unused__3, // param 3
-//            Freq, // param 4
-//            FreqKT, // param 5
-//            Count,
-//        };
-//
-//        enum class BitcrushAuxModIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
-//        {
-//            unused__2, // param 2
-//            unused__3, // param 3
-//            Freq, // param 4
-//            unused__5, // param 5
-//            Count,
-//        };
-//        static_assert((int)BitcrushAuxParamIndexOffsets::Count == (int)AuxParamIndexOffsets::Count, "");
-//#define BITCRUSH_AUX_MOD_SUFFIXES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::BitcrushAuxParamIndexOffsets::Count] { \
-//            " (n/a)", \
-//			" (n/a)", \
-//			" (Bitcrush frequency)", \
-//            " (n/a)", \
-//        }
-
-
-   //     // ------------------------------------------------------------
-   //     enum class AuxLink : uint8_t
-   //     {
-   //         // THESE ARE USED AS INDICES 0-3
-   //         Aux1,
-   //         Aux2,
-   //         Aux3,
-   //         Aux4,
-   //         Count,
-   //     };
-   //     #define AUX_LINK_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxLink::Count] { \
-   //         "Aux 1", \
-			//"Aux 2", \
-			//"Aux 3", \
-   //         "Aux 4", \
-   //     }
-
-   //     enum class AuxRoute : uint8_t
-   //     {
-   //         // A -- aux1 - aux2 --------------- L
-   //         // B ---------------- aux3 - aux4 - R
-   //         TwoTwo,
-
-   //         // A -- aux1 - aux2 - aux3 -------- L
-   //         // B ----------------------- aux4 - R
-   //         ThreeOne,
-
-   //         // A -- aux1 - aux2 - aux3 - aux4 - L
-   //         // B -------------------------------R
-   //         FourZero,
-
-   //         // A -- aux1 - aux2 - aux3 - aux4 - L
-   //         // B -^                             R
-   //         SerialMono,
-
-   //         Count,
-   //     };
-   //     #define AUX_ROUTE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxRoute::Count] { \
-   //         "TwoTwo", \
-			//"ThreeOne", \
-			//"FourZero", \
-			//"Serial (mono)", \
-   //     }
-
-   //     enum class AuxEffectType : uint8_t
-   //     {
-   //         None,
-   //         BigFilter,
-   //         //Distortion,
-   //         //Bitcrush,
-   //         Count,
-   //     };
-   //     #define AUX_EFFECT_TYPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::AuxEffectType::Count] { \
-   //         "None", \
-			//"BigFilter", \
-   //     }
-
-   //     struct IAuxEffect
-   //     {
-   //         virtual ~IAuxEffect() {}
-   //         virtual void AuxBeginBlock(float noteHz, struct ModMatrixNode& modMatrix) = 0;
-   //         virtual float AuxProcessSample(float inp) = 0;
-   //     };
 
         enum FMMatrixIndices
         {

@@ -165,15 +165,6 @@ namespace WaveSabreCore
 				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			) :
 				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID, //ampEnvBaseParamID,
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Enabled)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::Volume)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::AuxMix)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneSemis)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::TuneFine)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqParam)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::FreqKT)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::KeyRangeMin)),
-					//(ParamIndices)(int(baseParamID) + int(SamplerParamIndexOffsets::KeyRangeMax)),
 					ampEnvModSourceID,
 					modDestBaseID,
 					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::Volume)),
@@ -181,26 +172,8 @@ namespace WaveSabreCore
 					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::HiddenVolume))
 				),
 				mParams(paramCache, baseParamID)
-				//mLegatoTrig(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LegatoTrig]),
-				//mReverse(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::Reverse]),
-				//mReleaseExitsLoop(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::ReleaseExitsLoop]),
-				//mSampleStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleStart]),
-				//mLoopMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopMode], LoopMode::NumLoopModes),
-				//mLoopSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopSource], LoopBoundaryMode::NumLoopBoundaryModes),
-				//mInterpolationMode(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::InterpolationType], InterpolationMode::NumInterpolationModes),
-				//mLoopStart(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopStart]),
-				//mLoopLength(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength]),
-				//mBaseNote(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], gKeyRangeCfg),
-				//mSampleSource(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::SampleSource], SampleSource::Count),
-				//mGmDlsIndex(paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::GmDlsIndex], gGmDlsIndexParamCfg)
 			{
-				//mMutex = ::CreateMutex(0, 0, 0);
 			}
-
-			//SamplerDevice::~SamplerDevice()
-			//{
-			//	//CloseHandle(mMutex);
-			//}
 
 			// called when loading chunk, or by VST
 			void SamplerDevice::LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char *path)
@@ -240,14 +213,8 @@ namespace WaveSabreCore
 			void SamplerDevice::BeginBlock()
 			{
 				mMutex.ManualEnter();
-				//WaitForSingleObject(mMutex, INFINITE);
-
 
 				mEnabledCached = mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled);
-				//mAuxPanCached = mParams.GetN11Value(SamplerParamIndexOffsets::AuxMix, );
-				//int mPitchSemisCached;
-				//float mPitchFineCached;
-
 
 				ISoundSourceDevice::BeginBlock();
 
@@ -294,7 +261,7 @@ namespace WaveSabreCore
 
 			void SamplerVoice::ConfigPlayer()
 			{
-				mSamplePlayer.SampleStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::SampleStart, 0);// mpSamplerDevice->mSampleStart.Get01Value();
+				mSamplePlayer.SampleStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::SampleStart, mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::SampleStart));// mpSamplerDevice->mSampleStart.Get01Value();
 				mSamplePlayer.LoopStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopStart, 0); //mpSamplerDevice->mLoopStart.Get01Value();
 				mSamplePlayer.LoopLength = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopLength, 0); //mpSamplerDevice->mLoopLength.Get01Value();
 				if (!mNoteIsOn && mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::ReleaseExitsLoop)) {// mReleaseExitsLoop.GetBoolValue()) {
@@ -309,6 +276,9 @@ namespace WaveSabreCore
 				mSamplePlayer.LoopBoundaryMode = mpSamplerDevice->mParams.GetEnumValue<LoopBoundaryMode>(SamplerParamIndexOffsets::LoopSource); //mpSamplerDevice->mLoopSource.GetEnumValue();
 				mSamplePlayer.InterpolationMode = mpSamplerDevice->mParams.GetEnumValue<InterpolationMode>(SamplerParamIndexOffsets::InterpolationType); //mpSamplerDevice->mInterpolationMode.GetEnumValue();
 				mSamplePlayer.Reverse = mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Reverse);//mpSamplerDevice->mReverse.GetBoolValue();
+
+				auto ms = mpSamplerDevice->mParams.GetEnvTimeMilliseconds(SamplerParamIndexOffsets::Delay, mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::Delay));
+				mDelayStep = math::CalculateInc01PerSampleForMS(ms);
 			}
 
 			void SamplerVoice::NoteOn(bool legato) 
@@ -322,9 +292,6 @@ namespace WaveSabreCore
 				if (legato && !mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::LegatoTrig)) {
 					return;
 				}
-				//if (legato && !mpSamplerDevice->mLegatoTrig.GetBoolValue()) {
-				//	return;
-				//}
 
 				auto token = mpSamplerDevice->mMutex.Enter();
 
@@ -333,9 +300,8 @@ namespace WaveSabreCore
 				mSamplePlayer.SampleLoopStart = mpSamplerDevice->mSample->GetSampleLoopStart(); // used for boundary mode from sample
 				mSamplePlayer.SampleLoopLength = mpSamplerDevice->mSample->GetSampleLoopLength(); // used for boundary mode from sample
 				mNoteIsOn = true;
-
+				mDelayPos01 = 0;
 				ConfigPlayer();
-				mSamplePlayer.InitPos();
 			}
 
 			void SamplerVoice::NoteOff()
@@ -352,7 +318,6 @@ namespace WaveSabreCore
 					return;
 				}
 
-
 				ConfigPlayer();
 				mSamplePlayer.RunPrep();
 
@@ -362,17 +327,22 @@ namespace WaveSabreCore
 			{
 				if (!mpSrcDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled))
 					return 0;
+
+				if (mDelayPos01 < 1) {
+					mDelayPos01 += mDelayStep;
+					if (mDelayPos01 >= 1) {
+						mSamplePlayer.InitPos(); // play.
+					}
+				}
+
 				float pitchFineMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
 				float freqMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
-
-				//midiNote += mpSamplerDevice->mPitchSemisParam.mCachedVal + (mpSamplerDevice->mPitchFineParam.mCachedVal + pitchFineMod) * gSourcePitchFineRangeSemis;
 
 				int pitchSemis = mpSamplerDevice->mParams.GetIntValue(SamplerParamIndexOffsets::TuneSemis, gSourcePitchSemisRange);
 				float pitchFine = mpSamplerDevice->mParams.GetN11Value(SamplerParamIndexOffsets::TuneFine, pitchFineMod) * gSourcePitchFineRangeSemis;
 				midiNote += pitchSemis + pitchFine;
 
 				float noteHz = math::MIDINoteToFreq(midiNote);
-				//float freq = mpSamplerDevice->mFrequencyParam.GetFrequency(noteHz, freqMod);
 				float freq = mpSamplerDevice->mParams.GetFrequency(SamplerParamIndexOffsets::FreqParam, SamplerParamIndexOffsets::FreqKT, gSourceFreqConfig, noteHz, freqMod);
 				freq *= detuneFreqMul;
 

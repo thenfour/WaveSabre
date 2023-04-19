@@ -256,7 +256,7 @@ namespace WaveSabreCore
 				explicit LFODevice(float* paramCache, ParamIndices paramBaseID, ModDestination modBaseID) :
 					mDevice{ OscillatorIntentionLFO{}, paramCache, paramBaseID, modBaseID }
 				{}
-				float mLPCutoff = 0.0f;
+				//float mLPCutoff = 0.0f;
 				OscillatorDevice mDevice;
 				ModMatrixNode mNullModMatrix;
 				OscillatorNode mPhase{ &mDevice, &mNullModMatrix, nullptr };
@@ -473,7 +473,7 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < gModLFOCount; ++i) {
 					auto& lfo = mLFOs[i];
 					lfo.mDevice.BeginBlock();
-					lfo.mLPCutoff = lfo.mDevice.GetLPFFrequency();// .mLPFFrequency.GetFrequency(0, 0);
+					//lfo.mLPCutoff = lfo.mDevice.GetLPFFrequency();// .mLPFFrequency.GetFrequency(0, 0);
 					lfo.mPhase.BeginBlock();
 				}
 
@@ -728,11 +728,16 @@ namespace WaveSabreCore
 					real_t noteHz = math::MIDINoteToFreq(mMidiNote);
 
 					mModMatrix.BeginBlock();
-					mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11); // krate, N11
-					mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);  // krate, 01
-					mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f); // krate, 01
-					mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01); // krate, 01
-					mModMatrix.SetSourceValue(ModSource::UnisonoVoice, float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono); // krate, 01
+					mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11); 
+					mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);  
+					mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f); 
+					mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01);
+					float iuv = 1;
+					if (mpOwner->mVoicesUnisono > 1) {
+						iuv = float(mUnisonVoice) / (mpOwner->mVoicesUnisono - 1);
+					}
+					mModMatrix.SetSourceValue(ModSource::UnisonoVoice, iuv);
+					//if (float(mUnisonVoice + 1) / mpOwner->mVoicesUnisono)
 					mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 
 					mModMatrix.SetSourceValue(ModSource::Const_1, 1);
@@ -755,7 +760,12 @@ namespace WaveSabreCore
 							lfo.mNode.SetPhase(lfo.mDevice.mPhase.mPhase);
 						}
 						lfo.mNode.BeginBlock();
-						lfo.mFilter.SetParams(FilterModel::LP_OnePole, lfo.mDevice.mLPCutoff, 0);
+
+						auto freq = lfo.mDevice.mDevice.mParams.GetFrequency(LFOParamIndexOffsets::Sharpness, -1, gLFOLPFreqConfig, 0,
+							mModMatrix.GetDestinationValue((int)lfo.mDevice.mDevice.mModDestBaseID + (int)LFOModParamIndexOffsets::Sharpness));
+
+						lfo.mFilter.SetParams(FilterModel::LP_OnePole, freq, 0);
+						//lfo.mFilter.SetParams(FilterModel::LP_OnePole, lfo.mDevice.mDevice.GetLPFFrequency(mModMatrix), 0);
 					}
 
 					// set device-level modded values.

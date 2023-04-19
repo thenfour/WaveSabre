@@ -910,11 +910,12 @@ public:
 		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, &phaseCursor);
 
 		ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, "Shape");
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFreqConfig, 0.4f, lGetModInfo(M7::LFOModParamIndexOffsets::FrequencyParam));
-		ImGui::SameLine(0, 60); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase");
+		ImGui::SameLine(); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFreqConfig, 0.4f, lGetModInfo(M7::LFOModParamIndexOffsets::FrequencyParam));
+		//ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase");
+		ImGui::SameLine(); Maj7ImGuiParamFloatN11(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::LFOModParamIndexOffsets::Phase));
 		ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
 
-		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::gLFOLPFreqConfig, 0.5f, {});
+		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::gLFOLPFreqConfig, 0.5f, lGetModInfo(M7::LFOModParamIndexOffsets::Sharpness));
 
 		ImGui::PopID();
 	}
@@ -1187,7 +1188,7 @@ public:
 			smallStyle.boundaryIndicator);
 
 		// show output value.
-		ModMeter_Horiz(spec, window->DC.CursorPos, largeStyle.meterSize, isTargetN11 ? -1 : 0, 1, -1, 1, -1, 1, resultingValue, largeStyle);
+		ModMeter_Horiz(spec, window->DC.CursorPos, largeStyle.meterSize, isTargetN11 ? -1.0f : 0.0f, 1, -1, 1, -1, 1, resultingValue, largeStyle);
 		TooltipF("Value after selected range and curve applied");
 
 		return resultingValue;
@@ -1698,7 +1699,12 @@ public:
 
 			ImGui::BeginGroup();
 			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Reverse), "Reverse");
-			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::SampleStart), "SampleStart");
+			
+			ImGui::SameLine();
+			Maj7ImGuiParamFloat01(sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::SampleStart), "SampleStart", 0, 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::SampleStart));
+			ImGui::SameLine();
+			Maj7ImGuiParamEnvTime(sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Delay), "SampleDelay", 0, lGetModInfo(M7::SamplerModParamIndexOffsets::Delay));
+
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopStart), "LoopBeg");
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopLength), "LoopLen");
 			ImGui::EndGroup();

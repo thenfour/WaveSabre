@@ -946,10 +946,10 @@ namespace WaveSabreCore
 			bool GetPhaseRestart() const {
 				return mParams.GetBoolValue((mIntention == OscillatorIntention::Audio) ? (int)OscParamIndexOffsets::PhaseRestart : (int)LFOParamIndexOffsets::Restart);
 			}
-			// only for LFO
-			float GetLPFFrequency() const {
-				return mParams.GetFrequency(LFOParamIndexOffsets::Sharpness, -1, gLFOLPFreqConfig, 0, 0);
-			}
+			//// only for LFO
+			//float GetLPFFrequency() const {
+			//	return mParams.GetFrequency(LFOParamIndexOffsets::Sharpness, -1, gLFOLPFreqConfig, 0, );
+			//}
 
 			virtual void BeginBlock() override {
 				ISoundSourceDevice::BeginBlock();
@@ -1187,6 +1187,7 @@ namespace WaveSabreCore
 				{
 					mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
 					mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
+					mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Phase);
 
 					//float freq = mpSrcDevice->mFrequencyParam.GetFrequency(0, mFreqModVal);
 					float freq = mpSrcDevice->mParams.GetFrequency(LFOParamIndexOffsets::FrequencyParam, -1, gLFOFreqConfig, 0, mFreqModVal);
@@ -1210,7 +1211,7 @@ namespace WaveSabreCore
 				}
 
 				auto bleps = mpSlaveWave->OSC_ADVANCE(1, 0); // advance phase
-				mOutSample = mCurrentSample = mpSlaveWave->NaiveSample(float(mPhase));
+				mOutSample = mCurrentSample = mpSlaveWave->NaiveSample(math::fract(float(mPhase + mPhaseModVal)));
 
 				return mOutSample;
 			} // process sample for lfo

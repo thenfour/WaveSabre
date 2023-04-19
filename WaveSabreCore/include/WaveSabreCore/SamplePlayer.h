@@ -71,13 +71,17 @@ namespace WaveSabreCore
 		bool Reverse;
 		WaveSabreCore::LoopMode LoopMode;
 		WaveSabreCore::LoopBoundaryMode LoopBoundaryMode;
-		float LoopStart, LoopLength;
+		float LoopStart;
+		float LoopLength;
 
 		WaveSabreCore::InterpolationMode InterpolationMode;
 
 		const float *SampleData;
 		int SampleLength;
-		int SampleLoopStart, SampleLoopLength;
+		int SampleLoopStart;
+		int SampleLoopLength;
+
+
 		double samplePos;
 
 	private:

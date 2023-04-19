@@ -230,15 +230,23 @@ namespace WaveSabreCore
 
 			LFO1Waveshape,
 			LFO1FrequencyParam,
+				LFO1Phase,
+				LFO1Sharpness,
 
 				LFO2Waveshape,
 				LFO2FrequencyParam,
+				LFO2Phase,
+				LFO2Sharpness,
 
 				LFO3Waveshape,
 				LFO3FrequencyParam,
+				LFO3Phase,
+				LFO3Sharpness,
 
 				LFO4Waveshape,
 				LFO4FrequencyParam,
+				LFO4Phase,
+				LFO4Sharpness,
 
 			FMAmt2to1, // arate, 01
 			FMAmt3to1, // arate, 01
@@ -279,6 +287,8 @@ namespace WaveSabreCore
 			Sampler1PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler1FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler1AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+				Sampler1SampleStart,
+				Sampler1Delay,
 
 			Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Sampler1AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -296,6 +306,8 @@ namespace WaveSabreCore
 			Sampler2PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler2FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler2AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+				Sampler2SampleStart,
+				Sampler2Delay,
 
 			Sampler2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Sampler2AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -313,6 +325,8 @@ namespace WaveSabreCore
 			Sampler3PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler3FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler3AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+				Sampler3SampleStart,
+				Sampler3Delay,
 
 			Sampler3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Sampler3AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -330,6 +344,8 @@ namespace WaveSabreCore
 			Sampler4PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler4FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler4AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+					Sampler4SampleStart,
+					Sampler4Delay,
 
 			Sampler4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Sampler4AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -376,12 +392,16 @@ namespace WaveSabreCore
 			PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			SampleStart,
+			Delay,
 		};
 
 		enum class LFOModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
 			Waveshape,
 			FrequencyParam,
+			Phase,
+			Sharpness,
 		};
 
 		// size-optimize using macro
@@ -481,12 +501,20 @@ namespace WaveSabreCore
 			"Env2ReleaseCurve", \
 			"LFO1Waveshape", \
 			"LFO1FrequencyParam", \
+			"LFO1Phase", \
+			"LFO1Sharpness", \
 			"LFO2Waveshape", \
 			"LFO2FrequencyParam", \
+			"LFO2Phase", \
+			"LFO2Sharpness", \
 			"LFO3Waveshape", \
 			"LFO3FrequencyParam", \
+			"LFO3Phase", \
+			"LFO3Sharpness", \
 			"LFO4Waveshape", \
 			"LFO4FrequencyParam", \
+			"LFO4Phase", \
+			"LFO4Sharpness", \
 			"FMAmt2to1", \
 			"FMAmt3to1", \
 			"FMAmt4to1", \
@@ -520,6 +548,8 @@ namespace WaveSabreCore
 			"Sampler1PitchFine", \
 		"Sampler1FrequencyParam", \
 		"Sampler1AuxMix", \
+		"Sampler1SampleStart", \
+		"Sampler1Delay", \
 		"Sampler1AmpEnvDelayTime",  \
 			"Sampler1AmpEnvAttackTime", \
 			"Sampler1AmpEnvAttackCurve", \
@@ -534,6 +564,8 @@ namespace WaveSabreCore
 "Sampler2PitchFine", \
 "Sampler2FrequencyParam", \
 "Sampler2AuxMix", \
+		"Sampler2SampleStart", \
+		"Sampler2Delay", \
 "Sampler2AmpEnvDelayTime", \
 "Sampler2AmpEnvAttackTime", \
 "Sampler2AmpEnvAttackCurve", \
@@ -548,6 +580,8 @@ namespace WaveSabreCore
 "Sampler3PitchFine", \
 "Sampler3FrequencyParam", \
 "Sampler3AuxMix", \
+		"Sampler3SampleStart", \
+		"Sampler3Delay", \
 "Sampler3AmpEnvDelayTime", \
 "Sampler3AmpEnvAttackTime", \
 "Sampler3AmpEnvAttackCurve", \
@@ -562,6 +596,8 @@ namespace WaveSabreCore
 "Sampler4PitchFine", \
 "Sampler4FrequencyParam", \
 "Sampler4AuxMix", \
+		"Sampler4SampleStart", \
+		"Sampler4Delay", \
 "Sampler4AmpEnvDelayTime", \
 "Sampler4AmpEnvAttackTime", \
 "Sampler4AmpEnvAttackCurve", \
@@ -669,12 +705,20 @@ namespace WaveSabreCore
 "Env2RelCrv", \
 "LFO1Shp", \
 "LFO1Freq", \
+"LFO1Ph", \
+"LFO1Shrp", \
 "LFO2Shp", \
 "LFO2Freq", \
+"LFO2Ph", \
+"LFO2Shrp", \
 "LFO3Shp", \
 "LFO3Freq", \
+"LFO3Ph", \
+"LFO3Shrp", \
 "LFO4Shp", \
 "LFO4Freq", \
+"LFO4Ph", \
+"LFO4Shrp", \
 "FM2to1", \
 "FM3to1", \
 "FM4to1", \
@@ -708,6 +752,8 @@ namespace WaveSabreCore
 "S1Fine", \
 "S1Freq", \
 "S1Pan", \
+"S1Strt", \
+"S1Dly", \
 "S1EnvDly", \
 "S1EnvAtt", \
 "S1EnvAttCrv", \
@@ -722,6 +768,8 @@ namespace WaveSabreCore
 "S2Fine", \
 "S2Freq", \
 "S2Pan", \
+"S2Strt", \
+"S2Dly", \
 "S2EnvDly", \
 "S2EnvAtt", \
 "S2EnvAttCrv", \
@@ -736,6 +784,8 @@ namespace WaveSabreCore
 "S3Fine", \
 "S3Freq", \
 "S3Pan", \
+"S3Strt", \
+"S3Dly", \
 "S3EnvDly", \
 "S3EnvAtt", \
 "S3EnvAttCrv", \
@@ -750,6 +800,8 @@ namespace WaveSabreCore
 "S4Fine", \
 "S4Freq", \
 "S4Pan", \
+"S4Strt", \
+"S4Dly", \
 "S4EnvDly", \
 "S4EnvAtt", \
 "S4EnvAttCrv", \
@@ -773,28 +825,6 @@ namespace WaveSabreCore
 			// 1. the destination here is locked to a hidden osc volume param
 			SourceAmp,
 		};
-
-//		enum ModValueMapping
-//		{
-//			NoMapping,
-//			N11_1N1, // -1,1 => 1,-1 (bipolar invert)
-//			N11_01, // -1,1 => 0,1 (bipolar to positive)
-//			N11_10, // -1,1 => 1,0 (bipolar to invert positive)
-//			P01_10, // 0,1 => 1,0 (positive invert)
-//			P01_N11, // 0,1 => -1,1 (positive to bipolar)
-//			P01_1N1, // 0,1 => 1,-1 (positive to negative bipolar)
-//			Count,
-//		};
-//#define MOD_VALUE_MAPPING_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModValueMapping::Count]{ \
-//			"(thru)", \
-//			"-1,1 => 1,-1 (N11 inv)", \
-//			"-1,1 => 0,1 (N11 to POS)", \
-//			"-1,1 => 1,0 (N11 to POS_inv)", \
-//			"0,1 => 1,0 (POS inv)", \
-//			"0,1 => -1,1 (POS to N11)", \
-//			"0,1 => 1,-1 (POS to N11_inv", \
-//        };
-//
 
 		struct ModulationSpec
 		{

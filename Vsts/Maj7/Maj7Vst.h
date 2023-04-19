@@ -360,6 +360,7 @@ namespace WaveSabreCore
 			//p->mSampleSource.SetEnumValue(SampleSource::Embed);
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg, -1);
 			//p->mGmDlsIndex.SetIntValue(-1);
+			p->mParams.Set01Val(SamplerParamIndexOffsets::Delay, 0);
 		}
 
 		//enum class MainParamIndices : uint8_t
