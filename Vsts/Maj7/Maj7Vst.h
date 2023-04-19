@@ -66,14 +66,18 @@ inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 		// #26 - redesign of aux devices means we should adjust some param key names.
 		// aux params need to be converted to filter params.
 		if (keyName == "X1En") keyName = "F1En";
-		if (keyName == "X1P1") keyName = "F1Type"; // model
+		if (keyName == "X1P1") {
+			keyName = "F1Type"; // model
+		}
 		if (keyName == "X1P2") keyName = "F1Q"; // Q
 		if (keyName == "X1P3") keyName = "F1En"; // saturation
 		if (keyName == "X1P4") keyName = "F1Freq"; // freq
 		if (keyName == "X1P5") keyName = "F1FKT"; // kt
 
 		if (keyName == "X2En") keyName = "F2En";
-		if (keyName == "X2P1") keyName = "F2Type"; // model
+		if (keyName == "X2P1") {
+			keyName = "F2Type"; // model
+		}
 		if (keyName == "X2P2") keyName = "F2Q"; // Q
 		if (keyName == "X2P3") keyName = "F2En"; // saturation
 		if (keyName == "X2P4") keyName = "F2Freq"; // freq
@@ -276,6 +280,10 @@ namespace WaveSabreCore
 			p->mParams.Set01Val(FilterParamIndexOffsets::Freq, 0.3f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::FreqKT, 1.0f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::Q, 0.2f);
+
+			p->mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
+			p->mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
+			p->mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
 		}
 
 		//static inline void GenerateDefaults_Source(ISoundSourceDevice* p)
@@ -693,6 +701,21 @@ int compressedSize = 0;
 			}
 		}
 
+		static inline void OptimizeFilter(Maj7* p, FilterAuxNode& f)
+		{
+			OptimizeBoolParam(p, f.mParams, FilterParamIndexOffsets::Enabled);
+			OptimizeEnumParam<FilterModel>(p, f.mParams, FilterParamIndexOffsets::FilterType);
+			bool enabled = f.mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);
+			f.mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
+			f.mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
+			f.mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
+			FilterModel model = f.mParams.GetEnumValue<FilterModel>(FilterParamIndexOffsets::FilterType);
+			if (!enabled || model == FilterModel::Disabled) {
+				Copy16bitDefaults(f.mParams.GetOffsetParamCache(), gDefaultFilterParams);
+				return;
+			}
+		}
+
 		// if aggressive, then round values which are very close to defaults back to default.
 		static inline void OptimizeParams(Maj7* p, bool aggressive)
 		{
@@ -766,6 +789,11 @@ int compressedSize = 0;
 			// envelopes
 			for (auto& env : p->mMaj7Voice[0]->mAllEnvelopes) {
 				OptimizeEnvelope(p, env);
+			}
+
+			// envelopes
+			for (auto& f : p->mMaj7Voice[0]->mFilters) {
+				OptimizeFilter(p, f[0]);
 			}
 
 			// modulations.

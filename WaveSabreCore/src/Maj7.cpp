@@ -11,12 +11,13 @@ namespace WaveSabreCore {
           0, // OscSpr = 0
           0, // UniSpr = 0
           16384, // FMBrigh = 0.5
+          0, // _xrt___ = 0
           32767, // XWidth = 1
           9830, // PortTm = 0.30000001192092895508
           16384, // PortCv = 0.5
           17721, // PBRng = 0.54081630706787109375
           12032, // MaxVox = 0.3671875
-          0, // Macro1 = 0
+          31644, // Macro1 = 0.96571481227874755859
           0, // Macro2 = 0
           0, // Macro3 = 0
           0, // Macro4 = 0
@@ -34,7 +35,6 @@ namespace WaveSabreCore {
           0, // FM4to3 = 0
           0, // FM1to4 = 0
           0, // FM2to4 = 0
-          0, // FM3to4 = 0
         };
         static_assert((int)M7::SamplerParamIndexOffsets::Count == 21, "param count probably changed and this needs to be regenerated.");
         const int16_t gDefaultSamplerParams[21] = {
@@ -124,13 +124,16 @@ namespace WaveSabreCore {
           0, // O1FMFb = 0
           16384, // O1Xmix = 0.5
         };
-        static_assert((int)M7::FilterParamIndexOffsets::Count == 5, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultFilterParams[5] = {
-          0, // X1En = 0
-          0, // X1Type = 0.0002470355830155313015
-          0, // X1P1 = 0
-          0, // X1P2 = 0
-          0, // X1P3 = 0
+        static_assert((int)M7::FilterParamIndexOffsets::Count == 8, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultFilterParams[8] = {
+          0, // F1En = 0
+          0, // _x1lnk_ = 0
+          0, // _x1tp_ = 0
+          56, // F1Type = 0.001729249022901058197
+          6553, // F1Q = 0.20000000298023223877
+          0, // _x1p3_ = 0
+          9830, // F1Freq = 0.30000001192092895508
+          32767, // F1FKT = 1
         };
     } // namespace M7
 } // namespace WaveSabreCore
