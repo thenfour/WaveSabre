@@ -42,24 +42,25 @@ namespace WaveSabreCore
 			CrtFns* gCrtFns = nullptr;
 			LUTs* gLuts = nullptr;
 
-			static constexpr size_t gLutSize = 4096;
+			static constexpr size_t gLutSize1D = 4096;
+			static constexpr size_t gLutSize2D = 512;
 
 			LUTs::LUTs() :
-				gSinLUT{ gLutSize, [](float x) {
+				gSinLUT{ gLutSize1D, [](float x) {
 				return (float)math::CrtSin((double)(x * gPITimes2));
 			} },
-			gCosLUT{ gLutSize,  [](float x)
+			gCosLUT{ gLutSize1D,  [](float x)
 				{
 					return (float)math::CrtCos((double)(x * gPITimes2));
 
 			} },
-			gTanhLUT{ gLutSize },
-			gSqrt01LUT{ gLutSize, [](float x) {
+			gTanhLUT{ gLutSize1D },
+			gSqrt01LUT{ gLutSize1D, [](float x) {
 				return (float)math::CrtPow((double)x, 0.5);
 			} },
 
-			gCurveLUT{ gLutSize },
-			gPow2_N16_16_LUT{ gLutSize }
+			gCurveLUT{ gLutSize2D },
+			gPow2_N16_16_LUT{ gLutSize1D }
 
 			{}
 

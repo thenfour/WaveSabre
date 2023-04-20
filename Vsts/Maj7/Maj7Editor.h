@@ -1228,7 +1228,7 @@ public:
 				ImGui::BeginGroup();
 				ImGui::PushID("main");
 
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions, 180);
 
 				Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMin, "RangeMin", -3, 3, -1, -1, 30, {});
 				ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMax, "Max", -3, 3, 1, 1, 30, {});
@@ -1236,6 +1236,21 @@ public:
 				ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
 
 				modVal = ModMeter(spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
+
+				if (ImGui::SmallButton("Reset")) {
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("To pos")) {
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, -3);
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("To bip.")) {
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, 0);
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+				}
 
 				ImGui::PopID();
 				ImGui::EndGroup();
@@ -1247,19 +1262,19 @@ public:
 
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
 
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination1, "Dest##1", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination1, "Dest##1", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr, 180);
 				ImGui::SameLine();
 				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale1, "###Scale1", 1, 20.0f, {});
 
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination2, "###Dest2", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination2, "###Dest2", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr, 180);
 				ImGui::SameLine();
 				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale2, "###Scale2", 1, 20.0f, {});
 
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination3, "###Dest3", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination3, "###Dest3", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr, 180);
 				ImGui::SameLine();
 				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale3, "###Scale3", 1, 20.0f, {});
 
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination4, "###Dest4", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Destination4, "###Dest4", (int)M7::ModDestination::Count, M7::ModDestination::None, modDestinationCaptionsCstr, 180);
 				ImGui::SameLine();
 				Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::ModParamIndexOffsets::Scale4, "###Scale4", 1, 20.0f, {});
 
@@ -1277,7 +1292,7 @@ public:
 			ImGui::SameLine();
 			{
 				ImGui::BeginGroup();
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "Aux Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions);
+				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "Aux Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions, 180);
 
 				Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMin, "AuxRangeMin", -3, 3, 0, 0, 30, {});
 				ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMax, "Max", -3, 3, 1, 1, 30, {});
@@ -1285,6 +1300,21 @@ public:
 				ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "Aux Curve", 0, M7CurveRenderStyle::Rising, {});
 
 				float auxVal = ModMeter(spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
+
+				if (ImGui::SmallButton("Reset")) {
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+				}
+				ImGui::SameLine();
+				if (ImGui::SmallButton("bip. to pos")) {
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, -3);
+					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+				}
+				//ImGui::SameLine();
+				//if (ImGui::SmallButton("To bip.")) {
+				//	spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
+				//	spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+				//}
 
 				float auxAtten = spec.mParams.Get01Value(M7::ModParamIndexOffsets::AuxAttenuation, 0);
 				float auxScale = M7::math::lerp(1, 1.0f - auxAtten, auxVal);
