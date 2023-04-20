@@ -216,7 +216,7 @@ namespace WaveSabreCore
 
 			float mUnisonoDetuneAmts[gUnisonoVoiceMax] = { 0 };
 
-			float mAuxOutputGains[2] = {0}; // precalc'd L/R gains based on aux panning/width [outputchannel]
+			//float mAuxOutputGains[2] = {0}; // precalc'd L/R gains based on aux panning/width [outputchannel]
 
 			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
 
@@ -454,9 +454,9 @@ namespace WaveSabreCore
 				// when aux width is 0, they are both mono. it means pan of 0 for both aux routes.
 				// when aux width is +1, auxroute 0 becomes -1 and auxroute 1 becomes +1, fully separating the channels
 				//auto auxGains = math::PanToFactor(mAuxWidth.GetN11Value(/*mAuxWidthMod*/));
-				auto auxGains = math::PanToFactor(mParams.GetN11Value(ParamIndices::AuxWidth, 0));
-				mAuxOutputGains[1] = auxGains.first;
-				mAuxOutputGains[0] = auxGains.second;
+				//auto auxGains = math::PanToFactor(mParams.GetN11Value(ParamIndices::AuxWidth, 0));
+				//mAuxOutputGains[1] = auxGains.first;
+				//mAuxOutputGains[0] = auxGains.second;
 
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					auto* src = mSources[i];
@@ -890,8 +890,8 @@ namespace WaveSabreCore
 						q[ich] = mFilters[1][ich].AuxProcessSample(q[ich]);
 					}
 
-					s[0] += q[0] * mpOwner->mAuxOutputGains[0] + q[1] * mpOwner->mAuxOutputGains[1];
-					s[1] += q[0] * mpOwner->mAuxOutputGains[1] + q[1] * mpOwner->mAuxOutputGains[0];
+					s[0] += q[0];// *mpOwner->mAuxOutputGains[0] + q[1] * mpOwner->mAuxOutputGains[1];
+					s[1] += q[1];// *mpOwner->mAuxOutputGains[1] + q[1] * mpOwner->mAuxOutputGains[0];
 
 					mPortamento.Advance(1,
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime)

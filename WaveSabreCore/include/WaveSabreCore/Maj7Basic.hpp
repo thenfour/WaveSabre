@@ -289,17 +289,6 @@ namespace WaveSabreCore
                 return clamp(x, -1, 1);
             }
 
-            // for floating point types, it's helpful to be clear that the value is inclusive.
-            template <typename T>
-            static T ClampInclusive(T x, T minInclusive, T maxInclusive)
-            {
-                if (x <= minInclusive)
-                    return minInclusive;
-                if (x >= maxInclusive)
-                    return maxInclusive;
-                return x;
-            }
-
             template <typename T>
             static T ClampI(T x, T minInclusive, T maxInclusive)
             {
@@ -599,7 +588,7 @@ namespace WaveSabreCore
 
             inline int16_t Sample32To16(float f)
             {
-                return int16_t(ClampInclusive(int32_t(f * 32768), -32768, 32767));
+                return int16_t(ClampI(int32_t(f * 32768), -32768, 32767));
             }
 
         } // namespace math
@@ -978,9 +967,6 @@ namespace WaveSabreCore
             OscillatorSpread,
             UnisonoStereoSpread,
             FMBrightness,
-
-            AuxRouting,
-            AuxWidth, // N11 to invert
 
             PortamentoTime,
             PortamentoCurve,
@@ -1735,8 +1721,6 @@ namespace WaveSabreCore
 {"OscSpr"}, \
 {"UniSpr"}, \
 {"FMBrigh"}, \
-{"_xrt___"}, \
-{"XWidth"}, \
 {"PortTm"}, \
 {"PortCv"}, \
 {"PBRng"}, \
@@ -2441,8 +2425,6 @@ namespace WaveSabreCore
             UnisonoStereoSpread,
             FMBrightness,
 
-            AuxWidth, // N11 to invert
-
             PortamentoTime,
             PortamentoCurve,
             PitchBendRange,
@@ -2608,21 +2590,6 @@ namespace WaveSabreCore
         };
 
 
-        enum FMMatrixIndices
-        {
-            FMAmt2to1 = 0,
-            FMAmt3to1 = 1,
-            FMAmt4to1 = 2,
-            FMAmt1to2 = 3,
-            FMAmt3to2 = 4,
-            FMAmt4to2 = 5,
-            FMAmt1to3 = 6,
-            FMAmt2to3 = 7,
-            FMAmt4to3 = 8,
-            FMAmt1to4 = 9,
-            FMAmt2to4 = 10,
-            FMAmt3to4 = 11,
-        };
 
     } // namespace M7
 

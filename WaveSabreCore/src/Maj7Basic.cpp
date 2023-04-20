@@ -42,28 +42,24 @@ namespace WaveSabreCore
 			CrtFns* gCrtFns = nullptr;
 			LUTs* gLuts = nullptr;
 
+			static constexpr size_t gLutSize = 4096;
+
 			LUTs::LUTs() :
-				gSinLUT{ 768, [](float x) {
-				//static CrtMathFn gfn{ "sin" };
-				//return (float)gfn.invoke((double)x * 2 * M_PI);
-				return (float)math::CrtSin((double)x * 2 * M_PI);
-
-				//return (float)::sin((double)x * 2 * M_PI);
+				gSinLUT{ gLutSize, [](float x) {
+				return (float)math::CrtSin((double)(x * gPITimes2));
 			} },
-			gCosLUT{ 768,  [](float x)
+			gCosLUT{ gLutSize,  [](float x)
 				{
-					//return (float)::cos((double)x * 2 * M_PI);
-					return (float)math::CrtCos((double)x * 2 * M_PI);
+					return (float)math::CrtCos((double)(x * gPITimes2));
 
 			} },
-			gTanhLUT{ 768 },
-			gSqrt01LUT{ 768, [](float x) {
-				//return ::sqrtf(x);
+			gTanhLUT{ gLutSize },
+			gSqrt01LUT{ gLutSize, [](float x) {
 				return (float)math::CrtPow((double)x, 0.5);
 			} },
 
-			gCurveLUT{ 768 },
-			gPow2_N16_16_LUT{ 768 }
+			gCurveLUT{ gLutSize },
+			gPow2_N16_16_LUT{ gLutSize }
 
 			{}
 
@@ -183,8 +179,8 @@ namespace WaveSabreCore
 
 			float LUT2D::Invoke(float x, float y) const {
 				if (x <= 0) x = 0;
-				if (x >= 1) x = 0.9999f; // this ensures it will not OOB
 				if (y <= 0) y = 0;
+				if (x >= 1) x = 0.9999f; // this ensures it will not OOB
 				if (y >= 1) y = 0.9999f;
 
 				float indexX = x * (mNSamplesX - 1);
@@ -199,14 +195,14 @@ namespace WaveSabreCore
 				float ty = indexY - lowerIndexY;
 
 				float f00 = mpTable[lowerIndexY * mNSamplesX + lowerIndexX];
-				float f01 = mpTable[upperIndexY * mNSamplesX + lowerIndexX];
 				float f10 = mpTable[lowerIndexY * mNSamplesX + upperIndexX];
+				float f0 = lerp(f00, f10, tx);
+
+				float f01 = mpTable[upperIndexY * mNSamplesX + lowerIndexX];
 				float f11 = mpTable[upperIndexY * mNSamplesX + upperIndexX];
+				float f1 = lerp(f01, f11, tx);
 
-				float f0 = (1 - tx) * f00 + tx * f10;
-				float f1 = (1 - tx) * f01 + tx * f11;
-
-				return (1 - ty) * f0 + ty * f1;
+				return lerp(f0, f1, ty);
 			}
 
 			// valid for 0<k<1 and 0<x<1

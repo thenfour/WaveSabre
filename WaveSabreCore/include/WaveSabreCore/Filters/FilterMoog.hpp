@@ -25,7 +25,7 @@ namespace WaveSabreCore
                 m_resonance = p_res;
                 // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
                 m_k = Real(3.88) * p_res;
-                m_k = math::ClampInclusive(m_k, Real0, Real(3.88));
+                m_k = math::clamp(m_k, Real0, Real(3.88));
                 Recalc();
             }
 
@@ -63,7 +63,7 @@ namespace WaveSabreCore
                 //m_overdrive = saturation;
                 m_resonance = reso;
                 m_k = Real(3.88) * reso;
-                m_k = math::ClampInclusive(m_k, Real0, Real(3.88));
+                m_k = math::clamp(m_k, Real0, Real(3.88));
                 Recalc();
             }
 

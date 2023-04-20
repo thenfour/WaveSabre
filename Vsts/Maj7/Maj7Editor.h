@@ -640,7 +640,7 @@ public:
 
 		//AUX_ROUTE_CAPTIONS(auxRouteCaptions);
 		//ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::AuxRouting, "AuxRoute", (int)M7::AuxRoute::Count, M7::AuxRoute::TwoTwo, auxRouteCaptions, 100);
-		ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)M7::ParamIndices::AuxWidth, "AuxWidth", 1, 0, {});
+		//ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)M7::ParamIndices::AuxWidth, "AuxWidth", 1, 0, {});
 
 		// osc1
 		if (BeginTabBar2("osc", ImGuiTabBarFlags_None))

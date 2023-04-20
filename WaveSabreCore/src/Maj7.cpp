@@ -1,8 +1,8 @@
 #include <WaveSabreCore/Maj7.hpp>
 namespace WaveSabreCore {
     namespace M7 {
-        static_assert((int)M7::MainParamIndices::Count == 32, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultMasterParams[32] = {
+        static_assert((int)M7::MainParamIndices::Count == 31, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultMasterParams[31] = {
           16422, // Master = 0.50118720531463623047
           8, // PolyMon = 0.0002470355830155313015
           1365, // Unisono = 0.041666667908430099487
@@ -11,8 +11,6 @@ namespace WaveSabreCore {
           0, // OscSpr = 0
           0, // UniSpr = 0
           16384, // FMBrigh = 0.5
-          0, // _xrt___ = 0
-          32767, // XWidth = 1
           9830, // PortTm = 0.30000001192092895508
           16384, // PortCv = 0.5
           17721, // PBRng = 0.54081630706787109375
@@ -35,6 +33,7 @@ namespace WaveSabreCore {
           0, // FM4to3 = 0
           0, // FM1to4 = 0
           0, // FM2to4 = 0
+          0, // FM3to4 = 0
         };
         static_assert((int)M7::SamplerParamIndexOffsets::Count == 22, "param count probably changed and this needs to be regenerated.");
         const int16_t gDefaultSamplerParams[22] = {
@@ -59,7 +58,7 @@ namespace WaveSabreCore {
           24, // S1Intrp = 0.00074110669083893299103
           32767, // S1RelX = 1
           16384, // S1AxMix = 0.5
-          0, // 
+          0, // S1Dly = 0
         };
         static_assert((int)M7::ModParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
         const int16_t gDefaultModSpecParams[19] = {
