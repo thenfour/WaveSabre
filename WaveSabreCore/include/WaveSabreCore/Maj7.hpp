@@ -451,13 +451,6 @@ namespace WaveSabreCore
 					mUnisonoDetuneAmts[i] *= mParamCache[(int)ParamIndices::UnisonoDetune] /*+ mUnisonoDetuneMod*/;
 				}
 
-				// when aux width is 0, they are both mono. it means pan of 0 for both aux routes.
-				// when aux width is +1, auxroute 0 becomes -1 and auxroute 1 becomes +1, fully separating the channels
-				//auto auxGains = math::PanToFactor(mAuxWidth.GetN11Value(/*mAuxWidthMod*/));
-				//auto auxGains = math::PanToFactor(mParams.GetN11Value(ParamIndices::AuxWidth, 0));
-				//mAuxOutputGains[1] = auxGains.first;
-				//mAuxOutputGains[0] = auxGains.second;
-
 				for (size_t i = 0; i < gSourceCount; ++i) {
 					auto* src = mSources[i];
 					// for the moment mOscDetuneAmts[i] is just a generic spread value.

@@ -282,6 +282,7 @@ namespace WaveSabreCore
 			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::TriTrunc);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
 			p->mParams.Set01Val(LFOParamIndexOffsets::Waveshape, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(LFOParamIndexOffsets::PhaseOffset, 0);// p->mPhaseOffset.SetN11Value(0);
+			p->mParams.SetEnumValue(LFOParamIndexOffsets::FrequencyBasis, TimeBasis::Frequency);
 			//p->mParams.Set01Val(LFOParamIndexOffsets::Syncfr, 0.5f);// p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
 			// p->mFrequencyMul.SetRangedValue(1);
 			// p->mIntention = OscillatorIntention::LFO;
@@ -750,6 +751,7 @@ int compressedSize = 0;
 				//OptimizeIntParam(p, lfo.mDevice.mParams, M7::gKeyRangeCfg, LFOParamIndexOffsets::KeyRangeMax);
 
 				OptimizeEnumParam<M7::OscillatorWaveform>(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Waveform);
+				OptimizeEnumParam<M7::TimeBasis>(p, lfo.mDevice.mParams, LFOParamIndexOffsets::FrequencyBasis);
 				OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Restart);
 				//OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::SyncEnable);
 			}

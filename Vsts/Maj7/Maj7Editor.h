@@ -907,9 +907,12 @@ public:
 
 		float phaseCursor = (float)(this->pMaj7->mLFOs[ilfo].mPhase.mPhase);
 
+		TIME_BASIS_CAPTIONS(timeBasisCaptions);
+
 		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, &phaseCursor);
 
 		ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, "Shape");
+		ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
 		ImGui::SameLine(); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFreqConfig, 0.4f, lGetModInfo(M7::LFOModParamIndexOffsets::FrequencyParam));
 		//ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase");
 		ImGui::SameLine(); Maj7ImGuiParamFloatN11(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::LFOModParamIndexOffsets::Phase));

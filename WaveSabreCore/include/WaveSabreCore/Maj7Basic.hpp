@@ -636,6 +636,19 @@ namespace WaveSabreCore
 
         void ImportDefaultsArray(size_t count, const int16_t* src, float* paramCacheOffset);
 
+        enum class TimeBasis : uint8_t
+        {
+            Frequency,
+            Time,
+            Beats,
+            Count,
+        };
+#define TIME_BASIS_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::TimeBasis::Count]{ \
+                "Frequency", \
+                "Time", \
+                "Beats", \
+        };
+
         // raw param values are stored in a huge array. the various sub-objects (osc, filters, envelopes)
         // will refer to param values in that array using this. sub classes of this class can do whatever
         // needed alterations mappings etc.
@@ -1147,6 +1160,7 @@ namespace WaveSabreCore
             LFO1Waveshape,
             LFO1Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
             LFO1PhaseOffset,
+                LFO1FrequencyBasis,
             LFO1FrequencyParam,
             LFO1Sharpness,
 
@@ -1154,13 +1168,15 @@ namespace WaveSabreCore
                 LFO2Waveshape,
                 LFO2Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
                 LFO2PhaseOffset,
-                LFO2FrequencyParam,
+                    LFO2FrequencyBasis,
+                    LFO2FrequencyParam,
                 LFO2Sharpness,
 
                 LFO3Waveform, // KEEP IN SYNC WITH LFOParamIndexOffsets
                 LFO3Waveshape,
                 LFO3Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
                 LFO3PhaseOffset,
+                LFO3FrequencyBasis,
                 LFO3FrequencyParam,
                 LFO3Sharpness,
 
@@ -1168,6 +1184,7 @@ namespace WaveSabreCore
                 LFO4Waveshape,
                 LFO4Restart, // if restart, then LFO is per voice. if no restart, then it's per synth.
                 LFO4PhaseOffset,
+                LFO4FrequencyBasis,
                 LFO4FrequencyParam,
                 LFO4Sharpness,
 
@@ -1862,24 +1879,28 @@ namespace WaveSabreCore
 {"LFO1shp"}, \
 {"LFO1rst"}, \
 {"LFO1ph"}, \
+{"LFO1bas"}, \
 {"LFO1fr"}, \
 {"LFO1lp"}, \
 {"LFO2wav"}, \
 {"LFO2shp"}, \
 {"LFO2rst"}, \
 {"LFO2ph"}, \
+{"LFO2bas"}, \
 {"LFO2fr"}, \
 {"LFO2lp"}, \
 {"LFO3wav"}, \
 {"LFO3shp"}, \
 {"LFO3rst"}, \
 {"LFO3ph"}, \
+{"LFO3bas"}, \
 {"LFO3fr"}, \
 {"LFO3lp"}, \
 {"LFO4wav"}, \
 {"LFO4shp"}, \
 {"LFO4rst"}, \
 {"LFO4ph"}, \
+{"LFO4bas"}, \
 {"LFO4fr"}, \
 {"LFO4lp"}, \
 {"F1En"}, \
@@ -2468,6 +2489,7 @@ namespace WaveSabreCore
             Waveshape,
             Restart,
             PhaseOffset,
+            FrequencyBasis,
             FrequencyParam,
             Sharpness,
             Count,
