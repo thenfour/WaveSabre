@@ -22,7 +22,7 @@ namespace ConvertTheFuck
                 else
                 {
                     var logger = new ConsoleLogger();
-                    var song = new ProjectConverter().Convert(args[0], logger, new ConvertOptions { mUseProjectLoop = true });
+                    var song = new ProjectConverter().Convert(args[0], logger, new ConvertOptions { mBoundsMode = BoundsMode.Selection });
                     var option = args[1];
                     var outFile = args[2];
 
@@ -32,7 +32,7 @@ namespace ConvertTheFuck
                             File.WriteAllText(outFile, new Serializer().Serialize(song));
                             break;
                         case "-b":
-                            File.WriteAllBytes(outFile, new Serializer().SerializeBinary(song));
+                            File.WriteAllBytes(outFile, new Serializer().SerializeBinary(song).CompleteSong.GetByteArray());
                             break;
                         default:
                             Console.WriteLine(string.Format("ERROR: unknown option {0}", args[1]));

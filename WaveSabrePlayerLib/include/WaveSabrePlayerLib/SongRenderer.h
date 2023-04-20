@@ -1,8 +1,6 @@
 #ifndef __WAVESABREPLAYERLIB_SONGRENDERER_H__
 #define __WAVESABREPLAYERLIB_SONGRENDERER_H__
 
-#include "CriticalSection.h"
-
 #include <WaveSabreCore.h>
 
 namespace WaveSabrePlayerLib

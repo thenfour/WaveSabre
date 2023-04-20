@@ -1172,40 +1172,16 @@ namespace WaveSabreCore
                 LFO4Sharpness,
 
                 Filter1Enabled,
-                unused__Aux1Link,
-                unused__Aux1Type,
                 Filter1Type, // filter type
                 Filter1Q,
-                unused__Aux1Param3, // filter saturation
                 Filter1Freq,
                 Filter1FreqKT,
 
                     Filter2Enabled,
-                    unused__Aux2Link,
-                unused__Aux2Type,
                 Filter2Type, // filter type
                 Filter2Q,
-                    unused__Aux2Param3, // filter saturation
                     Filter2Freq,
                     Filter2FreqKT,
-
-                    unused__Aux3Enabled,
-                unused__Aux3Link,
-                unused__Aux3Type,
-                unused__Aux3Param1, // filter type
-                unused__Aux3Param2, // filter Q
-                unused__Aux3Param3, // filter saturation
-                unused__Aux3Param4, // filter freq
-                unused__Aux3Param5, // filter KT
-
-                    unused__Aux4Enabled,
-                unused__Aux4Link,
-                unused__Aux4Type,
-                unused__Aux4Param1, // filter type
-                unused__Aux4Param2, // filter Q
-                unused__Aux4Param3, // filter saturation
-                unused__Aux4Param4, // filter freq
-                unused__Aux4Param5, // filter KT
 
             Mod1Enabled, // KEEP IN SYNC WITH ModParamIndexOffsets
             Mod1Source,
@@ -1907,37 +1883,15 @@ namespace WaveSabreCore
 {"LFO4fr"}, \
 {"LFO4lp"}, \
 {"F1En"}, \
-{"_x1lnk_"}, \
-{"_x1tp_"}, \
 {"F1Type"}, \
 {"F1Q"}, \
-{"_x1p3_"}, \
 {"F1Freq"}, \
 {"F1FKT"}, \
 {"F2En"}, \
-{"_x2lnk_"}, \
-{"_x2tp_"}, \
 {"F2Type"}, \
 {"F2Q"}, \
-{"_x2p3_"}, \
 {"F2Freq"}, \
 {"F2FKT"}, \
-{"_x3en_"}, \
-{"_x3lnk_"}, \
-{"_x3tp_"}, \
-{"_x3p1_"}, \
-{"_x3p2_"}, \
-{"_x3p3_"}, \
-{"_x3p4_"}, \
-{"_x3p5_"}, \
-{"_x4en_"}, \
-{"_x4lnk_"}, \
-{"_x4tp_"}, \
-{"_x4p1_"}, \
-{"_x4p2_"}, \
-{"_x4p3_"}, \
-{"_x4p4_"}, \
-{"_x4p5_"}, \
 {"M1en"}, \
 {"M1src"}, \
 {"M1dest1"}, \
@@ -2562,11 +2516,8 @@ namespace WaveSabreCore
         enum class FilterParamIndexOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
         {
             Enabled,
-            unused_link,
-            unused_type,
             FilterType, // filter type
             Q, // param2: filter Q
-            unused_saturation,
             Freq, // filter freq
             FreqKT, // filter KT
             Count,
@@ -2575,9 +2526,7 @@ namespace WaveSabreCore
         enum class FilterAuxModDestOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
         {
             Q, // filter Q
-            unused_saturation,
             Freq, // filter freq
-            unused_4,
             Count,
         };
 

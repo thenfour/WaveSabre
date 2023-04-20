@@ -22,7 +22,7 @@ namespace WaveSabreConvertTests
 
             var logger = new NullLogger();
 
-            var testSong = new ProjectConverter().Convert(testFileName, logger, new ConvertOptions { mUseProjectLoop = true });
+            var testSong = new ProjectConverter().Convert(testFileName, logger, new ConvertOptions { mBoundsMode = BoundsMode.Selection });
 
             bool success = false;
 

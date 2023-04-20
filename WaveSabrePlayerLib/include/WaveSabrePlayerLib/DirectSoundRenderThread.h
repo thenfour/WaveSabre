@@ -2,7 +2,6 @@
 #define __WAVESABREPLAYERLIB_DIRECTSOUNDRENDERTHREAD_H__
 
 #include "SongRenderer.h"
-#include "CriticalSection.h"
 
 #include <Windows.h>
 #include <dsound.h>

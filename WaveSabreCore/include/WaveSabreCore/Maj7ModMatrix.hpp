@@ -261,26 +261,11 @@ namespace WaveSabreCore
 			FMAmt2to4, // arate, 01
 			FMAmt3to4, // arate, 01
 
-				// for compatibility reasons, retain the same values as previous aux values.
 				Filter1Q, // Aux1Param2
-				Aux1Param3_unused, // Aux1Param3
 				Filter1Freq, // Aux1Param4
-				Aux1Param5_unused, // Aux1Param5
 
 				Filter2Q, // Aux2Param2
-				Aux2Param3_unused, // Aux2Param3
 				Filter2Freq, // Aux2Param4
-				Aux2Param5_unused, // Aux2Param5
-
-				Aux3Param2_unused, // Aux3Param2
-				Aux3Param3_unused, // Aux3Param3
-				Aux3Param4_unused, // Aux3Param4
-				Aux3Param5_unused, // Aux3Param5
-				Aux4Param2_unused, // Aux4Param2
-				Aux4Param3_unused, // Aux4Param3
-				Aux4Param4_unused, // Aux4Param4
-				Aux4Param5_unused, // Aux4Param5
-
 
 			Sampler1Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler1HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
@@ -528,21 +513,9 @@ namespace WaveSabreCore
 			"FMAmt2to4", \
 			"FMAmt3to4", \
 			"Filt1Q", \
-			"-",\
 			"Filt1Freq", \
-			"-",\
 			"Filt2Q", \
-			"-",\
 			"Filt2Freq", \
-			"-",\
-			"-",\
-			"-",\
-			"-",\
-			"-",\
-			"-",\
-			"-",\
-			"-",\
-			"-",\
 			"Sampler1Volume", \
 		"Sampler1HiddenVolume", \
 			"Sampler1PitchFine", \
@@ -732,21 +705,9 @@ namespace WaveSabreCore
 "FM2to4", \
 "FM3to4", \
 "Flt1Q", \
-"-",\
 "Flt1Freq", \
-"-",\
 "Flt2Q", \
-"-",\
 "Flt2Freq", \
-"-",\
-"-",\
-"-",\
-"-",\
-"-",\
-"-",\
-"-",\
-"-",\
-"-",\
 "S1Vol", \
 "S1PreVol", \
 "S1Fine", \

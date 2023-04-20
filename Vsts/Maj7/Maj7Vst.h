@@ -261,9 +261,9 @@ namespace WaveSabreCore
 			p->mParams.Set01Val(FilterParamIndexOffsets::FreqKT, 1.0f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::Q, 0.2f);
 
-			p->mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
-			p->mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
-			p->mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
+			//p->mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
+			//p->mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
+			//p->mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
 		}
 
 		static inline void GenerateDefaults_LFO(OscillatorDevice* p)
@@ -674,9 +674,9 @@ int compressedSize = 0;
 			OptimizeBoolParam(p, f.mParams, FilterParamIndexOffsets::Enabled);
 			OptimizeEnumParam<FilterModel>(p, f.mParams, FilterParamIndexOffsets::FilterType);
 			bool enabled = f.mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);
-			f.mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
-			f.mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
-			f.mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
+			//f.mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
+			//f.mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
+			//f.mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
 			FilterModel model = f.mParams.GetEnumValue<FilterModel>(FilterParamIndexOffsets::FilterType);
 			if (!enabled || model == FilterModel::Disabled) {
 				Copy16bitDefaults(f.mParams.GetOffsetParamCache(), gDefaultFilterParams);
