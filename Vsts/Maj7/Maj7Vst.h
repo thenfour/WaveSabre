@@ -740,15 +740,17 @@ namespace WaveSabreCore
 		}
 
 		template<typename Toffset>
-		static inline void OptimizeBoolParam(Maj7* p, ParamAccessor& params, Toffset offset)
+		static inline bool OptimizeBoolParam(Maj7* p, ParamAccessor& params, Toffset offset)
 		{
 			int paramID = params.GetParamIndex(offset);// (int)baseParam + (int)paramOffset;
-			if ((int)offset < 0 || paramID < 0) return; // invalid IDs exist for example in LFo
+			if ((int)offset < 0 || paramID < 0) return false; // invalid IDs exist for example in LFo
 			auto defaultParamCache = GenerateDefaultParamCache();
 			ParamAccessor dp{ defaultParamCache, params.mBaseParamID };
-			if (dp.GetBoolValue(offset) == params.GetBoolValue(offset)) {
+			bool ret = params.GetBoolValue(offset);
+			if (ret == dp.GetBoolValue(offset)) {
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
+			return ret;
 		}
 
 		template<size_t N>
@@ -828,10 +830,12 @@ namespace WaveSabreCore
 			}
 
 			// oscillators
+			bool oscEnabled[M7::Maj7::gOscillatorCount];
+			int iosc = 0;
 			for (auto& s : p->mOscillatorDevices)
 			{
 				// enabled, pitch semis, keyrange min, keyrange max.
-				OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::Enabled);
+				oscEnabled[iosc] = OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::Enabled);
 				OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, OscParamIndexOffsets::PitchSemis);
 				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, OscParamIndexOffsets::KeyRangeMin);
 				OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, OscParamIndexOffsets::KeyRangeMax);
@@ -846,6 +850,41 @@ namespace WaveSabreCore
 					Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultOscillatorParams);
 					s.mParams.SetBoolValue(OscParamIndexOffsets::Enabled, false);
 				}
+
+				iosc++;
+			}
+
+			if (!oscEnabled[0]) {
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt1to2, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt1to3, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt1to4, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt2to1, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt3to1, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt4to1, 0);
+			}
+			if (!oscEnabled[1]) {
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt2to1, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt2to3, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt2to4, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt1to2, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt3to2, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt4to2, 0);
+			}
+			if (!oscEnabled[2]) {
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt3to2, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt3to1, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt3to4, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt1to3, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt2to3, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt4to3, 0);
+			}
+			if (!oscEnabled[3]) {
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt4to2, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt4to3, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt4to1, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt1to4, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt2to4, 0);
+				p->mParams.Set01Val(M7::ParamIndices::FMAmt3to4, 0);
 			}
 
 			// LFO

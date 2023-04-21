@@ -280,14 +280,21 @@ namespace ImGuiKnobs {
             float angle_modVal = 0;
             const char* mFormat;
             float mValue;
+            IValueConverter* mpConv;
+            void* mpConvCapture;
+            ImGuiKnobFlags mFlags;
 
             knob(std::string& _label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center,
                 ModInfo modInfo, float speed, float _radius, const char* format,
-                ImGuiKnobVariant variant, ImGuiKnobFlags flags)
+                ImGuiKnobVariant variant, ImGuiKnobFlags flags, IValueConverter* conv, void* capture)
             {
-                std::string labelAndID = _label;
                 mFormat = format;
                 mValue = (float)*p_value;
+                mpConv = conv;
+                mpConvCapture = capture;
+                mFlags = flags;
+
+                std::string labelAndID = _label;
                 if (id) {
                     labelAndID += "###";
                     labelAndID += id;
@@ -353,14 +360,27 @@ namespace ImGuiKnobs {
             }
 
             void draw_value_centered() {
-                char s[100];
-                ImFormatString(s, std::size(s), mFormat, mValue);
+                std::string formatted;
+                if (mFlags & ImGuiKnobFlags_CustomInput) {
+                    formatted = mpConv->ParamToDisplayString(mValue, mpConvCapture);
+                }
+                else {
+                    char s[100]; // lul
+                    ImFormatString(s, std::size(s), mFormat, mValue);
+                    formatted = s;
+                }
+                const char* textBegin = formatted.c_str();
+                const char* textEnd = textBegin + formatted.size();
+                auto textSize = ImGui::CalcTextSize(textBegin, textEnd);
                 //ImGui::RenderTextClipped(this->graphic_rect.Min + ImVec2{0, ImGuiKnobVariant_ProgressBarWithValue_Padding}, graphic_rect.Max, s, s + strlen(s), 0);
                 //auto tempTextColor = ImGui::GetColorU32(ImGuiCol_Text);
                 ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(ImGuiCol_TextDisabled));
-                ImGui::RenderText(this->graphic_rect.Min + ImVec2{ 1, 1 + ImGuiKnobVariant_ProgressBarWithValue_Padding }, s, s + strlen(s), 0);
+                ImVec2 textRectMax = this->graphic_rect.Max - ImVec2{ ImGuiKnobVariant_ProgressBarWithValue_Padding , ImGuiKnobVariant_ProgressBarWithValue_Padding };
+                ImVec2 textRectMin = textRectMax - textSize;
+                ImGui::RenderText(textRectMin + ImVec2{1,1}, textBegin, textEnd, 0);
+                //ImGui::RenderTextClipped(this->graphic_rect.Min + ImVec2{ 0, ImGuiKnobVariant_ProgressBarWithValue_Padding }, textBegin, textEnd, 0);
                 ImGui::PopStyleColor();
-                ImGui::RenderText(this->graphic_rect.Min + ImVec2{ 0, ImGuiKnobVariant_ProgressBarWithValue_Padding }, s, s + strlen(s), 0);
+                ImGui::RenderText(textRectMin, textBegin, textEnd, 0);
             }
 
             void draw_dot(float size, float radius, float angle, color_set color, bool filled, int segments) {
@@ -476,7 +496,7 @@ namespace ImGuiKnobs {
             }
 
             // Draw knob
-            knob<DataType> k(label, id, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, width * 0.5f, format, variant, flags);
+            knob<DataType> k(label, id, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, width * 0.5f, format, variant, flags, conv, capture);
 
             // Draw tooltip
             if (flags & ImGuiKnobFlags_ValueTooltip && (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) || ImGui::IsItemActive())) {
@@ -487,7 +507,7 @@ namespace ImGuiKnobs {
 
             // Draw input
             ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0,0});
-            if (flags & ImGuiKnobFlags_CustomInput) {
+            if ((flags & ImGuiKnobFlags_CustomInput) && !(flags & ImGuiKnobFlags_NoInput)) {
                 ImGuiSliderFlags drag_flags = 0;
                 if (!(flags & ImGuiKnobFlags_DragHorizontal)) {
                     drag_flags |= ImGuiSliderFlags_Vertical;

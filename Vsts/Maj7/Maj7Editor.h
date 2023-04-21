@@ -572,6 +572,9 @@ public:
 	ColorMod mFMColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
 	ColorMod mFMFeedbackColors{ 0.92f - 0.5f, 0.6f, 0.75f, 0.9f, 0.0f };
 
+	ColorMod mFMDisabledColors{ 0.92f, 0.0f, 0.3f, 0.6f, 0.0f };
+	ColorMod mFMDisabledFeedbackColors{ 0.92f - 0.5f, 0.0f, 0.3f, 0.6f, 0.0f };
+
 	ColorMod mNopColors;
 
 	bool mShowingInspector = false;
@@ -586,6 +589,8 @@ public:
 		mModulationDisabledColors.EnsureInitialized();
 		mFMColors.EnsureInitialized();
 		mFMFeedbackColors.EnsureInitialized();
+		mFMDisabledColors.EnsureInitialized();
+		mFMDisabledFeedbackColors.EnsureInitialized();
 		mLockedModulationsColors.EnsureInitialized();
 		mOscColors.EnsureInitialized();
 		mOscDisabledColors.EnsureInitialized();
@@ -706,6 +711,14 @@ public:
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
 
+		static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
+		bool oscEnabled[4] = {
+			pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc1Enabled),
+			pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc2Enabled),
+			pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc3Enabled),
+			pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc4Enabled),
+		};
+
 		//ImGui::BeginGroup();
 		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 400))
 		{
@@ -715,34 +728,79 @@ public:
 				ImGui::BeginGroup();
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, {0,0});
 				{
-					auto colorModToken = mFMFeedbackColors.Push();
+					auto colorModToken = (oscEnabled[0] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
 					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
 				}
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to1, "4-1");
-
-				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
+				ImGui::SameLine();
 				{
-					auto colorModToken = mFMFeedbackColors.Push();
+					auto colorModToken = ((oscEnabled[0] && oscEnabled[1]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
+				}
+				ImGui::SameLine();
+				{
+					auto colorModToken = ((oscEnabled[0] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
+				}
+				ImGui::SameLine();
+				{
+					auto colorModToken = ((oscEnabled[0] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to1, "4-1");
+				}
+
+				{
+					auto colorModToken = ((oscEnabled[0] && oscEnabled[1]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
+				}
+				{
+					auto colorModToken = (oscEnabled[1] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
 					ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
 				}
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to2, "4-2");
-
-				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
+				ImGui::SameLine();
 				{
-					auto colorModToken = mFMFeedbackColors.Push();
+					auto colorModToken = ((oscEnabled[1] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
+				}
+				ImGui::SameLine();
+				{
+					auto colorModToken = ((oscEnabled[1] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to2, "4-2");
+				}
+
+				{
+					auto colorModToken = ((oscEnabled[0] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
+				}
+				ImGui::SameLine();
+				{
+					auto colorModToken = ((oscEnabled[1] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
+				}
+				{
+					auto colorModToken = (oscEnabled[2] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
 					ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
 				}
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to3, "4-3");
-
-				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to4, "1-4");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to4, "2-4");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to4, "3-4");
+				ImGui::SameLine();
 				{
-					auto colorModToken = mFMFeedbackColors.Push();
+					auto colorModToken = ((oscEnabled[3] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to3, "4-3");
+				}
+
+				{
+					auto colorModToken = ((oscEnabled[0] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to4, "1-4");
+				}
+				ImGui::SameLine();
+				{
+					auto colorModToken = ((oscEnabled[1] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to4, "2-4");
+				}
+				ImGui::SameLine();
+				{
+					auto colorModToken = ((oscEnabled[2] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to4, "3-4");
+				}
+				{
+					auto colorModToken = (oscEnabled[3] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
 					ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc4FMFeedback, "FB4");
 				}
 	

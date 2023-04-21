@@ -511,6 +511,28 @@ namespace WaveSabreVstLib
 			}
 		};
 
+		struct FMValueConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			WaveSabreCore::M7::Float01Param mParam;
+
+			FMValueConverter() :
+				mParam(mBacking)
+			{
+			}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mParam.SetParamValue((float)param);
+				char s[100] = { 0 };
+				sprintf_s(s, "%d", int(mParam.Get01Value() * 100));
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				return 0;
+			}
+		};
+
 		struct M7VolumeConverter : ImGuiKnobs::IValueConverter
 		{
 			float mBacking;
@@ -840,7 +862,8 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 			const float v_default = 0;
 			//const float size = ImGui::GetTextLineHeight()* 2.5f;// default is 3.25f;
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, "%.2f", ImGuiKnobVariant_ProgressBarWithValue, 0, ImGuiKnobFlags_NoInput, 10, nullptr, this))
+			FMValueConverter conv;
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, "%.2f", ImGuiKnobVariant_ProgressBarWithValue, 0, ImGuiKnobFlags_CustomInput | ImGuiKnobFlags_NoInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}
