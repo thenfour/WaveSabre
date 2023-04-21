@@ -133,6 +133,7 @@ struct ColorMod
 typedef int ImGuiKnobFlags;
 
 enum ImGuiKnobFlags_ {
+	ImGuiKnobFlags_None = 0,
 	ImGuiKnobFlags_NoTitle = 1 << 0,
 	ImGuiKnobFlags_NoInput = 1 << 1,
 	ImGuiKnobFlags_ValueTooltip = 1 << 2,
@@ -156,6 +157,7 @@ enum ImGuiKnobVariant_ {
     ImGuiKnobVariant_Space = 1 << 6,
     ImGuiKnobVariant_M7Curve = 1 << 7,
     ImGuiKnobVariant_ProgressBar = 1 << 8,
+	ImGuiKnobVariant_ProgressBarWithValue = 1 << 9,
 };
 
 

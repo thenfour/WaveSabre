@@ -570,6 +570,7 @@ public:
 	ColorMod mSamplerDisabledColors{ 0.55f, 0.15f, .6f, 0.5f, 0.2f };
 
 	ColorMod mFMColors{ 0.92f, 0.6f, 0.75f, 0.9f, 0.0f };
+	ColorMod mFMFeedbackColors{ 0.92f - 0.5f, 0.6f, 0.75f, 0.9f, 0.0f };
 
 	ColorMod mNopColors;
 
@@ -584,6 +585,7 @@ public:
 		mModulationsColors.EnsureInitialized();
 		mModulationDisabledColors.EnsureInitialized();
 		mFMColors.EnsureInitialized();
+		mFMFeedbackColors.EnsureInitialized();
 		mLockedModulationsColors.EnsureInitialized();
 		mOscColors.EnsureInitialized();
 		mOscDisabledColors.EnsureInitialized();
@@ -601,9 +603,9 @@ public:
 		{
 			auto& style = ImGui::GetStyle();
 			style.FramePadding.x = 7;
-			style.FramePadding.y = 5;
+			style.FramePadding.y = 3;
 			style.ItemSpacing.x = 6;
-			style.TabRounding = 5;
+			style.TabRounding = 3;
 		}
 
 		// color explorer
@@ -705,31 +707,49 @@ public:
 		ImGui::TableNextColumn();
 
 		//ImGui::BeginGroup();
-		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 2.2f))
+		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 400))
 		{
 			auto colorModToken = mFMColors.Push();
 			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
 			if (WSBeginTabItem("\"Frequency Modulation\"")) {
-				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
+				ImGui::BeginGroup();
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, {0,0});
+				{
+					auto colorModToken = mFMFeedbackColors.Push();
+					Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
+				}
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to1, "4-1");
-				ImGui::SameLine(0, 60);	Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst");
 
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
+				{
+					auto colorModToken = mFMFeedbackColors.Push();
+					ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
+				}
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to2, "4-2");
 
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
+				{
+					auto colorModToken = mFMFeedbackColors.Push();
+					ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
+				}
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to3, "4-3");
 
 				Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to4, "1-4");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to4, "2-4");
 				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to4, "3-4");
-				ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc4FMFeedback, "FB4");
+				{
+					auto colorModToken = mFMFeedbackColors.Push();
+					ImGui::SameLine(); Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc4FMFeedback, "FB4");
+				}
+	
+				ImGui::PopStyleVar();
+				ImGui::EndGroup();
+
+				ImGui::SameLine(0, 60);	Maj7ImGuiParamFloat01((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst", 0.5f, 0.5f, 0, GetModInfo(M7::ModDestination::FMBrightness));
 
 				ImGui::EndTabItem();
 			}
@@ -740,7 +760,7 @@ public:
 		ImGui::TableNextColumn();
 
 		// aux
-		if (BeginTabBar2("aux", ImGuiTabBarFlags_None, 2.2f))
+		if (BeginTabBar2("aux", ImGuiTabBarFlags_None, 400))
 		{
 
 			AuxEffectTab("Filter1", 0);
@@ -1111,8 +1131,8 @@ public:
 	ModMeterStyle mIntermediateSmallModMeterStyleDisabled = mBaseModMeterStyle.Modification(0, 0.7f, 175, 6);
 	ModMeterStyle mIntermediateLargeModMeterStyleDisabled = mBaseModMeterStyle.Modification(0, 0.7f, 175, 9);
 
-	ModMeterStyle mPrimaryModMeterStyle = mBaseModMeterStyle.Modification(1, 1, 250, 18);
-	ModMeterStyle mPrimaryModMeterStyleDisabled = mBaseModMeterStyle.Modification(0, 0.7f, 250, 18);
+	ModMeterStyle mPrimaryModMeterStyle = mBaseModMeterStyle.Modification(1, 1, 250, 10);
+	ModMeterStyle mPrimaryModMeterStyleDisabled = mBaseModMeterStyle.Modification(0, 0.7f, 250, 10);
 
 	void AddRect(float x1, float x2, float y1, float y2, const ImColor& color)
 	{
@@ -1181,12 +1201,15 @@ public:
 	// - range arrows
 	// - result value scaled and curved -1,1
 	// returns the resulting value.
-	float ModMeter(M7::ModulationSpec& spec, M7::ModSource modSource, M7::ModParamIndexOffsets curveParam, M7::ModParamIndexOffsets rangeMinParam, M7::ModParamIndexOffsets rangeMaxParam, bool isTargetN11, bool isEnabled)
+	float ModMeter(bool visible, M7::ModulationSpec& spec, M7::ModSource modSource, M7::ModParamIndexOffsets curveParam, M7::ModParamIndexOffsets rangeMinParam, M7::ModParamIndexOffsets rangeMaxParam, bool isTargetN11, bool isEnabled)
 	{
 		float srcVal = mRenderContext.mModSourceValues[(int)modSource];
 		float rangeMin = spec.mParams.GetScaledRealValue(rangeMinParam, -3, 3, 0);
 		float rangeMax = spec.mParams.GetScaledRealValue(rangeMaxParam, -3, 3, 0);
 		float resultingValue = mRenderContext.mpModMatrix->MapValue(spec, modSource, curveParam, rangeMinParam, rangeMaxParam, isTargetN11);
+		if (!visible) {
+			return resultingValue;
+		}
 
 		auto& smallStyle = *(isEnabled ? &mIntermediateSmallModMeterStyle : &mIntermediateSmallModMeterStyleDisabled);
 		auto& largeStyle = *(isEnabled ? &mIntermediateLargeModMeterStyle : &mIntermediateLargeModMeterStyleDisabled);
@@ -1287,7 +1310,7 @@ public:
 
 					ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
 
-					modVal = ModMeter(spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
+					modVal = ModMeter(true, spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
 
 					if (ImGui::SmallButton("Reset")) {
 						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);
@@ -1308,7 +1331,7 @@ public:
 					}
 				}
 				else {
-					modVal = ModMeter(spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
+					modVal = ModMeter(false, spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
 					if (ImGui::SmallButton("show advanced")) {
 						mpMaj7VST->mShowAdvancedModControls[imod] = true;
 					}
@@ -1363,7 +1386,7 @@ public:
 
 					ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "Aux Curve", 0, M7CurveRenderStyle::Rising, {});
 
-					auxVal = ModMeter(spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
+					auxVal = ModMeter(true, spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
 
 					if (ImGui::SmallButton("Reset")) {
 						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
@@ -1379,7 +1402,7 @@ public:
 					}
 				}
 				else {
-					auxVal = ModMeter(spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
+					auxVal = ModMeter(false, spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
 					if (ImGui::SmallButton("show advanced")) {
 						mpMaj7VST->mShowAdvancedModAuxControls[imod] = true;
 					}
@@ -1397,6 +1420,7 @@ public:
 
 
 			ImGui::SameLine();
+			ImGui::BeginGroup();
 			if (ImGui::SmallButton("Copy to...")) {
 				ImGui::OpenPopup("copymodto");
 			}
@@ -1428,6 +1452,8 @@ public:
 			ImGuiWindow* window = ImGui::GetCurrentWindow();
 			ModMeter_Horiz(spec, window->DC.CursorPos, mPrimaryModMeterStyle.meterSize, -1, 1, -1, 1, -1, 1, modVal, isEnabled ? mPrimaryModMeterStyle : mPrimaryModMeterStyleDisabled);
 			TooltipF("Modulation output value before it's scaled to the various destinations");
+
+			ImGui::EndGroup();
 
 			ImGui::EndTabItem();
 

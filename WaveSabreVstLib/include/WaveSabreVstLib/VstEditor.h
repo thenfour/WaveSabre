@@ -146,7 +146,7 @@ namespace WaveSabreVstLib
 		ImRect tabBarBB;
 		ImU32 tabBarStoredSeparatorColor;
 
-		bool BeginTabBar2(const char* str_id, ImGuiTabBarFlags flags, float columns = 1)
+		bool BeginTabBar2(const char* str_id, ImGuiTabBarFlags flags, float width = 0)
 		{
 			tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
 			ImGuiContext& g = *GImGui;
@@ -157,7 +157,12 @@ namespace WaveSabreVstLib
 			// 1. shrinking workrect max for column support
 			// 2. adding X cursor pos for side-by-side positioning
 			// 3. pushing empty separator color so BeginTabBarEx doesn't display a separator line (we'll do it later).
-			tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x / columns), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
+			if (width == 0) {
+				tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
+			}
+			else {
+				tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + width, window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
+			}
 			tab_bar->ID = id;
 			ImGui::PushStyleColor(ImGuiCol_TabActive, {});// : ImGuiCol_TabUnfocusedActive
 			bool ret = ImGui::BeginTabBarEx(tab_bar, tabBarBB, flags | ImGuiTabBarFlags_IsFocused);
@@ -835,7 +840,7 @@ namespace WaveSabreVstLib
 			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 			const float v_default = 0;
 			//const float size = ImGui::GetTextLineHeight()* 2.5f;// default is 3.25f;
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_NoKnob, 10, nullptr, this))
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, "%.2f", ImGuiKnobVariant_ProgressBarWithValue, 0, ImGuiKnobFlags_NoInput, 10, nullptr, this))
 			{
 				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
 			}

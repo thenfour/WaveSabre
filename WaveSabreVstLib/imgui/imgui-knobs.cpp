@@ -208,7 +208,7 @@ namespace ImGui {
 namespace ImGuiKnobs {
     namespace detail {
 
-
+        static constexpr float ImGuiKnobVariant_ProgressBarWithValue_Padding = 0;
 
 
 
@@ -278,12 +278,16 @@ namespace ImGuiKnobs {
             float angle_modMin = 0;
             float angle_modMax = 0;
             float angle_modVal = 0;
+            const char* mFormat;
+            float mValue;
 
-            knob(std::string& _label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, ModInfo modInfo, float speed, float _radius, const char* format,
+            knob(std::string& _label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center,
+                ModInfo modInfo, float speed, float _radius, const char* format,
                 ImGuiKnobVariant variant, ImGuiKnobFlags flags)
             {
                 std::string labelAndID = _label;
-
+                mFormat = format;
+                mValue = (float)*p_value;
                 if (id) {
                     labelAndID += "###";
                     labelAndID += id;
@@ -306,6 +310,9 @@ namespace ImGuiKnobs {
                 ImVec2 knobSize = { radius * 2, radius * 2 };
                 if (variant == ImGuiKnobVariant_ProgressBar) {
                     knobSize = { radius * 2, radius * 0.33f };
+                }
+                if (variant == ImGuiKnobVariant_ProgressBarWithValue) {
+                    knobSize = { radius * 2, GImGui->FontSize + ImGuiKnobVariant_ProgressBarWithValue_Padding * 2 };
                 }
 
                 ImGui::InvisibleButton(labelAndID.c_str(), knobSize); // TODO: what is this for??
@@ -343,6 +350,17 @@ namespace ImGuiKnobs {
                 angle = angle_min + (angle_max - angle_min) * t;
                 angle_cos = cosf(angle);
                 angle_sin = sinf(angle);
+            }
+
+            void draw_value_centered() {
+                char s[100];
+                ImFormatString(s, std::size(s), mFormat, mValue);
+                //ImGui::RenderTextClipped(this->graphic_rect.Min + ImVec2{0, ImGuiKnobVariant_ProgressBarWithValue_Padding}, graphic_rect.Max, s, s + strlen(s), 0);
+                //auto tempTextColor = ImGui::GetColorU32(ImGuiCol_Text);
+                ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(ImGuiCol_TextDisabled));
+                ImGui::RenderText(this->graphic_rect.Min + ImVec2{ 1, 1 + ImGuiKnobVariant_ProgressBarWithValue_Padding }, s, s + strlen(s), 0);
+                ImGui::PopStyleColor();
+                ImGui::RenderText(this->graphic_rect.Min + ImVec2{ 0, ImGuiKnobVariant_ProgressBarWithValue_Padding }, s, s + strlen(s), 0);
             }
 
             void draw_dot(float size, float radius, float angle, color_set color, bool filled, int segments) {
@@ -386,7 +404,7 @@ namespace ImGuiKnobs {
                 AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, param, linecolor.base, 2.0f);
             }
 
-            void draw_progress_bar(color_set bgcolor, color_set linecolor, color_set tickColor, float center01) {
+            void draw_progress_bar(color_set bgcolor, color_set linecolor, color_set tickColor, float center01, bool roundThumb) {
                 //ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
                 auto* dl = ImGui::GetWindowDrawList();
                 dl->AddRectFilled(graphic_rect.Min, graphic_rect.Max, bgcolor.base);
@@ -396,7 +414,14 @@ namespace ImGuiKnobs {
                 float valueX = ImLerp(graphic_rect.Min.x, graphic_rect.Max.x, this->t);
                 dl->AddRectFilled({ std::min(centerX, valueX), graphic_rect.Min.y }, { std::max(centerX, valueX), graphic_rect.Max.y }, linecolor.base);
 
-                dl->AddCircleFilled({ valueX, (graphic_rect.Min.y + graphic_rect.Max.y) * 0.5f }, graphic_rect.GetHeight() * 0.6f, tickColor.base);
+                if (roundThumb) {
+                    dl->AddCircleFilled({ valueX, (graphic_rect.Min.y + graphic_rect.Max.y) * 0.5f }, graphic_rect.GetHeight() * 0.6f, tickColor.base);
+                }
+                else {
+                    //dl->AddCircleFilled({ valueX, (graphic_rect.Min.y + graphic_rect.Max.y) * 0.5f }, graphic_rect.GetHeight() * 0.6f, tickColor.base);
+                    static constexpr float gHalfThumbWidth = 1.0f;
+                    dl->AddRectFilled({ valueX - gHalfThumbWidth, graphic_rect.Min.y }, { valueX + gHalfThumbWidth, graphic_rect.Max.y }, tickColor.base);
+                }
             }
 
             void draw_arc(float radius, float size, float start_angle, float end_angle, color_set color, int segments, int bezier_count) {
@@ -444,7 +469,9 @@ namespace ImGuiKnobs {
                     ImGui::EditableTextUnformatted(label, id);
                 }
                 else {
-                    ImGui::TextUnformatted(label.c_str());
+                    auto textBegin = label.c_str();
+                    auto textEnd = ImGui::FindRenderedTextEnd(textBegin);
+                    ImGui::TextUnformatted(textBegin, textEnd);
                 }
             }
 
@@ -649,7 +676,13 @@ namespace ImGuiKnobs {
         case ImGuiKnobVariant_ProgressBar: {
             // assumes 0-1 range
 
-            knob.draw_progress_bar(detail::GetTrackColorSet(), detail::GetPrimaryColorSet(), detail::GetDotColorSet(), (float) v_center);
+            knob.draw_progress_bar(detail::GetTrackColorSet(), detail::GetPrimaryColorSet(), detail::GetDotColorSet(), (float)v_center, true);
+            break;
+        }
+        case ImGuiKnobVariant_ProgressBarWithValue: {
+            // assumes 0-1 range
+            knob.draw_progress_bar(detail::GetTrackColorSet(), detail::GetPrimaryColorSet(), detail::GetDotColorSet(), (float)v_center, false);
+            knob.draw_value_centered();
             break;
         }
         }
