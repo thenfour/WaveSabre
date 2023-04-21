@@ -174,6 +174,53 @@ namespace WaveSabreVstLib
 			return false;
 		}
 
+		struct ImGuiTabSelectionHelper
+		{
+			int* mpSelectedTabIndex = nullptr; // pointer to the setting to read and store the current tab index
+			int mImGuiSelection = 0; // which ID does ImGui currently have selected
+		};
+
+		// I HATE THIS LOGIC.
+		// there's a lot of plumbing in the ImGuiTabBar stuff, so i don't want to mess with that to manipulate selection
+		// there's a flag, ImGuiTabItemFlags_SetSelected , which lets us manually select a tab. but there are scenarios we have to specifically account for:
+		// - 1st frame (think closing & reopening the editor window), we need to make sure our ImGui state shows selection of 0.
+		// - upon loading a new patch make sure we're careful about responding to the selected tab.
+		bool WSBeginTabItemWithSel(const char* label, int thisTabIndex, ImGuiTabSelectionHelper& helper)
+		{
+			// when losing and regaining focus, ImGui will reset its selection to 0, but we may think it's something else.
+			// so have to specially check for that situation.
+			if (GImGui->CurrentTabBar->SelectedTabId == 0) {
+				helper.mImGuiSelection = 0;
+			}
+
+			// between BeginTabBar() and EndTabBar(), need to know when BeginTabItem() returns true whether that means the user selected a new tab,
+			// or ImGui is just rendering the incorrect tab because we haven't reached the selected one yet. latter case make sure we don't misinterpret the result
+			// of BeginTabItem().
+			bool waitingForCorrectTab = false;
+			int flags = 0;
+			if (helper.mImGuiSelection != *helper.mpSelectedTabIndex) {
+				waitingForCorrectTab = true;
+				if (thisTabIndex == *helper.mpSelectedTabIndex) {
+					flags |= ImGuiTabItemFlags_SetSelected;
+				}
+			}
+
+			if (ImGui::BeginTabItem(label, 0, flags)) {
+				tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
+
+				helper.mImGuiSelection = thisTabIndex;
+
+				if (GImGui->CurrentTabBar->SelectedTabId != 0 && (*helper.mpSelectedTabIndex != thisTabIndex)) {
+					if (!waitingForCorrectTab) {
+						*helper.mpSelectedTabIndex = thisTabIndex;
+					}
+				}
+
+				return true;
+			}
+			return false;
+		}
+
 		void EndTabBarWithColoredSeparator()
 		{
 			ImGuiContext& g = *GImGui;

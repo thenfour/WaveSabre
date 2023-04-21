@@ -10,8 +10,211 @@
 
 extern int GetMinifiedChunk(M7::Maj7* p, void** data);
 extern float* GenerateDefaultParamCache();
+extern int Maj7SetVstChunk(class Maj7Vst* pvst, M7::Maj7* p, void* data, int byteSize);
 
-inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
+
+class Maj7Vst : public WaveSabreVstLib::VstPlug
+{
+public:
+
+	std::string mMacroNames[M7::Maj7::gMacroCount];
+	std::string mSourceNames[M7::Maj7::gSourceCount];
+	std::string mLFONames[M7::Maj7::gModLFOCount];
+	std::string mModEnvNames[M7::Maj7::gModEnvCount];
+	bool mShowAdvancedModControls[M7::gModulationCount];
+	bool mShowAdvancedModAuxControls[M7::gModulationCount];
+	std::string mPatchName;
+	int mSelectedSource = 0; // 0-7
+	int mSelectedModEnvOrLFO = 0;
+	int mSelectedFilter = 0;
+	int mSelectedModulation = 0;
+
+	void SetDefaultSettings()
+	{
+		for (auto& s : mMacroNames) {
+			s.clear();
+		}
+		for (auto& s : mSourceNames) {
+			s.clear();
+		}
+		for (auto& s : mLFONames) {
+			s.clear();
+		}
+		for (auto& s : mModEnvNames) {
+			s.clear();
+		}
+		for (auto& b : mShowAdvancedModControls) {
+			b = false;
+		}
+		for (auto& b : mShowAdvancedModAuxControls) {
+			b = false;
+		}
+		mPatchName.clear();
+		mSelectedSource = 0; // 0-7
+		mSelectedModEnvOrLFO = 0;
+		mSelectedFilter = 0;
+		mSelectedModulation = 0;
+	}
+
+	Maj7Vst(audioMasterCallback audioMaster);
+	
+	virtual void getParameterName(VstInt32 index, char *text);
+
+	virtual bool getEffectName(char *name);
+	virtual bool getProductString(char *text);
+
+	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
+	{
+		return Maj7SetVstChunk(this, GetMaj7(), data, byteSize);
+	}
+
+	virtual VstInt32 getChunk(void** data, bool isPreset) override
+	{
+		// the default VST behavior is to output/set RAW values, not diff'd values.
+		return getChunk2(data, isPreset, false);
+	}
+	VstInt32 getChunk2(void** data, bool isPreset, bool diff)
+	{
+		using vstn = const char[kVstMaxParamStrLen];
+		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+		
+		auto defaultParamCache = GenerateDefaultParamCache();
+		clarinoid::MemoryStream memStream;
+		clarinoid::BufferedStream buffering{ memStream };
+		clarinoid::TextStream textStream{ buffering };
+		textStream.mMinified = false;
+		clarinoid::JsonVariantWriter doc{ textStream };
+
+		doc.BeginObject();
+
+		auto maj7Element = doc.Object_MakeKey("Maj7");
+		maj7Element.BeginObject();
+		maj7Element.Object_MakeKey("Format").WriteStringValue(diff ? "DIFF values" : "Absolute values");
+
+		auto paramsElement = doc.Object_MakeKey("params");
+		paramsElement.BeginObject();
+		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i)
+		{
+			if (diff) {
+				float def = defaultParamCache[i];
+				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i) - def);
+			}
+			else {
+				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i));
+			}
+		}
+		paramsElement.EnsureClosed();
+
+		auto samplersArray = doc.Object_MakeKey("samplers");
+		samplersArray.BeginArray();
+		for (auto& sampler : GetMaj7()->mSamplerDevices)
+		{
+			M7::Serializer samplerSerializer;
+			sampler.Serialize(samplerSerializer);
+			auto b64 = clarinoid::base64_encode(samplerSerializer.mBuffer, (unsigned int)samplerSerializer.mSize);
+			samplersArray.Array_MakeValue().WriteStringValue(b64);
+		}
+		samplersArray.EnsureClosed();
+
+		auto settingsObj = doc.Object_MakeKey("PluginSettings");
+		settingsObj.BeginObject();
+			
+		static_assert(M7::Maj7::gMacroCount == 7, "update this here shiz");
+		settingsObj.Object_MakeKey("MacroName0").WriteStringValue(mMacroNames[0]);
+		settingsObj.Object_MakeKey("MacroName1").WriteStringValue(mMacroNames[1]);
+		settingsObj.Object_MakeKey("MacroName2").WriteStringValue(mMacroNames[2]);
+		settingsObj.Object_MakeKey("MacroName3").WriteStringValue(mMacroNames[3]);
+		settingsObj.Object_MakeKey("MacroName4").WriteStringValue(mMacroNames[4]);
+		settingsObj.Object_MakeKey("MacroName5").WriteStringValue(mMacroNames[5]);
+		settingsObj.Object_MakeKey("MacroName6").WriteStringValue(mMacroNames[6]);
+
+		static_assert(M7::Maj7::gSourceCount == 8, "update this here shiz");
+		settingsObj.Object_MakeKey("SourceName0").WriteStringValue(mSourceNames[0]);
+		settingsObj.Object_MakeKey("SourceName1").WriteStringValue(mSourceNames[1]);
+		settingsObj.Object_MakeKey("SourceName2").WriteStringValue(mSourceNames[2]);
+		settingsObj.Object_MakeKey("SourceName3").WriteStringValue(mSourceNames[3]);
+		settingsObj.Object_MakeKey("SourceName4").WriteStringValue(mSourceNames[4]);
+		settingsObj.Object_MakeKey("SourceName5").WriteStringValue(mSourceNames[5]);
+		settingsObj.Object_MakeKey("SourceName6").WriteStringValue(mSourceNames[6]);
+		settingsObj.Object_MakeKey("SourceName7").WriteStringValue(mSourceNames[7]);
+
+		static_assert(M7::Maj7::gModLFOCount == 4, "update this here shiz");
+		settingsObj.Object_MakeKey("LFOName0").WriteStringValue(mLFONames[0]);
+		settingsObj.Object_MakeKey("LFOName1").WriteStringValue(mLFONames[1]);
+		settingsObj.Object_MakeKey("LFOName2").WriteStringValue(mLFONames[2]);
+		settingsObj.Object_MakeKey("LFOName3").WriteStringValue(mLFONames[3]);
+
+		static_assert(M7::Maj7::gModEnvCount == 2, "update this here shiz");
+		settingsObj.Object_MakeKey("ModEnvName0").WriteStringValue(mModEnvNames[0]);
+		settingsObj.Object_MakeKey("ModEnvName1").WriteStringValue(mModEnvNames[1]);
+
+		static_assert(M7::gModulationCount == 18, "update this here shiz");
+		settingsObj.Object_MakeKey("ShowAdvancedModControls0").WriteBoolean(mShowAdvancedModControls[0]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls1").WriteBoolean(mShowAdvancedModControls[1]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls2").WriteBoolean(mShowAdvancedModControls[2]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls3").WriteBoolean(mShowAdvancedModControls[3]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls4").WriteBoolean(mShowAdvancedModControls[4]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls5").WriteBoolean(mShowAdvancedModControls[5]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls6").WriteBoolean(mShowAdvancedModControls[6]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls7").WriteBoolean(mShowAdvancedModControls[7]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls8").WriteBoolean(mShowAdvancedModControls[8]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls9").WriteBoolean(mShowAdvancedModControls[9]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls10").WriteBoolean(mShowAdvancedModControls[10]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls11").WriteBoolean(mShowAdvancedModControls[11]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls12").WriteBoolean(mShowAdvancedModControls[12]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls13").WriteBoolean(mShowAdvancedModControls[13]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls14").WriteBoolean(mShowAdvancedModControls[14]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls15").WriteBoolean(mShowAdvancedModControls[15]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls16").WriteBoolean(mShowAdvancedModControls[16]);
+		settingsObj.Object_MakeKey("ShowAdvancedModControls17").WriteBoolean(mShowAdvancedModControls[17]);
+
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls0").WriteBoolean(mShowAdvancedModAuxControls[0]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls1").WriteBoolean(mShowAdvancedModAuxControls[1]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls2").WriteBoolean(mShowAdvancedModAuxControls[2]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls3").WriteBoolean(mShowAdvancedModAuxControls[3]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls4").WriteBoolean(mShowAdvancedModAuxControls[4]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls5").WriteBoolean(mShowAdvancedModAuxControls[5]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls6").WriteBoolean(mShowAdvancedModAuxControls[6]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls7").WriteBoolean(mShowAdvancedModAuxControls[7]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls8").WriteBoolean(mShowAdvancedModAuxControls[8]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls9").WriteBoolean(mShowAdvancedModAuxControls[9]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls10").WriteBoolean(mShowAdvancedModAuxControls[10]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls11").WriteBoolean(mShowAdvancedModAuxControls[11]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls12").WriteBoolean(mShowAdvancedModAuxControls[12]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls13").WriteBoolean(mShowAdvancedModAuxControls[13]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls14").WriteBoolean(mShowAdvancedModAuxControls[14]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls15").WriteBoolean(mShowAdvancedModAuxControls[15]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls16").WriteBoolean(mShowAdvancedModAuxControls[16]);
+		settingsObj.Object_MakeKey("ShowAdvancedModAuxControls17").WriteBoolean(mShowAdvancedModAuxControls[17]);
+
+		settingsObj.Object_MakeKey("PatchName").WriteStringValue(mPatchName);
+
+		settingsObj.Object_MakeKey("SelectedSource").WriteNumberValue(mSelectedSource);
+		settingsObj.Object_MakeKey("SelectedModEnvOrLFO").WriteNumberValue(mSelectedModEnvOrLFO);
+		settingsObj.Object_MakeKey("SelectedFilter").WriteNumberValue(mSelectedFilter);
+		settingsObj.Object_MakeKey("SelectedModulation").WriteNumberValue(mSelectedModulation);
+			
+		settingsObj.EnsureClosed();
+
+		doc.EnsureClosed();
+		buffering.flushWrite();
+
+		size_t size = memStream.mBuffer.size() + 1;
+		char* out = new char[size];
+		strncpy(out, (const char *)memStream.mBuffer.data(), memStream.mBuffer.size());
+		out[memStream.mBuffer.size()] = 0; // null term
+		*data = out;
+		return (VstInt32)size;
+	}
+
+
+
+
+	WaveSabreCore::M7::Maj7 *GetMaj7() const;
+};
+
+
+inline int Maj7SetVstChunk(Maj7Vst* pvst, M7::Maj7* p, void* data, int byteSize)
 {
 	if (!byteSize) return byteSize;
 	const char* pstr = (const char*)data;
@@ -115,90 +318,104 @@ inline int Maj7SetVstChunk(M7::Maj7* p, void* data, int byteSize)
 		s.Deserialize(ds);
 	}
 
+	samplersArr.EnsureClosed();
+
+	if (pvst) {
+		pvst->SetDefaultSettings();
+	}
+
+	auto settingsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
+	while (true) {
+		auto ch = settingsObj.GetNextObjectItem();
+		if (ch.IsEOF())
+			break;
+		if (ch.mParseResult.IsFailure()) {
+			break;
+		}
+		if (pvst) {
+			static_assert(M7::Maj7::gMacroCount == 7, "update this here shiz");
+			if (ch.mKeyName == "MacroName0") pvst->mMacroNames[0] = ch.mStringValue;
+			if (ch.mKeyName == "MacroName1") pvst->mMacroNames[1] = ch.mStringValue;
+			if (ch.mKeyName == "MacroName2") pvst->mMacroNames[2] = ch.mStringValue;
+			if (ch.mKeyName == "MacroName3") pvst->mMacroNames[3] = ch.mStringValue;
+			if (ch.mKeyName == "MacroName4") pvst->mMacroNames[4] = ch.mStringValue;
+			if (ch.mKeyName == "MacroName5") pvst->mMacroNames[5] = ch.mStringValue;
+			if (ch.mKeyName == "MacroName6") pvst->mMacroNames[6] = ch.mStringValue;
+
+			static_assert(M7::Maj7::gSourceCount == 8, "update this here shiz");
+			if (ch.mKeyName == "SourceName0") pvst->mSourceNames[0] = ch.mStringValue;
+			if (ch.mKeyName == "SourceName1") pvst->mSourceNames[1] = ch.mStringValue;
+			if (ch.mKeyName == "SourceName2") pvst->mSourceNames[2] = ch.mStringValue;
+			if (ch.mKeyName == "SourceName3") pvst->mSourceNames[3] = ch.mStringValue;
+			if (ch.mKeyName == "SourceName4") pvst->mSourceNames[4] = ch.mStringValue;
+			if (ch.mKeyName == "SourceName5") pvst->mSourceNames[5] = ch.mStringValue;
+			if (ch.mKeyName == "SourceName6") pvst->mSourceNames[6] = ch.mStringValue;
+			if (ch.mKeyName == "SourceName7") pvst->mSourceNames[7] = ch.mStringValue;
+
+			static_assert(M7::Maj7::gModLFOCount == 4, "update this here shiz");
+			if (ch.mKeyName == "LFOName0") pvst->mLFONames[0] = ch.mStringValue;
+			if (ch.mKeyName == "LFOName1") pvst->mLFONames[1] = ch.mStringValue;
+			if (ch.mKeyName == "LFOName2") pvst->mLFONames[2] = ch.mStringValue;
+			if (ch.mKeyName == "LFOName3") pvst->mLFONames[3] = ch.mStringValue;
+
+			static_assert(M7::Maj7::gModEnvCount == 2, "update this here shiz");
+			if (ch.mKeyName == "ModEnvName0") pvst->mModEnvNames[0] = ch.mStringValue;
+			if (ch.mKeyName == "ModEnvName1") pvst->mModEnvNames[1] = ch.mStringValue;
+
+			static_assert(M7::gModulationCount == 18, "update this here shiz");
+			if (ch.mKeyName == "ShowAdvancedModControls0") pvst->mShowAdvancedModControls[0] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls1") pvst->mShowAdvancedModControls[1] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls2") pvst->mShowAdvancedModControls[2] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls3") pvst->mShowAdvancedModControls[3] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls4") pvst->mShowAdvancedModControls[4] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls5") pvst->mShowAdvancedModControls[5] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls6") pvst->mShowAdvancedModControls[6] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls7") pvst->mShowAdvancedModControls[7] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls8") pvst->mShowAdvancedModControls[8] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls9") pvst->mShowAdvancedModControls[9] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls10") pvst->mShowAdvancedModControls[10] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls11") pvst->mShowAdvancedModControls[11] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls12") pvst->mShowAdvancedModControls[12] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls13") pvst->mShowAdvancedModControls[13] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls14") pvst->mShowAdvancedModControls[14] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls15") pvst->mShowAdvancedModControls[15] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls16") pvst->mShowAdvancedModControls[16] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModControls17") pvst->mShowAdvancedModControls[17] = ch.mBooleanValue;
+
+			if (ch.mKeyName == "ShowAdvancedModAuxControls0") pvst->mShowAdvancedModAuxControls[0] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls1") pvst->mShowAdvancedModAuxControls[1] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls2") pvst->mShowAdvancedModAuxControls[2] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls3") pvst->mShowAdvancedModAuxControls[3] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls4") pvst->mShowAdvancedModAuxControls[4] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls5") pvst->mShowAdvancedModAuxControls[5] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls6") pvst->mShowAdvancedModAuxControls[6] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls7") pvst->mShowAdvancedModAuxControls[7] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls8") pvst->mShowAdvancedModAuxControls[8] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls9") pvst->mShowAdvancedModAuxControls[9] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls10") pvst->mShowAdvancedModAuxControls[10] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls11") pvst->mShowAdvancedModAuxControls[11] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls12") pvst->mShowAdvancedModAuxControls[12] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls13") pvst->mShowAdvancedModAuxControls[13] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls14") pvst->mShowAdvancedModAuxControls[14] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls15") pvst->mShowAdvancedModAuxControls[15] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls16") pvst->mShowAdvancedModAuxControls[16] = ch.mBooleanValue;
+			if (ch.mKeyName == "ShowAdvancedModAuxControls17") pvst->mShowAdvancedModAuxControls[17] = ch.mBooleanValue;
+
+			if (ch.mKeyName == "PatchName") pvst->mPatchName = ch.mStringValue;
+
+			if (ch.mKeyName == "SelectedSource") pvst->mSelectedSource = ch.mNumericValue.Get<int>();
+			if (ch.mKeyName == "SelectedModEnvOrLFO") pvst->mSelectedModEnvOrLFO = ch.mNumericValue.Get<int>();
+			if (ch.mKeyName == "SelectedFilter") pvst->mSelectedFilter = ch.mNumericValue.Get<int>();
+			if (ch.mKeyName == "SelectedModulation") pvst->mSelectedModulation = ch.mNumericValue.Get<int>();
+		}
+	}
+
+
 	return byteSize;
 }
 
 
 
-
-class Maj7Vst : public WaveSabreVstLib::VstPlug
-{
-public:
-	Maj7Vst(audioMasterCallback audioMaster);
-	
-	virtual void getParameterName(VstInt32 index, char *text);
-
-	virtual bool getEffectName(char *name);
-	virtual bool getProductString(char *text);
-
-	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
-	{
-		return Maj7SetVstChunk(GetMaj7(), data, byteSize);
-	}
-
-	virtual VstInt32 getChunk(void** data, bool isPreset) override
-	{
-		// the default VST behavior is to output/set RAW values, not diff'd values.
-		return getChunk2(data, isPreset, false);
-	}
-	VstInt32 getChunk2(void** data, bool isPreset, bool diff)
-	{
-		using vstn = const char[kVstMaxParamStrLen];
-		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
-		
-		auto defaultParamCache = GenerateDefaultParamCache();
-		clarinoid::MemoryStream memStream;
-		clarinoid::BufferedStream buffering{ memStream };
-		clarinoid::TextStream textStream{ buffering };
-		textStream.mMinified = false;
-		clarinoid::JsonVariantWriter doc{ textStream };
-
-		doc.BeginObject();
-
-		auto maj7Element = doc.Object_MakeKey("Maj7");
-		maj7Element.BeginObject();
-		maj7Element.Object_MakeKey("Format").WriteStringValue(diff ? "DIFF values" : "Absolute values");
-
-		auto paramsElement = doc.Object_MakeKey("params");
-		paramsElement.BeginObject();
-
-		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i)
-		{
-			if (diff) {
-				float def = defaultParamCache[i];
-				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i) - def);
-			}
-			else {
-				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i));
-			}
-		}
-
-		auto samplersArray = doc.Object_MakeKey("samplers");
-		samplersArray.BeginArray();
-		for (auto& sampler : GetMaj7()->mSamplerDevices)
-		{
-			M7::Serializer samplerSerializer;
-			sampler.Serialize(samplerSerializer);
-			auto b64 = clarinoid::base64_encode(samplerSerializer.mBuffer, (unsigned int)samplerSerializer.mSize);
-			samplersArray.Array_MakeValue().WriteStringValue(b64);
-		}
-
-		doc.EnsureClosed();
-		buffering.flushWrite();
-
-		size_t size = memStream.mBuffer.size() + 1;
-		char* out = new char[size];
-		strncpy(out, (const char *)memStream.mBuffer.data(), memStream.mBuffer.size());
-		out[memStream.mBuffer.size()] = 0; // null term
-		*data = out;
-		return (VstInt32)size;
-	}
-
-
-
-
-	WaveSabreCore::M7::Maj7 *GetMaj7() const;
-};
 
 
 namespace WaveSabreCore
@@ -208,30 +425,22 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults(ModulationSpec* m)
 		{
 			m->mParams.SetBoolValue(ModParamIndexOffsets::Enabled, false);
-			//m->mEnabled.SetBoolValue(false);
 			m->mParams.SetEnumValue(ModParamIndexOffsets::Source, ModSource::None);
-			//m->mSource.SetEnumValue(ModSource::None);
 
 			for (size_t i = 0; i < std::size(m->mDestinations); ++i) {
 				m->mParams.SetEnumValue((int)ModParamIndexOffsets::Destination1 + i, ModDestination::None);
 			}
 
-			//for (auto& d : m->mDestinations) d.SetEnumValue(ModDestination::None);
-			
 			for (size_t i = 0; i < std::size(m->mScales); ++i) {
 				m->mParams.SetN11Value((int)ModParamIndexOffsets::Scale1 + i, 0.75f);
 			}
 
-			//for (auto& d : m->mScales) d.SetN11Value(0.75f);
 			m->mParams.SetN11Value(ModParamIndexOffsets::Curve, 0);// mCurve.SetN11Value(0);
 			m->mParams.SetBoolValue(ModParamIndexOffsets::AuxEnabled, false);
-			//m->mAuxEnabled.SetBoolValue(false);
 			
 			m->mParams.SetEnumValue(ModParamIndexOffsets::AuxSource, ModSource::None);
-			//m->mAuxSource.SetEnumValue(ModSource::None);
 			m->mParams.SetN11Value(ModParamIndexOffsets::AuxCurve, 0); //m->mAuxCurve.SetN11Value(0);
 			m->mParams.Set01Val(ModParamIndexOffsets::AuxAttenuation, 1);
-			//m->mAuxAttenuation.SetParamValue(1);
 
 			m->mParams.SetRangedValue(ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);
 			m->mParams.SetRangedValue(ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
@@ -260,37 +469,16 @@ namespace WaveSabreCore
 			p->mParams.Set01Val(FilterParamIndexOffsets::Freq, 0.3f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::FreqKT, 1.0f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::Q, 0.2f);
-
-			//p->mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
-			//p->mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
-			//p->mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
 		}
 
 		static inline void GenerateDefaults_LFO(OscillatorDevice* p)
 		{
-			//p->mParams.SetBoolValue(LFOParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
-			//p->mParams.SetDecibels(LFOParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
-			//p->mParams.SetN11Value(LFOParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
 			p->mParams.Set01Val(LFOParamIndexOffsets::FrequencyParam, 0.6f);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
-			//p->mParams.Set01Val(LFOParamIndexOffsets::FreqKT, 0);//p->mFrequencyParam.mKTValue.SetParamValue(0);
-			//p->mParams.SetIntValue(LFOParamIndexOffsets::TuneSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
-			//p->mParams.SetN11Value(LFOParamIndexOffsets::TuneFine, 0);//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
-			//p->mParams.SetIntValue(LFOParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
-			//p->mParams.SetIntValue(LFOParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 
-			//GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
 			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::TriTrunc);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
 			p->mParams.Set01Val(LFOParamIndexOffsets::Waveshape, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(LFOParamIndexOffsets::PhaseOffset, 0);// p->mPhaseOffset.SetN11Value(0);
 			p->mParams.SetEnumValue(LFOParamIndexOffsets::FrequencyBasis, TimeBasis::Frequency);
-			//p->mParams.Set01Val(LFOParamIndexOffsets::Syncfr, 0.5f);// p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
-			// p->mFrequencyMul.SetRangedValue(1);
-			// p->mIntention = OscillatorIntention::LFO;
-			// p->mEnabledParam.SetBoolValue(true);
-			// p->mFrequencyParam.mValue.SetParamValue(0.6f);
-			// p->mFrequencyParam.mKTValue.SetParamValue(0);
-			// p->mSyncFrequency.mKTValue.SetParamValue(0);
-			// p->mLPFFrequency.mValue.SetParamValue(0.5f);
 			p->mParams.Set01Val(LFOParamIndexOffsets::Sharpness, 0.5f);
 			p->mParams.SetBoolValue(LFOParamIndexOffsets::Restart, false);
 		}
@@ -307,14 +495,12 @@ namespace WaveSabreCore
 			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
 			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 
-			//GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
 			p->mParams.SetEnumValue(OscParamIndexOffsets::Waveform, OscillatorWaveform::SineClip);//p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
 			p->mParams.Set01Val(OscParamIndexOffsets::Waveshape, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(OscParamIndexOffsets::PhaseOffset, 0);//p->mPhaseOffset.SetN11Value(0);
 			p->mParams.Set01Val(OscParamIndexOffsets::SyncFrequency, M7::gFreqParamKTUnity);//p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
 			p->mParams.Set01Val(OscParamIndexOffsets::SyncFrequencyKT, 1);//p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
 			p->mParams.SetRangedValue(OscParamIndexOffsets::FreqMul, 0.0f, gFrequencyMulMax, 1);//p->mFrequencyMul.SetRangedValue(1);
-			//p->mSyncFrequency.mKTValue.SetParamValue(1);
 		}
 
 		static inline void GenerateDefaults(SamplerDevice* p)
@@ -332,35 +518,21 @@ namespace WaveSabreCore
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 
-			//GenerateDefaults_Source(static_cast<ISoundSourceDevice*>(p));
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::LegatoTrig, true);
-			//p->mLegatoTrig.SetBoolValue(true);
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Reverse, false);
-			//p->mReverse.SetBoolValue(false);
-			//p->mReleaseExitsLoop.SetBoolValue(true);
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::ReleaseExitsLoop, true);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::SampleStart, 0);
-			//p->mSampleStart.SetParamValue(0);
-			//p->mFrequencyParam.mKTValue.SetParamValue(1);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 1);
 			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopMode, LoopMode::Repeat);
-			//p->mLoopMode.SetEnumValue(LoopMode::Repeat);
 			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopSource, LoopBoundaryMode::FromSample);
-			//p->mLoopSource.SetEnumValue(LoopBoundaryMode::FromSample);
 			p->mParams.SetEnumValue(SamplerParamIndexOffsets::InterpolationType, InterpolationMode::Linear);
-			//p->mInterpolationMode.SetEnumValue(InterpolationMode::Linear);
 
 			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopStart, 0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopLength, 1);
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::BaseNote, M7::gKeyRangeCfg, 60);
 
-			//p->mLoopStart.SetParamValue(0);
-			//p->mLoopLength.SetParamValue(1);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::LoopLength], 1),
-			//p->mBaseNote.SetIntValue(60);// (paramCache[(int)baseParamID + (int)SamplerParamIndexOffsets::BaseNote], 0, 127, 60),
 			p->mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::Embed);
-			//p->mSampleSource.SetEnumValue(SampleSource::Embed);
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg, -1);
-			//p->mGmDlsIndex.SetIntValue(-1);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::Delay, 0);
 		}
 
@@ -368,18 +540,9 @@ namespace WaveSabreCore
 		static inline void GenerateMasterParamDefaults(Maj7* p)
 		{
 			p->mParams.SetDecibels(ParamIndices::MasterVolume, gMasterVolumeCfg, -6);
-			//p->mMasterVolume.SetDecibels(-6);//MasterVolume,
 			p->mParams.SetIntValue(ParamIndices::Unisono, gUnisonoVoiceCfg, 1);//p->mUnisonoVoicesParam.SetIntValue(1);
 			p->mParams.SetEnumValue(ParamIndices::VoicingMode, VoiceMode::Polyphonic);//p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
-			// OscillatorDetune, = 0
-			// UnisonoDetune, = 0
-			// OscillatorSpread, = 0
-			// UnisonoStereoSpread, = 0
-			// OscillatorShapeSpread, = 0
-			// UnisonoShapeSpread, = 0
 			p->mParams.Set01Val(ParamIndices::FMBrightness, 0.5f);//p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,
-			//p->mParams.SetEnumValue(ParamIndices::AuxRouting, AuxRoute::TwoTwo);//p->mAuxRoutingParam.SetEnumValue(AuxRoute::TwoTwo);// AuxRouting,
-			//p->mParams.SetN11Value(ParamIndices::AuxWidth, 1);//p->mAuxWidth.SetN11Value(1);// AuxWidth
 			p->mParams.Set01Val(ParamIndices::PortamentoTime, 0.3f);//p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
 			p->mParams.SetN11Value(ParamIndices::PortamentoCurve, 0);////p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
 			p->mParams.SetIntValue(ParamIndices::PitchBendRange, gPitchBendCfg, 2);//p->mPitchBendRange.SetIntValue(2);
@@ -405,8 +568,6 @@ namespace WaveSabreCore
 			}
 
 			// generate defaults for the major nodes
-			//GenerateDefaults_LFO(&p->mLFO1Device);
-			//GenerateDefaults_LFO(&p->mLFO2Device);
 			for (auto& m : p->mLFOs) {
 				GenerateDefaults_LFO(&m.mDevice);
 			}
@@ -425,10 +586,6 @@ namespace WaveSabreCore
 			}
 			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv1Index]);
 			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv2Index]);
-			//for (auto p : p->mMaj7Voice[0]->mpAllModEnvelopes)
-			//{
-			//	GenerateDefaults_Env(p);
-			//}
 			for (auto p : p->mMaj7Voice[0]->mSourceVoices)
 			{
 				GenerateDefaults_Env(p->mpAmpEnv);
@@ -510,8 +667,8 @@ namespace WaveSabreCore
 		{
 			int nonZeroParams = 0;
 			int defaultParams = 0;
-int uncompressedSize = 0;
-int compressedSize = 0;
+			int uncompressedSize = 0;
+			int compressedSize = 0;
 		};
 
 		static inline ChunkStats AnalyzeChunkMinification(Maj7* p)
@@ -519,7 +676,6 @@ int compressedSize = 0;
 			ChunkStats ret;
 			void* data;
 			int size = GetMinifiedChunk(p, &data);
-			//int size = p->GetChunk(&data);
 			ret.uncompressedSize = size;
 
 			auto defaultParamCache = GenerateDefaultParamCache();
@@ -557,21 +713,6 @@ int compressedSize = 0;
 			return ret;
 		}
 
-		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
-		// using the default value when the effective value is the same.
-		//template<typename T, typename Tbase, typename Toffset>
-		//static inline void OptimizeEnumParam(Maj7* p, EnumParam<T>& param, T itemCount, Tbase baseParam, Toffset paramOffset)
-		//{
-		//	int paramID = (int)baseParam + (int)paramOffset;
-		//	if (paramID < 0) return; // invalid IDs exist for example in LFo
-		//	T liveEnumValue = param.GetEnumValue();
-		//	float defaultParamVal = p->mDefaultParamCache[paramID];
-		//	EnumParam<T> defParam{ defaultParamVal , itemCount };
-		//	if (liveEnumValue == defParam.GetEnumValue()) {
-		//		param.SetParamValue(defaultParamVal);
-		//	}
-		//}
-
 		template<typename Tenum, typename Toffset>
 		static inline void OptimizeEnumParam(Maj7* p, ParamAccessor& params, Toffset offset)
 		{
@@ -585,22 +726,6 @@ int compressedSize = 0;
 			}
 		}
 
-		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
-		// using the default value when the effective value is the same.
-		//template<typename Tbase, typename Toffset>
-		//static inline void OptimizeIntParam(Maj7* p, IntParam& param, Tbase baseParam, Toffset paramOffset)
-		//{
-		//	int paramID = (int)baseParam + (int)paramOffset;
-		//	if (paramID < 0) return; // invalid IDs exist for example in LFo
-		//	int liveIntValue = param.GetIntValue();
-		//	float defaultParamVal = p->mDefaultParamCache[paramID];
-		//	IntParam defParam{ defaultParamVal, param.mCfg };
-		//	if (liveIntValue == defParam.GetIntValue()) {
-		//		param.SetParamValue(defaultParamVal);
-		//	}
-		//}
-
-
 		template<typename Toffset>
 		static inline void OptimizeIntParam(Maj7* p, ParamAccessor& params, const IntParamConfig& cfg, Toffset offset)
 		{
@@ -613,21 +738,6 @@ int compressedSize = 0;
 				params.SetRawVal(offset, dp.GetRawVal(offset));
 			}
 		}
-
-		// for any param which can have multiple underlying values being effectively equal, make sure we are exactly
-		// using the default value when the effective value is the same.
-		//template<typename Tbase, typename Toffset>
-		//static inline void OptimizeBoolParam(Maj7* p, BoolParam& param, Tbase baseParam, Toffset offset)
-		//{
-		//	int paramID = (int)baseParam + (int)offset;
-		//	if (paramID < 0) return; // invalid IDs exist for example in LFo
-		//	bool liveBoolValue = param.GetBoolValue();
-		//	float defaultParamVal = p->mDefaultParamCache[paramID];
-		//	BoolParam defParam{ defaultParamVal };
-		//	if (liveBoolValue == defParam.GetBoolValue()) {
-		//		param.SetRawParamValue(defaultParamVal);
-		//	}
-		//}
 
 		template<typename Toffset>
 		static inline void OptimizeBoolParam(Maj7* p, ParamAccessor& params, Toffset offset)
@@ -675,9 +785,6 @@ int compressedSize = 0;
 			OptimizeBoolParam(p, f.mParams, FilterParamIndexOffsets::Enabled);
 			OptimizeEnumParam<FilterModel>(p, f.mParams, FilterParamIndexOffsets::FilterType);
 			bool enabled = f.mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);
-			//f.mParams.Set01Val(FilterParamIndexOffsets::unused_link, 0);
-			//f.mParams.Set01Val(FilterParamIndexOffsets::unused_saturation, 0);
-			//f.mParams.Set01Val(FilterParamIndexOffsets::unused_type, 0);
 			FilterModel model = f.mParams.GetEnumValue<FilterModel>(FilterParamIndexOffsets::FilterType);
 			if (!enabled || model == FilterModel::Disabled) {
 				Copy16bitDefaults(f.mParams.GetOffsetParamCache(), gDefaultFilterParams);
@@ -715,7 +822,6 @@ int compressedSize = 0;
 
 				if (!s.IsEnabled()) {
 					s.Reset();
-					//memcpy(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams, sizeof(gDefaultSamplerParams));
 					Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams);
 					s.mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);
 				}
@@ -744,16 +850,9 @@ int compressedSize = 0;
 
 			// LFO
 			for (auto& lfo : p->mLFOs) {
-				//OptimizeSource(p, &lfo.mDevice);
-				//OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::);
-				//OptimizeIntParam(p, lfo.mDevice.mParams, M7::gSourcePitchSemisRange, LFOParamIndexOffsets::PitchSemis);
-				//OptimizeIntParam(p, lfo.mDevice.mParams, M7::gKeyRangeCfg, LFOParamIndexOffsets::KeyRangeMin);
-				//OptimizeIntParam(p, lfo.mDevice.mParams, M7::gKeyRangeCfg, LFOParamIndexOffsets::KeyRangeMax);
-
 				OptimizeEnumParam<M7::OscillatorWaveform>(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Waveform);
 				OptimizeEnumParam<M7::TimeBasis>(p, lfo.mDevice.mParams, LFOParamIndexOffsets::FrequencyBasis);
 				OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Restart);
-				//OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::SyncEnable);
 			}
 
 			// envelopes
@@ -801,8 +900,6 @@ int compressedSize = 0;
 
 				OptimizeEnumParam< ModSource>(p, m.mParams, ModParamIndexOffsets::Source);
 				OptimizeEnumParam < ModSource>(p, m.mParams, ModParamIndexOffsets::AuxSource);
-				//OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::ValueMapping);
-				//OptimizeEnumParam < ModValueMapping>(p, m.mParams, ModParamIndexOffsets::AuxValueMapping);
 
 				OptimizeEnumParam< ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination1);
 				OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination2);

@@ -18,10 +18,10 @@ using namespace WaveSabreCore;
 
 class Maj7Editor : public VstEditor
 {
-	Maj7Vst* mMaj7VST;
+	Maj7Vst* mpMaj7VST;
 	M7::Maj7* pMaj7;
 	static constexpr int gSamplerWaveformWidth = 700;
-	static constexpr int gSamplerWaveformHeight = 80;
+	static constexpr int gSamplerWaveformHeight = 75;
 	std::vector<std::pair<std::string, int>> mGmDlsOptions;
 	bool mShowingGmDlsList = false;
 	char mGmDlsFilter[100] = { 0 };
@@ -92,13 +92,22 @@ public:
 	};
 
 	RenderContext mRenderContext;
+	ImGuiTabSelectionHelper mSourceTabSelHelper;
+	ImGuiTabSelectionHelper mModEnvOrLFOTabSelHelper;
+	ImGuiTabSelectionHelper mFilterTabSelHelper;
+	ImGuiTabSelectionHelper mModulationTabSelHelper;
+
 
 	Maj7Editor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1120, 950),
-		mMaj7VST((Maj7Vst*)audioEffect),
+		mpMaj7VST((Maj7Vst*)audioEffect),
 		pMaj7(((Maj7Vst*)audioEffect)->GetMaj7())
 	{
 		mGmDlsOptions = LoadGmDlsOptions();
+		mSourceTabSelHelper.mpSelectedTabIndex = &mpMaj7VST->mSelectedSource;
+		mModEnvOrLFOTabSelHelper.mpSelectedTabIndex = &mpMaj7VST->mSelectedModEnvOrLFO;
+		mFilterTabSelHelper.mpSelectedTabIndex = &mpMaj7VST->mSelectedFilter;
+		mModulationTabSelHelper.mpSelectedTabIndex = &mpMaj7VST->mSelectedModulation;
 	}
 
 	enum class StatusStyle
@@ -113,8 +122,6 @@ public:
 	{
 		std::string mStatus = "Ready.";
 		StatusStyle mStatusStyle = StatusStyle::NoStyle;
-
-		//int mSampleLoadSeq = -1;
 	};
 
 	SourceStatusText mSourceStatusText[M7::Maj7::gSourceCount];
@@ -181,7 +188,7 @@ public:
 			std::string s = LoadContentsOfTextFile(szFile);
 			if (!s.empty()) {
 				// todo: use an internal setchunk and report load errors
-				mMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
+				mpMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
 				::MessageBoxA(mCurrentWindow, "Loaded successfully.", "WaveSabre - Maj7", MB_OK | MB_ICONINFORMATION);
 			}
 		}
@@ -239,7 +246,7 @@ public:
 		void* data;
 		int size;
 		std::string contents;
-		size = mMaj7VST->getChunk2(&data, false, false);
+		size = mpMaj7VST->getChunk2(&data, false, false);
 		if (data && size) {
 			contents = (const char*)data;
 		}
@@ -306,7 +313,7 @@ public:
 			if (ImGui::MenuItem("Paste patch from clipboard")) {
 				std::string s = GetClipboardText();
 				if (!s.empty()) {
-					mMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
+					mpMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
 				}
 			}
 
@@ -328,7 +335,9 @@ public:
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Init patch (from VST)")) {
-				GenerateDefaults(pMaj7);
+				if (IDYES == ::MessageBoxA(mCurrentWindow, "Sure? This will clobber your patch, and generate defaults, to be used with the next menu item to generate Maj7.cpp. ", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+					GenerateDefaults(pMaj7);
+				}
 			}
 
 			if (ImGui::MenuItem("Export as Maj7.cpp defaults to clipboard")) {
@@ -453,7 +462,7 @@ public:
 	{
 		void* data;
 		int size;
-		size = mMaj7VST->getChunk2(&data, false, diff);
+		size = mpMaj7VST->getChunk2(&data, false, diff);
 		if (data && size) {
 			CopyTextToClipboard((const char*)data);
 		}
@@ -716,33 +725,33 @@ public:
 		if (BeginTabBar2("envelopetabs", ImGuiTabBarFlags_None))
 		{
 			auto modColorModToken = mModEnvelopeColors.Push();
-			if (WSBeginTabItem("Mod env 1"))
+			if (WSBeginTabItemWithSel("Mod env 1", 0, mModEnvOrLFOTabSelHelper))
 			{
 				Envelope("Modulation Envelope 1", (int)M7::ParamIndices::Env1DelayTime, (int)M7::ModDestination::Env1DelayTime);
 				ImGui::EndTabItem();
 			}
-			if (WSBeginTabItem("Mod env 2"))
+			if (WSBeginTabItemWithSel("Mod env 2", 1, mModEnvOrLFOTabSelHelper))
 			{
 				Envelope("Modulation Envelope 2", (int)M7::ParamIndices::Env2DelayTime, (int)M7::ModDestination::Env2DelayTime);
 				ImGui::EndTabItem();
 			}
 			auto lfoColorModToken = mLFOColors.Push();
-			if (WSBeginTabItem("LFO 1"))
+			if (WSBeginTabItemWithSel("LFO 1", 2, mModEnvOrLFOTabSelHelper))
 			{
 				LFO("LFO 1", (int)M7::ParamIndices::LFO1Waveform, 0);
 				ImGui::EndTabItem();
 			}
-			if (WSBeginTabItem("LFO 2"))
+			if (WSBeginTabItemWithSel("LFO 2", 3, mModEnvOrLFOTabSelHelper))
 			{
 				LFO("LFO 2", (int)M7::ParamIndices::LFO2Waveform, 1);
 				ImGui::EndTabItem();
 			}
-			if (WSBeginTabItem("LFO 3"))
+			if (WSBeginTabItemWithSel("LFO 3", 4, mModEnvOrLFOTabSelHelper))
 			{
 				LFO("LFO 3", (int)M7::ParamIndices::LFO3Waveform, 2);
 				ImGui::EndTabItem();
 			}
-			if (WSBeginTabItem("LFO 4"))
+			if (WSBeginTabItemWithSel("LFO 4", 5, mModEnvOrLFOTabSelHelper))
 			{
 				LFO("LFO 4", (int)M7::ParamIndices::LFO4Waveform, 3);
 				ImGui::EndTabItem();
@@ -854,7 +863,15 @@ public:
 			return GetModInfo((M7::ModDestination)((int)pMaj7->mOscillatorDevices[oscID].mModDestBaseID + (int)x));
 		};
 
-		if (WSBeginTabItem(labelWithID)) {
+		if (mpMaj7VST->mSelectedSource != 0)
+		{
+			MulDiv(1, 1, 1);
+		}
+
+		//sth.GetImGuiFlags(oscID, &mpMaj7VST->mSelectedSource)
+		//if (WSBeginTabItem(labelWithID, 0, 0)) {
+		if (WSBeginTabItemWithSel(labelWithID, oscID, mSourceTabSelHelper)) {
+			//sth.OnSelectedTab();
 			WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::gUnityVolumeCfg, 0, lGetModInfo(M7::OscModParamIndexOffsets::Volume ));
 
@@ -912,9 +929,9 @@ public:
 		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, &phaseCursor);
 
 		ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, "Shape");
-		ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
+		// TODO: in the future,
+		//ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
 		ImGui::SameLine(); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFreqConfig, 0.4f, lGetModInfo(M7::LFOModParamIndexOffsets::FrequencyParam));
-		//ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase");
 		ImGui::SameLine(); Maj7ImGuiParamFloatN11(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::LFOModParamIndexOffsets::Phase));
 		ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
 
@@ -1218,7 +1235,7 @@ public:
 
 		float modVal = 0;
 
-		if (WSBeginTabItem(GetModulationName(spec, imod).c_str()))
+		if (WSBeginTabItemWithSel(GetModulationName(spec, imod).c_str(), imod, mModulationTabSelHelper))
 		{
 			ImGui::BeginDisabled(isLocked);
 			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
@@ -1230,26 +1247,38 @@ public:
 
 				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions, 180);
 
-				Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMin, "RangeMin", -3, 3, -1, -1, 30, {});
-				ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMax, "Max", -3, 3, 1, 1, 30, {});
+				if (mpMaj7VST->mShowAdvancedModControls[imod]) {
 
-				ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
+					Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMin, "RangeMin", -3, 3, -1, -1, 30, {});
+					ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMax, "Max", -3, 3, 1, 1, 30, {});
 
-				modVal = ModMeter(spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
+					ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve, "Curve", 0, M7CurveRenderStyle::Rising, {});
 
-				if (ImGui::SmallButton("Reset")) {
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+					modVal = ModMeter(spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
+
+					if (ImGui::SmallButton("Reset")) {
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+					}
+					ImGui::SameLine();
+					if (ImGui::SmallButton("To pos")) {
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, -3);
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+					}
+					ImGui::SameLine();
+					if (ImGui::SmallButton("To bip.")) {
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, 0);
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+					}
+					if (ImGui::SmallButton("hide advanced")) {
+						mpMaj7VST->mShowAdvancedModControls[imod] = false;
+					}
 				}
-				ImGui::SameLine();
-				if (ImGui::SmallButton("To pos")) {
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, -3);
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
-				}
-				ImGui::SameLine();
-				if (ImGui::SmallButton("To bip.")) {
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMin, -3, 3, 0);
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
+				else {
+					modVal = ModMeter(spec, spec.mSource, M7::ModParamIndexOffsets::Curve, M7::ModParamIndexOffsets::SrcRangeMin, M7::ModParamIndexOffsets::SrcRangeMax, true, isEnabled);
+					if (ImGui::SmallButton("show advanced")) {
+						mpMaj7VST->mShowAdvancedModControls[imod] = true;
+					}
 				}
 
 				ImGui::PopID();
@@ -1293,28 +1322,35 @@ public:
 			{
 				ImGui::BeginGroup();
 				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource, "Aux Src", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions, 180);
+				float auxVal = 0;
+				if (mpMaj7VST->mShowAdvancedModAuxControls[imod]) {
 
-				Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMin, "AuxRangeMin", -3, 3, 0, 0, 30, {});
-				ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMax, "Max", -3, 3, 1, 1, 30, {});
+					Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMin, "AuxRangeMin", -3, 3, 0, 0, 30, {});
+					ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMax, "Max", -3, 3, 1, 1, 30, {});
 
-				ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "Aux Curve", 0, M7CurveRenderStyle::Rising, {});
+					ImGui::SameLine(); Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve, "Aux Curve", 0, M7CurveRenderStyle::Rising, {});
 
-				float auxVal = ModMeter(spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
+					auxVal = ModMeter(spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
 
-				if (ImGui::SmallButton("Reset")) {
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+					if (ImGui::SmallButton("Reset")) {
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+					}
+					ImGui::SameLine();
+					if (ImGui::SmallButton("bip. to pos")) {
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, -3);
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+					}
+					if (ImGui::SmallButton("hide advanced")) {
+						mpMaj7VST->mShowAdvancedModAuxControls[imod] = true;
+					}
 				}
-				ImGui::SameLine();
-				if (ImGui::SmallButton("bip. to pos")) {
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, -3);
-					spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+				else {
+					auxVal = ModMeter(spec, spec.mAuxSource, M7::ModParamIndexOffsets::AuxCurve, M7::ModParamIndexOffsets::AuxRangeMin, M7::ModParamIndexOffsets::AuxRangeMax, false, isEnabled && isAuxEnabled);
+					if (ImGui::SmallButton("show advanced")) {
+						mpMaj7VST->mShowAdvancedModAuxControls[imod] = true;
+					}
 				}
-				//ImGui::SameLine();
-				//if (ImGui::SmallButton("To bip.")) {
-				//	spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
-				//	spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
-				//}
 
 				float auxAtten = spec.mParams.Get01Value(M7::ModParamIndexOffsets::AuxAttenuation, 0);
 				float auxScale = M7::math::lerp(1, 1.0f - auxAtten, auxVal);
@@ -1373,7 +1409,7 @@ public:
 		ColorMod& cm = filter.mParams.GetBoolValue(M7::FilterParamIndexOffsets::Enabled) ? mAuxLeftColors : mAuxLeftDisabledColors;
 		auto token = cm.Push();
 
-		if (WSBeginTabItem(labelID))
+		if (WSBeginTabItemWithSel(labelID, ifilter, mFilterTabSelHelper))
 		{
 			static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
 
@@ -1703,7 +1739,7 @@ public:
 		};
 
 
-		if (WSBeginTabItem(labelWithID)) {
+		if (WSBeginTabItemWithSel(labelWithID, (int)isrc, mSourceTabSelHelper)) {
 			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled), "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Volume), "Volume", M7::gUnityVolumeCfg, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::Volume));
 
