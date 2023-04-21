@@ -133,14 +133,15 @@ struct ColorMod
 typedef int ImGuiKnobFlags;
 
 enum ImGuiKnobFlags_ {
-    ImGuiKnobFlags_NoTitle = 1 << 0,
-    ImGuiKnobFlags_NoInput = 1 << 1,
-    ImGuiKnobFlags_ValueTooltip = 1 << 2,
-    ImGuiKnobFlags_DragHorizontal = 1 << 3,
-    ImGuiKnobFlags_CustomInput = 1 << 4,
-    ImGuiKnobFlags_InvertXCurve = 1 << 5,
-    ImGuiKnobFlags_InvertYCurve = 1 << 6,
-    ImGuiKnobFlags_NoKnob = 1 << 7,
+	ImGuiKnobFlags_NoTitle = 1 << 0,
+	ImGuiKnobFlags_NoInput = 1 << 1,
+	ImGuiKnobFlags_ValueTooltip = 1 << 2,
+	ImGuiKnobFlags_DragHorizontal = 1 << 3,
+	ImGuiKnobFlags_CustomInput = 1 << 4,
+	ImGuiKnobFlags_InvertXCurve = 1 << 5,
+	ImGuiKnobFlags_InvertYCurve = 1 << 6,
+	ImGuiKnobFlags_NoKnob = 1 << 7,
+	ImGuiKnobFlags_EditableTitle = 1 << 8,
 };
 
 typedef int ImGuiKnobVariant;
@@ -224,6 +225,7 @@ namespace ImGuiKnobs {
         float mExtentMax = 0; // relative to param value.
     };
 
-    bool Knob(const char* label, float* p_value, float v_min, float v_max, float v_default, float v_center, ModInfo modInfo, float normalSpeed, float slowSpeed, const char* format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
-    bool KnobInt(const char *label, int *p_value, int v_min, int v_max, int v_default, int v_center, float normalSpeed, float slowSpeed, const char *format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
+	bool KnobWithEditableLabel(std::string& label, const char *id, float* p_value, float v_min, float v_max, float v_default, float v_center, ModInfo modInfo, float normalSpeed, float slowSpeed, const char* format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
+	bool Knob(const char* labelAndID, float* p_value, float v_min, float v_max, float v_default, float v_center, ModInfo modInfo, float normalSpeed, float slowSpeed, const char* format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
+	bool KnobInt(const char * labelAndID, int *p_value, int v_min, int v_max, int v_default, int v_center, float normalSpeed, float slowSpeed, const char *format = NULL, ImGuiKnobVariant variant = ImGuiKnobVariant_Tick, float size = 0, ImGuiKnobFlags flags = 0, int steps = 10, IValueConverter* conv = nullptr, void* capture = nullptr);
 }// namespace ImGuiKnobs

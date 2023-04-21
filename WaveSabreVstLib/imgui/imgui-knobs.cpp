@@ -122,7 +122,88 @@ namespace ImGui {
         return value_changed;
     }
 
+    // derived from DragScalar_Custom to work on text labels
+    static inline bool EditableTextUnformatted(std::string& text, const char* id_)
+    {
+        const char* label = id_;// text.c_str();
+        int flags = ImGuiSliderFlags_Vertical;
+
+        ImGuiWindow* window = GetCurrentWindow();
+        if (window->SkipItems)
+            return false;
+
+        static constexpr size_t maxTextLen = 20;
+        char value_buf[maxTextLen];
+        strcpy_s(value_buf, text.c_str());
+
+        ImGuiContext& g = *GImGui;
+        const ImGuiStyle& style = g.Style;
+        const ImGuiID id = window->GetID(label);
+        const float w = CalcItemWidth();
+
+        ImVec2 value_size = CalcTextSize(value_buf, NULL, true);
+        value_size.x = std::max(value_size.x + 6, 40.0f);
+
+        float frame_bb_w = value_size.x;
+
+        const ImRect frame_bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(frame_bb_w, value_size.y + style.FramePadding.y * 2.0f));
+        const ImRect total_bb{ frame_bb };
+
+        const bool temp_input_allowed = (flags & ImGuiSliderFlags_NoInput) == 0;
+        ItemSize(total_bb, style.FramePadding.y);
+        if (!ItemAdd(total_bb, id, &frame_bb, temp_input_allowed ? ImGuiItemFlags_Inputable : 0))
+            return false;
+
+        const bool hovered = ItemHoverable(frame_bb, id);
+        bool temp_input_is_active = temp_input_allowed && TempInputIsActive(id);
+        if (!temp_input_is_active)
+        {
+            // Tabbing or CTRL-clicking on Drag turns it into an InputText
+            const bool input_requested_by_tabbing = temp_input_allowed && (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_FocusedByTabbing) != 0;
+            const bool double_clicked = (hovered && g.IO.MouseClickedCount[0] == 2 && TestKeyOwner(ImGuiKey_MouseLeft, id));
+            const bool make_active = (input_requested_by_tabbing || double_clicked || g.NavActivateId == id || g.NavActivateInputId == id);
+            if (make_active && (double_clicked))
+            {
+                SetKeyOwner(ImGuiKey_MouseLeft, id);
+            }
+            if (make_active && temp_input_allowed)
+            {
+                if (input_requested_by_tabbing || double_clicked || g.NavActivateInputId == id) {
+                    temp_input_is_active = true;
+                }
+            }
+
+            if (make_active && !temp_input_is_active)
+            {
+                SetActiveID(id, window);
+                SetFocusID(id, window);
+                FocusWindow(window);
+                g.ActiveIdUsingNavDirMask = (1 << ImGuiDir_Left) | (1 << ImGuiDir_Right);
+            }
+        }
+
+        if (temp_input_is_active)
+        {
+            if (!TempInputText(frame_bb, id, label, value_buf, (int)std::size(value_buf), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoMarkEdited))
+            {
+                return false;
+            }
+            text = value_buf;
+            return true;
+        }
+
+        // Draw frame
+        const ImU32 frame_col = GetColorU32(g.ActiveId == id ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
+        RenderNavHighlight(frame_bb, id);
+        RenderFrame(frame_bb.Min, frame_bb.Max, frame_col, true, style.FrameRounding);
+
+        RenderTextClipped(frame_bb.Min, frame_bb.Max, value_buf, value_buf + strlen(value_buf), NULL, ImVec2(0.5f, 0.5f));
+
+        return false;
+    }
+
 }
+
 
 namespace ImGuiKnobs {
     namespace detail {
@@ -198,9 +279,16 @@ namespace ImGuiKnobs {
             float angle_modMax = 0;
             float angle_modVal = 0;
 
-            knob(const char* _label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, ModInfo modInfo, float speed, float _radius, const char* format,
+            knob(std::string& _label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center, ModInfo modInfo, float speed, float _radius, const char* format,
                 ImGuiKnobVariant variant, ImGuiKnobFlags flags)
             {
+                std::string labelAndID = _label;
+
+                if (id) {
+                    labelAndID += "###";
+                    labelAndID += id;
+                }
+
                 auto screen_pos = ImGui::GetCursorScreenPos();
 
                 if (flags & ImGuiKnobFlags_NoKnob)
@@ -220,8 +308,8 @@ namespace ImGuiKnobs {
                     knobSize = { radius * 2, radius * 0.33f };
                 }
 
-                ImGui::InvisibleButton(_label, knobSize);
-                auto gid = ImGui::GetID(_label);
+                ImGui::InvisibleButton(labelAndID.c_str(), knobSize); // TODO: what is this for??
+                auto gid = ImGui::GetID(labelAndID.c_str());
                 ImGuiSliderFlags drag_flags = 0;
                 if (!(flags & ImGuiKnobFlags_DragHorizontal)) {
                     drag_flags |= ImGuiSliderFlags_Vertical;
@@ -328,12 +416,14 @@ namespace ImGuiKnobs {
             }
         };
 
+        // label & id need to be separated if you want to allow editing label.
         template<typename DataType>
-        knob<DataType> knob_with_drag(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default,
+        knob<DataType> knob_with_drag(std::string& label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default,
             DataType v_center, ModInfo modInfo, float _speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, IValueConverter* conv, void* capture)
         {
             auto speed = _speed == 0 ? (v_max - v_min) / 250.f : _speed;
-            ImGui::PushID(label);
+
+            ImGui::PushID(id == nullptr ? label.c_str() : id);
             auto width = size == 0 ? ImGui::GetTextLineHeight() * 3.25f : size * ImGui::GetIO().FontGlobalScale;
             ImGui::PushItemWidth(width);
 
@@ -345,19 +435,21 @@ namespace ImGuiKnobs {
 
             // Draw title
             if (!(flags & ImGuiKnobFlags_NoTitle)) {
-                auto title_size = ImGui::CalcTextSize(label, NULL, false, width);
+                auto title_size = ImGui::CalcTextSize(label.c_str(), NULL, false, width);
 
                 // Center title
                 ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (width - title_size[0]) * 0.5f);
 
-                auto end = ImGui::FindRenderedTextEnd(label, 0);
-                auto txt = std::string(label, end);
-
-                ImGui::Text("%s", txt.c_str());
+                if (flags & ImGuiKnobFlags_EditableTitle) {
+                    ImGui::EditableTextUnformatted(label, id);
+                }
+                else {
+                    ImGui::TextUnformatted(label.c_str());
+                }
             }
 
             // Draw knob
-            knob<DataType> k(label, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, width * 0.5f, format, variant, flags);
+            knob<DataType> k(label, id, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, width * 0.5f, format, variant, flags);
 
             // Draw tooltip
             if (flags & ImGuiKnobFlags_ValueTooltip && (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled) || ImGui::IsItemActive())) {
@@ -460,10 +552,10 @@ namespace ImGuiKnobs {
 
 
     template<typename DataType>
-    bool BaseKnob(const char* label, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center,
+    bool BaseKnob(std::string& label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center,
         ModInfo modInfo,
         float speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture) {
-        auto knob = detail::knob_with_drag(label, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, format, variant, size, flags, conv, capture);
+        auto knob = detail::knob_with_drag(label, id, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, format, variant, size, flags, conv, capture);
 
         switch (variant) {
         case ImGuiKnobVariant_Tick: {
@@ -565,21 +657,34 @@ namespace ImGuiKnobs {
         return knob.value_changed;
     }
 
-    bool Knob(const char* label, float* p_value, float v_min, float v_max, float v_default, float v_center, ModInfo modInfo,
+    bool Knob(const char* labelAndID, float* p_value, float v_min, float v_max, float v_default, float v_center, ModInfo modInfo,
         float normalSpeed, float slowSpeed,
         const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%.3f" : format;
-        return BaseKnob(label, ImGuiDataType_Float, p_value, v_min, v_max, v_default, v_center,
+        std::string label2{ labelAndID };
+        return BaseKnob(label2, nullptr, ImGuiDataType_Float, p_value, v_min, v_max, v_default, v_center,
             modInfo,
             ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
     }
 
-    bool KnobInt(const char* label, int* p_value, int v_min, int v_max, int v_default, int v_center, float normalSpeed, float slowSpeed,
+    bool KnobWithEditableLabel(std::string& label, const char *id, float* p_value, float v_min, float v_max, float v_default, float v_center,
+        ModInfo modInfo, float normalSpeed, float slowSpeed, const char* format, ImGuiKnobVariant variant,
+        float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
+    {
+        const char* _format = format == NULL ? "%.3f" : format;
+        return BaseKnob(label, id, ImGuiDataType_Float, p_value, v_min, v_max, v_default, v_center,
+            modInfo,
+            ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
+    }
+
+
+    bool KnobInt(const char* labelAndID, int* p_value, int v_min, int v_max, int v_default, int v_center, float normalSpeed, float slowSpeed,
         const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%i" : format;
-        return BaseKnob(label, ImGuiDataType_S32, p_value, v_min, v_max, v_default, v_center,
+        std::string label2{ labelAndID };
+        return BaseKnob(label2, nullptr, ImGuiDataType_S32, p_value, v_min, v_max, v_default, v_center,
             ModInfo{},
             ImGui::GetIO().KeyShift ? slowSpeed : normalSpeed, _format, variant, size, flags, steps, conv, capture);
     }

@@ -519,6 +519,37 @@ public:
 		return ret;
 	};
 
+	void Maj7ImGuiParamMacro(int imacro) {
+		int paramID = (int)M7::ParamIndices::Macro1 + imacro;
+		float tempVal = 0;
+		M7::Float01Param p{ tempVal };
+		float defaultParamVal = p.Get01Value();
+		p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+		float centerVal01 = 0;
+		Float01Converter conv{ };
+
+		std::string label;
+		std::string id = "##macro";
+		id += std::to_string(imacro);
+
+		if (mpMaj7VST->mMacroNames[imacro].empty())
+		{
+			std::string defaultLabel = "Macro " + std::to_string(imacro + 1);
+			label = defaultLabel;
+		}
+		else {
+			label = mpMaj7VST->mMacroNames[imacro];
+		}
+
+		if (ImGuiKnobs::KnobWithEditableLabel(label, id.c_str(), &tempVal, 0, 1, defaultParamVal, centerVal01, {}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput | ImGuiKnobFlags_EditableTitle, 10, &conv, this))
+		{
+			GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+		}
+		if (label != mpMaj7VST->mMacroNames[imacro]) {
+			mpMaj7VST->mMacroNames[imacro] = label;
+		}
+	}
+
 	ColorMod mModulationsColors{ 0.15f, 0.6f, 0.65f, 0.9f, 0.0f };
 	ColorMod mModulationDisabledColors{ 0.15f, 0.0f, 0.65f, 0.6f, 0.0f };
 	ColorMod mLockedModulationsColors{ 0.50f, 0.6f, 0.75f, 0.9f, 0.0f };
@@ -759,8 +790,9 @@ public:
 			EndTabBarWithColoredSeparator();
 		}
 
-		if (BeginTabBar2("modspectabs", ImGuiTabBarFlags_None))
+		if (BeginTabBar2("modspectabs", ImGuiTabBarFlags_TabListPopupButton))
 		{
+			static_assert(M7::gModulationCount == 18, "update this yo");
 			ModulationSection(0, this->pMaj7->mModulations[0], (int)M7::ParamIndices::Mod1Enabled);
 			ModulationSection(1, this->pMaj7->mModulations[1], (int)M7::ParamIndices::Mod2Enabled);
 			ModulationSection(2, this->pMaj7->mModulations[2], (int)M7::ParamIndices::Mod3Enabled);
@@ -787,13 +819,14 @@ public:
 		{
 			if (WSBeginTabItem("Macros"))
 			{
-				WSImGuiParamKnob((int)M7::ParamIndices::Macro1, "Macro 1");
-				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro2, "Macro 2");
-				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro3, "Macro 3");
-				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro4, "Macro 4");
-				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro5, "Macro 5");
-				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro6, "Macro 6");
-				ImGui::SameLine(); WSImGuiParamKnob((int)M7::ParamIndices::Macro7, "Macro 7");
+				static_assert(M7::Maj7::gMacroCount == 7, "update this yo");
+				Maj7ImGuiParamMacro(0);
+				ImGui::SameLine(); Maj7ImGuiParamMacro(1);
+				ImGui::SameLine(); Maj7ImGuiParamMacro(2);
+				ImGui::SameLine(); Maj7ImGuiParamMacro(3);
+				ImGui::SameLine(); Maj7ImGuiParamMacro(4);
+				ImGui::SameLine(); Maj7ImGuiParamMacro(5);
+				ImGui::SameLine(); Maj7ImGuiParamMacro(6);
 				ImGui::EndTabItem();
 			}
 			EndTabBarWithColoredSeparator();
@@ -1342,7 +1375,7 @@ public:
 						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
 					}
 					if (ImGui::SmallButton("hide advanced")) {
-						mpMaj7VST->mShowAdvancedModAuxControls[imod] = true;
+						mpMaj7VST->mShowAdvancedModAuxControls[imod] = false;
 					}
 				}
 				else {

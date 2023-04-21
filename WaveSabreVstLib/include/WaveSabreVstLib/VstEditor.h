@@ -157,10 +157,10 @@ namespace WaveSabreVstLib
 			// 1. shrinking workrect max for column support
 			// 2. adding X cursor pos for side-by-side positioning
 			// 3. pushing empty separator color so BeginTabBarEx doesn't display a separator line (we'll do it later).
-			ImRect tab_bar_bb = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x / columns), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
+			tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x / columns), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
 			tab_bar->ID = id;
 			ImGui::PushStyleColor(ImGuiCol_TabActive, {});// : ImGuiCol_TabUnfocusedActive
-			bool ret = ImGui::BeginTabBarEx(tab_bar, tab_bar_bb, flags | ImGuiTabBarFlags_IsFocused);
+			bool ret = ImGui::BeginTabBarEx(tab_bar, tabBarBB, flags | ImGuiTabBarFlags_IsFocused);
 			ImGui::PopStyleColor(1);
 			return ret;
 		}
@@ -229,8 +229,9 @@ namespace WaveSabreVstLib
 			const ImU32 col = tabBarStoredSeparatorColor;
 			const float y = tab_bar->BarRect.Max.y - 1.0f;
 
-			const float separator_min_x = tab_bar->BarRect.Min.x - M7::math::floor(window->WindowPadding.x * 0.5f);
-			const float separator_max_x = tab_bar->BarRect.Max.x + M7::math::floor(window->WindowPadding.x * 0.5f);
+			// account for the popup indicator arrow thingy.
+			float separator_min_x = std::min(tab_bar->BarRect.Min.x, tabBarBB.Min.x) - M7::math::floor(window->WindowPadding.x * 0.5f);
+			float separator_max_x = tab_bar->BarRect.Max.x + M7::math::floor(window->WindowPadding.x * 0.5f);
 
 			ImRect body_bb;
 			body_bb.Min = { separator_min_x, y };
