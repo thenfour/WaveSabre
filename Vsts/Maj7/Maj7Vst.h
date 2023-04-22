@@ -325,6 +325,12 @@ inline int Maj7SetVstChunk(Maj7Vst* pvst, M7::Maj7* p, void* data, int byteSize)
 	}
 
 	auto settingsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
+	if (settingsObj.mParseResult.IsFailure()) {
+		return 0;
+	}
+	if (settingsObj.mKeyName != "PluginSettings") {
+		return 0;
+	}
 	while (true) {
 		auto ch = settingsObj.GetNextObjectItem();
 		if (ch.IsEOF())

@@ -7,13 +7,13 @@ using namespace WaveSabreCore;
 
 AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 {
-	//Helpers::Init();
 	return new Maj7Vst(audioMaster);
 }
 
 Maj7Vst::Maj7Vst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)M7::ParamIndices::NumParams, 0, 2, 'maj7', new M7::Maj7(), true)
 {
+	SetDefaultSettings();
 	setEditor(new Maj7Editor(this));
 }
 

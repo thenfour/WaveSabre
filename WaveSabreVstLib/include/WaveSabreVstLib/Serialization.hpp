@@ -2274,6 +2274,7 @@ struct JsonVariantReader : JsonParentChildHelper
         if (mParseResult.IsSuccess())
         {
             mType = JsonDataType::Boolean;
+            mBooleanValue = true;
         }
         mIsLocked = true;
     }
@@ -2284,6 +2285,7 @@ struct JsonVariantReader : JsonParentChildHelper
         if (mParseResult.IsSuccess())
         {
             mType = JsonDataType::Boolean;
+            mBooleanValue = false;
         }
         mIsLocked = true;
     }

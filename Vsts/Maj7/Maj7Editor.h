@@ -399,28 +399,7 @@ public:
 			}
 
 
-
 			if (ImGui::MenuItem("Optimize")) {
-				// the idea is to reset any unused parameters to default values, so they end up being 0 in the minified chunk.
-				// that compresses better. this is a bit tricky though; i guess i should only do this for like, samplers, oscillators, modulations 1-8, and all envelopes.
-				if (IDYES == ::MessageBoxA(mCurrentWindow, "Unused objects will be clobbered; are you sure? Do this as a post-processing step before rendering the minified song.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-					if (IDYES == ::MessageBoxA(mCurrentWindow, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-						CopyPatchToClipboard(false);
-						::MessageBoxA(mCurrentWindow, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
-					}
-					auto r1 = AnalyzeChunkMinification(pMaj7);
-					OptimizeParams(pMaj7, false);
-					auto r2 = AnalyzeChunkMinification(pMaj7);
-					char msg[200];
-					sprintf_s(msg, "Done!\r\nBefore: %d bytes; %d nondefaults\r\nAfter: %d bytes; %d nondefaults\r\nShrunk to %d %%",
-						r1.compressedSize, r1.nonZeroParams,
-						r2.compressedSize, r2.nonZeroParams,
-						int(((float)r2.compressedSize / r1.compressedSize) * 100)
-					);
-					::MessageBoxA(mCurrentWindow, msg, "WaveSabre - Maj7", MB_OK);
-				}
-			}
-			if (ImGui::MenuItem("Optimize-Aggressive")) {
 				// the idea is to reset any unused parameters to default values, so they end up being 0 in the minified chunk.
 				// that compresses better. this is a bit tricky though; i guess i should only do this for like, samplers, oscillators, modulations 1-8, and all envelopes.
 				if (IDYES == ::MessageBoxA(mCurrentWindow, "Unused objects will be clobbered; are you sure? Do this as a post-processing step before rendering the minified song.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {

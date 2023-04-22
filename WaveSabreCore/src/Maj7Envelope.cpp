@@ -205,6 +205,11 @@ namespace WaveSabreCore
 
         float EnvelopeNode::ProcessSample()
         {
+            // for performance, because we process envelopes aggressively, check for the simplest & most common case.
+            switch (mStage) {
+            case EnvelopeStage::Idle:
+                return 0;
+            }
             auto recalcMask = GetModulationRecalcSampleMask();
             if (mnSampleCount == 0) {
                 ProcessSampleFull();
