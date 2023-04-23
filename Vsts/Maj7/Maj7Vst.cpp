@@ -84,8 +84,8 @@ int GetMinifiedChunk(M7::Maj7* p, void** data)
 		s.WriteInt16NormalizedFloat((float)f);
 	}
 
-	for (auto& sd : p->mSamplerDevices) {
-		sd.Serialize(s);
+	for (auto* sd : p->mpSamplerDevices) {
+		sd->Serialize(s);
 	}
 
 	auto ret = s.DetachBuffer();

@@ -161,17 +161,19 @@ namespace WaveSabreCore
 #endif // MAJ7_INCLUDE_GSM_SUPPORT
 			}
 
-			SamplerDevice::SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
-			) :
-				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID, //ampEnvBaseParamID,
-					ampEnvModSourceID,
-					modDestBaseID,
-					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::Volume)),
-					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::AuxMix)),
-					(ModDestination)(int(modDestBaseID) + int(SamplerModParamIndexOffsets::HiddenVolume))
-				),
-				mParams(paramCache, baseParamID)
+
+			//SamplerDevice::SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
+			//	ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
+			//) :
+			SamplerDevice::SamplerDevice(float* paramCache, ModulationList modulations, const SourceInfo& srcInfo) :
+				ISoundSourceDevice(paramCache, modulations[srcInfo.mModulationIndex], srcInfo.mParamBase, //ampEnvBaseParamID,
+					srcInfo.mAmpModSource,
+					srcInfo.mModDestBase,
+					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::Volume)),
+					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::AuxMix)),
+					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::HiddenVolume))
+				)//,
+				//mParams(paramCache, sourceInfo.mParamBase)
 			{
 			}
 

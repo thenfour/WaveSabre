@@ -74,18 +74,18 @@ public:
 				mpModMatrix = &pMaj7->mMaj7Voice[0]->mModMatrix;
 			}
 
-			for (auto& m : pMaj7->mModulations)
+			for (auto* m : pMaj7->mpModulations)
 			{
-				if (!m.mEnabled)
+				if (!m->mEnabled)
 					continue;
-				if (m.mSource == M7::ModSource::None)
+				if (m->mSource == M7::ModSource::None)
 					continue;
-				for (size_t i = 0; i < std::size(m.mDestinations); ++ i)
+				for (size_t i = 0; i < std::size(m->mDestinations); ++ i)
 				{
-					mModDestValues[(int)m.mDestinations[i]].mEnabled = true;
+					mModDestValues[(int)m->mDestinations[i]].mEnabled = true;
 					// extents
-					mModDestValues[(int)m.mDestinations[i]].mExtentMax += std::abs(m.mScales[i]);
-					mModDestValues[(int)m.mDestinations[i]].mExtentMin = mModDestValues[(int)m.mDestinations[i]].mExtentMax;
+					mModDestValues[(int)m->mDestinations[i]].mExtentMax += std::abs(m->mScales[i]);
+					mModDestValues[(int)m->mDestinations[i]].mExtentMin = mModDestValues[(int)m->mDestinations[i]].mExtentMax;
 				}
 			}
 		}
@@ -124,7 +124,7 @@ public:
 		StatusStyle mStatusStyle = StatusStyle::NoStyle;
 	};
 
-	SourceStatusText mSourceStatusText[M7::Maj7::gSourceCount];
+	SourceStatusText mSourceStatusText[M7::gSourceCount];
 
 	bool SetStatus(size_t isrc, StatusStyle style, const std::string& str) {
 		mSourceStatusText[isrc].mStatusStyle = style;
@@ -470,11 +470,11 @@ public:
 		};
 
 		GenerateArray("gDefaultMasterParams", (int)M7::MainParamIndices::Count, "M7::MainParamIndices::Count", 0);
-		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mSamplerDevices[0].mParams.mBaseParamID);
-		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mModulations[0].mParams.mBaseParamID);
-		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mLFOs[0].mDevice.mParams.mBaseParamID);
+		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mpSamplerDevices[0]->mParams.mBaseParamID);
+		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mpModulations[0]->mParams.mBaseParamID);
+		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mpLFOs[0]->mDevice.mParams.mBaseParamID);
 		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::Osc1AmpEnvIndex].mParams.mBaseParamID);
-		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mOscillatorDevices[0].mParams.mBaseParamID);
+		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mpOscillatorDevices[0]->mParams.mBaseParamID);
 		GenerateArray("gDefaultFilterParams", (int)M7::FilterParamIndexOffsets::Count, "M7::FilterParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mFilters[0][0].mParams.mBaseParamID);
 
 		ss << "  } // namespace M7" << std::endl;
@@ -671,18 +671,18 @@ public:
 		// osc1
 		if (BeginTabBar2("osc", ImGuiTabBarFlags_None))
 		{
-			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
+			static_assert(M7::gOscillatorCount == 4, "osc count");
 			int isrc = 0;
 			Oscillator("Oscillator 1", (int)M7::ParamIndices::Osc1Enabled, isrc ++, (int)M7::ModDestination::Osc1AmpEnvDelayTime);
 			Oscillator("Oscillator 2", (int)M7::ParamIndices::Osc2Enabled, isrc ++, (int)M7::ModDestination::Osc2AmpEnvDelayTime);
 			Oscillator("Oscillator 3", (int)M7::ParamIndices::Osc3Enabled, isrc ++, (int)M7::ModDestination::Osc3AmpEnvDelayTime);
 			Oscillator("Oscillator 4", (int)M7::ParamIndices::Osc4Enabled, isrc ++, (int)M7::ModDestination::Osc4AmpEnvDelayTime);
 
-			static_assert(M7::Maj7::gSamplerCount == 4, "sampler count");
-			Sampler("Sampler 1", pMaj7->mSamplerDevices[0], isrc++, (int)M7::ModDestination::Sampler1AmpEnvDelayTime);
-			Sampler("Sampler 2", pMaj7->mSamplerDevices[1], isrc++, (int)M7::ModDestination::Sampler2AmpEnvDelayTime);
-			Sampler("Sampler 3", pMaj7->mSamplerDevices[2], isrc++, (int)M7::ModDestination::Sampler3AmpEnvDelayTime);
-			Sampler("Sampler 4", pMaj7->mSamplerDevices[3], isrc++, (int)M7::ModDestination::Sampler4AmpEnvDelayTime);
+			static_assert(M7::gSamplerCount == 4, "sampler count");
+			Sampler("Sampler 1", *pMaj7->mpSamplerDevices[0], isrc++, (int)M7::ModDestination::Sampler1AmpEnvDelayTime);
+			Sampler("Sampler 2", *pMaj7->mpSamplerDevices[1], isrc++, (int)M7::ModDestination::Sampler2AmpEnvDelayTime);
+			Sampler("Sampler 3", *pMaj7->mpSamplerDevices[2], isrc++, (int)M7::ModDestination::Sampler3AmpEnvDelayTime);
+			Sampler("Sampler 4", *pMaj7->mpSamplerDevices[3], isrc++, (int)M7::ModDestination::Sampler4AmpEnvDelayTime);
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -690,7 +690,7 @@ public:
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
 
-		static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
+		static_assert(M7::gOscillatorCount == 4, "osc count");
 		bool oscEnabled[4] = {
 			pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc1Enabled),
 			pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc2Enabled),
@@ -702,7 +702,7 @@ public:
 		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 400))
 		{
 			auto colorModToken = mFMColors.Push();
-			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
+			static_assert(M7::gOscillatorCount == 4, "osc count");
 			if (WSBeginTabItem("\"Frequency Modulation\"")) {
 				ImGui::BeginGroup();
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, {0,0});
@@ -850,24 +850,26 @@ public:
 		if (BeginTabBar2("modspectabs", ImGuiTabBarFlags_TabListPopupButton))
 		{
 			static_assert(M7::gModulationCount == 18, "update this yo");
-			ModulationSection(0, this->pMaj7->mModulations[0], (int)M7::ParamIndices::Mod1Enabled);
-			ModulationSection(1, this->pMaj7->mModulations[1], (int)M7::ParamIndices::Mod2Enabled);
-			ModulationSection(2, this->pMaj7->mModulations[2], (int)M7::ParamIndices::Mod3Enabled);
-			ModulationSection(3, this->pMaj7->mModulations[3], (int)M7::ParamIndices::Mod4Enabled);
-			ModulationSection(4, this->pMaj7->mModulations[4], (int)M7::ParamIndices::Mod5Enabled);
-			ModulationSection(5, this->pMaj7->mModulations[5], (int)M7::ParamIndices::Mod6Enabled);
-			ModulationSection(6, this->pMaj7->mModulations[6], (int)M7::ParamIndices::Mod7Enabled);
-			ModulationSection(7, this->pMaj7->mModulations[7], (int)M7::ParamIndices::Mod8Enabled);
-			ModulationSection(8, this->pMaj7->mModulations[8], (int)M7::ParamIndices::Mod9Enabled);
-			ModulationSection(9, this->pMaj7->mModulations[9], (int)M7::ParamIndices::Mod10Enabled);
-			ModulationSection(10, this->pMaj7->mModulations[10], (int)M7::ParamIndices::Mod11Enabled);
-			ModulationSection(11, this->pMaj7->mModulations[11], (int)M7::ParamIndices::Mod12Enabled);
-			ModulationSection(12, this->pMaj7->mModulations[12], (int)M7::ParamIndices::Mod13Enabled);
-			ModulationSection(13, this->pMaj7->mModulations[13], (int)M7::ParamIndices::Mod14Enabled);
-			ModulationSection(14, this->pMaj7->mModulations[14], (int)M7::ParamIndices::Mod15Enabled);
-			ModulationSection(15, this->pMaj7->mModulations[15], (int)M7::ParamIndices::Mod16Enabled);
-			ModulationSection(16, this->pMaj7->mModulations[16], (int)M7::ParamIndices::Mod17Enabled);
-			ModulationSection(17, this->pMaj7->mModulations[17], (int)M7::ParamIndices::Mod18Enabled);
+			for (int i = 0; i < M7::gModulationCount; ++i) {
+				ModulationSection(i, *this->pMaj7->mpModulations[i]);
+			}
+			//ModulationSection(1, this->pMaj7->mModulations[1], (int)M7::ParamIndices::Mod2Enabled);
+			//ModulationSection(2, this->pMaj7->mModulations[2], (int)M7::ParamIndices::Mod3Enabled);
+			//ModulationSection(3, this->pMaj7->mModulations[3], (int)M7::ParamIndices::Mod4Enabled);
+			//ModulationSection(4, this->pMaj7->mModulations[4], (int)M7::ParamIndices::Mod5Enabled);
+			//ModulationSection(5, this->pMaj7->mModulations[5], (int)M7::ParamIndices::Mod6Enabled);
+			//ModulationSection(6, this->pMaj7->mModulations[6], (int)M7::ParamIndices::Mod7Enabled);
+			//ModulationSection(7, this->pMaj7->mModulations[7], (int)M7::ParamIndices::Mod8Enabled);
+			//ModulationSection(8, this->pMaj7->mModulations[8], (int)M7::ParamIndices::Mod9Enabled);
+			//ModulationSection(9, this->pMaj7->mModulations[9], (int)M7::ParamIndices::Mod10Enabled);
+			//ModulationSection(10, this->pMaj7->mModulations[10], (int)M7::ParamIndices::Mod11Enabled);
+			//ModulationSection(11, this->pMaj7->mModulations[11], (int)M7::ParamIndices::Mod12Enabled);
+			//ModulationSection(12, this->pMaj7->mModulations[12], (int)M7::ParamIndices::Mod13Enabled);
+			//ModulationSection(13, this->pMaj7->mModulations[13], (int)M7::ParamIndices::Mod14Enabled);
+			//ModulationSection(14, this->pMaj7->mModulations[14], (int)M7::ParamIndices::Mod15Enabled);
+			//ModulationSection(15, this->pMaj7->mModulations[15], (int)M7::ParamIndices::Mod16Enabled);
+			//ModulationSection(16, this->pMaj7->mModulations[16], (int)M7::ParamIndices::Mod17Enabled);
+			//ModulationSection(17, this->pMaj7->mModulations[17], (int)M7::ParamIndices::Mod18Enabled);
 
 			EndTabBarWithColoredSeparator();
 		}
@@ -876,7 +878,7 @@ public:
 		{
 			if (WSBeginTabItem("Macros"))
 			{
-				static_assert(M7::Maj7::gMacroCount == 7, "update this yo");
+				static_assert(M7::gMacroCount == 7, "update this yo");
 				Maj7ImGuiParamMacro(0);
 				ImGui::SameLine(); Maj7ImGuiParamMacro(1);
 				ImGui::SameLine(); Maj7ImGuiParamMacro(2);
@@ -912,7 +914,7 @@ public:
 				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)color);
 				ImGui::Button(txt);
 				ImGui::PopStyleColor(3);
-				static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
+				static_assert(M7::gOscillatorCount == 4, "osc count");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetLastSample()), ImVec2{ 50, 0 }, "Osc1");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetLastSample()), ImVec2{ 50, 0 }, "Osc2");
 				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetLastSample()), ImVec2{ 50, 0 }, "Osc3");
@@ -950,7 +952,7 @@ public:
 		auto token = cm.Push();
 
 		auto lGetModInfo = [&](M7::OscModParamIndexOffsets x) {
-			return GetModInfo((M7::ModDestination)((int)pMaj7->mOscillatorDevices[oscID].mModDestBaseID + (int)x));
+			return GetModInfo((M7::ModDestination)((int)pMaj7->mpOscillatorDevices[oscID]->mModDestBaseID + (int)x));
 		};
 
 		if (mpMaj7VST->mSelectedSource != 0)
@@ -981,8 +983,8 @@ public:
 
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Aux pan", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::AuxMix));
 
-			static_assert(M7::Maj7::gOscillatorCount == 4, "osc count");
-			M7::ParamIndices ampEnvSources[M7::Maj7::gOscillatorCount] = {
+			static_assert(M7::gOscillatorCount == 4, "osc count");
+			M7::ParamIndices ampEnvSources[M7::gOscillatorCount] = {
 				M7::ParamIndices::Osc1AmpEnvDelayTime,
 				M7::ParamIndices::Osc2AmpEnvDelayTime,
 				M7::ParamIndices::Osc3AmpEnvDelayTime,
@@ -1009,10 +1011,10 @@ public:
 		ImGui::PushID(labelWithID);
 
 		auto lGetModInfo = [&](M7::LFOModParamIndexOffsets x) {
-			return GetModInfo((M7::ModDestination)((int)pMaj7->mLFOs[ilfo].mDevice.mModDestBaseID + (int)x));
+			return GetModInfo((M7::ModDestination)((int)pMaj7->mpLFOs[ilfo]->mDevice.mModDestBaseID + (int)x));
 		};
 
-		float phaseCursor = (float)(this->pMaj7->mLFOs[ilfo].mPhase.mPhase);
+		float phaseCursor = (float)(this->pMaj7->mpLFOs[ilfo]->mPhase.mPhase);
 
 		TIME_BASIS_CAPTIONS(timeBasisCaptions);
 
@@ -1308,7 +1310,7 @@ public:
 	}
 
 
-	void ModulationSection(int imod, M7::ModulationSpec& spec, int enabledParamID)
+	void ModulationSection(int imod, M7::ModulationSpec& spec)
 	{
 		bool isLocked = spec.mType != M7::ModulationSpecType::General;
 
@@ -1331,14 +1333,15 @@ public:
 		if (WSBeginTabItemWithSel(GetModulationName(spec, imod).c_str(), imod, mModulationTabSelHelper))
 		{
 			ImGui::BeginDisabled(isLocked);
-			WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
+			int enabledParamID = spec.mParams.mBaseParamID;
+			WSImGuiParamCheckbox(spec.mParams.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
 			ImGui::EndDisabled();
 			ImGui::SameLine();
 			{
 				ImGui::BeginGroup();
 				ImGui::PushID("main");
 
-				Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions, 180);
+				Maj7ImGuiParamEnumCombo(enabledParamID + (int)M7::ModParamIndexOffsets::Source, "Source", (int)M7::ModSource::Count, M7::ModSource::None, modSourceCaptions, 180);
 
 				if (mpMaj7VST->mShowAdvancedModControls[imod]) {
 
@@ -1471,10 +1474,10 @@ public:
 					char modName[100];
 					sprintf_s(modName, "Mod %d", n);
 
-					if (ImGui::Selectable(GetModulationName(this->pMaj7->mModulations[n], n).c_str()))
+					if (ImGui::Selectable(GetModulationName(*this->pMaj7->mpModulations[n], n).c_str()))
 					{
 						M7::ModulationSpec& srcSpec = spec;
-						M7::ModulationSpec& destSpec = this->pMaj7->mModulations[n];
+						M7::ModulationSpec& destSpec = *this->pMaj7->mpModulations[n];
 						for (int iparam = 0; iparam < (int)M7::ModParamIndexOffsets::Count; ++ iparam) {
 
 							float p = GetEffectX()->getParameter(srcSpec.mParams.GetParamIndex(iparam));

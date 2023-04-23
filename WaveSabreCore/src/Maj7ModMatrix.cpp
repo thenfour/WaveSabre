@@ -5,6 +5,11 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
+		ModulationSpec::ModulationSpec(real_t* paramCache, int baseParamID) :
+			mParams(paramCache, baseParamID)
+		{
+		}
+
 		// dest range 
 		float ModMatrixNode::MapValue(ModulationSpec& spec, ModSource src, ModParamIndexOffsets curveParam, ModParamIndexOffsets srcRangeMinParam, ModParamIndexOffsets srcRangeMaxParam, bool isDestN11)
 		{
@@ -28,7 +33,8 @@ namespace WaveSabreCore
 			return spec.mParams.ApplyCurveToValue(curveParam, val);
 		}
 
-			void ModMatrixNode::ProcessSample(ModulationSpec(&modSpecs)[gModulationCount])
+		//void ModMatrixNode::ProcessSample(ModulationSpec* modSpecs)
+			void ModMatrixNode::ProcessSample(ModulationSpec* (&modSpecs)[gModulationCount])
 			{
 				auto recalcMask = GetModulationRecalcSampleMask();
 				auto recalcSpan = recalcMask + 1;
@@ -43,7 +49,7 @@ namespace WaveSabreCore
 
 					for (size_t imod = 0; imod < gModulationCount; ++imod)
 					{
-						auto& spec = modSpecs[imod];
+						auto& spec = *modSpecs[imod];
 
 						// enabled...
 						bool skip = false;

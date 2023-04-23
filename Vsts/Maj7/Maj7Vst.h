@@ -17,10 +17,10 @@ class Maj7Vst : public WaveSabreVstLib::VstPlug
 {
 public:
 
-	std::string mMacroNames[M7::Maj7::gMacroCount];
-	std::string mSourceNames[M7::Maj7::gSourceCount];
-	std::string mLFONames[M7::Maj7::gModLFOCount];
-	std::string mModEnvNames[M7::Maj7::gModEnvCount];
+	std::string mMacroNames[M7::gMacroCount];
+	std::string mSourceNames[M7::gSourceCount];
+	std::string mLFONames[M7::gModLFOCount];
+	std::string mModEnvNames[M7::gModEnvCount];
 	bool mShowAdvancedModControls[M7::gModulationCount];
 	bool mShowAdvancedModAuxControls[M7::gModulationCount];
 	std::string mPatchName;
@@ -107,10 +107,10 @@ public:
 
 		auto samplersArray = doc.Object_MakeKey("samplers");
 		samplersArray.BeginArray();
-		for (auto& sampler : GetMaj7()->mSamplerDevices)
+		for (auto* sampler : GetMaj7()->mpSamplerDevices)
 		{
 			M7::Serializer samplerSerializer;
-			sampler.Serialize(samplerSerializer);
+			sampler->Serialize(samplerSerializer);
 			auto b64 = clarinoid::base64_encode(samplerSerializer.mBuffer, (unsigned int)samplerSerializer.mSize);
 			samplersArray.Array_MakeValue().WriteStringValue(b64);
 		}
@@ -119,7 +119,7 @@ public:
 		auto settingsObj = doc.Object_MakeKey("PluginSettings");
 		settingsObj.BeginObject();
 			
-		static_assert(M7::Maj7::gMacroCount == 7, "update this here shiz");
+		static_assert(M7::gMacroCount == 7, "update this here shiz");
 		settingsObj.Object_MakeKey("MacroName0").WriteStringValue(mMacroNames[0]);
 		settingsObj.Object_MakeKey("MacroName1").WriteStringValue(mMacroNames[1]);
 		settingsObj.Object_MakeKey("MacroName2").WriteStringValue(mMacroNames[2]);
@@ -128,7 +128,7 @@ public:
 		settingsObj.Object_MakeKey("MacroName5").WriteStringValue(mMacroNames[5]);
 		settingsObj.Object_MakeKey("MacroName6").WriteStringValue(mMacroNames[6]);
 
-		static_assert(M7::Maj7::gSourceCount == 8, "update this here shiz");
+		static_assert(M7::gSourceCount == 8, "update this here shiz");
 		settingsObj.Object_MakeKey("SourceName0").WriteStringValue(mSourceNames[0]);
 		settingsObj.Object_MakeKey("SourceName1").WriteStringValue(mSourceNames[1]);
 		settingsObj.Object_MakeKey("SourceName2").WriteStringValue(mSourceNames[2]);
@@ -138,13 +138,13 @@ public:
 		settingsObj.Object_MakeKey("SourceName6").WriteStringValue(mSourceNames[6]);
 		settingsObj.Object_MakeKey("SourceName7").WriteStringValue(mSourceNames[7]);
 
-		static_assert(M7::Maj7::gModLFOCount == 4, "update this here shiz");
+		static_assert(M7::gModLFOCount == 4, "update this here shiz");
 		settingsObj.Object_MakeKey("LFOName0").WriteStringValue(mLFONames[0]);
 		settingsObj.Object_MakeKey("LFOName1").WriteStringValue(mLFONames[1]);
 		settingsObj.Object_MakeKey("LFOName2").WriteStringValue(mLFONames[2]);
 		settingsObj.Object_MakeKey("LFOName3").WriteStringValue(mLFONames[3]);
 
-		static_assert(M7::Maj7::gModEnvCount == 2, "update this here shiz");
+		static_assert(M7::gModEnvCount == 2, "update this here shiz");
 		settingsObj.Object_MakeKey("ModEnvName0").WriteStringValue(mModEnvNames[0]);
 		settingsObj.Object_MakeKey("ModEnvName1").WriteStringValue(mModEnvNames[1]);
 
@@ -309,13 +309,13 @@ inline int Maj7SetVstChunk(Maj7Vst* pvst, M7::Maj7* p, void* data, int byteSize)
 		return 0;
 	}
 
-	for (auto& s : p->mSamplerDevices) {
+	for (auto* s : p->mpSamplerDevices) {
 		auto b64 = samplersArr.GetNextArrayItem();
 		if (b64.IsEOF()) break;
 		if (b64.mParseResult.IsFailure()) break;
 		auto data = clarinoid::base64_decode(b64.mStringValue);
 		M7::Deserializer ds{ data.data() };
-		s.Deserialize(ds);
+		s->Deserialize(ds);
 	}
 
 	samplersArr.EnsureClosed();
@@ -339,7 +339,7 @@ inline int Maj7SetVstChunk(Maj7Vst* pvst, M7::Maj7* p, void* data, int byteSize)
 			break;
 		}
 		if (pvst) {
-			static_assert(M7::Maj7::gMacroCount == 7, "update this here shiz");
+			static_assert(M7::gMacroCount == 7, "update this here shiz");
 			if (ch.mKeyName == "MacroName0") pvst->mMacroNames[0] = ch.mStringValue;
 			if (ch.mKeyName == "MacroName1") pvst->mMacroNames[1] = ch.mStringValue;
 			if (ch.mKeyName == "MacroName2") pvst->mMacroNames[2] = ch.mStringValue;
@@ -348,7 +348,7 @@ inline int Maj7SetVstChunk(Maj7Vst* pvst, M7::Maj7* p, void* data, int byteSize)
 			if (ch.mKeyName == "MacroName5") pvst->mMacroNames[5] = ch.mStringValue;
 			if (ch.mKeyName == "MacroName6") pvst->mMacroNames[6] = ch.mStringValue;
 
-			static_assert(M7::Maj7::gSourceCount == 8, "update this here shiz");
+			static_assert(M7::gSourceCount == 8, "update this here shiz");
 			if (ch.mKeyName == "SourceName0") pvst->mSourceNames[0] = ch.mStringValue;
 			if (ch.mKeyName == "SourceName1") pvst->mSourceNames[1] = ch.mStringValue;
 			if (ch.mKeyName == "SourceName2") pvst->mSourceNames[2] = ch.mStringValue;
@@ -358,13 +358,13 @@ inline int Maj7SetVstChunk(Maj7Vst* pvst, M7::Maj7* p, void* data, int byteSize)
 			if (ch.mKeyName == "SourceName6") pvst->mSourceNames[6] = ch.mStringValue;
 			if (ch.mKeyName == "SourceName7") pvst->mSourceNames[7] = ch.mStringValue;
 
-			static_assert(M7::Maj7::gModLFOCount == 4, "update this here shiz");
+			static_assert(M7::gModLFOCount == 4, "update this here shiz");
 			if (ch.mKeyName == "LFOName0") pvst->mLFONames[0] = ch.mStringValue;
 			if (ch.mKeyName == "LFOName1") pvst->mLFONames[1] = ch.mStringValue;
 			if (ch.mKeyName == "LFOName2") pvst->mLFONames[2] = ch.mStringValue;
 			if (ch.mKeyName == "LFOName3") pvst->mLFONames[3] = ch.mStringValue;
 
-			static_assert(M7::Maj7::gModEnvCount == 2, "update this here shiz");
+			static_assert(M7::gModEnvCount == 2, "update this here shiz");
 			if (ch.mKeyName == "ModEnvName0") pvst->mModEnvNames[0] = ch.mStringValue;
 			if (ch.mKeyName == "ModEnvName1") pvst->mModEnvNames[1] = ch.mStringValue;
 
@@ -574,18 +574,18 @@ namespace WaveSabreCore
 			}
 
 			// generate defaults for the major nodes
-			for (auto& m : p->mLFOs) {
-				GenerateDefaults_LFO(&m.mDevice);
+			for (auto& m : p->mpLFOs) {
+				GenerateDefaults_LFO(&m->mDevice);
 			}
 
-			for (auto& m : p->mOscillatorDevices) {
-				GenerateDefaults_Audio(&m);
+			for (auto& m : p->mpOscillatorDevices) {
+				GenerateDefaults_Audio(m);
 			}
-			for (auto& m : p->mSamplerDevices) {
-				GenerateDefaults(&m);
+			for (auto& m : p->mpSamplerDevices) {
+				GenerateDefaults(m);
 			}
-			for (auto& m : p->mModulations) {
-				GenerateDefaults(&m);
+			for (auto& m : p->mpModulations) {
+				GenerateDefaults(m);
 			}
 			for (auto& m : p->mMaj7Voice[0]->mFilters) {
 				GenerateDefaults(&m[0]);
@@ -611,18 +611,18 @@ namespace WaveSabreCore
 			// an envelope is in use if it's used as a modulation source, AND the modulation is enabled,
 			// AND the modulation destination is not some disabled thing. The VAST majority of these "disabled destinations" would just be the hidden volume / pre-fm volume source param,
 			// so to simplify the logic just check for that.
-			for (auto& m : p->mModulations) {
-				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {// m.mEnabled.GetBoolValue()) {
+			for (auto& m : p->mpModulations) {
+				if (!m->mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {// m.mEnabled.GetBoolValue()) {
 					continue;
 				}
-				auto src__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
-				auto auxEnabled__ = m.mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
-				auto auxModSource__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
+				auto src__ = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
+				auto auxEnabled__ = m->mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+				auto auxModSource__ = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
 				if ((src__ == modSource) || (auxEnabled__ && (auxModSource__ == modSource))) {
 					// it's referenced by aux or main source. check that the destination is enabled.
 					for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
 					{
-						auto dest = m.mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + id); // m.mDestinations[id].GetEnumValue();
+						auto dest = m->mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + id); // m.mDestinations[id].GetEnumValue();
 						bool isHiddenVolumeDest = false;
 						for (auto& src : p->mSources)
 						{
@@ -653,14 +653,14 @@ namespace WaveSabreCore
 			// an LFO is in use if it's used as a modulation source, AND the modulation is enabled.
 			// that's it. we don't nede to be any more specific than that because there are no default modspecs that contain lfos.
 			// therefore if it's enabled we assume the user means it.
-			for (auto& m : p->mModulations) {
-				auto menabled = m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled);
+			for (auto& m : p->mpModulations) {
+				auto menabled = m->mParams.GetBoolValue(ModParamIndexOffsets::Enabled);
 				if (!menabled) {// m.mEnabled.GetBoolValue()) {
 					continue;
 				}
-				auto src__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
-				auto auxEnabled__ = m.mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
-				auto auxModSource__ = m.mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
+				auto src__ = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
+				auto auxEnabled__ = m->mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+				auto auxModSource__ = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
 				if ((src__ == modSource) || (auxEnabled__ && (auxModSource__ == modSource))) {
 					// it's referenced by aux or main source.
 					return true;
@@ -806,8 +806,9 @@ namespace WaveSabreCore
 			auto defaultParamCache = GenerateDefaultParamCache();
 
 			// samplers
-			for (auto& s : p->mSamplerDevices)
+			for (auto* ps : p->mpSamplerDevices)
 			{
+				auto& s = *ps;
 				// enabled, pitch semis, keyrange min, keyrange max.
 				OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Enabled);
 				OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, SamplerParamIndexOffsets::TuneSemis);
@@ -836,10 +837,11 @@ namespace WaveSabreCore
 			}
 
 			// oscillators
-			bool oscEnabled[M7::Maj7::gOscillatorCount];
+			bool oscEnabled[M7::gOscillatorCount];
 			int iosc = 0;
-			for (auto& s : p->mOscillatorDevices)
+			for (auto* ps : p->mpOscillatorDevices)
 			{
+				auto& s = *ps;
 				// enabled, pitch semis, keyrange min, keyrange max.
 				oscEnabled[iosc] = OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::Enabled);
 				OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, OscParamIndexOffsets::PitchSemis);
@@ -894,10 +896,10 @@ namespace WaveSabreCore
 			}
 
 			// LFO
-			for (auto& lfo : p->mLFOs) {
-				OptimizeEnumParam<M7::OscillatorWaveform>(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Waveform);
-				OptimizeEnumParam<M7::TimeBasis>(p, lfo.mDevice.mParams, LFOParamIndexOffsets::FrequencyBasis);
-				OptimizeBoolParam(p, lfo.mDevice.mParams, LFOParamIndexOffsets::Restart);
+			for (auto* lfo : p->mpLFOs) {
+				OptimizeEnumParam<M7::OscillatorWaveform>(p, lfo->mDevice.mParams, LFOParamIndexOffsets::Waveform);
+				OptimizeEnumParam<M7::TimeBasis>(p, lfo->mDevice.mParams, LFOParamIndexOffsets::FrequencyBasis);
+				OptimizeBoolParam(p, lfo->mDevice.mParams, LFOParamIndexOffsets::Restart);
 			}
 
 			// envelopes
@@ -912,8 +914,9 @@ namespace WaveSabreCore
 
 			// modulations.
 			// optimize hard because there are so many modulations and there's always a lot of fiddling happening here.
-			for (auto& m : p->mModulations)
+			for (auto* pm : p->mpModulations)
 			{
+				auto& m = *pm;
 				if (!m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {
 					Copy16bitDefaults(m.mParams.GetOffsetParamCache(), gDefaultModSpecParams);
 					m.mParams.SetBoolValue(ModParamIndexOffsets::Enabled, false);

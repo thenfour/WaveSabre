@@ -49,7 +49,8 @@ namespace WaveSabreCore
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		struct SamplerDevice : ISoundSourceDevice
 		{
-			ParamAccessor mParams;
+			//ParamAccessor mParams;
+			//SourceInfo& mSourceInfo;
 
 			bool mEnabledCached;
 
@@ -64,9 +65,12 @@ namespace WaveSabreCore
 
 			void Serialize(Serializer& s);
 
-			explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
-			);
+			//explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
+			//	ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
+			//);
+			explicit SamplerDevice(float* paramCache, ModulationList modulations, const SourceInfo& srcInfo);
+
+
 			//virtual ~SamplerDevice();
 			// called when loading chunk, or by VST
 			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char* path);

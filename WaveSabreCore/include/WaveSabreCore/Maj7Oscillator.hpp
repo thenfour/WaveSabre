@@ -16,6 +16,7 @@ namespace WaveSabreCore
 		// sampler, oscillator, LFO @ device level
 		struct ISoundSourceDevice
 		{
+			//SourceInfo& mSourceInfo;
 			ParamAccessor mParams;
 			bool mEnabledCache;
 
@@ -170,7 +171,7 @@ namespace WaveSabreCore
 
 			// process discontinuity due to restarting phase right now.
 			// returns blep before and blep after discontinuity.
-			virtual FloatPair OSC_RESTART(float samplesBeforeNext)
+			FloatPair OSC_RESTART(float samplesBeforeNext)
 			{
 				float sampleBefore = this->NaiveSample((float)this->mPhase);
 				double newPhase = this->mPhaseOffset;
@@ -882,8 +883,8 @@ namespace WaveSabreCore
 		// - LFOs don't have any anti-aliasing measures.
 		// - LFOs have fewer vst-controlled params; so many of their params have backing values as members
 		// - LFO modulations are K-Rate rather than A-Rate.
-		struct OscillatorIntentionLFO {};
-		struct OscillatorIntentionAudio {};
+		//struct OscillatorIntentionLFO {};
+		//struct OscillatorIntentionAudio {};
 
 		// nothing additional to add
 		struct OscillatorDevice : ISoundSourceDevice
@@ -913,35 +914,11 @@ namespace WaveSabreCore
 				return mParams.GetLinearVolume(OscParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
 			}
 
-
 			// for Audio
-			explicit OscillatorDevice(OscillatorIntentionAudio, float* paramCache, ModulationSpec* ampEnvModulation,
-				ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
-			) :
-				ISoundSourceDevice(paramCache, ampEnvModulation, baseParamID,// ampEnvBaseParamID,
-					ampEnvModSourceID,
-					modDestBaseID,
-					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::Volume)),
-					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::AuxMix)),
-					(ModDestination)(int(modDestBaseID) + int(OscModParamIndexOffsets::PreFMVolume))
-					),
-				mIntention(OscillatorIntention::Audio)
-			{
-			}
+			explicit OscillatorDevice(/*OscillatorIntentionAudio, */float* paramCache, ModulationList modulations, const SourceInfo& srcinfo/* ModulationSpec* pAmpModulation, size_t isrc*/);
 
 			// for LFO, we internalize many params
-			explicit OscillatorDevice(OscillatorIntentionLFO, float* paramCache, ParamIndices paramBaseID, ModDestination modDestBaseID) :
-				ISoundSourceDevice(paramCache, nullptr, paramBaseID,
-					ModSource::Invalid, // amp env mod source doesn't exist for lfo
-					modDestBaseID,
-					ModDestination::Invalid, // volume mod dest
-					ModDestination::Invalid, // AuxMix mod dest
-					ModDestination::Invalid // PreFMVolume mod dest
-					)
-				,
-				mIntention(OscillatorIntention::LFO)
-			{
-			}
+			explicit OscillatorDevice(/*OscillatorIntentionLFO, */float* paramCache, size_t ilfo);
 
 			bool GetPhaseRestart() const {
 				return mParams.GetBoolValue((mIntention == OscillatorIntention::Audio) ? (int)OscParamIndexOffsets::PhaseRestart : (int)LFOParamIndexOffsets::Restart);

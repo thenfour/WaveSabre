@@ -806,10 +806,8 @@ namespace WaveSabreCore
 			// why aux (aka sidechain) is necessary. modulation values are added
 			// while aux values are used to scale the mod val, which doesn't have a true analog via normal modulations.
 
-			ModulationSpec(real_t* paramCache, int baseParamID) :
-				mParams(paramCache, baseParamID)
-			{
-			}
+			ModulationSpec(real_t* paramCache, int baseParamID);
+
 			void BeginBlock()
 			{
 				mEnabled = mParams.GetBoolValue(ModParamIndexOffsets::Enabled);
@@ -840,6 +838,8 @@ namespace WaveSabreCore
 			}
 
 		};
+
+		using ModulationList = ModulationSpec * (&)[gModulationCount];
 
 		struct ModMatrixNode
 		{
@@ -895,10 +895,54 @@ namespace WaveSabreCore
 			// sourceValues_KRateOnly: a buffer indexed by (size_t)M7::ModSource. only krate values are used though.
 			// sourceARateBuffers: a contiguous array of block-sized buffers. sequentially arranged indexed by (size_t)M7::ModSource.
 			// the result will be placed 
-			void ProcessSample(ModulationSpec(&modSpecs)[gModulationCount]);
+			void ProcessSample(ModulationList modSpecs);
 
 			float MapValue(ModulationSpec& spec, ModSource src, ModParamIndexOffsets curveParam, ModParamIndexOffsets srcRangeMinParam, ModParamIndexOffsets srcRangeMaxParam, bool isDestN11);
 		};
+
+		static constexpr size_t gOscillatorCount = 4;
+		static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
+		static constexpr size_t gSamplerCount = 4;
+		static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
+		static constexpr size_t gMacroCount = 7;
+
+		static constexpr size_t gModEnvCount = 2;
+		static constexpr size_t gModLFOCount = 4;
+
+		struct LFOInfo
+		{
+			ParamIndices mParamBase;
+			ModDestination mModBase;
+			ModSource mModSource;
+		};
+		static constexpr LFOInfo gLFOInfo[gModLFOCount] = {
+			{ParamIndices::LFO1Waveform, ModDestination::LFO1Waveshape, ModSource::LFO1},
+			{ParamIndices::LFO2Waveform, ModDestination::LFO2Waveshape, ModSource::LFO2},
+			{ParamIndices::LFO3Waveform, ModDestination::LFO3Waveshape, ModSource::LFO3},
+			{ParamIndices::LFO4Waveform, ModDestination::LFO4Waveshape, ModSource::LFO4},
+		};
+
+		struct SourceInfo
+		{
+			size_t mModulationIndex;
+			ParamIndices mParamBase;
+			ParamIndices mAmpParamBase;
+			ModSource mAmpModSource;
+			ModDestination mModDestBase;
+		};
+
+		static constexpr SourceInfo gSourceInfo[gSourceCount] = {
+			{gModulationCount - 8, ParamIndices::Osc1Enabled, ParamIndices::Osc1AmpEnvDelayTime, ModSource::Osc1AmpEnv, ModDestination::Osc1Volume },
+			{gModulationCount - 7, ParamIndices::Osc2Enabled, ParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume },
+			{gModulationCount - 6, ParamIndices::Osc3Enabled, ParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume },
+			{gModulationCount - 5,  ParamIndices::Osc4Enabled, ParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv, ModDestination::Osc4Volume },
+			{ gModulationCount - 4, ParamIndices::Sampler1Enabled, ParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv, ModDestination::Sampler1Volume },
+			{ gModulationCount - 3, ParamIndices::Sampler2Enabled, ParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume },
+			{ gModulationCount - 2, ParamIndices::Sampler3Enabled, ParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume },
+			{ gModulationCount - 1, ParamIndices::Sampler4Enabled, ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume },
+		};
+
+
 	} // namespace M7
 
 
