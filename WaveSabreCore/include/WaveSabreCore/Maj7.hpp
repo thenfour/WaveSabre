@@ -675,7 +675,7 @@ namespace WaveSabreCore
 						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
 
 						srcVoice->BeginBlock();
-						srcVoice->mpAmpEnv->BeginBlock();
+						//srcVoice->mpAmpEnv->BeginBlock();
 					}
 				}
 

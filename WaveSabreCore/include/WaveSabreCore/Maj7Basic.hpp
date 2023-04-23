@@ -914,31 +914,14 @@ namespace WaveSabreCore
 
             uint32_t ReadUInt32();
 
-            uint32_t ReadVarUInt32()
-            {
-                uint32_t value = 0;
-                uint32_t shift = 0;
-                // byte stream: [c-------]...
-                uint8_t b = 0;
-                do {
-                    b = ReadUByte();
-                    value |= static_cast<uint32_t>(b & 0x7f) << shift;
-                    shift += 7;
-                } while ((b & 0x80) != 0);
-                return value;
-            }
+            uint32_t ReadVarUInt32();
 
             float ReadFloat();
             double ReadDouble();
             // returns a new cursor in the out buffer 
             void ReadBuffer(void* out, size_t numbytes);
 
-            float ReadInt16NormalizedFloat() {
-                int16_t ret = *((int16_t*)mpCursor);
-                mpCursor += sizeof(ret);
-                return math::Sample16To32Bit(ret);
-                //return math::clampN11(float(ret) / 32768);
-            }
+            float ReadInt16NormalizedFloat();
 
             //ByteBitfield ReadByteBitfield() {
             //    return ByteBitfield{ ReadUByte() };

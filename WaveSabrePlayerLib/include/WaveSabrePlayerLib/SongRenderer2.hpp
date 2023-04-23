@@ -35,9 +35,11 @@ namespace WaveSabrePlayerLib
 
 		const int mThreadCount;
 		INodeList* const mNodeList = nullptr;
+
 		HANDLE* mThreads = nullptr;
-		HANDLE hWorkAvailableEvent = nullptr;
-		HANDLE hGraphCompleteEvent = nullptr;
+		HANDLE mEvents[2];
+#define hWorkAvailableEvent mEvents[0]
+#define hGraphCompleteEvent mEvents[1]
 
 		void populateNodesDependingOnThis_dfs(int nodeIndex)
 		{
@@ -53,20 +55,22 @@ namespace WaveSabrePlayerLib
 		// Function to populate INode_NodesDependingOnThis for each node in the graph, hierarchically
 		void populateNodesDependingOnThis()
 		{
-			for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
-			{
-				mNodeList->INodeList_GetNode(i)->INode_NodesDependingOnThis = 0;
-			}
+			// already initialized. could assert this.
+			//for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
+			//{
+			//	mNodeList->INodeList_GetNode(i)->INode_NodesDependingOnThis = 0;
+			//}
 
 			for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
 			{
-				INode& node = *mNodeList->INodeList_GetNode(i);
-				for (int j = 0; j < node.INode_DirectDependencyCount; j++)
-				{
-					int dependencyIndex = node.INode_GetDependencyIndex(j);
-					mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
-					populateNodesDependingOnThis_dfs(dependencyIndex);
-				}
+				populateNodesDependingOnThis_dfs(i);
+				//INode& node = *mNodeList->INodeList_GetNode(i);
+				//for (int j = 0; j < node.INode_DirectDependencyCount; j++)
+				//{
+				//	int dependencyIndex = node.INode_GetDependencyIndex(j);
+				//	mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
+				//	populateNodesDependingOnThis_dfs(dependencyIndex);
+				//}
 			}
 		}
 
@@ -78,25 +82,26 @@ namespace WaveSabrePlayerLib
 		{
 			populateNodesDependingOnThis();
 
-			hWorkAvailableEvent = CreateEvent(0, FALSE, FALSE, 0); // auto-reset so threads are triggered one at a time to look for work.
-			hGraphCompleteEvent = CreateEvent(0, FALSE, FALSE, 0); // auto-reset because only 1 thread (calling thread) waits on it.
+			for (int i = 0; i < 2; ++i) {
+				mEvents[i] = CreateEvent(0, FALSE, FALSE, 0);
+			}
 
-			if (numThreads > 1)
+			// the calling thread counts but doesn't require a handle. allocating 1 extra saves some code size.
+			mThreads = new HANDLE[numThreads];
+			int ntm1 = numThreads - 1;
+			for (int i = 0; i < ntm1; i++)
 			{
-				mThreads = new HANDLE[numThreads - 1]; // the calling thread counts but doesn't require a handle.
-				for (int i = 0; i < numThreads - 1; i++)
-				{
-					mThreads[i] = CreateThread(0, 0, renderThreadProc, this, 0, 0);
-					// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
-					//SetThreadPriority(mThreads[i], THREAD_PRIORITY_HIGHEST);
-					SetThreadPriority(mThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
-				}
+				mThreads[i] = CreateThread(0, 0, renderThreadProc, this, 0, 0);
+				// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
+				//SetThreadPriority(mThreads[i], THREAD_PRIORITY_HIGHEST);
+				SetThreadPriority(mThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
 			}
 		}
 
 		~GraphProcessor()
 		{
 			// todo
+#pragma message("GraphProcessor::~GraphProcessor() Leaking memory to save bits.")
 		}
 
 		// when attempting to accept work, the result can be that there's just no work to be done, etc.
@@ -167,8 +172,8 @@ namespace WaveSabrePlayerLib
 		AcceptWorkResult WaitAndAcceptWork(bool breakWhenGraphComplete)
 		{
 			if (breakWhenGraphComplete) {
-				HANDLE h[2] = { hWorkAvailableEvent , hGraphCompleteEvent };
-				WaitForMultipleObjects(2, h, FALSE, INFINITE); // either event results in the same action
+				//HANDLE h[2] = { hWorkAvailableEvent , hGraphCompleteEvent };
+				WaitForMultipleObjects(2, mEvents, FALSE, INFINITE); // either event results in the same action
 			}
 			else {
 				WaitForSingleObject(hWorkAvailableEvent, INFINITE);
@@ -296,9 +301,11 @@ namespace WaveSabrePlayerLib
 
 			Track(SongRenderer2* songRenderer, DeviceFactory factory, WaveSabreCore::M7::Deserializer& ds)
 			{
-				for (int i = 0; i < numBuffers; i++) Buffers[i] = new float[songRenderer->sampleRate];
-
 				this->songRenderer = songRenderer;
+
+				for (int i = 0; i < numBuffers; i++) {
+					Buffers[i] = new float[songRenderer->sampleRate];
+				}
 
 				volume = ds.ReadFloat();
 
@@ -308,9 +315,10 @@ namespace WaveSabrePlayerLib
 					Receives = new Receive[NumReceives];
 					for (int i = 0; i < NumReceives; i++)
 					{
-						Receives[i].SendingTrackIndex = ds.ReadVarUInt32();
-						Receives[i].ReceivingChannelIndex = ds.ReadVarUInt32();
-						Receives[i].Volume = ds.ReadFloat();
+						auto& r = Receives[i];
+						r.SendingTrackIndex = ds.ReadVarUInt32();
+						r.ReceivingChannelIndex = ds.ReadVarUInt32();
+						r.Volume = ds.ReadFloat();
 					}
 				}
 
@@ -343,21 +351,22 @@ namespace WaveSabrePlayerLib
 			}
 			~Track()
 			{
-				for (int i = 0; i < numBuffers; i++) delete[] Buffers[i];
+#pragma message("SongRenderer2::Track::~Track() Leaking memory to save bits.")
+				//for (int i = 0; i < numBuffers; i++) delete[] Buffers[i];
 
-				if (NumReceives)
-					delete[] Receives;
+				//if (NumReceives)
+				//	delete[] Receives;
 
-				if (numDevices)
-				{
-					delete[] devicesIndicies;
-				}
+				//if (numDevices)
+				//{
+				//	delete[] devicesIndicies;
+				//}
 
-				if (numAutomations)
-				{
-					for (int i = 0; i < numAutomations; i++) delete automations[i];
-					delete[] automations;
-				}
+				//if (numAutomations)
+				//{
+				//	for (int i = 0; i < numAutomations; i++) delete automations[i];
+				//	delete[] automations;
+				//}
 			}
 
 			virtual int INode_GetDependencyIndex(int index) const override
@@ -403,11 +412,15 @@ namespace WaveSabrePlayerLib
 					float** receiveBuffers = songRenderer->tracks[r->SendingTrackIndex].Buffers;
 					for (int j = 0; j < 2; j++)
 					{
-						for (int k = 0; k < numSamples; k++) Buffers[j + r->ReceivingChannelIndex][k] += receiveBuffers[j][k] * r->Volume;
+						for (int k = 0; k < numSamples; k++) {
+							Buffers[j + r->ReceivingChannelIndex][k] += receiveBuffers[j][k] * r->Volume;
+						}
 					}
 				}
 
-				for (int i = 0; i < numDevices; i++) songRenderer->devices[devicesIndicies[i]]->Run((double)lastSamplePos / WaveSabreCore::Helpers::CurrentSampleRate, Buffers, Buffers, numSamples);
+				for (int i = 0; i < numDevices; i++) {
+					songRenderer->devices[devicesIndicies[i]]->Run((double)lastSamplePos / WaveSabreCore::Helpers::CurrentSampleRate, Buffers, Buffers, numSamples);
+				}
 
 				if (volume != 1.0f)
 				{
@@ -442,9 +455,10 @@ namespace WaveSabrePlayerLib
 					for (int i = 0; i < numPoints; i++)
 					{
 						int absTime = lastPointTime + ds.ReadVarUInt32();
-						points[i].TimeStamp = absTime;
+						auto& p = points[i];
+						p.TimeStamp = absTime;
 						lastPointTime = absTime;
-						points[i].Value = (float)ds.ReadUByte() / 255.0f;
+						p.Value = (float)ds.ReadUByte() / 255.0f;
 					}
 					samplePos = 0;
 					pointIndex = 0;
@@ -470,11 +484,13 @@ namespace WaveSabrePlayerLib
 					}
 					else
 					{
-						int timestampDelta = points[pointIndex].TimeStamp - points[pointIndex - 1].TimeStamp;
+						auto& p0 = points[pointIndex];
+						auto& pm1 = points[pointIndex - 1];
+						int timestampDelta = p0.TimeStamp - pm1.TimeStamp;
 						float mixAmount = timestampDelta > 0 ?
-							(float)(samplePos - points[pointIndex - 1].TimeStamp) / (float)timestampDelta :
+							(float)(samplePos - pm1.TimeStamp) / (float)timestampDelta :
 							0.0f;
-						device->SetParam(paramId, WaveSabreCore::M7::math::lerp(points[pointIndex - 1].Value, points[pointIndex].Value, mixAmount));
+						device->SetParam(paramId, WaveSabreCore::M7::math::lerp(pm1.Value, p0.Value, mixAmount));
 					}
 					samplePos += numSamples;
 				}
@@ -529,11 +545,12 @@ namespace WaveSabrePlayerLib
 			devices = new WaveSabreCore::Device * [numDevices];
 			for (int i = 0; i < numDevices; i++)
 			{
-				devices[i] = song->factory((DeviceId)ds.ReadUByte());
-				devices[i]->SetSampleRate((float)sampleRate);
-				devices[i]->SetTempo(bpm);
+				auto& d = devices[i];
+				d = song->factory((DeviceId)ds.ReadUByte());
+				d->SetSampleRate((float)sampleRate);
+				d->SetTempo(bpm);
 				int chunkSize = ds.ReadVarUInt32();
-				devices[i]->SetChunk((void*)ds.mpCursor, chunkSize);
+				d->SetChunk((void*)ds.mpCursor, chunkSize);
 				ds.mpCursor += chunkSize;
 			}
 
@@ -543,12 +560,13 @@ namespace WaveSabrePlayerLib
 			{
 				bool fixedVelocity = !!ds.ReadUByte();
 				int numEvents = ds.ReadUInt32();
-				midiLanes[i].numEvents = numEvents;
-				midiLanes[i].events = new Event[numEvents];
+				auto& midiLane = midiLanes[i];
+				midiLane.numEvents = numEvents;
+				midiLane.events = new Event[numEvents];
 
 				for (int m = 0; m < numEvents; m++)
 				{
-					auto& e = midiLanes[i].events[m];
+					auto& e = midiLane.events[m];
 					auto t = ds.ReadVarUInt32();
 					e.Type = (EventType)(t & 3);
 					e.TimeStamp = t >> 2;
@@ -556,13 +574,14 @@ namespace WaveSabrePlayerLib
 
 				for (int m = 0; m < numEvents; m++)
 				{
-					midiLanes[i].events[m].Note = ds.ReadUByte();
+					midiLane.events[m].Note = ds.ReadUByte();
 				}
 
 				for (int m = 0; m < numEvents; m++)
 				{
-					midiLanes[i].events[m].Velocity = 100;
-					switch (midiLanes[i].events[m].Type) {
+					auto& e = midiLane.events[m];
+					e.Velocity = 100;
+					switch (e.Type) {
 					case EventType::NoteOff:
 						continue;
 					case EventType::NoteOn:
@@ -570,7 +589,7 @@ namespace WaveSabrePlayerLib
 							continue;
 						break;
 					}
-					midiLanes[i].events[m].Velocity = ds.ReadUByte();
+					e.Velocity = ds.ReadUByte();
 				}
 			}
 

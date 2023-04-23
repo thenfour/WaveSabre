@@ -78,8 +78,8 @@ namespace WaveSabreCore
 				{}
 
 				// used as temporary values during block processing.
-				float mOutputGain[2] = { 0 }; // linear output volume gain calculated from output VolumeParam + panning
-				float mAmpEnvGain = { 0 }; // linear gain calculated frequently from osc ampenv
+				float mOutputGain[2];// = { 0 }; // linear output volume gain calculated from output VolumeParam + panning
+				float mAmpEnvGain;// = { 0 }; // linear gain calculated frequently from osc ampenv
 
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;

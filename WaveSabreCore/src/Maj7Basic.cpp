@@ -79,6 +79,7 @@ namespace WaveSabreCore
 				return a * (1.0f - t) + b * t;
 			}
 
+
 			real_t CalculateInc01PerSampleForMS(real_t ms)
 			{
 				return clamp01(1000.0f / (math::max(0.01f, ms) * (real_t)Helpers::CurrentSampleRate));
@@ -711,6 +712,29 @@ namespace WaveSabreCore
 			memcpy(out, mpCursor, numbytes);
 			mpCursor += numbytes;
 		}
+
+		uint32_t Deserializer::ReadVarUInt32()
+		{
+			uint32_t value = 0;
+			uint32_t shift = 0;
+			// byte stream: [c-------]...
+			uint8_t b = 0;
+			do {
+				b = ReadUByte();
+				value |= static_cast<uint32_t>(b & 0x7f) << shift;
+				shift += 7;
+			} while ((b & 0x80) != 0);
+			return value;
+		}
+
+		float Deserializer::ReadInt16NormalizedFloat() {
+			int16_t ret = *((int16_t*)mpCursor);
+			mpCursor += sizeof(ret);
+			return math::Sample16To32Bit(ret);
+			//return math::clampN11(float(ret) / 32768);
+		}
+
+
 
 		//ByteBitfield ReadByteBitfield() {
 		//    return ByteBitfield{ ReadUByte() };
