@@ -135,57 +135,37 @@ namespace WaveSabreCore
         static constexpr real_t FloatEpsilon = 0.000001f;
         static constexpr float MIN_DECIBEL_GAIN = -60.0f;
 
-        static constexpr FreqParamConfig gFilterFreqConfig{ 1000, 10, 83.21309485364912f };
-        //static constexpr real_t gFilterCenterFrequency = 1000.0f;
-        //static constexpr real_t gFilterFrequencyScale = 10.0f;
         static constexpr real_t gFreqParamKTUnity = 0.3f;
         static constexpr size_t gModulationSpecDestinationCount = 4;
 
-        static constexpr FreqParamConfig gLFOLPFreqConfig{ 20, 7, 15.486820576352429f };
-        //static constexpr real_t gLFOLPCenterFrequency = 20.0f;
-        //static constexpr real_t gLFOLPFrequencyScale = 7.0f;
-
-        static constexpr FreqParamConfig gBitcrushFreqConfig{ gFilterFreqConfig };
-        //        static constexpr float gBitcrushFreqCenterFreq = 1000;
-        //static constexpr float gBitcrushFreqRange = 10;
-
-        static constexpr FreqParamConfig gSourceFreqConfig{ gFilterFreqConfig };
-
-        //static constexpr real_t gSourceFrequencyCenterHz = 1000;
-        //static constexpr real_t gSourceFrequencyScale = 10;
-
-        static constexpr FreqParamConfig gLFOFreqConfig{ 1.5f, 8, -0.37631656229592636f }; // well midi note here is meaningless and i hope you never use it.
-
-        //static constexpr real_t gLFOFrequencyCenterHz = 1.5f;
-        //static constexpr real_t gLFOFrequencyScale = 8;
-
-        static constexpr FreqParamConfig gSyncFreqConfig{ gFilterFreqConfig };
-
-        static constexpr IntParamConfig gSourcePitchSemisRange{ -36, 36 };
-        static constexpr IntParamConfig gKeyRangeCfg { 0, 127 };
-        //static constexpr int gSourcePitchSemisRange = 36;
         static constexpr float gSourcePitchFineRangeSemis = 2;
 
         static constexpr int gPitchBendMaxRange = 24;
         static constexpr int gUnisonoVoiceMax = 12;
 
-        static constexpr IntParamConfig gPitchBendCfg{ -gPitchBendMaxRange,gPitchBendMaxRange };
-        static constexpr IntParamConfig gUnisonoVoiceCfg { 1, gUnisonoVoiceMax };
 
         static constexpr int gMaxMaxVoices = 64;
-        static constexpr IntParamConfig gMaxVoicesCfg{ 1, gMaxMaxVoices };
 
         static constexpr int gGmDlsSampleCount = 495;
-        static constexpr IntParamConfig gGmDlsIndexParamCfg { -1, gGmDlsSampleCount };
-        //-1, WaveSabreCore::GmDls::NumSamples
-
-
-        //static constexpr real_t gSyncFrequencyCenterHz = 1000;
-        //static constexpr real_t gSyncFrequencyScale = 10;
         static constexpr real_t gFrequencyMulMax = 64;
 
+        // these structs appear as duplicate data in the binary due to being static constexpr,
+        // however the constexpr aspect reduces code size, and the compressor handles this fine.
+        // so SizeBench will alert that there's redundant data, but by making these extern, you can only increase the resulting binary.
+        static constexpr FreqParamConfig gFilterFreqConfig{ 1000, 10, 83.21309485364912f };
+        static constexpr FreqParamConfig gLFOLPFreqConfig{ 20, 7, 15.486820576352429f };
+        static constexpr FreqParamConfig gBitcrushFreqConfig{ gFilterFreqConfig };
+        static constexpr FreqParamConfig gSourceFreqConfig{ gFilterFreqConfig };
+        static constexpr FreqParamConfig gLFOFreqConfig{ 1.5f, 8, -0.37631656229592636f }; // well midi note here is meaningless and i hope you never use it.
+        static constexpr FreqParamConfig gSyncFreqConfig{ gFilterFreqConfig };
 
-        //static constexpr real_t gMasterVolumeMaxDb = 6;
+        static constexpr IntParamConfig gSourcePitchSemisRange{ -36, 36 };
+        static constexpr IntParamConfig gKeyRangeCfg{ 0, 127 };
+        static constexpr IntParamConfig gPitchBendCfg{ -gPitchBendMaxRange,gPitchBendMaxRange };
+        static constexpr IntParamConfig gUnisonoVoiceCfg{ 1, gUnisonoVoiceMax };
+        static constexpr IntParamConfig gMaxVoicesCfg{ 1, gMaxMaxVoices };
+        static constexpr IntParamConfig gGmDlsIndexParamCfg{ -1, gGmDlsSampleCount };
+
         static constexpr VolumeParamConfig gMasterVolumeCfg{ 1.9952623149688795f, 6.0f };
         static constexpr VolumeParamConfig gUnityVolumeCfg{ 1, 0 };
 

@@ -47,24 +47,14 @@ namespace WaveSabreCore
 		// zero-initialized POD for code space saving (yes it bloats)
 		struct NoteInfo
 		{
-			bool mIsPhysicallyHeld;// = false; // implies mIsMusicallyDown = true.
-			bool mIsMusicallyHeld;// = false;
 			int mSequence;// = 0;
 			int MidiNoteValue;//= 0;
 			int Velocity;// = 0; // need to store all trigger info so when you release in mono triller we can re-trigger the note.
-			//void Clear() {
-			//	mIsPhysicallyHeld = false;
-			//	mIsMusicallyHeld = false;
-			//}
+			bool mIsPhysicallyHeld;// = false; // implies mIsMusicallyDown = true.
+			bool mIsMusicallyHeld;// = false;
 		};
 
-		int GetCurrentPolyphony() const {
-			int r = 0;
-			for (size_t iv = 0; iv < (size_t)mMaxVoices; ++ iv) {
-				r += mVoices[iv]->IsPlaying() ? 1 : 0;
-			}
-			return r;
-		}
+		int GetCurrentPolyphony() const;
 
 		struct Voice
 		{
@@ -84,7 +74,7 @@ namespace WaveSabreCore
 			bool mLegato;
 		};
 
-		enum class EventType : uint8_t
+		enum class EventType// : uint8_t
 		{
 			None,
 			NoteOn,
@@ -95,31 +85,13 @@ namespace WaveSabreCore
 
 		struct Event
 		{
-			EventType Type;// = EventType::None;
 			int DeltaSamples;// = 0;
 			int data1;// = 0;
 			int data2;// = 0;
+			EventType Type;// = EventType::None;
 		};
 
-		void PushEvent(EventType et, int data1, int data2, int deltaSamples)
-		{
-			auto& e = mEvents[mEventCount];
-			e.Type = et;
-			e.data1 = data1;
-			e.data2 = data2;
-			e.DeltaSamples = deltaSamples;
-			// this assumes events are chronological and that we'll never get events during a pruning operation.
-
-			mEventCount++;
-		}
-
-		void clearEvents()
-		{
-			memset(mEvents, 0, sizeof(mEvents[0]) * maxEvents);
-			mEventCount = 0;
-		}
-
-		// always returns a voice. ideally we would look at envelope states to determine the most suitable, but let's just keep it simple and increase max poly
+	// always returns a voice. ideally we would look at envelope states to determine the most suitable, but let's just keep it simple and increase max poly
 		Voice* FindFreeVoice() {
 			Voice* playingVoiceToReturn = mVoices[0];
 			for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv) {
@@ -134,6 +106,21 @@ namespace WaveSabreCore
 			return playingVoiceToReturn;
 		}
 
+
+
+		void PushEvent(EventType et, int data1, int data2, int deltaSamples)
+		{
+			auto& e = mEvents[mEventCount];
+			e.Type = et;
+			e.data1 = data1;
+			e.data2 = data2;
+			e.DeltaSamples = deltaSamples;
+			// this assumes events are chronological and that we'll never get events during a pruning operation.
+
+			mEventCount++;
+		}
+
+		// do not extern; inline is best.
 		// finds the physically-held note with the highest sequence ID, which can be used as a trill note in monophonic mode.
 		// returns nullptr when no suitable note.
 		NoteInfo* FindTrillNote(int ignoreMidiNote)
@@ -145,9 +132,8 @@ namespace WaveSabreCore
 			// 2. pedal down
 			// 3. hold note B, release note B. pedal is currently down so you hear note B.
 			// 4. release pedal. note A is still held so it should now be playing.
-			for (size_t i = 0; i < maxActiveNotes; ++i)
+			for (auto& x : mNoteStates)
 			{
-				auto& x = mNoteStates[i];
 				if (x.mIsPhysicallyHeld && (x.MidiNoteValue != ignoreMidiNote)) {
 					if (pTrill && x.mSequence < pTrill->mSequence)
 						continue; // we're looking for the latest.
@@ -175,152 +161,17 @@ namespace WaveSabreCore
 			return pRet;
 		}
 
-		void ProcessMusicalNoteOn(Event* e, NoteInfo& myNote) {
-			switch (mVoiceMode)
-			{
-			default:
-			case VoiceMode::Polyphonic:
-				myNote.mSequence = ++mNoteSequence;
 
-				if (myNote.mIsMusicallyHeld)
-				{
-					// this is already playing, in the case you have sustain pedal down.
-					// re-send a note on to the existing.
-					//for (auto* pv : mVoices)
-					for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-					{
-						auto* pv = mVoices[iv];
-						if (pv->mNoteInfo.MidiNoteValue != myNote.MidiNoteValue)
-							continue;
-						pv->BaseNoteOn(myNote, pv->mUnisonVoice, true /* i mean, is it though? */);
-					}
-				}
-				else {
-					myNote.mIsMusicallyHeld = true;
-					for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
-					{
-						auto v = FindFreeVoice();
-						v->BaseNoteOn(myNote, iuv, false);
-					}
-				}
 
-				break;
-			case VoiceMode::MonoLegatoTrill:
-				// this assumes that the trill note is the one currently playing, if exists.
-				NoteInfo* existingNote = FindTrillNote(myNote.MidiNoteValue);
-				if (existingNote) {
-					existingNote->mIsMusicallyHeld = false;
-				}
 
-				// important that this comes after looking for existing note, otherwise it will think THIS note is the trill note.
-				myNote.mIsMusicallyHeld = true;
-				myNote.mSequence = ++mNoteSequence;
+		void ProcessMusicalNoteOn(Event* e, NoteInfo& myNote);
 
-				for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
-				{
-					mVoices[iuv]->BaseNoteOn(myNote, iuv, !!existingNote);
-				}
-
-				break;
-			}
-		}
-
-		void ProcessNoteOnEvent(Event* e)
-		{
-			int note = e->data1;
-			int velocity = e->data2;
-			mNoteStates[note].mIsPhysicallyHeld = true;
-			mNoteStates[note].Velocity = e->data2;
-			ProcessMusicalNoteOn(e, mNoteStates[note]);
-		}
-
-		void ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo* pPlaying) {
-			switch (mVoiceMode)
-			{
-			case VoiceMode::Polyphonic:
-			default:
-				myNote.mIsMusicallyHeld = false;
-				for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-				{
-					auto* v = mVoices[iv];
-					if (v->mNoteInfo.MidiNoteValue == note) {
-						v->NoteOff();
-					}
-				}
-				break;
-			case VoiceMode::MonoLegatoTrill:
-
-				myNote.mIsMusicallyHeld = false;
-
-				auto pTrillNote = FindTrillNote(myNote.MidiNoteValue);
-				if (pTrillNote) {
-					if (pPlaying && pPlaying->MidiNoteValue != myNote.MidiNoteValue) {
-						// if the note being lifted is not the one playing, don't do anything;
-						// it doesn't trigger another note on, and it's not playing so shouldn't get a note off.
-						return;
-					}
-					pTrillNote->mSequence = ++mNoteSequence;
-					pTrillNote->mIsMusicallyHeld = true;
-				}
-
-				for (int iuv = 0; iuv < mVoicesUnisono; ++iuv) // weird structuring here for size optimization
-				{
-					if (pTrillNote)
-					{
-						mVoices[iuv]->BaseNoteOn(*pTrillNote, iuv, true);
-					}
-					else {
-						mVoices[iuv]->BaseNoteOff();
-					}
-				}
-				break;
-			}
-		}
-
+		void ProcessNoteOnEvent(Event* e);
+		void ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo* pPlaying);
 		// process physical state, convert to musical state.
-		void ProcessNoteOffEvent(Event* e) {
-			int note = e->data1;
-			NoteInfo& ni = mNoteStates[note];
-			if (!ni.mIsPhysicallyHeld) {
-				return;
-			}
+		void ProcessNoteOffEvent(Event* e);
 
-			//auto pPlaying = FindTrillNote(-1); // returns the currently playing note (useful for monophonic processing)
-			auto pPlaying = FindCurrentlyPlayingNote();
-
-			ni.mIsPhysicallyHeld = false;
-			if (this->mIsPedalDown) {
-				return;// don't affect musical state; nothing more to do.
-			}
-			// pedal is up
-			ProcessMusicalNoteOff(note, ni, pPlaying);
-		}
-
-		void ProcessPedalEvent(Event* e, bool isDown)
-		{
-			if (isDown) {
-				mIsPedalDown = true;
-				return;
-			}
-			if (isDown == mIsPedalDown) {
-				return;
-			}
-
-			// returns the currently playing note (useful for monophonic processing)
-			auto pPlaying = FindCurrentlyPlayingNote();
-
-			// handle pedal up.
-			mIsPedalDown = false;
-
-			for (size_t i = 0; i < maxActiveNotes; ++i)
-			{
-				auto& x = mNoteStates[i];
-				if (x.mIsPhysicallyHeld) {
-					continue;
-				}
-				ProcessMusicalNoteOff(x.MidiNoteValue, x, pPlaying);
-			}
-		}
+		void ProcessPedalEvent(Event* e, bool isDown);
 
 		void SetUnisonoVoices(int n) {
 			AllNotesOff(); // helps make things predictable, reduce cases
@@ -335,7 +186,6 @@ namespace WaveSabreCore
 
 		int mMaxVoices = 32;
 		int mVoicesUnisono = 1; // # of voices to double.
-		bool mIsPedalDown = false;
 
 		int mNoteSequence = 0;
 
@@ -346,6 +196,7 @@ namespace WaveSabreCore
 
 		Event mEvents[maxEvents];
 		int mEventCount = 0;
+		bool mIsPedalDown = false;
 	};
 }
 

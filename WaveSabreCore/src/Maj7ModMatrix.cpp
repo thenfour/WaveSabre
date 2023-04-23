@@ -10,9 +10,20 @@ namespace WaveSabreCore
 		{
 		}
 
+		// putting (nearly) empty ctor in the .cpp so the default ctor doesn't get inlined.
 		ModMatrixNode::ModMatrixNode()
 		{
-			// putting (nearly) empty ctor in the .cpp so the default ctor doesn't get inlined.
+			memset(mSourceValues, 0, sizeof(mSourceValues));
+			//memset(mDestValues, 0, sizeof(mDestValues)); // don't do this; will be set on 1st process.
+			//memset(mModulatedDestValueDeltas, 0, sizeof(mModulatedDestValueDeltas)); // don't; will be set on 1st process.
+			memset(mModSpecLastDestinations, 0, sizeof(mModSpecLastDestinations));
+
+			// this makes 0 difference in size optimizing whether fancy or whatev
+			//static constexpr float consts[] = {
+			//	1,0.5f,0,-0.5f, -1
+			//};
+
+			//memcpy(&mSourceValues[(int)ModSource::Const_1], consts, sizeof(consts));
 			mSourceValues[(int)ModSource::Const_1] = 1;
 			mSourceValues[(int)ModSource::Const_0_5] = 0.5f;
 			mSourceValues[(int)ModSource::Const_0] = 0;
@@ -75,7 +86,9 @@ namespace WaveSabreCore
 								}
 							}
 							if (!anyDestsEnabled) skip = true;
-							if (!(*spec.mpDestSourceEnabledCached)) {
+							if (!(*spec.mpDestSourceEnabledCached)) { 
+								// for source amp mods, don't run if the source is disabled. without this condition,
+								// all source amp envelopes would run always. 
 								skip = true;
 							}
 						}
@@ -94,9 +107,6 @@ namespace WaveSabreCore
 							continue;
 						}
 
-						//real_t sourceVal = GetSourceValue(modSource);
-						//sourceVal = MapValue(sourceVal, spec.mValueMapping);
-						//sourceVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::Curve, sourceVal);// spec.mCurve.ApplyToValue(sourceVal);
 						float sourceVal = MapValue(spec, modSource, ModParamIndexOffsets::Curve, ModParamIndexOffsets::SrcRangeMin, ModParamIndexOffsets::SrcRangeMax, true);
 						if (spec.mAuxEnabled)
 						{
@@ -105,9 +115,6 @@ namespace WaveSabreCore
 							if (auxSource != ModSource::None) {
 
 								float auxVal = MapValue(spec, auxSource, ModParamIndexOffsets::AuxCurve, ModParamIndexOffsets::AuxRangeMin, ModParamIndexOffsets::AuxRangeMax, false);
-								//float auxVal = GetSourceValue(auxSource);
-								//auxVal = MapValue(auxVal, spec.mAuxValueMapping);
-								//auxVal = spec.mParams.ApplyCurveToValue(ModParamIndexOffsets::AuxCurve, auxVal);//spec.mAuxCurve.ApplyToValue(auxVal);
 
 								// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
 								// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66

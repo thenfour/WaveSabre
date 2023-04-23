@@ -133,12 +133,11 @@ namespace WaveSabreCore
 		struct PortamentoCalc
 		{
 		private:
-			bool mEngaged = false;
-
 			float mSourceNote = 0; // float because you portamento can initiate between notes
 			float mTargetNote = 0;
 			float mCurrentNote = 0;
 			float mSlideCursorSamples = 0;
+			bool mEngaged = false;
 
 		public:
 			ParamAccessor mParams;
@@ -201,9 +200,9 @@ namespace WaveSabreCore
 			// BASE PARAMS & state
 			real_t mPitchBendN11 = 0;
 
-			float mUnisonoDetuneAmts[gUnisonoVoiceMax] = { 0 };
+			float mUnisonoDetuneAmts[gUnisonoVoiceMax];// = { 0 };
 
-			float mUnisonoPanAmts[gUnisonoVoiceMax] { 0 };
+			float mUnisonoPanAmts[gUnisonoVoiceMax];// { 0 };
 
 			ModulationSpec* mpModulations[gModulationCount];
 
@@ -719,8 +718,8 @@ namespace WaveSabreCore
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 
-					float sourceValues[gSourceCount] = { 0 };
-					float detuneMul[gSourceCount] = { 0 };
+					float sourceValues[gSourceCount];// = { 0 };
+					float detuneMul[gSourceCount];// = { 0 };
 
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
@@ -835,7 +834,7 @@ namespace WaveSabreCore
 				}
 			};
 
-			struct Maj7Voice* mMaj7Voice[gMaxMaxVoices] = { 0 };
+			struct Maj7Voice* mMaj7Voice[gMaxMaxVoices];// = { 0 };
 
 		};
 	} // namespace M7

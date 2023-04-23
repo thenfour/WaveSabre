@@ -8,7 +8,7 @@ namespace WaveSabreCore
 	namespace M7
 	{
 
-		enum class ModSource : uint8_t
+		enum class ModSource// : uint8_t
 		{
 			None,
 			Osc1AmpEnv,
@@ -120,7 +120,7 @@ namespace WaveSabreCore
 			"-1", \
         };
 
-		enum class ModDestination : uint8_t
+		enum class ModDestination //: uint8_t
 		{
 			None, // important that this is 0, for initialization of mModSpecLastDestinations
 			FMBrightness, // krate, 01
@@ -345,7 +345,7 @@ namespace WaveSabreCore
 			Count,
 			Invalid,
 		};
-		enum class EnvModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		enum class EnvModParamIndexOffsets //: uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
 			DelayTime,
 			AttackTime,
@@ -357,7 +357,7 @@ namespace WaveSabreCore
 			ReleaseTime,
 			ReleaseCurve,
 		};
-		enum class OscModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		enum class OscModParamIndexOffsets// : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
 			Volume,
 			PreFMVolume,
@@ -370,7 +370,7 @@ namespace WaveSabreCore
 			AuxMix,
 		};
 
-		enum class SamplerModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		enum class SamplerModParamIndexOffsets// : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
 			Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
@@ -381,7 +381,7 @@ namespace WaveSabreCore
 			Delay,
 		};
 
-		enum class LFOModParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+		enum class LFOModParamIndexOffsets// : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
 			Waveshape,
 			FrequencyParam,
@@ -790,18 +790,19 @@ namespace WaveSabreCore
 		struct ModulationSpec
 		{
 			ParamAccessor mParams;
-			ModulationSpecType mType = ModulationSpecType::General;
 			bool const * mpDestSourceEnabledCached = &gAlwaysTrue;
 
-			bool mEnabled;
-			ModSource mSource;
-			ModDestination mDestinations[gModulationSpecDestinationCount];
 			float mScales[gModulationSpecDestinationCount];
-			bool mAuxEnabled;
+			float mAuxAttenuation;
+
+			ModulationSpecType mType = ModulationSpecType::General;
+			ModSource mSource;
 			ModSource mAuxSource;
+			ModDestination mDestinations[gModulationSpecDestinationCount];
+			bool mEnabled;
+			bool mAuxEnabled;
 			//ModValueMapping mValueMapping;
 			//ModValueMapping mAuxValueMapping;
-			float mAuxAttenuation;
 
 			// why aux (aka sidechain) is necessary. modulation values are added
 			// while aux values are used to scale the mod val, which doesn't have a true analog via normal modulations.
@@ -843,25 +844,26 @@ namespace WaveSabreCore
 
 		struct ModMatrixNode
 		{
-			ModMatrixNode();
-
-			real_t mSourceValues[(size_t)ModSource::Count] = { 0 };
-			real_t mDestValues[(size_t)ModDestination::Count] = { 0 };
-
 			struct ModDestAlgo
 			{
-				ModDestination mDest = ModDestination::None;
 				float mDeltaPerSample = 0;
+				ModDestination mDest = ModDestination::None;
 			};
 
-			ModDestAlgo mModulatedDestValueDeltas[(size_t)ModDestination::Count];
-			size_t mModulatedDestValueCount = 0;
+			real_t mSourceValues[(size_t)ModSource::Count];// = { 0 };
+			real_t mDestValues[(size_t)ModDestination::Count];// = { 0 };
+
+			ModDestAlgo mModulatedDestValueDeltas[(size_t)ModDestination::Count];// = { 0 };
 
 			// this is required to know when to reset a destination back to 0.
 			// after the user disables a modulationspec or changes its destination,
 			// we need to detect that scenario to remove its influence on the dest value.
-			ModDestination mModSpecLastDestinations[(size_t)gModulationCount][gModulationSpecDestinationCount] = {ModDestination::None};
+			ModDestination mModSpecLastDestinations[(size_t)gModulationCount][gModulationSpecDestinationCount];// = { ModDestination::None };
+
+			size_t mModulatedDestValueCount = 0;
 			int mnSampleCount = 0;
+
+			ModMatrixNode();
 
 			template<typename Tmodid>
 			inline void SetSourceValue(Tmodid id, real_t val)
@@ -918,12 +920,7 @@ namespace WaveSabreCore
 			ModDestination mModBase;
 			ModSource mModSource;
 		};
-		static constexpr LFOInfo gLFOInfo[gModLFOCount] = {
-			{ParamIndices::LFO1Waveform, ModDestination::LFO1Waveshape, ModSource::LFO1},
-			{ParamIndices::LFO2Waveform, ModDestination::LFO2Waveshape, ModSource::LFO2},
-			{ParamIndices::LFO3Waveform, ModDestination::LFO3Waveshape, ModSource::LFO3},
-			{ParamIndices::LFO4Waveform, ModDestination::LFO4Waveshape, ModSource::LFO4},
-		};
+		extern LFOInfo gLFOInfo[gModLFOCount];
 
 		struct SourceInfo
 		{
@@ -934,16 +931,7 @@ namespace WaveSabreCore
 			ModDestination mModDestBase;
 		};
 
-		static constexpr SourceInfo gSourceInfo[gSourceCount] = {
-			{gModulationCount - 8, ParamIndices::Osc1Enabled, ParamIndices::Osc1AmpEnvDelayTime, ModSource::Osc1AmpEnv, ModDestination::Osc1Volume },
-			{gModulationCount - 7, ParamIndices::Osc2Enabled, ParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume },
-			{gModulationCount - 6, ParamIndices::Osc3Enabled, ParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume },
-			{gModulationCount - 5,  ParamIndices::Osc4Enabled, ParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv, ModDestination::Osc4Volume },
-			{ gModulationCount - 4, ParamIndices::Sampler1Enabled, ParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv, ModDestination::Sampler1Volume },
-			{ gModulationCount - 3, ParamIndices::Sampler2Enabled, ParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume },
-			{ gModulationCount - 2, ParamIndices::Sampler3Enabled, ParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume },
-			{ gModulationCount - 1, ParamIndices::Sampler4Enabled, ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume },
-		};
+		extern SourceInfo gSourceInfo[gSourceCount];
 
 		struct EnvelopeInfo
 		{
@@ -952,18 +940,7 @@ namespace WaveSabreCore
 			ModSource mMyModSource;
 		};
 
-		static constexpr EnvelopeInfo gEnvelopeInfo[gSourceCount + gModEnvCount] = {
-			{ModDestination::Osc1AmpEnvDelayTime, ParamIndices::Osc1AmpEnvDelayTime, ModSource::Osc1AmpEnv },
-			{ModDestination::Osc2AmpEnvDelayTime, ParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv },
-			{ModDestination::Osc3AmpEnvDelayTime, ParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv },
-			{ModDestination::Osc4AmpEnvDelayTime, ParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv },
-			{ModDestination::Sampler1AmpEnvDelayTime, ParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv },
-			{ModDestination::Sampler2AmpEnvDelayTime, ParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv },
-			{ModDestination::Sampler3AmpEnvDelayTime, ParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv },
-			{ModDestination::Sampler4AmpEnvDelayTime, ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv },
-			{ModDestination::Env1DelayTime, ParamIndices::Env1DelayTime, ModSource::ModEnv1 },
-			{ModDestination::Env2DelayTime, ParamIndices::Env2DelayTime, ModSource::ModEnv2 },
-		};
+		extern EnvelopeInfo gEnvelopeInfo[gSourceCount + gModEnvCount];
 		static constexpr size_t gOsc1AmpEnvIndex = 0;
 		static constexpr size_t gModEnv1Index = gSourceCount + gModEnvCount - 2;
 		static constexpr size_t gModEnv2Index = gSourceCount + gModEnvCount - 1;

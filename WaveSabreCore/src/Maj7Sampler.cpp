@@ -220,17 +220,6 @@ namespace WaveSabreCore
 
 				ISoundSourceDevice::BeginBlock();
 
-				// not needed because these are not accessed often enough.
-				//mLegatoTrig.CacheValue();
-				//mReverse.CacheValue();
-				//mReleaseExitsLoop.CacheValue();
-				//mLoopMode.CacheValue();
-				//mLoopSource.CacheValue();
-				//mInterpolationMode.CacheValue();
-				//mSampleSource.CacheValue();
-				//mGmDlsIndex;
-				//mBaseNote.CacheValue();
-
 				// base note + original samplerate gives us a "native frequency" of the sample.
 				// so let's say the sample is 22.05khz, base midi note 60 (261hz).
 				// and you are requested to play it back at "1000hz" (or, midi note 88.7)
@@ -245,7 +234,6 @@ namespace WaveSabreCore
 				if (!mSample) {
 					return;
 				}
-				//float base_hz = math::MIDINoteToFreq((float)mBaseNote.GetIntValue());
 				float base_hz = math::MIDINoteToFreq((float)mParams.GetIntValue(SamplerParamIndexOffsets::BaseNote, gKeyRangeCfg));
 				mSampleRateCorrectionFactor = mSample->GetSampleRate() / (2 * base_hz * Helpers::CurrentSampleRateF);// WHY * 2? because it corresponds more naturally to other synth octave ranges.
 			}
