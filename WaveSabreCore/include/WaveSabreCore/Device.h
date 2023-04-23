@@ -23,8 +23,8 @@ namespace WaveSabreCore
 		virtual void MidiCC(int ccNumber, int rawValue, int deltaSamples) {};
 		virtual void PitchBend(int lsb, int msb, int deltaSamples) {};
 
-		virtual void SetSampleRate(float sampleRate);
-		virtual void SetTempo(int tempo);
+		void SetSampleRate(float sampleRate);
+		void SetTempo(int tempo);
 
 		virtual void SetParam(int index, float value);
 		virtual float GetParam(int index) const;
@@ -34,10 +34,10 @@ namespace WaveSabreCore
 
 		// support for maj7 style chunks, which are 16-bit and differential from default values
 		virtual void LoadDefaults() {}
-		virtual void SetMaj7StyleChunk(M7::Deserializer& ds);
+		void SetMaj7StyleChunk(M7::Deserializer& ds);
 
 	protected:
-		virtual void clearOutputs(float **outputs, int numSamples);
+		void clearOutputs(float **outputs, int numSamples);
 
 		int numParams;
 		void *chunkData;
