@@ -475,7 +475,7 @@ public:
 		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mpLFOs[0]->mDevice.mParams.mBaseParamID);
 		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::Osc1AmpEnvIndex].mParams.mBaseParamID);
 		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mpOscillatorDevices[0]->mParams.mBaseParamID);
-		GenerateArray("gDefaultFilterParams", (int)M7::FilterParamIndexOffsets::Count, "M7::FilterParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mFilters[0][0].mParams.mBaseParamID);
+		GenerateArray("gDefaultFilterParams", (int)M7::FilterParamIndexOffsets::Count, "M7::FilterParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mpFilters[0][0]->mParams.mBaseParamID);
 
 		ss << "  } // namespace M7" << std::endl;
 		ss << "} // namespace WaveSabreCore" << std::endl;
@@ -1503,7 +1503,7 @@ public:
 
 	void AuxEffectTab(const char* labelID, int ifilter/*, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[]*/)
 	{
-		auto& filter = pMaj7->mMaj7Voice[0]->mFilters[ifilter][0];
+		auto& filter = *pMaj7->mMaj7Voice[0]->mpFilters[ifilter][0];
 
 		ColorMod& cm = filter.mParams.GetBoolValue(M7::FilterParamIndexOffsets::Enabled) ? mAuxLeftColors : mAuxLeftDisabledColors;
 		auto token = cm.Push();

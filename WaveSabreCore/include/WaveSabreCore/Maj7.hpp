@@ -257,6 +257,10 @@ namespace WaveSabreCore
 				LoadDefaults();
 			}
 
+			~Maj7() {
+#pragma message("Maj7::~Maj7() Leaking memory to save bits.")
+			}
+
 			virtual void LoadDefaults() override
 			{
 				// samplers reset
@@ -280,8 +284,8 @@ namespace WaveSabreCore
 				{
 					ImportDefaultsArray(std::size(gDefaultModSpecParams), gDefaultModSpecParams, mpModulations[i]->mParams.GetOffsetParamCache());// mParamCache + (int)m.mBaseParamID);
 				}
-				for (auto& m : mMaj7Voice[0]->mFilters) {
-					ImportDefaultsArray(std::size(gDefaultFilterParams), gDefaultFilterParams, m[0].mParams.GetOffsetParamCache());
+				for (auto* m : mMaj7Voice[0]->mpFilters) {
+					ImportDefaultsArray(std::size(gDefaultFilterParams), gDefaultFilterParams, m[0]->mParams.GetOffsetParamCache());
 				}
 				for (auto& m : mMaj7Voice[0]->mAllEnvelopes) {
 					ImportDefaultsArray(std::size(gDefaultEnvelopeParams), gDefaultEnvelopeParams, m.mParams.GetOffsetParamCache());// mParamCache + (int)p.mParams.mBaseParamID);
@@ -558,17 +562,19 @@ namespace WaveSabreCore
 					mSampler1(owner->mpSamplerDevices[0], mModMatrix, &mAllEnvelopes[4]),
 					mSampler2(owner->mpSamplerDevices[1], mModMatrix, &mAllEnvelopes[5]),
 					mSampler3(owner->mpSamplerDevices[2], mModMatrix, &mAllEnvelopes[6]),
-					mSampler4(owner->mpSamplerDevices[3], mModMatrix, &mAllEnvelopes[7]),
-					mFilters{
-						{FilterAuxNode(owner->mParamCache, ParamIndices::Filter1Enabled, ModDestination::Filter1Q),
-						FilterAuxNode(owner->mParamCache, ParamIndices::Filter1Enabled, ModDestination::Filter1Q),
-						},
-						{
-						FilterAuxNode(owner->mParamCache, ParamIndices::Filter2Enabled, ModDestination::Filter2Q),
-						FilterAuxNode(owner->mParamCache, ParamIndices::Filter2Enabled, ModDestination::Filter2Q),
+					mSampler4(owner->mpSamplerDevices[3], mModMatrix, &mAllEnvelopes[7])
+				{
+					for (int ich = 0; ich < 2; ++ich) {
+						for (int ifilt = 0; ifilt < 2; ++ifilt) {
+							mpFilters[ifilt][ich] = new FilterAuxNode(
+								owner->mParamCache,
+								(ParamIndices)((int)ParamIndices::Filter1Enabled + (int)FilterParamIndexOffsets::Count * ifilt),
+								(ModDestination)((int)ModDestination::Filter1Q + ((int)FilterAuxModDestOffsets::Count * ifilt)));
 						}
 					}
-				{
+				}
+				~Maj7Voice() {
+#pragma message("Maj7Voice::~Maj7Voice() Leaking memory to save bits.")
 				}
 
 				Maj7* mpOwner;
@@ -631,7 +637,7 @@ namespace WaveSabreCore
 					&mSampler4,
 				};
 
-				FilterAuxNode mFilters[2][2]; // [filtercount][channel]
+				FilterAuxNode* mpFilters[gFilterCount][2]; // [filtercount][channel]
 
 				float mMidiNote = 0;
 
@@ -696,10 +702,11 @@ namespace WaveSabreCore
 					mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness);
 					mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
 
-					for (auto& a : mFilters)
+					for (auto* a : mpFilters)
 					{
-						a[0].AuxBeginBlock(noteHz, mModMatrix);
-						a[1].AuxBeginBlock(noteHz, mModMatrix);
+						for (int ich = 0; ich < 2; ++ich) {
+							a[ich]->AuxBeginBlock(noteHz, mModMatrix);
+						}
 					}
 
 					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
@@ -807,25 +814,22 @@ namespace WaveSabreCore
 
 					}
 
-					float q[2] = { 0 };
+					//float q[2] = { 0 };
 
-					for (size_t i = 0; i < gSourceCount; ++i)
-					{
-						for (size_t ich = 0; ich < 2; ++ich)
-						{
-							q[ich] += sourceValues[i] * mSourceVoices[i]->mOutputGain[ich];
-						}
-					}
-
-					// send through serial filter
 					for (size_t ich = 0; ich < 2; ++ich)
 					{
-						q[ich] = mFilters[0][ich].AuxProcessSample(q[ich]);
-						q[ich] = mFilters[1][ich].AuxProcessSample(q[ich]);
-					}
+						float q = 0;
+						for (size_t i = 0; i < gSourceCount; ++i)
+						{
+							q += sourceValues[i] * mSourceVoices[i]->mOutputGain[ich];
+						}
 
-					s[0] += q[0];// *mpOwner->mAuxOutputGains[0] + q[1] * mpOwner->mAuxOutputGains[1];
-					s[1] += q[1];// *mpOwner->mAuxOutputGains[1] + q[1] * mpOwner->mAuxOutputGains[0];
+						// send through serial filter
+						for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter) {
+							q = mpFilters[ifilter][ich]->AuxProcessSample(q);
+						}
+						s[ich] += q;
+					}
 
 					mPortamento.Advance(1,
 						mModMatrix.GetDestinationValue(ModDestination::PortamentoTime)

@@ -908,6 +908,7 @@ namespace WaveSabreCore
 
 		static constexpr size_t gModEnvCount = 2;
 		static constexpr size_t gModLFOCount = 4;
+		static constexpr size_t gFilterCount = 2;
 
 		struct LFOInfo
 		{

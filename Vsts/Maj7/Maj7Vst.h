@@ -587,8 +587,8 @@ namespace WaveSabreCore
 			for (auto& m : p->mpModulations) {
 				GenerateDefaults(m);
 			}
-			for (auto& m : p->mMaj7Voice[0]->mFilters) {
-				GenerateDefaults(&m[0]);
+			for (auto& m : p->mMaj7Voice[0]->mpFilters) {
+				GenerateDefaults(m[0]);
 			}
 			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv1Index]);
 			GenerateDefaults_Env(&p->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::ModEnv2Index]);
@@ -908,8 +908,8 @@ namespace WaveSabreCore
 			}
 
 			// envelopes
-			for (auto& f : p->mMaj7Voice[0]->mFilters) {
-				OptimizeFilter(p, f[0]);
+			for (auto& f : p->mMaj7Voice[0]->mpFilters) {
+				OptimizeFilter(p, *f[0]);
 			}
 
 			// modulations.
