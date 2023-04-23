@@ -10,6 +10,16 @@ namespace WaveSabreCore
 		{
 		}
 
+		ModMatrixNode::ModMatrixNode()
+		{
+			// putting (nearly) empty ctor in the .cpp so the default ctor doesn't get inlined.
+			mSourceValues[(int)ModSource::Const_1] = 1;
+			mSourceValues[(int)ModSource::Const_0_5] = 0.5f;
+			mSourceValues[(int)ModSource::Const_0] = 0;
+			mSourceValues[(int)ModSource::Const_N0_5] = -0.5f;
+			mSourceValues[(int)ModSource::Const_N1] = -1;
+		}
+
 		// dest range 
 		float ModMatrixNode::MapValue(ModulationSpec& spec, ModSource src, ModParamIndexOffsets curveParam, ModParamIndexOffsets srcRangeMinParam, ModParamIndexOffsets srcRangeMaxParam, bool isDestN11)
 		{

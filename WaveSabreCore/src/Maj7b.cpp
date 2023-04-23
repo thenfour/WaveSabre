@@ -16,5 +16,11 @@ namespace WaveSabreCore {
             ProcessBlock(0, outputs, numSamples, true);
         }
 
+        Maj7::Maj7Voice::LFOVoice::LFOVoice(Maj7::LFODevice& device, ModMatrixNode& modMatrix) :
+            mDevice(device),
+            mNode(&modMatrix, &device.mDevice, nullptr)
+        {}
+
+
     } // namespace M7
 } // namespace WaveSabreCore

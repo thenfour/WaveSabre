@@ -255,7 +255,7 @@ namespace WaveSabreCore
 			}
 
 
-			SamplerVoice::SamplerVoice(SamplerDevice* pDevice, ModMatrixNode& modMatrix, EnvelopeNode* pAmpEnv) :
+			SamplerVoice::SamplerVoice(ModMatrixNode& modMatrix, SamplerDevice* pDevice, EnvelopeNode* pAmpEnv) :
 				ISoundSourceDevice::Voice(pDevice, &modMatrix, pAmpEnv),
 				mpSamplerDevice(pDevice)
 			{

@@ -473,7 +473,7 @@ public:
 		GenerateArray("gDefaultSamplerParams", (int)M7::SamplerParamIndexOffsets::Count, "M7::SamplerParamIndexOffsets::Count", (int)pMaj7->mpSamplerDevices[0]->mParams.mBaseParamID);
 		GenerateArray("gDefaultModSpecParams", (int)M7::ModParamIndexOffsets::Count, "M7::ModParamIndexOffsets::Count", (int)pMaj7->mpModulations[0]->mParams.mBaseParamID);
 		GenerateArray("gDefaultLFOParams", (int)M7::LFOParamIndexOffsets::Count, "M7::LFOParamIndexOffsets::Count", (int)pMaj7->mpLFOs[0]->mDevice.mParams.mBaseParamID);
-		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mAllEnvelopes[M7::Maj7::Maj7Voice::Osc1AmpEnvIndex].mParams.mBaseParamID);
+		GenerateArray("gDefaultEnvelopeParams", (int)M7::EnvParamIndexOffsets::Count, "M7::EnvParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mpEnvelopes[M7::gOsc1AmpEnvIndex]->mParams.mBaseParamID);
 		GenerateArray("gDefaultOscillatorParams", (int)M7::OscParamIndexOffsets::Count, "M7::OscParamIndexOffsets::Count", (int)pMaj7->mpOscillatorDevices[0]->mParams.mBaseParamID);
 		GenerateArray("gDefaultFilterParams", (int)M7::FilterParamIndexOffsets::Count, "M7::FilterParamIndexOffsets::Count", (int)pMaj7->mMaj7Voice[0]->mpFilters[0][0]->mParams.mBaseParamID);
 
@@ -915,10 +915,10 @@ public:
 				ImGui::Button(txt);
 				ImGui::PopStyleColor(3);
 				static_assert(M7::gOscillatorCount == 4, "osc count");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator1.GetLastSample()), ImVec2{ 50, 0 }, "Osc1");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator2.GetLastSample()), ImVec2{ 50, 0 }, "Osc2");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator3.GetLastSample()), ImVec2{ 50, 0 }, "Osc3");
-				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mOscillator4.GetLastSample()), ImVec2{ 50, 0 }, "Osc4");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mpOscillatorNodes[0]->GetLastSample()), ImVec2{50, 0}, "Osc1");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mpOscillatorNodes[1]->GetLastSample()), ImVec2{ 50, 0 }, "Osc2");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mpOscillatorNodes[2]->GetLastSample()), ImVec2{ 50, 0 }, "Osc3");
+				ImGui::SameLine(); ImGui::ProgressBar(::fabsf(pv->mpOscillatorNodes[3]->GetLastSample()), ImVec2{ 50, 0 }, "Osc4");
 
 				if (mShowingModulationInspector) {
 					//ImGui::SeparatorText("Modulation Inspector");

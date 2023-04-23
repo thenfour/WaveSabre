@@ -113,7 +113,7 @@ namespace WaveSabreCore
 			float mDelayPos01 = 0;
 			float mDelayStep = 0; // per sample, how much to advance the delay stage. meaningless outside of delay stage.
 
-			SamplerVoice(SamplerDevice* pDevice, ModMatrixNode& modMatrix, EnvelopeNode* pAmpEnv);
+			SamplerVoice(ModMatrixNode& modMatrix, SamplerDevice* pDevice, EnvelopeNode* pAmpEnv);
 			void ConfigPlayer();
 
 			virtual void NoteOn(bool legato) override;

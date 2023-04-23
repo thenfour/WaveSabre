@@ -221,7 +221,7 @@ namespace WaveSabreCore
 				const LFOInfo& mInfo;
 				OscillatorDevice mDevice;
 				ModMatrixNode mNullModMatrix;
-				OscillatorNode mPhase{ &mDevice, &mNullModMatrix, nullptr };
+				OscillatorNode mPhase{ &mNullModMatrix , &mDevice, nullptr };
 			};
 
 			LFODevice* mpLFOs[gModLFOCount];
@@ -287,8 +287,8 @@ namespace WaveSabreCore
 				for (auto* m : mMaj7Voice[0]->mpFilters) {
 					ImportDefaultsArray(std::size(gDefaultFilterParams), gDefaultFilterParams, m[0]->mParams.GetOffsetParamCache());
 				}
-				for (auto& m : mMaj7Voice[0]->mAllEnvelopes) {
-					ImportDefaultsArray(std::size(gDefaultEnvelopeParams), gDefaultEnvelopeParams, m.mParams.GetOffsetParamCache());// mParamCache + (int)p.mParams.mBaseParamID);
+				for (auto& m : mMaj7Voice[0]->mpEnvelopes) {
+					ImportDefaultsArray(std::size(gDefaultEnvelopeParams), gDefaultEnvelopeParams, m->mParams.GetOffsetParamCache());// mParamCache + (int)p.mParams.mBaseParamID);
 				}
 				for (auto* p : mSources) {
 					p->InitDevice();
@@ -542,27 +542,7 @@ namespace WaveSabreCore
 			{
 				Maj7Voice(Maj7* owner) :
 					mpOwner(owner),
-					mPortamento(owner->mParamCache),
-					mAllEnvelopes{
-						/*mOsc1AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Osc1AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc1AmpEnvDelayTime, ModSource::Osc1AmpEnv),
-						/*mOsc2AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Osc2AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv),
-						/*mOsc3AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Osc3AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv),
-						/*mOsc4AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Osc4AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv),
-						/*mSampler1AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Sampler1AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv),
-						/*mSampler2AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Sampler2AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv),
-						/*mSampler3AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Sampler3AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv),
-						/*mSampler4AmpEnv*/EnvelopeNode(mModMatrix, ModDestination::Sampler4AmpEnvDelayTime, owner->mParamCache, (int)ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv),
-						/*mModEnv1*/EnvelopeNode(mModMatrix, ModDestination::Env1DelayTime, owner->mParamCache, (int)ParamIndices::Env1DelayTime, ModSource::ModEnv1),
-						/*mModEnv2*/EnvelopeNode(mModMatrix, ModDestination::Env2DelayTime, owner->mParamCache, (int)ParamIndices::Env2DelayTime, ModSource::ModEnv2),
-					},
-					mOscillator1(owner->mpOscillatorDevices[0], &mModMatrix, &mAllEnvelopes[0]),
-					mOscillator2(owner->mpOscillatorDevices[1], &mModMatrix, &mAllEnvelopes[1]),
-					mOscillator3(owner->mpOscillatorDevices[2], &mModMatrix, &mAllEnvelopes[2]),
-					mOscillator4(owner->mpOscillatorDevices[3], &mModMatrix, &mAllEnvelopes[3]),
-					mSampler1(owner->mpSamplerDevices[0], mModMatrix, &mAllEnvelopes[4]),
-					mSampler2(owner->mpSamplerDevices[1], mModMatrix, &mAllEnvelopes[5]),
-					mSampler3(owner->mpSamplerDevices[2], mModMatrix, &mAllEnvelopes[6]),
-					mSampler4(owner->mpSamplerDevices[3], mModMatrix, &mAllEnvelopes[7])
+					mPortamento(owner->mParamCache)
 				{
 					for (int ich = 0; ich < 2; ++ich) {
 						for (int ifilt = 0; ifilt < 2; ++ifilt) {
@@ -572,79 +552,53 @@ namespace WaveSabreCore
 								(ModDestination)((int)ModDestination::Filter1Q + ((int)FilterAuxModDestOffsets::Count * ifilt)));
 						}
 					}
+
+					for (int i = 0; i < (gSourceCount + gModEnvCount); ++i) {
+						mpEnvelopes[i] = new EnvelopeNode{ mModMatrix, owner->mParamCache, gEnvelopeInfo[i] };
+					}
+
+					static_assert(gModLFOCount == gOscillatorCount && gOscillatorCount == gSamplerCount, "meecro optimizyshunz");
+					for (int i = 0; i < gModLFOCount; ++i) {
+						mpLFOs[i] = new LFOVoice{ *mpOwner->mpLFOs[i], mModMatrix };
+
+						mSourceVoices[i] = mpOscillatorNodes[i] = new OscillatorNode(&mModMatrix, owner->mpOscillatorDevices[i], mpEnvelopes[i]);
+						mSourceVoices[i + gOscillatorCount] = mpSamplerVoices[i] = new SamplerVoice(mModMatrix, owner->mpSamplerDevices[i], mpEnvelopes[i + gOscillatorCount]);
+					}
 				}
 				~Maj7Voice() {
 #pragma message("Maj7Voice::~Maj7Voice() Leaking memory to save bits.")
 				}
 
 				Maj7* mpOwner;
+				ModMatrixNode mModMatrix;
 
 				real_t mVelocity01 = 0;
 				real_t mTriggerRandom01 = 0;
+				float mMidiNote = 0;
+
 				PortamentoCalc mPortamento;
 
 				struct LFOVoice
 				{
-					explicit LFOVoice(LFODevice& device, ModMatrixNode& modMatrix) :
-						//mModSourceID(modSourceID),
-						mDevice(device),
-						mNode(&device.mDevice, &modMatrix, nullptr)
-					{}
-					//ModSource mModSourceID;
+					explicit LFOVoice(LFODevice& device, ModMatrixNode& modMatrix);
 					LFODevice& mDevice;
 					OscillatorNode mNode;
 					FilterNode mFilter;
 				};
 
-				LFOVoice mLFOs[gModLFOCount]{
-					LFOVoice{ *mpOwner->mpLFOs[0], mModMatrix },
-					LFOVoice{ *mpOwner->mpLFOs[1], mModMatrix },
-					LFOVoice{ *mpOwner->mpLFOs[2], mModMatrix },
-					LFOVoice{ *mpOwner->mpLFOs[3], mModMatrix }
-				};
+				FilterAuxNode* mpFilters[gFilterCount][2];
+				LFOVoice* mpLFOs[gModLFOCount];
 
-				ModMatrixNode mModMatrix;
+				EnvelopeNode* mpEnvelopes[gSourceCount + gModEnvCount];
+				OscillatorNode* mpOscillatorNodes[gOscillatorCount];
+				SamplerVoice* mpSamplerVoices[gSamplerCount];
 
-				OscillatorNode mOscillator1;
-				OscillatorNode mOscillator2;
-				OscillatorNode mOscillator3;
-				OscillatorNode mOscillator4;
-				SamplerVoice mSampler1;
-				SamplerVoice mSampler2;
-				SamplerVoice mSampler3;
-				SamplerVoice mSampler4;
-
-				EnvelopeNode mAllEnvelopes[gSourceCount + gModEnvCount];
-				static constexpr size_t Osc1AmpEnvIndex = 0;
-				static constexpr size_t Osc2AmpEnvIndex = 1;
-				static constexpr size_t Osc3AmpEnvIndex = 2;
-				static constexpr size_t Osc4AmpEnvIndex = 3;
-				static constexpr size_t Sampler1AmpEnvIndex = 4;
-				static constexpr size_t Sampler2AmpEnvIndex = 5;
-				static constexpr size_t Sampler3AmpEnvIndex = 6;
-				static constexpr size_t Sampler4AmpEnvIndex = 7;
-				static constexpr size_t ModEnv1Index = 8;
-				static constexpr size_t ModEnv2Index = 9;
-
-				ISoundSourceDevice::Voice* mSourceVoices[gSourceCount] = {
-					&mOscillator1,
-					&mOscillator2,
-					&mOscillator3,
-					&mOscillator4,
-					&mSampler1,
-					&mSampler2,
-					&mSampler3,
-					&mSampler4,
-				};
-
-				FilterAuxNode* mpFilters[gFilterCount][2]; // [filtercount][channel]
-
-				float mMidiNote = 0;
+				ISoundSourceDevice::Voice* mSourceVoices[gSourceCount];
 
 				void BeginBlock(bool forceProcessing)
 				{
-					for (auto& p : mAllEnvelopes) {
-						p.BeginBlock();
+					for (auto& p : mpEnvelopes) {
+						p->BeginBlock();
 					}
 
 					if (!forceProcessing && !this->IsPlaying()) {
@@ -672,12 +626,6 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceValue(ModSource::UnisonoVoice, iuv);
 					mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 
-					mModMatrix.SetSourceValue(ModSource::Const_1, 1);
-					mModMatrix.SetSourceValue(ModSource::Const_0_5, 0.5f);
-					mModMatrix.SetSourceValue(ModSource::Const_0, 0);
-					mModMatrix.SetSourceValue(ModSource::Const_N0_5, -0.5f);
-					mModMatrix.SetSourceValue(ModSource::Const_N1, -1);
-
 					for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
 					{
 						mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro, mpOwner->mParams.Get01Value((int)ParamIndices::Macro1 + iMacro, 0));  // krate, 01
@@ -685,7 +633,7 @@ namespace WaveSabreCore
 
 					for (size_t i = 0; i < gModLFOCount; ++i)
 					{
-						auto& lfo = mLFOs[i];
+						auto& lfo = *mpLFOs[i];
 						if (!lfo.mNode.mpOscDevice->GetPhaseRestart()) {
 							// sync phase with device-level. TODO: also check that modulations aren't creating per-voice variation?
 							lfo.mNode.SetPhase(lfo.mDevice.mPhase.mPhase);
@@ -737,10 +685,10 @@ namespace WaveSabreCore
 					// NB: process envelopes before short-circuiting due to being not playing.
 					// this is for issue#31; mod envelopes need to be able to release down to 0 even when the source envs are not playing.
 					// if mod envs get suspended rudely, then they'll "wake up" at the wrong value.
-					for (auto& env : mAllEnvelopes)
+					for (auto& env : mpEnvelopes)
 					{
-						float l = env.ProcessSample();
-						mModMatrix.SetSourceValue(env.mMyModSource, l);
+						float l = env->ProcessSample();
+						mModMatrix.SetSourceValue(env->mMyModSource, l);
 					}
 
 					if (!forceProcessing && !this->IsPlaying()) {
@@ -748,7 +696,7 @@ namespace WaveSabreCore
 					}
 
 					for (size_t i = 0; i < gModLFOCount; ++i) {
-						auto& lfo = mLFOs[i];
+						auto& lfo = *mpLFOs[i];
 						float s = lfo.mNode.ProcessSampleForLFO(false);
 						s = lfo.mFilter.ProcessSample(s);
 						mModMatrix.SetSourceValue(lfo.mDevice.mInfo.mModSource, s);
@@ -814,8 +762,6 @@ namespace WaveSabreCore
 
 					}
 
-					//float q[2] = { 0 };
-
 					for (size_t ich = 0; ich < 2; ++ich)
 					{
 						float q = 0;
@@ -841,11 +787,12 @@ namespace WaveSabreCore
 					mVelocity01 = mNoteInfo.Velocity / 127.0f;
 					mTriggerRandom01 = math::rand01();
 
-					mAllEnvelopes[ModEnv1Index].noteOn(mLegato);
-					mAllEnvelopes[ModEnv2Index].noteOn(mLegato);
+					// don't process all envelopes because some have keyranges to respect.
+					mpEnvelopes[gModEnv1Index]->noteOn(mLegato);
+					mpEnvelopes[gModEnv2Index]->noteOn(mLegato);
 
-					for (auto& p : mLFOs) {
-						p.mNode.NoteOn(mLegato);
+					for (auto& p : mpLFOs) {
+						p->mNode.NoteOn(mLegato);
 					}
 
 					for (auto& srcVoice : mSourceVoices)
@@ -864,16 +811,16 @@ namespace WaveSabreCore
 						srcVoice->NoteOff();
 					}
 
-					for (auto& p : mAllEnvelopes)
+					for (auto& p : mpEnvelopes)
 					{
-						p.noteOff();
+						p->noteOff();
 					}
 				}
 
 				virtual void Kill() override {
-					for (auto& p : mAllEnvelopes)
+					for (auto& p : mpEnvelopes)
 					{
-						p.kill();
+						p->kill();
 					}
 				}
 

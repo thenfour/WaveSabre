@@ -5,11 +5,12 @@ namespace WaveSabreCore
 {
     namespace M7
     {
-        EnvelopeNode::EnvelopeNode(ModMatrixNode& modMatrix, ModDestination modDestIDDelayTime, real_t* paramCache, int paramBaseID, ModSource myModSource) :
-            mParams(paramCache, paramBaseID),
+        EnvelopeNode::EnvelopeNode(ModMatrixNode& modMatrix, real_t* paramCache, const EnvelopeInfo& envInfo) : //ModDestination modDestIDDelayTime, , int paramBaseID, ModSource myModSource) :
+        //EnvelopeNode::EnvelopeNode(ModMatrixNode& modMatrix, ModDestination modDestIDDelayTime, real_t* paramCache, int paramBaseID, ModSource myModSource) :
             mModMatrix(modMatrix),
-            mModDestBase((int)modDestIDDelayTime),
-            mMyModSource(myModSource)
+            mParams(paramCache, envInfo.mParamBase),
+            mModDestBase((int)envInfo.mModDestBase),
+            mMyModSource(envInfo.mMyModSource)
         {
         }
 

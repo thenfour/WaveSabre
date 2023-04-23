@@ -973,7 +973,7 @@ namespace WaveSabreCore
 			WhiteNoiseWaveform mWhiteNoiseWaveform;
 			IOscillatorWaveform* mpSlaveWave = &mSawClipWaveform;
 
-			OscillatorNode(OscillatorDevice* pOscDevice, ModMatrixNode* pModMatrix, EnvelopeNode* pAmpEnv) :
+			OscillatorNode(ModMatrixNode* pModMatrix, OscillatorDevice* pOscDevice, EnvelopeNode* pAmpEnv) :
 				ISoundSourceDevice::Voice(pOscDevice, pModMatrix, pAmpEnv),
 				mpOscDevice(pOscDevice)
 			{

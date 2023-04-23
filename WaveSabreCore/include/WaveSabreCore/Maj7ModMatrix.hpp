@@ -843,6 +843,8 @@ namespace WaveSabreCore
 
 		struct ModMatrixNode
 		{
+			ModMatrixNode();
+
 			real_t mSourceValues[(size_t)ModSource::Count] = { 0 };
 			real_t mDestValues[(size_t)ModDestination::Count] = { 0 };
 
@@ -943,6 +945,28 @@ namespace WaveSabreCore
 			{ gModulationCount - 1, ParamIndices::Sampler4Enabled, ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume },
 		};
 
+		struct EnvelopeInfo
+		{
+			ModDestination mModDestBase; // delay time
+			ParamIndices mParamBase; // delay time
+			ModSource mMyModSource;
+		};
+
+		static constexpr EnvelopeInfo gEnvelopeInfo[gSourceCount + gModEnvCount] = {
+			{ModDestination::Osc1AmpEnvDelayTime, ParamIndices::Osc1AmpEnvDelayTime, ModSource::Osc1AmpEnv },
+			{ModDestination::Osc2AmpEnvDelayTime, ParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv },
+			{ModDestination::Osc3AmpEnvDelayTime, ParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv },
+			{ModDestination::Osc4AmpEnvDelayTime, ParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv },
+			{ModDestination::Sampler1AmpEnvDelayTime, ParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv },
+			{ModDestination::Sampler2AmpEnvDelayTime, ParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv },
+			{ModDestination::Sampler3AmpEnvDelayTime, ParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv },
+			{ModDestination::Sampler4AmpEnvDelayTime, ParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv },
+			{ModDestination::Env1DelayTime, ParamIndices::Env1DelayTime, ModSource::ModEnv1 },
+			{ModDestination::Env2DelayTime, ParamIndices::Env2DelayTime, ModSource::ModEnv2 },
+		};
+		static constexpr size_t gOsc1AmpEnvIndex = 0;
+		static constexpr size_t gModEnv1Index = gSourceCount + gModEnvCount - 2;
+		static constexpr size_t gModEnv2Index = gSourceCount + gModEnvCount - 1;
 
 	} // namespace M7
 

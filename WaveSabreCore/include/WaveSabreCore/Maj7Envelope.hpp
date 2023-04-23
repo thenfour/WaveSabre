@@ -9,14 +9,13 @@ namespace WaveSabreCore
     {
         struct EnvelopeNode
         {
+            ModMatrixNode& mModMatrix;
             ParamAccessor mParams;
-
             EnvelopeMode mMode; 
-            
             ModSource mMyModSource; // not used by this object, but useful for mappings.
             const int mModDestBase;// ModDestination of delay time
 
-            explicit EnvelopeNode(ModMatrixNode& modMatrix, ModDestination modDestIDDelayTime, real_t* paramCache, int paramBaseID, ModSource myModSource);
+            explicit EnvelopeNode(ModMatrixNode& modMatrix, real_t* paramCache, const EnvelopeInfo& envInfo);// ModDestination modDestIDDelayTime, int paramBaseID, ModSource myModSource);
 
             enum class EnvelopeStage : uint8_t
             {
@@ -83,8 +82,6 @@ namespace WaveSabreCore
 
             // in monophonic situations, attack stage may not start from 0.
             real_t mAttackFromValue01 = 0; 
-
-            ModMatrixNode& mModMatrix;
         };
 
     } // namespace M7
