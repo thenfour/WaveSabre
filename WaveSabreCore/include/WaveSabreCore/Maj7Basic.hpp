@@ -444,10 +444,10 @@ namespace WaveSabreCore
                 float* mpTable;
 
                 LUT01(size_t nSamples, float (*fn)(float));
-#ifdef MIN_SIZE_REL
-#else
-                virtual ~LUT01();
-#endif // MIN_SIZE_REL
+//#ifdef MIN_SIZE_REL
+//#else
+//                virtual ~LUT01();
+//#endif // MIN_SIZE_REL
                 virtual float Invoke(float x) const;
             };
 
@@ -471,10 +471,10 @@ namespace WaveSabreCore
                 float* mpTable;
 
                 LUT2D(size_t nSamplesX, size_t nSamplesY, float (*fn)(float, float));
-#ifdef MIN_SIZE_REL
-#else
-                virtual ~LUT2D();
-#endif // MIN_SIZE_REL
+//#ifdef MIN_SIZE_REL
+//#else
+//                virtual ~LUT2D();
+//#endif // MIN_SIZE_REL
 
                 virtual float Invoke(float x, float y) const;
             };

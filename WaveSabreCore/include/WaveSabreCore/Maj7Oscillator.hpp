@@ -152,6 +152,9 @@ namespace WaveSabreCore
 
 			OscillatorIntention mIntention = OscillatorIntention::LFO;
 
+			//IOscillatorWaveform() = default;
+			//virtual ~IOscillatorWaveform() = default;
+
 			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
 			virtual float NaiveSampleSlope(float phase01) = 0; // return slope at phase			
 			virtual void AfterSetParams() = 0;
@@ -202,37 +205,38 @@ namespace WaveSabreCore
 			float samplesSinceEdge;
 			float samplesFromEdgeToNextSample;
 
-			bool WeirdPreBlepBlampCode(double newPhase, float edge, float samplesFromNewPositionUntilNextSample)
+			void WeirdPreBlepBlampCode(double newPhase, float edge, float blepScale, float samplesFromNewPositionUntilNextSample, decltype(BlepBefore) pProcBefore, decltype(BlepBefore) pProcAfter)
 			{
 				if (!math::DoesEncounter(mPhase, newPhase, edge))
-					return false;
+					return;
 				samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
 				samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
-				return true;
+				mBlepBefore += blepScale * pProcBefore(samplesFromEdgeToNextSample);
+				mBlepAfter += blepScale * pProcAfter(samplesFromEdgeToNextSample);
 			}
 
-			void OSC_ACCUMULATE_BLEP(double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
+			inline void OSC_ACCUMULATE_BLEP(double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
 				//if (!math::DoesEncounter(mPhase, newPhase, edge))
 				//	return;
 				//float samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
 				//float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
-				if (!WeirdPreBlepBlampCode(newPhase, edge, samplesFromNewPositionUntilNextSample)) return;
-				mBlepBefore += blepScale * BlepBefore(samplesFromEdgeToNextSample);
-				mBlepAfter += blepScale * BlepAfter(samplesFromEdgeToNextSample);
+				WeirdPreBlepBlampCode(newPhase, edge, blepScale, samplesFromNewPositionUntilNextSample, BlepBefore, BlepAfter);
+				//mBlepBefore += blepScale * BlepBefore(samplesFromEdgeToNextSample);
+				//mBlepAfter += blepScale * BlepAfter(samplesFromEdgeToNextSample);
 			}
 
-			void OSC_ACCUMULATE_BLAMP(double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
+			inline void OSC_ACCUMULATE_BLAMP(double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
 				//if (!math::DoesEncounter((mPhase), (newPhase), edge))
 				//	return;
 
 				//float samplesSinceEdge = float(math::fract(newPhase - edge) / float(this->mPhaseIncrement));
 				//float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
-				if (!WeirdPreBlepBlampCode(newPhase, edge, samplesFromNewPositionUntilNextSample)) return;
+				WeirdPreBlepBlampCode(newPhase, edge, blampScale, samplesFromNewPositionUntilNextSample, BlampBefore, BlampAfter);
 
-				mBlepBefore += blampScale * BlampBefore(samplesFromEdgeToNextSample);
-				mBlepAfter += blampScale * BlampAfter(samplesFromEdgeToNextSample);
+				//mBlepBefore += blampScale * BlampBefore(samplesFromEdgeToNextSample);
+				//mBlepAfter += blampScale * BlampAfter(samplesFromEdgeToNextSample);
 			}
 
 
@@ -991,18 +995,30 @@ namespace WaveSabreCore
 				mpWaveforms[(int)OscillatorWaveform::VarTriangle] = mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = new VarTriWaveform;
 				mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH] = new WhiteNoiseWaveform;
 			}
-			~OscillatorNode()
-			{
-#ifdef MIN_SIZE_REL
+//			~OscillatorNode()
+//			{
+//#ifdef MIN_SIZE_REL
 #pragma message("OscillatorNode::~OscillatorNode() Leaking memory to save bits.")
-#else
-#pragma message("OscillatorNode::~OscillatorNode() bloaty dtor")
-				for (auto& p : mpWaveforms) {
-					delete p;
-				}
-#endif // MIN_SIZE_REL
-
-			}
+//#else
+//#pragma message("OscillatorNode::~OscillatorNode() bloaty dtor")
+// 			   // careful: some pointers are reused so care to avoid double delete.
+//
+//				delete (PulsePWMWaveform*)mpWaveforms[(int)OscillatorWaveform::Pulse];
+//				delete (PulseTristateWaveform*)mpWaveforms[(int)OscillatorWaveform::PulseTristate];
+//				delete (SawClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SawClip];
+//				delete (SineClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SineClip];
+//				delete (SineHarmTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::SineHarmTrunc];
+//				delete (TriSquareWaveform*)mpWaveforms[(int)OscillatorWaveform::TriSquare];
+//				delete (TriTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::TriTrunc];
+//				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidHard];
+//				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft];
+//				delete (VarTriWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTriangle];
+//				delete (WhiteNoiseWaveform*)mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH];
+//
+//
+//#endif // MIN_SIZE_REL
+//
+//			}
 
 			virtual float GetLastSample() const override { return mOutSample; }
 

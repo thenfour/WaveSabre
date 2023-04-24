@@ -114,14 +114,14 @@ namespace WaveSabreCore
 				}
 			}
 
-#ifdef MIN_SIZE_REL
-#pragma message("LUTs Leaking memory to save bits.")
-#else
-#pragma message("LUT01::~LUT01() bloaty dtor")
-			LUT01::~LUT01() {
-			    delete[] mpTable;
-			}
-#endif // MIN_SIZE_REL
+//#ifdef MIN_SIZE_REL
+#pragma message("LUT01 Leaking memory to save bits.")
+//#else
+//#pragma message("LUT01::~LUT01() bloaty dtor")
+//			LUT01::~LUT01() {
+//			    delete[] mpTable;
+//			}
+//#endif // MIN_SIZE_REL
 
 
 			float LUT01::Invoke(float x) const {
@@ -188,14 +188,14 @@ namespace WaveSabreCore
 				}
 			}
 
-#ifdef MIN_SIZE_REL
-#pragma message("LUTs Leaking memory to save bits.")
-#else
-#pragma message("LUT2D::~LUT2D() bloaty dtor")
-			LUT2D::~LUT2D() {
-				delete[] mpTable;
-			}
-#endif // MIN_SIZE_REL
+//#ifdef MIN_SIZE_REL
+#pragma message("LUT2D Leaking memory to save bits.")
+//#else
+//#pragma message("LUT2D::~LUT2D() bloaty dtor")
+//			LUT2D::~LUT2D() {
+//				delete[] mpTable;
+//			}
+//#endif // MIN_SIZE_REL
 
 			float LUT2D::Invoke(float x, float y) const {
 				if (x <= 0) x = 0;

@@ -351,29 +351,29 @@ namespace WaveSabrePlayerLib
 				accumEventTimestamp = 0;
 				eventIndex = 0;
 			}
-			~Track()
-			{
-#ifdef MIN_SIZE_REL
+//			~Track()
+//			{
+//#ifdef MIN_SIZE_REL
 #pragma message("SongRenderer2::Track::~Track() Leaking memory to save bits.")
-#else
-#pragma message("SongRenderer2::Track::~Track() bloaty dtor")
-				for (int i = 0; i < numBuffers; i++) delete[] Buffers[i];
-
-				if (NumReceives)
-					delete[] Receives;
-
-				if (numDevices)
-				{
-					delete[] devicesIndicies;
-				}
-
-				if (numAutomations)
-				{
-					for (int i = 0; i < numAutomations; i++) delete automations[i];
-					delete[] automations;
-				}
-#endif // MIN_SIZE_REL
-			}
+//#else
+//#pragma message("SongRenderer2::Track::~Track() bloaty dtor")
+//				for (int i = 0; i < numBuffers; i++) delete[] Buffers[i];
+//
+//				if (NumReceives)
+//					delete[] Receives;
+//
+//				if (numDevices)
+//				{
+//					delete[] devicesIndicies;
+//				}
+//
+//				if (numAutomations)
+//				{
+//					for (int i = 0; i < numAutomations; i++) delete automations[i];
+//					delete[] automations;
+//				}
+//#endif // MIN_SIZE_REL
+//			}
 
 			virtual int INode_GetDependencyIndex(int index) const override
 			{
