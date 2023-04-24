@@ -414,13 +414,9 @@ namespace WaveSabreCore
                 return (float)CrtTan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
             }
 
-            inline float fract(float x) {
-                return x - math::floor(x);
-            }
+            float fract(float x);
 
-            inline double fract(double x) {
-                return x - math::floord(x);
-            }
+            double fract(double x);
 
             // where t1, t2, and x are periodic values [0,1).
             // and t1 is "before" t2,

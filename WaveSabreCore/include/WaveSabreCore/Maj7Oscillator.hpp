@@ -79,7 +79,7 @@ namespace WaveSabreCore
 
 				// used as temporary values during block processing.
 				float mOutputGain[2];// = { 0 }; // linear output volume gain calculated from output VolumeParam + panning
-				float mAmpEnvGain;// = { 0 }; // linear gain calculated frequently from osc ampenv
+				float mAmpEnvGain;// = 0;// = { 0 }; // linear gain calculated frequently from osc ampenv
 
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;
@@ -1121,9 +1121,9 @@ namespace WaveSabreCore
 
 				float phaseMod =
 					mPrevSample * mFMFeedbackAmt
-					+ signal1 * signal1PMAmount
-					+ signal2 * signal2PMAmount
-					+ signal3 * signal3PMAmount
+					+ signal1 * signal1PMAmount * fmScale
+					+ signal2 * signal2PMAmount * fmScale
+					+ signal3 * signal3PMAmount * fmScale
 					//+ mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal)
 					;
 

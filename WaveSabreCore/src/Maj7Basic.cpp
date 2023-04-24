@@ -85,6 +85,15 @@ namespace WaveSabreCore
 				return clamp01(1000.0f / (math::max(0.01f, ms) * (real_t)Helpers::CurrentSampleRate));
 			}
 
+			float fract(float x) {
+				return x - math::floor(x);
+			}
+
+			double fract(double x) {
+				return x - math::floord(x);
+			}
+
+
 			bool DoesEncounter(double t1, double t2, float x) {
 				if (t1 < t2) {
 					return (t1 < x&& x <= t2);

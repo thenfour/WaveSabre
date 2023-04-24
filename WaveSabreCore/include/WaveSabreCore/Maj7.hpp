@@ -669,13 +669,12 @@ namespace WaveSabreCore
 							srcVoice->mpSrcDevice->GetAuxPan() + //>mAuxPanParam.mCachedVal +
 							srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
 							mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
-						auto panGains = math::PanToFactor(panParam);
 						float outputVolLin = srcVoice->mpSrcDevice->GetLinearVolume(volumeMod);
+						auto panGains = math::PanToFactor(panParam);
 						srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
 						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
 
 						srcVoice->BeginBlock();
-						//srcVoice->mpAmpEnv->BeginBlock();
 					}
 				}
 
@@ -754,10 +753,10 @@ namespace WaveSabreCore
 						auto matrixVal3 = mpOwner->mParams.Get01Value((int)ParamIndices::FMAmt2to1 + x + 2, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt4to1 + x));
 
 						sourceValues[i] = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale,
-							sourceValues[i < 1 ? 1 : 0], matrixVal1 * globalFMScale,
-							sourceValues[i < 2 ? 2 : 1], matrixVal2 * globalFMScale,
-							sourceValues[i < 3 ? 3 : 2], matrixVal3 * globalFMScale
-						) * srcVoice->mAmpEnvGain;
+							sourceValues[i < 1 ? 1 : 0], matrixVal1,
+							sourceValues[i < 2 ? 2 : 1], matrixVal2,
+							sourceValues[i < 3 ? 3 : 2], matrixVal3
+							) * srcVoice->mAmpEnvGain;
 
 					}
 
