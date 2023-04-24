@@ -993,7 +993,15 @@ namespace WaveSabreCore
 			}
 			~OscillatorNode()
 			{
+#ifdef MIN_SIZE_REL
 #pragma message("OscillatorNode::~OscillatorNode() Leaking memory to save bits.")
+#else
+#pragma message("OscillatorNode::~OscillatorNode() bloaty dtor")
+				for (auto& p : mpWaveforms) {
+					delete p;
+				}
+#endif // MIN_SIZE_REL
+
 			}
 
 			virtual float GetLastSample() const override { return mOutSample; }
@@ -1031,7 +1039,7 @@ namespace WaveSabreCore
 				}
 				mnSamples = 0; // ensure reprocessing after setting these params to avoid corrupt state.
 				auto w = mpOscDevice->mParams.GetEnumValue<OscillatorWaveform>(mpOscDevice->mIntention == OscillatorIntention::Audio ? (int)OscParamIndexOffsets::Waveform : (int)LFOParamIndexOffsets::Waveform);
-				mpSlaveWave = mpWaveforms[(int)w];
+				mpSlaveWave = mpWaveforms[math::ClampI((int)w, 0, (int)OscillatorWaveform::Count - 1)];
 			}
 
 			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale,

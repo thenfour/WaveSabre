@@ -100,7 +100,9 @@ namespace WaveSabrePlayerLib
 
 		~GraphProcessor()
 		{
-			// todo
+			// TODO: this.
+			// currently, since this is not in the VST, we don't really care much as this is a fire-once kind of class.
+			// ideally we would join all threads, close handles, close event handles ... but it will never be relevant.
 #pragma message("GraphProcessor::~GraphProcessor() Leaking memory to save bits.")
 		}
 
@@ -351,22 +353,26 @@ namespace WaveSabrePlayerLib
 			}
 			~Track()
 			{
+#ifdef MIN_SIZE_REL
 #pragma message("SongRenderer2::Track::~Track() Leaking memory to save bits.")
-				//for (int i = 0; i < numBuffers; i++) delete[] Buffers[i];
+#else
+#pragma message("SongRenderer2::Track::~Track() bloaty dtor")
+				for (int i = 0; i < numBuffers; i++) delete[] Buffers[i];
 
-				//if (NumReceives)
-				//	delete[] Receives;
+				if (NumReceives)
+					delete[] Receives;
 
-				//if (numDevices)
-				//{
-				//	delete[] devicesIndicies;
-				//}
+				if (numDevices)
+				{
+					delete[] devicesIndicies;
+				}
 
-				//if (numAutomations)
-				//{
-				//	for (int i = 0; i < numAutomations; i++) delete automations[i];
-				//	delete[] automations;
-				//}
+				if (numAutomations)
+				{
+					for (int i = 0; i < numAutomations; i++) delete automations[i];
+					delete[] automations;
+				}
+#endif // MIN_SIZE_REL
 			}
 
 			virtual int INode_GetDependencyIndex(int index) const override

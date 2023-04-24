@@ -21,8 +21,19 @@ using std::max;
 #define cast_uint32_t (uint32_t)
 #endif
 
+#ifdef _DEBUG
+#define WSASSERT(condition) \
+    do { \
+        if (!(condition)) { \
+            ::DebugBreak(); \
+        } \
+    } while (false)
+
+#endif
+
 namespace WaveSabreCore
 {
+
     class CriticalSection
     {
     public:
@@ -433,7 +444,10 @@ namespace WaveSabreCore
                 float* mpTable;
 
                 LUT01(size_t nSamples, float (*fn)(float));
-                //virtual ~LUT01();
+#ifdef MIN_SIZE_REL
+#else
+                virtual ~LUT01();
+#endif // MIN_SIZE_REL
                 virtual float Invoke(float x) const;
             };
 
@@ -457,8 +471,10 @@ namespace WaveSabreCore
                 float* mpTable;
 
                 LUT2D(size_t nSamplesX, size_t nSamplesY, float (*fn)(float, float));
-
-                //virtual ~LUT2D();
+#ifdef MIN_SIZE_REL
+#else
+                virtual ~LUT2D();
+#endif // MIN_SIZE_REL
 
                 virtual float Invoke(float x, float y) const;
             };

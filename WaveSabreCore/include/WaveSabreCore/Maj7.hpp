@@ -257,7 +257,25 @@ namespace WaveSabreCore
 			}
 
 			~Maj7() {
+#ifdef MIN_SIZE_REL
 #pragma message("Maj7::~Maj7() Leaking memory to save bits.")
+#else
+#pragma message("Maj7::~Maj7() bloaty dtor")
+				for (int i = 0; i < std::size(mpModulations); ++i)
+				{
+					delete mpModulations[i];
+				}
+
+				for (int i = 0; i < gModLFOCount; ++i) {
+					delete mpLFOs[i];
+					delete mpOscillatorDevices[i];
+					delete mpSamplerDevices[i];
+				}
+
+				for (size_t i = 0; i < std::size(mVoices); ++i) {
+					delete mMaj7Voice[i];
+				}
+#endif // MIN_SIZE_REL
 			}
 
 			virtual void LoadDefaults() override
@@ -564,7 +582,27 @@ namespace WaveSabreCore
 					}
 				}
 				~Maj7Voice() {
+#ifdef MIN_SIZE_REL
 #pragma message("Maj7Voice::~Maj7Voice() Leaking memory to save bits.")
+#else
+#pragma message("Maj7Voice::~Maj7Voice() bloaty dtor")
+					for (int ich = 0; ich < 2; ++ich) {
+						for (int ifilt = 0; ifilt < 2; ++ifilt) {
+							delete mpFilters[ifilt][ich];
+						}
+					}
+
+					for (int i = 0; i < (gSourceCount + gModEnvCount); ++i) {
+						delete mpEnvelopes[i];
+					}
+
+					for (int i = 0; i < gModLFOCount; ++i) {
+						delete mpLFOs[i];
+						delete mpOscillatorNodes[i];
+						delete mpSamplerVoices[i];
+					}
+#endif // MIN_SIZE_REL
+
 				}
 
 				Maj7* mpOwner;
