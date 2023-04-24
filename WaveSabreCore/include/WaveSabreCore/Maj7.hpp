@@ -458,17 +458,17 @@ namespace WaveSabreCore
 					return masterValue;
 
 				case OutputStream::LFO1:
-					return this->mMaj7Voice[0]->mLFOs[0].mNode.GetLastSample();
+					return this->mMaj7Voice[0]->mpLFOs[0]->mNode.GetLastSample();
 				case OutputStream::LFO2:
-					return this->mMaj7Voice[0]->mLFOs[1].mNode.GetLastSample();
+					return this->mMaj7Voice[0]->mpLFOs[1]->mNode.GetLastSample();
 				case OutputStream::LFO3:
-					return this->mMaj7Voice[0]->mLFOs[2].mNode.GetLastSample();
+					return this->mMaj7Voice[0]->mpLFOs[2]->mNode.GetLastSample();
 				case OutputStream::LFO4:
-					return this->mMaj7Voice[0]->mLFOs[3].mNode.GetLastSample();
+					return this->mMaj7Voice[0]->mpLFOs[3]->mNode.GetLastSample();
 				case OutputStream::ModMatrix_NormRecalcSample:
 					return float(this->mMaj7Voice[0]->mModMatrix.mnSampleCount) / GetModulationRecalcSampleMask();
 				case OutputStream::LFO1_NormRecalcSample:
-					return float(this->mMaj7Voice[0]->mLFOs[0].mNode.mnSamples) / GetAudioOscillatorRecalcSampleMask();
+					return float(this->mMaj7Voice[0]->mpLFOs[0]->mNode.mnSamples) / GetAudioOscillatorRecalcSampleMask();
 				case OutputStream::ModSource_LFO1:
 					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO1);
 				case OutputStream::ModSource_LFO2:
@@ -522,15 +522,14 @@ namespace WaveSabreCore
 					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::ModEnv1);
 				case OutputStream::ModSource_ModEnv2:
 					return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::ModEnv2);
-
 				case OutputStream::Osc1:
-					return this->mMaj7Voice[0]->mOscillator1.GetLastSample();
+					return this->mMaj7Voice[0]->mpOscillatorNodes[0]->GetLastSample();
 				case OutputStream::Osc2:
-					return this->mMaj7Voice[0]->mOscillator2.GetLastSample();
+					return this->mMaj7Voice[0]->mpOscillatorNodes[1]->GetLastSample();
 				case OutputStream::Osc3:
-					return this->mMaj7Voice[0]->mOscillator3.GetLastSample();
+					return this->mMaj7Voice[0]->mpOscillatorNodes[2]->GetLastSample();
 				case OutputStream::Osc4:
-					return this->mMaj7Voice[0]->mOscillator4.GetLastSample();
+					return this->mMaj7Voice[0]->mpOscillatorNodes[3]->GetLastSample();
 
 				}
 			}
@@ -618,12 +617,12 @@ namespace WaveSabreCore
 					mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);
 					mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f);
 					mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01);
+					mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 					float iuv = 1;
 					if (mpOwner->mVoicesUnisono > 1) {
 						iuv = float(mUnisonVoice) / (mpOwner->mVoicesUnisono - 1);
 					}
 					mModMatrix.SetSourceValue(ModSource::UnisonoVoice, iuv);
-					mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1)); // krate, 01
 
 					for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
 					{
@@ -700,10 +699,10 @@ namespace WaveSabreCore
 						mModMatrix.SetSourceValue(lfo.mDevice.mInfo.mModSource, s);
 					}
 
+					// TODO: what is this loop?
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
-
 						if (!srcVoice->mpSrcDevice->IsEnabled()) {
 							srcVoice->mpAmpEnv->kill();
 							continue;

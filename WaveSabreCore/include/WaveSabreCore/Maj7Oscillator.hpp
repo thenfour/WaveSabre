@@ -100,7 +100,7 @@ namespace WaveSabreCore
 			SawClip,
 			SineClip,
 			SineHarmTrunc,
-			TriClip, // aka one-pole tri trunc for some reason
+			TriClip__obsolete, // aka one-pole tri trunc for some reason
 			TriSquare,
 			TriTrunc,
 			VarTrapezoidHard,
@@ -116,7 +116,7 @@ namespace WaveSabreCore
 			"SawClip",\
 			"SineClip",\
 			"SineHarmTrunc",\
-			"TriClip",\
+			"<obsolete>",\
 			"TriSquare",\
 			"TriTrunc",\
 			"VarTrapezoidHard",\
@@ -199,23 +199,37 @@ namespace WaveSabreCore
 				//return { blepBefore, blepAfter };
 			}
 
-			void OSC_ACCUMULATE_BLEP(double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
+			float samplesSinceEdge;
+			float samplesFromEdgeToNextSample;
+
+			bool WeirdPreBlepBlampCode(double newPhase, float edge, float samplesFromNewPositionUntilNextSample)
 			{
 				if (!math::DoesEncounter(mPhase, newPhase, edge))
-					return;
-				float samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
-				float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+					return false;
+				samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
+				samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+				return true;
+			}
+
+			void OSC_ACCUMULATE_BLEP(double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
+			{
+				//if (!math::DoesEncounter(mPhase, newPhase, edge))
+				//	return;
+				//float samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
+				//float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+				if (!WeirdPreBlepBlampCode(newPhase, edge, samplesFromNewPositionUntilNextSample)) return;
 				mBlepBefore += blepScale * BlepBefore(samplesFromEdgeToNextSample);
 				mBlepAfter += blepScale * BlepAfter(samplesFromEdgeToNextSample);
 			}
 
 			void OSC_ACCUMULATE_BLAMP(double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
-				if (!math::DoesEncounter((mPhase), (newPhase), edge))
-					return;
+				//if (!math::DoesEncounter((mPhase), (newPhase), edge))
+				//	return;
 
-				float samplesSinceEdge = float(math::fract(newPhase - edge) / float(this->mPhaseIncrement));
-				float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+				//float samplesSinceEdge = float(math::fract(newPhase - edge) / float(this->mPhaseIncrement));
+				//float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+				if (!WeirdPreBlepBlampCode(newPhase, edge, samplesFromNewPositionUntilNextSample)) return;
 
 				mBlepBefore += blampScale * BlampBefore(samplesFromEdgeToNextSample);
 				mBlepAfter += blampScale * BlampAfter(samplesFromEdgeToNextSample);
@@ -599,50 +613,50 @@ namespace WaveSabreCore
 		//};
 
 
-		/////////////////////////////////////////////////////////////////////////////
-		struct TriClipWaveform :IOscillatorWaveform
-		{
-			virtual void AfterSetParams() override
-			{
-				mShape = std::abs(mShape * 2 - 1); // create reflection to make bipolar
-				mShape = math::lerp(0.97f, 0.03f, mShape);
-				mDCOffset = -.5;//-.5 * this.shape;
-				mScale = 2;//1/(.5+this.DCOffset);
-				//mScale *= gOscillatorHeadroomScalar;
-			}
+		///////////////////////////////////////////////////////////////////////////////
+		//struct TriClipWaveform :IOscillatorWaveform
+		//{
+		//	virtual void AfterSetParams() override
+		//	{
+		//		mShape = std::abs(mShape * 2 - 1); // create reflection to make bipolar
+		//		mShape = math::lerp(0.97f, 0.03f, mShape);
+		//		mDCOffset = -.5;//-.5 * this.shape;
+		//		mScale = 2;//1/(.5+this.DCOffset);
+		//		//mScale *= gOscillatorHeadroomScalar;
+		//	}
 
-			virtual float NaiveSample(float phase01) override
-			{
-				if (phase01 >= mShape) {
-					return 0;
-				}
-				float y = phase01 / (mShape * 0.5f);
-				if (y < 1) {
-					return y;
-				}
-				return 2 - y;
-			}
+		//	virtual float NaiveSample(float phase01) override
+		//	{
+		//		if (phase01 >= mShape) {
+		//			return 0;
+		//		}
+		//		float y = phase01 / (mShape * 0.5f);
+		//		if (y < 1) {
+		//			return y;
+		//		}
+		//		return 2 - y;
+		//	}
 
-			virtual float NaiveSampleSlope(float phase01) override
-			{
-				if (phase01 >= mShape) {
-					return 0;
-				}
-				float y = phase01 / (mShape * 0.5f);
-				if (y < 1) {
-					return 1 / mShape;
-				}
-				return -1 / mShape;
-			}
+		//	virtual float NaiveSampleSlope(float phase01) override
+		//	{
+		//		if (phase01 >= mShape) {
+		//			return 0;
+		//		}
+		//		float y = phase01 / (mShape * 0.5f);
+		//		if (y < 1) {
+		//			return 1 / mShape;
+		//		}
+		//		return -1 / mShape;
+		//	}
 
-			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
-			{
-				float scale = float(mPhaseIncrement / mShape);
-				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(newPhase, mShape * .5f/*edge*/, -2 * scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(newPhase, mShape/*edge*/, scale, samples, samplesTillNextSample);
-			}
-		};
+		//	virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+		//	{
+		//		float scale = float(mPhaseIncrement / mShape);
+		//		OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(newPhase, mShape * .5f/*edge*/, -2 * scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(newPhase, mShape/*edge*/, scale, samples, samplesTillNextSample);
+		//	}
+		//};
 
 
 		///////////////////////////////////////////////////////////////////////////////
@@ -952,34 +966,34 @@ namespace WaveSabreCore
 			float mCurrentSample = 0;
 			float mOutSample = 0;
 			float mPrevSample = 0;
-			float mFMFeedbackAmt = 0; // adjusted for global FM scale
 			float mCurrentFreq = 0;
 
-			float mFreqModVal = 0;
-			float mPitchFineModVal = 0;
-			float mWaveShapeModVal = 0;
-			float mSyncFreqModVal = 0;
-			float mFMFeedbackModVal = 0;
 			float mPhaseModVal = 0;
 
-			PulsePWMWaveform mPulsePWMWaveform;
-			PulseTristateWaveform mPulseTristateWaveform;
-			SawClipWaveform mSawClipWaveform;
-			SineClipWaveform mSineClipWaveform;
-			SineHarmTruncWaveform mSineHarmTruncWaveform;
-			TriClipWaveform mTriClipWaveform;
-			TriSquareWaveform mTriSquareWaveform;
-			TriTruncWaveform mTriTruncWaveform;
-			VarTrapezoidWaveform mVarTrapezoidHardWaveform { gVarTrapezoidHardSlope };
-			VarTrapezoidWaveform mVarTrapezoidSoftWaveform { gVarTrapezoidSoftSlope };
-			VarTriWaveform mVarTriWaveform;
-			WhiteNoiseWaveform mWhiteNoiseWaveform;
-			IOscillatorWaveform* mpSlaveWave = &mSawClipWaveform;
+			IOscillatorWaveform* mpWaveforms[(int)OscillatorWaveform::Count];
+
+			IOscillatorWaveform* mpSlaveWave;// = &mSawClipWaveform;
 
 			OscillatorNode(ModMatrixNode* pModMatrix, OscillatorDevice* pOscDevice, EnvelopeNode* pAmpEnv) :
 				ISoundSourceDevice::Voice(pOscDevice, pModMatrix, pAmpEnv),
 				mpOscDevice(pOscDevice)
 			{
+				mpSlaveWave = mpWaveforms[(int)OscillatorWaveform::Pulse] = new PulsePWMWaveform;
+				mpWaveforms[(int)OscillatorWaveform::PulseTristate] = new PulseTristateWaveform;
+				mpWaveforms[(int)OscillatorWaveform::SawClip] = new SawClipWaveform;
+				mpWaveforms[(int)OscillatorWaveform::SineClip] = new SineClipWaveform;
+				mpWaveforms[(int)OscillatorWaveform::SineHarmTrunc] = new SineHarmTruncWaveform;
+//				mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = ;// new SineHarmTruncWaveform;
+				mpWaveforms[(int)OscillatorWaveform::TriSquare] = new TriSquareWaveform;
+				mpWaveforms[(int)OscillatorWaveform::TriTrunc] = new TriTruncWaveform;
+				mpWaveforms[(int)OscillatorWaveform::VarTrapezoidHard] = new VarTrapezoidWaveform{ gVarTrapezoidHardSlope };
+				mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft] = new VarTrapezoidWaveform{ gVarTrapezoidSoftSlope };
+				mpWaveforms[(int)OscillatorWaveform::VarTriangle] = mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = new VarTriWaveform;
+				mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH] = new WhiteNoiseWaveform;
+			}
+			~OscillatorNode()
+			{
+#pragma message("OscillatorNode::~OscillatorNode() Leaking memory to save bits.")
 			}
 
 			virtual float GetLastSample() const override { return mOutSample; }
@@ -1017,45 +1031,7 @@ namespace WaveSabreCore
 				}
 				mnSamples = 0; // ensure reprocessing after setting these params to avoid corrupt state.
 				auto w = mpOscDevice->mParams.GetEnumValue<OscillatorWaveform>(mpOscDevice->mIntention == OscillatorIntention::Audio ? (int)OscParamIndexOffsets::Waveform : (int)LFOParamIndexOffsets::Waveform);
-				switch (w) {
-				case OscillatorWaveform::Pulse:
-					mpSlaveWave = &mPulsePWMWaveform;
-					break;
-				case OscillatorWaveform::PulseTristate:
-					mpSlaveWave = &mPulseTristateWaveform;
-					break;
-				case OscillatorWaveform::SawClip:
-					mpSlaveWave = &mSawClipWaveform;
-					break;
-				case OscillatorWaveform::SineClip:
-					mpSlaveWave = &mSineClipWaveform;
-					break;
-				case OscillatorWaveform::SineHarmTrunc:
-					mpSlaveWave = &mSineHarmTruncWaveform;
-					break;
-				case OscillatorWaveform::TriClip:
-					mpSlaveWave = &mTriClipWaveform;
-					break;
-				case OscillatorWaveform::TriSquare:
-					mpSlaveWave = &mTriSquareWaveform;
-					break;
-				case OscillatorWaveform::TriTrunc:
-					mpSlaveWave = &mTriTruncWaveform;
-					break;
-				case OscillatorWaveform::VarTrapezoidSoft:
-					mpSlaveWave = &mVarTrapezoidSoftWaveform;
-					break;
-				case OscillatorWaveform::VarTrapezoidHard:
-					mpSlaveWave = &mVarTrapezoidHardWaveform;
-					break;
-				case OscillatorWaveform::VarTriangle:
-					mpSlaveWave = &mVarTriWaveform;
-					break;
-				default:
-				case OscillatorWaveform::WhiteNoiseSH:
-					mpSlaveWave = &mWhiteNoiseWaveform;
-					break;
-				}
+				mpSlaveWave = mpWaveforms[(int)w];
 			}
 
 			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale,
@@ -1069,16 +1045,16 @@ namespace WaveSabreCore
 
 				bool syncEnable = mpOscDevice->mParams.GetBoolValue(OscParamIndexOffsets::SyncEnable);
 
+				float mSyncFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::SyncFrequency);
+				float mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FrequencyParam);
+				float mFMFeedbackModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FMFeedback);
+				float mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Waveshape);
+				mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Phase);
+				float mPitchFineModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
+				float mFMFeedbackAmt = mpOscDevice->mParams.Get01Value(OscParamIndexOffsets::FMFeedback, mFMFeedbackModVal) * fmScale * 0.5f;
+
 				if (0 == mnSamples) // NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
-					mSyncFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::SyncFrequency);
-					mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FrequencyParam);
-					mFMFeedbackModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::FMFeedback);
-					mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Waveshape);
-					mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::Phase);
-					mPitchFineModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
-
-					mFMFeedbackAmt = mpOscDevice->mParams.Get01Value(OscParamIndexOffsets::FMFeedback, mFMFeedbackModVal) * fmScale * 0.5f;
 
 					// - osc pitch semis                  note         oscillator                  
 					// - osc fine (semis)                 note         oscillator                   
@@ -1160,12 +1136,11 @@ namespace WaveSabreCore
 
 			real_t ProcessSampleForLFO(bool forceSilence)
 			{
+				float mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
+				float mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
+				mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Phase);
 				if (!mnSamples)// NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
-					mFreqModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::FrequencyParam);
-					mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
-					mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Phase);
-
 					float freq = mpSrcDevice->mParams.GetFrequency(LFOParamIndexOffsets::FrequencyParam, -1, gLFOFreqConfig, 0, mFreqModVal);
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);

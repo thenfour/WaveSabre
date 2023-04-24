@@ -14,8 +14,8 @@ namespace WaveSabreCore
 		ModMatrixNode::ModMatrixNode()
 		{
 			memset(mSourceValues, 0, sizeof(mSourceValues));
-			//memset(mDestValues, 0, sizeof(mDestValues)); // don't do this; will be set on 1st process.
-			//memset(mModulatedDestValueDeltas, 0, sizeof(mModulatedDestValueDeltas)); // don't; will be set on 1st process.
+			memset(mDestValues, 0, sizeof(mDestValues)); // shouldn't have to do this; will be set on 1st process. but currently needed for some reason. no time to investigate.
+			memset(mModulatedDestValueDeltas, 0, sizeof(mModulatedDestValueDeltas)); // same as above.
 			memset(mModSpecLastDestinations, 0, sizeof(mModSpecLastDestinations));
 
 			// this makes 0 difference in size optimizing whether fancy or whatev
@@ -169,6 +169,11 @@ namespace WaveSabreCore
 				mnSampleCount = (mnSampleCount + 1) & recalcMask;
 			}
 
+
+			float ModMatrixAccessor::GetDestValue__(int offset) const
+			{
+				return mModMatrix.GetDestinationValue(offset + mBase);
+			}
 	} // namespace M7
 
 

@@ -945,6 +945,23 @@ namespace WaveSabreCore
 		static constexpr size_t gModEnv1Index = gSourceCount + gModEnvCount - 2;
 		static constexpr size_t gModEnv2Index = gSourceCount + gModEnvCount - 1;
 
+		// seems like a good idea but increases code size for no perf gain.
+		struct ModMatrixAccessor
+		{
+			const ModMatrixNode& mModMatrix;
+			int mBase;
+			template<typename T>
+			explicit ModMatrixAccessor(const ModMatrixNode& modMatrix, const T& base) :
+				mModMatrix(modMatrix),
+				mBase((int)base)
+			{}
+			float GetDestValue__(int offset) const;
+			template<typename T>
+			float GetDestValue(const T& offset) const {
+				return GetDestValue__((int)offset);
+			}
+		};
+
 	} // namespace M7
 
 
