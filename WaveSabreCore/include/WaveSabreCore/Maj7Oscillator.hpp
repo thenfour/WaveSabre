@@ -146,13 +146,17 @@ namespace WaveSabreCore
 			float mFrequency = 0;
 			double mPhase = 0; // phase cursor 0-1
 			double mPhaseIncrement = 0; // dt
+
+			float mBlepBefore;
+			float mBlepAfter;
+
 			OscillatorIntention mIntention = OscillatorIntention::LFO;
 
 			virtual float NaiveSample(float phase01) = 0; // return amplitude at phase
 			virtual float NaiveSampleSlope(float phase01) = 0; // return slope at phase			
 			virtual void AfterSetParams() = 0;
 			// offers waveforms the opportunity to accumulate bleps along the advancement.
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) {}
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) {}
 
 			// override if you need to adjust things
 			virtual void SetParams(float freq, float phaseOffsetN11, float waveshape, double sampleRate /*required for VST to display a graphic*/, OscillatorIntention intention)
@@ -170,8 +174,8 @@ namespace WaveSabreCore
 			}
 
 			// process discontinuity due to restarting phase right now.
-			// returns blep before and blep after discontinuity.
-			FloatPair OSC_RESTART(float samplesBeforeNext)
+			// updates blep before and blep after discontinuity.
+			void OSC_RESTART(float samplesBeforeNext)
 			{
 				float sampleBefore = this->NaiveSample((float)this->mPhase);
 				double newPhase = this->mPhaseOffset;
@@ -180,32 +184,32 @@ namespace WaveSabreCore
 				float sampleAfter = NaiveSample((float)newPhase);
 				float blepScale = (sampleAfter - sampleBefore) * .5f; // full sample scale is 2; *.5 to bring 0-1
 
-				float blepBefore = blepScale * BlepBefore(samplesBeforeNext); // blep the phase restart.
-				float blepAfter = blepScale * BlepAfter(samplesBeforeNext);
+				mBlepBefore += blepScale * BlepBefore(samplesBeforeNext); // blep the phase restart.
+				mBlepAfter += blepScale * BlepAfter(samplesBeforeNext);
 
 				// fix blamps.
 				float slopeBefore = NaiveSampleSlope((float)mPhase);
 				float slopeAfter = NaiveSampleSlope((float)newPhase);
 				float blampScale = float(this->mPhaseIncrement * (slopeAfter - slopeBefore));
-				blepBefore += blampScale * BlampBefore(samplesBeforeNext);
-				blepAfter += blampScale * BlampAfter(samplesBeforeNext);
+				mBlepBefore += blampScale * BlampBefore(samplesBeforeNext);
+				mBlepAfter += blampScale * BlampAfter(samplesBeforeNext);
 
 				mPhase = newPhase;
 
-				return { blepBefore, blepAfter };
+				//return { blepBefore, blepAfter };
 			}
 
-			void OSC_ACCUMULATE_BLEP(FloatPair& bleps, double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
+			void OSC_ACCUMULATE_BLEP(double newPhase, float edge, float blepScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
 				if (!math::DoesEncounter(mPhase, newPhase, edge))
 					return;
 				float samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
 				float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
-				bleps.first = blepScale * BlepBefore(samplesFromEdgeToNextSample);
-				bleps.second = blepScale * BlepAfter(samplesFromEdgeToNextSample);
+				mBlepBefore += blepScale * BlepBefore(samplesFromEdgeToNextSample);
+				mBlepAfter += blepScale * BlepAfter(samplesFromEdgeToNextSample);
 			}
 
-			void OSC_ACCUMULATE_BLAMP(FloatPair& bleps, double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
+			void OSC_ACCUMULATE_BLAMP(double newPhase, float edge, float blampScale, float samples, float samplesFromNewPositionUntilNextSample)
 			{
 				if (!math::DoesEncounter((mPhase), (newPhase), edge))
 					return;
@@ -213,28 +217,28 @@ namespace WaveSabreCore
 				float samplesSinceEdge = float(math::fract(newPhase - edge) / float(this->mPhaseIncrement));
 				float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
 
-				bleps.first += blampScale * BlampBefore(samplesFromEdgeToNextSample);
-				bleps.second += blampScale * BlampAfter(samplesFromEdgeToNextSample);
+				mBlepBefore += blampScale * BlampBefore(samplesFromEdgeToNextSample);
+				mBlepAfter += blampScale * BlampAfter(samplesFromEdgeToNextSample);
 			}
 
 
 			// samples is 0<samples<1
 			// assume this.phase is currently 0<t<1
 			// this.phase may not be on a sample boundary.
-			// returns blep before and blep after discontinuity.
-			virtual FloatPair OSC_ADVANCE(float samples, float samplesTillNextSample)
+			// accumulates blep before and blep after discontinuity.
+			virtual void OSC_ADVANCE(float samples, float samplesTillNextSample)
 			{
 				//mPhaseIncrement += mDTDT * samples;
 				double phaseToAdvance = samples * mPhaseIncrement;
 				//double newPhase = math::fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
 				double newPhase = mPhase + phaseToAdvance;
 				if (newPhase > 1) newPhase -= 1; // slightly faster t han fract()
-				FloatPair bleps{ 0.0f,0.0f };
+				//FloatPair bleps{ 0.0f,0.0f };
 				if (mIntention == OscillatorIntention::Audio) {
-					Visit(bleps, newPhase, samples, samplesTillNextSample);
+					Visit(newPhase, samples, samplesTillNextSample);
 				}
 				this->mPhase = newPhase;
-				return bleps;
+				//return bleps;
 			}
 		};
 
@@ -279,7 +283,7 @@ namespace WaveSabreCore
 			// assume this.phase is currently 0<t<1
 			// this.phase may not be on a sample boundary.
 			// returns blep before and blep after discontinuity.
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
 				//mPhaseIncrement += mDTDT * samples;
 				//double phaseToAdvance = samples * mPhaseIncrement;
@@ -288,9 +292,9 @@ namespace WaveSabreCore
 				float blampScale = float(mPhaseIncrement);
 				float blepScale = -(1.0f - mShape);
 
-				OSC_ACCUMULATE_BLEP(bleps, newPhase, 0/*edge*/, blepScale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, -blampScale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, this->mShape/*edge*/, blampScale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLEP(newPhase, 0/*edge*/, blepScale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, -blampScale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, this->mShape/*edge*/, blampScale, samples, samplesTillNextSample);
 
 				//this->mPhase = newPhase;
 				//return bleps;
@@ -333,11 +337,11 @@ namespace WaveSabreCore
 				mScale = 1.0f / (.5f - .5f * mFlatValue); // scale it up so it fills both axes
 			}
 
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
 				float scale = float(mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1));
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge1, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mEdge2, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mEdge1, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mEdge2, scale, samples, samplesTillNextSample);
 			}
 		};
 
@@ -360,10 +364,10 @@ namespace WaveSabreCore
 				mShape = math::lerp(0.98f, .02f, mShape);
 			}
 
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
-				OSC_ACCUMULATE_BLEP(bleps, newPhase, 0, -1, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLEP(bleps, newPhase, mShape, 1, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLEP(newPhase, 0, -1, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLEP(newPhase, mShape, 1, samples, samplesTillNextSample);
 			}
 		};
 
@@ -418,7 +422,7 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual FloatPair OSC_ADVANCE(float samples, float samplesTillNextSample)
+			virtual void OSC_ADVANCE(float samples, float samplesTillNextSample)
 			{
 				// assume we're always advancing by 1 exact sample. it theoretically breaks hard sync but like, who the f is hard-syncing a white noise channel?
 				
@@ -430,7 +434,7 @@ namespace WaveSabreCore
 
 				mCurrentSample = mHPFilter.InlineProcessSample(mCurrentLevel);
 
-				return { 0,0 };
+				//return { 0,0 };
 			}
 
 
@@ -474,7 +478,7 @@ namespace WaveSabreCore
 				return -2 * (1 - mShape);
 			}
 
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
 				//       1-|            ,-',        |
 				//         |         ,-'  | ',      |
@@ -490,8 +494,8 @@ namespace WaveSabreCore
 				// this is
 				// dt / (1/pw - 1/(1-pw))
 				float scale = (float)(mPhaseIncrement / (pw - pw * pw));
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, pw/*edge*/, -scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, pw/*edge*/, -scale, samples, samplesTillNextSample);
 			}
 		};
 
@@ -524,12 +528,12 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
-				OSC_ACCUMULATE_BLEP(bleps, newPhase, 0, .5f, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLEP(bleps, newPhase, mT2, -.5f, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLEP(bleps, newPhase, mT3, -.5f, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLEP(bleps, newPhase, mT4, .5f, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLEP(newPhase, 0, .5f, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLEP(newPhase, mT2, -.5f, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLEP(newPhase, mT3, -.5f, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLEP(newPhase, mT4, .5f, samples, samplesTillNextSample);
 			}
 		};
 
@@ -631,12 +635,12 @@ namespace WaveSabreCore
 				return -1 / mShape;
 			}
 
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
 				float scale = float(mPhaseIncrement / mShape);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape * .5f/*edge*/, -2 * scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape/*edge*/, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mShape * .5f/*edge*/, -2 * scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mShape/*edge*/, scale, samples, samplesTillNextSample);
 			}
 		};
 
@@ -774,13 +778,13 @@ namespace WaveSabreCore
 				return 0;
 			}
 
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
 				float scale = float(mPhaseIncrement * 2 / mShape);//OSC_GENERAL_SLOPE(this.shape);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape * .25f/*edge*/, -2 * scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape * .75f/*edge*/, 2 * scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape/*edge*/, -scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mShape * .25f/*edge*/, -2 * scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mShape * .75f/*edge*/, 2 * scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mShape/*edge*/, -scale, samples, samplesTillNextSample);
 			}
 		};
 
@@ -854,13 +858,13 @@ namespace WaveSabreCore
 				return 1 / mSlope;
 			}
 
-			virtual void Visit(FloatPair& bleps, double newPhase, float samples, float samplesTillNextSample) override
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
 				float scale = float(mPhaseIncrement / (mSlope));
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, -scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT1/*edge*/, -scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT2/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT3/*edge*/, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, -scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mT1/*edge*/, -scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mT2/*edge*/, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, mT3/*edge*/, scale, samples, samplesTillNextSample);
 			}
 		};
 
@@ -1127,28 +1131,33 @@ namespace WaveSabreCore
 					//+ mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal)
 					;
 
+				mpSlaveWave->mBlepAfter = 0;
+				mpSlaveWave->mBlepBefore = 0;
+
 				if (mPhase >= mPhaseIncrement || !syncEnable) // did not cross cycle. advance 1 sample
 				{
-					auto bleps = mpSlaveWave->OSC_ADVANCE(1, 0);
-					mPrevSample += bleps.first;
-					mCurrentSample += bleps.second;
+					mpSlaveWave->OSC_ADVANCE(1, 0);
+					//mPrevSample += bleps.first;
+					//mCurrentSample += bleps.second;
 				}
 				else {
 					float x = float(mPhase / mPhaseIncrement); // sample overshoot, in samples.
 
-					auto bleps = mpSlaveWave->OSC_ADVANCE(1 - x, x); // the amount before the cycle boundary
-					mPrevSample += bleps.first;
-					mCurrentSample += bleps.second;
+					mpSlaveWave->OSC_ADVANCE(1 - x, x); // the amount before the cycle boundary
+					//mPrevSample += bleps.first;
+					//mCurrentSample += bleps.second;
 
-					bleps = mpSlaveWave->OSC_RESTART(x); // notify of cycle crossing
-					mPrevSample += bleps.first;
-					mCurrentSample += bleps.second;
+					mpSlaveWave->OSC_RESTART(x); // notify of cycle crossing
+					//mPrevSample += bleps.first;
+					//mCurrentSample += bleps.second;
 
-					bleps = mpSlaveWave->OSC_ADVANCE(x, 0); // and advance after the cycle begin
-					mPrevSample += bleps.first;
-					mCurrentSample += bleps.second;
+					mpSlaveWave->OSC_ADVANCE(x, 0); // and advance after the cycle begin
+					//mPrevSample += bleps.first;
+					//mCurrentSample += bleps.second;
 				}
 
+				mPrevSample += mpSlaveWave->mBlepBefore;
+				mCurrentSample += mpSlaveWave->mBlepAfter;
 				// current sample will be used on next sample (this is the 1-sample delay)
 				mCurrentSample += mpSlaveWave->NaiveSample(float(mpSlaveWave->mPhase + phaseMod));
 				mCurrentSample = math::clampN11(mCurrentSample); // prevent FM from going crazy.
@@ -1187,7 +1196,7 @@ namespace WaveSabreCore
 					return 0;
 				}
 
-				auto bleps = mpSlaveWave->OSC_ADVANCE(1, 0); // advance phase
+				mpSlaveWave->OSC_ADVANCE(1, 0); // advance phase
 				mOutSample = mCurrentSample = mpSlaveWave->NaiveSample(math::fract(float(mPhase + mPhaseModVal)));
 
 				return mOutSample;
