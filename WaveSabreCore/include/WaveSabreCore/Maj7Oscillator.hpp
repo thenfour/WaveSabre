@@ -949,7 +949,6 @@ namespace WaveSabreCore
 			// voice-level state
 			double mPhase = 0;
 			double mPhaseIncrement = 0; // DT
-			//double mDTDT = 0; // to smooth frequency changes without having expensive recalc frequency every sample, just linearly adjust phaseincrement (DT) every sample over the block.
 			float mCurrentSample = 0;
 			float mOutSample = 0;
 			float mPrevSample = 0;
@@ -1017,7 +1016,6 @@ namespace WaveSabreCore
 					return;
 				}
 				mnSamples = 0; // ensure reprocessing after setting these params to avoid corrupt state.
-				//switch (mpOscDevice->mWaveform.GetEnumValue()) {
 				auto w = mpOscDevice->mParams.GetEnumValue<OscillatorWaveform>(mpOscDevice->mIntention == OscillatorIntention::Audio ? (int)OscParamIndexOffsets::Waveform : (int)LFOParamIndexOffsets::Waveform);
 				switch (w) {
 				case OscillatorWaveform::Pulse:
@@ -1060,8 +1058,10 @@ namespace WaveSabreCore
 				}
 			}
 
-			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale, real_t signal1, real_t signal1PMAmount, real_t signal2, real_t signal2PMAmount, real_t signal3, real_t signal3PMAmount)
+			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale,
+				const ParamAccessor& globalParams, float const *otherSignals, int iosc)
 			{
+				const ParamAccessor& params = mpSrcDevice->mParams;
 				if (!this->mpSrcDevice->mEnabledCache) {
 					mOutSample = mCurrentSample = 0;
 					return 0;
@@ -1079,7 +1079,6 @@ namespace WaveSabreCore
 					mPitchFineModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)OscModParamIndexOffsets::PitchFine);
 
 					mFMFeedbackAmt = mpOscDevice->mParams.Get01Value(OscParamIndexOffsets::FMFeedback, mFMFeedbackModVal) * fmScale * 0.5f;
-					//mFMFeedbackAmt = mpOscDevice->mFMFeedback01.Get01Value(mFMFeedbackModVal) * fmScale * 0.5f;
 
 					// - osc pitch semis                  note         oscillator                  
 					// - osc fine (semis)                 note         oscillator                   
@@ -1088,11 +1087,11 @@ namespace WaveSabreCore
 					// - osc mul (Hz)                     hz           oscillator             
 					// - osc detune (semis)               hz+semis     oscillator                         
 					// - unisono detune (semis)           hz+semis     oscillator                             
-					int pitchSemis = mpSrcDevice->mParams.GetIntValue(OscParamIndexOffsets::PitchSemis, gSourcePitchSemisRange);
-					float pitchFine = mpSrcDevice->mParams.GetN11Value(OscParamIndexOffsets::PitchFine, mPitchFineModVal) * gSourcePitchFineRangeSemis;
+					int pitchSemis = params.GetIntValue(OscParamIndexOffsets::PitchSemis, gSourcePitchSemisRange);
+					float pitchFine = params.GetN11Value(OscParamIndexOffsets::PitchFine, mPitchFineModVal) * gSourcePitchFineRangeSemis;
 					midiNote += pitchSemis + pitchFine;// (mpSrcDevice->mPitchFineParam.mCachedVal + mPitchFineModVal)* gSourcePitchFineRangeSemis;
 					float noteHz = math::MIDINoteToFreq(midiNote);
-					float freq = mpSrcDevice->mParams.GetFrequency(OscParamIndexOffsets::FrequencyParam, OscParamIndexOffsets::FrequencyParamKT, gSourceFreqConfig, noteHz, mFreqModVal);//mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
+					float freq = params.GetFrequency(OscParamIndexOffsets::FrequencyParam, OscParamIndexOffsets::FrequencyParamKT, gSourceFreqConfig, noteHz, mFreqModVal);//mpSrcDevice->mFrequencyParam.GetFrequency(noteHz, mFreqModVal);
 					freq *= mpOscDevice->mParams.GetScaledRealValue(OscParamIndexOffsets::FreqMul, 0.0f, gFrequencyMulMax, 0); //mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
 					freq *= detuneFreqMul;
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
@@ -1120,16 +1119,19 @@ namespace WaveSabreCore
 				// mSlaveWave holds the slave phase, bound by sync frequency.
 
 				// Push master phase forward by full sample.
-				//mPhaseIncrement += mDTDT;
 				mPhase = math::fract(mPhase + mPhaseIncrement);
 
-				float phaseMod =
-					mPrevSample * mFMFeedbackAmt
-					+ signal1 * signal1PMAmount * fmScale
-					+ signal2 * signal2PMAmount * fmScale
-					+ signal3 * signal3PMAmount * fmScale
-					//+ mpOscDevice->mPhaseOffset.GetN11Value(mPhaseModVal)
-					;
+				float phaseMod = mPrevSample * mFMFeedbackAmt;
+				int otherIndex = -1;
+				for (int i = 0; i < gOscillatorCount - 1; ++i) {
+					int off = iosc * (gOscillatorCount - 1) + i;
+					ParamIndices amtParam = ParamIndices((int)ParamIndices::FMAmt2to1 + off);
+					ModDestination amtMod = ModDestination((int)ModDestination::FMAmt2to1 + off);
+					float amt = globalParams.Get01Value(amtParam, mpModMatrix->GetDestinationValue(amtMod));
+
+					otherIndex += (i == iosc) ? 2 : 1;
+					phaseMod += otherSignals[otherIndex] * amt * fmScale;
+				}
 
 				mpSlaveWave->mBlepAfter = 0;
 				mpSlaveWave->mBlepBefore = 0;
@@ -1137,23 +1139,12 @@ namespace WaveSabreCore
 				if (mPhase >= mPhaseIncrement || !syncEnable) // did not cross cycle. advance 1 sample
 				{
 					mpSlaveWave->OSC_ADVANCE(1, 0);
-					//mPrevSample += bleps.first;
-					//mCurrentSample += bleps.second;
 				}
 				else {
 					float x = float(mPhase / mPhaseIncrement); // sample overshoot, in samples.
-
 					mpSlaveWave->OSC_ADVANCE(1 - x, x); // the amount before the cycle boundary
-					//mPrevSample += bleps.first;
-					//mCurrentSample += bleps.second;
-
 					mpSlaveWave->OSC_RESTART(x); // notify of cycle crossing
-					//mPrevSample += bleps.first;
-					//mCurrentSample += bleps.second;
-
 					mpSlaveWave->OSC_ADVANCE(x, 0); // and advance after the cycle begin
-					//mPrevSample += bleps.first;
-					//mCurrentSample += bleps.second;
 				}
 
 				mPrevSample += mpSlaveWave->mBlepBefore;
@@ -1163,7 +1154,7 @@ namespace WaveSabreCore
 				mCurrentSample = math::clampN11(mCurrentSample); // prevent FM from going crazy.
 				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale * gOscillatorHeadroomScalar;
 
-				return mOutSample;
+				return mOutSample * mAmpEnvGain;
 			} // process sample for audio
 
 
@@ -1175,7 +1166,6 @@ namespace WaveSabreCore
 					mWaveShapeModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Waveshape);
 					mPhaseModVal = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)LFOModParamIndexOffsets::Phase);
 
-					//float freq = mpSrcDevice->mFrequencyParam.GetFrequency(0, mFreqModVal);
 					float freq = mpSrcDevice->mParams.GetFrequency(LFOParamIndexOffsets::FrequencyParam, -1, gLFOFreqConfig, 0, mFreqModVal);
 					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);

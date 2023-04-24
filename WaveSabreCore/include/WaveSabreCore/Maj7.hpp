@@ -720,6 +720,8 @@ namespace WaveSabreCore
 					float sourceValues[gSourceCount];// = { 0 };
 					float detuneMul[gSourceCount];// = { 0 };
 
+					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mpOwner->mFMBrightnessMod);
+
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
@@ -741,23 +743,10 @@ namespace WaveSabreCore
 						}
 					}
 
-					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mpOwner->mFMBrightnessMod);
-
-					for (size_t i = 0; i < gOscillatorCount; ++i) {
-						auto* srcVoice = mSourceVoices[i];
-						auto po = static_cast<OscillatorNode*>(srcVoice);
-						const size_t x = i * (gOscillatorCount - 1);
-
-						auto matrixVal1 = mpOwner->mParams.Get01Value((int)ParamIndices::FMAmt2to1 + x, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt2to1 + x));
-						auto matrixVal2 = mpOwner->mParams.Get01Value((int)ParamIndices::FMAmt2to1 + x + 1, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt3to1 + x));
-						auto matrixVal3 = mpOwner->mParams.Get01Value((int)ParamIndices::FMAmt2to1 + x + 2, mModMatrix.GetDestinationValue((int)ModDestination::FMAmt4to1 + x));
-
-						sourceValues[i] = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale,
-							sourceValues[i < 1 ? 1 : 0], matrixVal1,
-							sourceValues[i < 2 ? 2 : 1], matrixVal2,
-							sourceValues[i < 3 ? 3 : 2], matrixVal3
-							) * srcVoice->mAmpEnvGain;
-
+					// unfortunately cannot do this in previous loop because we need all the source values in advance.
+					for (int i = 0; i < gOscillatorCount; ++i) {
+						auto* po = mpOscillatorNodes[i];
+						sourceValues[i] = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale, mpOwner->mParams, sourceValues, i);
 					}
 
 					for (size_t ich = 0; ich < 2; ++ich)
