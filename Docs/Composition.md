@@ -4,9 +4,22 @@ At a basic level, the WaveSabre play routine suppots the following.
 
 - Midi note on / off
 - Midi velocity ( some devices do not use this )
+- Midi CC changes
+- Midi pitchbend
 - Linear automation of any WaveSabre device parameter
-- Audio track volume ( no panning and no automation )
-- Audio track routing ( each track can send or route audio to a another track, you cannot send audio pre-effects )
+- Audio track volume ( no panning )
+- Audio track routing ( each track can send or route audio to a another track, you cannot send audio pre-effects ).
+
+## Composition - Things that are not supported
+
+Obviously not an exhaustive list, but some common things that are not supported by the underlying song chunk:
+
+- Non-linear automation points
+- Midi sending is not supported, however tracks with duplicate MIDI data will be optimized into 1 lane.
+- Tempo changes
+- Playback speeds
+- Panning (but use the Maj7 Width device if you need panning)
+
 
 ## Composition - Ableton
 
@@ -66,4 +79,9 @@ Most of the basic functions are supported in FL Studio. Obviously more DAW speci
 
 ## Composition - Reaper
 
-Most basic functions should be fine.  It is a very new converter and hasn't been fully tested by the community as yet.
+Working as intended. Some features are not supported:
+
+- Media item offsets (as a general rule, glue everything before converting)
+- Media item looping
+
+
