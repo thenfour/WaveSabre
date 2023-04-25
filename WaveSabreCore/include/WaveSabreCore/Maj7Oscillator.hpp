@@ -778,7 +778,7 @@ namespace WaveSabreCore
 				tx -= 0.25f;
 				tx = math::fract(tx);
 				tx -= 0.5f;
-				tx = math::abs(tx) * 4 - 1;
+				tx = std::abs(tx) * 4 - 1;
 				return tx;
 			}
 

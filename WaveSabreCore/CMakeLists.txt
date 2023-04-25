@@ -20,6 +20,7 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/Maj7.hpp
 	include/WaveSabreCore/Maj7SynthDevice.hpp
 	include/WaveSabreCore/Maj7Basic.hpp
+	include/WaveSabreCore/LUTs.hpp
 	include/WaveSabreCore/Maj7Envelope.hpp
 	include/WaveSabreCore/Maj7Filter.hpp
 	include/WaveSabreCore/Maj7ModMatrix.hpp
@@ -59,6 +60,7 @@ add_library(WaveSabreCore
 	src/GsmSample.cpp
 	src/Helpers.cpp
 	src/Leveller.cpp
+	src/LUTs.cpp
 	src/Maj7.cpp
 	src/Maj7b.cpp
 	src/Maj7Basic.cpp

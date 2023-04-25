@@ -4,13 +4,8 @@
 #include <Windows.h>
 #include <WaveSabreCore/Helpers.h>
 #include <memory>
-
-// correction for windows.h macros.
-// i cannot use NOMINMAX, because VST and Gdiplus depend on these macros. 
-#undef min
-#undef max
-
 #include <algorithm>
+#include "LUTs.hpp"
 
 using std::min;
 using std::max;
@@ -143,7 +138,6 @@ namespace WaveSabreCore
 
         extern bool gAlwaysTrue;
 
-        static constexpr real_t FloatEpsilon = 0.000001f;
         static constexpr float MIN_DECIBEL_GAIN = -60.0f;
 
         static constexpr real_t gFreqParamKTUnity = 0.3f;
@@ -236,80 +230,80 @@ namespace WaveSabreCore
 
         namespace math
         {
-            static constexpr real_t gPI = 3.14159265358979323846264338327950288f;
-            static constexpr real_t gPITimes2 = gPI * 2;
-            static constexpr float gSqrt2 = 1.41421356237f;
-            static constexpr float gSqrt2Recip = 0.70710678118f;
+            //static constexpr real_t gPI = 3.14159265358979323846264338327950288f;
+            //static constexpr real_t gPITimes2 = gPI * 2;
+            //static constexpr float gSqrt2 = 1.41421356237f;
+            //static constexpr float gSqrt2Recip = 0.70710678118f;
 
-            inline real_t floor(real_t x) {
-                return (real_t)::floor((double)x);
-            }
-            inline double floord(double x) {
-                return ::floor(x);
-            }
-            inline float rand01() {
-                return float(::rand()) / RAND_MAX;
-            }
-            inline float randN11() {
-                return rand01() * 2 - 1;
-            }
-            inline constexpr real_t max(real_t x, real_t y) {
-                return x > y ? x : y;
-            }
-            inline constexpr real_t min(real_t x, real_t y) {
-                return x < y ? x : y;
-            }
-            inline constexpr float abs(float x)
-            {
-                return x < 0 ? -x : x;
-            }
-            inline constexpr real_t clamp(real_t x, real_t low, real_t hi)
-            {
-                if (x <= low)
-                    return low;
-                if (x >= hi)
-                    return hi;
-                return x;
-            }
-            inline constexpr real_t clamp01(real_t x)
-            {
-                return clamp(x, 0, 1);
-            }
-            inline constexpr real_t clampN11(real_t x)
-            {
-                return clamp(x, -1, 1);
-            }
+            //inline real_t floor(real_t x) {
+            //    return (real_t)::floor((double)x);
+            //}
+            //inline double floord(double x) {
+            //    return ::floor(x);
+            //}
+            //inline float rand01() {
+            //    return float(::rand()) / RAND_MAX;
+            //}
+            //inline float randN11() {
+            //    return rand01() * 2 - 1;
+            //}
+            //inline constexpr real_t max(real_t x, real_t y) {
+            //    return x > y ? x : y;
+            //}
+            //inline constexpr real_t min(real_t x, real_t y) {
+            //    return x < y ? x : y;
+            //}
+            //inline constexpr float abs(float x)
+            //{
+            //    return x < 0 ? -x : x;
+            //}
+            //inline constexpr real_t clamp(real_t x, real_t low, real_t hi)
+            //{
+            //    if (x <= low)
+            //        return low;
+            //    if (x >= hi)
+            //        return hi;
+            //    return x;
+            //}
+            //inline constexpr real_t clamp01(real_t x)
+            //{
+            //    return clamp(x, 0, 1);
+            //}
+            //inline constexpr real_t clampN11(real_t x)
+            //{
+            //    return clamp(x, -1, 1);
+            //}
 
-            template <typename T>
-            static T ClampI(T x, T minInclusive, T maxInclusive)
-            {
-                if (x <= minInclusive)
-                    return minInclusive;
-                if (x >= maxInclusive)
-                    return maxInclusive;
-                return x;
-            }
+            //template <typename T>
+            //static T ClampI(T x, T minInclusive, T maxInclusive)
+            //{
+            //    if (x <= minInclusive)
+            //        return minInclusive;
+            //    if (x >= maxInclusive)
+            //        return maxInclusive;
+            //    return x;
+            //}
 
             bool FloatEquals(real_t f1, real_t f2, real_t eps = FloatEpsilon);
 
-            bool FloatLessThanOrEquals(real_t lhs, real_t rhs, real_t eps = FloatEpsilon);
+            //bool FloatLessThanOrEquals(real_t lhs, real_t rhs, real_t eps = FloatEpsilon);
 
-            float lerp(float a, float b, float t);
+            //float lerp(float a, float b, float t);
 
-            inline float lerp_rev(float v_min, float v_max, float v_val) // inverse of lerp; returns 0-1 where t lies between a and b.
-            {
-                return (v_val - v_min) / (v_max - v_min);
-            }
-            inline float map(float inp, float inp_min, float inp_max, float out_min, float out_max)
-            {
-                float t = lerp_rev(inp_min, inp_max, inp);
-                return lerp(out_min, out_max, t);
-            }
-            inline float map_clamped(float inp, float inp_min, float inp_max, float out_min, float out_max)
-            {
-                float t = lerp_rev(inp_min, inp_max, inp);
-                return lerp(out_min, out_max, clamp01(t));
-            }
+            //inline float lerp_rev(float v_min, float v_max, float v_val) // inverse of lerp; returns 0-1 where t lies between a and b.
+            //{
+            //    return (v_val - v_min) / (v_max - v_min);
+            //}
+            //inline float map(float inp, float inp_min, float inp_max, float out_min, float out_max)
+            //{
+            //    float t = lerp_rev(inp_min, inp_max, inp);
+            //    return lerp(out_min, out_max, t);
+            //}
+            //inline float map_clamped(float inp, float inp_min, float inp_max, float out_min, float out_max)
+            //{
+            //    float t = lerp_rev(inp_min, inp_max, inp);
+            //    return lerp(out_min, out_max, clamp01(t));
+            //}
 
             real_t CalculateInc01PerSampleForMS(real_t ms);
 
@@ -325,79 +319,79 @@ namespace WaveSabreCore
                 return (ms * Helpers::CurrentSampleRateF) * oneOver1000;
             }
 
-            inline void* GetCrtProc(const char * const imp)
-            {
-#ifdef MIN_SIZE_REL
-                HANDLE h = GetModuleHandleA("msvcrt");
-#else
-                HANDLE h = GetModuleHandleA("ucrtbase");
-#endif
-                return GetProcAddress((HMODULE)h, imp);
-            }
+//            inline void* GetCrtProc(const char * const imp)
+//            {
+//#ifdef MIN_SIZE_REL
+//                HANDLE h = GetModuleHandleA("msvcrt");
+//#else
+//                HANDLE h = GetModuleHandleA("ucrtbase");
+//#endif
+//                return GetProcAddress((HMODULE)h, imp);
+//            }
+//
+//            struct CrtFns {
+//                CrtFns() : 
+//                    crt_sin(decltype(crt_sin)(GetCrtProc("sin"))),
+//                    crt_cos(decltype(crt_cos)(GetCrtProc("cos"))),
+//                    crt_tan(decltype(crt_tan)(GetCrtProc("tan"))),
+//                    crt_floor(decltype(crt_floor)(GetCrtProc("floor"))),
+//                    crt_pow(decltype(crt_pow)(GetCrtProc("pow"))),
+//                    crt_log(decltype(crt_log)(GetCrtProc("log")))
+//                {
+//                    //
+//                }
+//                double(__cdecl* crt_sin)(double);
+//                double(__cdecl* crt_cos)(double);
+//                double(__cdecl* crt_tan)(double);
+//                double(__cdecl* crt_floor)(double);
+//                double(__cdecl* crt_pow)(double, double);
+//                double(__cdecl* crt_log)(double);
+//            };
+//
+//            extern CrtFns* gCrtFns;
+//
+//            inline double CrtSin(double x) {
+//                return gCrtFns->crt_sin(x);
+//            }
+//
+//            inline double CrtCos(double x) {
+//                return gCrtFns->crt_cos(x);
+//            }
+//
+//            inline double CrtLog(double x) {
+//                return gCrtFns->crt_log(x);
+//            }
+//
+//            inline double CrtFloor(double x) {
+//                return gCrtFns->crt_floor(x);
+//            }
+//
+//            inline double CrtPow(double x, double y) {
+//                return gCrtFns->crt_pow(x, y);
+//            }
+//
+//            inline double CrtTan(double x) {
+//                return gCrtFns->crt_tan(x);
+//            }
 
-            struct CrtFns {
-                CrtFns() : 
-                    crt_sin(decltype(crt_sin)(GetCrtProc("sin"))),
-                    crt_cos(decltype(crt_cos)(GetCrtProc("cos"))),
-                    crt_tan(decltype(crt_tan)(GetCrtProc("tan"))),
-                    crt_floor(decltype(crt_floor)(GetCrtProc("floor"))),
-                    crt_pow(decltype(crt_pow)(GetCrtProc("pow"))),
-                    crt_log(decltype(crt_log)(GetCrtProc("log")))
-                {
-                    //
-                }
-                double(__cdecl* crt_sin)(double);
-                double(__cdecl* crt_cos)(double);
-                double(__cdecl* crt_tan)(double);
-                double(__cdecl* crt_floor)(double);
-                double(__cdecl* crt_pow)(double, double);
-                double(__cdecl* crt_log)(double);
-            };
+            //// MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
+            //inline long DoubleToLong(double x) {
+            //    return (long)x;
+            //}
 
-            extern CrtFns* gCrtFns;
+            //// MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
+            //inline long FloatToLong(float x) {
+            //    return (long)x;
+            //}
 
-            inline double CrtSin(double x) {
-                return gCrtFns->crt_sin(x);
-            }
-
-            inline double CrtCos(double x) {
-                return gCrtFns->crt_cos(x);
-            }
-
-            inline double CrtLog(double x) {
-                return gCrtFns->crt_log(x);
-            }
-
-            inline double CrtFloor(double x) {
-                return gCrtFns->crt_floor(x);
-            }
-
-            inline double CrtPow(double x, double y) {
-                return gCrtFns->crt_pow(x, y);
-            }
-
-            inline double CrtTan(double x) {
-                return gCrtFns->crt_tan(x);
-            }
-
-            // MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
-            inline long DoubleToLong(double x) {
-                return (long)x;
-            }
-
-            // MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
-            inline long FloatToLong(float x) {
-                return (long)x;
-            }
-
-            inline real_t pow(real_t x, real_t y) {
-                // fasterpow is just too inaccurate.
-                //return fastmath::fastpow(x, y); // this is also not always accurate, just due to ranges. 
-                return (float)CrtPow((double)x, (double)y);
-            }
-            inline real_t pow2(real_t y) {
-                return (float)CrtPow(2, (double)y);
-            }
+            //inline real_t pow(real_t x, real_t y) {
+            //    // fasterpow is just too inaccurate.
+            //    //return fastmath::fastpow(x, y); // this is also not always accurate, just due to ranges. 
+            //    return (float)CrtPow((double)x, (double)y);
+            //}
+            //inline real_t pow2(real_t y) {
+            //    return (float)CrtPow(2, (double)y);
+            //}
 
             //inline double LOG(double x) {
             //    //static CrtMathFn gLog{ "log" };
@@ -410,146 +404,30 @@ namespace WaveSabreCore
             //    //return 0;
             //    //return ::logl(x);
             //}
-            inline float log2(float x) {
-                static constexpr float log2_e = 1.44269504089f; // 1/log(2)
-                //return (float)::logl((double)x) * log2_e;
-                return (float)CrtLog((double)x) * log2_e;
-                //return 0;
-            }
-            inline float log10(float x) {
-                static constexpr float log10_e = 0.4342944819f;// 1.0f / LOG(10.0f);
-                return (float)CrtLog((double)x) * log10_e;
-                //return 0;
-            }
-            inline real_t tan(real_t x) {
-                return (float)CrtTan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
-            }
+            //inline float log2(float x) {
+            //    static constexpr float log2_e = 1.44269504089f; // 1/log(2)
+            //    //return (float)::logl((double)x) * log2_e;
+            //    return (float)CrtLog((double)x) * log2_e;
+            //    //return 0;
+            //}
+            //inline float log10(float x) {
+            //    static constexpr float log10_e = 0.4342944819f;// 1.0f / LOG(10.0f);
+            //    return (float)CrtLog((double)x) * log10_e;
+            //    //return 0;
+            //}
+            //inline real_t tan(real_t x) {
+            //    return (float)CrtTan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
+            //}
 
-            float fract(float x);
+            //float fract(float x);
 
-            double fract(double x);
+            //double fract(double x);
 
             // where t1, t2, and x are periodic values [0,1).
             // and t1 is "before" t2,
             // return true if x falls between t1 and t2.
             // so if t2 < t1, it means a cycle wrap.
             bool DoesEncounter(double t1, double t2, float x);
-
-
-            // lookup table for 0-1 input values, linear interpolation upon lookup.
-            // non-periodic.
-            struct LUT01
-            {
-                const size_t mNSamples;
-                float* mpTable;
-
-                LUT01(size_t nSamples, float (*fn)(float));
-//#ifdef MIN_SIZE_REL
-//#else
-//                virtual ~LUT01();
-//#endif // MIN_SIZE_REL
-                virtual float Invoke(float x) const;
-            };
-
-            struct SinCosLUT : public LUT01
-            {
-                SinCosLUT(size_t nSamples, float (*fn)(float));
-
-                virtual float Invoke(float x) const override;
-            };
-
-            // tanh approaches -1 before -PI, and +1 after +PI. so squish the range and do a 0,1 LUT mapping from -PI,PI
-            struct TanHLUT : public LUT01
-            {
-                TanHLUT(size_t nSamples);
-                virtual float Invoke(float x) const override;
-            };
-
-            struct LUT2D {
-                size_t mNSamplesX;
-                size_t mNSamplesY;
-                float* mpTable;
-
-                LUT2D(size_t nSamplesX, size_t nSamplesY, float (*fn)(float, float));
-//#ifdef MIN_SIZE_REL
-//#else
-//                virtual ~LUT2D();
-//#endif // MIN_SIZE_REL
-
-                virtual float Invoke(float x, float y) const;
-            };
-
-            struct CurveLUT : public LUT2D
-            {
-                // valid for 0<k<1 and 0<x<1
-                static real_t modCurve_x01_k01_RT(real_t x, real_t k);
-
-                // extends range to support -1<x<0 and -1<k<0
-                // outputs -1 to 1
-                static real_t modCurve_xN11_kN11_RT(real_t x, real_t k);
-
-                // incoming values should support -1,1 and output -1,1
-                CurveLUT(size_t nSamples);
-
-                // user passes in n11 values; need to map N11 to 01
-                        virtual float Invoke(float xN11, float yN11) const override;
-            };
-
-            // pow(2,n) is a quite hot path, used by MidiNoteToFrequency(), as well as all other frequency calculations.
-            // the range of `n` is [-15,+15] but depends on frequency param scale. so let's extend a bit and make a huge lut.
-            struct Pow2_N16_16_LUT : public LUT01
-            {
-                Pow2_N16_16_LUT(size_t nSamples);
-                virtual float Invoke(float x) const override;
-            };
-            struct LUTs
-            {
-                SinCosLUT gSinLUT;
-                SinCosLUT gCosLUT;
-                TanHLUT gTanhLUT;
-                LUT01 gSqrt01LUT;// sqrt 01
-
-                CurveLUT gCurveLUT;
-                Pow2_N16_16_LUT gPow2_N16_16_LUT;
-                // pow10 can be useful too.
-
-                LUTs();
-            };
-
-            extern LUTs* gLuts;
-
-            inline float pow2_N16_16(float n)
-            {
-                return gLuts->gPow2_N16_16_LUT.Invoke(n);
-            }
-
-            inline real_t sin(real_t x) {
-                return gLuts->gSinLUT.Invoke(x);
-                //return (real_t)Helpers::FastSin((double)x);
-            }
-            inline real_t cos(real_t x) {
-                return gLuts->gCosLUT.Invoke(x);// (real_t)Helpers::FastCos((double)x);
-            }
-
-            inline real_t sqrt(real_t x) {
-                return (float)::sqrt((double)x);
-            }
-
-            // optimized LUT works for 0<=x<=1
-            inline real_t sqrt01(real_t x) {
-                return gLuts->gSqrt01LUT.Invoke(x);
-            }
-
-            inline real_t tanh(real_t x) {
-                return gLuts->gTanhLUT.Invoke(x);
-                //return (float)::tanh((double)x);
-                //return fastmath::fastertanh(x); // tanh is used for saturation and the fast version adds weird high frequency content. try it on a LP filter and see what i mean.
-            }
-
-            inline real_t modCurve_xN11_kN11(real_t x, real_t k)
-            {
-                return gLuts->gCurveLUT.Invoke(x, k);
-            }
 
             /**
              * Converts a linear value to decibels.  Returns <= aMinDecibels if the linear

@@ -42,6 +42,11 @@ set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /fp:fast") # avoid
 # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG")
 # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
 
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /GL") # whole program optimization (see LTCG set at the target makefile)
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Ot") # favor fast code
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Oi") # enable intrinsics
+set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Ob2") # enable inlining for any suitable
+
 add_compile_definitions($<$<CONFIG:MinSizeRel>:MIN_SIZE_REL>) # a lot of special cases for size-optimization and CRT avoidance; make it easy.
 add_compile_definitions(NOMINMAX) # prevent windows.h from invasive #defines
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)

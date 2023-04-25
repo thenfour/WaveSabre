@@ -15,6 +15,8 @@ foreach(child ${children})
 		target_link_libraries(${child} WaveSabreCore WaveSabreVstLib)
 		set_property(TARGET ${child} APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL
 			" /LTCG")
+		set_property(TARGET ${child} APPEND_STRING PROPERTY LINK_FLAGS_RELWITHDEBINFO
+			" /LTCG")
 		set_property(TARGET ${child} PROPERTY FOLDER VSTs)
 		target_compile_features(${child} PUBLIC cxx_std_17)
 
