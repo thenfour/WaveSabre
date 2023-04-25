@@ -44,4 +44,9 @@ set_property(TARGET ProjectManager PROPERTY VS_DOTNET_REFERENCES
 )
 set_target_properties(ProjectManager PROPERTIES VS_GLOBAL_ROOTNAMESPACE ProjectManager)
 
+# TODO: also copy PDBs.
 add_custom_command(TARGET ProjectManager POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:WaveSabreStandAlonePlayer> $<TARGET_FILE_DIR:ProjectManager>)
+
+foreach(target ${VST_TARGETS})
+	add_custom_command(TARGET ProjectManager POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target}> $<TARGET_FILE_DIR:ProjectManager>)
+endforeach()

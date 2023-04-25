@@ -93,7 +93,7 @@ namespace WaveSabreCore
                 // --- cascade of 4 filters
                 float output = 0;
                 for (size_t i = 0; i < 4; ++i) {
-                    dLP[i + 1] = m_LPF[i].InlineProcessSample(dLP[i]);
+                    dLP[i + 1] = m_LPF[i].ProcessSample(dLP[i]);
                     output += dLP[i] * mLetters[i];
                 }
                 output += dLP[4] * mLetters[4];

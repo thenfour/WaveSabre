@@ -17,11 +17,6 @@ namespace WaveSabreCore
             //    m_feedbackL = fb;
             //}
 
-            real getFeedbackOutputL()
-            {
-                return m_beta * (m_z_1L + m_feedbackL * m_delta);
-            }
-
             virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
                 if ((m_FilterType == type) && math::FloatEquals(m_cutoffHz, cutoffHz) && math::FloatEquals(m_q, reso))
@@ -56,12 +51,12 @@ namespace WaveSabreCore
                 m_feedbackL = 0;
             }
 
-            virtual real ProcessSample(real x) override
+            real getFeedbackOutputL()
             {
-                return InlineProcessSample(x);
+                return m_beta * (m_z_1L + m_feedbackL * m_delta);
             }
 
-            inline real InlineProcessSample(real xn)
+            virtual real ProcessSample(real xn) override
             {
                 // for diode filter support
                 xn = xn * m_gamma + m_feedbackL + m_epsilon * getFeedbackOutputL();

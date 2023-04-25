@@ -450,7 +450,7 @@ namespace WaveSabreCore
 					mPhase = math::fract(mPhase);
 				}
 
-				mCurrentSample = mHPFilter.InlineProcessSample(mCurrentLevel);
+				mCurrentSample = mHPFilter.ProcessSample(mCurrentLevel);
 
 				//return { 0,0 };
 			}
@@ -995,30 +995,30 @@ namespace WaveSabreCore
 				mpWaveforms[(int)OscillatorWaveform::VarTriangle] = mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = new VarTriWaveform;
 				mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH] = new WhiteNoiseWaveform;
 			}
-//			~OscillatorNode()
-//			{
-//#ifdef MIN_SIZE_REL
+
+						~OscillatorNode()
+			{
+#ifdef MIN_SIZE_REL
 #pragma message("OscillatorNode::~OscillatorNode() Leaking memory to save bits.")
-//#else
-//#pragma message("OscillatorNode::~OscillatorNode() bloaty dtor")
-// 			   // careful: some pointers are reused so care to avoid double delete.
-//
-//				delete (PulsePWMWaveform*)mpWaveforms[(int)OscillatorWaveform::Pulse];
-//				delete (PulseTristateWaveform*)mpWaveforms[(int)OscillatorWaveform::PulseTristate];
-//				delete (SawClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SawClip];
-//				delete (SineClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SineClip];
-//				delete (SineHarmTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::SineHarmTrunc];
-//				delete (TriSquareWaveform*)mpWaveforms[(int)OscillatorWaveform::TriSquare];
-//				delete (TriTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::TriTrunc];
-//				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidHard];
-//				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft];
-//				delete (VarTriWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTriangle];
-//				delete (WhiteNoiseWaveform*)mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH];
-//
-//
-//#endif // MIN_SIZE_REL
-//
-//			}
+#else
+ 			   // careful: some pointers are reused so care to avoid double delete.
+
+				delete (PulsePWMWaveform*)mpWaveforms[(int)OscillatorWaveform::Pulse];
+				delete (PulseTristateWaveform*)mpWaveforms[(int)OscillatorWaveform::PulseTristate];
+				delete (SawClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SawClip];
+				delete (SineClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SineClip];
+				delete (SineHarmTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::SineHarmTrunc];
+				delete (TriSquareWaveform*)mpWaveforms[(int)OscillatorWaveform::TriSquare];
+				delete (TriTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::TriTrunc];
+				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidHard];
+				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft];
+				delete (VarTriWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTriangle];
+				delete (WhiteNoiseWaveform*)mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH];
+
+
+#endif // MIN_SIZE_REL
+
+			}
 
 			virtual float GetLastSample() const override { return mOutSample; }
 

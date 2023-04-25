@@ -191,6 +191,7 @@ namespace WaveSabreConvert
             string leaf = deviceID.ToString() + ".dll";
             return FindFileInDirectories(
                 new List<string> {
+                    AppDomain.CurrentDomain.BaseDirectory,
                     vstpath
                     //Environment.ExpandEnvironmentVariables("%program files.....")
 

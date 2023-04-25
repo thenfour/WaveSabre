@@ -59,6 +59,7 @@ add_subdirectory(WaveSabreStandAlonePlayer)
 add_subdirectory(WaveSabreExecutableMusicPlayer)
 
 # VSTs
+set(VST_TARGETS "" CACHE INTERNAL "")
 if(${BUILD_VST_PLUGINS} AND VSTSDK3_DIR)
 	add_subdirectory(WaveSabreVstLib)
 	add_subdirectory(Vsts)
