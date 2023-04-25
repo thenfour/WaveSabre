@@ -4,17 +4,17 @@ A polyphonic megasynthesizer-sampler specifically designed for 32kb executable m
 
 <img src="https://user-images.githubusercontent.com/3672094/234365003-46f482f6-8bc1-4b6b-af6e-54e6a9bd1aea.png" height="600">
 
-## Introduction
+## Quick intro
 
 The idea behind this WaveSabre device is that by combining device features into 1 synth, we can save code size by reducing duplicated overhead of multiple synthesizers. And with that space savings, we can spend it on fancy things like bandlimiting oscillators, fancy-pants envelopes and modulation system.
 
-### A word of caution regarding workflow and code size ###
+### Regarding workflow and code size ###
 
 Before you begin writing your track: Maj7 contains all the features of Slaughter, Specimen, Adultery, and Falcon, but much much much more. So if your project uses Maj7, then ALL tracks should begin with Maj7, and no other synth devices should be used. Those other synth devices are not obsolete though exactly. Maj7 is like 9kb of compressed code size while the others combine to around 5kb. So if you can't afford a few kb (which for a 64kb may well be the case), you may not be able to commit to using Maj7.
 
 In other words, before starting to write your track, decide already if you're going to risk the code size of Maj7.
 
-### If I risk using Maj7, what is the payoff?
+### What is the payoff to using Maj7?
 
 You will have the freedom to create using a workflow much like any other conventional music, without thinking too much about the underlying tech. You will have a huge amount of features to play with, all in one device.
 
@@ -27,7 +27,7 @@ Some example scenarios where Maj7 makes life easier:
 * When building a patch library, Macro knobs (think Massive) make reusing patches more manageable and clear
 * It's just convenient and comfortable. The GUI has a lot of visual feedback, and the overall workflow is forgiving, intuitive, and familiar to other widely-used synths.
 
-## Feature overview
+## Tour of features
 
 * 4 fully high quality (polyblep bandlimiting) oscillators
 * Hard-sync and FM supported on all oscillators
@@ -48,7 +48,6 @@ Some example scenarios where Maj7 makes life easier:
 * velocity
 * Drumkits
 * Unisono modulation
-
 
 ## Detailed documentation of features
 
@@ -73,6 +72,11 @@ Some example scenarios where Maj7 makes life easier:
 ** compound modulations
 ** voice-level vs global
 
+
+## Technical info
+
+* WaveSabre chunk optimization
+* ProjectManager new features
 
 ## FAQ
 
