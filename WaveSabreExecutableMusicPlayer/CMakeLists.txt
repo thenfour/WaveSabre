@@ -26,4 +26,15 @@ if(MSVC)
 		target_compile_definitions(WaveSabreExecutableMusicPlayer PRIVATE
 			$<$<CONFIG:MinSizeRel>:_NO_CRT_STDIO_INLINE>)
 	endif()
+
+	if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+		add_custom_command(TARGET WaveSabreExecutableMusicPlayer POST_BUILD
+			COMMAND ${TOOLS_PATH}/squishy-x86.exe -i $<TARGET_FILE:WaveSabreExecutableMusicPlayer> -o $<TARGET_FILE_DIR:WaveSabreExecutableMusicPlayer>/packed.exe
+			COMMENT "Packing 32-bit executable")
+	else()
+		add_custom_command(TARGET WaveSabreExecutableMusicPlayer POST_BUILD
+			COMMAND ${TOOLS_PATH}/squishy-x64.exe -i $<TARGET_FILE:WaveSabreExecutableMusicPlayer> -o $<TARGET_FILE_DIR:WaveSabreExecutableMusicPlayer>/packed.exe
+			COMMENT "Packing 64-bit executable")
+  	endif()
+
 endif()
