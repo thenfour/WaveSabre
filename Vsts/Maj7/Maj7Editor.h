@@ -287,12 +287,10 @@ public:
 				ImGui::EndMenu();
 			}
 
-			//ImGui::Separator();
-			//ImGui::MenuItem("Show internal modulations", nullptr, &mShowingLockedModulations);
-
 			ImGui::Separator();
 			if (ImGui::MenuItem("Init patch")) {
 				pMaj7->LoadDefaults();
+				mpMaj7VST->SetDefaultSettings();
 			}
 
 			ImGui::Separator();

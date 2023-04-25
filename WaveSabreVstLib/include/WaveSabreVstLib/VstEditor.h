@@ -2,8 +2,6 @@
 #define __WAVESABREVSTLIB_VSTEDITOR_H__
 
 #include "Common.h"
-#include "ImageManager.h"
-#include "NoTextCOptionMenu.h"
 #include <d3d9.h>
 #include <string>
 #include <vector>
@@ -13,7 +11,6 @@
 #include "../imgui/imgui.h"
 #include "../imgui/imgui-knobs.h"
 #include "../imgui/imgui_internal.h"
-#include "../imgui/imfilebrowser.h"
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include "VstPlug.h"

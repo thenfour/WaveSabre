@@ -23,7 +23,7 @@ namespace WaveSabreVstLib
 
 		mDefaultRect.right = width;
 		mDefaultRect.bottom = height;
-		setKnobMode(kLinearMode);
+		setKnobMode(2/*kLinearMode*/);
 	}
 
 	VstEditor::~VstEditor()

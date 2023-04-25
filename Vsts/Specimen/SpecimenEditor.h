@@ -14,8 +14,8 @@ class SpecimenEditor : public VstEditor
 public:
 	SpecimenEditor(AudioEffect* audioEffect) : VstEditor(audioEffect, 1000, 800)
 	{
-		mFileDialog.SetTitle("WaveSabre: Load sample");
-		mFileDialog.SetTypeFilters({ ".wav" });
+		//mFileDialog.SetTitle("WaveSabre: Load sample");
+		//mFileDialog.SetTypeFilters({ ".wav" });
 
 		specimen = ((SpecimenVst *)audioEffect)->GetSpecimen();
 	}
@@ -25,9 +25,22 @@ public:
 		static constexpr char const* const interpModeNames[] = { "Nearest", "Linear" };
 		static constexpr char const* const loopModeNames[] = { "Disabled", "Repeat", "Pingpong" };
 
-		if (ImGui::Button("load sample")) {
-			mFileDialog.Open();
+		if (ImGui::Button("Load from file ...")) {
+			OPENFILENAMEA ofn = { 0 };
+			char szFile[MAX_PATH] = { 0 };
+			ofn.lStructSize = sizeof(ofn);
+			ofn.hwndOwner = this->mCurrentWindow;
+			ofn.lpstrFilter = "All Files (*.*)\0*.*\0";
+			ofn.lpstrFile = szFile;
+			ofn.nMaxFile = MAX_PATH;
+			ofn.Flags = OFN_EXPLORER | OFN_FILEMUSTEXIST;
+			if (GetOpenFileNameA(&ofn))
+			{
+					mStatus.clear();
+					LoadSample(szFile);
+			}
 		}
+
 
 		if (!this->specimen->sample) {
 			ImGui::Text("No sample loaded");
@@ -155,16 +168,6 @@ public:
 		WSImGuiParamKnob((VstInt32)Specimen::ParamIndices::FilterModAmt, "Mod amount");
 
 		ImGui::EndChild();
-
-
-		mFileDialog.Display();
-
-		if (mFileDialog.HasSelected())
-		{
-			mStatus.clear();
-			LoadSample(mFileDialog.GetSelected().string().c_str());
-			mFileDialog.ClearSelected();
-		}
 	}
 
 	enum class StatusStyle
@@ -185,11 +188,8 @@ private:
 	void OnLoadSample();
 	bool LoadSample(const char *path); // returning bool just so we can 1-line return errors. it's meaningless.
 
-	CFileSelector *fileSelector = nullptr;
-
 	Specimen *specimen;
 
-	ImGui::FileBrowser mFileDialog;
 	std::string mStatus = "Ready.";
 	StatusStyle mStatusStyle = StatusStyle::NoStyle;
 

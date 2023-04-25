@@ -1,10 +1,15 @@
 
 #pragma once
 
+#include <Windows.h>
+
+#include <iostream>
+#include <iomanip>
+#include <array>
+
 #include "WaveSabreVstLib/VstPlug.h"
 #include "WaveSabreVstLib/VstEditor.h"
 
-#include "WaveSabreVstLib/ImageManager.h"
 #include "WaveSabreVstLib/Serialization.hpp"
 
 namespace WaveSabreVstLib

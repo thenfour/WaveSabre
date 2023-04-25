@@ -6,8 +6,5 @@
 #include <map>
 
 #include "public.sdk/source/vst2.x/audioeffectx.h"
-#include "vstgui.sf/vstgui/aeffguieditor.h"
-#include "vstgui.sf/vstgui/vstgui.h"
-#include "vstgui.sf/vstgui/cfileselector.h"
-
+#include "aeffeditor.h"
 #endif
