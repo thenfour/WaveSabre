@@ -7,6 +7,6 @@ Currently supported DAW software
 |Renoise|PC|native|to be tested|
 |FL Studio 12|PC|native|works with internal bridge|
 |FL Studio 20|PC|native|works with internal bridge|
-|Reaper|PC|coming soon|coming soon|
+|Reaper|PC|native|native|
 |Ableton 9|MAC|no|coming soon|
 |Renoise|MAC|no|coming soon|
