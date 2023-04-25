@@ -52,6 +52,12 @@ Some example scenarios where Maj7 makes life easier:
 
 ## Detailed documentation of features
 
+* interface
+** keyboard, mouse
+** knob indicators
+** typing values
+** menus
+** sections
 * signal path
 ** oscillator (phase mod, hard sync)
 ** pre-fm amplifier
@@ -67,6 +73,8 @@ Some example scenarios where Maj7 makes life easier:
 ** compound modulations
 ** voice-level vs global
 
+
+## FAQ
 
 
 
