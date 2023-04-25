@@ -237,7 +237,7 @@ namespace WaveSabreCore
 			Maj7() :
 				Maj7SynthDevice((int)ParamIndices::NumParams)
 			{
-				for (int i = 0; i < std::size(mpModulations); ++i)
+				for (int i = 0; i < (int)std::size(mpModulations); ++i)
 				{
 					mpModulations[i] = new ModulationSpec{ mParamCache, (int)ParamIndices::Mod1Enabled + ((int)ModParamIndexOffsets::Count * i) };
 				}
@@ -297,7 +297,7 @@ namespace WaveSabreCore
 				for (auto& s : mpSamplerDevices) {
 					ImportDefaultsArray(std::size(gDefaultSamplerParams), gDefaultSamplerParams, s->mParams.GetOffsetParamCache());// mParamCache + (int)s.mBaseParamID);
 				}
-				for (int i = 0; i < std::size(mpModulations); ++i)
+				for (int i = 0; i < (int)std::size(mpModulations); ++i)
 				{
 					ImportDefaultsArray(std::size(gDefaultModSpecParams), gDefaultModSpecParams, mpModulations[i]->mParams.GetOffsetParamCache());// mParamCache + (int)m.mBaseParamID);
 				}
@@ -396,7 +396,7 @@ namespace WaveSabreCore
 					src->BeginBlock();
 				}
 
-				for (int i = 0; i < std::size(mpModulations); ++i) {
+				for (int i = 0; i < (int)std::size(mpModulations); ++i) {
 					mpModulations[i]->BeginBlock();
 				}
 
