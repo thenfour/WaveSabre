@@ -1437,6 +1437,12 @@ public:
 						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, -3);
 						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
 					}
+					ImGui::SameLine();
+					if (ImGui::SmallButton("neg")) {
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 1);
+						spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 0);
+					}
+
 					if (ImGui::SmallButton("hide advanced")) {
 						mpMaj7VST->mShowAdvancedModAuxControls[imod] = false;
 					}
