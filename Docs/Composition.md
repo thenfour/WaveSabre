@@ -19,6 +19,7 @@ Obviously not an exhaustive list, but some common things that are not supported 
 - Tempo changes
 - Playback speeds
 - Panning (but use the Maj7 Width device if you need panning)
+- Automation methods aside from envelopes. For example automating a parameter via an LFO in the daw will be ignored.
 
 
 ## Composition - Ableton
