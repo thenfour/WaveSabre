@@ -82,14 +82,11 @@ add_library(WaveSabreCore
 
 target_link_libraries(WaveSabreCore Msacm32.lib)
 target_include_directories(WaveSabreCore PUBLIC include)
-target_compile_definitions(WaveSabreCore PUBLIC NOMINMAX)
 
 if(MSVC)
 	target_compile_options(WaveSabreCore
 		PUBLIC $<$<CONFIG:MinSizeRel>:/GS- /GL /Gy /Zi /GR->  # /GL is whole program optimization and causes some issues sometimes.
 		PRIVATE $<$<CONFIG:MinSizeRel>:/Oi /fp:fast>)
-
-	target_compile_definitions(WaveSabreCore PRIVATE $<$<CONFIG:MinSizeRel>:MIN_SIZE_REL>)
 
 	set_property(TARGET WaveSabreCore APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS_MINSIZEREL
 		" /LTCG")

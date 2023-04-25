@@ -37,8 +37,5 @@ target_include_directories(WaveSabreVstLib PUBLIC
 target_compile_features(WaveSabreVstLib PUBLIC cxx_std_17)
 
 if(MSVC)
-	target_compile_definitions(WaveSabreVstLib PUBLIC _CRT_SECURE_NO_WARNINGS)
-	target_compile_definitions(WaveSabreVstLib PUBLIC WINVER=0x0A00)
-	target_compile_definitions(WaveSabreVstLib PUBLIC _WIN32_WINNT=0x0A00)
 	target_compile_options(WaveSabreVstLib PUBLIC /EHsc)
 endif()

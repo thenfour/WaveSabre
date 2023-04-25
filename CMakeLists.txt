@@ -1,5 +1,7 @@
 project("WaveSabre" LANGUAGES C CXX CSharp)
 
+set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;MinSizeRel" CACHE STRING "" FORCE)
+
 # Enable C# Utilities also for the VS2013 AppVeyor stage.
 cmake_policy(SET CMP0057 NEW)
 include(CSharpUtilities)
@@ -7,10 +9,6 @@ set(CMAKE_CSharp_FLAGS ${CMAKE_CSharp_FLAGS} "/langversion:6")
 
 cmake_minimum_required(VERSION 3.11)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
-#set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /arch:IA32")
-set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /fp:fast")
-set(CMAKE_EXE_LINKER_FLAGS_MINSIZEREL "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /DEBUG")
 
 if(MSVC)
 	# disable exceptions globally (will be added back for VSTs)
@@ -36,6 +34,19 @@ if(${BUILD_VST_PLUGINS} AND ${DOWNLOAD_VST3SDK})
 		file(COPY ${VST3SDK_FILES} DESTINATION ${VSTSDK3_DIR})
 	endif()
 endif()
+
+# set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /arch:IA32") # avoids modern CRT calls; however at least on vs2022 this says unknown compile option.
+set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /fp:fast") # avoids modern CRT calls
+# It's tempting to add PDB output for all configs, however it's already on for RelWithDebInfo and Debug.
+# For MinSizeRel, don't output it because it adds ~100 bytes to the resulting compressed binary.
+# set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG")
+# set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /DEBUG")
+
+add_compile_definitions($<$<CONFIG:MinSizeRel>:MIN_SIZE_REL>) # a lot of special cases for size-optimization and CRT avoidance; make it easy.
+add_compile_definitions(NOMINMAX) # prevent windows.h from invasive #defines
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+add_compile_definitions(WINVER=0x0A00)
+add_compile_definitions(_WIN32_WINNT=0x0A00)
 
 # shared code
 add_subdirectory(MSVCRT)

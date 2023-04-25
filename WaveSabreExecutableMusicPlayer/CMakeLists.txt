@@ -13,7 +13,6 @@ target_link_libraries(WaveSabreExecutableMusicPlayer WaveSabrePlayerLib)
 
 if(MSVC)
 	target_compile_definitions(WaveSabreExecutableMusicPlayer PRIVATE _CRT_SECURE_NO_WARNINGS)
-	target_compile_definitions(WaveSabreExecutableMusicPlayer PRIVATE $<$<CONFIG:MinSizeRel>:MIN_SIZE_REL>)
 	
 	target_compile_options(WaveSabreExecutableMusicPlayer
 		PUBLIC $<$<CONFIG:MinSizeRel>:/GS- /GL /Gy /Zi /GR->  # /GL is whole program optimization and causes some issues sometimes.
