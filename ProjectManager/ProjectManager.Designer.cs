@@ -170,6 +170,7 @@
             // 
             // ProjectManager
             // 
+            this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(766, 407);
@@ -188,6 +189,8 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.Name = "ProjectManager";
             this.Text = "Project Manager";
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.ProjectManager_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.ProjectManager_DragEnter);
             this.ResumeLayout(false);
             this.PerformLayout();
 
