@@ -12,14 +12,13 @@
 #include <WaveSabrePlayerLib.h>
 using namespace WaveSabrePlayerLib;
 
-#include "utils.hpp"
 #include "config.hpp"
 
 #include "player.hpp"
 #include "waveformgen.hpp"
 #include "wavwriter.hpp"
 
-char gFilename[MAX_PATH] = { 0 };// = DEFAULT_FILENAME;
+char gFilename[MAX_PATH] = { 0 };
 char gSavedToFilename[MAX_PATH] = { 0 }; // gets populated upon successful save.
 
 char* gWindowText = nullptr;
@@ -27,7 +26,10 @@ HWND hMain;
 
 Renderer* gpRenderer = nullptr;
 Player* gpPlayer = nullptr;
-//WaveformGen* gpWaveformGen = nullptr;
+
+#ifdef FANCY_PAINT
+WaveformGen* gpWaveformGen = nullptr;
+#endif
 
 // position between min(precalctime_max, render_progress)
 int32_t gPrecalcProgressPercent = 0;
@@ -65,8 +67,6 @@ void UpdateStatusText()
         saveIndicatorText,
         (gPrecalcProgressPercent < 100) ? "Precalculating..." : ((renderPercent < 100) ? "Rendering..." : "Done"),
         (gPrecalcProgressPercent < 100) ? gPrecalcProgressPercent : ((renderPercent < 100) ? renderPercent : 0),
-        //sprintf(sz, "Precalc %d%%...", gPrecalcProgressPercent);
-        //sprintf(sz, "Precalc %d%%...", gPrecalcProgressPercent);
         gPrecalcProgressPercent >= 100 ? "Precalc done: Press F5 to play" : "Wait for precalc before playing..."
         );
 
@@ -88,21 +88,7 @@ void UpdateStatusText()
         // TODO: wav writing status & destination
         ;
 
-    //WSTime renderTime = WSTime::FromMilliseconds(GetTickCount() - renderingStartedTick);
-    //if (!gpRenderer->IsRenderingComplete()) {
-    //    gpRenderer->gRenderTime.SetMilliseconds(GetTickCount() - gpRenderer->renderingStartedTick);
-    //}
     int32_t renderPercent = gpRenderer->gSongRendered.AsPercentOf(gpRenderer->gSongLength);
-
-    //const char* renderStatus = "";
-    //if (gpRenderer && isRenderingComplete) {
-    //    renderStatus = "Done";
-    //}
-    //else if (gpRenderer) {
-    //    renderStatus = "Rendering";
-    //}
-
-    //::SendMessageA(hRenderProgress, PBM_SETPOS, (WPARAM)(renderPercent), 0);
 
     auto renderRate = gpRenderer->gSongRendered.AsRateOf_x100(gpRenderer->gRenderTime);
     auto songYetToRender = gpRenderer->gSongLength - gpRenderer->gSongRendered;
@@ -128,16 +114,12 @@ void UpdateStatusText()
     }
 
     sprintf(gWindowText, format,
-        //gSongLength.GetMinutes(), gSongLength.GetSecondsOfMinute(), gSongLength.GetTenthsOfSecondsOfSeconds(),
-        //renderStatus,
         TEXT_INTRO,
         saveIndicatorText,
         renderPercent,
         renderRate / 100, renderRate % 100,
         gpRenderer->mProcessorCount,
         gpRenderer->gRenderTime.GetMinutes(), gpRenderer->gRenderTime.GetSecondsOfMinute(), gpRenderer->gRenderTime.GetTenthsOfSecondsOfSeconds(),
-        //gSongRendered.GetMinutes(), gSongRendered.GetSecondsOfMinute(), gSongRendered.GetTenthsOfSecondsOfSeconds(),
-        //songYetToRender.GetMinutes(), songYetToRender.GetSecondsOfMinute(), songYetToRender.GetTenthsOfSecondsOfSeconds(),
         remainingRenderTime.GetMinutes(), remainingRenderTime.GetSecondsOfMinute(), remainingRenderTime.GetTenthsOfSecondsOfSeconds(),
         estTotalRenderTime.GetMinutes(), estTotalRenderTime.GetSecondsOfMinute(), estTotalRenderTime.GetTenthsOfSecondsOfSeconds(),
         remainingPrecalcTime.GetMinutes(), remainingPrecalcTime.GetSecondsOfMinute(), remainingPrecalcTime.GetTenthsOfSecondsOfSeconds(),
@@ -178,7 +160,7 @@ void handleSave() {
     }
 }
 
-#ifndef SMALL_PAINT
+#ifdef FANCY_PAINT
 void RenderWaveform_Fancy(GdiDeviceContext& dc)
 {
     auto lock = gpRenderer->gCritsec.Enter(); // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
@@ -191,8 +173,8 @@ void RenderWaveform_Fancy(GdiDeviceContext& dc)
     for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i) {
         auto h = gpWaveformGen->mHeights[i];
 
-        const Point p1{ left + i, midY - h.first };
-        const Point p2{ p1.GetX(), midY + h.second };
+        const Point p1{ left + i, midY - h };
+        const Point p2{ p1.GetX(), midY + h };
         // distance to render cursor
         int distToRenderCursor = renderCursorP1.GetX() - p1.GetX();
         float t = float(distToRenderCursor) / gWaveformGradientMaxDistancePixels;
@@ -238,7 +220,7 @@ void handlePaint_Fancy()
     HFONT hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
     LOGFONT lf;
     GetObject(hFont, sizeof(LOGFONT), &lf);
-    lf.lfHeight *= 2; // double the font height
+    lf.lfHeight = MulDiv(lf.lfHeight, gFontHeightMulPercent, 100); // change font height
     lf.lfWeight = 1000;
     HFONT hCustomFont = CreateFontIndirect(&lf); // create a new font based on the modified information
 
@@ -267,107 +249,25 @@ void handlePaint_Fancy()
     EndPaint(hMain, &ps);
 }
 #else 
-void RenderWaveform_Basic(GdiDeviceContext& dc)
-{
-    //auto lock = gpRenderer->gCritsec.Enter(); // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
-
-    //dc.HatchFill(gpWaveformGen->mRect, gColorScheme.WaveformBackground, gColorScheme.WaveformBackground);
-    //const auto midY = gpWaveformGen->mRect.GetMidY();
-    //const auto left = gpWaveformGen->mRect.GetLeft();
-    //Point renderCursorP1{ gpWaveformGen->mRect.GetLeft() + gpWaveformGen->mProcessedWidth, gpWaveformGen->mRect.GetTop() };
-    //Point renderCursorP2{ renderCursorP1.GetX(), gpWaveformGen->mRect.GetBottom() };
-    //for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i) {
-    //    auto h = gpWaveformGen->mHeights[i];
-
-    //    const Point p1{ left + i, midY - h };
-    //    const Point p2{ p1.GetX(), midY + h };
-    //    // distance to render cursor
-    //    int distToRenderCursor = renderCursorP1.GetX() - p1.GetX();
-    //    float t = float(distToRenderCursor) / gWaveformGradientMaxDistancePixels;
-    //    t = WaveSabreCore::M7::math::clamp01(1.0f - t);
-    //    t = WaveSabreCore::M7::math::modCurve_xN11_kN11(t, -0.95f);
-
-    //    dc.DrawLine(p1, p2, gColorScheme.WaveformForeground);
-    //}
-    //dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gColorScheme.WaveformUnrenderedHatch1, gColorScheme.WaveformUnrenderedHatch2);
-
-    ////Point midLineP1{ left, midY };
-    ////Point midLineP2{ renderCursorP1.GetX(), midY };
-    ////dc.DrawLine(midLineP1, midLineP2, gColorScheme.WaveformZeroLine);
-
-    ////dc.DrawLine(renderCursorP1, renderCursorP2, gColorScheme.RenderCursorColor);
-
-    //if (gpPlayer->IsPlaying()) {
-    //    auto playFrames = gpPlayer->gPlayTime.GetFrames();
-    //    //auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gColorScheme.PlayCursorBad : gColorScheme.PlayCursorGood;
-
-    //    int playCursorX = MulDiv(playFrames, gpWaveformGen->mRect.GetWidth(), gpRenderer->gSongLength.GetFrames());
-    //    //static constexpr int gPlayCursorWidth = 4;
-    //    Rect rc{ gpWaveformGen->mRect.GetLeft() + playCursorX, renderCursorP1.GetY(), 1, gpWaveformGen->mRect.GetHeight() };
-
-    //    dc.HatchFill(rc, gColorScheme.PlayCursorGood, gColorScheme.PlayCursorGood);
-    //}
-}
-#endif
 
 void handlePaint_Basic()
 {
     PAINTSTRUCT ps;
     HDC hdc = BeginPaint(hMain, &ps);
 
-    // Double-buffering: create off-screen bitmap
     GdiDeviceContext dc{ hdc };
-    //HBITMAP hBitmap = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
-    //HBITMAP hOldBitmap = (HBITMAP)SelectObject(dc.mDC, hBitmap);
 
-
-    //RenderWaveform_Basic(dc);
-    dc.SolidFill(grcWindow, gColorScheme.WaveformBackground);
+    dc.SolidFill(grcWindow, gColorScheme.PrecalcProgressBackground);
+    dc.SolidFill(grcWindow.LeftAlignedShrink(gPrecalcProgressPercent), gColorScheme.PrecalcProgressForeground);
 
     dc.DrawText_(gWindowText, grcText, gColorScheme.TextColor);
 
-    if (gPrecalcProgressPercent < 100) {
-        dc.SolidFill(grcPrecalcProgress, gColorScheme.PrecalcProgressBackground);
-        dc.SolidFill(grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gColorScheme.PrecalcProgressForeground);
-        //char sz[100];
-        //sprintf(sz, "Precalc %d%%...", gPrecalcProgressPercent);
-        //dc.DrawText_(sz, grcPrecalcProgress, gColorScheme.PrecalcTextShadowColor);
-    }
-
-    // present the back buffer
-    BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, dc.mDC, 0, 0, SRCCOPY);
-
-    //SelectObject(dc.mDC, hOldBitmap);
-    //DeleteObject(hBitmap);
-    DeleteDC(dc.mDC);
-
-    //// Double-buffering: create off-screen bitmap
-    //GdiDeviceContext dc{ CreateCompatibleDC(hdc) };
-    //HBITMAP hBitmap = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
-    //HBITMAP hOldBitmap = (HBITMAP)SelectObject(dc.mDC, hBitmap);
-
-
-    //RenderWaveform_Basic(dc);
-
-    //dc.DrawText_(gWindowText, grcText, gColorScheme.TextColor, gColorScheme.TextShadowColor);
-
-    //if (gPrecalcProgressPercent < 100) {
-    //    dc.HatchFill(grcPrecalcProgress, gColorScheme.PrecalcProgressBackground, gColorScheme.PrecalcProgressBackground);
-    //    dc.HatchFill(grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gColorScheme.PrecalcProgressForeground, gColorScheme.PrecalcProgressForeground);
-    //    char sz[100];
-    //    sprintf(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
-    //    dc.DrawText_(sz, grcPrecalcProgress, gColorScheme.PrecalcTextColor, gColorScheme.PrecalcTextShadowColor);
-    //}
-
-    //// present the back buffer
-    //BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, dc.mDC, 0, 0, SRCCOPY);
-
-    //SelectObject(dc.mDC, hOldBitmap);
-    //DeleteObject(hBitmap);
-    //DeleteDC(dc.mDC);
-
     EndPaint(hMain, &ps);
 }
+
+
+#endif
+
 
 
 
@@ -389,14 +289,14 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     //{
     //    return TRUE; // reduce flickering
     //}
-#ifdef WS_EXEPLAYER_DEBUG_FEATURES
+#ifndef WS_EXEPLAYER_RELEASE_FEATURES
     case WM_LBUTTONUP:
     {
         Point p{ LOWORD(lParam), HIWORD(lParam) };
         if (!grcWaveform.ContainsPoint(p)) {
             return 0;
         }
-        uint64_t xPos = LOWORD(lParam) - grcWaveform.GetLeft();
+        int xPos = LOWORD(lParam) - grcWaveform.GetLeft();
         uint32_t ms = MulDiv(xPos, gpRenderer->gSongLength.GetMilliseconds(), grcWaveform.GetWidth());
         if (gpPlayer->IsPlaying()) {
             gpPlayer->PlayFrom(WSTime::FromMilliseconds(ms));
@@ -410,15 +310,15 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
             handleSave();
             return 0;
         case VK_F5:
-#ifdef WS_EXEPLAYER_RELEASE_FEATURES
+#ifdef ALLOW_EARLY_PLAY
+            gpPlayer->PlayFrom(WSTime::FromFrames(0));
+#else
             if (gPrecalcProgressPercent >= 100) {
                 gpPlayer->PlayFrom(WSTime::FromFrames(0));
             }
-#else
-            gpPlayer->PlayFrom(WSTime::FromFrames(0));
 #endif
             return 0;
-#ifdef WS_EXEPLAYER_DEBUG_FEATURES
+#ifndef WS_EXEPLAYER_RELEASE_FEATURES
         case VK_F6:
             gpPlayer->Reset();
             return 0;
@@ -432,10 +332,10 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
     case WM_PAINT:
     {
-#ifdef SMALL_PAINT
-        handlePaint_Basic();
-#else
+#ifdef FANCY_PAINT
         handlePaint_Fancy();
+#else
+        handlePaint_Basic();
 #endif
         return 0;
     }
@@ -445,7 +345,6 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     // since we're completely hijacking the window don't call old proc.
-    //return ::CallWindowProcA(oldProc, hwnd, msg, wParam, lParam);
     return ::DefWindowProcA(hwnd, msg, wParam, lParam);
 }
 
@@ -468,9 +367,13 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
 
     gpRenderer = new Renderer(hMain);
     gpPlayer = new Player(*gpRenderer);
-//    gpWaveformGen = new WaveformGen(grcWaveform, *gpRenderer);
-    //gpRenderer->Begin(gpWaveformGen);
+
+#ifdef FANCY_PAINT
+    gpWaveformGen = new WaveformGen(grcWaveform, *gpRenderer);
+    gpRenderer->Begin(gpWaveformGen);
+#else
     gpRenderer->Begin();
+#endif
 
     SetTimer(hMain, 0, gGeneralSleepPeriodMS, 0);
 

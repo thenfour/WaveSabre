@@ -52,21 +52,26 @@ struct Player
         waveHdr.lpData += byteOffset;
         waveHdr.dwBufferLength -= byteOffset;
         MMRESULT result = waveOutOpen(&hWaveOut, WAVE_MAPPER, &mRenderer.WaveFMT, NULL, 0, CALLBACK_NULL);
+#ifndef MIN_SIZE_REL
         if (result != MMSYSERR_NOERROR)
         {
             return 1;
         }
-
+#endif
         result = waveOutPrepareHeader(hWaveOut, &waveHdr, sizeof(waveHdr));
+#ifndef MIN_SIZE_REL
         if (result != MMSYSERR_NOERROR)
         {
             waveOutClose(hWaveOut);
             return 1;
         }
+#endif
 
         result = waveOutWrite(hWaveOut, &waveHdr, sizeof(waveHdr));
+#ifndef MIN_SIZE_REL
         if (result == MMSYSERR_NOERROR)
         {
+#endif
             while (!mShouldStop)
             {
                 MMTIME MMTime =
@@ -84,11 +89,13 @@ struct Player
             }
 
             waveOutReset(hWaveOut);
+#ifndef MIN_SIZE_REL
         }
         waveOutUnprepareHeader(hWaveOut, &waveHdr, sizeof(waveHdr));
         waveOutClose(hWaveOut);
         hWaveOut = 0;
         gPlayTime.SetFrames(0);
+#endif
         return 0;
     }
 

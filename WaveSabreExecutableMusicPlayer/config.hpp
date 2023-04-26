@@ -1,20 +1,31 @@
 #pragma once
 
-#include "utils.hpp"
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//static constexpr uint32_t gSongPaddingMS = 3000; // additional padding to add at the end of the track to account for fadeouts whatever
-static constexpr uint32_t gBlockSizeSamples = 256; // don't try to bite off too much; modulations will be too loose. try to replicate DAW behavior. Note these are samples not frames. 128 sample buffer probably means 256 here.
 #define TEXT_INTRO "Bright Velvet\r\nby tenfour/RBBS for Revision 2023\r\n\r\n"
 
-// these are not about optimization & compiler options but about features.
-// enable one at a time.
 #define WS_EXEPLAYER_RELEASE_FEATURES
-//#define WS_EXEPLAYER_DEBUG_FEATURES
 
-#define SMALL_PAINT
+// Fancy paint has waveform view and more debug info displayed.
+#ifndef WS_EXEPLAYER_RELEASE_FEATURES
+#define FANCY_PAINT
+#endif
+
+// For compo release, don't allow playing before precalc is done. To avoid possibility of underrun.
+// For debugging it's useful though.
+#ifdef WS_EXEPLAYER_RELEASE_FEATURES
+//#define ALLOW_EARLY_PLAY
+#else
+#define ALLOW_EARLY_PLAY
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#include "utils.hpp"
 
 struct
 {
+#ifdef FANCY_PAINT
     COLORREF TextColor = RGB(255, 255, 0);
     COLORREF TextShadowColor = RGB(0, 0, 0);
     COLORREF WindowBackground = RGB(0, 0, 0);
@@ -31,9 +42,19 @@ struct
     COLORREF PrecalcProgressForeground = RGB(0, 96, 96);
     COLORREF PrecalcTextColor = RGB(0, 192, 192);
     COLORREF PrecalcTextShadowColor = PrecalcProgressForeground;
+#else
+    COLORREF TextColor = RGB(255, 255, 0);
+    COLORREF PrecalcProgressBackground = RGB(0, 24, 24);
+    COLORREF PrecalcProgressForeground = RGB(0, 96, 96);
+#endif
 } gColorScheme;
 
-static constexpr Rect grcWindow{ 0, 0, 500, 500 };
+#ifdef FANCY_PAINT
+static constexpr Rect grcWindow{ 0, 0, 1100, 500 };
+static constexpr int gFontHeightMulPercent = 125;
+#else
+static constexpr Rect grcWindow{ 0, 0, 700, 500 };
+#endif
 static constexpr Rect grcText{ grcWindow.Offset(20, 10) };// { 0, 0, 400, 400 };
 static constexpr Rect grcWaveform{ grcWindow };// { 0, 0, 1400, 600 };
 static constexpr uint32_t gGeneralSleepPeriodMS = 30;
@@ -48,4 +69,6 @@ static constexpr int gWaveformGradientMaxDistancePixels = 500;
 // so what if the max precalc time is not enough? in this case simply present the user with the option to play.
 // that will buy us at least few more seconds.
 static constexpr int32_t gMaxPrecalcMilliseconds = 30000;
+
+static constexpr uint32_t gBlockSizeSamples = 256; // don't try to bite off too much; modulations will be too loose. try to replicate DAW behavior. Note these are samples not frames. 128 sample buffer probably means 256 here.
 
