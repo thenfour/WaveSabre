@@ -11,12 +11,32 @@
 #include <WaveSabreCore.h>
 #include <WaveSabrePlayerLib.h>
 using namespace WaveSabrePlayerLib;
+using namespace WSPlayerApp;
 
-#include "config.hpp"
 
-#include "player.hpp"
-#include "waveformgen.hpp"
-#include "wavwriter.hpp"
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//#define WS_EXEPLAYER_RELEASE_FEATURES
+
+// Fancy paint has waveform view and more debug info displayed.
+#ifndef WS_EXEPLAYER_RELEASE_FEATURES
+#define FANCY_PAINT
+#endif
+
+// For compo release, don't allow playing before precalc is done. To avoid possibility of underrun.
+// For debugging it's useful though.
+#ifdef WS_EXEPLAYER_RELEASE_FEATURES
+//#define ALLOW_EARLY_PLAY
+#else
+#define ALLOW_EARLY_PLAY
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+#include "rendered.hpp"
+#define TEXT_INTRO "Bright Velvet\r\nby tenfour/RBBS for Revision 2023\r\n\r\n"
+
 
 char gFilename[MAX_PATH] = { 0 };
 char gSavedToFilename[MAX_PATH] = { 0 }; // gets populated upon successful save.
@@ -24,11 +44,16 @@ char gSavedToFilename[MAX_PATH] = { 0 }; // gets populated upon successful save.
 char* gWindowText = nullptr;
 HWND hMain;
 
-Renderer* gpRenderer = nullptr;
-Player* gpPlayer = nullptr;
+WSPlayerApp::Renderer* gpRenderer = nullptr;
+WSPlayerApp::WaveOutPlayer* gpPlayer = nullptr;
 
 #ifdef FANCY_PAINT
 WaveformGen* gpWaveformGen = nullptr;
+using GdiDeviceContext = GdiDeviceContextFancy;
+auto& gTheme = gThemeFancy;
+#else
+using GdiDeviceContext = GdiDeviceContextBasic;
+auto& gTheme = gThemeBasic;
 #endif
 
 // position between min(precalctime_max, render_progress)
@@ -133,7 +158,7 @@ void UpdateStatusText()
 
 void WriteWave()
 {
-    WaveWriter::WriteWAV(gFilename, *gpRenderer);
+    OneShotWaveWriter::WriteWAV(gFilename, *gpRenderer);
     strcpy(gSavedToFilename, gFilename);
     gFilename[0] = 0;
 }
@@ -165,7 +190,7 @@ void RenderWaveform_Fancy(GdiDeviceContext& dc)
 {
     auto lock = gpRenderer->gCritsec.Enter(); // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
 
-    dc.HatchFill(gpWaveformGen->mRect, gColorScheme.WaveformBackground, gColorScheme.WaveformBackground);
+    dc.HatchFill(gpWaveformGen->mRect, gTheme.WaveformBackground, gTheme.WaveformBackground);
     const auto midY = gpWaveformGen->mRect.GetMidY();
     const auto left = gpWaveformGen->mRect.GetLeft();
     Point renderCursorP1{ gpWaveformGen->mRect.GetLeft() + gpWaveformGen->mProcessedWidth, gpWaveformGen->mRect.GetTop() };
@@ -181,24 +206,24 @@ void RenderWaveform_Fancy(GdiDeviceContext& dc)
         t = WaveSabreCore::M7::math::clamp01(1.0f - t);
         t = WaveSabreCore::M7::math::modCurve_xN11_kN11(t, -0.95f);
         COLORREF g = RGB(
-            WaveSabreCore::M7::math::lerp(GetRValue(gColorScheme.WaveformForeground), GetRValue(gColorScheme.RenderCursorColor), t),
-            WaveSabreCore::M7::math::lerp(GetGValue(gColorScheme.WaveformForeground), GetGValue(gColorScheme.RenderCursorColor), t),
-            WaveSabreCore::M7::math::lerp(GetBValue(gColorScheme.WaveformForeground), GetBValue(gColorScheme.RenderCursorColor), t)
+            WaveSabreCore::M7::math::lerp(GetRValue(gTheme.WaveformForeground), GetRValue(gTheme.RenderCursorColor), t),
+            WaveSabreCore::M7::math::lerp(GetGValue(gTheme.WaveformForeground), GetGValue(gTheme.RenderCursorColor), t),
+            WaveSabreCore::M7::math::lerp(GetBValue(gTheme.WaveformForeground), GetBValue(gTheme.RenderCursorColor), t)
             );
         
         dc.DrawLine(p1, p2, g);
     }
-    dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gColorScheme.WaveformUnrenderedHatch1, gColorScheme.WaveformUnrenderedHatch2);
+    dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gTheme.WaveformUnrenderedHatch1, gTheme.WaveformUnrenderedHatch2);
     
     Point midLineP1{ left, midY };
     Point midLineP2{ renderCursorP1.GetX(), midY };
-    dc.DrawLine(midLineP1, midLineP2, gColorScheme.WaveformZeroLine);
+    dc.DrawLine(midLineP1, midLineP2, gTheme.WaveformZeroLine);
 
-    dc.DrawLine(renderCursorP1, renderCursorP2, gColorScheme.RenderCursorColor);
+    dc.DrawLine(renderCursorP1, renderCursorP2, gTheme.RenderCursorColor);
 
     if (gpPlayer->IsPlaying()) {
         auto playFrames = gpPlayer->gPlayTime.GetFrames();
-        auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gColorScheme.PlayCursorBad : gColorScheme.PlayCursorGood;
+        auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gTheme.PlayCursorBad : gTheme.PlayCursorGood;
 
         int playCursorX = MulDiv(playFrames, gpWaveformGen->mRect.GetWidth(), gpRenderer->gSongLength.GetFrames());
         static constexpr int gPlayCursorWidth = 4;
@@ -220,21 +245,21 @@ void handlePaint_Fancy()
     HFONT hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
     LOGFONT lf;
     GetObject(hFont, sizeof(LOGFONT), &lf);
-    lf.lfHeight = MulDiv(lf.lfHeight, gFontHeightMulPercent, 100); // change font height
+    lf.lfHeight = MulDiv(lf.lfHeight, gTheme.gFontHeightMulPercent, 100); // change font height
     lf.lfWeight = 1000;
     HFONT hCustomFont = CreateFontIndirect(&lf); // create a new font based on the modified information
 
     HFONT hOldFont = (HFONT)SelectObject(dc.mDC, hCustomFont);
     RenderWaveform_Fancy(dc);
 
-    dc.DrawText_(gWindowText, grcText, gColorScheme.TextColor, gColorScheme.TextShadowColor);
+    dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor, gTheme.TextShadowColor);
 
     if (gPrecalcProgressPercent < 100) {
-        dc.HatchFill(grcPrecalcProgress, gColorScheme.PrecalcProgressBackground, gColorScheme.PrecalcProgressBackground);
-        dc.HatchFill(grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gColorScheme.PrecalcProgressForeground, gColorScheme.PrecalcProgressForeground);
+        dc.HatchFill(gTheme.grcPrecalcProgress, gTheme.PrecalcProgressBackground, gTheme.PrecalcProgressBackground);
+        dc.HatchFill(gTheme.grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gTheme.PrecalcProgressForeground, gTheme.PrecalcProgressForeground);
         char sz[100];
         sprintf(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
-        dc.DrawText_(sz, grcPrecalcProgress, gColorScheme.PrecalcTextColor, gColorScheme.PrecalcTextShadowColor);
+        dc.DrawText_(sz, gTheme.grcPrecalcProgress, gTheme.PrecalcTextColor, gTheme.PrecalcTextShadowColor);
     }
 
     // present the back buffer
@@ -257,10 +282,10 @@ void handlePaint_Basic()
 
     GdiDeviceContext dc{ hdc };
 
-    dc.SolidFill(grcWindow, gColorScheme.PrecalcProgressBackground);
-    dc.SolidFill(grcWindow.LeftAlignedShrink(gPrecalcProgressPercent), gColorScheme.PrecalcProgressForeground);
+    dc.SolidFill(gTheme.grcWindow, gTheme.PrecalcProgressBackground);
+    dc.SolidFill(gTheme.grcWindow.LeftAlignedShrink(gPrecalcProgressPercent), gTheme.PrecalcProgressForeground);
 
-    dc.DrawText_(gWindowText, grcText, gColorScheme.TextColor);
+    dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor);
 
     EndPaint(hMain, &ps);
 }
@@ -293,11 +318,11 @@ LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
     case WM_LBUTTONUP:
     {
         Point p{ LOWORD(lParam), HIWORD(lParam) };
-        if (!grcWaveform.ContainsPoint(p)) {
+        if (!gTheme.grcWaveform.ContainsPoint(p)) {
             return 0;
         }
-        int xPos = LOWORD(lParam) - grcWaveform.GetLeft();
-        uint32_t ms = MulDiv(xPos, gpRenderer->gSongLength.GetMilliseconds(), grcWaveform.GetWidth());
+        int xPos = LOWORD(lParam) - gTheme.grcWaveform.GetLeft();
+        uint32_t ms = MulDiv(xPos, gpRenderer->gSongLength.GetMilliseconds(), gTheme.grcWaveform.GetWidth());
         if (gpPlayer->IsPlaying()) {
             gpPlayer->PlayFrom(WSTime::FromMilliseconds(ms));
         }
@@ -361,15 +386,18 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
     gWindowText[0] = 0;
 
     hMain = ::CreateWindowExA(0, "EDIT", TEXT_INTRO, WS_VISIBLE | ES_READONLY | ES_MULTILINE | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, grcWindow.GetWidth(), grcWindow.GetHeight(), 0, 0, 0, 0);
+        CW_USEDEFAULT, CW_USEDEFAULT, gTheme.grcWindow.GetWidth(), gTheme.grcWindow.GetHeight(), 0, 0, 0, 0);
 
     auto oldProc = (WNDPROC)::SetWindowLongPtrA(hMain, GWLP_WNDPROC, (LONG_PTR)WindowProc);
 
-    gpRenderer = new Renderer(hMain);
-    gpPlayer = new Player(*gpRenderer);
+    SongRenderer::Song song;
+    song.blob = SongBlob;
+    song.factory = SongFactory;
+    gpRenderer = new Renderer(hMain, song);
+    gpPlayer = new WaveOutPlayer(*gpRenderer);
 
 #ifdef FANCY_PAINT
-    gpWaveformGen = new WaveformGen(grcWaveform, *gpRenderer);
+    gpWaveformGen = new WaveformGen(gTheme.grcWaveform, *gpRenderer);
     gpRenderer->Begin(gpWaveformGen);
 #else
     gpRenderer->Begin();

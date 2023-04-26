@@ -415,15 +415,6 @@ namespace WaveSabrePlayerLib
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	struct SongRenderer : GraphProcessor::INodeList
 	{
-		//using Song = SongRenderer::Song;
-		//using DeviceId = SongRenderer::DeviceId;
-		//using DeviceFactory = SongRenderer::DeviceFactory;
-
-		//using EventType = SongRenderer::EventType;
-		//using Event = SongRenderer::Event;
-		//using Devices = SongRenderer::Devices;
-		//using MidiLane = SongRenderer::MidiLane;
-		//typedef short Sample;
 		enum class DeviceId
 		{
 			Falcon,
