@@ -5,13 +5,10 @@ add_library(WaveSabrePlayerLib
 	include/WaveSabrePlayerLib/RealtimePlayer.h
 	include/WaveSabrePlayerLib/IPlayer.h
 	include/WaveSabrePlayerLib/SongRenderer.h
-	include/WaveSabrePlayerLib/SongRenderer2.hpp
 	src/DirectSoundRenderThread.cpp
 	src/IPlayer.cpp
 	src/PreRenderPlayer.cpp
 	src/RealtimePlayer.cpp
-	src/SongRenderer.cpp
-	src/SongRenderer.Track.cpp
 	src/WavWriter.cpp)
 
 target_link_libraries(WaveSabrePlayerLib

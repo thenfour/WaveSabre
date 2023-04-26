@@ -42,7 +42,7 @@ namespace ProjectManager
 
                 song = new ProjectConverter().Convert(projectFile, logger, new ConvertOptions { mBoundsMode = (BoundsMode)cbxBoundsMode.SelectedItem });
                 fileName = Path.GetFileNameWithoutExtension(projectFile);
-                textBoxOutput.AppendText("Done.");
+                logger.WriteLine("Done.");
                 Enable();
             //}
             //catch (Exception err)
@@ -113,7 +113,7 @@ namespace ProjectManager
                 var tempFile = Path.GetTempPath() + "WaveSabre.bin";
                 GetRid(tempFile);
                 File.WriteAllBytes(tempFile, bin.CompleteSong.GetByteArray());
-                Console.WriteLine(@"Temp file written to: {tempFile}");
+                logger.WriteLine($@"WaveSabreStandAlonePlayer.exe {tempFile}");
                 var proc = Process.Start(@"WaveSabreStandAlonePlayer.exe", string.Format("\"{0}\"", tempFile));
                 proc.WaitForExit();
                 //GetRid(tempFile); // for the sake of demoscene dev, it's not so useful to remove this file.

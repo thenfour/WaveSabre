@@ -8,7 +8,7 @@ using namespace WaveSabrePlayerLib;
 #include "config.hpp"
 #include "rendered.hpp"
 
-using RendererOfChoice = WaveSabrePlayerLib::SongRenderer2;
+using RendererOfChoice = WaveSabrePlayerLib::SongRenderer;
 
 struct Renderer
 {
