@@ -262,8 +262,9 @@ public:
 
 	virtual void PopulateMenuBar() override
 	{
-		if (ImGui::BeginMenu("Maj7")) {
+		if (ImGui::BeginMenu("[Maj7]")) {
 			bool b = false;
+
 			if (ImGui::MenuItem("Panic", nullptr, false)) {
 				pMaj7->AllNotesOff();
 			}
@@ -315,13 +316,25 @@ public:
 				}
 			}
 
+			ImGui::Separator();
+
+			if (ImGui::MenuItem("Documentation", nullptr, false)) {
+				ShellExecute(NULL, "open", "https://github.com/thenfour/WaveSabre/blob/maj7_documentation/Docs/Maj7.md", NULL, NULL, SW_SHOWNORMAL);
+			}
+
+			if (ImGui::MenuItem("WaveSabre Github", nullptr, false)) {
+				ShellExecute(NULL, "open", "https://github.com/logicomacorp/WaveSabre", NULL, NULL, SW_SHOWNORMAL);
+			}
+
+			if (ImGui::MenuItem("Maj7 was written by by tenfour", nullptr, false)) {
+				ShellExecute(NULL, "open", "https://tenfourmusic.net/", NULL, NULL, SW_SHOWNORMAL);
+			}
 
 			ImGui::EndMenu();
 		} // maj7 menu
 
-		if (ImGui::BeginMenu("Debug")) {
+		if (ImGui::BeginMenu("[Debug]")) {
 
-			ImGui::Separator();
 			if (ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector)) {
 				if (!mShowingInspector) mShowingModulationInspector = false;
 			}
@@ -979,7 +992,7 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::gSyncFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::OscModParamIndexOffsets::SyncFrequency));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT", 0, 1, 1, 1, 0, {});
 
-			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Aux pan", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::AuxMix));
+			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Pan", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::AuxMix));
 
 			static_assert(M7::gOscillatorCount == 4, "osc count");
 			M7::ParamIndices ampEnvSources[M7::gOscillatorCount] = {
@@ -1866,7 +1879,7 @@ public:
 			ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop), "Rel");
 			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::InterpolationType), "Interp.##mst", (int)WaveSabreCore::InterpolationMode::NumInterpolationModes, WaveSabreCore::InterpolationMode::Linear, interpModeNames);
 
-			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::AuxMix), "Aux pan", 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::AuxMix));
+			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::AuxMix), "Pan", 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::AuxMix));
 
 			ImGui::BeginGroup();
 			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Reverse), "Reverse");

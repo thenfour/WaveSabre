@@ -249,19 +249,22 @@ namespace WaveSabreVstLib
 		ImGui::Begin("##main", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
 
 		if (ImGui::BeginMenuBar()) {
+
+#ifdef _DEBUG
 			if (ImGui::BeginMenu("Wavesabre")) {
 				if (ImGui::MenuItem("Toggle ImGui demo window", nullptr, showingDemo)) {
 					showingDemo = !showingDemo;
 				}
 				ImGui::EndMenu();
 			}
+#endif
 			PopulateMenuBar();
 
 			//char effectName[kVstMaxEffectNameLen * 2 + 50];
 			//GetEffectX()->getEffectName(effectName);
 			//char title[200];
 			// i don't really know if it's kosher to do this in a menu bar.
-			ImGui::TextColored(ImColor{.5f, .5f, .5f}, "%.1f FPS, CPU: %.2f %s", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100, this->GetMenuBarStatusText().c_str());
+			ImGui::TextColored(ImColor{ .5f, .5f, .5f }, "%.1f FPS, CPU: %.2f %s", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100, this->GetMenuBarStatusText().c_str());
 
 			ImGui::EndMenuBar();
 		}

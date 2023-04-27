@@ -228,12 +228,6 @@ namespace WaveSabreCore
 			SamplerDevice* mpSamplerDevices[gSamplerCount];
 			ISoundSourceDevice* mSources[gSourceCount];
 
-			// these values are at the device level (not voice level), but yet they can be modulated by voice-level things.
-			// for exmaple you could map Velocity to unisono detune. Well it should be clear that this doesn't make much sense,
-			// except for maybe monophonic mode? So they are evaluated at the voice level but ultimately stored here.
-			real_t mFMBrightnessMod = 0;
-			real_t mPortamentoTimeMod = 0;
-
 			Maj7() :
 				Maj7SynthDevice((int)ParamIndices::NumParams)
 			{
@@ -680,10 +674,6 @@ namespace WaveSabreCore
 						lfo.mFilter.SetParams(FilterModel::LP_OnePole, freq, 0);
 					}
 
-					// set device-level modded values.
-					mpOwner->mFMBrightnessMod = mModMatrix.GetDestinationValue(ModDestination::FMBrightness);
-					mpOwner->mPortamentoTimeMod = mModMatrix.GetDestinationValue(ModDestination::PortamentoTime);
-
 					for (auto* a : mpFilters)
 					{
 						for (int ich = 0; ich < 2; ++ich) {
@@ -758,7 +748,7 @@ namespace WaveSabreCore
 					float sourceValues[gSourceCount];// = { 0 };
 					float detuneMul[gSourceCount];// = { 0 };
 
-					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mpOwner->mFMBrightnessMod);
+					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mModMatrix.GetDestinationValue(ModDestination::FMBrightness));
 
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
