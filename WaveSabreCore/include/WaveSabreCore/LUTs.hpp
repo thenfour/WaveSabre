@@ -292,7 +292,7 @@ namespace WaveSabreCore
                 {
                     static constexpr float gPeriodCorrection = 1 / gPITimes2;
                     float scaledX = x * gPeriodCorrection;
-                    return LookupLUT1D(mpTable, scaledX);
+                    return LookupLUT1D(mpTable, fract(scaledX));
                 }
             };
 
@@ -312,7 +312,7 @@ namespace WaveSabreCore
                 {
                     static constexpr float gPeriodCorrection = 1 / gPITimes2;
                     float scaledX = x * gPeriodCorrection;
-                    return LookupLUT1D(mpTable, scaledX);
+                    return LookupLUT1D(mpTable, fract(scaledX));
                 }
             };
 
