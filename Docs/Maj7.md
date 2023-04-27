@@ -57,6 +57,7 @@ Some example scenarios where Maj7 makes life easier:
 ** typing values
 ** menus
 ** sections
+* quality setting
 * signal path
 ** oscillator (phase mod, hard sync)
 ** pre-fm amplifier
