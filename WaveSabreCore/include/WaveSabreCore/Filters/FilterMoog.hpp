@@ -11,12 +11,13 @@ namespace WaveSabreCore
     {
         struct MoogLadderFilter : IFilter
         {
-            MoogLadderFilter()
-            {
-                for (auto& lpf : m_LPF) {
-                    lpf.SetParams(FilterType::LP4, 0, 0);
-                }
-            }
+            // assumes that lpfs are initialized with LP
+            //MoogLadderFilter()
+            //{
+            //    for (auto& lpf : m_LPF) {
+            //        lpf.SetParams(FilterType::LP2, 0, 0);
+            //    }
+            //}
 
             //virtual void SetResonance(real p_res)
             //{
@@ -248,17 +249,17 @@ namespace WaveSabreCore
             //    }
             }
 
-            FilterType m_FilterType = FilterType::LP4;
-            real m_cutoffHz = 10000;
             //real m_overdrive = 0;
 
-            real m_resonance = Real(-1); // cached resonance for knowing when recalc is not needed.
 
             OnePoleFilter m_LPF[4];
 
+            FilterType m_FilterType = FilterType::LP2;
+            real m_alpha_0 = 1; // see block diagram
+            real m_cutoffHz = 0;
+            real m_resonance = 0;// Real(-1); // cached resonance for knowing when recalc is not needed.
             real m_k = 0;       // K, set with Q
             real m_gamma = 0;       // see block diagram
-            real m_alpha_0 = 1; // see block diagram
 
             // Oberheim Xpander variations
             //real m_a = 0;
