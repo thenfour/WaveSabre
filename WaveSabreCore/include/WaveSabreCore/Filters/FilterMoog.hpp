@@ -18,53 +18,56 @@ namespace WaveSabreCore
                 }
             }
 
-            virtual void SetResonance(real p_res)
-            {
-                if (math::FloatEquals(p_res, m_resonance))
-                    return;
-                m_resonance = p_res;
-                // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
-                m_k = Real(3.88) * p_res;
-                m_k = math::clamp(m_k, Real0, Real(3.88));
-                Recalc();
-            }
+            //virtual void SetResonance(real p_res)
+            //{
+            //    if (math::FloatEquals(p_res, m_resonance))
+            //        return;
+            //    m_resonance = p_res;
+            //    // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
+            //    static const auto t88 = Real(3.88);
+            //    m_k = t88 * p_res;
+            //    // this is not smaller.
+            //    //if (m_k < 0) m_k = 0;
+            //    //if (m_k > t88) m_k = t88;
+            //    m_k = math::clamp(m_k, Real0, Real(3.88));
+            //    Recalc();
+            //}
 
             virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
-                if (math::FloatEquals(reso, m_resonance) &&
-                    math::FloatEquals(m_cutoffHz, cutoffHz) && (m_FilterType == type))
-                {
-                    return;
-                }
-
-                switch (type)
-                {
-                default:
-                //case FilterType::LP:
-                //    m_FilterType = FilterType::LP4;
-                //    break;
-                //case FilterType::BP:
-                //    m_FilterType = FilterType::BP4;
-                //    break;
-                //case FilterType::HP:
-                //    m_FilterType = FilterType::HP4;
-                //    break;
-                case FilterType::LP2:
-                case FilterType::LP4:
-                case FilterType::BP2:
-                case FilterType::BP4:
-                case FilterType::HP2:
-                case FilterType::HP4:
+                bool recalc = false;
+                if (m_FilterType != type) {
                     m_FilterType = type;
-                    break;
+                    recalc = true;
                 }
+                if (!math::FloatEquals(cutoffHz, m_cutoffHz)) {
+                    m_cutoffHz = cutoffHz;
+                    recalc = true;
+                }
+                if (!math::FloatEquals(reso, m_resonance)) {
+                    m_resonance = reso;
+                    // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
+                    static const auto t88 = Real(3.88);
+                    m_k = t88 * reso;
+                    // this is not smaller.
+                    //if (m_k < 0) m_k = 0;
+                    //if (m_k > t88) m_k = t88;
+                    m_k = math::clamp(m_k, Real0, Real(3.88));
+                    recalc = true;
+                }
+                if (recalc) Recalc();
 
-                m_cutoffHz = cutoffHz;
-                //m_overdrive = saturation;
-                m_resonance = reso;
-                m_k = Real(3.88) * reso;
-                m_k = math::clamp(m_k, Real0, Real(3.88));
-                Recalc();
+
+                //if (!math::FloatEquals(m_cutoffHz, cutoffHz))
+                //{
+                //    return;
+                //}
+
+                ////m_overdrive = saturation;
+                //m_resonance = reso;
+                //m_k = Real(3.88) * reso;
+                //m_k = math::clamp(m_k, Real0, Real(3.88));
+                //Recalc();
             }
 
             virtual real ProcessSample(real x) override
