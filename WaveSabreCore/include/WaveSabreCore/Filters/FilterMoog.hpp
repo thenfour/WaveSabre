@@ -171,7 +171,7 @@ namespace WaveSabreCore
 
                 // G - the feedforward coeff in the VA One Pole
                 //     same for LPF, HPF
-                const real oneOver1plusg = 1.0f / (Real1 + g);
+                const real oneOver1plusg = 1.0f / (g + 1);
                 real G = g * oneOver1plusg;
 
                 // set alphas
@@ -199,7 +199,7 @@ namespace WaveSabreCore
 
                 //m_gamma = G * G * G * G;
 
-                m_alpha_0 = Real1 / (Real1 + m_k * m_gamma);
+                m_alpha_0 = Real1 / (m_k * m_gamma + 1);
 
             //    // Oberheim variation
             //    switch (m_FilterType)

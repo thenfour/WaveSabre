@@ -85,6 +85,7 @@ namespace WaveSabreCore
 
         private:
 
+            // NOTE: it's important that this is set to LP by default; it's what the Moog filter expects.
             FilterType m_FilterType = FilterType::LP2;
             real m_cutoffHz = 10000;
             real m_q = 0;
@@ -99,7 +100,7 @@ namespace WaveSabreCore
                 //real wa = (2 / T) * math::tan(wd * T / 2);
                 //real g = wa * T / 2;
                 float g = math::tan(wd * T * Real(0.5));
-                m_alpha = g / (Real(1) + g);
+                m_alpha = g / (g + 1);
             }
         };
 
