@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -45,9 +46,15 @@ namespace WaveSabreConvert
             
             song.Tempo = (int)project.Tempo.BPM;
 
-            if (project.TempoEnvelope.Visibility.IsVisible)
+            if (project.TempoEnvelope.Points.Count == 0 && project.TempoEnvelope.Visibility.IsVisible)
+            {
+                logger.WriteLine("WARN: This project has a tempo map which is not supported, although it contains 0 points so maybe it's OK.");
+            }
+
+            if (project.TempoEnvelope.Points.Count > 0)
             {
                 logger.WriteLine("ERROR: This project has a tempo map which is not supported. Even if there's only 1 point, it can mess everything up. Delete the tempo envelope entirely and try again.");
+                logger.WriteLine($" -> tempo map contains {project.TempoEnvelope.Points.Count} points.");
             }
 
             switch (options.mBoundsMode)
@@ -60,9 +67,9 @@ namespace WaveSabreConvert
                 //    trackStart = project.Selection.Start;
                 //break;
                 case BoundsMode.Regions:
-                    if (project.Regions.Count < 1)
+                    if (project.Regions.Count() < 1)
                     {
-                        logger.WriteLine("ERROR: This project has no regions defined; unable to determine song bounds");
+                        logger.WriteLine("ERROR: This project has no valid regions defined; unable to determine song bounds");
                         return null;
                     }
                     trackStart = project.Regions.Min((rgn) => { return rgn.TimeStart; });
@@ -196,6 +203,11 @@ namespace WaveSabreConvert
                     var songEnd = project.Regions.Max((rgn) => { return rgn.TimeEnd; });
                     song.Length = songEnd - trackStart;
                     break;
+            }
+
+            if (song.Length < 1)
+            {
+                logger.WriteLine("WARNING: Song length is tiny or 0. This is probably not intended; make sure bounds are being calculated properly. Tiny song length may even break the player.");
             }
 
             return song;

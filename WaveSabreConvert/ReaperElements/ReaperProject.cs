@@ -44,10 +44,11 @@ namespace ReaperParser.ReaperElements
         // after parsing, we have a bunch of markers but in order to use regions in a more intuitive way, some transformation should be done.
         public void NormalizeRegions()
         {
+            // regions are actually just a pair of markers. so examine markers to generate a list of regions.
             Dictionary<int, ReaperRegion> rgnDict = new Dictionary<int, ReaperRegion>();
             foreach (var m in Markers)
             {
-                if (m.Type != "R") continue;
+                if (!m.IsRegion) continue;
                 if (!rgnDict.ContainsKey(m.ID))
                 {
                     rgnDict.Add(m.ID, new ReaperRegion());
@@ -58,8 +59,14 @@ namespace ReaperParser.ReaperElements
                     rgnDict[m.ID].Name = m.Name;
                 }
                 rgnDict[m.ID].Times.Add(m.Time);
+                rgnDict[m.ID].Markers.Add(m);
             }
-            this.Regions.AddRange(rgnDict.Values);
+
+            // the region dict now will contain a lot of stuff that may not be regions.
+            // filter out IDs which aren't regions.
+            var regions = rgnDict.Values.Where(v => v.IsValidRegion);
+
+            this.Regions.AddRange(regions);
         }
     }
 
@@ -67,11 +74,49 @@ namespace ReaperParser.ReaperElements
     {
         public int ID { get; set; }
         public List<double> Times { get; } = new List<double>();
-        public bool IsValid { get { return Times.Count == 2; } }
+        public List<ReaperMarker> Markers { get; } = new List<ReaperMarker>();
+        public bool IsValidRegion { get { 
+                return (Times.Count == 2)
+                    && (TimeLength > 0)
+                    && Markers.Any(m => m.IsRegion) // this is not the case. normal markers also have type "R".
+                    ;
+            } }
+        public double TimeLength {  get { return TimeEnd - TimeStart;  } }
         public string Name { get; set; }
         public double TimeStart { get { return Times.Min(); } }
         public double TimeEnd { get { return Times.Max(); } }
     }
+
+
+    /*
+     let's look at markers.
+
+  MARKER 1 0.25 "" 1 0 1 R {C8D5E1E8-8D40-442C-8BB1-D00A8BA03ADE} 0
+  MARKER 1 17.5 "" 1
+  MARKER 1 5.25 "" 0 0 1 R {3856C760-FB6D-4634-AAE2-D035EC3D6A94} 0
+  MARKER 3 9.75 "" 0 0 1 R {5FFCE4D7-AD02-461E-9FEA-660F8DFCFB9F} 0
+  MARKER 2 13.5 "" 0 0 1 R {FA832776-DFAA-4082-AB37-B3883DE25762} 0
+  MARKER 2 20.5 "two - blue" 1 33489152 1 R {0167C27A-2C26-4153-B023-923843E1F974} 0
+  MARKER 2 22.5 "" 1
+
+    this is from a brand new project, reaper v7.09, 2024-02-16,
+    where i added 2 regions, and 3 markers.
+
+    note: marker IDs are reused between markers & regions.
+    note: but they are separated by the flags field.
+
+  MARKER 1 0.25 "" 1 0 1 R {C8D5E1E8-8D40-442C-8BB1-D00A8BA03ADE} 0
+         ^id           |   |                                      |
+           ^position
+                ^name  |   |                                      |
+                   ^flags? i believe this is flags. confirmed that reaper responds to this; 0=marker, 1=region.
+                     ^color                                       |
+                       ^?? always 1
+                         ^type? always R                          |
+                           ^guid
+                                                                  ^?? always 0
+
+     */
 
     [ReaperTag("MARKER")]
     public class ReaperMarker : ReaperElement
@@ -79,8 +124,6 @@ namespace ReaperParser.ReaperElements
         public int ID { get; set; }
         public double Time { get; set; }
         public string Name { get; set; }
-
-        public double Beats { get; set; }
 
         /*
          according to something:
@@ -92,13 +135,22 @@ namespace ReaperParser.ReaperElements
 16 (selection endpoint): This flag indicates that the marker is the endpoint of a time selection.
         */
         public int Flags { get; set; }
-        public int Color { get; set; }
 
-        public string Type { get; set; }
+        //public double Beats { get; set; }
+
+        public int Color { get; set; }
+        public int AlwaysOne { get; set; }
+
+
+        public string Type { get; set; } // "R"
         public string Guid { get; set; }
+        public int AlwaysZero { get; set; }
+
+        public bool IsRegion {  get { return (Flags & 1) == 1; } }
     }
 
-        [ReaperTag("SELECTION")]
+
+    [ReaperTag("SELECTION")]
         public class ReaperSelection : ReaperElement
         {
             public double Start { get; set; }
@@ -133,6 +185,7 @@ namespace ReaperParser.ReaperElements
     public class TempoEnvelopeEx : ReaperElement
     {
         public TempoEnvelopeVisability Visibility { get; set; }
+        public List<ReaperAutomationPoint> Points { get; } = new List<ReaperAutomationPoint>();
     }
 
     [ReaperTag("VIS")]
@@ -141,6 +194,13 @@ namespace ReaperParser.ReaperElements
         public bool IsVisible { get; set; } // 
         public int PointType { get; set; } // continuous or points
         public bool DisplayColor { get; set; }
+    }
+
+    [ReaperTag("ACT")]
+    public class TempoEnvelopeActive : ReaperElement
+    {
+        public int A { get; set; }
+        public int B { get; set; }
     }
 
     [ReaperTag("MASTERFXLIST")]

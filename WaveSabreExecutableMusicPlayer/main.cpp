@@ -31,6 +31,11 @@ using namespace WSPlayerApp;
 #define ALLOW_EARLY_PLAY
 #endif
 
+#ifndef WS_EXEPLAYER_RELEASE_FEATURES
+#define HIGH_PROCESS_PRIORITY
+#endif
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
@@ -143,7 +148,7 @@ void UpdateStatusText()
         saveIndicatorText,
         renderPercent,
         renderRate / 100, renderRate % 100,
-        gpRenderer->mProcessorCount,
+        gpRenderer->gpRenderer->mpGraphRunner->mThreadCount,
         gpRenderer->gRenderTime.GetMinutes(), gpRenderer->gRenderTime.GetSecondsOfMinute(), gpRenderer->gRenderTime.GetTenthsOfSecondsOfSeconds(),
         remainingRenderTime.GetMinutes(), remainingRenderTime.GetSecondsOfMinute(), remainingRenderTime.GetTenthsOfSecondsOfSeconds(),
         estTotalRenderTime.GetMinutes(), estTotalRenderTime.GetSecondsOfMinute(), estTotalRenderTime.GetTenthsOfSecondsOfSeconds(),
@@ -380,7 +385,10 @@ extern "C" int WinMainCRTStartup()
 int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
 #endif
 {
+
+#ifdef HIGH_PROCESS_PRIORITY
     SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+#endif
 
     gWindowText = new char[60000];
     gWindowText[0] = 0;

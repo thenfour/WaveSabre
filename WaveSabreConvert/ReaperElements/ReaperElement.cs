@@ -94,7 +94,7 @@ namespace ReaperParser.ReaperElements
 
             if (this.GetType() != typeof(ReaperElement))
             {
-                var props = this.GetType().GetProperties();
+                var props = this.GetType().GetProperties().Where(p => p.CanWrite).ToArray();
 
                 for (var i = 0; i < values.Count; i++)
                 {

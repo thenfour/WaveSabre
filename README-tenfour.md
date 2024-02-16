@@ -1,5 +1,35 @@
 
 
+general dev notes and workflow
+-----------------------------------
+
+  * main dev VS solution : `build\WaveSabre.sln`
+    * vsts get built to `C:\root\vstpluginlinks\WaveSabre` ; this is specified in the `switch_to_x86.cmd` scripts.
+  * only `x86` or `x64` build is active at a time. they are binary compatible wrt the song payload / device chunks.
+  * launch project manager: 
+  * drag & drop your reaper `.rpp` onto project mgr; `copy .hpp`.
+  * paste & replace the whole `rendered.hpp` in the `WaveSabreExecutableMusicPlayer` project.
+  * Check some configuration:
+    * see `#define WS_EXEPLAYER_RELEASE_FEATURES` which enables / disables some useful features during development.
+    * also search `SetThreadPriority` if you want to disable thread prioritization (bogs down system which is annoying during some debugging)
+    * see also `gpRenderer = new SongRenderer(&gSong, mProcessorCount);` if you want to control thread count.
+  * typical fx chain includes only the following devices:
+    * maj7
+    * leveller (EQ)
+    * maj7 width (stereo image)
+    * echo (delay)
+    * cathedral (reverb)
+    * smasher (compression)
+  
+
+size optimization & performance notes
+-----------------------------------
+
+  * x86 is smaller than x64 (by how much?)
+  * when including the typical devices described above, a mostly empty song will be about 24kb (x64 though). it means a lot of optimizations need to happen in the note data.
+  * comp tracks with lots of chords are especially bad for compression.
+  * using modulations, delays, etc, can help a lot with note optimization; delays may reduce the need for repeating chords etc.
+  * use `#fixedvelocity` in track names to elide serializing velocities.
 
 tenfour's changes for revision 2023
 -----------------------------------
