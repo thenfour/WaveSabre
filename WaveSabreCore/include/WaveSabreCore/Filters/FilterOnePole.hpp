@@ -26,16 +26,16 @@ namespace WaveSabreCore
                 switch (type)
                 {
                 default:
-                case FilterType::LP:
+                //se FilterType::LP:
                 case FilterType::LP2:
                 case FilterType::LP4:
-                    m_FilterType = FilterType::LP;
+                    m_FilterType = FilterType::LP2;
                     //Recalc();
                     break;
-                case FilterType::HP:
+                //se FilterType::HP:
                 case FilterType::HP2:
                 case FilterType::HP4:
-                    m_FilterType = FilterType::HP;
+                    m_FilterType = FilterType::HP2;
                     //Recalc();
                     break;
                 }
@@ -66,7 +66,7 @@ namespace WaveSabreCore
                 real lpf = vn + m_z_1L;
                 // update memory
                 m_z_1L = vn + lpf;
-                if (m_FilterType == FilterType::LP)
+                if (m_FilterType == FilterType::LP2)
                 {
                     return lpf;
                 }
@@ -85,7 +85,7 @@ namespace WaveSabreCore
 
         private:
 
-            FilterType m_FilterType = FilterType::LP;
+            FilterType m_FilterType = FilterType::LP2;
             real m_cutoffHz = 10000;
             real m_q = 0;
             //real m_overdrive = 0;
@@ -98,7 +98,7 @@ namespace WaveSabreCore
                 real T = Helpers::CurrentSampleRateRecipF;
                 //real wa = (2 / T) * math::tan(wd * T / 2);
                 //real g = wa * T / 2;
-                float g = math::tan(wd * T / 2);
+                float g = math::tan(wd * T * Real(0.5));
                 m_alpha = g / (Real(1) + g);
             }
         };

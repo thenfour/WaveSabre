@@ -60,17 +60,21 @@ namespace WaveSabreCore
         //    }
         //}
 
+
+        // because many filters use certain static multipliers (coefs) based on filter type, 
+        // these should be indexable. that's why LP and LP2 are the same value, so there's no "empty" items here. there is no
+        // scenario where LP and LP2 are required to be distinctly separate underlying values.
         enum class FilterType
         {
-            LP, // interpreted as "any lp"
-            LP2,
-            LP4,
-            BP, // interpreted as "any bp"
-            BP2,
-            BP4,
-            HP, // interpreted as "any hp"
-            HP2,
-            HP4,
+            LP = 0, // interpreted as "any lp"
+            LP2 = 0,
+            LP4 = 1,
+            BP = 2, // interpreted as "any bp"
+            BP2 =2,
+            BP4 = 3,
+            HP = 4, // interpreted as "any hp"
+            HP2 = 4,
+            HP4 = 5,
         };
 
         //// BINARY FLAGS

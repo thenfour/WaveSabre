@@ -26,10 +26,48 @@ size optimization & performance notes
 -----------------------------------
 
   * x86 is smaller than x64 (by how much?)
-  * when including the typical devices described above, a mostly empty song will be about 24kb (x64 though). it means a lot of optimizations need to happen in the note data.
   * comp tracks with lots of chords are especially bad for compression.
   * using modulations, delays, etc, can help a lot with note optimization; delays may reduce the need for repeating chords etc.
   * use `#fixedvelocity` in track names to elide serializing velocities.
+
+optimization numbers
+-----------------------------------
+
+  * with typical devices and empty song data, size = 19856 (x86, minsizerel, squishy, unpadded size).
+
+measuring the size of a device's code is tricky because much code is shared between modules. if you
+measure the diff between "no devices" and "just Leveller" for example, you'll get a value which is more than the useful value.
+a better way to measure is to measure with ALL devices enabled, and then disable the one you're curious about. then you're seeing
+the code unique to that module.
+
+Using the possize (from 0 devices to the 1 in question), and the abovementioned method (negsize), with the above mentioned devices:
+
+| Device    | Possize | Negsize |
+|-----------|---------|---------|
+| Maj7      | 10160   | 8516    |
+| Leveller  | 1848    | 524     |
+| Maj7Width | 1608    | 188     |
+| Echo      | 1936    | 360     |
+| Cathedral | 2140    | 916     |
+| Smasher   | 1616    | 408     |
+
+
+Use Project Manager to analyze note / patch size info.
+
+Measuring code size with SizeBench
+-----------------------------------
+
+Use [SizeBench](https://github.com/microsoft/SizeBench). But you can't use it on the `MinSizeRel` build because PDB info is required, and this configuration doesn't output debug info for size reasons. So use `RelWithDebugInfo`, and open the binary + PDB in sizebench.
+
+There you can see a lot of info about individual classes / functions / symbols.
+
+Note: Smaller code here does not necessarily mean smaller code after squishy. Even some smaller code will output larger after compression, because of entropy.
+
+Note: also, it's again deceptive because much code is inlined or again shared in ways PDBs don't quite understand.
+
+The most reliable way is to just DO an optimization or just remove some hunks of code and see the result.
+
+
 
 tenfour's changes for revision 2023
 -----------------------------------

@@ -14,7 +14,7 @@ namespace WaveSabreCore
             MoogLadderFilter()
             {
                 for (auto& lpf : m_LPF) {
-                    lpf.SetParams(FilterType::LP, 0, 0);
+                    lpf.SetParams(FilterType::LP4, 0, 0);
                 }
             }
 
@@ -40,15 +40,15 @@ namespace WaveSabreCore
                 switch (type)
                 {
                 default:
-                case FilterType::LP:
-                    m_FilterType = FilterType::LP4;
-                    break;
-                case FilterType::BP:
-                    m_FilterType = FilterType::BP4;
-                    break;
-                case FilterType::HP:
-                    m_FilterType = FilterType::HP4;
-                    break;
+                //case FilterType::LP:
+                //    m_FilterType = FilterType::LP4;
+                //    break;
+                //case FilterType::BP:
+                //    m_FilterType = FilterType::BP4;
+                //    break;
+                //case FilterType::HP:
+                //    m_FilterType = FilterType::HP4;
+                //    break;
                 case FilterType::LP2:
                 case FilterType::LP4:
                 case FilterType::BP2:
@@ -90,13 +90,24 @@ namespace WaveSabreCore
                 float dLP[5];
                 dLP[0] = (xn - m_k * dSigma) * m_alpha_0;
 
+
+                static const int8_t letterVals[6][5] = {
+                    {0,0,1,0,0}, // lp2
+                    {0,0,0,0,1}, // lp4
+                    {0,2,-2,0,0}, // bp2
+                    {0,0,4,-8,4}, // bp4
+                    {1,-2,1,0,0}, // hp2
+                    {1,-4,6,-4,1}, // hp4
+                };
+
+
                 // --- cascade of 4 filters
                 float output = 0;
                 for (size_t i = 0; i < 4; ++i) {
                     dLP[i + 1] = m_LPF[i].ProcessSample(dLP[i]);
-                    output += dLP[i] * mLetters[i];
+                    output += dLP[i] * letterVals[(size_t)m_FilterType][i];
                 }
-                output += dLP[4] * mLetters[4];
+                output += dLP[4] * letterVals[(size_t)m_FilterType][4];
 
                 // --- Oberheim variations
                 //real output = m_a * dU + m_b * dLP1 + m_c * dLP2 + m_d * dLP3 + m_e * dLP4;
@@ -186,55 +197,52 @@ namespace WaveSabreCore
 
                 m_alpha_0 = Real1 / (Real1 + m_k * m_gamma);
 
-                // Oberheim variation
-                switch (m_FilterType)
-                {
-                case FilterType::LP:
-                case FilterType::LP4:
-                    mLetters[0] = Real(0.0);
-                    mLetters[1] = Real(0.0);
-                    mLetters[2] = Real(0.0);
-                    mLetters[3] = Real(0.0);
-                    mLetters[4] = Real(1.0);
-                    break;
-                case FilterType::LP2:
-                    mLetters[0] = Real(0.0);
-                    mLetters[1] = Real(0.0);
-                    mLetters[2] = Real(1.0);
-                    mLetters[3] = Real(0.0);
-                    mLetters[4] = Real(0.0);
-                    break;
-                case FilterType::BP:
-                case FilterType::BP4:
-                    mLetters[0] = Real(0.0);
-                    mLetters[1] = Real(0.0);
-                    mLetters[2] = Real(4.0);
-                    mLetters[3] = Real(-8.0);
-                    mLetters[4] = Real(4.0);
-                    break;
-                case FilterType::BP2:
-                    mLetters[0] = Real(0.0);
-                    mLetters[1] = Real(2.0);
-                    mLetters[2] = Real(-2.0);
-                    mLetters[3] = Real(0.0);
-                    mLetters[4] = Real(0.0);
-                    break;
-                case FilterType::HP:
-                case FilterType::HP4:
-                    mLetters[0] = Real(1.0);
-                    mLetters[1] = Real(-4.0);
-                    mLetters[2] = Real(6.0);
-                    mLetters[3] = Real(-4.0);
-                    mLetters[4] = Real(1.0);
-                    break;
-                case FilterType::HP2:
-                    mLetters[0] = Real(1.0);
-                    mLetters[1] = Real(-2.0);
-                    mLetters[2] = Real(1.0);
-                    mLetters[3] = Real(0.0);
-                    mLetters[4] = Real(0.0);
-                    break;
-                }
+            //    // Oberheim variation
+            //    switch (m_FilterType)
+            //    {
+            //    case FilterType::LP4:
+            //        mLetters[0] = Real(0.0);
+            //        mLetters[1] = Real(0.0);
+            //        mLetters[2] = Real(0.0);
+            //        mLetters[3] = Real(0.0);
+            //        mLetters[4] = Real(1.0);
+            //        break;
+            //    case FilterType::LP2:
+            //        mLetters[0] = Real(0.0);
+            //        mLetters[1] = Real(0.0);
+            //        mLetters[2] = Real(1.0);
+            //        mLetters[3] = Real(0.0);
+            //        mLetters[4] = Real(0.0);
+            //        break;
+            //    case FilterType::BP4:
+            //        mLetters[0] = Real(0.0);
+            //        mLetters[1] = Real(0.0);
+            //        mLetters[2] = Real(4.0);
+            //        mLetters[3] = Real(-8.0);
+            //        mLetters[4] = Real(4.0);
+            //        break;
+            //    case FilterType::BP2:
+            //        mLetters[0] = Real(0.0);
+            //        mLetters[1] = Real(2.0);
+            //        mLetters[2] = Real(-2.0);
+            //        mLetters[3] = Real(0.0);
+            //        mLetters[4] = Real(0.0);
+            //        break;
+            //    case FilterType::HP4:
+            //        mLetters[0] = Real(1.0);
+            //        mLetters[1] = Real(-4.0);
+            //        mLetters[2] = Real(6.0);
+            //        mLetters[3] = Real(-4.0);
+            //        mLetters[4] = Real(1.0);
+            //        break;
+            //    case FilterType::HP2:
+            //        mLetters[0] = Real(1.0);
+            //        mLetters[1] = Real(-2.0);
+            //        mLetters[2] = Real(1.0);
+            //        mLetters[3] = Real(0.0);
+            //        mLetters[4] = Real(0.0);
+            //        break;
+            //    }
             }
 
             FilterType m_FilterType = FilterType::LP4;
@@ -255,7 +263,8 @@ namespace WaveSabreCore
             //real m_c = 0;
             //real m_d = 0;
             //real m_e = 0;
-            float mLetters[5] = { 0 };
+            //uint8_t mLetters[5];
+
         };
     } // namespace M7
 } // namespace WaveSabreCore
