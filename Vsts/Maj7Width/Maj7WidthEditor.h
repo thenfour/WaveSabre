@@ -19,11 +19,29 @@ struct Maj7WidthEditor : public VstEditor
 
 	virtual void renderImgui() override
 	{
-		Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Width, "Width", 1, 0, {});
-		ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
+		//// in order of processing,
+		//LeftSource, // 0 = left, 1 = right
+		//	RightSource, // 0 = left, 1 = right
+		//	SideHPFrequency,
+		//	MidAmt,
+		//	SideAmt,
+		//	Pan,
+		//	OutputGain,
+
+		Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LeftSource, "Left source", -1, 0, {});
+		ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RightSource, "Right source", 1, 0, {});
+
+		Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle, "Rotation", -M7::math::gPI, M7::math::gPI, 0, 0, 0, {});
+
 		ImGui::SameLine(); Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SideHPFrequency, -1, "Side HPF", M7::gFilterFreqConfig, 0, {});
+
+		//Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Width, "Width", 1, 0, {});
+		Maj7ImGuiParamFloat01((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MidAmt, "Mid mix", 1, 0, {});
+		ImGui::SameLine(); Maj7ImGuiParamFloat01((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SideAmt, "Side mix", 1, 0, {});
+
+		Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
 	//} M7::gFilterCenterFrequency, M7::gFilterFrequencyScale, 0);
-		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
+		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
 	}
 
 };

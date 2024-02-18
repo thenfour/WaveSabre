@@ -307,6 +307,9 @@ namespace WaveSabreCore
 
             real_t CalculateInc01PerSampleForMS(real_t ms);
 
+            inline float sign(float x) {
+                return ::signbit(x);
+            }
 
             inline bool IsSilentGain(float gain)
             {

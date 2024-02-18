@@ -37,7 +37,18 @@ void Maj7WidthVst::getParameterName(VstInt32 index, char *text)
 {
 	switch ((Maj7Width::ParamIndices)index)
 	{
-	case Maj7Width::ParamIndices::Width: vst_strncpy(text, "Width", kVstMaxParamStrLen); break;
+		//LeftSource, // 0 = left, 1 = right
+		//	RightSource, // 0 = left, 1 = right
+		//	SideHPFrequency,
+		//	MidAmt,
+		//	SideAmt,
+		//	Pan,
+		//	OutputGain,
+
+	case Maj7Width::ParamIndices::LeftSource: vst_strncpy(text, "LeftSource", kVstMaxParamStrLen); break;
+	case Maj7Width::ParamIndices::RightSource: vst_strncpy(text, "RightSource", kVstMaxParamStrLen); break;
+	case Maj7Width::ParamIndices::MidAmt: vst_strncpy(text, "MidAmt", kVstMaxParamStrLen); break;
+	case Maj7Width::ParamIndices::SideAmt: vst_strncpy(text, "SideAmt", kVstMaxParamStrLen); break;
 	case Maj7Width::ParamIndices::SideHPFrequency: vst_strncpy(text, "SideHPF", kVstMaxParamStrLen); break;
 	case Maj7Width::ParamIndices::Pan: vst_strncpy(text, "Pan", kVstMaxParamStrLen); break;
 	case Maj7Width::ParamIndices::OutputGain: vst_strncpy(text, "OutGain", kVstMaxParamStrLen); break;
