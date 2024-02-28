@@ -26,9 +26,9 @@ namespace WaveSabreCore
 		static constexpr M7::VolumeParamConfig gVolumeCfg{ 3.9810717055349722f, 12.0f };
 
 		float mParamCache[(int)ParamIndices::NumParams] = {
-			0.5f, // RotationAngle
 			0, // left source
 			1, // right source
+			0.5f, // RotationAngle
 			0, // Side HP
 			1, // mid amt
 			1, // side amt

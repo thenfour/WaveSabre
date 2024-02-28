@@ -331,7 +331,12 @@ namespace ImGuiKnobs {
 
                 value_changed = ImGui::DragBehavior(gid, data_type, p_value, speed, &v_min, &v_max, format, drag_flags);
 
-                if (ImGui::IsItemClicked() && ImGui::GetIO().KeyCtrl) {
+                bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
+                bool ctrlClicked = hovered && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl;
+                bool doubleClicked = hovered && ImGui::IsMouseDoubleClicked(0);
+
+                //if ((ImGui::IsItemClicked() && ImGui::GetIO().KeyCtrl) || ImGui::Isitemdouble(0)) {
+                if (ctrlClicked || doubleClicked) {
                     *p_value = v_default;
                     value_changed = true;
                 }

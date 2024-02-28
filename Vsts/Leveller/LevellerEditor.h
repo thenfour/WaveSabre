@@ -18,7 +18,7 @@ class LevellerEditor : public VstEditor
 
 public:
 	LevellerEditor(AudioEffect* audioEffect)
-		: VstEditor(audioEffect, 700, 500),
+		: VstEditor(audioEffect, 700, 600),
 		mpLevellerVST((LevellerVst*)audioEffect)//,
 	{
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
@@ -68,7 +68,90 @@ public:
 		ImGui::PopID();
 	}
 
-	static constexpr ImVec2 gHistViewSize = { 550, 150 };
+	// the response graph is extremely crude; todo:
+	// - add the user-selected points to the points list explicitly, to give better looking peaks. then you could reduce # of points.
+	// - respect 'thru' member.
+	// - display info about freq range and amplitude
+	// - adjust amplitude
+
+	static constexpr ImVec2 gHistViewSize = { 350, 125 };
+
+	static constexpr int gSegmentCount = 150;
+	static constexpr int segmentWidth = (int)(gHistViewSize.x / gSegmentCount);
+
+	// because params change as a result of this immediate gui, we need at least 1 full frame of lag to catch param changes correctly.
+	// so keep processing multiple frames until things settle. in the meantime, force recalculating.
+	int additionalForceCalcFrames = 0;
+	ImVec2 points[gSegmentCount];
+	float mParamCacheCache[(size_t)LevellerParamIndices::NumParams] = { 0 }; // the param cache that points have been calculated on. this way we can only recalc the freq response when params change.
+
+
+	// https://forum.juce.com/t/draw-frequency-response-of-filter-from-transfer-function/20669
+	// https://www.musicdsp.org/en/latest/Analysis/186-frequency-response-from-biquad-coefficients.html
+	// https://dsp.stackexchange.com/questions/3091/plotting-the-magnitude-response-of-a-biquad-filter
+	float mag2(WaveSabreCore::BiquadFilter& bq, double freq) const {
+		static constexpr double tau = 6.283185307179586476925286766559;
+		auto w = tau * freq / Helpers::CurrentSampleRate;
+
+		double ma1 = double(bq.coeffs[1]) / bq.coeffs[0];
+		double ma2 = double(bq.coeffs[2]) / bq.coeffs[0];
+		double mb0 = double(bq.coeffs[3]) / bq.coeffs[0];
+		double mb1 = double(bq.coeffs[4]) / bq.coeffs[0];
+		double mb2 = double(bq.coeffs[5]) / bq.coeffs[0];
+
+		double numerator = mb0 * mb0 + mb1 * mb1 + mb2 * mb2 + 2 * (mb0 * mb1 + mb1 * mb2) * ::cos(w) + 2 * mb0 * mb2 * ::cos(2 * w);
+		double denominator = 1 + ma1 * ma1 + ma2 * ma2 + 2 * (ma1 + ma1 * ma2) * ::cos(w) + 2 * ma2 * ::cos(2 * w);
+		double magnitude = ::sqrt(numerator / denominator);
+		return (float)magnitude;
+	}
+
+	void CalculatePoints(ImRect& bb) {
+		float underlyingValue = 0;
+		float ktdummy = 0;
+		M7::FrequencyParam param{ underlyingValue, ktdummy, M7::gFilterFreqConfig };
+
+		for (int iseg = 0; iseg < gSegmentCount; ++iseg) {
+			underlyingValue = float(iseg) / gSegmentCount;
+			float freq = param.GetFrequency(0, 0);
+			float magdB = 0;
+			for (auto& b : mpLeveller->mBands) {
+				if (b.mIsEnabled && !b.mFilters[0].thru) {
+					magdB += M7::math::LinearToDecibels(mag2(b.mFilters[0], freq));
+				}
+			}
+			float magLin = M7::math::DecibelsToLinear(magdB) / 4; // /4 to basically give a 12db range of display.
+
+			points[iseg] = ImVec2(
+				(bb.Min.x + iseg * bb.GetWidth() / gSegmentCount),
+				bb.Max.y - bb.GetHeight() * M7::math::clamp01(magLin)
+			);
+		}
+	}
+
+	void EnsurePointsPopulated(ImRect& bb) {
+		bool areEqual = true;
+
+		float paramCacheCopy[gSegmentCount];
+		for (size_t i = 0; i < (size_t)LevellerParamIndices::NumParams; ++i) {
+			paramCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+		}
+
+		for (size_t i = 0; i < (size_t)LevellerParamIndices::NumParams; ++i) {
+			if (paramCacheCopy[i] != mParamCacheCache[i]) {
+				areEqual = false;
+				break;
+			}
+		}
+		if (areEqual && (additionalForceCalcFrames == 0)) return;
+
+		additionalForceCalcFrames = areEqual ? additionalForceCalcFrames - 1 : 2;
+
+		for (size_t i = 0; i < (size_t)LevellerParamIndices::NumParams; ++i) {
+			mParamCacheCache[i] = paramCacheCopy[i];
+		}
+
+		CalculatePoints(bb);
+	}
 
 	void ResponseGraph()
 	{
@@ -83,30 +166,9 @@ public:
 
 		ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
 
-		float underlyingValue = 0;
-		float ktdummy = 0;
-		M7::FrequencyParam param{ underlyingValue, ktdummy, M7::gFilterFreqConfig };
+		EnsurePointsPopulated(bb);
 
-		static constexpr int gSegmentCount = 50;
-		static constexpr int segmentWidth = (int)(gHistViewSize.x / gSegmentCount);
-
-		for (int iseg = 0; iseg < gSegmentCount; ++iseg) {
-			underlyingValue = float(iseg) / gSegmentCount;
-			float freq = param.GetFrequency(0, 0);
-			float magdB = 0;
-			for (auto& b : mpLeveller->mBands) {
-				if (b.mIsEnabled) {
-					magdB += M7::math::LinearToDecibels(b.mFilters[0].calcMagnitude(freq));
-				}
-			}
-			float magLin = M7::math::DecibelsToLinear(magdB);
-			ImRect rc;
-			rc.Min.x = (bb.Min.x + iseg * bb.GetWidth() / gSegmentCount);
-			rc.Min.y = bb.Max.y - bb.GetHeight() * M7::math::clamp01(magLin);
-			rc.Max.x = rc.Min.x + segmentWidth;
-			rc.Max.y = bb.Max.y;
-			dl->AddRectFilled(rc.Min, rc.Max, lineColor);
-		}
+		dl->AddPolyline(points, gSegmentCount, lineColor, 0, 2.0f);
 
 		ImGui::Dummy(gHistViewSize);
 	}
@@ -127,9 +189,9 @@ public:
 			EndTabBarWithColoredSeparator();
 		}
 
-		static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
-		char text[1024] = "ok? text here?";
-		ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text), ImVec2(400, ImGui::GetTextLineHeight() * 16), flags);
+		//static ImGuiInputTextFlags flags = ImGuiInputTextFlags_AllowTabInput;
+		//char text[1024] = "ok? text here?";
+		//ImGui::InputTextMultiline("##source", text, IM_ARRAYSIZE(text), ImVec2(400, ImGui::GetTextLineHeight() * 16), flags);
 
 		ImGui::BeginTable("##fmaux", Leveller::gBandCount);
 		ImGui::TableNextRow();
@@ -142,7 +204,7 @@ public:
 
 		ImGui::EndTable();
 
-		//ResponseGraph();
+		ResponseGraph();
 	}
 
 
