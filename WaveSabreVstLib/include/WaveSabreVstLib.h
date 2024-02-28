@@ -153,8 +153,9 @@ namespace WaveSabreVstLib
 		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, hiCut);
 	}
 
-
-
+	static inline void GenerateDefaults(Maj7Comp* p) {
+		// nop until needed.
+	}
 
 	// returns params as a minified chunk
 	template<size_t paramCount>

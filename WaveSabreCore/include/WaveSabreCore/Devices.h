@@ -7,6 +7,7 @@
 #include "Specimen.h"
 #include "Maj7.hpp"
 #include "Maj7Width.hpp"
+#include "Maj7Comp.hpp"
 
 #include "Scissor.h"
 #include "Leveller.h"

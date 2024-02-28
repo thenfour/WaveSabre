@@ -6,6 +6,7 @@ namespace WaveSabreConvert
     public class Song
     {
         // NB: These enum values are used as strings to reference the VST DLLs and C++ class names (Serializer.cs)
+        // NB: keep in sync with WaveSabrePlayerLib/SongRenderer.h
         public enum DeviceId
         {
             Falcon,
@@ -23,6 +24,7 @@ namespace WaveSabreConvert
             Specimen,
             Maj7,
             Maj7Width,
+            Maj7Comp,
         }
 
         public class Receive

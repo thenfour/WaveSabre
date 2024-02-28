@@ -20,6 +20,7 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/Maj7.hpp
 	include/WaveSabreCore/Maj7SynthDevice.hpp
 	include/WaveSabreCore/Maj7Basic.hpp
+	include/WaveSabreCore/Maj7Comp.hpp
 	include/WaveSabreCore/LUTs.hpp
 	include/WaveSabreCore/Maj7Envelope.hpp
 	include/WaveSabreCore/Maj7Filter.hpp
@@ -31,6 +32,7 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/Maj7Width.hpp
 	include/WaveSabreCore/MxcsrFlagGuard.h
 	include/WaveSabreCore/ResampleBuffer.h
+	include/WaveSabreCore/RMS.hpp
 	include/WaveSabreCore/SamplePlayer.h
 	include/WaveSabreCore/Scissor.h
 	include/WaveSabreCore/Slaughter.h

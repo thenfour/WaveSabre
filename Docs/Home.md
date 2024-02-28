@@ -30,3 +30,29 @@ WaveSabre has a new [CMake](https://cmake.org/) based build-system that can gene
 - Re-run cmake to create new Vst project file
 - Add Build dependencies for WaveSabreCore and WaveSabrePlayer to VST Project
 - Profit!
+
+## UPDATED new device checklist (Maj7 edition)
+
+- create a directory in vsts
+- run "switch to x64" which configures & generates projects
+- notice: the Maj7Comp project exists with just a .def.
+- create WaveSabre\WaveSabreCore\include\WaveSabreCore\Maj7Comp.hpp with boilerplate
+  - see boilerplate folder.
+- Devices.h: add `#include "Maj7Comp.hpp"`
+- WaveSabreConvert/Song.cs: add `Maj7Comp` to the enum
+- WaveSabrePlayer/include/SongRenderer.h: add `Maj7Comp` to the enum
+- WaveSabreStandAlonePlayer/main.cpp: add `case SongRenderer::DeviceId::Maj7Comp: return new WaveSabreCore::Maj7Comp();`
+- create boilerplate files (see boilerplate folder)
+    - Maj7CompEditor.h
+    - Maj7CompVst.cpp
+    - Maj7CompVst.h
+- regenerate the projects again just to test.
+- add to "C:\root\git\thenfour\WaveSabre\WaveSabreCore\CMakeLists.txt": `include/WaveSabreCore/Maj7Comp.hpp`
+- add the following function to WaveSabreVstLib.h: `static inline void GenerateDefaults(Maj7Comp* p) { /* nop unless needed */	}`
+- the VST can now be built and used.
+
+### once you have the params defined,
+
+- generate a default preset in a DAW via the VST.
+  - using the debug menu, export patch as C++ defaults, and now paste that into the device's default params array.
+  
