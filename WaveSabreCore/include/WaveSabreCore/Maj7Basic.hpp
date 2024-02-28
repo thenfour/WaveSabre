@@ -129,7 +129,7 @@ namespace WaveSabreCore
             //let todb = function(aLinearValue, aMinDecibels) {
             //    const LOG10E = Math.LOG10E || Math.log(10); // Constant value of log base 10 of e
             //    const decibels = 20 * Math.log10(aLinearValue); // Calculate decibels using logarithmic function
-            //    return (decibels != = -Infinity) ? decibels : aMinDecibels; // Check for infinite value and return the result or minimum decibels
+            //    return (decibels !== -Infinity) ? decibels : aMinDecibels; // Check for infinite value and return the result or minimum decibels
             //}
             //let tolinear = function(aDecibelValue) {
             //    return Math.pow(10, aDecibelValue / 20);
@@ -171,6 +171,8 @@ namespace WaveSabreCore
         static constexpr IntParamConfig gMaxVoicesCfg{ 1, gMaxMaxVoices };
         static constexpr IntParamConfig gGmDlsIndexParamCfg{ -1, gGmDlsSampleCount };
 
+        static constexpr VolumeParamConfig gVolumeCfg12db{ 3.9810717055349722f, 12.0f };
+        static constexpr VolumeParamConfig gVolumeCfg36db{ 63.09573444801933f, 36 };
         static constexpr VolumeParamConfig gMasterVolumeCfg{ 1.9952623149688795f, 6.0f };
         static constexpr VolumeParamConfig gUnityVolumeCfg{ 1, 0 };
 

@@ -97,10 +97,11 @@ namespace WaveSabreCore
 
 			/**
 				* Converts a decibel value to a linear value.
-				*/
+			*/
 			float DecibelsToLinear(float aDecibels, float aNegInfDecibels)
 			{
-				float lin = math::pow(10.0f, 0.05f * aDecibels);
+				float lin = math::expf(.11512925464970228420089957273422f * aDecibels); //ln(10)/20 = .11512925464970228420089957273422;
+				//float lin = math::pow(10.0f, 0.05f * aDecibels);
 				if (lin <= aNegInfDecibels)
 					return 0.0f;
 				return lin;
@@ -119,7 +120,8 @@ namespace WaveSabreCore
 
 			float SemisToFrequencyMul(float x)
 			{
-				return math::pow2_N16_16(x / 12);
+				static constexpr float OneTwelfth = 1.0f / 12.0f;
+				return math::pow2_N16_16(x * OneTwelfth);
 				//return math::pow2(x / 12.0f);
 			}
 

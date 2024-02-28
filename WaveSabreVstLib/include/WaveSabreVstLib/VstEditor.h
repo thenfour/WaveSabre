@@ -1091,18 +1091,24 @@ namespace WaveSabreVstLib
 		}
 
 
+		virtual bool onWheel(float distance) {
+			return false;
+		}		
+		virtual bool setKnobMode(VstInt32 val) { 
+			return false;
+		}
 
+		// these are called in response to effEditKeyDown/Up, and according to some online sources
+		// they are not well/consistently supported, maybe even mac-specific, and shouldn't be used. we will instead use native processing.
 		virtual bool onKeyDown(VstKeyCode& keyCode) override {
-			mLastKeyDown = keyCode;
-			return false; // return true avoids Reaper acting like you made a mistake (ding sfx)
+			return false; // important to return false, so the host doesn't swallow the message.
 		}
 		virtual bool onKeyUp(VstKeyCode& keyCode) override {
-			mLastKeyUp = keyCode;
-			if (keyCode.character > 0) {
-				ImGui::GetIO().AddInputCharacterUTF16((unsigned short)keyCode.character);
-				return true;
-			}
-			return false; // return true avoids Reaper acting like you made a mistake (ding sfx)
+		//	if (keyCode.character > 0) {
+		//		ImGui::GetIO().AddInputCharacterUTF16((unsigned short)keyCode.character);
+		//		return true;
+		//	}
+			return false; // important to return false, so the host doesn't swallow the message.
 		}
 
 	protected:

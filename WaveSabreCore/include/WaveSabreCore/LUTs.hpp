@@ -24,6 +24,7 @@ namespace WaveSabreCore
 
             static constexpr float gPI = 3.14159265358979323846264338327950288f;
             static constexpr float gPITimes2 = gPI * 2;
+            static constexpr float gPIHalf = gPI * 0.5f;
             static constexpr float gSqrt2 = 1.41421356237f;
             static constexpr float gSqrt2Recip = 0.70710678118f;
             static constexpr float FloatEpsilon = 0.000001f;
@@ -114,6 +115,7 @@ namespace WaveSabreCore
                 double(__cdecl* crt_floor)(double);
                 double(__cdecl* crt_log)(double);
                 double(__cdecl* crt_pow)(double, double);
+                double(__cdecl* crt_exp)(double);
             };
 
             extern CrtFns* gCrtFns;
@@ -169,6 +171,9 @@ namespace WaveSabreCore
             }
             INLINE real_t tan(real_t x) {
                 return (float)CrtTan((double)x);// fastmath::fastertanfull(x); // less fast to call lib function, but smaller code.
+            }
+            INLINE float expf(float x) {
+                return (float)gCrtFns->crt_exp((double)x);
             }
 
 

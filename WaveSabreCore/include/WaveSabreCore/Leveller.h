@@ -1,3 +1,5 @@
+// note that these are NOT multiband + gains + join. these are 5 cascaded biquad filters; each perform independent peaking.
+
 #ifndef __WAVESABRECORE_LEVELLER_H__
 #define __WAVESABRECORE_LEVELLER_H__
 
@@ -10,110 +12,130 @@
 
 namespace WaveSabreCore
 {
-	static constexpr M7::VolumeParamConfig gLevellerVolumeCfg{ 3.9810717055349722f, 12.0f };
-	static constexpr M7::VolumeParamConfig gLevellerBandVolumeCfg{ gLevellerVolumeCfg };
+	//static constexpr M7::VolumeParamConfig gLevellerVolumeCfg{ 3.9810717055349722f, 12.0f };
+	//static constexpr M7::VolumeParamConfig gLevellerBandVolumeCfg{ gLevellerVolumeCfg };
 	
 	enum class LevellerParamIndices : uint8_t
 	{
 		MasterVolume,
 
-		LowCutFreq,
-		unused1__,
-		LowCutQ,
+		LowShelfFreq,
+		LowShelfGain,
+		LowShelfQ,
+		LowShelfEnable,
 
 		Peak1Freq,
 		Peak1Gain,
 		Peak1Q,
+		Peak1Enable,
 
 		Peak2Freq,
 		Peak2Gain,
 		Peak2Q,
+		Peak2Enable,
 
 		Peak3Freq,
 		Peak3Gain,
 		Peak3Q,
+		Peak3Enable,
 
-		HighCutFreq,
-		unused2__,
-		HighCutQ,
+		HighShelfFreq,
+		HighShelfGain,
+		HighShelfQ,
+		HighShelfEnable,
 
 		NumParams,
 	};
 #define LEVELLER_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::LevellerParamIndices::NumParams]{ \
 	{"MstVol"},\
-	{"HPFreq"},\
-	{"_none1"},\
-	{"HPQ"},\
+	{"LSFreq"},\
+	{"LSGain"},\
+	{"LSQ"},\
+	{"LSEn"},\
 	{"P1Freq"},\
 	{"P1Gain"},\
 	{"P1Q"},\
+	{"P1En"},\
 	{"P2Freq"},\
 	{"P2Gain"},\
 	{"P2Q"},\
+	{"P2En"},\
 	{"P3Freq"},\
 	{"P3Gain"},\
 	{"P3Q"},\
-	{"LPFreq"},\
-	{"_none2"},\
-	{"LPQ"},\
+	{"P3En"},\
+	{"HSFreq"},\
+	{"HSGain"},\
+	{"HSQ"},\
+	{"HSEn"},\
 }
 
-	static_assert((int)LevellerParamIndices::NumParams == 16, "param count probably changed and this needs to be regenerated.");
-	static constexpr int16_t gLevellerDefaults16[16] = {
-	  16422, // MstVol = 0.50118720531463623047
-	  0, // HPFreq = 0
-	  0, // _none1 = 0
-	  0, // HPQ = 0
-	  14347, // P1Freq = 0.43785116076469421387
-	  16422, // P1Gain = 0.50118720531463623047
-	  0, // P1Q = 0
-	  19660, // P2Freq = 0.60000002384185791016
-	  16422, // P2Gain = 0.50118720531463623047
-	  0, // P2Q = 0
-	  25583, // P3Freq = 0.78073549270629882812
-	  16422, // P3Gain = 0.50118720531463623047
-	  0, // P3Q = 0
-	  32767, // LPFreq = 1
-	  0, // _none2 = 0
-	  0, // LPQ = 0
+	static_assert((int)LevellerParamIndices::NumParams == 21, "param count probably changed and this needs to be regenerated.");
+	static constexpr int16_t gLevellerDefaults16[21] = {
+	  16422, // MstVol = 0.50115966796875
+	  8144, // LSFreq = 0.24854269623756408691
+	  16422, // LSGain = 0.50115966796875
+	  3932, // LSQ = 0.1199951171875
+	  0, // LSEn = 0
+	  14347, // P1Freq = 0.437835693359375
+	  16422, // P1Gain = 0.50115966796875
+	  3932, // P1Q = 0.1199951171875
+	  0, // P1En = 0
+	  19660, // P2Freq = 0.5999755859375
+	  16422, // P2Gain = 0.50115966796875
+	  3932, // P2Q = 0.1199951171875
+	  0, // P2En = 0
+	  25583, // P3Freq = 0.780731201171875
+	  16422, // P3Gain = 0.50115966796875
+	  3932, // P3Q = 0.1199951171875
+	  0, // P3En = 0
+	  24854, // HSFreq = 0.75849628448486328125
+	  16422, // HSGain = 0.50115966796875
+	  3932, // HSQ = 0.1199951171875
+	  0, // HSEn = 0
 	};
-
 
 	enum class LevellerBandParamOffsets : uint8_t
 	{
 		Freq,
 		Gain,
 		Q,
+		Enable,
 		Count,
 	};
 
 	struct LevellerBand
 	{
-		LevellerBand(BiquadFilterType type, float* paramCache, LevellerParamIndices baseParamID) :
+		LevellerBand(BiquadFilterType typeWhenZero, BiquadFilterType typeWhenNonZero, float* paramCache, LevellerParamIndices baseParamID) :
 			mParams(paramCache, baseParamID),
-			mFilterType(type)
+			mFilterTypeWhen0(typeWhenZero),
+			mFilterType(typeWhenNonZero),
+			mIsEnabled(false)
 		{
-			//mParams.SetDecibels(LevellerBandParamOffsets::Gain, gLevellerBandVolumeCfg, 0);
-			//mParams.Set01Val(LevellerBandParamOffsets::Q, 0);
-			//mParams.SetFrequencyAssumingNoKeytracking(LevellerBandParamOffsets::Freq, M7::gFilterFreqConfig, initialCutoffHz);
 		}
 
 		void RecalcFilters()
 		{
+			mIsEnabled = mParams.GetBoolValue(LevellerBandParamOffsets::Enable);
 			for (size_t i = 0; i < 2; ++i) {
+				//float gainParam = ;
+				//float db = 
 				mFilters[i].SetParams(
-					mFilterType,
+					(mParams.GetRawVal(LevellerBandParamOffsets::Gain) <= 0) ? mFilterTypeWhen0 : mFilterType,
 					mParams.GetFrequency(LevellerBandParamOffsets::Freq, -1, M7::gFilterFreqConfig, 0, 0),
 					mParams.GetWSQValue(LevellerBandParamOffsets::Q),
-					mParams.GetDecibels(LevellerBandParamOffsets::Gain, gLevellerBandVolumeCfg)
+					mParams.GetDecibels(LevellerBandParamOffsets::Gain, M7::gVolumeCfg12db)
 				);
 			}
 		}
 
 		M7::ParamAccessor mParams;
-		BiquadFilter mFilters[2];
 
+		BiquadFilterType mFilterTypeWhen0;
 		BiquadFilterType mFilterType;
+		bool mIsEnabled;
+
+		BiquadFilter mFilters[2];
 	};
 
 	struct Leveller : public Device
@@ -133,8 +155,11 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
+			//mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::LowShelfFreq, M7::gFilterFreqConfig, 175);
+			//mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::HighShelfFreq, M7::gFilterFreqConfig, 6000);
+
 			auto recalcMask = M7::GetModulationRecalcSampleMask();
-			float masterGain = mParams.GetLinearVolume(LevellerParamIndices::MasterVolume, gLevellerVolumeCfg);
+			float masterGain = mParams.GetLinearVolume(LevellerParamIndices::MasterVolume, M7::gVolumeCfg12db);
 			for (int iSample = 0; iSample < numSamples; iSample++)
 			{
 				float s1 = inputs[0][iSample];
@@ -146,8 +171,10 @@ namespace WaveSabreCore
 					if ((iSample & recalcMask) == 0) {
 						b.RecalcFilters();
 					}
-					s1 = b.mFilters[0].Next(s1);
-					s2 = b.mFilters[1].Next(s2);
+					if (b.mIsEnabled) {
+						s1 = b.mFilters[0].Next(s1);
+						s2 = b.mFilters[1].Next(s2);
+					}
 				}
 
 				outputs[0][iSample] = masterGain * s1;
@@ -176,11 +203,11 @@ namespace WaveSabreCore
 		M7::ParamAccessor mParams{ mParamCache, 0 };
 
 		LevellerBand mBands[gBandCount] = {
-			{BiquadFilterType::Highpass, mParamCache, LevellerParamIndices::LowCutFreq/*, 0*/},
-			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak1Freq /*, 650 */},
-			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak2Freq /*, 2000 */},
-			{BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak3Freq /*, 7000 */},
-			{BiquadFilterType::Lowpass, mParamCache, LevellerParamIndices::HighCutFreq /*, 22050 */},
+			{BiquadFilterType::Highpass, BiquadFilterType::LowShelf, mParamCache, LevellerParamIndices::LowShelfFreq/*, 0*/},
+			{BiquadFilterType::Peak, BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak1Freq /*, 650 */},
+			{BiquadFilterType::Peak, BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak2Freq /*, 2000 */},
+			{BiquadFilterType::Peak, BiquadFilterType::Peak, mParamCache, LevellerParamIndices::Peak3Freq /*, 7000 */},
+			{BiquadFilterType::Lowpass, BiquadFilterType::HighShelf, mParamCache, LevellerParamIndices::HighShelfFreq /*, 22050 */},
 		};
 	};
 }

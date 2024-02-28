@@ -4,13 +4,6 @@
 #include "Maj7Basic.hpp"
 #include "Filters/FilterOnePole.hpp"
 
-// TODO: would be nice to have things like rotation, but it's more code than is worth it.
-// also attempt rotation of the MS signal.
-// https://www.musicdsp.org/en/latest/Effects/255-stereo-field-rotation-via-transformation-matrix.html
-// probably just copy the code from reaper's js stereo manip
-// there's also the feeling that "rotation" may be a fun effect but it doesn't actually translate to a real-world rotation, which implies it's not as useful as it can feel.
-// let's find a way to tune the algo to something as useful as possible.
-
 namespace WaveSabreCore
 {
 	struct Maj7Width : public Device
@@ -56,7 +49,7 @@ namespace WaveSabreCore
 		void Rotate2(float& l, float& r, ParamIndices param) {
 			// https://www.musicdsp.org/en/latest/Effects/255-stereo-field-rotation-via-transformation-matrix.html
 			//r = rotation_angle
-			float rot = mParams.GetScaledRealValue(param, -M7::math::gPI, M7::math::gPI, 0);
+			float rot = mParams.GetScaledRealValue(param, -M7::math::gPIHalf, M7::math::gPIHalf, 0);
 			float s = M7::math::sin(rot);
 			float c = M7::math::cos(rot);
 			float t = l * c - r * s;

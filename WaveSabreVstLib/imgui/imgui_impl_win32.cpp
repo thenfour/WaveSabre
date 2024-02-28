@@ -565,6 +565,10 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
             ::SetCapture(hwnd);
         bd->MouseButtonsDown |= 1 << button;
         io.AddMouseButtonEvent(button, true);
+
+        // this is required to allow keyboard input.
+        ::SetFocus(hwnd);
+
         return 0;
     }
     case WM_LBUTTONUP:
@@ -606,19 +610,14 @@ IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARA
             if ((wParam == VK_RETURN) && (HIWORD(lParam) & KF_EXTENDED))
                 vk = IM_VK_KEYPAD_ENTER;
 
-            //char b[200] = { 0 };
-            //std::sprintf(b, "ImGui key event; virtkey: %d (%s)", vk, is_key_down ? "DOWN" : "up");
-            //OutputDebugStringA(b);
 
             // Submit key event
             const ImGuiKey key = ImGui_ImplWin32_VirtualKeyToImGuiKey(vk);
             const int scancode = (int)LOBYTE(HIWORD(lParam));
 
-            ////char b[200] = { 0 };
-            //std::sprintf(b, " -> ImGuiKey: %d (%s)", key, is_key_down ? "DOWN" : "up");
-            //OutputDebugStringA(b);
 
             if (key != ImGuiKey_None) {
+
                 ImGui_ImplWin32_AddKeyEvent(key, is_key_down, vk, scancode);
             }
 

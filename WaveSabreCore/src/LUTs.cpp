@@ -50,11 +50,10 @@ namespace WaveSabreCore
 				crt_tan(decltype(crt_tan)(GetCrtProc("tan"))),
 				crt_floor(decltype(crt_floor)(GetCrtProc("floor"))),
 				crt_log(decltype(crt_log)(GetCrtProc("log"))),
-				crt_pow(decltype(crt_pow)(GetCrtProc("pow")))
+				crt_pow(decltype(crt_pow)(GetCrtProc("pow"))),
+				crt_exp(decltype(crt_exp)(GetCrtProc("exp")))
 			{
 			}
-
-
 
 #ifdef MIN_SIZE_REL
 			LUTs::LUTs() :

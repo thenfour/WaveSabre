@@ -254,12 +254,12 @@ namespace WaveSabreCore
 #ifdef MIN_SIZE_REL
 #pragma message("Maj7::~Maj7() Leaking memory to save bits.")
 #else
-				for (int i = 0; i < std::size(mpModulations); ++i)
+				for (size_t i = 0; i < std::size(mpModulations); ++i)
 				{
 					delete mpModulations[i];
 				}
 
-				for (int i = 0; i < gModLFOCount; ++i) {
+				for (size_t i = 0; i < gModLFOCount; ++i) {
 					delete mpLFOs[i];
 					delete mpOscillatorDevices[i];
 					delete mpSamplerDevices[i];

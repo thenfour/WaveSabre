@@ -20,11 +20,11 @@ namespace WaveSabreCore
                     m_FilterType = type;
                     recalc = true;
                 }
-                if (!math::FloatEquals(cutoffHz, m_cutoffHz)) {
+                if (cutoffHz != m_cutoffHz) {
                     m_cutoffHz = cutoffHz;
                     recalc = true;
                 }
-                if (!math::FloatEquals(reso, m_resonance)) {
+                if (reso != m_resonance) {
                     m_resonance = reso;
                     // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
                     static const auto t88 = Real(3.88);

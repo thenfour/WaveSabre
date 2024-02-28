@@ -20,6 +20,7 @@ general dev notes and workflow
     * echo (delay)
     * cathedral (reverb)
     * smasher (compression)
+    * scissor (distortion / waveshaping)
   
 
 size optimization & performance notes
@@ -50,6 +51,7 @@ Using the possize (from 0 devices to the 1 in question), and the abovementioned 
 | Echo      | 1936    | 360     |
 | Cathedral | 2140    | 916     |
 | Smasher   | 1616    | 408     |
+| Scissor   | 1420    | 180     |
 
 
 Use Project Manager to analyze note / patch size info.

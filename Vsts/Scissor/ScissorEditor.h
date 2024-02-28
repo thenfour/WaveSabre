@@ -18,30 +18,31 @@ public:
 
 	virtual void renderImgui() override
 	{
-		static constexpr char const* const typeCaptions[] = {
-	"Clipper",
-	"Sine",
-	"Parabola",
-	"Tanh",
-		};
-		static constexpr char const* const oversamplingCaptions[] = {
-	"No oversampling",
-	"2x",
-	"4x",
-		};
+		SCISSOR_PARAM_VST_NAMES(paramNames);
+		//	static constexpr char const* const typeCaptions[] = {
+	//"Clipper",
+	//"Sine",
+	//"Parabola",
+	//"Tanh",
+	//	};
+	//	static constexpr char const* const oversamplingCaptions[] = {
+	//"No oversampling",
+	//"2x",
+	//"4x",
+	//	};
 
 
-		WSImGuiParamEnumList((VstInt32)Scissor::ParamIndices::Type, "Type", 4, typeCaptions);
-		ImGui::SameLine(0, 80);
-		WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::Drive, "Drive");
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::Threshold, "Threshold");
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::Foldover, "Fold");
+	//	WSImGuiParamEnumList((VstInt32)Scissor::ParamIndices::Type, "Type", 4, typeCaptions);
+	//	ImGui::SameLine(0, 80);
+	//	WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::Drive, "Drive");
+	//	ImGui::SameLine();
+	//	WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::Threshold, "Threshold");
+	//	ImGui::SameLine();
+	//	WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::Foldover, "Fold");
 
-		ImGui::SameLine(0, 80);
-		WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::DryWet, "Dry-Wet");
-		WSImGuiParamEnumList((VstInt32)Scissor::ParamIndices::Oversampling, "Oversampling",3, oversamplingCaptions);
+	//	ImGui::SameLine(0, 80);
+	//	WSImGuiParamKnob((VstInt32)Scissor::ParamIndices::DryWet, "Dry-Wet");
+	//	WSImGuiParamEnumList((VstInt32)Scissor::ParamIndices::Oversampling, "Oversampling",3, oversamplingCaptions);
 	}
 };
 

@@ -98,25 +98,25 @@ namespace WaveSabreVstLib
 
 	static inline void GenerateDefaults(Leveller* p)
 	{
-		p->mParams.SetDecibels(LevellerParamIndices::MasterVolume, gLevellerVolumeCfg, 0);
+		p->mParams.SetDecibels(LevellerParamIndices::MasterVolume, M7::gVolumeCfg12db, 0);
 
-		p->mParams.SetRawVal(LevellerParamIndices::LowCutFreq, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::LowCutQ, 0);
+		p->mParams.SetRawVal(LevellerParamIndices::LowShelfFreq, 0);
+		p->mParams.SetRawVal(LevellerParamIndices::LowShelfQ, 0);
 
 		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak1Freq, M7::gFilterFreqConfig, 650);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak1Gain, gLevellerBandVolumeCfg, 0);
+		p->mParams.SetDecibels(LevellerParamIndices::Peak1Gain, M7::gVolumeCfg12db, 0);
 		p->mParams.SetRawVal(LevellerParamIndices::Peak1Q, 0);
 
 		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak2Freq, M7::gFilterFreqConfig, 2000);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak2Gain, gLevellerBandVolumeCfg, 0);
+		p->mParams.SetDecibels(LevellerParamIndices::Peak2Gain, M7::gVolumeCfg12db, 0);
 		p->mParams.SetRawVal(LevellerParamIndices::Peak2Q, 0);
 
 		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak3Freq, M7::gFilterFreqConfig, 7000);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak3Gain, gLevellerBandVolumeCfg, 0);
+		p->mParams.SetDecibels(LevellerParamIndices::Peak3Gain, M7::gVolumeCfg12db, 0);
 		p->mParams.SetRawVal(LevellerParamIndices::Peak3Q, 0);
 
-		p->mParams.SetRawVal(LevellerParamIndices::HighCutFreq, 1);
-		p->mParams.SetRawVal(LevellerParamIndices::HighCutQ, 0);
+		p->mParams.SetRawVal(LevellerParamIndices::HighShelfFreq, 1);
+		p->mParams.SetRawVal(LevellerParamIndices::HighShelfQ, 0);
 	}
 
 	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.

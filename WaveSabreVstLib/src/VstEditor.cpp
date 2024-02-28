@@ -35,11 +35,11 @@ namespace WaveSabreVstLib
 	{
 		//cc::LogScope ls("Window_Open");
 		static constexpr wchar_t const* const className = L"wavesabre vst";
-		WNDCLASSEXW wc = { sizeof(wc), CS_HREDRAW | CS_VREDRAW, gWndProc, 0L, 0L, (HINSTANCE)::hInstance, NULL, NULL, NULL, NULL, className, NULL };
+		WNDCLASSEXW wc = { sizeof(wc), CS_DBLCLKS, gWndProc, 0L, 0L, (HINSTANCE)::hInstance, NULL, NULL, NULL, NULL, className, NULL };
 		::RegisterClassExW(&wc);
 
-		HWND hwnd = CreateWindowExW(0, className, nullptr, WS_CHILD | WS_VISIBLE | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_TABSTOP,
-			0, 0, mDefaultRect.right - mDefaultRect.left, mDefaultRect.bottom - mDefaultRect.top,
+		HWND hwnd = CreateWindowExW(0, className, nullptr, WS_CHILD,
+			0, 0, (mDefaultRect.right - mDefaultRect.left), (mDefaultRect.bottom - mDefaultRect.top),
 			parentWindow, (HMENU)1, (HINSTANCE)::hInstance, this);
 
 		mParentWindow = parentWindow;
@@ -143,32 +143,13 @@ namespace WaveSabreVstLib
 
 	LRESULT WINAPI VstEditor::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	{
-		// messages to ignore. we will handle character keys via the VST key notifications.
-		switch (msg)
-		{
-		case WM_SYSKEYDOWN:
-		{
-			break;
-		}
-		case WM_SYSKEYUP:
-		{
-			break;
-		}
-		case WM_KEYDOWN:
-		{
-			break;
-		}
-		case WM_KEYUP:
-		{
-			break;
-		}
-		case WM_CHAR:
-		{
-			return ::DefWindowProcW(hWnd, msg, wParam, lParam);
-		}
+		switch (msg) {
+		case WM_GETDLGCODE:
+			return DLGC_WANTALLKEYS;
 		}
 
 		if (mImGuiContext) {
+
 			auto contextToken = PushMyImGuiContext("PushMyImGuiContext: ImGui_ImplWin32_WndProcHandler");
 			if (ImGui_ImplWin32_WndProcHandler(hWnd, msg, wParam, lParam)) {
 				return true;
@@ -207,6 +188,11 @@ namespace WaveSabreVstLib
 		if (msg == WM_CREATE) {
 			auto pcs = (CREATESTRUCTW*)lParam;
 			SetPropW(hWnd, L"WSGuiInstance", pcs->lpCreateParams);
+
+			// reaper uses this weird magic value to specify keyboard input should be sent to the window. WHAT
+			// https://forum.cockos.com/showthread.php?t=116894
+			::SetWindowLongPtrW(hWnd, GWLP_USERDATA, 0xdeadf00b);
+
 			return TRUE;
 		}
 		if (!pThis) {
@@ -220,20 +206,23 @@ namespace WaveSabreVstLib
 		auto contextToken = PushMyImGuiContext("PushMyImGuiContext: ImguiPresent()");
 
 		// make sure our child window is the same size as the one given to us.
-		RECT rcParent, rcWnd;
-		GetWindowRect(mParentWindow, &rcParent);
-		GetWindowRect(mCurrentWindow, &rcWnd);
+		// i guess this would be necessary to support when the user resizes the plugin window to expand to fill it.
+		// however on Renoise, it means covering up host controls like "Enable keyboard" checkbox etc. don't clobber things the host is not expecting.
+		//RECT rcParent, rcWnd;
+		//GetWindowRect(mParentWindow, &rcParent);
+		//GetWindowRect(mCurrentWindow, &rcWnd);
 
-		auto parentX = (rcParent.right - rcParent.left);
-		auto childX = (rcWnd.right - rcWnd.left);
-		auto parentY = (rcParent.bottom - rcParent.top);
-		auto childY = (rcWnd.bottom - rcWnd.top);
-		if ((parentX != childX) || (parentY != childY))
-		{
-			SetWindowPos(mCurrentWindow, 0, 0, 0, parentX, parentY, 0);
-			// skip this frame now that window pos has changed it's just safer to not have to consider this case.
-			return;
-		}
+		//auto parentX = (rcParent.right - rcParent.left);
+		//auto childX = (rcWnd.right - rcWnd.left);
+		//auto parentY = (rcParent.bottom - rcParent.top);
+		//auto childY = (rcWnd.bottom - rcWnd.top);
+
+		//if ((parentX != childX) || (parentY != childY))
+		//{
+		//	SetWindowPos(mCurrentWindow, 0, 0, 0, parentX, parentY, 0);
+		//	// skip this frame now that window pos has changed it's just safer to not have to consider this case.
+		//	return;
+		//}
 
 		ImGui_ImplDX9_NewFrame();
 		ImGui_ImplWin32_NewFrame();
