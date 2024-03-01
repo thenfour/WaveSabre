@@ -17,13 +17,25 @@ struct Maj7CompEditor : public VstEditor
 
 	FrequencyResponseRenderer<150, 50, 50, 2, (size_t)Maj7Comp::ParamIndices::NumParams> mResponseGraph;
 
-	SoftPeaks mInputPeak;
-	SoftPeaks mOutputPeak;
+	HistoryEnvFollower mInputPeak;
+	HistoryEnvFollower mOutputPeak;
 	MovingRMS<10> mInputRMS;
 	MovingRMS<10> mOutputRMS;
 
+	bool mShowInputHistory = true;
+	bool mShowDetectorHistory = false;
+	bool mShowOutputHistory = true;
+	bool mShowAttenuationHistory = false;
+	bool mShowThresh = true;
+	bool mShowLeft = true;
+	bool mShowRight = false;
+
+	static constexpr int historyViewHeight = 150;
+	static constexpr float historyViewMinDB = -60;
+	HistoryView<9, 500, historyViewHeight> mHistoryView;
+
 	Maj7CompEditor(AudioEffect* audioEffect) :
-		VstEditor(audioEffect, 600, 850),
+		VstEditor(audioEffect, 850, 870),
 		mpMaj7CompVst((Maj7CompVst*)audioEffect)
 	{
 		mpMaj7Comp = ((Maj7CompVst *)audioEffect)->GetMaj7Comp();
@@ -34,6 +46,37 @@ struct Maj7CompEditor : public VstEditor
 	{
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
 		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Comp Compressor", mpMaj7Comp, mpMaj7CompVst, "gParamDefaults", "ParamIndices::NumParams", "Maj7Comp", mpMaj7Comp->mParamCache, paramNames);
+	}
+
+	void TransferCurve() {
+		ImRect bb;
+		ImVec2 size { historyViewHeight , historyViewHeight };
+		bb.Min = ImGui::GetCursorScreenPos();
+		bb.Max = bb.Min + size;
+
+		ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
+
+		ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
+
+		static constexpr int segmentCount = 33;
+		std::vector<ImVec2> points;
+
+		// TODO: the scale is not the same between the history view & this view. and it's strange but i cannot figure out how to unify the scales.
+		for (int iSeg = 0; iSeg < segmentCount; ++iSeg) {
+			float inLin = float(iSeg) / (segmentCount - 1); // touch 0 and 1
+			float dbIn = M7::math::LinearToDecibels(inLin);
+			float dbAttenOut = mpMaj7Comp->mComp[0].TransferDecibels(dbIn);
+
+			float attenLin = M7::math::DecibelsToLinear(dbAttenOut);
+			float outLin = inLin / attenLin;
+
+			points.push_back(ImVec2 { bb.Min.x + inLin * size.x, bb.Max.y - outLin * size.y });
+		}
+
+		auto* dl = ImGui::GetWindowDrawList();
+		dl->AddPolyline(points.data(), (int)points.size(), ColorFromHTML("cccc00"), 0, 2.0f);
+
+		ImGui::Dummy(size);
 	}
 
 	virtual void renderImgui() override
@@ -111,19 +154,62 @@ struct Maj7CompEditor : public VstEditor
 			EndTabBarWithColoredSeparator();
 		}
 
+		ImGui::BeginGroup();
+		static constexpr float lineWidth = 2.0f;
+
+		mHistoryView.Render({
+			// input
+			HistoryViewSeriesConfig{ColorFromHTML("999999", mShowLeft && mShowInputHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("666666", mShowRight && mShowInputHistory ? 0.8f : 0), lineWidth},
+
+			HistoryViewSeriesConfig{ColorFromHTML("ff00ff", mShowLeft && mShowDetectorHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("880088", mShowRight && mShowDetectorHistory ? 0.8f : 0), lineWidth},
+
+			HistoryViewSeriesConfig{ColorFromHTML("00ff00", mShowLeft && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("008800", mShowRight && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
+
+			HistoryViewSeriesConfig{ColorFromHTML("4444ff", mShowLeft && mShowOutputHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("0000ff", mShowRight && mShowOutputHistory ? 0.8f : 0), lineWidth},
+
+			HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.2f : 0), 1.0f},
+			}, {
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mInput),
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mInput),
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mPostDetector),
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mPostDetector),
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mGainReduction),
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mGainReduction),
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mOutput),
+			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mOutput),
+			mpMaj7Comp->mComp[0].mThreshold,
+			});
+
+		// ... transfer curve.
+		ImGui::SameLine(); TransferCurve();
+
+
+		ImGui::Checkbox("Input", &mShowInputHistory);
+		ImGui::SameLine(); ImGui::Checkbox("Output", &mShowOutputHistory);
+		ImGui::Checkbox("Detector", &mShowDetectorHistory);
+		ImGui::SameLine(); ImGui::Checkbox("Attenuation", &mShowAttenuationHistory);
+		ImGui::SameLine(); ImGui::Checkbox("Threshold", &mShowThresh);
+
+		ImGui::Checkbox("Left", &mShowLeft);
+		ImGui::SameLine(); ImGui::Checkbox("Right", &mShowRight);
+
+		ImGui::EndGroup();
+
 		mInputRMS.addSample(mpMaj7Comp->mComp[0].mInput);
 		mOutputRMS.addSample(mpMaj7Comp->mComp[0].mOutput);
-		mInputPeak.Add(mpMaj7Comp->mComp[0].mInput);
-		mOutputPeak.Add(mpMaj7Comp->mComp[0].mOutput);
-		float inputPeakLevel = mInputPeak.Check();
-		float outputPeakLevel = mOutputPeak.Check();
+		float inputPeakLevel = mInputPeak.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mInput));
+		float outputPeakLevel = mInputPeak.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mOutput));
 		float inputRMSlevel = mInputRMS.getRMS();
 		float outputRMSlevel = mOutputRMS.getRMS();
 
-		VUMeter(&inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
-		ImGui::SameLine(); VUMeter(nullptr, &mpMaj7Comp->mComp[0].mGainReduction, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode));
-		ImGui::SameLine(); VUMeter(nullptr, &mpMaj7Comp->mComp[0].mThreshold, (VUMeterFlags)((int)VUMeterFlags::AttenuationMode));
-		ImGui::SameLine(); VUMeter(&outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		ImGui::SameLine(); VUMeter(ImVec2{ 40, 300 }, &inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		ImGui::SameLine(); VUMeter(ImVec2{20, 300}, & mpMaj7Comp->mComp[0].mGainReduction, & mpMaj7Comp->mComp[0].mGainReduction, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
+		ImGui::SameLine(); VUMeter(ImVec2{ 20, 300 }, nullptr, &mpMaj7Comp->mComp[0].mThreshold, (VUMeterFlags)((int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
+		ImGui::SameLine(); VUMeter(ImVec2{ 40, 300 }, &outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
 	}
 };
 

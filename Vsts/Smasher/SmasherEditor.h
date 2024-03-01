@@ -11,7 +11,6 @@ using namespace WaveSabreCore;
 #include "SmasherVst.h"
 #include "WaveSabreCore/Maj7Basic.hpp"
 
-
 class SmasherEditor : public VstEditor
 {
 public:
@@ -24,79 +23,21 @@ public:
 	{
 	}
 
-	SoftPeaks mInputPeak;
-	SoftPeaks mOutputPeak;
+	HistoryEnvFollower mInputPeak;
+	HistoryEnvFollower mOutputPeak;
 	MovingRMS<8> mInputRMS;
 	MovingRMS<8> mOutputRMS;
 
-	static constexpr ImVec2 gHistViewSize = { 550, 150 };
-	static constexpr float gPixelsPerSample = 6;
-	static constexpr int gSamplesInHist = (int)(gHistViewSize.x / gPixelsPerSample);
-	std::deque<float> mInputHist;
-	std::deque<float> mAttenHist;
-	std::deque<float> mOutputHist;
-
-	void HistoryView()
-	{
-		ImRect bb;
-		bb.Min = ImGui::GetCursorPos();
-		bb.Max = bb.Min + gHistViewSize;
-
-		ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
-		ImColor attenLineColor = ColorFromHTML("ff8080", 0.7f);
-		ImColor inpLineColor = ColorFromHTML("808080", 0.5f);
-		ImColor outpLineColor = ColorFromHTML("8080ff", 0.5f);
-
-		auto DbToY = [&](float db) {
-			// let's show a range of -30 to 0 db.
-			float x = (db + 30) / 30;
-			x = Clamp01(x);
-			return M7::math::lerp(bb.Max.y, bb.Min.y, x);
-		};
-		auto SampleToX = [&](int sample) {
-			float sx = (float)sample;
-			sx /= gSamplesInHist; // 0,1
-			return M7::math::lerp(bb.Min.x, bb.Max.x, sx);
-		};
-
-		auto* dl = ImGui::GetWindowDrawList();
-
-		ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
-
-		// assumes that all 3 plot sources have same # of elements
-		for (int isample = 0; isample < ((signed)mInputHist.size()) - 1; ++isample)
-		{
-			dl->AddLine({ SampleToX(isample), DbToY(M7::math::LinearToDecibels(mInputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::math::LinearToDecibels(mInputHist[isample + 1])) }, inpLineColor, 1.5);
-			dl->AddLine({ SampleToX(isample), DbToY(M7::math::LinearToDecibels(mOutputHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::math::LinearToDecibels(mOutputHist[isample + 1])) }, outpLineColor, 1.5);
-			dl->AddLine({ SampleToX(isample), DbToY(M7::math::LinearToDecibels(mAttenHist[isample])) }, { SampleToX(isample + 1), DbToY(M7::math::LinearToDecibels(mAttenHist[isample + 1])) }, attenLineColor, 2.5);
-		}
-
-		ImGui::Dummy(gHistViewSize);
-	}
+	HistoryView<3, 550, 150> mHistoryView;
 
 	virtual void renderImgui() override
 	{
 		mInputRMS.addSample(mpSmasherVST->mpSmasher->inputLevel);
 		mOutputRMS.addSample(mpSmasherVST->mpSmasher->outputPeak);
-		mInputPeak.Add(mpSmasherVST->mpSmasher->inputLevel);
-		mOutputPeak.Add(mpSmasherVST->mpSmasher->outputPeak);
-		float inputPeakLevel = mInputPeak.Check();
-		float outputPeakLevel = mOutputPeak.Check();
+		float inputPeakLevel = mInputPeak.ProcessSample(mpSmasherVST->mpSmasher->inputLevel);
+		float outputPeakLevel = mOutputPeak.ProcessSample(mpSmasherVST->mpSmasher->outputPeak);
 		float inputRMSlevel = mInputRMS.getRMS();
 		float outputRMSlevel = mOutputRMS.getRMS();
-
-		mInputHist.push_back(inputRMSlevel);
-		mAttenHist.push_back(mpSmasherVST->mpSmasher->atten);
-		mOutputHist.push_back(outputRMSlevel);
-		if (mInputHist.size() > gSamplesInHist) {
-			mInputHist.pop_front();
-		}
-		if (mAttenHist.size() > gSamplesInHist) {
-			mAttenHist.pop_front();
-		}
-		if (mOutputHist.size() > gSamplesInHist) {
-			mOutputHist.pop_front();
-		}
 
 		ImGui::BeginGroup();
 
@@ -116,7 +57,15 @@ public:
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)Smasher::ParamIndices::OutputGain, "OUTPUT GAIN");
 
-		HistoryView();
+		mHistoryView.Render({
+			HistoryViewSeriesConfig{ColorFromHTML("ff8080", 0.7f), 2.0f},
+			HistoryViewSeriesConfig{ColorFromHTML("808080", 0.5f), 2.0f},
+			HistoryViewSeriesConfig{ColorFromHTML("8080ff", 0.5f), 2.0f},
+			}, {
+			M7::math::LinearToDecibels(inputPeakLevel),
+			M7::math::LinearToDecibels(mpSmasherVST->mpSmasher->atten),
+			M7::math::LinearToDecibels(outputPeakLevel),
+			});
 
 		ImGui::EndGroup();
 

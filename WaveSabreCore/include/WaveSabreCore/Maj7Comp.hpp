@@ -35,6 +35,7 @@ namespace WaveSabreCore
 			this->r = calcCoef(releaseMS);
 		}
 
+		// in must be rectified!
 		float ProcessSample(float in) {
 			// similar to the Joep (saike?) one, this looks at a previous value, to see whether it's attack or release env,
 			// then does lerp using the attack or release-per-sample coef
@@ -99,29 +100,29 @@ namespace WaveSabreCore
 		  21845, // Thresh = 0.6666666865348815918
 		  15269, // Attack = 0.46597486734390258789
 		  15909, // Release = 0.48552104830741882324
-		  14043, // Ratio = 0.42857655882835388184
+		  18939, // Ratio = 0.57798200845718383789
 		  8738, // Knee = 0.26666668057441711426
 		  0, // MSEnable = 0
 		  26214, // ChanLink = 0.80000001192092895508
 		  8230, // CompGain = 0.25118863582611083984
 		  32767, // DryWet = 1
 		  0, // PeakRMS = 0
-		  24691, // RMSMS = 0.75353336334228515625
+		  18669, // RMSMS = 0.56974124908447265625
 		  0, // HPF = 0
 		  6553, // HPQ = 0.20000000298023223877
 		  32767, // LPF = 1
 		  6553, // LPQ = 0.20000000298023223877
 		  8, // OutSig = 0.0002470355830155313015
-		  8230, // OutGain = 0.25118863582611083984
+		  8230, // OutGain = 0.25118899345397949219
 		};
 
 		float mParamCache[(int)ParamIndices::NumParams];
 
 		static constexpr M7::TimeParamCfg gAttackCfg{ 0.0f, 500.0f, 9 };
 		static constexpr M7::TimeParamCfg gReleaseCfg{ 0.0f, 1000.0f, 9 };
-		static constexpr M7::TimeParamCfg gRMSWindowSizeCfg{ 2.0f, 50.0f, 9 };
+		static constexpr M7::TimeParamCfg gRMSWindowSizeCfg{ 1.0f, 100.0f, 9 };
 
-		static constexpr M7::DivCurvedParamCfg gRatioCfg{ 1, 50, 1.095236f };// this value of k puts a ratio of 4 about midpoint.
+		static constexpr M7::DivCurvedParamCfg gRatioCfg{ 1, 50, 1.05f };
 
 		M7::ParamAccessor mParams;
 

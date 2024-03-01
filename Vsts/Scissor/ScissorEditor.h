@@ -18,7 +18,7 @@ public:
 
 	virtual void renderImgui() override
 	{
-		SCISSOR_PARAM_VST_NAMES(paramNames);
+		//SCISSOR_PARAM_VST_NAMES(paramNames);
 		//	static constexpr char const* const typeCaptions[] = {
 	//"Clipper",
 	//"Sine",

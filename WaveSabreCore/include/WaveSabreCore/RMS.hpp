@@ -7,7 +7,7 @@ namespace WaveSabreCore
 {
 	struct RMSDetector
 	{
-		float mContinuousValue = 0; // rmsLevelL
+		float mContinuousValue = 0;
 		float mWindowMS = 0;
 		float mAlpha = 0;
 
@@ -15,7 +15,9 @@ namespace WaveSabreCore
 		void SetWindowSize(float ms) {
 			if (ms == mWindowMS) return;
 			mWindowMS = ms;
-			mAlpha = 1.0f / (1.0f + Helpers::CurrentSampleRateF * ms / 100);
+
+			float windowSizeSamples = (mWindowMS / 1000.0f) * Helpers::CurrentSampleRateF;
+			mAlpha = 1.0f - std::exp(-1.0f / windowSizeSamples);
 		}
 
 		// returns the current "RMS"

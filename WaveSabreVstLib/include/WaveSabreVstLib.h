@@ -179,20 +179,20 @@ namespace WaveSabreVstLib
 		return (int)ret.second;
 	}
 
-	// see impl of int Device::GetChunk(void **data)
-	template<typename TDevice, size_t paramCount>
-	inline int SetOldVstChunk(TDevice* pDevice, void* data, int byteSize, float(&paramCache)[paramCount])
-	{
-		if (byteSize != sizeof(float) * paramCount + sizeof(int))
-			return 0;
+	//// see impl of int Device::GetChunk(void **data)
+	//template<typename TDevice, size_t paramCount>
+	//inline int SetOldVstChunk(TDevice* pDevice, void* data, int byteSize, float(&paramCache)[paramCount])
+	//{
+	//	if (byteSize != sizeof(float) * paramCount + sizeof(int))
+	//		return 0;
 
-		auto src = (const float*)data;
-		for (int i = 0; i < paramCount; ++i) {
-			paramCache[i] = src[i];
-		}
-		AdjustLegacyParams(pDevice);
-		return byteSize;
-	}
+	//	auto src = (const float*)data;
+	//	for (int i = 0; i < paramCount; ++i) {
+	//		paramCache[i] = src[i];
+	//	}
+	//	AdjustLegacyParams(pDevice);
+	//	return byteSize;
+	//}
 
 
 	// reads JSON and populates params. return bytes read.
@@ -203,9 +203,9 @@ namespace WaveSabreVstLib
 		if (!byteSize) return byteSize;
 		const char* pstr = (const char*)data;
 
-		if (strnlen(pstr, byteSize - 1) >= (size_t)byteSize) {
-			return SetOldVstChunk(pDevice, data, byteSize, paramCache);
-		}
+		//if (strnlen(pstr, byteSize - 1) >= (size_t)byteSize) {
+		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache);
+		//}
 
 		clarinoid::MemoryStream memStream{ (const uint8_t*)data, (size_t)byteSize };
 		clarinoid::BufferedStream buffering{ memStream };
@@ -214,15 +214,15 @@ namespace WaveSabreVstLib
 
 		// @ root there is exactly 1 KV object.
 		auto maj7Obj = doc.GetNextObjectItem();
-		if (maj7Obj.IsEOF()) {
-			return SetOldVstChunk(pDevice, data, byteSize, paramCache); // empty doc?
-		}
-		if (maj7Obj.mParseResult.IsFailure()) {
-			return SetOldVstChunk(pDevice, data, byteSize, paramCache);//return ch.mParseResult;
-		}
-		if (expectedKeyName != maj7Obj.mKeyName) {
-			return SetOldVstChunk(pDevice, data, byteSize, paramCache);
-		}
+		//if (maj7Obj.IsEOF()) {
+		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache); // empty doc?
+		//}
+		//if (maj7Obj.mParseResult.IsFailure()) {
+		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache);//return ch.mParseResult;
+		//}
+		//if (expectedKeyName != maj7Obj.mKeyName) {
+		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache);
+		//}
 
 		// todo: read meta data / version / format info?
 		doc.Object_Close();

@@ -23,6 +23,25 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
+	// this is basically a naive envelope follower, 0 attack to rectified signal peak, holding the peak for some samples.
+	// why don't we use something like the Maj7Comp Envelope Follower? because the sample rate is VERY different; this is per frame.
+	// and when you scale it back that far it behaves in an ugly way.
+	struct HistoryEnvFollower
+	{
+		static constexpr size_t gBufferSize = 6;
+		std::deque<float> mSamples;
+		float ProcessSample(float sample) {
+			mSamples.push_back(::fabsf(sample));
+			if (mSamples.size() > gBufferSize) {
+				mSamples.pop_front();
+			}
+			float ret = 0;
+			for (auto s : mSamples) {
+				ret = std::max(ret, s);
+			}
+			return ret;
+		}
+	};
 
 	template<size_t window_size>
 	struct MovingRMS {
@@ -54,25 +73,83 @@ namespace WaveSabreVstLib
 		}
 	};
 
-	// this is basically a naive envelope follower, 0 attack to rectified signal peak, holding the peak for some samples.
-	struct SoftPeaks
+
+	struct HistoryViewSeriesConfig
 	{
-		static constexpr size_t gBufferSize = 90;
-		std::deque<float> mSamples;
-		void Add(float sample) {
-			mSamples.push_back(::fabsf(sample));
-			if (mSamples.size() > gBufferSize) {
-				mSamples.pop_front();
-			}
-		}
-		float Check() {
-			float ret = 0;
-			for (auto s : mSamples) {
-				ret = std::max(ret, s);
-			}
-			return ret;
+		ImColor mLineColor;// = ColorFromHTML("ff8080", 0.7f);
+		float mLineThickness;
+	};
+
+	struct HistoryViewSeries
+	{
+		HistoryEnvFollower mFollower; // actual sample values are not helpful; we need a peak env follower to look nice.
+		std::deque<float> mHistDecibels;
+		
+		HistoryViewSeries() {
+			//mFollower.SetParams(0, 100);
 		}
 	};
+
+	static constexpr float gHistoryViewMinDB = -50;
+
+	template<size_t TSeriesCount, int Twidth, int Theight>
+	struct HistoryView
+	{
+		static constexpr ImVec2 gHistViewSize = { Twidth, Theight };
+		static constexpr float gPixelsPerSample = 4;
+		static constexpr int gSamplesInHist = (int)(gHistViewSize.x / gPixelsPerSample);
+
+		HistoryViewSeries mSeries[TSeriesCount];
+
+		void Render(const std::array< HistoryViewSeriesConfig, TSeriesCount>& cfg, const std::array<float, TSeriesCount>& dbValues)
+		{
+			ImRect bb;
+			bb.Min = ImGui::GetCursorScreenPos();
+			bb.Max = bb.Min + gHistViewSize;
+
+			for (size_t i = 0; i < TSeriesCount; ++i) {
+
+				float lin = mSeries[i].mFollower.ProcessSample(M7::math::DecibelsToLinear(dbValues[i]));
+
+				mSeries[i].mHistDecibels.push_back(M7::math::LinearToDecibels(lin));
+				if (mSeries[i].mHistDecibels.size() > gSamplesInHist) {
+					mSeries[i].mHistDecibels.pop_front();
+				}
+			}
+
+			ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
+
+			auto DbToY = [&](float db) {
+				// let's show a range of -x to 0 db.
+				float x = (db - gHistoryViewMinDB) / -gHistoryViewMinDB;
+				x = M7::math::clamp01(x);
+				return M7::math::lerp(bb.Max.y, bb.Min.y, x);
+			};
+			auto SampleToX = [&](int sample) {
+				float sx = (float)sample;
+				sx /= gSamplesInHist; // 0,1
+				return M7::math::lerp(bb.Min.x, bb.Max.x, sx);
+			};
+
+			auto* dl = ImGui::GetWindowDrawList();
+
+			ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
+
+			for (size_t iSeries = 0; iSeries < TSeriesCount; ++iSeries) {
+				std::vector<ImVec2> points;
+				for (int isample = 0; isample < ((signed)mSeries[iSeries].mHistDecibels.size()); ++isample) {
+					points.push_back({
+						SampleToX(isample),
+						DbToY(mSeries[iSeries].mHistDecibels[isample])
+						});
+				}
+				dl->AddPolyline(points.data(), (int)points.size(), cfg[iSeries].mLineColor, 0, cfg[iSeries].mLineThickness);
+			}
+
+			ImGui::Dummy(gHistViewSize);
+		}
+	};
+
 
 	// stolen from ImGui::ColorEdit4
 	static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
@@ -1436,11 +1513,11 @@ namespace WaveSabreVstLib
 		{
 			None = 0,
 			InputIsLinear = 1,
-			//InputIsDecibels = 2,
 			AttenuationMode = 4,
 			LevelMode = 8,
 			NoText = 16,
 			NoForeground = 32,
+			FillAttenuation = 64,
 		};
 
 		struct VUMeterColors
@@ -1455,7 +1532,7 @@ namespace WaveSabreVstLib
 
 		// rms level may be nullptr to not graph it.
 		// peak level may be nullptr to not graph it.
-		void VUMeter(float* rmsLevel, float* peakLevel, VUMeterFlags flags)
+		void VUMeter(ImVec2 size, float* rmsLevel, float* peakLevel, VUMeterFlags flags)
 		{
 			VUMeterColors colors;
 			if ((int)flags & (int)VUMeterFlags::LevelMode)
@@ -1504,7 +1581,6 @@ namespace WaveSabreVstLib
 				if (peakDb >= 0) clip = true;
 			}
 
-			ImVec2 size = { 44, 300 };
 			ImRect bb;
 			bb.Min = ImGui::GetCursorScreenPos();
 			bb.Max = bb.Min + size;
@@ -1573,6 +1649,11 @@ namespace WaveSabreVstLib
 			drawTick(-50, "50db");
 
 			ImGui::Dummy(size);
+		}
+
+		void VUMeter(float* rmsLevel, float* peakLevel, VUMeterFlags flags)
+		{
+			VUMeter(ImVec2(44, 300), rmsLevel, peakLevel, flags);
 		}
 
 
