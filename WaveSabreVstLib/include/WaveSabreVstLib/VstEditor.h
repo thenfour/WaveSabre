@@ -21,6 +21,132 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
+
+	// stolen from ImGui::ColorEdit4
+	static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
+	{
+		int i[3] = { 0 };
+		const char* p = buf;
+		while (*p == '#' || ImCharIsBlankA(*p))
+			p++;
+		i[0] = i[1] = i[2] = 0;
+		int r = sscanf(p, "%02X%02X%02X", (unsigned int*)&i[0], (unsigned int*)&i[1], (unsigned int*)&i[2]);
+		float f[3] = { 0 };
+		for (int n = 0; n < 3; n++)
+			f[n] = i[n] / 255.0f;
+		return ImColor{ f[0], f[1], f[2], alpha };
+	}
+
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////
+	template<size_t TFilterCount, size_t TParamCount>
+	struct FrequencyResponseRendererConfig {
+		const ImColor backgroundColor;
+		const ImColor lineColor;
+		const BiquadFilter* (&pFilters)[TFilterCount];
+		float mParamCacheCopy[TParamCount];
+	};
+	template<int Twidth, int Theight, int TsegmentCount, size_t TFilterCount, size_t TParamCount>
+	struct FrequencyResponseRenderer
+	{
+		// the response graph is extremely crude; todo:
+		// - add the user-selected points to the points list explicitly, to give better looking peaks. then you could reduce # of points.
+		// - respect 'thru' member.
+		// - display info about freq range and amplitude
+		// - adjust amplitude
+
+		static constexpr ImVec2 gSize = { Twidth, Theight };
+		static constexpr int gSegmentCount = TsegmentCount;
+		static constexpr int gSegmentWidth = (int)(gSize.x / gSegmentCount);
+
+		// because params change as a result of this immediate gui, we need at least 1 full frame of lag to catch param changes correctly.
+		// so keep processing multiple frames until things settle. in the meantime, force recalculating.
+		int mAdditionalForceCalcFrames = 0;
+		ImVec2 mPoints[gSegmentCount]; // actual pixel values.
+		float mParamCacheCache[(size_t)LevellerParamIndices::NumParams] = { 0 }; // the param cache that points have been calculated on. this way we can only recalc the freq response when params change.
+
+		int renderSerial = 0;
+
+		// https://forum.juce.com/t/draw-frequency-response-of-filter-from-transfer-function/20669
+		// https://www.musicdsp.org/en/latest/Analysis/186-frequency-response-from-biquad-coefficients.html
+		// https://dsp.stackexchange.com/questions/3091/plotting-the-magnitude-response-of-a-biquad-filter
+		static float BiquadMagnitudeForFrequency(const WaveSabreCore::BiquadFilter& bq, double freq) {
+			static constexpr double tau = 6.283185307179586476925286766559;
+			auto w = tau * freq / Helpers::CurrentSampleRate;
+
+			double ma1 = double(bq.coeffs[1]) / bq.coeffs[0];
+			double ma2 = double(bq.coeffs[2]) / bq.coeffs[0];
+			double mb0 = double(bq.coeffs[3]) / bq.coeffs[0];
+			double mb1 = double(bq.coeffs[4]) / bq.coeffs[0];
+			double mb2 = double(bq.coeffs[5]) / bq.coeffs[0];
+
+			double numerator = mb0 * mb0 + mb1 * mb1 + mb2 * mb2 + 2 * (mb0 * mb1 + mb1 * mb2) * ::cos(w) + 2 * mb0 * mb2 * ::cos(2 * w);
+			double denominator = 1 + ma1 * ma1 + ma2 * ma2 + 2 * (ma1 + ma1 * ma2) * ::cos(w) + 2 * ma2 * ::cos(2 * w);
+			double magnitude = ::sqrt(numerator / denominator);
+			return (float)magnitude;
+		}
+
+		void CalculatePoints(const FrequencyResponseRendererConfig<TFilterCount, TParamCount>& cfg, ImRect& bb) {
+			float underlyingValue = 0;
+			float ktdummy = 0;
+			M7::FrequencyParam param{ underlyingValue, ktdummy, M7::gFilterFreqConfig };
+
+			renderSerial++;
+
+			for (int iseg = 0; iseg < gSegmentCount; ++iseg) {
+				underlyingValue = float(iseg) / gSegmentCount;
+				float freq = param.GetFrequency(0, 0);
+				float magdB = 0;
+
+				for (auto& f : cfg.pFilters) {
+					if (!f) continue; // nullptr values are valid and used when a filter is bypassed.
+					if (f->thru) continue;
+					float magLin = BiquadMagnitudeForFrequency(*f, freq);
+					magdB += M7::math::LinearToDecibels(magLin);
+				}
+
+				float magLin = M7::math::DecibelsToLinear(magdB) / 4; // /4 to basically give a 12db range of display.
+
+				mPoints[iseg] = ImVec2(
+					(bb.Min.x + iseg * bb.GetWidth() / gSegmentCount),
+					bb.Max.y - bb.GetHeight() * M7::math::clamp01(magLin)
+				);
+			}
+		}
+
+		void EnsurePointsPopulated(const FrequencyResponseRendererConfig<TFilterCount, TParamCount>& cfg, ImRect& bb) {
+			bool areEqual = memcmp(cfg.mParamCacheCopy, mParamCacheCache, sizeof(cfg.mParamCacheCopy)) == 0;
+
+			if (areEqual && (mAdditionalForceCalcFrames == 0)) return;
+
+			mAdditionalForceCalcFrames = areEqual ? mAdditionalForceCalcFrames - 1 : 2;
+
+			memcpy(mParamCacheCache, cfg.mParamCacheCopy, sizeof(cfg.mParamCacheCopy));
+
+			CalculatePoints(cfg, bb);
+		}
+
+		// even though you pass in the filters here, you're not allowed to change them due to how things are cached.
+		void OnRender(const FrequencyResponseRendererConfig<TFilterCount, TParamCount>& cfg)
+		{
+			ImRect bb;
+			bb.Min = ImGui::GetCursorPos();
+			bb.Max = bb.Min + gSize;
+
+			auto* dl = ImGui::GetWindowDrawList();
+
+			ImGui::RenderFrame(bb.Min, bb.Max, cfg.backgroundColor);
+			//ImGui::RenderFrame(bb.Min, bb.Max, (renderSerial & 1) ? 0 : cfg.backgroundColor);
+
+			EnsurePointsPopulated(cfg, bb);
+
+			dl->AddPolyline(mPoints, gSegmentCount, cfg.lineColor, 0, 2.0f);
+
+			ImGui::Dummy(gSize);
+		}
+
+	};
+
 	static inline std::string midiNoteToString(int midiNote) {
 		static constexpr char * const noteNames[] = {
 			"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"
@@ -444,6 +570,39 @@ namespace WaveSabreVstLib
 				mParam.SetParamValue((float)param);
 				char s[100] = { 0 };
 				M7::real_t ms = mParam.GetMilliseconds();
+				if (ms > 2000)
+				{
+					sprintf_s(s, "%0.1f s", ms / 1000);
+				}
+				else if (ms > 1000) {
+					sprintf_s(s, "%0.2f s", ms / 1000);
+				}
+				else {
+					sprintf_s(s, "%0.2f ms", ms);
+				}
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				//mParam.SetRangedValue((float)value);
+				//return (double)mParam.GetRawParamValue();
+				return 0;
+			}
+		};
+
+		struct TimeConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			M7::ParamAccessor mParam{ &mBacking, 0 };
+			const M7::TimeParamCfg& mConfig;
+
+			TimeConverter(const M7::TimeParamCfg& cfg) : mConfig(cfg)
+			{}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mBacking = (float)param;
+				char s[100] = { 0 };
+				M7::real_t ms = mParam.GetTimeMilliseconds(0, mConfig, 0);
 				if (ms > 2000)
 				{
 					sprintf_s(s, "%0.1f s", ms / 1000);
@@ -911,6 +1070,22 @@ namespace WaveSabreVstLib
 			}
 		}
 
+		template<typename Tparam>
+		void Maj7ImGuiParamTime(Tparam paramID, const char* label, const M7::TimeParamCfg& cfg, M7::real_t defaultMS, ImGuiKnobs::ModInfo modInfo) {
+			M7::real_t tempVal;
+			M7::ParamAccessor p{ &tempVal, 0 };
+			p.SetTimeMilliseconds(0, cfg, defaultMS);
+			float defaultParamVal = tempVal;
+			tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+			float ms = p.GetTimeMilliseconds(0, cfg, 0);
+
+			TimeConverter conv{ cfg };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated((VstInt32)paramID, Clamp01(tempVal));
+			}
+		}
+
 		void Maj7ImGuiParamEnvTime(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled, ImGuiKnobs::ModInfo modInfo) {
 			WaveSabreCore::M7::real_t tempVal;
 			M7::EnvTimeParam p{ tempVal , v_defaultScaled };
@@ -1167,20 +1342,20 @@ namespace WaveSabreVstLib
 			}
 		};
 
-		// stolen from ImGui::ColorEdit4
-		static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
-		{
-			int i[3] = { 0 };
-			const char* p = buf;
-			while (*p == '#' || ImCharIsBlankA(*p))
-				p++;
-			i[0] = i[1] = i[2] = 0;
-			int r = sscanf(p, "%02X%02X%02X", (unsigned int*)&i[0], (unsigned int*)&i[1], (unsigned int*)&i[2]);
-			float f[3] = { 0 };
-			for (int n = 0; n < 3; n++)
-				f[n] = i[n] / 255.0f;
-			return ImColor{ f[0], f[1], f[2], alpha };
-		}
+		//// stolen from ImGui::ColorEdit4
+		//static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
+		//{
+		//	int i[3] = { 0 };
+		//	const char* p = buf;
+		//	while (*p == '#' || ImCharIsBlankA(*p))
+		//		p++;
+		//	i[0] = i[1] = i[2] = 0;
+		//	int r = sscanf(p, "%02X%02X%02X", (unsigned int*)&i[0], (unsigned int*)&i[1], (unsigned int*)&i[2]);
+		//	float f[3] = { 0 };
+		//	for (int n = 0; n < 3; n++)
+		//		f[n] = i[n] / 255.0f;
+		//	return ImColor{ f[0], f[1], f[2], alpha };
+		//}
 
 		enum class VUMeterFlags
 		{

@@ -53,6 +53,18 @@ namespace WaveSabreCore
 			return math::clamp(param, gEnvTimeMinRealVal, gEnvTimeMaxRealVal);
 		}
 
+		float ParamAccessor::GetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float mod) const
+		{
+			float param = this->GetRawVal__(offset) + mod; // apply current modulation value.
+			return cfg.Param01ToMilliseconds(param);
+		}
+
+		void ParamAccessor::SetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float ms)
+		{
+			float p01 = cfg.MillisecondsToParam01(ms);
+			this->SetRawVal__(offset, p01);
+		}
+
 		float ParamAccessor::ApplyCurveToValue__(int offset, float x, float modVal) const {
 			float k = GetN11Value__(offset, 0) + modVal; // TODO: shouldn't we stick the mod val in there?
 			if (k < 0.0001 && k > -0.0001) return x; // speed optimization; most curves being processed are flat so skip the lookup entirely.

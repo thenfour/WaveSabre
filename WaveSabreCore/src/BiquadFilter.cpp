@@ -82,8 +82,8 @@ namespace WaveSabreCore
 			break;
 		case BiquadFilterType::Peak:
 		{
-			a0 /= A;
-			a2 /= A;
+			a0 = 1.0f + (alpha / A);
+			a2 = 1.0f - (alpha / A);
 			b0 = 1.0f + alpha * A;
 			b1 = -2.0f * cosw0;
 			b2 = 1.0f - alpha * A;

@@ -7,6 +7,43 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
+		// https://www.desmos.com/calculator/ipgewtox2e
+		// so far all time params have similar range which mimics NI Massive. but when we need other time ranges, it's time to 
+		// rethink, and be more like freq param.
+		struct TimeParamCfg {
+			const float mMinMSPlusK;
+			const float mBase;
+
+			// from very small but not zero (e.g. 0.0001), as high as you want. use desmos link to visualize. higher values (10+?) make a more linear range.
+			// k = 10 pretty much matches the NI Massive time param curve.
+			static constexpr float gK = 50;
+
+			// the formula to map min/max/k to value over 0-1 param range,
+			// min += k;
+			// max += k;
+			// R = max/min;
+			// min * (R ^ x) - k
+			constexpr TimeParamCfg(float minMS, float maxMS) : //
+				mMinMSPlusK(minMS + gK), //
+				mBase((maxMS + gK) / mMinMSPlusK)
+			{
+			}
+
+			float Param01ToMilliseconds(float p01) const {
+				p01 = math::clamp01(p01);
+				// min * (R ^ x) - k
+				return mMinMSPlusK * M7::math::pow(mBase, p01) - gK;
+			}
+
+			float MillisecondsToParam01(float ms) const {
+				float t = ms + gK;
+				t /= mMinMSPlusK;
+				float n = M7::math::log10(t);
+				n /= M7::math::log10(mBase);
+				return math::clamp01(n);
+			}
+		};
+
 		struct ParamAccessor
 		{
 			static constexpr size_t MaxEnumItems = 2023;
@@ -104,6 +141,23 @@ namespace WaveSabreCore
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
 				return GetEnvTimeMilliseconds__((int)offset, mod);
+			}
+
+			float GetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float mod) const;
+			template<typename Toffset>
+			float GetTimeMilliseconds(Toffset offset, const TimeParamCfg& cfg, float mod) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				return GetTimeMilliseconds__((int)offset, cfg, mod);
+			}
+
+			void SetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float ms);
+
+			template<typename Toffset>
+			void SetTimeMilliseconds(Toffset offset, const TimeParamCfg& cfg, float ms)
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				SetTimeMilliseconds__((int)offset, cfg, ms);
 			}
 
 			float ParamAccessor::ApplyCurveToValue__(int offset, float x, float modVal) const;

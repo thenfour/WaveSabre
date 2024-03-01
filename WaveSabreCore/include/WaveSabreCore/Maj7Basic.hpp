@@ -126,19 +126,28 @@ namespace WaveSabreCore
             const float mMaxValLinear;
             const float mMaxValDb;
             // plug into a browser console to convert around
-            //let todb = function(aLinearValue, aMinDecibels) {
-            //    const LOG10E = Math.LOG10E || Math.log(10); // Constant value of log base 10 of e
-            //    const decibels = 20 * Math.log10(aLinearValue); // Calculate decibels using logarithmic function
-            //    return (decibels !== -Infinity) ? decibels : aMinDecibels; // Check for infinite value and return the result or minimum decibels
-            //}
-            //let tolinear = function(aDecibelValue) {
-            //    return Math.pow(10, aDecibelValue / 20);
-            //}
+            /*
+            let todb = function(aLinearValue, aMinDecibels) {
+                const LOG10E = Math.LOG10E || Math.log(10); // Constant value of log base 10 of e
+                const decibels = 20 * Math.log10(aLinearValue); // Calculate decibels using logarithmic function
+                return (decibels !== -Infinity) ? decibels : aMinDecibels; // Check for infinite value and return the result or minimum decibels
+            }
+            let tolinear = function(aDecibelValue) {
+                return Math.pow(10, aDecibelValue / 20);
+            }
+            */
         };
 
         extern bool gAlwaysTrue;
 
-        static constexpr float MIN_DECIBEL_GAIN = -60.0f;
+        // these help avoid -infinity and NaN and other problems with "0" linear representing -infinity decibels.
+        // it should represent the full dynamic range of audio, because these will be used in converting sample values in audio processing.
+        // note: 16-bit audio has around 96db of dynamic range
+        // 24-bit has ~144db
+        // 32-bit has ~186db.
+        static constexpr float gMinGainDecibels = -192.0f;
+        static constexpr float gMinGainLinear = 0.00000000025118864315095819916852f;// DecibelsToLinear(gMinGainDecibels);
+
 
         static constexpr real_t gFreqParamKTUnity = 0.3f;
         static constexpr size_t gModulationSpecDestinationCount = 4;
@@ -172,12 +181,10 @@ namespace WaveSabreCore
         static constexpr IntParamConfig gGmDlsIndexParamCfg{ -1, gGmDlsSampleCount };
 
         static constexpr VolumeParamConfig gVolumeCfg12db{ 3.9810717055349722f, 12.0f };
-        static constexpr VolumeParamConfig gVolumeCfg36db{ 63.09573444801933f, 36 };
+        static constexpr VolumeParamConfig gVolumeCfg24db{ 15.848931924611133f, 24.0f };
+        static constexpr VolumeParamConfig gVolumeCfg36db{ 63.09573444801933f, 36.0f };
         static constexpr VolumeParamConfig gMasterVolumeCfg{ 1.9952623149688795f, 6.0f };
         static constexpr VolumeParamConfig gUnityVolumeCfg{ 1, 0 };
-
-
-
 
         static constexpr size_t gModulationCount = 18;
 
@@ -227,8 +234,6 @@ namespace WaveSabreCore
         
         extern QualitySetting GetQualitySetting();
         extern void SetQualitySetting(QualitySetting);
-
-        static const float gMinGainLinear = 0.001f;// DecibelsToLinear(MIN_DECIBEL_GAIN); // avoid dynamic initializer
 
         namespace math
         {
@@ -438,12 +443,12 @@ namespace WaveSabreCore
              * Converts a linear value to decibels.  Returns <= aMinDecibels if the linear
              * value is 0.
              */
-            float LinearToDecibels(float aLinearValue, float aMinDecibels = MIN_DECIBEL_GAIN);
+            float LinearToDecibels(float aLinearValue, float aMinDecibels = gMinGainDecibels);
 
             /**
              * Converts a decibel value to a linear value.
              */
-            float DecibelsToLinear(float aDecibels, float aNegInfDecibels = MIN_DECIBEL_GAIN);
+            float DecibelsToLinear(float aDecibels, float aNegInfDecibels = gMinGainDecibels);
 
             // don't use a LUT because we want to support pitch bend and glides and stuff. using a LUT + interpolation would be
             // asinine.
