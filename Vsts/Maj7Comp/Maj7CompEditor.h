@@ -17,8 +17,13 @@ struct Maj7CompEditor : public VstEditor
 
 	FrequencyResponseRenderer<150, 50, 50, 2, (size_t)Maj7Comp::ParamIndices::NumParams> mResponseGraph;
 
+	SoftPeaks mInputPeak;
+	SoftPeaks mOutputPeak;
+	MovingRMS<10> mInputRMS;
+	MovingRMS<10> mOutputRMS;
+
 	Maj7CompEditor(AudioEffect* audioEffect) :
-		VstEditor(audioEffect, 600, 600),
+		VstEditor(audioEffect, 600, 850),
 		mpMaj7CompVst((Maj7CompVst*)audioEffect)
 	{
 		mpMaj7Comp = ((Maj7CompVst *)audioEffect)->GetMaj7Comp();
@@ -97,7 +102,7 @@ struct Maj7CompEditor : public VstEditor
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
-				static constexpr char const* const signalNames[] = { "Normal", "Diff", "Sidechain", "GainReduction", "Detector" };
+				static constexpr char const* const signalNames[] = { "Normal", "Diff", "Sidechain" };//  , "GainReduction", "Detector"};
 				ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::Maj7Comp::OutputSignal>(ParamIndices::OutputSignal,
 					"Output signal", (int)WaveSabreCore::Maj7Comp::OutputSignal::Count__, WaveSabreCore::Maj7Comp::OutputSignal::Normal, signalNames);
 
@@ -105,6 +110,20 @@ struct Maj7CompEditor : public VstEditor
 			}
 			EndTabBarWithColoredSeparator();
 		}
+
+		mInputRMS.addSample(mpMaj7Comp->mComp[0].mInput);
+		mOutputRMS.addSample(mpMaj7Comp->mComp[0].mOutput);
+		mInputPeak.Add(mpMaj7Comp->mComp[0].mInput);
+		mOutputPeak.Add(mpMaj7Comp->mComp[0].mOutput);
+		float inputPeakLevel = mInputPeak.Check();
+		float outputPeakLevel = mOutputPeak.Check();
+		float inputRMSlevel = mInputRMS.getRMS();
+		float outputRMSlevel = mOutputRMS.getRMS();
+
+		VUMeter(&inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		ImGui::SameLine(); VUMeter(nullptr, &mpMaj7Comp->mComp[0].mGainReduction, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode));
+		ImGui::SameLine(); VUMeter(nullptr, &mpMaj7Comp->mComp[0].mThreshold, (VUMeterFlags)((int)VUMeterFlags::AttenuationMode));
+		ImGui::SameLine(); VUMeter(&outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
 	}
 };
 

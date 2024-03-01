@@ -129,6 +129,7 @@ namespace WaveSabreCore
 			M7::ParamAccessor mParams;
 			float mRatioCoef = 0;
 			float mThreshCoef = 0;
+			float mThreshold = 0;
 			float mKnee = 0;
 			float mInputGainLin = 0;
 			float mCompensationGainLin = 0;
@@ -167,7 +168,8 @@ namespace WaveSabreCore
 				float ratioParam = mParams.GetDivCurvedValue(ParamIndices::Ratio, gRatioCfg, 0);
 				mRatioCoef = (1.0f - (1.0f / ratioParam));
 				mKnee = mParams.GetScaledRealValue(ParamIndices::Knee, 0, 30, 0);
-				mThreshCoef = mParams.GetScaledRealValue(ParamIndices::Threshold, -60, 0, 0) - mKnee;
+				mThreshold = mParams.GetScaledRealValue(ParamIndices::Threshold, -60, 0, 0);
+				mThreshCoef = mThreshold - mKnee;
 
 				mFollower.SetParams(
 					mParams.GetTimeMilliseconds(ParamIndices::Attack, gAttackCfg, 0),
@@ -211,8 +213,7 @@ namespace WaveSabreCore
 
 			// responsible for calculating mInput, mDry, mSidechain, mPreDetector
 			void ProcessSampleBeforeChannelMixing(float input) {
-				mInput = input;
-				mSidechain = mDry = input * mInputGainLin;
+				mSidechain = mDry = mInput = input * mInputGainLin;
 
 				// filter the sidechain before we destroy its listenability via rectification
 				mSidechain = mHighpassFilter.Next(mSidechain);
@@ -242,8 +243,8 @@ namespace WaveSabreCore
 			Normal = 0,
 			Diff,
 			Sidechain,
-			GainReduction,
-			Detector,
+			//GainReduction,
+			//Detector,
 			
 			Count__,
 		};
@@ -333,14 +334,14 @@ namespace WaveSabreCore
 					out0 = mComp[0].mSidechain;
 					out1 = mComp[1].mSidechain;
 					break;
-				case OutputSignal::GainReduction:
-					out0 = mComp[0].mGainReduction;
-					out1 = mComp[1].mGainReduction;
-					break;
-				case OutputSignal::Detector:
-					out0 = mComp[0].mPostDetector;
-					out1 = mComp[1].mPostDetector;
-					break;
+				//case OutputSignal::GainReduction:
+				//	out0 = mComp[0].mGainReduction;
+				//	out1 = mComp[1].mGainReduction;
+				//	break;
+				//case OutputSignal::Detector:
+				//	out0 = mComp[0].mPostDetector;
+				//	out1 = mComp[1].mPostDetector;
+				//	break;
 				}
 
 				outputs[0][iSample] = out0;

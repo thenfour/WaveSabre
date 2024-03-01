@@ -1,7 +1,7 @@
 #ifndef __SMASHEREDITOR_H__
 #define __SMASHEREDITOR_H__
 
-#include <queue>
+//#include <queue>
 
 #include <WaveSabreVstLib.h>
 using namespace WaveSabreVstLib;
@@ -11,55 +11,6 @@ using namespace WaveSabreCore;
 #include "SmasherVst.h"
 #include "WaveSabreCore/Maj7Basic.hpp"
 
-template<size_t window_size>
-struct MovingRMS {
-	std::array<float, window_size> samples;
-	int next_sample_index;
-	float sum_squared;
-
-	MovingRMS() {
-		reset();
-	}
-
-	void addSample(float sample) {
-		sum_squared -= samples[next_sample_index] * samples[next_sample_index];
-		samples[next_sample_index] = sample;
-		sum_squared += sample * sample;
-		next_sample_index = (next_sample_index + 1) % window_size;
-	}
-
-	float getRMS() const {
-		return ::sqrtf(sum_squared / window_size);
-	}
-
-	void reset() {
-		for (int i = 0; i < window_size; i++) {
-			samples[i] = 0.0;
-		}
-		next_sample_index = 0;
-		sum_squared = 0.0;
-	}
-};
-
-
-struct SoftPeaks
-{
-	static constexpr size_t gBufferSize = 10;
-	std::deque<float> mSamples;
-	void Add(float sample) {
-		mSamples.push_back(::fabsf(sample));
-		if (mSamples.size() > gBufferSize) {
-			mSamples.pop_front();
-		}
-	}
-	float Check() {
-		float ret = 0;
-		for (auto s : mSamples) {
-			ret = std::max(ret, s);
-		}
-		return ret;
-	}
-};
 
 class SmasherEditor : public VstEditor
 {
@@ -169,10 +120,10 @@ public:
 
 		ImGui::EndGroup();
 
-		ImGui::SameLine(); VUMeter(inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
-		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->thresholdScalar, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText | (int)VUMeterFlags::NoForeground));
-		ImGui::SameLine(); VUMeter(mpSmasherVST->mpSmasher->atten, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
-		ImGui::SameLine(); VUMeter(outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
+		ImGui::SameLine(); VUMeter(&inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		ImGui::SameLine(); VUMeter(&mpSmasherVST->mpSmasher->thresholdScalar, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText | (int)VUMeterFlags::NoForeground));
+		ImGui::SameLine(); VUMeter(&mpSmasherVST->mpSmasher->atten, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
+		ImGui::SameLine(); VUMeter(&outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
 
 	}
 

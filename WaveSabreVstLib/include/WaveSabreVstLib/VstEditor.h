@@ -5,6 +5,7 @@
 #include <d3d9.h>
 #include <string>
 #include <vector>
+#include <queue>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
@@ -15,12 +16,63 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include "VstPlug.h"
 
+
 using real_t = WaveSabreCore::M7::real_t;
 
 using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
+
+	template<size_t window_size>
+	struct MovingRMS {
+		std::array<float, window_size> samples;
+		int next_sample_index;
+		float sum_squared;
+
+		MovingRMS() {
+			reset();
+		}
+
+		void addSample(float sample) {
+			sum_squared -= samples[next_sample_index] * samples[next_sample_index];
+			samples[next_sample_index] = sample;
+			sum_squared += sample * sample;
+			next_sample_index = (next_sample_index + 1) % window_size;
+		}
+
+		float getRMS() const {
+			return ::sqrtf(sum_squared / window_size);
+		}
+
+		void reset() {
+			for (int i = 0; i < window_size; i++) {
+				samples[i] = 0.0;
+			}
+			next_sample_index = 0;
+			sum_squared = 0.0;
+		}
+	};
+
+	// this is basically a naive envelope follower, 0 attack to rectified signal peak, holding the peak for some samples.
+	struct SoftPeaks
+	{
+		static constexpr size_t gBufferSize = 90;
+		std::deque<float> mSamples;
+		void Add(float sample) {
+			mSamples.push_back(::fabsf(sample));
+			if (mSamples.size() > gBufferSize) {
+				mSamples.pop_front();
+			}
+		}
+		float Check() {
+			float ret = 0;
+			for (auto s : mSamples) {
+				ret = std::max(ret, s);
+			}
+			return ret;
+		}
+	};
 
 	// stolen from ImGui::ColorEdit4
 	static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
@@ -130,7 +182,7 @@ namespace WaveSabreVstLib
 		void OnRender(const FrequencyResponseRendererConfig<TFilterCount, TParamCount>& cfg)
 		{
 			ImRect bb;
-			bb.Min = ImGui::GetCursorPos();
+			bb.Min = ImGui::GetCursorScreenPos();
 			bb.Max = bb.Min + gSize;
 
 			auto* dl = ImGui::GetWindowDrawList();
@@ -1380,21 +1432,6 @@ namespace WaveSabreVstLib
 			}
 		};
 
-		//// stolen from ImGui::ColorEdit4
-		//static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
-		//{
-		//	int i[3] = { 0 };
-		//	const char* p = buf;
-		//	while (*p == '#' || ImCharIsBlankA(*p))
-		//		p++;
-		//	i[0] = i[1] = i[2] = 0;
-		//	int r = sscanf(p, "%02X%02X%02X", (unsigned int*)&i[0], (unsigned int*)&i[1], (unsigned int*)&i[2]);
-		//	float f[3] = { 0 };
-		//	for (int n = 0; n < 3; n++)
-		//		f[n] = i[n] / 255.0f;
-		//	return ImColor{ f[0], f[1], f[2], alpha };
-		//}
-
 		enum class VUMeterFlags
 		{
 			None = 0,
@@ -1416,11 +1453,10 @@ namespace WaveSabreVstLib
 			ImColor peak;
 		};
 
-		void VUMeter(float rmsLevel, float* peakLevel, VUMeterFlags flags)
+		// rms level may be nullptr to not graph it.
+		// peak level may be nullptr to not graph it.
+		void VUMeter(float* rmsLevel, float* peakLevel, VUMeterFlags flags)
 		{
-			float rmsDB = M7::math::LinearToDecibels(::fabsf(rmsLevel));
-			bool clip = rmsDB > 0;
-
 			VUMeterColors colors;
 			if ((int)flags & (int)VUMeterFlags::LevelMode)
 			{
@@ -1444,9 +1480,33 @@ namespace WaveSabreVstLib
 			colors.tick.Value.w = 0.35f;
 			colors.clipTick.Value.w = 0.8f;
 
+			float rmsDB = 0;
+			bool clip = false;
+			if (rmsLevel) {
+				if ((int)flags & (int)VUMeterFlags::InputIsLinear) {
+					rmsDB = M7::math::LinearToDecibels(::fabsf(*rmsLevel));
+				}
+				else {
+					rmsDB = (*rmsLevel);
+				}
+				if (rmsDB >= 0) clip = true;
+			}
+
+			float peakDb = 0;
+			if (peakLevel) {
+				if ((int)flags & (int)VUMeterFlags::InputIsLinear) {
+					peakDb = M7::math::LinearToDecibels(::fabsf(*peakLevel));
+				}
+				else {
+					peakDb = (*peakLevel);
+				}
+
+				if (peakDb >= 0) clip = true;
+			}
+
 			ImVec2 size = { 44, 300 };
 			ImRect bb;
-			bb.Min = ImGui::GetCursorPos();
+			bb.Min = ImGui::GetCursorScreenPos();
 			bb.Max = bb.Min + size;
 			ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
 
@@ -1471,7 +1531,9 @@ namespace WaveSabreVstLib
 			}
 
 			if (!((int)flags & (int)VUMeterFlags::NoForeground)) {
-				dl->AddRectFilled(forebb.Min, forebb.Max, colors.foreground);
+				if (rmsLevel) {
+					dl->AddRectFilled(forebb.Min, forebb.Max, colors.foreground);
+				}
 			}
 
 			// draw thumb
@@ -1483,7 +1545,6 @@ namespace WaveSabreVstLib
 
 			// draw peak
 			if (peakLevel != nullptr) {
-				float peakDb = M7::math::LinearToDecibels(*peakLevel);
 				float peakY = DbToY(peakDb);
 				ImRect threshbb = bb;
 				threshbb.Min.y = threshbb.Max.y = peakY;
@@ -1494,7 +1555,6 @@ namespace WaveSabreVstLib
 
 			// draw plot lines
 			auto drawTick = [&](float tickdb, const char* txt) {
-				//float ticklin = M7::DecibelsToLinear(db);
 				ImRect tickbb = forebb;
 				tickbb.Min.y = DbToY(tickdb);
 				tickbb.Max.y = tickbb.Min.y;
