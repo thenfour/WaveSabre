@@ -42,8 +42,8 @@ struct Maj7CompEditor : public VstEditor
 				ImGui::SameLine(); Maj7ImGuiParamTime(ParamIndices::Attack, "Attack(ms)", Maj7Comp::gAttackCfg, 50, {});
 				ImGui::SameLine(); Maj7ImGuiParamTime(ParamIndices::Release, "Release(ms)", Maj7Comp::gReleaseCfg, 80, {});
 
-				ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Ratio, "Ratio", 1, 40, 4, 0, 0, {});
-				ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Knee, "Knee(dB)", 1, 30, 8, 0, 0, {});
+				ImGui::SameLine(); Maj7ImGuiDivCurvedParam((VstInt32)ParamIndices::Ratio, "Ratio", Maj7Comp::gRatioCfg, 4, {});
+				ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Knee, "Knee(dB)", 0, 30, 8, 0, 0, {});
 
 				ImGui::EndTabItem();
 			}

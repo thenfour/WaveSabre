@@ -11,36 +11,76 @@ namespace WaveSabreCore
 		// so far all time params have similar range which mimics NI Massive. but when we need other time ranges, it's time to 
 		// rethink, and be more like freq param.
 		struct TimeParamCfg {
-			const float mMinMSPlusK;
-			const float mBase;
 
 			// from very small but not zero (e.g. 0.0001), as high as you want. use desmos link to visualize. higher values (10+?) make a more linear range.
 			// k = 10 pretty much matches the NI Massive time param curve.
-			static constexpr float gK = 50;
+			const float mK;
+			const float mMinMSPlusK;
+			const float mBase;
 
 			// the formula to map min/max/k to value over 0-1 param range,
 			// min += k;
 			// max += k;
 			// R = max/min;
 			// min * (R ^ x) - k
-			constexpr TimeParamCfg(float minMS, float maxMS) : //
-				mMinMSPlusK(minMS + gK), //
-				mBase((maxMS + gK) / mMinMSPlusK)
+			constexpr TimeParamCfg(float minMS, float maxMS, float k) : //
+				mK(k),
+				mMinMSPlusK(minMS + k), //
+				mBase((maxMS + k) / mMinMSPlusK)
 			{
 			}
 
 			float Param01ToMilliseconds(float p01) const {
 				p01 = math::clamp01(p01);
 				// min * (R ^ x) - k
-				return mMinMSPlusK * M7::math::pow(mBase, p01) - gK;
+				return mMinMSPlusK * M7::math::pow(mBase, p01) - mK;
 			}
 
 			float MillisecondsToParam01(float ms) const {
-				float t = ms + gK;
+				float t = ms + mK;
 				t /= mMinMSPlusK;
 				float n = M7::math::log10(t);
 				n /= M7::math::log10(mBase);
 				return math::clamp01(n);
+			}
+		};
+
+		// something like compressor ratio requires a very steep curve, and using 1/x will fit that. it's based off the principle curve 1/(1-x).
+		struct DivCurvedParamCfg {
+			// k should be > 1, but makes little difference over about 2. small k means a steep curve.
+			const float mK;
+			const float mMin;
+			const float mMax;
+
+			const float mKMinus1;
+			const float mKTimesKMinus1;
+
+			// to calc 01 param to 01 curved:
+			// ((k * (k - 1)) / (k - x)) - (k - 1)
+			// OR,
+			// km1 = k - 1;
+			// kmx = k - x;
+			// k * km1 / kmx - km1
+			constexpr DivCurvedParamCfg(float minVal, float maxVal, float k) : //
+				mK(k),
+				mMin(minVal), //
+				mMax(maxVal),//
+				mKMinus1(k - 1),
+				mKTimesKMinus1(k * (k - 1))
+			{
+			}
+
+			float Param01ToValue(float p01) const {
+				p01 = math::clamp01(p01);
+				float t = mKTimesKMinus1 / (mK - p01) - mKMinus1;
+				return M7::math::lerp(mMin, mMax, t);
+			}
+
+			float ValueToParam01(float v) const {
+				float t = M7::math::lerp_rev(mMin, mMax, v);
+				// solving the above for x leads to:
+				// k*t/(k + t - 1)
+				return mK * t / (mK + t - 1);
 			}
 		};
 
@@ -158,6 +198,23 @@ namespace WaveSabreCore
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
 				SetTimeMilliseconds__((int)offset, cfg, ms);
+			}
+
+			float GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;
+			template<typename Toffset>
+			float GetDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float mod) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				return GetDivCurvedValue__((int)offset, cfg, mod);
+			}
+
+			void SetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float v);
+
+			template<typename Toffset>
+			void SetDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float v)
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				SetDivCurvedValue__((int)offset, cfg, v);
 			}
 
 			float ParamAccessor::ApplyCurveToValue__(int offset, float x, float modVal) const;

@@ -55,7 +55,7 @@ namespace WaveSabreCore
 			Attack, // 0-500ms, default 60
 			Release, // 0-1000ms, default 80
 			Ratio, // 1-40, default 4
-			Knee, // 1-30, default 8
+			Knee, // 0-30, default 8
 			MidSideEnable, // stereo or mid/side, default stereo
 			ChannelLink, // 0-1 (0-100%, default 80%)
 			CompensationGain, // -inf to +24db, default 0
@@ -96,30 +96,32 @@ namespace WaveSabreCore
 		static_assert((int)ParamIndices::NumParams == 18, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[18] = {
 		  8230, // InpGain = 0.25118863582611083984
-		  21845, // Thresh = 0.666656494140625
-		  9472, // Attack = 0.2890625
-		  10284, // Release = 0.3138427734375
-		  2520, // Ratio = 0.076904296875
-		  7909, // Knee = 0.241363525390625
+		  21845, // Thresh = 0.6666666865348815918
+		  15269, // Attack = 0.46597486734390258789
+		  15909, // Release = 0.48552104830741882324
+		  14043, // Ratio = 0.42857655882835388184
+		  8738, // Knee = 0.26666668057441711426
 		  0, // MSEnable = 0
 		  26214, // ChanLink = 0.80000001192092895508
 		  8230, // CompGain = 0.25118863582611083984
 		  32767, // DryWet = 1
 		  0, // PeakRMS = 0
-		  21586, // RMSMS = 0.65875244140625
+		  24691, // RMSMS = 0.75353336334228515625
 		  0, // HPF = 0
 		  6553, // HPQ = 0.20000000298023223877
-		  32767, // LPF = 0.999969482421875
+		  32767, // LPF = 1
 		  6553, // LPQ = 0.20000000298023223877
-		  8, // OutSig = 0.000244140625
+		  8, // OutSig = 0.0002470355830155313015
 		  8230, // OutGain = 0.25118863582611083984
 		};
 
 		float mParamCache[(int)ParamIndices::NumParams];
 
-		static constexpr M7::TimeParamCfg gAttackCfg{ 0.0f, 500.0f };
-		static constexpr M7::TimeParamCfg gReleaseCfg{ 0.0f, 1000.0f };
-		static constexpr M7::TimeParamCfg gRMSWindowSizeCfg{ 2.0f, 50.0f };
+		static constexpr M7::TimeParamCfg gAttackCfg{ 0.0f, 500.0f, 9 };
+		static constexpr M7::TimeParamCfg gReleaseCfg{ 0.0f, 1000.0f, 9 };
+		static constexpr M7::TimeParamCfg gRMSWindowSizeCfg{ 2.0f, 50.0f, 9 };
+
+		static constexpr M7::DivCurvedParamCfg gRatioCfg{ 1, 50, 1.095236f };// this value of k puts a ratio of 4 about midpoint.
 
 		M7::ParamAccessor mParams;
 
@@ -162,7 +164,7 @@ namespace WaveSabreCore
 				mDryWetMix = mParams.Get01Value(ParamIndices::DryWet, 0);
 				mPeakRMSMix = mParams.Get01Value(ParamIndices::PeakRMSMix, 0);
 
-				float ratioParam = mParams.GetScaledRealValue(ParamIndices::Ratio, 1, 60, 0);
+				float ratioParam = mParams.GetDivCurvedValue(ParamIndices::Ratio, gRatioCfg, 0);
 				mRatioCoef = (1.0f - (1.0f / ratioParam));
 				mKnee = mParams.GetScaledRealValue(ParamIndices::Knee, 0, 30, 0);
 				mThreshCoef = mParams.GetScaledRealValue(ParamIndices::Threshold, -60, 0, 0) - mKnee;
@@ -269,6 +271,7 @@ namespace WaveSabreCore
 		virtual void LoadDefaults() override
 		{
 			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
+			SetParam(0, mParamCache[0]); // force recalcing some things
 		}
 
 		virtual void SetParam(int index, float value) override

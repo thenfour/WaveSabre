@@ -65,13 +65,23 @@ namespace WaveSabreCore
 			this->SetRawVal__(offset, p01);
 		}
 
+		float ParamAccessor::GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const
+		{
+			float param = this->GetRawVal__(offset) + mod;
+			return cfg.Param01ToValue(param);
+		}
+
+		void ParamAccessor::SetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float x)
+		{
+			float p01 = cfg.ValueToParam01(x);
+			this->SetRawVal__(offset, p01);
+		}
+
 		float ParamAccessor::ApplyCurveToValue__(int offset, float x, float modVal) const {
 			float k = GetN11Value__(offset, 0) + modVal; // TODO: shouldn't we stick the mod val in there?
 			if (k < 0.0001 && k > -0.0001) return x; // speed optimization; most curves being processed are flat so skip the lookup entirely.
 			return math::modCurve_xN11_kN11(x, k);
 		}
-
-
 
 		float ParamAccessor::GetScaledRealValue__(int offset, float minIncl, float maxIncl, float mod) const
 		{

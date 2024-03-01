@@ -623,6 +623,28 @@ namespace WaveSabreVstLib
 			}
 		};
 
+		struct DivCurvedConverter : ImGuiKnobs::IValueConverter
+		{
+			float mBacking;
+			M7::ParamAccessor mParam{ &mBacking, 0 };
+			const M7::DivCurvedParamCfg& mConfig;
+
+			DivCurvedConverter(const M7::DivCurvedParamCfg& cfg) : mConfig(cfg)
+			{}
+
+			virtual std::string ParamToDisplayString(double param, void* capture) override {
+				mBacking = (float)param;
+				char s[100] = { 0 };
+				M7::real_t v = mParam.GetDivCurvedValue(0, mConfig, 0);
+				sprintf_s(s, "%0.2f", v);
+				return s;
+			}
+
+			virtual double DisplayValueToParam(double value, void* capture) {
+				return 0;
+			}
+		};
+
 		struct FloatN11Converter : ImGuiKnobs::IValueConverter
 		{
 			float mBacking;
@@ -1077,9 +1099,25 @@ namespace WaveSabreVstLib
 			p.SetTimeMilliseconds(0, cfg, defaultMS);
 			float defaultParamVal = tempVal;
 			tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-			float ms = p.GetTimeMilliseconds(0, cfg, 0);
+			//float ms = p.GetTimeMilliseconds(0, cfg, 0);
 
 			TimeConverter conv{ cfg };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated((VstInt32)paramID, Clamp01(tempVal));
+			}
+		}
+
+		template<typename Tparam>
+		void Maj7ImGuiDivCurvedParam(Tparam paramID, const char* label, const M7::DivCurvedParamCfg& cfg, M7::real_t defaultValue, ImGuiKnobs::ModInfo modInfo) {
+			M7::real_t tempVal;
+			M7::ParamAccessor p{ &tempVal, 0 };
+			p.SetDivCurvedValue(0, cfg, defaultValue);
+			float defaultParamVal = tempVal;
+			tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+			//float val = p.GetDivCurvedValue(0, cfg, 0);
+
+			DivCurvedConverter conv{ cfg };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated((VstInt32)paramID, Clamp01(tempVal));
