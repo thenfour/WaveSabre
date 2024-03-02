@@ -55,26 +55,60 @@ struct Maj7CompEditor : public VstEditor
 		bb.Max = bb.Min + size;
 
 		ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
+		ImColor curveColor = ColorFromHTML("999999", 1.0f);
+		ImColor gridColor = ColorFromHTML("444444", 1.0f);
+		ImColor detectorColorAtt = ColorFromHTML("ed4d4d", 0.9f);
+		ImColor detectorColor = ColorFromHTML("eeeeee", 0.9f);
 
 		ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
 
 		static constexpr int segmentCount = 33;
 		std::vector<ImVec2> points;
 
-		// TODO: the scale is not the same between the history view & this view. and it's strange but i cannot figure out how to unify the scales.
+		auto dbToY = [&](float dB) {
+			float lin = dB / gHistoryViewMinDB;
+			float t01 = M7::math::clamp01(1.0f - lin);
+			return bb.Max.y - t01 * size.y;
+		};
+
+		auto dbToX = [&](float dB) {
+			float lin = dB / gHistoryViewMinDB;
+			float t01 = M7::math::clamp01(1.0f - lin);
+			return bb.Min.x + t01 * size.y;
+		};
+
 		for (int iSeg = 0; iSeg < segmentCount; ++iSeg) {
 			float inLin = float(iSeg) / (segmentCount - 1); // touch 0 and 1
-			float dbIn = M7::math::LinearToDecibels(inLin);
-			float dbAttenOut = mpMaj7Comp->mComp[0].TransferDecibels(dbIn);
-
-			float attenLin = M7::math::DecibelsToLinear(dbAttenOut);
-			float outLin = inLin / attenLin;
-
-			points.push_back(ImVec2 { bb.Min.x + inLin * size.x, bb.Max.y - outLin * size.y });
+			float dbIn = (1.0f - inLin) * gHistoryViewMinDB; // db from gHistoryViewMinDB to 0.
+			float dbAttenOut = mpMaj7Comp->mComp[0].TransferDecibels(dbIn);// / 5;
+			float outDB = dbIn - dbAttenOut;
+			points.push_back(ImVec2{ bb.Min.x + inLin * size.x, dbToY(outDB)});
 		}
 
 		auto* dl = ImGui::GetWindowDrawList();
-		dl->AddPolyline(points.data(), (int)points.size(), ColorFromHTML("cccc00"), 0, 2.0f);
+
+		// linear guideline
+		dl->AddLine({ bb.Min.x, bb.Max.y }, {bb.Max.x, bb.Min.y}, gridColor, 1.0f);
+
+		// threshold guideline
+		float threshY = dbToY(mpMaj7Comp->mComp[0].mThreshold);
+		dl->AddLine({ bb.Min.x, threshY }, {bb.Max.x, threshY}, gridColor, 1.0f);
+
+		dl->AddPolyline(points.data(), (int)points.size(), curveColor, 0, 2.0f);
+
+		// detector indicator dot
+		float detectorLevel = std::max(mpMaj7Comp->mComp[0].mPostDetector, mpMaj7Comp->mComp[1].mPostDetector);
+		float detectorDB = M7::math::LinearToDecibels(detectorLevel);
+
+		float detAtten = mpMaj7Comp->mComp[0].TransferDecibels(detectorDB);
+		float detOutDB = detectorDB - detAtten;
+
+		if (detAtten > 0.00001) {
+			dl->AddCircleFilled({ dbToX(detectorDB), dbToY(detOutDB) }, 6.0f, detectorColorAtt);
+		}
+		else {
+			dl->AddCircleFilled({ dbToX(detectorDB), dbToY(detOutDB) }, 3.0f, detectorColor);
+		}
 
 		ImGui::Dummy(size);
 	}
@@ -187,12 +221,11 @@ struct Maj7CompEditor : public VstEditor
 		// ... transfer curve.
 		ImGui::SameLine(); TransferCurve();
 
-
 		ImGui::Checkbox("Input", &mShowInputHistory);
-		ImGui::SameLine(); ImGui::Checkbox("Output", &mShowOutputHistory);
-		ImGui::Checkbox("Detector", &mShowDetectorHistory);
+		ImGui::SameLine(); ImGui::Checkbox("Detector", &mShowDetectorHistory);
 		ImGui::SameLine(); ImGui::Checkbox("Attenuation", &mShowAttenuationHistory);
-		ImGui::SameLine(); ImGui::Checkbox("Threshold", &mShowThresh);
+		ImGui::SameLine(); ImGui::Checkbox("Output", &mShowOutputHistory);
+		//ImGui::SameLine(); ImGui::Checkbox("Threshold", &mShowThresh);
 
 		ImGui::Checkbox("Left", &mShowLeft);
 		ImGui::SameLine(); ImGui::Checkbox("Right", &mShowRight);

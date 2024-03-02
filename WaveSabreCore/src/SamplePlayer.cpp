@@ -32,7 +32,7 @@ namespace WaveSabreCore
 
 	void SamplePlayer::CalcPitch(double note)
 	{
-		double freqDelta = Helpers::Exp2(note / 12.0);
+		double freqDelta = M7::math::SemisToFrequencyMul(note);
 		if (!reverse)
 		{
 			sampleDelta = freqDelta;

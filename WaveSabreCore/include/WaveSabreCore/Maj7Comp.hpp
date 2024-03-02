@@ -9,6 +9,14 @@
 #include "RMS.hpp"
 #include "BiquadFilter.h"
 
+// use to enable/disable
+// - rms detection
+// - parallel processing (dry-wet)
+// - mid-side processing
+// - lowpass filter (it's rarely needed)
+// - compensation gain (just use output gain if no parallel processing there's no point)
+#define MAJ7COMP_FULL
+
 namespace WaveSabreCore
 {
 	struct Maj7CompFollower {
@@ -22,17 +30,13 @@ namespace WaveSabreCore
 		// the smoothing time ensures that attack/release changes don't cause weird gain compensation values.
 		static constexpr float smoothingMS = 10.0f;
 
-		Maj7CompFollower() : s(calcCoef(smoothingMS)) //
+		Maj7CompFollower() : s(CalcFollowerCoef(smoothingMS)) //
 		{
 		}
 
-		float calcCoef(float ms) {
-			return M7::math::expf(-1.0f / (Helpers::CurrentSampleRateF * ms / 1000.0f));
-		}
-
 		void SetParams(float attackMS, float releaseMS) {
-			this->a = calcCoef(attackMS);
-			this->r = calcCoef(releaseMS);
+			this->a = CalcFollowerCoef(attackMS);
+			this->r = CalcFollowerCoef(releaseMS);
 		}
 
 		// in must be rectified!
@@ -133,9 +137,11 @@ namespace WaveSabreCore
 			float mThreshold = 0;
 			float mKnee = 0;
 			float mInputGainLin = 0;
+#ifdef MAJ7COMP_FULL
 			float mCompensationGainLin = 0;
 			float mDryWetMix = 0;
 			float mPeakRMSMix = 0;
+#endif // MAJ7COMP_FULL
 			float mOutputGainLin = 0;
 
 			// pre-channel-mixing
@@ -151,8 +157,10 @@ namespace WaveSabreCore
 			float mOutput;
 
 			Maj7CompFollower mFollower;
+#ifdef MAJ7COMP_FULL
 			RMSDetector mRMSDetector;
 			BiquadFilter mLowpassFilter;
+#endif // MAJ7COMP_FULL
 			BiquadFilter mHighpassFilter;
 
 			MonoCompressor(float* paramCache) : mParams(paramCache, 0)
@@ -162,9 +170,11 @@ namespace WaveSabreCore
 			{
 				mInputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
 				mOutputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
+#ifdef MAJ7COMP_FULL
 				mCompensationGainLin = mParams.GetLinearVolume(ParamIndices::CompensationGain, M7::gVolumeCfg24db);
 				mDryWetMix = mParams.Get01Value(ParamIndices::DryWet, 0);
 				mPeakRMSMix = mParams.Get01Value(ParamIndices::PeakRMSMix, 0);
+#endif // MAJ7COMP_FULL
 
 				float ratioParam = mParams.GetDivCurvedValue(ParamIndices::Ratio, gRatioCfg, 0);
 				mRatioCoef = (1.0f - (1.0f / ratioParam));
@@ -177,14 +187,16 @@ namespace WaveSabreCore
 					mParams.GetTimeMilliseconds(ParamIndices::Release, gReleaseCfg, 0)
 				);
 
+#ifdef MAJ7COMP_FULL
 				mRMSDetector.SetWindowSize(mParams.GetTimeMilliseconds(ParamIndices::RMSWindow, gRMSWindowSizeCfg, 0));
+
+				float lpf = mParams.GetFrequency(ParamIndices::LowPassFrequency, -1, M7::gFilterFreqConfig, 0, 0);
+				float lpq = mParams.GetWSQValue(ParamIndices::LowPassQ);
+				mLowpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Lowpass, lpf, lpq, 0);
+#endif // MAJ7COMP_FULL
 
 				float hpq = mParams.GetWSQValue(ParamIndices::HighPassQ);
 				float hpf = mParams.GetFrequency(ParamIndices::HighPassFrequency, -1, M7::gFilterFreqConfig, 0, 0);
-				float lpq = mParams.GetWSQValue(ParamIndices::LowPassQ);
-				float lpf = mParams.GetFrequency(ParamIndices::LowPassFrequency, -1, M7::gFilterFreqConfig, 0, 0);
-
-				mLowpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Lowpass, lpf, lpq, 0);
 				mHighpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Highpass, hpf, hpq, 0);
 			}
 
@@ -218,21 +230,29 @@ namespace WaveSabreCore
 
 				// filter the sidechain before we destroy its listenability via rectification
 				mSidechain = mHighpassFilter.Next(mSidechain);
+#ifdef MAJ7COMP_FULL
 				mSidechain = mLowpassFilter.Next(mSidechain);
+#endif // MAJ7COMP_FULL
 
 				mPreDetector = std::abs(mSidechain);
 			}
 
 			void ProcessSampleAfterChannelMixing(float mixedDetector) {
+#ifdef MAJ7COMP_FULL
 				float trmsLevelL = mRMSDetector.ProcessSample(mixedDetector);
-
 				mPostDetector = M7::math::lerp(mixedDetector, trmsLevelL, mPeakRMSMix);
+#else
+				mPostDetector = mixedDetector;
+#endif // MAJ7COMP_FULL
+
 				float attFactor = CompressorPeakSlow(mPostDetector);
 				float wet = mDry / attFactor;
 				mGainReduction = 1.0f / attFactor;
 				mDiff = wet - mDry;
+#ifdef MAJ7COMP_FULL
 				wet *= mCompensationGainLin;
 				mOutput = M7::math::lerp(mDry, wet, mDryWetMix);
+#endif // MAJ7COMP_FULL
 				mOutput *= mOutputGainLin;
 			}
 		};
@@ -240,19 +260,17 @@ namespace WaveSabreCore
 		MonoCompressor mComp[2] = { {mParamCache},{mParamCache} }; // 2 channels
 
 		enum class OutputSignal : byte {
-		//slider30:sOutputSignal = 0 < 0, 5, 1{Normal, Diff, Sidechain, GainReduction, RMSDetector, Detector} > Output
 			Normal = 0,
 			Diff,
 			Sidechain,
-			//GainReduction,
-			//Detector,
-			
 			Count__,
 		};
 
 		float mChannelLink01 = 0;
 
+#ifdef MAJ7COMP_FULL
 		bool mMidSideEnable = false;
+#endif // MAJ7COMP_FULL
 		OutputSignal mOutputSignal = OutputSignal::Normal;
 
 		float mDrySignal0 = 0;
@@ -293,7 +311,7 @@ namespace WaveSabreCore
 		}
 
 		void CompressorComb(float in0, float in1) {
-
+#ifdef MAJ7COMP_FULL
 			mComp[0].ProcessSampleBeforeChannelMixing(in0);
 			mComp[1].ProcessSampleBeforeChannelMixing(in1);
 			float sum = std::max(mComp[0].mPreDetector, mComp[1].mPreDetector); // NB: requires rectification before this.
@@ -301,6 +319,12 @@ namespace WaveSabreCore
 			mComp[0].ProcessSampleAfterChannelMixing(mixedDetector0);
 			float mixedDetector1 = M7::math::lerp(mComp[1].mPreDetector, sum, mChannelLink01);
 			mComp[1].ProcessSampleAfterChannelMixing(mixedDetector1);
+#else
+			mComp[0].ProcessSampleBeforeChannelMixing(in0);
+			mComp[0].ProcessSampleAfterChannelMixing(mComp[0].mPreDetector);
+			mComp[1].ProcessSampleBeforeChannelMixing(in1);
+			mComp[1].ProcessSampleAfterChannelMixing(mComp[1].mPreDetector);
+#endif // MAJ7COMP_FULL
 		}
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
@@ -312,6 +336,7 @@ namespace WaveSabreCore
 
 				float out0, out1;
 
+#ifdef MAJ7COMP_FULL
 				if (mMidSideEnable) {
 					float m, s;
 					M7::MSEncode(in0, in1, &m, &s);
@@ -319,10 +344,13 @@ namespace WaveSabreCore
 					M7::MSDecode(mComp[0].mOutput, mComp[1].mOutput, &out0, &out1);
 				}
 				else {
+#endif // MAJ7COMP_FULL
 					CompressorComb(in0, in1); // the output of this is mComp[...].mOutput
 					out0 = mComp[0].mOutput;
 					out1 = mComp[1].mOutput;
-				}
+#ifdef MAJ7COMP_FULL
+			}
+#endif // MAJ7COMP_FULL
 
 				switch (mOutputSignal) {
 				case OutputSignal::Normal:

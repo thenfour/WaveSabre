@@ -5,6 +5,10 @@
 
 namespace WaveSabreCore
 {
+	static inline float CalcFollowerCoef(float ms) {
+		return M7::math::expf(-1.0f / (Helpers::CurrentSampleRateF * ms / 1000.0f));
+	}
+
 	struct RMSDetector
 	{
 		float mContinuousValue = 0;
@@ -15,9 +19,7 @@ namespace WaveSabreCore
 		void SetWindowSize(float ms) {
 			if (ms == mWindowMS) return;
 			mWindowMS = ms;
-
-			float windowSizeSamples = (mWindowMS / 1000.0f) * Helpers::CurrentSampleRateF;
-			mAlpha = 1.0f - std::exp(-1.0f / windowSizeSamples);
+			mAlpha = 1.0f - CalcFollowerCoef(ms);
 		}
 
 		// returns the current "RMS"
