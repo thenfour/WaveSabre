@@ -15,8 +15,9 @@ namespace WaveSabreCore
 			RightSource, // 0 = left, 1 = right
 			RotationAngle,
 			SideHPFrequency,
-			MidAmt,
-			SideAmt,
+			//MidAmt,
+			//SideAmt,
+			MidSideBalance,
 			Pan,
 			OutputGain,
 
@@ -30,8 +31,7 @@ namespace WaveSabreCore
 			1, // right source
 			0.5f, // RotationAngle
 			0, // Side HP
-			1, // mid amt
-			1, // side amt
+			0.5f, // mid side balance
 			0.5f, // pan
 			0.5f, // output gain
 		};
@@ -80,8 +80,16 @@ namespace WaveSabreCore
 
 				// hp on side channel
 				side = mFilter.ProcessSample(side);
-				side *= mParamCache[(size_t)ParamIndices::SideAmt];
-				mid *= mParamCache[(size_t)ParamIndices::MidAmt];
+				float msbal = mParams.GetN11Value(ParamIndices::MidSideBalance, 0);
+				if (msbal < 0) {
+					// reduce side
+					side *= msbal + 1.0f;
+				}
+				if (msbal > 0) {
+					mid *= 1.0f - msbal;
+				}
+				//side *= mParamCache[(size_t)ParamIndices::SideAmt];
+				//mid *= mParamCache[(size_t)ParamIndices::MidAmt];
 
 				M7::MSDecode(mid, side, &left, &right);
 				left *= gains.first * masterLinearGain;
