@@ -17,10 +17,14 @@ struct Maj7CompEditor : public VstEditor
 
 	FrequencyResponseRenderer<150, 50, 50, 2, (size_t)Maj7Comp::ParamIndices::NumParams> mResponseGraph;
 
-	HistoryEnvFollower mInputPeak;
-	HistoryEnvFollower mOutputPeak;
-	MovingRMS<10> mInputRMS;
-	MovingRMS<10> mOutputRMS;
+	HistoryEnvFollower mInputPeak0;
+	HistoryEnvFollower mInputPeak1;
+	HistoryEnvFollower mOutputPeak0;
+	HistoryEnvFollower mOutputPeak1;
+	MovingRMS<10> mInputRMS0;
+	MovingRMS<10> mInputRMS1;
+	MovingRMS<10> mOutputRMS0;
+	MovingRMS<10> mOutputRMS1;
 
 	bool mShowInputHistory = true;
 	bool mShowDetectorHistory = false;
@@ -35,7 +39,7 @@ struct Maj7CompEditor : public VstEditor
 	HistoryView<9, 500, historyViewHeight> mHistoryView;
 
 	Maj7CompEditor(AudioEffect* audioEffect) :
-		VstEditor(audioEffect, 850, 870),
+		VstEditor(audioEffect, 834, 680),
 		mpMaj7CompVst((Maj7CompVst*)audioEffect)
 	{
 		mpMaj7Comp = ((Maj7CompVst *)audioEffect)->GetMaj7Comp();
@@ -119,7 +123,7 @@ struct Maj7CompEditor : public VstEditor
 		{
 			if (WSBeginTabItem("Main controls"))
 			{
-				Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Threshold, "Threshold(dB)", -60, 0, -20, 0, 0, {});
+				Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Threshold, "Thresh(dB)", -60, 0, -20, 0, 0, {});
 
 				ImGui::SameLine(); Maj7ImGuiParamTime(ParamIndices::Attack, "Attack(ms)", Maj7Comp::gAttackCfg, 50, {});
 				ImGui::SameLine(); Maj7ImGuiParamTime(ParamIndices::Release, "Release(ms)", Maj7Comp::gReleaseCfg, 80, {});
@@ -135,15 +139,27 @@ struct Maj7CompEditor : public VstEditor
 		{
 			if (WSBeginTabItem("Envelope detection"))
 			{
-				WSImGuiParamCheckbox((VstInt32)ParamIndices::MidSideEnable, "MidSide processing?");
-				ImGui::SameLine();
-				Maj7ImGuiParamFloat01((VstInt32)ParamIndices::ChannelLink, "Channel link", 0.8f, 0);
+				//WSImGuiParamCheckbox((VstInt32)ParamIndices::MidSideEnable, "Mid-Side?");
+				//ImGui::SameLine();
+				Maj7ImGuiParamFloat01((VstInt32)ParamIndices::ChannelLink, "Stereo", 0.8f, 0);
 
-				Maj7ImGuiParamFloat01((VstInt32)ParamIndices::PeakRMSMix, "Peak-RMS mix", 0, 0);
+				//ImGui::Separator();
 
-				ImGui::SameLine(); Maj7ImGuiParamTime(ParamIndices::RMSWindow, "RMS Window(ms)", Maj7Comp::gRMSWindowSizeCfg, 30, {});
+				//ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)ParamIndices::Pan, "EffectPan", 0, 0, {});
 
-				Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
+				//ImGui::SameLine(0, 60); Maj7ImGuiParamFloat01((VstInt32)ParamIndices::PeakRMSMix, "Peak-RMS", 0, 0);
+
+
+				M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)ParamIndices::RMSWindow);
+				M7::ParamAccessor p{ &tempVal, 0 };
+				float windowMS = p.GetTimeMilliseconds(0, Maj7Comp::gRMSWindowSizeCfg, 0);
+				const char* windowCaption = "RMS (ms)###rmswindow";
+				if (windowMS < Maj7Comp::gMinRMSWindowMS) {
+					windowCaption = "Peak###rmswindow";
+				}
+				ImGui::SameLine(0, 80); Maj7ImGuiParamTime(ParamIndices::RMSWindow, windowCaption, Maj7Comp::gRMSWindowSizeCfg, 30, {});
+
+				ImGui::SameLine(0, 80); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);
 
 				ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP Freq(Hz)", M7::gFilterFreqConfig, 22000, {});
@@ -174,13 +190,13 @@ struct Maj7CompEditor : public VstEditor
 		{
 			if (WSBeginTabItem("IO"))
 			{
-				Maj7ImGuiParamVolume((VstInt32)ParamIndices::CompensationGain, "Compensation gain", M7::gVolumeCfg24db, 0, {});
-				ImGui::SameLine(); Maj7ImGuiParamFloat01((VstInt32)ParamIndices::DryWet, "Dry-Wet mix", 1, 0);
-				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
+				Maj7ImGuiParamVolume((VstInt32)ParamIndices::CompensationGain, "Makeup", M7::gVolumeCfg24db, 0, {});
+				ImGui::SameLine(); Maj7ImGuiParamFloat01((VstInt32)ParamIndices::DryWet, "Dry-Wet", 1, 0);
+				ImGui::SameLine(0, 80); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
 				static constexpr char const* const signalNames[] = { "Normal", "Diff", "Sidechain" };//  , "GainReduction", "Detector"};
-				ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::Maj7Comp::OutputSignal>(ParamIndices::OutputSignal,
+				ImGui::SameLine(0, 80); Maj7ImGuiParamEnumList<WaveSabreCore::Maj7Comp::OutputSignal>(ParamIndices::OutputSignal,
 					"Output signal", (int)WaveSabreCore::Maj7Comp::OutputSignal::Count__, WaveSabreCore::Maj7Comp::OutputSignal::Normal, signalNames);
 
 				ImGui::EndTabItem();
@@ -193,8 +209,8 @@ struct Maj7CompEditor : public VstEditor
 
 		mHistoryView.Render({
 			// input
-			HistoryViewSeriesConfig{ColorFromHTML("999999", mShowLeft && mShowInputHistory ? 0.8f : 0), lineWidth},
-			HistoryViewSeriesConfig{ColorFromHTML("666666", mShowRight && mShowInputHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("666666", mShowLeft && mShowInputHistory ? 0.6f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("444444", mShowRight && mShowInputHistory ? 0.6f : 0), lineWidth},
 
 			HistoryViewSeriesConfig{ColorFromHTML("ff00ff", mShowLeft && mShowDetectorHistory ? 0.8f : 0), lineWidth},
 			HistoryViewSeriesConfig{ColorFromHTML("880088", mShowRight && mShowDetectorHistory ? 0.8f : 0), lineWidth},
@@ -202,8 +218,8 @@ struct Maj7CompEditor : public VstEditor
 			HistoryViewSeriesConfig{ColorFromHTML("00ff00", mShowLeft && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
 			HistoryViewSeriesConfig{ColorFromHTML("008800", mShowRight && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
 
-			HistoryViewSeriesConfig{ColorFromHTML("4444ff", mShowLeft && mShowOutputHistory ? 0.8f : 0), lineWidth},
-			HistoryViewSeriesConfig{ColorFromHTML("0000ff", mShowRight && mShowOutputHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("4444ff", mShowLeft && mShowOutputHistory ? 0.9f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("0000ff", mShowRight && mShowOutputHistory ? 0.9f : 0), lineWidth},
 
 			HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.2f : 0), 1.0f},
 			}, {
@@ -232,17 +248,39 @@ struct Maj7CompEditor : public VstEditor
 
 		ImGui::EndGroup();
 
-		mInputRMS.addSample(mpMaj7Comp->mComp[0].mInput);
-		mOutputRMS.addSample(mpMaj7Comp->mComp[0].mOutput);
-		float inputPeakLevel = mInputPeak.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mInput));
-		float outputPeakLevel = mInputPeak.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mOutput));
-		float inputRMSlevel = mInputRMS.getRMS();
-		float outputRMSlevel = mOutputRMS.getRMS();
+		mInputRMS0.addSample(mpMaj7Comp->mComp[0].mInput);
+		mOutputRMS0.addSample(mpMaj7Comp->mComp[0].mOutput);
+		float inputPeakLevel0 = mInputPeak0.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mInput));
+		float outputPeakLevel0 = mInputPeak0.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mOutput));
+		float inputRMSlevel0 = mInputRMS0.getRMS();
+		float outputRMSlevel0 = mOutputRMS0.getRMS();
 
-		ImGui::SameLine(); VUMeter(ImVec2{ 40, 300 }, &inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
-		ImGui::SameLine(); VUMeter(ImVec2{20, 300}, & mpMaj7Comp->mComp[0].mGainReduction, & mpMaj7Comp->mComp[0].mGainReduction, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
-		ImGui::SameLine(); VUMeter(ImVec2{ 20, 300 }, nullptr, &mpMaj7Comp->mComp[0].mThreshold, (VUMeterFlags)((int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
-		ImGui::SameLine(); VUMeter(ImVec2{ 40, 300 }, &outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		mInputRMS1.addSample(mpMaj7Comp->mComp[1].mInput);
+		mOutputRMS1.addSample(mpMaj7Comp->mComp[1].mOutput);
+		float inputPeakLevel1 = mInputPeak1.ProcessSample(::fabsf(mpMaj7Comp->mComp[1].mInput));
+		float outputPeakLevel1 = mInputPeak1.ProcessSample(::fabsf(mpMaj7Comp->mComp[1].mOutput));
+		float inputRMSlevel1 = mInputRMS1.getRMS();
+		float outputRMSlevel1 = mOutputRMS1.getRMS();
+
+		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & inputRMSlevel0, & inputPeakLevel0, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
+		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & inputRMSlevel1, & inputPeakLevel1, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
+		ImGui::PopStyleVar();
+
+		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 6, 0 });
+		ImGui::SameLine(); VUMeter(ImVec2{15, 300}, & mpMaj7Comp->mComp[0].mGainReduction, & mpMaj7Comp->mComp[0].mGainReduction, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
+		//ImGui::PopStyleVar();
+		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
+		//ImGui::SameLine(); VUMeter(ImVec2{ 15, 300 }, nullptr, &mpMaj7Comp->mComp[0].mThreshold, (VUMeterFlags)((int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
+		//ImGui::PopStyleVar();
+
+		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 4, 0 });
+		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & outputRMSlevel0, & outputPeakLevel0, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		//ImGui::PopStyleVar();
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
+		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & outputRMSlevel1, & outputPeakLevel1, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
+		ImGui::PopStyleVar();
+
 	}
 };
 
