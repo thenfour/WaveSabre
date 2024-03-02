@@ -6,7 +6,7 @@
 
 namespace WaveSabreCore
 {
-	struct Maj7Comp: public Device
+	struct Maj7Sat: public Device
 	{
 		enum class ParamIndices
 		{
@@ -15,7 +15,7 @@ namespace WaveSabreCore
 		};
 
 		// NB: max 8 chars per string.
-#define MAJ7COMP_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Comp::ParamIndices::NumParams]{ \
+#define MAJ7SAT_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::ParamIndices::NumParams]{ \
 	{"OutGain"},\
 }
 
@@ -28,7 +28,7 @@ namespace WaveSabreCore
 
 		M7::ParamAccessor mParams;
 
-		Maj7Comp() :
+		Maj7Sat() :
 			Device((int)ParamIndices::NumParams),
 			mParams(mParamCache, 0)
 		{

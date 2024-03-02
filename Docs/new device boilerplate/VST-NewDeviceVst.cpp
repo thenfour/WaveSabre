@@ -1,5 +1,5 @@
-#include "Maj7CompVst.h"
-#include "Maj7CompEditor.h"
+#include "Maj7CompVst.hpp"
+#include "Maj7CompEditor.hpp"
 
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;

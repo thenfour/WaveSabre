@@ -21,16 +21,6 @@ WaveSabre has a new [CMake](https://cmake.org/) based build-system that can gene
   - As of Visual Studio 2019, `-A Win32` is required to generate a project with 32-bit targets.
 - Open the generated solution from the build directory, and proceed as normal.
 
-## New Device Check List
-
-- Add device to WaveSabreCore/Devices.h
-- Add device to WaveSabreConvert/Song.cs
-- Add device to WaveSabrePlayer/include/SongRenderer.h
-- Add device to WaveSabreStandAlongPlayer/main.cpp
-- Re-run cmake to create new Vst project file
-- Add Build dependencies for WaveSabreCore and WaveSabrePlayer to VST Project
-- Profit!
-
 ## UPDATED new device checklist (Maj7 edition)
 
 - create a directory in vsts
@@ -38,6 +28,7 @@ WaveSabre has a new [CMake](https://cmake.org/) based build-system that can gene
 - notice: the Maj7Comp project exists with just a .def.
 - create WaveSabre\WaveSabreCore\include\WaveSabreCore\Maj7Comp.hpp with boilerplate
   - see boilerplate folder.
+- add to "C:\root\git\thenfour\WaveSabre\WaveSabreCore\CMakeLists.txt": `include/WaveSabreCore/Maj7Comp.hpp`
 - Devices.h: add `#include "Maj7Comp.hpp"`
 - WaveSabreConvert/Song.cs: add `Maj7Comp` to the enum
 - WaveSabrePlayer/include/SongRenderer.h: add `Maj7Comp` to the enum
@@ -46,8 +37,7 @@ WaveSabre has a new [CMake](https://cmake.org/) based build-system that can gene
     - Maj7CompEditor.h
     - Maj7CompVst.cpp
     - Maj7CompVst.h
-- regenerate the projects again just to test.
-- add to "C:\root\git\thenfour\WaveSabre\WaveSabreCore\CMakeLists.txt": `include/WaveSabreCore/Maj7Comp.hpp`
+- regenerate the projects again to pick up new files
 - add the following function to WaveSabreVstLib.h: `static inline void GenerateDefaults(Maj7Comp* p) { /* nop unless needed */	}`
 - the VST can now be built and used.
 

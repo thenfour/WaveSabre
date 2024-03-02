@@ -16,7 +16,7 @@ using namespace WSPlayerApp;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-//#define WS_EXEPLAYER_RELEASE_FEATURES
+#define WS_EXEPLAYER_RELEASE_FEATURES
 
 // Fancy paint has waveform view and more debug info displayed.
 #ifndef WS_EXEPLAYER_RELEASE_FEATURES

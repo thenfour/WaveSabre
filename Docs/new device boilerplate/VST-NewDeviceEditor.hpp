@@ -6,7 +6,7 @@ using namespace WaveSabreVstLib;
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
-#include "Maj7CompVst.h"
+#include "Maj7CompVst.hpp"
 
 struct Maj7CompEditor : public VstEditor
 {

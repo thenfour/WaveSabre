@@ -5,7 +5,7 @@ set(VST_TARGETS "" CACHE INTERNAL "VST Targets" FORCE)
 file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
 foreach(child ${children})
 	if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
-		file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/${child}/*.h)
+		file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/${child}/*.h ${CMAKE_CURRENT_SOURCE_DIR}/${child}/*.hpp)
 		aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/${child} sources)
 		file(WRITE "${CMAKE_BINARY_DIR}/${child}.def"
 			"LIBRARY ${child}\nEXPORTS\nVSTPluginMain\nWaveSabreDeviceVSTChunkToMinifiedChunk\nWaveSabreFreeChunk\nWaveSabreTestCompression\nmain=VSTPluginMain")

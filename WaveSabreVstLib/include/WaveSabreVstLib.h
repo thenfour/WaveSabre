@@ -157,6 +157,10 @@ namespace WaveSabreVstLib
 		// nop until needed.
 	}
 
+	static inline void GenerateDefaults(Maj7Sat* p) {
+		// nop until needed.
+	}
+
 	// returns params as a minified chunk
 	template<size_t paramCount>
 	inline int GetSimpleMinifiedChunk(const float(&paramCache)[paramCount], const int16_t(&defaults16)[paramCount], void** data)
