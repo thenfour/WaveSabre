@@ -417,7 +417,7 @@ namespace WaveSabreCore
 
 		void FrequencyParam::SetFrequencyAssumingNoKeytracking(float hz) {
 			// 2 ^ param
-			float  p = math::log2(hz);
+			float  p = math::log2(hz / mCfg.mCenterFrequency);
 			p /= mCfg.mScale;
 			p += 0.5f;
 			this->mValue.SetParamValue(math::clamp01(p));

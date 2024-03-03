@@ -22,6 +22,19 @@ namespace WaveSabreCore
 		void SetFreq(float freq);
 		void SetQ(float q);
 
+		//float SVFlow(float v0, float cutoff, float Q) {
+		//	SetType(StateVariableFilterType::Lowpass);
+		//	SetQ(Q);
+		//	SetFreq(cutoff);
+		//	return Next(v0);
+		//}
+		//float SVFhigh(float v0, float cutoff, float Q) {
+		//	SetType(StateVariableFilterType::Highpass);
+		//	SetQ(Q);
+		//	SetFreq(cutoff);
+		//	return Next(v0);
+		//}
+
 	private:
 		float run(float input);
 

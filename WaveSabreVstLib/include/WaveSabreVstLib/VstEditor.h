@@ -1205,6 +1205,24 @@ namespace WaveSabreVstLib
 			}
 		}
 
+		void Maj7ImGuiParamFrequencyWithCenter(VstInt32 paramID, VstInt32 ktParamID, const char* label, M7::FreqParamConfig cfg, M7::real_t defaultFreqHz, float centerVal01, ImGuiKnobs::ModInfo modInfo) {
+			M7::real_t tempVal = 0;
+			M7::real_t tempValKT = 0;
+			M7::FrequencyParam p{ tempVal, tempValKT, cfg };
+			p.SetFrequencyAssumingNoKeytracking(defaultFreqHz);
+			//tempVal = defaultFrequencyHz;
+			float default01 = tempVal;
+			//tempVal = centerValHz;
+			//float centerVal01 = p.GetFrequency(0, 0);
+			p.mValue.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+
+			Maj7FrequencyConverter conv{ cfg, ktParamID };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, default01, centerVal01, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			}
+		}
+
 		void Maj7ImGuiParamMidiNote(VstInt32 paramID, const char* label, int defaultVal, int centerVal) {
 			M7::real_t tempVal = 0;
 			M7::IntParam p{ tempVal, M7::gKeyRangeCfg };

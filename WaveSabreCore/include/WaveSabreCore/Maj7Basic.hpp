@@ -26,6 +26,38 @@ using std::max;
 
 #endif
 
+#ifdef _DEBUG
+
+inline void checkFloat(float x, const char* expr, const char* file, const int line) {
+    char s[1000];
+
+    if (std::isinf(x)) {
+        if (x > 0) {
+            sprintf(s, "Positive INF detected [%s] @ %s @ %d\r\n", expr, file, line);
+        }
+        else {
+            sprintf(s, "Negative INF detected [%s] @ %s @ %d\r\n", expr, file, line);
+        }
+        ::OutputDebugStringA(s);
+        ::DebugBreak();
+    }
+    else if (std::isnan(x)) {
+        sprintf(s, "NaN detected [%s] @ %s @ %d\r\n", expr, file, line);
+        ::OutputDebugStringA(s);
+        ::DebugBreak();
+    }
+    else if (std::fpclassify(x) == FP_SUBNORMAL) {
+        sprintf(s, "Denormalized (Subnormal) number detected [%s] @ %s @ %d\r\n", expr, file, line);
+        ::OutputDebugStringA(s);
+        ::DebugBreak();
+    }
+}
+
+#define FLOATCHECK(f) checkFloat(f, #f, __FILE__, __LINE__)
+
+#endif // _DEBUG
+
+
 namespace WaveSabreCore
 {
 

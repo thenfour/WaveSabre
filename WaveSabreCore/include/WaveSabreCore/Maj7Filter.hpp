@@ -178,7 +178,7 @@ namespace WaveSabreCore
 
         };
 
-
+        ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
         struct DCFilter
         {
             //DCFilter()
@@ -205,13 +205,197 @@ namespace WaveSabreCore
                 return yn;
             }
 
-        //private:
-            // state L
             real xnminus1L = 0;
             real ynminus1L = 0;
 
             static constexpr real R = 0.998f;
         };
+
+
+
+		// this is similar to StateVariableFilter, but StateVariableFilter doesn't implement an allpass.
+		struct SVF
+		{
+			// Update filter coefficients if cutoff or Q has changed
+			void updateCoefficients(float cutoff, float Q) {
+				float new_d0 = cutoff + Q;
+				if (d1 != new_d0) {
+					d1 = d0;
+					d0 = new_d0;
+					g = M7::math::tan(M7::math::gPI * cutoff * Helpers::CurrentSampleRateRecipF);
+					k = 1.0f / Q;
+					a1 = 1.0f / (1.0f + g * (g + k));
+					a2 = g * a1;
+				}
+			}
+
+			// One-Pole All-Pass Filter
+			float SVFOPapf_temp(float x, float cutoff) {
+				if (d1 != d0) {
+					d0 = cutoff;
+					c = M7::math::tan(M7::math::gPI * (cutoff * Helpers::CurrentSampleRateRecipF - 0.25f)) * 0.5f + 0.5f;
+				}
+				float r = (1 - c) * i + c * x;
+				i = 2 * r - i;
+				return x - 2 * r;
+			}
+
+			enum class FilterMode {
+				LowPass,
+				HighPass,
+				BandPass,
+				AllPass
+			};
+
+			float processSample(float x, float cutoff, float Q, FilterMode mode) {
+				updateCoefficients(cutoff, Q);
+
+				float v1 = a1 * ic1eq + a2 * (mode == FilterMode::AllPass ? (x - ic2eq) : x - ic2eq);
+				float v2 = ic2eq + g * v1;
+				ic1eq = 2 * v1 - ic1eq;
+				ic2eq = 2 * v2 - ic2eq;
+
+				switch (mode) {
+				case FilterMode::LowPass:
+					return v2;
+				case FilterMode::HighPass:
+					return x - k * v1 - v2;
+				case FilterMode::BandPass:
+					return x - 2 * k * v1;
+				case FilterMode::AllPass: {
+					float r = (1 - c) * i + c * x;
+					i = 2 * r - i;
+					return x - 2 * r;
+				}
+				default:
+					return x; // Should never reach here
+				}
+			}
+
+			float SVFlow(float v0, float cutoff, float Q) {
+				return processSample(v0, cutoff, Q, FilterMode::LowPass);
+			}
+			float SVFhigh(float v0, float cutoff, float Q) {
+				return processSample(v0, cutoff, Q, FilterMode::HighPass);
+			}
+			float SVFall(float v0, float cutoff, float Q) {
+				return processSample(v0, cutoff, Q, FilterMode::AllPass);
+			}
+
+		private:
+			float g = 0;
+			float k = 0;
+			float a1 = 0;
+			float a2 = 0;
+			float ic1eq = 0, ic2eq = 0;
+			float d0 = 0, d1 = 0; // Used for tracking changes in cutoff and Q
+			float c = 0, i = 0; // Additional state variables for SVFOPapf_temp
+		};
+
+
+		struct LinkwitzRileyFilter {
+			static constexpr float q24 = 0.707106781187f;// sqrt(0.5);
+			static constexpr float q48_1 = 0.541196100146f;// 0.5 / cos($pi / 8 * 1);
+			static constexpr float q48_2 = 1.30656296488f;// 0.5 / cos($pi / 8 * 3);
+
+			enum class Slope : uint8_t {
+				Slope_6dB,
+				Slope_12dB,
+				Slope_24dB,
+				Slope_36dB,
+				Slope_48dB,
+				Count__,
+			};
+
+			SVF svf[4];
+
+			float LR_LPF(float x, float freq, Slope slope) {
+				switch (slope) {
+				case Slope::Slope_12dB:
+					return svf[0].SVFlow(x, freq, 0.5f);
+				case Slope::Slope_24dB:
+					x = svf[0].SVFlow(x, freq, q24);
+					return svf[1].SVFlow(x, freq, q24);
+				case Slope::Slope_36dB:
+					x = svf[0].SVFlow(x, freq, 1);
+					x = svf[1].SVFlow(x, freq, 1);
+					return svf[2].SVFlow(x, freq, 0.5f);
+				case Slope::Slope_48dB:
+					x = svf[0].SVFlow(x, freq, q48_1);
+					x = svf[1].SVFlow(x, freq, q48_2);
+					x = svf[2].SVFlow(x, freq, q48_1);
+					return svf[3].SVFlow(x, freq, q48_2);
+				default:
+					return x; // Invalid slope, return unprocessed signal
+				}
+			}
+
+			float LR_HPF(float x, float freq, Slope slope) {
+				switch (slope) {
+				case Slope::Slope_12dB:
+					return svf[0].SVFhigh(-x, freq, 0.5f);
+				case Slope::Slope_24dB:
+					x = svf[0].SVFhigh(x, freq, q24);
+					return svf[1].SVFhigh(x, freq, q24);
+				case Slope::Slope_36dB:
+					x = svf[0].SVFhigh(-x, freq, 1);
+					x = svf[1].SVFhigh(x, freq, 1);
+					return svf[2].SVFhigh(x, freq, 0.5f);
+				case Slope::Slope_48dB:
+					x = svf[0].SVFhigh(x, freq, q48_1);
+					x = svf[1].SVFhigh(x, freq, q48_2);
+					x = svf[2].SVFhigh(x, freq, q48_1);
+					return svf[3].SVFhigh(x, freq, q48_2);
+				default:
+					return x; // Invalid slope, return unprocessed signal
+				}
+			}
+
+			float APF(float x, float freq, Slope slope) {
+				switch (slope) {
+				case Slope::Slope_12dB:
+					return svf[0].SVFOPapf_temp(-x, freq);
+				case Slope::Slope_24dB:
+					return svf[0].SVFall(x, freq, q24);
+				case Slope::Slope_36dB:
+					x = svf[0].SVFall(-x, freq, 1);
+					return svf[1].SVFOPapf_temp(x, freq);
+				case Slope::Slope_48dB:
+					x = svf[0].SVFall(x, freq, q48_1);
+					return svf[1].SVFall(x, freq, q48_2);
+				default:
+					return x; // Invalid slope, return unprocessed signal
+				}
+			}
+		};
+
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		struct FrequencySplitter
+		{
+			LinkwitzRileyFilter mLR[6];
+			M7::OnePoleFilter mOP[2];
+
+			// low, med, high bands.
+			float s[3];
+
+			void frequency_splitter(float x, float crossoverFreqA, LinkwitzRileyFilter::Slope crossoverSlope, float crossoverFreqB)
+			{
+				if (crossoverSlope == LinkwitzRileyFilter::Slope::Slope_6dB) {
+					s[0] = mOP[0].ProcessSample(x, M7::FilterType::LP2, crossoverFreqA);
+					s[2] = mOP[1].ProcessSample(x, M7::FilterType::HP2, crossoverFreqB);
+					s[1] = x - s[0] - s[2];
+				}
+				else
+				{
+					s[0] = mLR[0].LR_LPF(x, crossoverFreqA, crossoverSlope);
+					s[0] = mLR[1].LR_LPF(s[0], crossoverFreqB, crossoverSlope);
+					s[1] = mLR[2].LR_HPF(x, crossoverFreqA, crossoverSlope);
+					s[1] = mLR[3].LR_LPF(s[1], crossoverFreqB, crossoverSlope);
+					s[2] = mLR[4].APF(x, crossoverFreqA, crossoverSlope);
+					s[2] = mLR[5].LR_HPF(s[2], crossoverFreqB, crossoverSlope);
+				}
+			}
+		};
 
 
 	} // namespace M7

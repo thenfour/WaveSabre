@@ -12,11 +12,6 @@ namespace WaveSabreCore
     {
         struct OnePoleFilter : public IFilter
         {
-            //void setFeedbackL(real fb)
-            //{
-            //    m_feedbackL = fb;
-            //}
-
             virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
                 if ((m_FilterType == type) && math::FloatEquals(m_cutoffHz, cutoffHz) && math::FloatEquals(m_q, reso))
@@ -74,6 +69,11 @@ namespace WaveSabreCore
                 return hpf;
             }
 
+            real ProcessSample(real xn, FilterType type, real cutoffHz) {
+                SetParams(type, cutoffHz, 0);
+                return ProcessSample(xn);
+            }
+
             // all get written to directly by other filters; so yea.
             real m_alpha = 1; // Feed Forward coeff
             real m_beta = 0;
@@ -89,7 +89,6 @@ namespace WaveSabreCore
             FilterType m_FilterType = FilterType::LP2;
             real m_cutoffHz = 10000;
             real m_q = 0;
-            //real m_overdrive = 0;
 
             real m_z_1L = 0; // z-1 storage location, left/mono
 
