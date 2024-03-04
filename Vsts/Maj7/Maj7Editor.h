@@ -623,7 +623,7 @@ public:
 
 		//auto runningVoice = FindRunningVoice();
 
-#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		MAJ7_OUTPUT_STREAM_CAPTIONS(outputStreamCaptions);
 		auto elementCount = std::size(outputStreamCaptions);
 		for (int iOutput = 0; iOutput < 2; ++iOutput)
@@ -648,7 +648,7 @@ public:
 			}
 			ImGui::PopID();
 		}
-#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::gMasterVolumeCfg, -6.0f, {});
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);

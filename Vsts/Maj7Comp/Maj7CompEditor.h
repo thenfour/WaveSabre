@@ -17,15 +17,6 @@ struct Maj7CompEditor : public VstEditor
 
 	FrequencyResponseRenderer<150, 50, 50, 2, (size_t)Maj7Comp::ParamIndices::NumParams> mResponseGraph;
 
-	HistoryEnvFollower mInputPeak0;
-	HistoryEnvFollower mInputPeak1;
-	HistoryEnvFollower mOutputPeak0;
-	HistoryEnvFollower mOutputPeak1;
-	MovingRMS<10> mInputRMS0;
-	MovingRMS<10> mInputRMS1;
-	MovingRMS<10> mOutputRMS0;
-	MovingRMS<10> mOutputRMS1;
-
 	bool mShowInputHistory = true;
 	bool mShowDetectorHistory = false;
 	bool mShowOutputHistory = true;
@@ -101,7 +92,7 @@ struct Maj7CompEditor : public VstEditor
 		dl->AddPolyline(points.data(), (int)points.size(), curveColor, 0, 2.0f);
 
 		// detector indicator dot
-		float detectorLevel = std::max(mpMaj7Comp->mComp[0].mPostDetector, mpMaj7Comp->mComp[1].mPostDetector);
+		float detectorLevel = std::max(mpMaj7Comp->mDetectorAnalysis[0].mCurrentPeak, mpMaj7Comp->mDetectorAnalysis[1].mCurrentPeak);// std::max(mpMaj7Comp->mComp[0].mPostDetector, mpMaj7Comp->mComp[1].mPostDetector);
 		float detectorDB = M7::math::LinearToDecibels(detectorLevel);
 
 		float detAtten = mpMaj7Comp->mComp[0].TransferDecibels(detectorDB);
@@ -223,15 +214,15 @@ struct Maj7CompEditor : public VstEditor
 
 			HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.2f : 0), 1.0f},
 			}, {
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mInput),
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mInput),
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mPostDetector),
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mPostDetector),
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mGainReduction),
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mGainReduction),
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[0].mOutput),
-			M7::math::LinearToDecibels(mpMaj7Comp->mComp[1].mOutput),
-			mpMaj7Comp->mComp[0].mThreshold,
+			mpMaj7Comp->mInputAnalysis[0].mCurrentPeak,
+			mpMaj7Comp->mInputAnalysis[1].mCurrentPeak,
+			mpMaj7Comp->mDetectorAnalysis[0].mCurrentPeak,
+			mpMaj7Comp->mDetectorAnalysis[1].mCurrentPeak,
+			mpMaj7Comp->mAttenuationAnalysis[0].mCurrentPeak,
+			mpMaj7Comp->mAttenuationAnalysis[1].mCurrentPeak,
+			mpMaj7Comp->mOutputAnalysis[0].mCurrentPeak,
+			mpMaj7Comp->mOutputAnalysis[1].mCurrentPeak,
+			M7::math::DecibelsToLinear(mpMaj7Comp->mComp[0].mThreshold),
 			});
 
 		// ... transfer curve.
@@ -248,38 +239,33 @@ struct Maj7CompEditor : public VstEditor
 
 		ImGui::EndGroup();
 
-		mInputRMS0.addSample(mpMaj7Comp->mComp[0].mInput);
-		mOutputRMS0.addSample(mpMaj7Comp->mComp[0].mOutput);
-		float inputPeakLevel0 = mInputPeak0.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mInput));
-		float outputPeakLevel0 = mInputPeak0.ProcessSample(::fabsf(mpMaj7Comp->mComp[0].mOutput));
-		float inputRMSlevel0 = mInputRMS0.getRMS();
-		float outputRMSlevel0 = mOutputRMS0.getRMS();
+		static const std::vector<VUMeterTick> tickSet = {
+				{-3.0f, "3db"},
+				{-6.0f, "6db"},
+				{-12.0f, "12db"},
+				{-18.0f, "18db"},
+				{-24.0f, "24db"},
+				{-30.0f, "30db"},
+				{-40.0f, "40db"},
+				//{-50.0f, "50db"},
+		};
 
-		mInputRMS1.addSample(mpMaj7Comp->mComp[1].mInput);
-		mOutputRMS1.addSample(mpMaj7Comp->mComp[1].mOutput);
-		float inputPeakLevel1 = mInputPeak1.ProcessSample(::fabsf(mpMaj7Comp->mComp[1].mInput));
-		float outputPeakLevel1 = mInputPeak1.ProcessSample(::fabsf(mpMaj7Comp->mComp[1].mOutput));
-		float inputRMSlevel1 = mInputRMS1.getRMS();
-		float outputRMSlevel1 = mOutputRMS1.getRMS();
+		VUMeterConfig mainCfg = {
+			{24, 300},
+			VUMeterLevelMode::Audio,
+			VUMeterUnits::Linear,
+			-50, 6,
+			tickSet,
+		};
 
-		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & inputRMSlevel0, & inputPeakLevel0, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
-		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & inputRMSlevel1, & inputPeakLevel1, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
-		ImGui::PopStyleVar();
+		VUMeterConfig attenCfg = mainCfg;
+		attenCfg.levelMode = VUMeterLevelMode::Attenuation;
 
-		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 6, 0 });
-		ImGui::SameLine(); VUMeter(ImVec2{15, 300}, & mpMaj7Comp->mComp[0].mGainReduction, & mpMaj7Comp->mComp[0].mGainReduction, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
-		//ImGui::PopStyleVar();
-		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
-		//ImGui::SameLine(); VUMeter(ImVec2{ 15, 300 }, nullptr, &mpMaj7Comp->mComp[0].mThreshold, (VUMeterFlags)((int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
-		//ImGui::PopStyleVar();
+		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Comp->mInputAnalysisSlow[0], mpMaj7Comp->mInputAnalysisSlow[1], mainCfg);
 
-		//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 4, 0 });
-		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & outputRMSlevel0, & outputPeakLevel0, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
-		//ImGui::PopStyleVar();
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
-		ImGui::SameLine(); VUMeter(ImVec2{ 30, 300 }, & outputRMSlevel1, & outputPeakLevel1, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
-		ImGui::PopStyleVar();
+		ImGui::SameLine(); VUMeter("vu_atten", &mpMaj7Comp->mAttenuationAnalysis[0].mCurrentPeak, nullptr, nullptr, nullptr, false, attenCfg);
+
+		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Comp->mOutputAnalysisSlow[0], mpMaj7Comp->mOutputAnalysisSlow[1], mainCfg);
 
 	}
 };

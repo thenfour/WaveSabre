@@ -293,17 +293,32 @@ namespace WaveSabreCore
 #endif // MAJ7COMP_FULL
 		OutputSignal mOutputSignal = OutputSignal::Normal;
 
-		float mDrySignal0 = 0;
-		float mDrySignal1 = 0;
-		float mSidechainSignal0 = 0;
-		float mSidechainSignal1 = 0;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		AnalysisStream mInputAnalysis[2];
+		AnalysisStream mOutputAnalysis[2];
+		AnalysisStream mDetectorAnalysis[2];
+		AnalysisStream mAttenuationAnalysis[2];
 
-		float mDetectorSignal0 = 0;
-		float mDetectorSignal1 = 0;
+		AnalysisStream mInputAnalysisSlow[2];
+		AnalysisStream mOutputAnalysisSlow[2];
+
+		static constexpr float gFastAnalysisPeakFalloffMS = 50;
+		static constexpr float gSlowAnalysisPeakFalloffMS = 1000;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7Comp() :
 			Device((int)ParamIndices::NumParams),
 			mParams(mParamCache, 0)
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			,
+			// quite fast moving here because the user's looking for transients.
+			mInputAnalysis{ AnalysisStream{gFastAnalysisPeakFalloffMS}, AnalysisStream{gFastAnalysisPeakFalloffMS} },
+			mOutputAnalysis{ AnalysisStream{gFastAnalysisPeakFalloffMS}, AnalysisStream{gFastAnalysisPeakFalloffMS} },
+			mInputAnalysisSlow{ AnalysisStream{gSlowAnalysisPeakFalloffMS}, AnalysisStream{gSlowAnalysisPeakFalloffMS} },
+			mOutputAnalysisSlow{ AnalysisStream{gSlowAnalysisPeakFalloffMS}, AnalysisStream{gSlowAnalysisPeakFalloffMS} },
+			mDetectorAnalysis{ AnalysisStream{gFastAnalysisPeakFalloffMS}, AnalysisStream{gFastAnalysisPeakFalloffMS} },
+			mAttenuationAnalysis{ AnalysisStream{gFastAnalysisPeakFalloffMS}, AnalysisStream{gFastAnalysisPeakFalloffMS} }
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		{
 			LoadDefaults();
 		}
@@ -374,12 +389,31 @@ namespace WaveSabreCore
 				//}
 				//else {
 #endif // MAJ7COMP_FULL
-					CompressorComb(in0, in1); // the output of this is mComp[...].mOutput
-					out0 = mComp[0].mOutput;
-					out1 = mComp[1].mOutput;
+				CompressorComb(in0, in1); // the output of this is mComp[...].mOutput
+				out0 = mComp[0].mOutput;
+				out1 = mComp[1].mOutput;
 #ifdef MAJ7COMP_FULL
-			//}
+				//}
 #endif // MAJ7COMP_FULL
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mInputAnalysis[0].WriteSample(mComp[0].mInput);
+				mInputAnalysis[1].WriteSample(mComp[1].mInput);
+
+				mOutputAnalysis[0].WriteSample(mComp[0].mOutput);
+				mOutputAnalysis[1].WriteSample(mComp[1].mOutput);
+
+				mInputAnalysisSlow[0].WriteSample(mComp[0].mInput);
+				mInputAnalysisSlow[1].WriteSample(mComp[1].mInput);
+
+				mOutputAnalysisSlow[0].WriteSample(mComp[0].mOutput);
+				mOutputAnalysisSlow[1].WriteSample(mComp[1].mOutput);
+
+				mDetectorAnalysis[0].WriteSample(mComp[0].mPostDetector);
+				mDetectorAnalysis[1].WriteSample(mComp[1].mPostDetector);
+
+				mAttenuationAnalysis[0].WriteSample(mComp[0].mGainReduction);
+				mAttenuationAnalysis[1].WriteSample(mComp[1].mGainReduction);
 
 				switch (mOutputSignal) {
 				case OutputSignal::Normal:
@@ -392,15 +426,8 @@ namespace WaveSabreCore
 					out0 = mComp[0].mSidechain;
 					out1 = mComp[1].mSidechain;
 					break;
-				//case OutputSignal::GainReduction:
-				//	out0 = mComp[0].mGainReduction;
-				//	out1 = mComp[1].mGainReduction;
-				//	break;
-				//case OutputSignal::Detector:
-				//	out0 = mComp[0].mPostDetector;
-				//	out1 = mComp[1].mPostDetector;
-				//	break;
 				}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				outputs[0][iSample] = out0;
 				outputs[1][iSample] = out1;

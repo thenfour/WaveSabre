@@ -33,10 +33,6 @@
 #include <WaveSabreCore/Maj7Sampler.hpp>
 #include <WaveSabreCore/Maj7GmDls.hpp>
 
-#ifdef _DEBUG
-#	define MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
-#endif
-
 //#include <Windows.h>
 //#undef min
 //#undef max
@@ -46,7 +42,7 @@ namespace WaveSabreCore
 	namespace M7
 	{
 		// even if this doesn't strictly need to have #ifdef, better to make it clear to callers that this depends on built config.
-#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		enum class OutputStream
 		{
 			Master,
@@ -127,7 +123,7 @@ namespace WaveSabreCore
 				"ModDest_Osc3SyncFreq", \
 				"ModDest_Osc4SyncFreq", \
         };
-#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		// this does not operate on frequencies, it operates on target midi note value (0-127).
 		struct PortamentoCalc
@@ -193,9 +189,9 @@ namespace WaveSabreCore
 
 		struct Maj7 : public Maj7SynthDevice
 		{
-#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			OutputStream mOutputStreams[2] = {OutputStream::Master, OutputStream::Master };
-#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			// BASE PARAMS & state
 			real_t mPitchBendN11 = 0;
@@ -440,11 +436,11 @@ namespace WaveSabreCore
 					for (size_t ioutput = 0; ioutput < 2; ++ioutput) {
 						float o = s[ioutput];
 						o *= masterGain;
-#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 						outputs[ioutput][iSample] = SelectStreamValue(mOutputStreams[ioutput], o);
 #else
 						outputs[ioutput][iSample] = o;
-#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					}
 
 					// advance phase of master LFOs
@@ -460,7 +456,7 @@ namespace WaveSabreCore
 				}
 			}
 
-#ifdef MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			float SelectStreamValue(OutputStream s, float masterValue)
 			{
 				switch (s) {
@@ -544,7 +540,7 @@ namespace WaveSabreCore
 
 				}
 			}
-#endif // MAJ7_SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 
 			struct Maj7Voice : public Maj7SynthDevice::Voice

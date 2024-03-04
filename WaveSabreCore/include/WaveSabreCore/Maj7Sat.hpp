@@ -4,10 +4,12 @@
 #include "Device.h"
 #include "Maj7Basic.hpp"
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+#include <vector>
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 namespace WaveSabreCore
 {
-
-
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	struct Maj7Sat : public Device
 	{
@@ -89,20 +91,11 @@ namespace WaveSabreCore
 		};
 
 		enum class OutputSignal : uint8_t {
-			// note: enable/disable feels related to this param; it basically does a bypass.
-			None, // mute this band.
+			Normal, // process this band (wet out)
+			Bypass, // don't process this band (dry out)
 			Diff, // output a diff / delta signal of sorts.
-			Wet, // normal; output the processed signal.
 			Count__,
 		};
-
-		//enum class EvenHarmonicsStyle : uint8_t {
-		//	SqrtHard,
-		//	SqrtSin,
-		//	LinHard,
-		//	LinSin,
-		//	Count__,
-		//};
 
 		enum class ParamIndices
 		{
@@ -110,10 +103,12 @@ namespace WaveSabreCore
 			CrossoverAFrequency,
 			CrossoverASlope,
 			CrossoverBFrequency,
+			OverallDryWet,
 			OutputGain,
 
 			// low band
-			AEnable,
+			AMute,
+			ASolo,
 			APanMode,
 			APan,
 			AModel,
@@ -123,10 +118,11 @@ namespace WaveSabreCore
 			AThreshold,
 			AEvenHarmonics,
 			ADryWet,
-			AOutputSignal,
+			AOutputSignal, // type of signal to output: diff, 
 
 			// mid band
-			BEnable,
+			BMute,
+			BSolo,
 			BPanMode,
 			BPan,
 			BModel,
@@ -139,7 +135,8 @@ namespace WaveSabreCore
 			BOutputSignal,
 
 			// hi band
-			CEnable,
+			CMute,
+			CSolo,
 			CPanMode,
 			CPan,
 			CModel,
@@ -160,8 +157,10 @@ namespace WaveSabreCore
 			{"xAFreq"}, /* CrossoverAFrequency */ \
 			{"xASlope"}, /* CrossoverASlope */ \
 			{"xBFreq"}, /* CrossoverBFrequency */ \
+			{"GDryWet"}, /* drywet global */ \
 			{"OutpGain"}, /* OutputGain */ \
-		{"0Enable"}, /* enable */ \
+		{"0Mute"}, \
+		{"0Solo"}, \
 		{"0PanMode"}, /* PanMode */ \
 		{"0Pan"}, /* Pan */ \
 		{"0Model"}, /* Model */ \
@@ -172,7 +171,8 @@ namespace WaveSabreCore
 		{"0Analog"}, /* EvenHarmonics */ \
 		{"0DryWet"}, /* DryWet */ \
 		{"0OutSig"}, /* output signal */ \
-		{"1Enable"}, /* enable */ \
+		{"1Mute"}, \
+		{"1Solo"}, \
 		{"1PanMode"}, /* PanMode */ \
 		{"1Pan"}, /* Pan */ \
 		{"1Model"}, /* Model */ \
@@ -183,7 +183,8 @@ namespace WaveSabreCore
 		{"1Analog"}, /* EvenHarmonics */ \
 		{"1DryWet"}, /* DryWet */ \
 		{"1OutSig"}, /* output signal */ \
-		{"2Enable"}, /* enable */ \
+		{"2Mute"}, \
+		{"2Solo"}, \
 		{"2PanMode"}, /* PanMode */ \
 		{"2Pan"}, /* Pan */ \
 		{"2Model"}, /* Model */ \
@@ -196,26 +197,28 @@ namespace WaveSabreCore
 		{"2OutSig"}, /* output signal */ \
 }
 
-
-		static_assert((int)ParamIndices::NumParams == 38, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gParamDefaults[38] = {
-		  8230, // InpGain = 0.25118863582611083984
-		  12052, // xAFreq = 0.3677978515625
+		static_assert((int)ParamIndices::NumParams == 42, "param count probably changed and this needs to be regenerated.");
+		static constexpr int16_t gParamDefaults[42] = {
+		  8230, // InpGain = 0.25115966796875
+		  13557, // xAFreq = 0.4137503504753112793
 		  40, // xASlope = 0.001220703125
-		  20715, // xBFreq = 0.63219285011291503906
-		  8230, // OutpGain = 0.25118863582611083984
-		  0, // 0Enable = 0
+		  21577, // xBFreq = 0.65849626064300537109
+		  32767, // GDryWet = 0.999969482421875
+		  8230, // OutpGain = 0.25115966796875
+		  0, // 0Mute = 0
+		  0, // 0Solo = 0
 		  -32768, // 0PanMode = -1
 		  16384, // 0Pan = 0.5
 		  24, // 0Model = 0.000732421875
 		  4125, // 0Drive = 0.125885009765625
-		  16422, // 0CmpGain = 0.50118720531463623047
+		  16422, // 0CmpGain = 0.50115966796875
 		  16422, // 0OutGain = 0.50115966796875
-		  20675, // 0Thresh = 0.63095736503601074219
-		  1966, // 0Analog = 0.059999998658895492554
-		  32767, // 0DryWet = 1
-		  40, // 0OutSig = 0.001235177856869995594
-		  32767, // 1Enable = 1
+		  20675, // 0Thresh = 0.630950927734375
+		  1966, // 0Analog = 0.05999755859375
+		  32767, // 0DryWet = 0.999969482421875
+		  24, // 0OutSig = 0.00074110669083893299103
+		  0, // 1Mute = 0
+		  0, // 1Solo = 0
 		  -32768, // 1PanMode = -1
 		  16384, // 1Pan = 0.5
 		  24, // 1Model = 0.000732421875
@@ -223,26 +226,28 @@ namespace WaveSabreCore
 		  16422, // 1CmpGain = 0.50115966796875
 		  16422, // 1OutGain = 0.50115966796875
 		  20675, // 1Thresh = 0.630950927734375
-		  1966, // 1Analog = 0.059999998658895492554
+		  1966, // 1Analog = 0.05999755859375
 		  32767, // 1DryWet = 0.999969482421875
-		  40, // 1OutSig = 0.001235177856869995594
-		  0, // 2Enable = 0
+		  8, // 1OutSig = 0.0002470355830155313015
+		  0, // 2Mute = 0
+		  0, // 2Solo = 0
 		  8, // 2PanMode = 0.000244140625
 		  16384, // 2Pan = 0.5
 		  24, // 2Model = 0.000732421875
-		  4125, // 2Drive = 0.12589254975318908691
+		  4125, // 2Drive = 0.125885009765625
 		  16422, // 2CmpGain = 0.50115966796875
 		  16422, // 2OutGain = 0.50115966796875
 		  20675, // 2Thresh = 0.630950927734375
-		  1966, // 2Analog = 0.059999998658895492554
+		  1966, // 2Analog = 0.05999755859375
 		  32767, // 2DryWet = 0.999969482421875
-		  40, // 2OutSig = 0.001235177856869995594
+		  24, // 2OutSig = 0.00074110669083893299103
 		};
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		struct FreqBand {
 			enum class BandParam {
-				Enable,
+				Mute,
+				Solo,
 				PanMode,
 				Pan,
 				Model,
@@ -273,18 +278,37 @@ namespace WaveSabreCore
 			Model mModel;
 			PanMode mPanMode;
 			OutputSignal mOutputSignal;
-			bool mEnable = false;
+			bool mMute;
+			bool mSolo;
 
 			M7::ParamAccessor mParams;
 			M7::DCFilter mDC[2];
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			AnalysisStream mInputAnalysis0;
+			AnalysisStream mInputAnalysis1;
+			AnalysisStream mOutputAnalysis0;
+			AnalysisStream mOutputAnalysis1;
+			bool mMuteSoloEnabled;
+#else
+			static constexpr bool mMuteSoloEnabled = true;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 			FreqBand(float* paramCache, ParamIndices baseParamID) : //
 				mParams(paramCache, baseParamID)
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				,
+				mInputAnalysis0(700),
+				mInputAnalysis1(700),
+				mOutputAnalysis0(700),
+				mOutputAnalysis1(700)
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 			{}
 
 			void Slider() {
 
-				mEnable = mParams.GetBoolValue(BandParam::Enable);
+				mMute = mParams.GetBoolValue(BandParam::Mute);
+				mSolo = mParams.GetBoolValue(BandParam::Solo);
 				mDriveLin = mParams.GetLinearVolume(BandParam::Drive, M7::gVolumeCfg36db);
 				mCompensationGain = mParams.GetLinearVolume(BandParam::CompensationGain, M7::gVolumeCfg12db);
 				mOutputGain = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg12db);
@@ -308,6 +332,7 @@ namespace WaveSabreCore
 
 				mCorrSlope = M7::math::lerp(ModelNaturalSlopes[(int)mModel], 1, mThresholdLin);
 			}
+
 			// Patrice Tarrabia and Bram de Jong (supposedly? can't find it anywhere)
 			// but it's very simple and works very well, sounds good, has a shape parameter
 			static float shape_div(float sample, float k)
@@ -449,13 +474,22 @@ namespace WaveSabreCore
 			}
 
 			void ProcessSample(float s0, float s1) {
-				if (mEnable) {
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mInputAnalysis0.WriteSample(s0);
+				mInputAnalysis1.WriteSample(s1);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+				float dry0 = s0;
+				float dry1 = s1;
+
+				if ((mOutputSignal != OutputSignal::Bypass) && mMuteSoloEnabled) {
 					if (mPanMode == PanMode::MidSide) {
 						M7::MSEncode(s0, s1, &s0, &s1);
 					}
 
-					float dry0 = s0;
-					float dry1 = s1;
+					dry0 = s0;
+					dry1 = s1;
 
 					s0 *= ModelPregain[(int)mModel];
 					s0 *= mDriveLin;
@@ -496,27 +530,39 @@ namespace WaveSabreCore
 					diff1 = 0;
 				}
 
-				switch (mOutputSignal) {
-				case OutputSignal::None:
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				if (mMuteSoloEnabled) {
+					switch (mOutputSignal) {
+					case OutputSignal::Bypass:
+						output0 = dry0;
+						output1 = dry1;
+						break;
+					case OutputSignal::Diff:
+						output0 = diff0;
+						output1 = diff1;
+						break;
+					case OutputSignal::Normal:
+						output0 = s0;
+						output1 = s1;
+						break;
+					}
+					output0 *= mOutputGain;
+					output1 *= mOutputGain;
+				}
+				else {
 					output0 = 0;
 					output1 = 0;
-					break;
-				case OutputSignal::Diff:
-					output0 = diff0;
-					output1 = diff1;
-					break;
-				case OutputSignal::Wet:
-					output0 = s0;
-					output1 = s1;
-					break;
 				}
-				output0 *=  mOutputGain;
-				output1 *=  mOutputGain;
+
+				mOutputAnalysis0.WriteSample(output0);
+				mOutputAnalysis1.WriteSample(output1);
+#else
+				output0 = s0;
+				output1 = s1;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			}
 		}; // struct FreqBand
-
-
 
 		float mParamCache[(int)ParamIndices::NumParams];
 
@@ -525,6 +571,13 @@ namespace WaveSabreCore
 		Maj7Sat() :
 			Device((int)ParamIndices::NumParams),
 			mParams(mParamCache, 0)
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			,
+			mInputAnalysis0(1000),
+			mInputAnalysis1(1000),
+			mOutputAnalysis0(1000),
+			mOutputAnalysis1(1000)
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		{
 			LoadDefaults();
 		}
@@ -537,9 +590,9 @@ namespace WaveSabreCore
 
 		static constexpr size_t gBandCount = 3;
 		FreqBand mBands[gBandCount] = {
-			{mParamCache, ParamIndices::AEnable },
-			{mParamCache, ParamIndices::BEnable },
-			{mParamCache, ParamIndices::CEnable },
+			{mParamCache, ParamIndices::AMute },
+			{mParamCache, ParamIndices::BMute},
+			{mParamCache, ParamIndices::CMute},
 		};
 
 		float mInputGainLin = 0;
@@ -576,12 +629,49 @@ namespace WaveSabreCore
 		M7::FrequencySplitter splitter0;
 		M7::FrequencySplitter splitter1;
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		AnalysisStream mInputAnalysis0;
+		AnalysisStream mInputAnalysis1;
+		AnalysisStream mOutputAnalysis0;
+		AnalysisStream mOutputAnalysis1;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			// update "disable because mute or solo".
+			bool soloExists = false;
+
+			// Check if there's at least one Solo
+			for (const auto& band : mBands) {
+				if (band.mSolo) {
+					soloExists = true;
+					break;
+				}
+			}
+
+			for (auto& band : mBands) {
+				if (soloExists) {
+					band.mMuteSoloEnabled = band.mSolo;
+				}
+				else {
+					band.mMuteSoloEnabled = !band.mMute;
+				}
+			}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{
 				float s0 = inputs[0][i] * mInputGainLin;
 				float s1 = inputs[1][i] * mInputGainLin;
+
+				float dry0 = s0;
+				float dry1 = s1;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mInputAnalysis0.WriteSample(s0);
+				mInputAnalysis1.WriteSample(s1);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// split into 3 bands
 				splitter0.frequency_splitter(s0, mCrossoverFreqA, mCrossoverSlopeA, mCrossoverFreqB);
@@ -595,13 +685,22 @@ namespace WaveSabreCore
 				s0 = mBands[0].output0 + mBands[1].output0 + mBands[2].output0;
 				s1 = mBands[0].output1 + mBands[1].output1 + mBands[2].output1;
 
-				//s0 = splitter0.s[0] + splitter0.s[1] + splitter0.s[2];
-				//s1 = splitter1.s[0] + splitter1.s[1]+ splitter1.s[2];
+				float drywet = mParams.GetRawVal(ParamIndices::OverallDryWet);
+				s0 = M7::math::lerp(dry0, s0, drywet);
+				s1 = M7::math::lerp(dry1, s1, drywet);
+
+				s0 *= mOutputGainLin;
+				s1 *= mOutputGainLin;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mOutputAnalysis0.WriteSample(s0);
+				mOutputAnalysis1.WriteSample(s1);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// for sanity; avoid user error or filter madness causing crazy spikes.
 				// so clamp at about +12db clip. todo: param smoothing to avoid these spikes.
-				outputs[0][i] = M7::math::clamp(s0 * mOutputGainLin, -4, 4);
-				outputs[1][i] = M7::math::clamp(s1 * mOutputGainLin, -4, 4);
+				outputs[0][i] = M7::math::clamp(s0, -4, 4);
+				outputs[1][i] = M7::math::clamp(s1, -4, 4);
 
 
 

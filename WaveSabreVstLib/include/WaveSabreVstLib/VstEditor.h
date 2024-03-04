@@ -24,55 +24,55 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
-	// this is basically a naive envelope follower, 0 attack to rectified signal peak, holding the peak for some samples.
-	// why don't we use something like the Maj7Comp Envelope Follower? because the sample rate is VERY different; this is per frame.
-	// and when you scale it back that far it behaves in an ugly way.
-	struct HistoryEnvFollower
-	{
-		static constexpr size_t gBufferSize = 6;
-		std::deque<float> mSamples;
-		float ProcessSample(float sample) {
-			mSamples.push_back(::fabsf(sample));
-			if (mSamples.size() > gBufferSize) {
-				mSamples.pop_front();
-			}
-			float ret = 0;
-			for (auto s : mSamples) {
-				ret = std::max(ret, s);
-			}
-			return ret;
-		}
-	};
+	//// this is basically a naive envelope follower, 0 attack to rectified signal peak, holding the peak for some samples.
+	//// why don't we use something like the Maj7Comp Envelope Follower? because the sample rate is VERY different; this is per frame.
+	//// and when you scale it back that far it behaves in an ugly way.
+	//struct HistoryEnvFollower
+	//{
+	//	static constexpr size_t gBufferSize = 6;
+	//	std::deque<float> mSamples;
+	//	float ProcessSample(float sample) {
+	//		mSamples.push_back(::fabsf(sample));
+	//		if (mSamples.size() > gBufferSize) {
+	//			mSamples.pop_front();
+	//		}
+	//		float ret = 0;
+	//		for (auto s : mSamples) {
+	//			ret = std::max(ret, s);
+	//		}
+	//		return ret;
+	//	}
+	//};
 
-	template<size_t window_size>
-	struct MovingRMS {
-		std::array<float, window_size> samples;
-		int next_sample_index;
-		float sum_squared;
+	//template<size_t window_size>
+	//struct MovingRMS {
+	//	std::array<float, window_size> samples;
+	//	int next_sample_index;
+	//	float sum_squared;
 
-		MovingRMS() {
-			reset();
-		}
+	//	MovingRMS() {
+	//		reset();
+	//	}
 
-		void addSample(float sample) {
-			sum_squared -= samples[next_sample_index] * samples[next_sample_index];
-			samples[next_sample_index] = sample;
-			sum_squared += sample * sample;
-			next_sample_index = (next_sample_index + 1) % window_size;
-		}
+	//	void addSample(float sample) {
+	//		sum_squared -= samples[next_sample_index] * samples[next_sample_index];
+	//		samples[next_sample_index] = sample;
+	//		sum_squared += sample * sample;
+	//		next_sample_index = (next_sample_index + 1) % window_size;
+	//	}
 
-		float getRMS() const {
-			return ::sqrtf(sum_squared / window_size);
-		}
+	//	float getRMS() const {
+	//		return ::sqrtf(sum_squared / window_size);
+	//	}
 
-		void reset() {
-			for (int i = 0; i < window_size; i++) {
-				samples[i] = 0.0;
-			}
-			next_sample_index = 0;
-			sum_squared = 0.0;
-		}
-	};
+	//	void reset() {
+	//		for (int i = 0; i < window_size; i++) {
+	//			samples[i] = 0.0;
+	//		}
+	//		next_sample_index = 0;
+	//		sum_squared = 0.0;
+	//	}
+	//};
 
 
 	struct HistoryViewSeriesConfig
@@ -83,7 +83,7 @@ namespace WaveSabreVstLib
 
 	struct HistoryViewSeries
 	{
-		HistoryEnvFollower mFollower; // actual sample values are not helpful; we need a peak env follower to look nice.
+		//HistoryEnvFollower mFollower; // actual sample values are not helpful; we need a peak env follower to look nice.
 		std::deque<float> mHistDecibels;
 		
 		HistoryViewSeries() {
@@ -102,7 +102,7 @@ namespace WaveSabreVstLib
 
 		HistoryViewSeries mSeries[TSeriesCount];
 
-		void Render(const std::array< HistoryViewSeriesConfig, TSeriesCount>& cfg, const std::array<float, TSeriesCount>& dbValues)
+		void Render(const std::array<HistoryViewSeriesConfig, TSeriesCount>& cfg, const std::array<float, TSeriesCount>& linValues)
 		{
 			ImRect bb;
 			bb.Min = ImGui::GetCursorScreenPos();
@@ -110,7 +110,8 @@ namespace WaveSabreVstLib
 
 			for (size_t i = 0; i < TSeriesCount; ++i) {
 
-				float lin = mSeries[i].mFollower.ProcessSample(M7::math::DecibelsToLinear(dbValues[i]));
+				//float lin = mSeries[i].mFollower.ProcessSample(M7::math::DecibelsToLinear(dbValues[i]));
+				float lin = linValues[i];
 
 				mSeries[i].mHistDecibels.push_back(M7::math::LinearToDecibels(lin));
 				if (mSeries[i].mHistDecibels.size() > gSamplesInHist) {
@@ -1159,6 +1160,7 @@ namespace WaveSabreVstLib
 			TEnum valueOnDeselect; // when the user unclicks the value, what should the underlying param get set to?
 		};
 
+		// the point of this is that you can have a different set of buttons than enum options. the idea is that when "none" are selected, you can do something different.
 		template<typename Tenum, typename TparamID, size_t Tcount>
 		void Maj7ImGuiParamEnumToggleButtonArray(TparamID paramID, const char* ctrlLabel, float width, const EnumToggleButtonArrayItem<Tenum> (&itemCfg)[Tcount]) {
 			M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
@@ -1222,6 +1224,141 @@ namespace WaveSabreVstLib
 		}
 
 
+		template<typename TEnum>
+		struct EnumMutexButtonArrayItem {
+			const char* caption;
+			const char* selectedColor;
+			const char* notSelectedColor;
+			const char* selectedHoveredColor;
+			const char* notSelectedHoveredColor;
+			TEnum value;
+		};
+
+			// the point of this is that you can have a different set of buttons than enum options. the idea is that when "none" are selected, you can do something different.
+			template<typename Tenum, typename TparamID, size_t Tcount>
+			void Maj7ImGuiParamEnumMutexButtonArray(TparamID paramID, const char* ctrlLabel, float width, const EnumMutexButtonArrayItem<Tenum>(&itemCfg)[Tcount]) {
+				M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+				M7::ParamAccessor pa{ &tempVal, 0 };
+				auto selectedVal = pa.GetEnumValue<Tenum>(0);
+
+				ImGui::PushID(ctrlLabel);
+
+				ImGui::BeginGroup();
+
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+				for (size_t i = 0; i < Tcount; i++)
+				{
+					auto& cfg = itemCfg[i];
+					const bool is_selected = (selectedVal == cfg.value);
+					int colorsPushed = 0;
+
+					if (is_selected) {
+						if (cfg.selectedColor) {
+							ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.selectedColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.selectedColor));
+							colorsPushed += 2;
+						}
+						if (cfg.selectedHoveredColor) {
+							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.selectedHoveredColor));
+							colorsPushed++;
+						}
+					}
+					else {
+						if (cfg.notSelectedColor) {
+							ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
+							colorsPushed += 2;
+						}
+						if (cfg.notSelectedHoveredColor) {
+							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.notSelectedHoveredColor));
+							colorsPushed++;
+						}
+					}
+
+					if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {
+						pa.SetEnumValue(0, cfg.value);
+						GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
+					}
+
+					ImGui::PopStyleColor(colorsPushed);
+				}
+
+				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+
+				ImGui::EndGroup();
+				ImGui::PopID();
+			}
+
+
+			template<typename TparamID>
+			struct BoolToggleButtonArrayItem {
+				TparamID paramID;
+				const char* caption;
+				const char* selectedColor;
+				const char* notSelectedColor;
+				const char* selectedHoveredColor;
+				const char* notSelectedHoveredColor;
+			};
+
+
+			// the point of this is that you can have a different set of buttons than enum options. the idea is that when "none" are selected, you can do something different.
+			template<typename TparamID, size_t Tcount>
+			void Maj7ImGuiParamBoolToggleButtonArray(const char* ctrlLabel, float width, const BoolToggleButtonArrayItem<TparamID>(&itemCfg)[Tcount]) {
+				ImGui::PushID(ctrlLabel);
+
+				ImGui::BeginGroup();
+
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+				for (size_t i = 0; i < Tcount; i++)
+				{
+					auto& cfg = itemCfg[i];
+					//const bool is_selected = (selectedVal == cfg.value);
+					int colorsPushed = 0;
+
+					M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)cfg.paramID);
+					M7::ParamAccessor pa{ &tempVal, 0 };
+					auto boolVal = pa.GetBoolValue(0);
+
+					if (boolVal) {
+						if (cfg.selectedColor) {
+							ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.selectedColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.selectedColor));
+							colorsPushed += 2;
+						}
+						if (cfg.selectedHoveredColor) {
+							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.selectedHoveredColor));
+							colorsPushed++;
+						}
+					}
+					else {
+						if (cfg.notSelectedColor) {
+							ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
+							ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
+							colorsPushed += 2;
+						}
+						if (cfg.notSelectedHoveredColor) {
+							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.notSelectedHoveredColor));
+							colorsPushed++;
+						}
+					}
+
+					if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {
+						pa.SetBoolValue(0, !boolVal);
+						GetEffectX()->setParameterAutomated((VstInt32)cfg.paramID, tempVal);
+					}
+
+					ImGui::PopStyleColor(colorsPushed);
+				}
+
+				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+
+				ImGui::EndGroup();
+				ImGui::PopID();
+			}
 
 		template<typename TparamID>
 		void Maj7ImGuiParamBoolToggleButton(TparamID paramID, const char* label, const char* selectedColorHTML = 0) {
@@ -1657,151 +1794,272 @@ namespace WaveSabreVstLib
 			}
 		};
 
-		enum class VUMeterFlags
-		{
-			None = 0,
-			InputIsLinear = 1,
-			AttenuationMode = 4,
-			LevelMode = 8,
-			NoText = 16,
-			NoForeground = 32,
-			FillAttenuation = 64,
-		};
-
 		struct VUMeterColors
 		{
 			ImColor background;
-			ImColor foreground;
+			ImColor foregroundRMS;
+			ImColor foregroundPeak;
+			ImColor backgroundOverUnity;
+			ImColor foregroundOverUnity;
 			ImColor text;
 			ImColor tick;
 			ImColor clipTick;
 			ImColor peak;
 		};
 
+		struct VUMeterTick {
+			float dBvalue;
+			const char* caption; // may be nullptr to not display text.
+		};
+
+		enum VUMeterLevelMode {
+			Audio,
+			Attenuation,
+		};
+
+		enum VUMeterUnits {
+			dB,
+			Linear,
+		};
+
+		struct VUMeterConfig {
+			ImVec2 size;
+			VUMeterLevelMode levelMode;
+			VUMeterUnits units;
+			float minDB;
+			float maxDB;
+			std::vector<VUMeterTick> ticks;
+		};
+
 		// rms level may be nullptr to not graph it.
 		// peak level may be nullptr to not graph it.
-		void VUMeter(ImVec2 size, float* rmsLevel, float* peakLevel, VUMeterFlags flags)
+		// clipindicator same.
+		// return true if clicked.
+		bool VUMeter(const char *id, const float* rmsLevel, const float* peakLevel, const float* heldPeakLevel, const bool* clipIndicator, bool allowTickText, const VUMeterConfig& cfg)
 		{
 			VUMeterColors colors;
-			if ((int)flags & (int)VUMeterFlags::LevelMode)
+			if (cfg.levelMode == VUMeterLevelMode::Audio)
 			{
 				colors.background = ColorFromHTML("2b321c");
-				colors.foreground = ColorFromHTML("6c9b0a");
+				colors.foregroundRMS = ColorFromHTML("6c9b0a");
+				colors.foregroundPeak = ColorFromHTML("4a6332");
+
+				colors.backgroundOverUnity = ColorFromHTML("440000");
+				colors.foregroundOverUnity = ColorFromHTML("cccc00");
+
 				colors.text = ColorFromHTML("ffffff");
 				colors.tick = ColorFromHTML("00ffff");
 				colors.clipTick = ColorFromHTML("ff0000");
-				colors.peak = ColorFromHTML("ffff00");
+				colors.peak = ColorFromHTML("ffff00", 0.8f);
 
-			} else if ((int)flags & (int)VUMeterFlags::AttenuationMode)
+			} else // attenuation
 			{
 				colors.background = ColorFromHTML("462e2e");
-				colors.foreground = ColorFromHTML("ed4d4d");
+				colors.foregroundRMS = ColorFromHTML("ed4d4d");
+				colors.foregroundPeak = ColorFromHTML("4a6332");
+
+				colors.backgroundOverUnity = ColorFromHTML("440000");
+				colors.foregroundOverUnity = ColorFromHTML("cccc00");
+
 				colors.text = ColorFromHTML("ffffff");
 				colors.tick = ColorFromHTML("00ffff");
-				colors.clipTick = colors.foreground;// don't bother with clipping for attenuation ColorFromHTML("ff0000");
-				colors.peak = ColorFromHTML("ffff00");
+				colors.clipTick = colors.foregroundRMS;// don't bother with clipping for attenuation ColorFromHTML("ff0000");
+				colors.peak = ColorFromHTML("ffff00", 0.8f);
 			}
-			colors.text.Value.w = 0.25f;
-			colors.tick.Value.w = 0.35f;
-			colors.clipTick.Value.w = 0.8f;
+			colors.text.Value.w = 0.33f;
+			colors.tick.Value.w = 0.33f;
 
 			float rmsDB = 0;
-			bool clip = false;
 			if (rmsLevel) {
-				if ((int)flags & (int)VUMeterFlags::InputIsLinear) {
+				if (cfg.units == VUMeterUnits::Linear) {
 					rmsDB = M7::math::LinearToDecibels(::fabsf(*rmsLevel));
 				}
 				else {
 					rmsDB = (*rmsLevel);
 				}
-				if (rmsDB >= 0) clip = true;
 			}
 
 			float peakDb = 0;
 			if (peakLevel) {
-				if ((int)flags & (int)VUMeterFlags::InputIsLinear) {
+				if (cfg.units == VUMeterUnits::Linear) {
 					peakDb = M7::math::LinearToDecibels(::fabsf(*peakLevel));
 				}
 				else {
 					peakDb = (*peakLevel);
 				}
+			}
 
-				if (peakDb >= 0) clip = true;
+			float heldPeakDb = 0;
+			if (heldPeakLevel) {
+				if (cfg.units == VUMeterUnits::Linear) {
+					heldPeakDb = M7::math::LinearToDecibels(::fabsf(*heldPeakLevel));
+				}
+				else {
+					heldPeakDb = (*heldPeakLevel);
+				}
 			}
 
 			ImRect bb;
 			bb.Min = ImGui::GetCursorScreenPos();
-			bb.Max = bb.Min + size;
-			ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
+			bb.Max = bb.Min + cfg.size;
 
 			auto DbToY = [&](float db) {
 				// let's show a range of -60 to 0 db.
-				float x = (db + 60) / 60;
+				//float x = (db + 60) / 60;
+				float x = M7::math::lerp_rev(cfg.minDB, cfg.maxDB, db);
 				x = Clamp01(x);
 				return M7::math::lerp(bb.Max.y, bb.Min.y, x);
 			};
 
 			auto* dl = ImGui::GetWindowDrawList();
+
+			assert(cfg.minDB < cfg.maxDB); // simplifies logic.
+
+			auto RenderDBRegion = [&](float dB1, float dB2, ImColor bgUnderUnity, ImColor bgOverUnity) {
+				if (dB1 > dB2) std::swap(dB1, dB2); // make sure in order to simplify logic
+
+				// find the intersection of the desired region and the renderable region.
+				float cmin = std::max(dB1, cfg.minDB);
+				float cmax = std::min(dB2, cfg.maxDB);
+				if (cmin >= cmax) {
+					return; // nothing to render.
+				}
+
+				// break render rgn into positive & negative dB regions.
+				if (cmax <= 0) {// Entire range is negative; render cmin,cmax in under-unity style
+					dl->AddRectFilled({ bb.Min.x, DbToY(cmin)}, {bb.Max.x, DbToY(cmax) }, bgUnderUnity);
+				}
+				else if (cmin >= 0) { // Entire range is non-negative, render cmin,cmax in over-unity style
+					dl->AddRectFilled({ bb.Min.x, DbToY(cmin) }, { bb.Max.x, DbToY(cmax) }, bgOverUnity);
+				}
+				else {
+					// Range spans across 0, split into two regions
+					dl->AddRectFilled({ bb.Min.x, DbToY(cmin) }, { bb.Max.x, DbToY(0) }, bgUnderUnity);
+					dl->AddRectFilled({ bb.Min.x, DbToY(0) }, { bb.Max.x, DbToY(cmax) }, bgOverUnity);
+				}
+			};
+
+			RenderDBRegion(cfg.minDB, cfg.maxDB, colors.background, colors.backgroundOverUnity);
+
 			float levelY = DbToY(rmsDB);
 
-			ImRect forebb = bb;
-			if ((int)flags & (int)VUMeterFlags::LevelMode)
-			{
-				forebb.Min.y = levelY;
-			}
-			if ((int)flags & (int)VUMeterFlags::AttenuationMode)
-			{
-				forebb.Max.y = levelY;
+			// draw the peak bar
+			if (peakLevel) {
+				float fgBaseDB = cfg.minDB;
+				if (cfg.levelMode == VUMeterLevelMode::Attenuation) fgBaseDB = 0;
+				RenderDBRegion(peakDb, fgBaseDB, colors.foregroundPeak, colors.foregroundOverUnity);
 			}
 
-			if (!((int)flags & (int)VUMeterFlags::NoForeground)) {
-				if (rmsLevel) {
-					dl->AddRectFilled(forebb.Min, forebb.Max, colors.foreground);
-				}
+			// draw the RMS bar
+			if (rmsLevel) {
+				float fgBaseDB = cfg.minDB;
+				if (cfg.levelMode == VUMeterLevelMode::Attenuation) fgBaseDB = 0;
+				RenderDBRegion(rmsDB, fgBaseDB, colors.foregroundRMS, colors.foregroundOverUnity);
 			}
 
-			// draw thumb
-			ImRect threshbb = bb;
-			threshbb.Min.y = threshbb.Max.y = levelY;
-			float tickHeight = clip ? 40.0f : 4.0f;
-			threshbb.Max.y += tickHeight;
-			dl->AddRectFilled(threshbb.Min, threshbb.Max, clip ? colors.clipTick : colors.tick);
+			//// draw thumb (a little line separating foreground from background)
+			//ImRect threshbb = bb;
+			//threshbb.Min.y = threshbb.Max.y = levelY;
+			//float tickHeight = 3.0f;
+			//threshbb.Max.y += tickHeight;
+			//dl->AddRectFilled(threshbb.Min, threshbb.Max, colors.tick);
 
-			// draw peak
-			if (peakLevel != nullptr) {
-				float peakY = DbToY(peakDb);
+			// draw clip
+			if (clipIndicator && *clipIndicator) {
+				dl->AddRectFilled(bb.Min, {bb.Max.x, bb.Min.y + 8}, colors.clipTick);
+			}
+
+			// draw held peak
+			if (heldPeakLevel != nullptr) {
+				float peakY = DbToY(heldPeakDb);
 				ImRect threshbb = bb;
 				threshbb.Min.y = threshbb.Max.y = peakY;
-				float tickHeight = clip ? 40.0f : 4.0f;
+				float tickHeight = 2.0f;
 				threshbb.Max.y += tickHeight;
 				dl->AddRectFilled(threshbb.Min, threshbb.Max, colors.peak);
 			}
 
 			// draw plot lines
 			auto drawTick = [&](float tickdb, const char* txt) {
-				ImRect tickbb = forebb;
-				tickbb.Min.y = DbToY(tickdb);
+				ImRect tickbb = bb;
+				tickbb.Min.y = std::round(DbToY(tickdb)); // make crisp lines plz.
 				tickbb.Max.y = tickbb.Min.y;
 				dl->AddLine(tickbb.Min, tickbb.Max, colors.text);
-				if (!((int)flags & (int)VUMeterFlags::NoText)) {
+				if (txt && allowTickText) {
 					dl->AddText({ tickbb.Min.x, tickbb.Min.y }, colors.text, txt);
 				}
 			};
 
-			drawTick(-5, "3db");
-			drawTick(-10, "6db");
-			drawTick(-15, "12db");
-			drawTick(-20, "18db");
-			drawTick(-30, "30db");
-			drawTick(-40, "40db");
-			drawTick(-50, "50db");
+			for (auto& t : cfg.ticks) {
+				drawTick(t.dBvalue, t.caption);
+			}
 
-			ImGui::Dummy(size);
+			return ImGui::InvisibleButton(id, cfg.size);
 		}
 
-		void VUMeter(float* rmsLevel, float* peakLevel, VUMeterFlags flags)
+		void VUMeter(const char* id, AnalysisStream& a0, AnalysisStream& a1, ImVec2 size = { 30,300 })
 		{
-			VUMeter(ImVec2(44, 300), rmsLevel, peakLevel, flags);
+			static const std::vector<VUMeterTick> standardTickSet = {
+					{-3.0f, "3db"},
+					{-6.0f, "6db"},
+					{-12.0f, "12db"},
+					{-18.0f, "18db"},
+					{-24.0f, "24db"},
+					{-30.0f, "30db"},
+					{-40.0f, nullptr},
+					//{-50.0f, "50db"},
+			};
+
+			static const std::vector<VUMeterTick> smallTickSet = {
+					{-10.0f, "10db"},
+					{-20.0f, nullptr},
+					{-30.0f, "30db"},
+					{-40.0f, nullptr},
+					//{-50.0f, "50db"},
+			};
+
+			const VUMeterConfig cfg = {
+				size,
+				VUMeterLevelMode::Audio,
+				VUMeterUnits::Linear,
+				-50, 6,
+				smallTickSet
+			};
+
+			ImGui::PushID(id);
+			if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
+			{
+				a0.Reset();
+				a1.Reset();
+			}
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
+			ImGui::SameLine();
+			if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg))
+			{
+				a0.Reset();
+				a1.Reset();
+			}
+			ImGui::PopID();
+			ImGui::PopStyleVar();
+		}
+
+		void VUMeter(const char* id, AnalysisStream& a0, AnalysisStream& a1, const VUMeterConfig& cfg)
+		{
+			ImGui::PushID(id);
+			if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
+			{
+				a0.Reset();
+				a1.Reset();
+			}
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
+			ImGui::SameLine();
+			if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg))
+			{
+				a0.Reset();
+				a1.Reset();
+			}
+			ImGui::PopID();
+			ImGui::PopStyleVar();
 		}
 
 

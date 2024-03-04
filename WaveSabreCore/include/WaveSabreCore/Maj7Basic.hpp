@@ -16,6 +16,28 @@ using std::max;
 #define cast_uint32_t (uint32_t)
 #endif
 
+// https://stackoverflow.com/questions/1505582/determining-32-vs-64-bit-in-c
+#if _WIN32 || _WIN64
+#if _WIN64
+#define ENV64BIT
+#else
+#define ENV32BIT
+#endif
+#endif
+
+
+// ideally we would distinguish between VST compilation and demoscene compilation.
+// but that's not possible atm because everything is shared. for the moment checking x64 is practical.
+#ifdef ENV64BIT
+#	define SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif
+
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+#include <vector>
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+
 #ifdef _DEBUG
 #define WSASSERT(condition) \
     do { \
@@ -60,7 +82,6 @@ inline void checkFloat(float x, const char* expr, const char* file, const int li
 
 namespace WaveSabreCore
 {
-
     class CriticalSection
     {
     public:
