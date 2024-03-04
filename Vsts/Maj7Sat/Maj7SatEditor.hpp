@@ -27,6 +27,85 @@ struct Maj7SatEditor : public VstEditor
 		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Sat Saturator", mpMaj7Sat, mpMaj7SatVst, "gParamDefaults", "ParamIndices::NumParams", "Maj7Sat", mpMaj7Sat->mParamCache, paramNames);
 	}
 
+	struct TransferCurveColors
+	{
+		ImColor background;
+		ImColor line;
+		ImColor lineClip;
+		//ImColor text;
+		//ImColor tick;
+		//ImColor clipTick;
+		//ImColor peak;
+	};
+
+	void RenderTransferCurve(ImVec2 size, const TransferCurveColors& colors, const Maj7Sat::FreqBand& band)
+	{
+		auto* dl = ImGui::GetWindowDrawList();
+		ImRect bb;
+		bb.Min = ImGui::GetCursorScreenPos();
+		bb.Max = bb.Min + size;
+		ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
+
+		//static constexpr float gMinDb = -40;
+		//static constexpr float gMaxDb = 6;
+		static constexpr float gMaxLin = 1.5f;
+
+		//auto DbToY = [&](float db) {
+		//	float t = M7::math::lerp_rev(gMinDb, gMaxDb, db);
+		//	t = Clamp01(t);
+		//	return M7::math::lerp(bb.Max.y, bb.Min.y, t);
+		//};
+
+		auto LinToY = [&](float db) {
+			float t = M7::math::lerp_rev(0, gMaxLin, db);
+			t = Clamp01(t);
+			return M7::math::lerp(bb.Max.y, bb.Min.y, t);
+		};
+
+		//auto DbToX = [&](float db) {
+		//	float t = M7::math::lerp_rev(gMinDb, gMaxDb, db);
+		//	t = Clamp01(t);
+		//	return M7::math::lerp(bb.Min.x, bb.Max.x, t);
+		//};
+		auto LinToX = [&](float db) {
+			float t = M7::math::lerp_rev(0, gMaxLin, db);
+			t = Clamp01(t);
+			return M7::math::lerp(bb.Min.x, bb.Max.x, t);
+		};
+
+
+		static constexpr int segmentCount = 16;
+		std::vector<ImVec2> points;
+		std::vector<ImVec2> clipPoints;
+		float unused;
+
+		for (int i = 0; i < segmentCount; ++i)
+		{
+			float t01 = float(i) / (segmentCount - 1); // touch 0 and 1
+			//float tDB = M7::math::lerp(gMinDb, gMaxDb, t01);
+			//float tLin = M7::math::DecibelsToLinear(tDB);
+			float tLin = M7::math::lerp(0, gMaxLin, t01);
+			float yLin = band.transfer(tLin, unused);
+			//float yDB = M7::math::LinearToDecibels(yLin);
+			if (tLin >= 1) {
+				if (clipPoints.empty()) {
+					points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
+					//clipPoints.push_back(*(points.end() - 1));
+				}
+				clipPoints.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
+			}
+			else {
+				points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
+			}
+		}
+
+		dl->AddPolyline(points.data(), (int)points.size(), colors.line, 0, 3);
+		dl->AddPolyline(clipPoints.data(), (int)clipPoints.size(), colors.lineClip, 0, 3);
+
+		ImGui::Dummy(size);
+
+	} // void RenderTransferCurve()
+
 	void RenderBand(size_t iBand, ParamIndices enabledParam, const char *caption)
 	{
 		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
@@ -108,6 +187,14 @@ struct Maj7SatEditor : public VstEditor
 				ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::CompensationGain), "Makeup", M7::gVolumeCfg12db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "DryWet", 1, 0);
 				ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Output", M7::gVolumeCfg12db, 0, {});
+
+
+				RenderTransferCurve({ 80, 80 }, {
+					ColorFromHTML("222222"), ColorFromHTML("cccc33"),
+					 ColorFromHTML("ff3300")
+					}, mpMaj7Sat->mBands[iBand]);
+
+
 				ImGui::EndTabItem();
 			}
 			EndTabBarWithColoredSeparator();

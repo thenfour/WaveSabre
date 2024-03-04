@@ -345,7 +345,7 @@ namespace WaveSabreCore
 			// this is a sharp "naive" linear folding shape. i find it funny, because
 			// 1. even though it's just "linear", it means having to use a triangle wave to fold it back and forth, which is more code than sine()
 			// 2. even though it's more directly related to the incoming wave, it sounds very noisy and harsh compared to other folding shapes.
-			float shape_trifold(float s)
+			static float shape_trifold(float s)
 			{
 				s = .25f * s - .25f;
 				float b = M7::math::floor(s);
@@ -359,14 +359,11 @@ namespace WaveSabreCore
 				return M7::math::tanh(1.5f * M7::math::sin(in * M7::math::gPIHalf));
 			}
 
-			float distort(float s, size_t chanIndex, float& diffSignal)
-			{
+			// performs the saturation, used for VST GUI as well.
+			float transfer(float s, float& diffSignal) const {
 				// calculating a diff signal has some quirks. if you just do wet-dry, you'll find that it's not so helpful,
 				// mostly because we do a lot of gain application.
 				// The dry signal is just before this function is called. so keep track of all these gain applications so we can undo it for a better diff.
-
-				s *= ModelPregain[(int)mModel];
-				s *= mDriveLin;
 
 				float g = s < 0 ? -1.0f : 1.0f;
 				s = std::abs(s); // work only in positive pole for shaping.
@@ -430,7 +427,12 @@ namespace WaveSabreCore
 				}
 
 				s *= g; // re add the sign bit.
+				return s;
+			}
 
+			float distort(float s, size_t chanIndex, float& diffSignal)
+			{
+				s = transfer(s, diffSignal);
 				float analog = s * s - .5f;
 				analog = mDC[chanIndex].ProcessSample(analog);
 				analog = M7::math::clamp01(analog);// must clip, otherwise values can be huge if s happened to be > 1
@@ -454,6 +456,11 @@ namespace WaveSabreCore
 
 					float dry0 = s0;
 					float dry1 = s1;
+
+					s0 *= ModelPregain[(int)mModel];
+					s0 *= mDriveLin;
+					s1 *= ModelPregain[(int)mModel];
+					s1 *= mDriveLin;
 
 					float this0 = distort(s0, 0, diff0);
 					float this1 = distort(s1, 1, diff1);
@@ -559,8 +566,6 @@ namespace WaveSabreCore
 			mCrossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, -1, M7::gFilterFreqConfig, 0, 0);
 
 			mCrossoverSlopeA = mParams.GetEnumValue<M7::LinkwitzRileyFilter::Slope>(ParamIndices::CrossoverASlope);
-
-			//mOversampling = mParams.GetEnumValue<Oversampling>(ParamIndices::Oversampling);
 		}
 
 		virtual float GetParam(int index) const override
