@@ -212,24 +212,9 @@ namespace WaveSabreCore
         };
 
 
-
-		// this is similar to StateVariableFilter, but StateVariableFilter doesn't implement an allpass.
-		struct SVF
+		struct SVFilter
 		{
-			// Update filter coefficients if cutoff or Q has changed
-			void updateCoefficients(float cutoff, float Q) {
-				float new_d0 = cutoff + Q;
-				if (d1 != new_d0) {
-					d1 = d0;
-					d0 = new_d0;
-					g = M7::math::tan(M7::math::gPI * cutoff * Helpers::CurrentSampleRateRecipF);
-					k = 1.0f / Q;
-					a1 = 1.0f / (1.0f + g * (g + k));
-					a2 = g * a1;
-				}
-			}
-
-			// One-Pole All-Pass Filter
+			// one pole apf
 			float SVFOPapf_temp(float x, float cutoff) {
 				if (d1 != d0) {
 					d0 = cutoff;
@@ -240,63 +225,52 @@ namespace WaveSabreCore
 				return x - 2 * r;
 			}
 
-			enum class FilterMode {
-				LowPass,
-				HighPass,
-				BandPass,
-				AllPass
-			};
-
-			float processSample(float x, float cutoff, float Q, FilterMode mode) {
-				updateCoefficients(cutoff, Q);
-
-				float v1 = a1 * ic1eq + a2 * (mode == FilterMode::AllPass ? (x - ic2eq) : x - ic2eq);
+			// Update filter coefficients if cutoff or Q has changed
+			M7::FloatPair updateCoefficients(float v0, float cutoff, float Q) {
+				float new_d0 = cutoff + Q;
+				if (d1 != new_d0) {
+					d1 = d0;
+					d0 = new_d0;
+					g = M7::math::tan(M7::math::gPI * cutoff * Helpers::CurrentSampleRateRecipF);
+					k = 1.0f / Q;
+					a1 = 1.0f / (1.0f + g * (g + k));
+					a2 = g * a1;
+				}
+				float v1 = a1 * ic1eq + a2 * (v0 - ic2eq);
 				float v2 = ic2eq + g * v1;
 				ic1eq = 2 * v1 - ic1eq;
 				ic2eq = 2 * v2 - ic2eq;
-
-				switch (mode) {
-				case FilterMode::LowPass:
-					return v2;
-				case FilterMode::HighPass:
-					return x - k * v1 - v2;
-				case FilterMode::BandPass:
-					return x - 2 * k * v1;
-				case FilterMode::AllPass: {
-					float r = (1 - c) * i + c * x;
-					i = 2 * r - i;
-					return x - 2 * r;
-				}
-				default:
-					return x; // Should never reach here
-				}
+				return { v1, v2 };
 			}
 
 			float SVFlow(float v0, float cutoff, float Q) {
-				return processSample(v0, cutoff, Q, FilterMode::LowPass);
+				auto x =updateCoefficients(v0, cutoff, Q);
+				return x.second;
 			}
+
 			float SVFhigh(float v0, float cutoff, float Q) {
-				return processSample(v0, cutoff, Q, FilterMode::HighPass);
+				auto x = updateCoefficients(v0, cutoff, Q);
+				return v0 - k * x.first - x.second;
 			}
+
 			float SVFall(float v0, float cutoff, float Q) {
-				return processSample(v0, cutoff, Q, FilterMode::AllPass);
+				auto x = updateCoefficients(v0, cutoff, Q);
+				return v0 - 2 * k * x.first;
 			}
 
 		private:
-			float g = 0;
-			float k = 0;
-			float a1 = 0;
-			float a2 = 0;
+			float g = 0, k = 0, a1 = 0, a2 = 0;
 			float ic1eq = 0, ic2eq = 0;
 			float d0 = 0, d1 = 0; // Used for tracking changes in cutoff and Q
 			float c = 0, i = 0; // Additional state variables for SVFOPapf_temp
-		};
-
+		}; // SVFilter
 
 		struct LinkwitzRileyFilter {
-			static constexpr float q24 = 0.707106781187f;// sqrt(0.5);
-			static constexpr float q48_1 = 0.541196100146f;// 0.5 / cos($pi / 8 * 1);
-			static constexpr float q48_2 = 1.30656296488f;// 0.5 / cos($pi / 8 * 3);
+			using real = float;
+
+			static constexpr real q24 = 0.707106781187f;// sqrt(0.5);
+			static constexpr real q48_1 = 0.541196100146f;// 0.5 / cos($pi / 8 * 1);
+			static constexpr real q48_2 = 1.30656296488f;// 0.5 / cos($pi / 8 * 3);
 
 			enum class Slope : uint8_t {
 				Slope_6dB,
@@ -307,9 +281,9 @@ namespace WaveSabreCore
 				Count__,
 			};
 
-			SVF svf[4];
+			SVFilter svf[4];
 
-			float LR_LPF(float x, float freq, Slope slope) {
+			real LR_LPF(real x, real freq, Slope slope) {
 				switch (slope) {
 				case Slope::Slope_12dB:
 					return svf[0].SVFlow(x, freq, 0.5f);
@@ -330,7 +304,7 @@ namespace WaveSabreCore
 				}
 			}
 
-			float LR_HPF(float x, float freq, Slope slope) {
+			real LR_HPF(real x, real freq, Slope slope) {
 				switch (slope) {
 				case Slope::Slope_12dB:
 					return svf[0].SVFhigh(-x, freq, 0.5f);
@@ -351,7 +325,7 @@ namespace WaveSabreCore
 				}
 			}
 
-			float APF(float x, float freq, Slope slope) {
+			real APF(real x, real freq, Slope slope) {
 				switch (slope) {
 				case Slope::Slope_12dB:
 					return svf[0].SVFOPapf_temp(-x, freq);
@@ -389,8 +363,10 @@ namespace WaveSabreCore
 				{
 					s[0] = mLR[0].LR_LPF(x, crossoverFreqA, crossoverSlope);
 					s[0] = mLR[1].LR_LPF(s[0], crossoverFreqB, crossoverSlope);
+
 					s[1] = mLR[2].LR_HPF(x, crossoverFreqA, crossoverSlope);
 					s[1] = mLR[3].LR_LPF(s[1], crossoverFreqB, crossoverSlope);
+
 					s[2] = mLR[4].APF(x, crossoverFreqA, crossoverSlope);
 					s[2] = mLR[5].LR_HPF(s[2], crossoverFreqB, crossoverSlope);
 				}

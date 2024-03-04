@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <queue>
+#include <functional>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
@@ -1146,6 +1147,119 @@ namespace WaveSabreVstLib
 			ImGui::PopItemWidth();
 			ImGui::PopID();
 		}
+
+		template<typename TEnum>
+		struct EnumToggleButtonArrayItem {
+			const char* caption;
+			const char* selectedColor;
+			const char* notSelectedColor;
+			const char* selectedHoveredColor;
+			const char* notSelectedHoveredColor;
+			TEnum value;
+			TEnum valueOnDeselect; // when the user unclicks the value, what should the underlying param get set to?
+		};
+
+		template<typename Tenum, typename TparamID, size_t Tcount>
+		void Maj7ImGuiParamEnumToggleButtonArray(TparamID paramID, const char* ctrlLabel, float width, const EnumToggleButtonArrayItem<Tenum> (&itemCfg)[Tcount]) {
+			M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+			M7::ParamAccessor pa{ &tempVal, 0 };
+			auto selectedVal = pa.GetEnumValue<Tenum>(0);
+
+			ImGui::PushID(ctrlLabel);
+
+			ImGui::BeginGroup();
+
+			auto end = ImGui::FindRenderedTextEnd(ctrlLabel, 0);
+			auto txt = std::string(ctrlLabel, end);
+			if (txt.length()) {
+				ImGui::Text("%s", txt.c_str());
+			}
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+			
+			for (size_t i = 0; i < Tcount; i++)
+			{
+				auto& cfg = itemCfg[i];
+				const bool is_selected = (selectedVal  == cfg.value);
+				int colorsPushed = 0;
+
+				if (is_selected) {
+					if (cfg.selectedColor) {
+						ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.selectedColor));
+						ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.selectedColor));
+						colorsPushed +=2;
+					}
+					if (cfg.selectedHoveredColor) {
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.selectedHoveredColor));
+						colorsPushed++;
+					}
+				}
+				else {
+					if (cfg.notSelectedColor) {
+						ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
+						ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
+						colorsPushed += 2;
+					}
+					if (cfg.notSelectedHoveredColor) {
+						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.notSelectedHoveredColor));
+						colorsPushed++;
+					}
+				}
+
+				if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {
+					pa.SetEnumValue(0, is_selected ? cfg.valueOnDeselect : cfg.value);
+					GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
+				}
+
+				ImGui::PopStyleColor(colorsPushed);
+			}
+
+			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+			 
+			ImGui::EndGroup();
+			ImGui::PopID();
+		}
+
+
+
+		template<typename TparamID>
+		void Maj7ImGuiParamBoolToggleButton(TparamID paramID, const char* label, const char* selectedColorHTML = 0) {
+			M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+			M7::ParamAccessor pa{ &tempVal, 0 };
+			auto is_selected = pa.GetBoolValue(0);
+
+			ImGui::PushID(label);
+
+			ImGui::BeginGroup();
+
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+			int colorsPushed = 0;
+
+			if (is_selected) {
+				if (selectedColorHTML) {
+					ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(selectedColorHTML));
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(selectedColorHTML));
+					colorsPushed += 2;
+				}
+			}
+
+			if (ImGui::Button(label)) {
+				pa.SetBoolValue(0, !is_selected);
+				GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
+			}
+
+			ImGui::PopStyleColor(colorsPushed);
+
+			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+
+			ImGui::EndGroup();
+			ImGui::PopID();
+		}
+
+
 
 		void Maj7ImGuiParamScaledFloat(VstInt32 paramID, const char* label, M7::real_t v_min, M7::real_t v_max, M7::real_t v_defaultScaled, float v_centerScaled, float sizePixels, ImGuiKnobs::ModInfo modInfo) {
 			WaveSabreCore::M7::real_t tempVal;

@@ -262,9 +262,11 @@ namespace WaveSabreVstLib
 				continue;// return 0; // already set. is this a duplicate? just ignore.
 			}
 
-			paramCache[it->second.second] = ch.mNumericValue.Get<float>();
+			// NB: call SetParam so the device has the opportunity to react and recalc if needed.
+			pDevice->SetParam((int)it->second.second, ch.mNumericValue.Get<float>());
 			it->second.first = true;
 		}
+
 
 		return byteSize;
 	}
