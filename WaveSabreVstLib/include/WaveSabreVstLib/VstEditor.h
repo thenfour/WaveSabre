@@ -1850,7 +1850,7 @@ namespace WaveSabreVstLib
 				colors.text = ColorFromHTML("ffffff");
 				colors.tick = ColorFromHTML("00ffff");
 				colors.clipTick = ColorFromHTML("ff0000");
-				colors.peak = ColorFromHTML("ffff00", 0.8f);
+				colors.peak = ColorFromHTML("6c9b0a", 0.8f);
 
 			} else // attenuation
 			{
@@ -1864,7 +1864,7 @@ namespace WaveSabreVstLib
 				colors.text = ColorFromHTML("ffffff");
 				colors.tick = ColorFromHTML("00ffff");
 				colors.clipTick = colors.foregroundRMS;// don't bother with clipping for attenuation ColorFromHTML("ff0000");
-				colors.peak = ColorFromHTML("ffff00", 0.8f);
+				colors.peak = ColorFromHTML("6c9b0a", 0.8f);
 			}
 			colors.text.Value.w = 0.33f;
 			colors.tick.Value.w = 0.33f;

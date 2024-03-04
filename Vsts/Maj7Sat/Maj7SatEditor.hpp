@@ -63,13 +63,12 @@ struct Maj7SatEditor : public VstEditor
 		static constexpr int segmentCount = 16;
 		std::vector<ImVec2> points;
 		std::vector<ImVec2> clipPoints;
-		float unused;
 
 		for (int i = 0; i < segmentCount; ++i)
 		{
 			float t01 = float(i) / (segmentCount - 1); // touch 0 and 1
 			float tLin = M7::math::lerp(0, gMaxLin, t01);
-			float yLin = band.transfer(tLin, unused);
+			float yLin = band.transfer(tLin);
 			if (tLin >= 1) {
 				if (clipPoints.empty()) {
 					points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
@@ -98,8 +97,9 @@ struct Maj7SatEditor : public VstEditor
 
 		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
-			bool enabled = band.mMuteSoloEnabled && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
-			ColorMod& cm = enabled ? mBandColors : mBandDisabledColors;
+			bool muteSoloEnabled = band.mMuteSoloEnabled;// && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
+			bool effectEnabled = band.mEnableEffect;// && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
+			ColorMod& cm = muteSoloEnabled ? mBandColors : mBandDisabledColors;
 			auto token = cm.Push();
 
 			if (WSBeginTabItem(caption))
@@ -114,18 +114,18 @@ struct Maj7SatEditor : public VstEditor
 					ColorMod& cm = mBandColors;
 					auto token = cm.Push();
 
-					Maj7ImGuiParamBoolToggleButtonArray<int>("", 40, {
-						{ param(BandParam::Mute), "Mute", "990000", "294a7a", "990000", "294a7a"},
-						{ param(BandParam::Solo), "Solo", "999900", "294a7a", "999900", "294a7a"},
+					Maj7ImGuiParamBoolToggleButtonArray<int>("", 50, {
+						{ param(BandParam::EnableEffect), "Enable", "339933", "294a7a", "669966", "294a44"},
 						});
 
-					// selected, not selected, hover, not selected hover
-					Maj7ImGuiParamEnumToggleButtonArray<Maj7Sat::OutputSignal>(param(BandParam::OutputSignal), "", 40, {
-						{ "Enable", "009900", "294a7a", "009900", "294a7a", Maj7Sat::OutputSignal::Normal, Maj7Sat::OutputSignal::Bypass},
-						{ "Diff", "990099", "294a7a", "990099", "294a7a", Maj7Sat::OutputSignal::Diff, Maj7Sat::OutputSignal::Normal},
+					Maj7ImGuiParamBoolToggleButtonArray<int>("", 50, {
+						{ param(BandParam::Mute), "Mute", "990000", "294a7a", "990044", "294a44"},
+						{ param(BandParam::Solo), "Solo", "999900", "294a7a", "999944", "294a44"},
 						});
 				}
 				ImGui::EndGroup();
+
+				ImGui::BeginDisabled(!effectEnabled);
 
 				ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::Threshold), "Threshold", M7::gUnityVolumeCfg, -8, {});
 
@@ -162,13 +162,15 @@ struct Maj7SatEditor : public VstEditor
 
 				RenderTransferCurve({ 100, 100 }, {
 					ColorFromHTML("222222"), // bg
-					ColorFromHTML("8888cc"), // line
-					 ColorFromHTML("ffff00"), // line clipped
+					ColorFromHTML(effectEnabled ? "8888cc" : "777777"), // line
+					 ColorFromHTML(effectEnabled ? "ffff00" : "777777"), // line clipped
 					 ColorFromHTML("444444"), // tick
 					}, band);
 
 				ImGui::SameLine(); VUMeter("inputVU", band.mInputAnalysis0, band.mInputAnalysis1, {15,100 });
 				ImGui::SameLine(); VUMeter("outputVU", band.mOutputAnalysis0, band.mOutputAnalysis1, { 15,100 });
+
+				ImGui::EndDisabled();
 
 				ImGui::EndTabItem();
 			}

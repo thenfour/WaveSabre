@@ -90,12 +90,12 @@ namespace WaveSabreCore
 			1, // LinearFold,
 		};
 
-		enum class OutputSignal : uint8_t {
-			Normal, // process this band (wet out)
-			Bypass, // don't process this band (dry out)
-			Diff, // output a diff / delta signal of sorts.
-			Count__,
-		};
+		//enum class OutputSignal : uint8_t {
+		//	Normal, // process this band (wet out)
+		//	Bypass, // don't process this band (dry out)
+		//	Diff, // output a diff / delta signal of sorts.
+		//	Count__,
+		//};
 
 		enum class ParamIndices
 		{
@@ -118,7 +118,7 @@ namespace WaveSabreCore
 			AThreshold,
 			AEvenHarmonics,
 			ADryWet,
-			AOutputSignal, // type of signal to output: diff, 
+			AEnable,
 
 			// mid band
 			BMute,
@@ -132,7 +132,7 @@ namespace WaveSabreCore
 			BThreshold,
 			BEvenHarmonics,
 			BDryWet,
-			BOutputSignal,
+			BEnable,
 
 			// hi band
 			CMute,
@@ -146,7 +146,7 @@ namespace WaveSabreCore
 			CThreshold,
 			CEvenHarmonics,
 			CDryWet,
-			COutputSignal,
+			CEnable,
 
 			NumParams,
 		};
@@ -170,7 +170,7 @@ namespace WaveSabreCore
 		{"0Thresh"}, /* Threshold */ \
 		{"0Analog"}, /* EvenHarmonics */ \
 		{"0DryWet"}, /* DryWet */ \
-		{"0OutSig"}, /* output signal */ \
+		{"0Enable"}, /* */\
 		{"1Mute"}, \
 		{"1Solo"}, \
 		{"1PanMode"}, /* PanMode */ \
@@ -182,7 +182,7 @@ namespace WaveSabreCore
 		{"1Thresh"}, /* Threshold */ \
 		{"1Analog"}, /* EvenHarmonics */ \
 		{"1DryWet"}, /* DryWet */ \
-		{"1OutSig"}, /* output signal */ \
+		{"1Enable"}, /* */\
 		{"2Mute"}, \
 		{"2Solo"}, \
 		{"2PanMode"}, /* PanMode */ \
@@ -194,7 +194,7 @@ namespace WaveSabreCore
 		{"2Thresh"}, /* Threshold */ \
 		{"2Analog"}, /* EvenHarmonics */ \
 		{"2DryWet"}, /* DryWet */ \
-		{"2OutSig"}, /* output signal */ \
+		{"2Enable"}, /* */\
 }
 
 		static_assert((int)ParamIndices::NumParams == 42, "param count probably changed and this needs to be regenerated.");
@@ -257,7 +257,7 @@ namespace WaveSabreCore
 				Threshold,
 				EvenHarmonics,
 				DryWet,
-				OutputSignal,
+				EnableEffect,
 			};
 
 			float mDriveLin ;
@@ -272,12 +272,10 @@ namespace WaveSabreCore
 
 			float output0 ;
 			float output1 ;
-			float diff0 ;
-			float diff1;
 
 			Model mModel;
 			PanMode mPanMode;
-			OutputSignal mOutputSignal;
+			bool mEnableEffect;
 			bool mMute;
 			bool mSolo;
 
@@ -309,22 +307,22 @@ namespace WaveSabreCore
 
 				mMute = mParams.GetBoolValue(BandParam::Mute);
 				mSolo = mParams.GetBoolValue(BandParam::Solo);
+				mEnableEffect = mParams.GetBoolValue(BandParam::EnableEffect);
+
 				mDriveLin = mParams.GetLinearVolume(BandParam::Drive, M7::gVolumeCfg36db);
 				mCompensationGain = mParams.GetLinearVolume(BandParam::CompensationGain, M7::gVolumeCfg12db);
 				mOutputGain = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg12db);
-				mModel = mParams.GetEnumValue<Model>(BandParam::Model);
-
 				mThresholdLin = mParams.GetLinearVolume(BandParam::Threshold, M7::gUnityVolumeCfg);
 				// threshold must be corrected, otherwise it will cause a div by 0 when we scale the waveform up.
 				mThresholdLin = M7::math::clamp(mThresholdLin, 0, 0.99f);
+
+				mModel = mParams.GetEnumValue<Model>(BandParam::Model);
 
 				mDryWet = mParams.Get01Value(BandParam::DryWet, 0);
 				mEvenHarmonicsGainLin = mParams.GetScaledRealValue(BandParam::EvenHarmonics, 0, gAnalogMaxLin, 0); //mParams.GetLinearVolume(BandParam::EvenHarmonics, M7::gVolumeCfg36db, 0);
 
 				mPanMode = mParams.GetEnumValue<PanMode>(BandParam::PanMode);
 				mPanN11 = mParams.GetN11Value(BandParam::Pan, 0);
-				
-				mOutputSignal = mParams.GetEnumValue<OutputSignal>(BandParam::OutputSignal);
 
 				static constexpr float dck = 1.5f; // this controls how extreme the compensation is. this feels about right.
 				//but in theory it depends on the input signal; some plugins do auto gain compensation by comparing RMS... i'm not doing that.
@@ -385,7 +383,7 @@ namespace WaveSabreCore
 			}
 
 			// performs the saturation, used for VST GUI as well.
-			float transfer(float s, float& diffSignal) const {
+			float transfer(float s) const {
 				// calculating a diff signal has some quirks. if you just do wet-dry, you'll find that it's not so helpful,
 				// mostly because we do a lot of gain application.
 				// The dry signal is just before this function is called. so keep track of all these gain applications so we can undo it for a better diff.
@@ -445,45 +443,52 @@ namespace WaveSabreCore
 					// now map back (0,1) to (thresh,1).
 					s *= (1.0f - mThresholdLin);
 					s += mThresholdLin;
-					diffSignal = (s - s_preshape) * g;
+					//diffSignal = (s - s_preshape) * g;
 				}
-				else {
-					diffSignal = 0;
-				}
+				//else {
+				//	diffSignal = 0;
+				//}
 
 				s *= g; // re add the sign bit.
 				return s;
 			}
 
-			float distort(float s, size_t chanIndex, float& diffSignal)
+			float distort(float s, size_t chanIndex)
 			{
-				s = transfer(s, diffSignal);
+				s = transfer(s);
 				float analog = s * s - .5f;
 				analog = mDC[chanIndex].ProcessSample(analog);
 				analog = M7::math::clamp01(analog);// must clip, otherwise values can be huge if s happened to be > 1
 				analog *= mEvenHarmonicsGainLin;
 				s += analog;
-				diffSignal += analog;
+				//diffSignal += analog;
 
 				s *= mAutoDriveCompensation;
 				s *= mCompensationGain;
 
-				diffSignal /= std::max(1.0f, mDriveLin);
+				//diffSignal /= std::max(1.0f, mDriveLin);
 
 				return s;
 			}
 
-			void ProcessSample(float s0, float s1) {
+			void ProcessSample(float s0, float s1, float masterDryWet) {
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mInputAnalysis0.WriteSample(s0);
-				mInputAnalysis1.WriteSample(s1);
+				if (mEnableEffect && mMuteSoloEnabled) {
+					mInputAnalysis0.WriteSample(s0);
+					mInputAnalysis1.WriteSample(s1);
+				}
+				else {
+					// analysis halts when not processing. it's better visually.
+					mInputAnalysis0.WriteSample(0);
+					mInputAnalysis1.WriteSample(0);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				float dry0 = s0;
 				float dry1 = s1;
 
-				if ((mOutputSignal != OutputSignal::Bypass) && mMuteSoloEnabled) {
+				if (mEnableEffect && mMuteSoloEnabled) {
 					if (mPanMode == PanMode::MidSide) {
 						M7::MSEncode(s0, s1, &s0, &s1);
 					}
@@ -496,8 +501,8 @@ namespace WaveSabreCore
 					s1 *= ModelPregain[(int)mModel];
 					s1 *= mDriveLin;
 
-					float this0 = distort(s0, 0, diff0);
-					float this1 = distort(s1, 1, diff1);
+					float this0 = distort(s0, 0);
+					float this1 = distort(s1, 1);
 
 					s0 = this0;
 					s1 = this1;
@@ -509,8 +514,8 @@ namespace WaveSabreCore
 					if (mPanN11 < 0)dryWet1 = mPanN11 + 1.0f; // left chan (right attenuated)
 					if (mPanN11 > 0) dryWet0 = 1.0f - mPanN11; // right chan (left attenuated)
 
-					dryWet0 *= mDryWet;
-					dryWet1 *= mDryWet;
+					dryWet0 *= mDryWet * masterDryWet;
+					dryWet1 *= mDryWet * masterDryWet;
 
 					// note: when (e.g.) saturating only side channel, you'll get a signal that's too wide because of the natural
 					// gain that saturation results in.
@@ -520,31 +525,25 @@ namespace WaveSabreCore
 
 					if (mPanMode == PanMode::MidSide) {
 						M7::MSDecode(s0, s1, &s0, &s1);
-						M7::MSDecode(diff0, diff1, &diff0, &diff1);
+						//M7::MSDecode(diff0, diff1, &diff0, &diff1);
 					}
-					diff0 = M7::math::clampN11(diff0);
-					diff1 = M7::math::clampN11(diff1);
+					//diff0 = M7::math::clampN11(diff0);
+					//diff1 = M7::math::clampN11(diff1);
 				}
-				else {
-					diff0 = 0;
-					diff1 = 0;
-				}
+				//else {
+				//	diff0 = 0;
+				//	diff1 = 0;
+				//}
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				if (mMuteSoloEnabled) {
-					switch (mOutputSignal) {
-					case OutputSignal::Bypass:
-						output0 = dry0;
-						output1 = dry1;
-						break;
-					case OutputSignal::Diff:
-						output0 = diff0;
-						output1 = diff1;
-						break;
-					case OutputSignal::Normal:
+					if (mEnableEffect) {
 						output0 = s0;
 						output1 = s1;
-						break;
+					}
+					else {
+						output0 = dry0;
+						output1 = dry1;
 					}
 					output0 *= mOutputGain;
 					output1 *= mOutputGain;
@@ -554,8 +553,16 @@ namespace WaveSabreCore
 					output1 = 0;
 				}
 
-				mOutputAnalysis0.WriteSample(output0);
-				mOutputAnalysis1.WriteSample(output1);
+				if (mEnableEffect && mMuteSoloEnabled) {
+					mOutputAnalysis0.WriteSample(output0);
+					mOutputAnalysis1.WriteSample(output1);
+				}
+				else {
+					// analysis halts when not processing. it's better visually.
+					mOutputAnalysis0.WriteSample(0);
+					mOutputAnalysis1.WriteSample(0);
+				}
+
 #else
 				output0 = s0;
 				output1 = s1;
@@ -660,6 +667,8 @@ namespace WaveSabreCore
 			}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+			float masterDryWet = mParams.GetRawVal(ParamIndices::OverallDryWet);
+
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{
 				float s0 = inputs[0][i] * mInputGainLin;
@@ -679,15 +688,11 @@ namespace WaveSabreCore
 
 				for (int iBand = 0; iBand < gBandCount; ++iBand) {
 					auto& band = mBands[iBand];
-					band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand]);
+					band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet);
 				}
 
 				s0 = mBands[0].output0 + mBands[1].output0 + mBands[2].output0;
 				s1 = mBands[0].output1 + mBands[1].output1 + mBands[2].output1;
-
-				float drywet = mParams.GetRawVal(ParamIndices::OverallDryWet);
-				s0 = M7::math::lerp(dry0, s0, drywet);
-				s1 = M7::math::lerp(dry1, s1, drywet);
 
 				s0 *= mOutputGainLin;
 				s1 *= mOutputGainLin;
