@@ -27,19 +27,12 @@ WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)
 {
 	switch (id)
 	{
-	case SongRenderer::DeviceId::Falcon: return new WaveSabreCore::Falcon();
-	case SongRenderer::DeviceId::Slaughter: return new WaveSabreCore::Slaughter();
-	case SongRenderer::DeviceId::Thunder: return new WaveSabreCore::Thunder();
-	case SongRenderer::DeviceId::Scissor: return new WaveSabreCore::Scissor();
 	case SongRenderer::DeviceId::Leveller: return new WaveSabreCore::Leveller();
 	case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
 	case SongRenderer::DeviceId::Echo: return new WaveSabreCore::Echo();
-	case SongRenderer::DeviceId::Smasher: return new WaveSabreCore::Smasher();
 	case SongRenderer::DeviceId::Chamber: return new WaveSabreCore::Chamber();
 	case SongRenderer::DeviceId::Twister: return new WaveSabreCore::Twister();
 	case SongRenderer::DeviceId::Cathedral: return new WaveSabreCore::Cathedral();
-	case SongRenderer::DeviceId::Adultery: return new WaveSabreCore::Adultery();
-	case SongRenderer::DeviceId::Specimen: return new WaveSabreCore::Specimen();
 	case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::M7::Maj7();
     case SongRenderer::DeviceId::Maj7Width: return new WaveSabreCore::Maj7Width();
     case SongRenderer::DeviceId::Maj7Comp: return new WaveSabreCore::Maj7Comp();

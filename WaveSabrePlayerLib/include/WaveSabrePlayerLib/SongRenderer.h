@@ -417,19 +417,12 @@ namespace WaveSabrePlayerLib
 		// NB: keep in sync with WaveSabreConvert/Song.cs
 		enum class DeviceId
 		{
-			Falcon,
-			Slaughter,
-			Thunder,
-			Scissor,
 			Leveller,
 			Crusher,
 			Echo,
-			Smasher,
 			Chamber,
 			Twister,
 			Cathedral,
-			Adultery,
-			Specimen,
 			Maj7,
 			Maj7Width,
 			Maj7Comp,

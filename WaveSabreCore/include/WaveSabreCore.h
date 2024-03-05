@@ -17,4 +17,6 @@
 
 #include "WaveSabreCore/Devices.h"
 
+#include "WaveSabreCore/GsmSample.h"
+
 #endif

@@ -9,19 +9,12 @@ namespace WaveSabreConvert
         // NB: keep in sync with WaveSabrePlayerLib/SongRenderer.h
         public enum DeviceId
         {
-            Falcon,
-            Slaughter,
-            Thunder,
-            Scissor,
             Leveller,
             Crusher,
             Echo,
-            Smasher,
             Chamber,
             Twister,
             Cathedral,
-            Adultery,
-            Specimen,
             Maj7,
             Maj7Width,
             Maj7Comp,

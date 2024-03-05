@@ -3,10 +3,10 @@
 
 WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)
 {
-	switch (id)
-	{
-	case SongRenderer::DeviceId::Slaughter: return new WaveSabreCore::Slaughter();
-	}
+	//switch (id)
+	//{
+	//case SongRenderer::DeviceId::Slaughter: return new WaveSabreCore::Slaughter();
+	//}
 	return nullptr;
 }
 

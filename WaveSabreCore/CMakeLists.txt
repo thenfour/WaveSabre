@@ -1,5 +1,4 @@
 add_library(WaveSabreCore
-	include/WaveSabreCore/Adultery.h
 	include/WaveSabreCore/AllPass.h
 	include/WaveSabreCore/AllPassDelay.h
 	include/WaveSabreCore/BiquadFilter.h
@@ -12,16 +11,15 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/Devices.h
 	include/WaveSabreCore/Echo.h
 	include/WaveSabreCore/Envelope.h
-	include/WaveSabreCore/Falcon.h
 	include/WaveSabreCore/GmDls.h
 	include/WaveSabreCore/GsmSample.h
 	include/WaveSabreCore/Helpers.h
 	include/WaveSabreCore/Leveller.h
+	include/WaveSabreCore/LUTs.hpp
 	include/WaveSabreCore/Maj7.hpp
 	include/WaveSabreCore/Maj7SynthDevice.hpp
 	include/WaveSabreCore/Maj7Basic.hpp
 	include/WaveSabreCore/Maj7Comp.hpp
-	include/WaveSabreCore/LUTs.hpp
 	include/WaveSabreCore/Maj7Envelope.hpp
 	include/WaveSabreCore/Maj7Filter.hpp
 	include/WaveSabreCore/Maj7ModMatrix.hpp
@@ -35,18 +33,12 @@ add_library(WaveSabreCore
 	include/WaveSabreCore/ResampleBuffer.h
 	include/WaveSabreCore/RMS.hpp
 	include/WaveSabreCore/SamplePlayer.h
-	include/WaveSabreCore/Scissor.h
-	include/WaveSabreCore/Slaughter.h
-	include/WaveSabreCore/Smasher.h
-	include/WaveSabreCore/Specimen.h
 	include/WaveSabreCore/StateVariableFilter.h
 	include/WaveSabreCore/SynthDevice.h
 	include/WaveSabreCore/Twister.h
-	include/WaveSabreCore/Deprecated/Thunder.h
 	include/WaveSabreCore/Filters/FilterBase.hpp
 	include/WaveSabreCore/Filters/FilterMoog.hpp
 	include/WaveSabreCore/Filters/FilterOnePole.hpp
-	src/Adultery.cpp
 	src/AllPass.cpp
 	src/AllPassDelay.cpp
 	src/BiquadFilter.cpp
@@ -58,7 +50,6 @@ add_library(WaveSabreCore
 	src/Device.cpp
 	src/Echo.cpp
 	src/Envelope.cpp
-	src/Falcon.cpp
 	src/GmDls.cpp
 	src/GsmSample.cpp
 	src/Helpers.cpp
@@ -76,14 +67,9 @@ add_library(WaveSabreCore
 	src/MxcsrFlagGuard.cpp
 	src/ResampleBuffer.cpp
 	src/SamplePlayer.cpp
-	src/Scissor.cpp
-	src/Slaughter.cpp
-	src/Smasher.cpp
-	src/Specimen.cpp
 	src/StateVariableFilter.cpp
 	src/SynthDevice.cpp
-	src/Twister.cpp
-	src/Deprecated/Thunder.cpp)
+	src/Twister.cpp)
 
 target_link_libraries(WaveSabreCore Msacm32.lib)
 target_include_directories(WaveSabreCore PUBLIC include)

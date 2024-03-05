@@ -3,13 +3,18 @@
 #include <iostream>
 #include <fstream>
 #include <exception>
+#include <Windows.h>
 #include <Shlwapi.h>
+
+#include <mmreg.h>
+#include <MSAcm.h>
 
 #pragma comment(lib, "shlwapi.lib")
 
 #include <WaveSabreVstLib.h>
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Maj7.hpp>
+
 
 #include "Maj7Vst.h"
 
@@ -1762,7 +1767,6 @@ public:
 		auto inputFormat = (LPWAVEFORMATEX)(inputBuf.get() + 20);
 		if (inputFormat->wFormatTag != WAVE_FORMAT_PCM) return SetStatus(isrc, StatusStyle::Error, "Input file is not a PCM waveform.");
 		if (inputFormat->nChannels != 1) return SetStatus(isrc, StatusStyle::Error, "Input file is not mono.");
-		//if (inputFormat->nSamplesPerSec != Specimen::SampleRate) return SetStatus(isrc, StatusStyle::Error, ("Input file is not " + std::to_string(Specimen::SampleRate) + "hz.").c_str());
 		if (inputFormat->wBitsPerSample != sizeof(short) * 8) return SetStatus(isrc, StatusStyle::Error, "Input file is not 16-bit.");
 
 		int chunkPos = 36;
