@@ -28,6 +28,7 @@ public:
 		return SetSimpleJSONVstChunk(p, "WSLeveller", data, byteSize, p->mParamCache, paramNames);
 	}
 
+	virtual const char* GetJSONTagName() { return "Leveller"; }
 };
 
 #endif

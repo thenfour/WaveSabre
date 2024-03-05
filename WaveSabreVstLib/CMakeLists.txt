@@ -26,6 +26,21 @@ add_library(WaveSabreVstLib STATIC
 	imgui/imstb_rectpack.h
 	imgui/imstb_textedit.h
 	imgui/imstb_truetype.h
+	7z/7zTypes.h
+	7z/Compiler.h
+	7z/CpuArch.c
+	7z/CpuArch.h
+	7z/LzFind.c
+	7z/LzFind.h
+	7z/LzFindMt.c
+	7z/LzFindMt.h
+	7z/LzFindOpt.c
+	7z/LzHash.h
+	7z/LzmaEnc.c
+	7z/LzmaEnc.h
+	7z/Precomp.h
+	7z/Threads.c
+	7z/Threads.h
 )
 
 target_include_directories(WaveSabreVstLib PUBLIC

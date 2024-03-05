@@ -7,9 +7,15 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib
 {
-	VstPlug::VstPlug(audioMasterCallback audioMaster, int numParams, int numInputs, int numOutputs, VstInt32 id, Device *device, bool synth)
+	VstPlug::VstPlug(audioMasterCallback audioMaster, int numParams, int numInputs, int numOutputs, VstInt32 id, Device* device, bool synth)
 		: AudioEffectX(audioMaster, 1, numParams)
 	{
+		// assume the device has default values populated; grab a copy.
+		mDefaultParamCache.reserve(numParams);
+		for (int i = 0; i < numParams; ++i) {
+			mDefaultParamCache.push_back(device->GetParam(i));
+		}
+
 		QueryPerformanceFrequency(&this->perfFreq);
 
 		this->numParams = numParams;
@@ -204,4 +210,97 @@ namespace WaveSabreVstLib
 	{
 		return device;
 	}
-}
+
+
+	//const std::vector<float> VstPlug::GetDefaultParamCache()
+	//{
+	//	auto tmpEffect = NewDevice();
+	//	CCASSERT(!!tmpEffect);
+	//	if (!tmpEffect) {
+	//		return {};
+	//	}
+	//	std::vector<float> ret;
+	//	ret.reserve(numParams);
+	//	for (int i = 0; i < numParams; ++i) {
+	//		ret.push_back(tmpEffect->GetParam(i));
+	//	}
+	//	return ret;
+	//}
+
+	void VstPlug::OptimizeParams()
+	{
+		//
+	}
+
+	// assumes that p has had its default param cache filled.
+	// takes the current patch, returns a binary blob containing the WaveSabre chunk.
+	// this is where we serialize "diff" params, and save to 16-bit values.
+	// and there's the opportunity to append other things; for example Maj7 Synth sampler devices.
+	//
+	// default implementation just does this for our param cache.
+	int VstPlug::GetMinifiedChunk(void** data)
+	{
+		M7::Serializer s;
+
+		//auto defaultParamCache = GetDefaultParamCache();
+		CCASSERT(defaultParamCache.size());
+
+		for (int i = 0; i < numParams; ++i) {
+			double f = getParameter(i);
+			f -= mDefaultParamCache[i];
+			static constexpr double eps = 0.000001; // NB: 1/65536 = 0.0000152587890625
+			double af = f < 0 ? -f : f;
+			if (af < eps) {
+				f = 0;
+			}
+			s.WriteInt16NormalizedFloat((float)f);
+		}
+
+		auto ret = s.DetachBuffer();
+		*data = ret.first;
+		return (int)ret.second;
+	}
+
+	// looks at the current params and returns statistics related to size optimization.
+	ChunkStats VstPlug::AnalyzeChunkMinification()
+	{
+		ChunkStats ret;
+		void* data;
+		int size = GetMinifiedChunk(&data);
+		ret.uncompressedSize = size;
+
+		for (size_t i = 0; i < numParams; ++i) {
+			float d = getParameter((VstInt32)i) - mDefaultParamCache[i];
+			if (fabsf(d) > 0.00001f) ret.nonZeroParams++;
+			else ret.defaultParams++;
+		}
+
+		std::vector<uint8_t> compressedData;
+		compressedData.resize(size);
+		std::vector<uint8_t> encodedProps;
+		encodedProps.resize(size);
+		SizeT compressedSize = size;
+		SizeT encodedPropsSize = size;
+
+		ISzAlloc alloc;
+		alloc.Alloc = [](ISzAllocPtr p, SizeT s) {
+			return malloc(s);
+		};
+		alloc.Free = [](ISzAllocPtr p, void* addr) {
+			free(addr);
+		};
+
+		CLzmaEncProps props;
+		LzmaEncProps_Init(&props);
+		props.level = 5;
+
+		int lzresult = LzmaEncode(&compressedData[0], &compressedSize, (const Byte*)data, size, &props, encodedProps.data(), &encodedPropsSize, 0, nullptr, &alloc, &alloc);
+		ret.compressedSize = (int)compressedSize;
+
+		delete[] data;
+		return ret;
+	}
+
+
+
+} // namespace WaveSabreVstLib

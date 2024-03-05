@@ -14,6 +14,7 @@ public:
 
 	virtual bool getEffectName(char *name);
 	virtual bool getProductString(char *text);
+	virtual const char* GetJSONTagName() { return "Smasher"; }
 };
 
 #endif

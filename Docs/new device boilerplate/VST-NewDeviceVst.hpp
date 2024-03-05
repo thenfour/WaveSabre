@@ -37,14 +37,23 @@ public:
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
-		return GetSimpleJSONVstChunk(Echo::gJSONTagName, data, GetMaj7Comp()->mParamCache, paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Comp()->mParamCache, paramNames);
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
-		return SetSimpleJSONVstChunk(GetMaj7Comp(), Echo::gJSONTagName, data, byteSize, GetMaj7Comp()->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(GetMaj7Comp(), GetJSONTagName(), data, byteSize, GetMaj7Comp()->mParamCache, paramNames);
 	}
+
+	virtual const char* GetJSONTagName() { return "Maj7Comp"; }
+
+	//virtual void OptimizeParams() override
+	//{
+	//	using Params = Maj7Sat::ParamIndices;
+	//	M7::ParamAccessor p{GetMaj7Comp()->mParamCache, 0};
+	//	OptimizeBoolParam(p, Params::AEnable);
+	//}
 
 	Maj7Comp* GetMaj7Comp() const {
 		return (Maj7Comp*)getDevice();

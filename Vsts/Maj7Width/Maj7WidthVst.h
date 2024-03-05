@@ -18,4 +18,6 @@ public:
 	virtual bool getProductString(char *text);
 
 	Maj7Width* GetMaj7Width() const;
+
+	virtual const char* GetJSONTagName() { return "Maj7Width"; }
 };

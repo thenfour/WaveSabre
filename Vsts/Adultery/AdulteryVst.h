@@ -19,6 +19,7 @@ public:
 	virtual bool getProductString(char *text);
 
 	Adultery *GetAdultery() const;
+	virtual const char* GetJSONTagName() { return "Adultery"; }
 };
 
 #endif

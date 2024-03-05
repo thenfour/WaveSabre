@@ -27,6 +27,7 @@ public:
 		auto* p = (WaveSabreCore::Echo*)getDevice();
 		return SetSimpleJSONVstChunk(p, Echo::gJSONTagName, data, byteSize, p->mParamCache, paramNames);
 	}
+	virtual const char* GetJSONTagName() { return "Echo"; }
 };
 
 #endif

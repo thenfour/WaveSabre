@@ -4,11 +4,9 @@
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
-// no conversion required
 int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
-	*outpSize = 0;
-	return 0;
+	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<Maj7WidthVst>(deviceName, inpSize, inpData, outpSize, outpData);
 }
 
 void __cdecl WaveSabreFreeChunk(void* p)
@@ -17,8 +15,7 @@ void __cdecl WaveSabreFreeChunk(void* p)
 }
 int __cdecl WaveSabreTestCompression(int inpSize, void* inpData)
 {
-	// implemented in maj7.dll
-	return 0;
+	return TestCompression(inpSize, inpData);
 }
 
 

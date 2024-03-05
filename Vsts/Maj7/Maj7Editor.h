@@ -371,8 +371,10 @@ public:
 					}
 
 					void* data;
+					//auto defaultParamCache = GetDefaultParamCache();
 					//int n = pMaj7->GetChunk(&data);
-					int n = GetMinifiedChunk(pMaj7, &data);
+					int n = mpMaj7VST->GetMinifiedChunk(&data);
+					//int n = GetMinifiedChunk(pMaj7, &data, defaultParamCache);
 					pMaj7->SetChunk(data, n);
 					delete[] data;
 
@@ -418,9 +420,12 @@ public:
 						CopyPatchToClipboard(false);
 						::MessageBoxA(mCurrentWindow, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
 					}
-					auto r1 = AnalyzeChunkMinification(pMaj7);
-					OptimizeParams(pMaj7, true);
-					auto r2 = AnalyzeChunkMinification(pMaj7);
+
+					//auto defaultParamCache = GetDefaultParamCache();
+
+					auto r1 = mpMaj7VST->AnalyzeChunkMinification();// AnalyzeChunkMinification(pMaj7);
+					mpMaj7VST->OptimizeParams();
+					auto r2 = mpMaj7VST->AnalyzeChunkMinification();// AnalyzeChunkMinification(pMaj7);
 					char msg[200];
 					sprintf_s(msg, "Done!\r\nBefore: %d bytes; %d nondefaults\r\nAfter: %d bytes; %d nondefaults\r\nShrunk to %d %%",
 						r1.compressedSize, r1.nonZeroParams,
@@ -431,7 +436,8 @@ public:
 				}
 			}
 			if (ImGui::MenuItem("Analyze minified chunk")) {
-				auto r = AnalyzeChunkMinification(pMaj7);
+				//auto defaultParamCache = GetDefaultParamCache();
+				auto r = mpMaj7VST->AnalyzeChunkMinification();// AnalyzeChunkMinification(pMaj7);
 				std::string s = "uncompressed = ";
 				s += std::to_string(r.uncompressedSize);
 				s += " bytes.\r\nLZMA compressed this to ";

@@ -19,6 +19,7 @@ public:
 	virtual bool getProductString(char *text);
 
 	Specimen *GetSpecimen() const;
+	virtual const char* GetJSONTagName() { return "Specimen"; }
 };
 
 #endif

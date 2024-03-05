@@ -23,21 +23,14 @@ public:
 	{
 	}
 
-	HistoryEnvFollower mInputPeak;
-	HistoryEnvFollower mOutputPeak;
-	MovingRMS<8> mInputRMS;
-	MovingRMS<8> mOutputRMS;
-
-	HistoryView<3, 550, 150> mHistoryView;
-
 	virtual void renderImgui() override
 	{
-		mInputRMS.addSample(mpSmasherVST->mpSmasher->inputLevel);
-		mOutputRMS.addSample(mpSmasherVST->mpSmasher->outputPeak);
-		float inputPeakLevel = mInputPeak.ProcessSample(mpSmasherVST->mpSmasher->inputLevel);
-		float outputPeakLevel = mOutputPeak.ProcessSample(mpSmasherVST->mpSmasher->outputPeak);
-		float inputRMSlevel = mInputRMS.getRMS();
-		float outputRMSlevel = mOutputRMS.getRMS();
+		//mInputRMS.addSample(mpSmasherVST->mpSmasher->inputLevel);
+		//mOutputRMS.addSample(mpSmasherVST->mpSmasher->outputPeak);
+		//float inputPeakLevel = mInputPeak.ProcessSample(mpSmasherVST->mpSmasher->inputLevel);
+		//float outputPeakLevel = mOutputPeak.ProcessSample(mpSmasherVST->mpSmasher->outputPeak);
+		//float inputRMSlevel = mInputRMS.getRMS();
+		//float outputRMSlevel = mOutputRMS.getRMS();
 
 		ImGui::BeginGroup();
 
@@ -57,22 +50,22 @@ public:
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)Smasher::ParamIndices::OutputGain, "OUTPUT GAIN");
 
-		mHistoryView.Render({
-			HistoryViewSeriesConfig{ColorFromHTML("ff8080", 0.7f), 2.0f},
-			HistoryViewSeriesConfig{ColorFromHTML("808080", 0.5f), 2.0f},
-			HistoryViewSeriesConfig{ColorFromHTML("8080ff", 0.5f), 2.0f},
-			}, {
-			M7::math::LinearToDecibels(inputPeakLevel),
-			M7::math::LinearToDecibels(mpSmasherVST->mpSmasher->atten),
-			M7::math::LinearToDecibels(outputPeakLevel),
-			});
+		//mHistoryView.Render({
+		//	HistoryViewSeriesConfig{ColorFromHTML("ff8080", 0.7f), 2.0f},
+		//	HistoryViewSeriesConfig{ColorFromHTML("808080", 0.5f), 2.0f},
+		//	HistoryViewSeriesConfig{ColorFromHTML("8080ff", 0.5f), 2.0f},
+		//	}, {
+		//	M7::math::LinearToDecibels(inputPeakLevel),
+		//	M7::math::LinearToDecibels(mpSmasherVST->mpSmasher->atten),
+		//	M7::math::LinearToDecibels(outputPeakLevel),
+		//	});
 
 		ImGui::EndGroup();
 
-		ImGui::SameLine(); VUMeter(&inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
-		//ImGui::SameLine(); VUMeter(&mpSmasherVST->mpSmasher->thresholdScalar, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText | (int)VUMeterFlags::NoForeground));
-		ImGui::SameLine(); VUMeter(&mpSmasherVST->mpSmasher->atten, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
-		ImGui::SameLine(); VUMeter(&outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
+		//ImGui::SameLine(); VUMeter(&inputRMSlevel, &inputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode));
+		////ImGui::SameLine(); VUMeter(&mpSmasherVST->mpSmasher->thresholdScalar, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText | (int)VUMeterFlags::NoForeground));
+		//ImGui::SameLine(); VUMeter(&mpSmasherVST->mpSmasher->atten, nullptr, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::AttenuationMode | (int)VUMeterFlags::NoText));
+		//ImGui::SameLine(); VUMeter(&outputRMSlevel, &outputPeakLevel, (VUMeterFlags)((int)VUMeterFlags::InputIsLinear | (int)VUMeterFlags::LevelMode | (int)VUMeterFlags::NoText));
 
 	}
 

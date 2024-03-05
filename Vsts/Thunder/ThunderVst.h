@@ -16,6 +16,7 @@ public:
 	virtual bool getProductString(char *text);
 
 	Thunder *GetThunder() const;
+	virtual const char* GetJSONTagName() { return "Thunder"; }
 };
 
 #endif
