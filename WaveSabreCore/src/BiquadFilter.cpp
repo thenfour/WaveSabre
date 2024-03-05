@@ -16,8 +16,8 @@ namespace WaveSabreCore
 
 	float BiquadFilter::Next(float input)
 	{
-		if (this->thru)
-			return input;
+		//if (this->thru)
+		//	return input;
 
 		float& c1 = this->normCoeffs[3];
 		float& c2 = this->normCoeffs[4];
@@ -48,11 +48,12 @@ namespace WaveSabreCore
 		this->freq = freq;
 		this->q = q;
 		this->gain = gain;
-		const float A = Helpers::Exp10F(gain / 40.0f);
 
 		// these ranges can cause instability and are effectively out of usable range
 		// NB: frequency params typically go down to like 31.25hz or so. catch that to give the user the option of bypassing.
-		this->thru = (freq > 21000) || (freq < 32);
+		freq = M7::math::clamp(freq, 32, 20000);
+
+		const float A = Helpers::Exp10F(gain / 40.0f);
 
 		const float w0 = M7::math::gPITimes2 * freq * Helpers::CurrentSampleRateRecipF;
 		const float alpha = M7::math::sin(w0) / (q * 2);

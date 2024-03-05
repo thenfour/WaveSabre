@@ -7,12 +7,7 @@ using namespace WaveSabreCore;
 
 int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
-	Leveller* tmpEffect = new Leveller();
-	LEVELLER_PARAM_VST_NAMES(paramNames);
-	SetSimpleJSONVstChunk(tmpEffect, "WSLeveller", inpData, inpSize, tmpEffect->mParamCache, paramNames);
-	*outpSize = GetSimpleMinifiedChunk(tmpEffect->mParamCache, gLevellerDefaults16, outpData);
-	delete tmpEffect;
-	return *outpSize;
+	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<LevellerVst>(deviceName, inpSize, inpData, outpSize, outpData);
 }
 
 void __cdecl WaveSabreFreeChunk(void* p)
@@ -21,8 +16,7 @@ void __cdecl WaveSabreFreeChunk(void* p)
 }
 int __cdecl WaveSabreTestCompression(int inpSize, void* inpData)
 {
-	// implemented in maj7.dll
-	return 0;
+	return TestCompression(inpSize, inpData);
 }
 
 
@@ -36,7 +30,7 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 }
 
 LevellerVst::LevellerVst(audioMasterCallback audioMaster)
-	: VstPlug(audioMaster, (int)LevellerParamIndices::NumParams, 2, 2, 'Lvlr', new Leveller())
+	: VstPlug(audioMaster, (int)Leveller::ParamIndices::NumParams, 2, 2, 'Lvlr', new Leveller())
 {
 	setEditor(new LevellerEditor(this));
 }

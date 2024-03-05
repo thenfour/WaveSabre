@@ -23,7 +23,7 @@ namespace WaveSabreCore
 
 		void SetParams(BiquadFilterType type, float freq, float q, float gain);
 
-		bool thru;
+		//bool thru;
 
 		BiquadFilterType type;
 		float freq;

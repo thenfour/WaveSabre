@@ -398,16 +398,27 @@ namespace WaveSabreVstLib
 
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
+	struct FrequencyResponseRendererFilter {
+		const ImColor thumbColor;
+		const BiquadFilter* filter;
+	};
+
 	template<size_t TFilterCount, size_t TParamCount>
 	struct FrequencyResponseRendererConfig {
 		const ImColor backgroundColor;
 		const ImColor lineColor;
-		const BiquadFilter* (&pFilters)[TFilterCount];
+		const float thumbRadius;
+		const std::array<FrequencyResponseRendererFilter, TFilterCount> filters;
 		float mParamCacheCopy[TParamCount];
 	};
+
 	template<int Twidth, int Theight, int TsegmentCount, size_t TFilterCount, size_t TParamCount>
 	struct FrequencyResponseRenderer
 	{
+		struct ThumbRenderInfo {
+			ImColor color;
+			ImVec2 point;
+		};
 		// the response graph is extremely crude; todo:
 		// - add the user-selected points to the points list explicitly, to give better looking peaks. then you could reduce # of points.
 		// - respect 'thru' member.
@@ -416,13 +427,18 @@ namespace WaveSabreVstLib
 
 		static constexpr ImVec2 gSize = { Twidth, Theight };
 		static constexpr int gSegmentCount = TsegmentCount;
-		static constexpr int gSegmentWidth = (int)(gSize.x / gSegmentCount);
+
+		const float gMinDB = -12;
+		const float gMaxDB = 12;
 
 		// because params change as a result of this immediate gui, we need at least 1 full frame of lag to catch param changes correctly.
 		// so keep processing multiple frames until things settle. in the meantime, force recalculating.
 		int mAdditionalForceCalcFrames = 0;
 		ImVec2 mPoints[gSegmentCount]; // actual pixel values.
-		float mParamCacheCache[(size_t)LevellerParamIndices::NumParams] = { 0 }; // the param cache that points have been calculated on. this way we can only recalc the freq response when params change.
+		std::vector< ThumbRenderInfo> mThumbs;
+
+		// the param cache that points have been calculated on. this way we can only recalc the freq response when params change.
+		float mParamCacheCache[TParamCount] = { 0 };
 
 		int renderSerial = 0;
 
@@ -445,6 +461,23 @@ namespace WaveSabreVstLib
 			return (float)magnitude;
 		}
 
+		float FreqToX(float hz, ImRect& bb) {
+			float underlyingValue = 0;
+			//float ktdummy = 0;
+			M7::ParamAccessor p{ &underlyingValue, 0 };
+			p.SetFrequencyAssumingNoKeytracking(0, M7::gFilterFreqConfig, hz);
+			return M7::math::lerp(bb.Min.x, bb.Max.x, underlyingValue);
+			//M7::FrequencyParam param{ underlyingValue, ktdummy, M7::gFilterFreqConfig };
+			//return 0;
+		}
+
+		float DBToY(float dB, ImRect& bb) {
+			float t01 = M7::math::lerp_rev(gMinDB, gMaxDB, dB);
+			t01 = M7::math::clamp01(t01);
+			return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
+			//return bb.Max.y - bb.GetHeight() * M7::math::clamp01(magLin);
+		}
+
 		void CalculatePoints(const FrequencyResponseRendererConfig<TFilterCount, TParamCount>& cfg, ImRect& bb) {
 			float underlyingValue = 0;
 			float ktdummy = 0;
@@ -452,23 +485,37 @@ namespace WaveSabreVstLib
 
 			renderSerial++;
 
+			mThumbs.clear();
+
+			for (auto& f : cfg.filters) {
+				if (!f.filter) continue; // nullptr values are valid and used when a filter is bypassed.
+				//if (f.filter->thru) continue;
+				float freq = f.filter->freq;
+				float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
+				float magdB = M7::math::LinearToDecibels(magLin);
+				mThumbs.push_back({
+					f.thumbColor,
+					{ FreqToX(freq, bb), DBToY(magdB, bb) }
+				});
+			}
+
 			for (int iseg = 0; iseg < gSegmentCount; ++iseg) {
 				underlyingValue = float(iseg) / gSegmentCount;
 				float freq = param.GetFrequency(0, 0);
 				float magdB = 0;
 
-				for (auto& f : cfg.pFilters) {
-					if (!f) continue; // nullptr values are valid and used when a filter is bypassed.
-					if (f->thru) continue;
-					float magLin = BiquadMagnitudeForFrequency(*f, freq);
+				for (auto& f : cfg.filters) {
+					if (!f.filter) continue; // nullptr values are valid and used when a filter is bypassed.
+					//if (f.filter->thru) continue;
+					float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
 					magdB += M7::math::LinearToDecibels(magLin);
 				}
 
-				float magLin = M7::math::DecibelsToLinear(magdB) / 4; // /4 to basically give a 12db range of display.
+				//float magLin = M7::math::DecibelsToLinear(magdB) / 4; // /4 to basically give a 12db range of display.
 
 				mPoints[iseg] = ImVec2(
-					(bb.Min.x + iseg * bb.GetWidth() / gSegmentCount),
-					bb.Max.y - bb.GetHeight() * M7::math::clamp01(magLin)
+					FreqToX(freq, bb),// (bb.Min.x + iseg * bb.GetWidth() / gSegmentCount),
+					DBToY(magdB, bb)
 				);
 			}
 		}
@@ -499,7 +546,14 @@ namespace WaveSabreVstLib
 
 			EnsurePointsPopulated(cfg, bb);
 
+			float unityY = std::round(DBToY(0, bb)); // round for crisp line.
+			dl->AddLine({bb.Min.x, unityY }, {bb.Max.x, unityY }, ColorFromHTML("444444"), 1.0f);
+
 			dl->AddPolyline(mPoints, gSegmentCount, cfg.lineColor, 0, 2.0f);
+
+			for (auto& th : mThumbs) {
+				dl->AddCircleFilled(th.point, cfg.thumbRadius, th.color);
+			}
 
 			ImGui::Dummy(gSize);
 		}
@@ -1344,7 +1398,7 @@ namespace WaveSabreVstLib
 
 			// the point of this is that you can have a different set of buttons than enum options. the idea is that when "none" are selected, you can do something different.
 			template<typename Tenum, typename TparamID, size_t Tcount>
-			void Maj7ImGuiParamEnumMutexButtonArray(TparamID paramID, const char* ctrlLabel, float width, const EnumMutexButtonArrayItem<Tenum>(&itemCfg)[Tcount]) {
+			void Maj7ImGuiParamEnumMutexButtonArray(TparamID paramID, const char* ctrlLabel, float width, bool horiz, const EnumMutexButtonArrayItem<Tenum>(&itemCfg)[Tcount]) {
 				M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
 				M7::ParamAccessor pa{ &tempVal, 0 };
 				auto selectedVal = pa.GetEnumValue<Tenum>(0);
@@ -1383,6 +1437,10 @@ namespace WaveSabreVstLib
 							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.notSelectedHoveredColor));
 							colorsPushed++;
 						}
+					}
+
+					if (horiz) {
+						ImGui::SameLine();
 					}
 
 					if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {

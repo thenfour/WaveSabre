@@ -157,14 +157,20 @@ struct Maj7CompEditor : public VstEditor
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::LowPassQ, "LP Q", 0.2f, 0.2f);
 				ImGui::SameLine(); 
 
-				const BiquadFilter* filters[2] = {
-					&mpMaj7Comp->mComp[0].mLowpassFilter,
-					& mpMaj7Comp->mComp[0].mHighpassFilter,
+				//const BiquadFilter* filters[2] = {
+				//	&mpMaj7Comp->mComp[0].mLowpassFilter,
+				//	& mpMaj7Comp->mComp[0].mHighpassFilter,
+				//};
+
+				const std::array<FrequencyResponseRendererFilter, 2> filters{
+					FrequencyResponseRendererFilter{ColorFromHTML("cc4444", 0.8f), &mpMaj7Comp->mComp[0].mLowpassFilter},
+					FrequencyResponseRendererFilter{ColorFromHTML("4444cc", 0.8f), &mpMaj7Comp->mComp[0].mHighpassFilter}
 				};
 
 				FrequencyResponseRendererConfig<2, (size_t)Maj7Comp::ParamIndices::NumParams> cfg{
 					ColorFromHTML("222222", 1.0f), // background
 						ColorFromHTML("ff8800", 1.0f), // line
+						4.0f,
 						filters,
 				};
 				for (size_t i = 0; i < (size_t)Maj7Comp::ParamIndices::NumParams; ++i) {
