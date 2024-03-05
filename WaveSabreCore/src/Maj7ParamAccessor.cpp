@@ -41,17 +41,17 @@ namespace WaveSabreCore
 			SetRawVal__(offset, (v + 1) * 0.5f);
 		}
 
-		float ParamAccessor::GetEnvTimeMilliseconds__(int offset, float mod) const
-		{
-			float param = this->GetRawVal__(offset) + mod; // apply current modulation value.
-			param = math::clamp01(param);
-			param -= 0.5f;       // -.5 to .5
-			param *= gEnvTimeRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
-			float fact = math::pow2_N16_16(param);
-			param = gEnvTimeCenterValue * fact;
-			param -= gEnvTimeMinRawVal; // pow(2,x) doesn't ever reach 0 value. subtracting the min allows 0 to exist.
-			return math::clamp(param, gEnvTimeMinRealVal, gEnvTimeMaxRealVal);
-		}
+		//float ParamAccessor::GetEnvTimeMilliseconds__(int offset, float mod) const
+		//{
+		//	float param = this->GetRawVal__(offset) + mod; // apply current modulation value.
+		//	param = math::clamp01(param);
+		//	param -= 0.5f;       // -.5 to .5
+		//	param *= gEnvTimeRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
+		//	float fact = math::pow2_N16_16(param);
+		//	param = gEnvTimeCenterValue * fact;
+		//	param -= gEnvTimeMinRawVal; // pow(2,x) doesn't ever reach 0 value. subtracting the min allows 0 to exist.
+		//	return math::clamp(param, gEnvTimeMinRealVal, gEnvTimeMaxRealVal);
+		//}
 
 		float ParamAccessor::GetPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float mod) const
 		{

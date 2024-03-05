@@ -149,7 +149,7 @@ namespace WaveSabreCore
 					return;
 				}
 				mSlideCursorSamples += nSamples;
-				float durationSamples = math::MillisecondsToSamples(mParams.GetEnvTimeMilliseconds(ParamIndices::PortamentoTime, timeMod));// mTime.GetMilliseconds(timeMod));
+				float durationSamples = math::MillisecondsToSamples(mParams.GetPowCurvedValue(ParamIndices::PortamentoTime, gEnvTimeCfg, timeMod));// mTime.GetMilliseconds(timeMod));
 				float t = mSlideCursorSamples / durationSamples;
 				if (t >= 1) {
 					NoteOn(mTargetNote, true); // disengages

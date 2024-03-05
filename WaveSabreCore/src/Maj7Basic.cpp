@@ -216,20 +216,20 @@ namespace WaveSabreCore
 
 
 
-		EnvTimeParam::EnvTimeParam(real_t& ref, real_t initialParamValue) : Float01RefParam(ref, initialParamValue) {}
-		EnvTimeParam::EnvTimeParam(real_t& ref) : Float01RefParam(ref) {}
+		//EnvTimeParam::EnvTimeParam(real_t& ref, real_t initialParamValue) : Float01RefParam(ref, initialParamValue) {}
+		//EnvTimeParam::EnvTimeParam(real_t& ref) : Float01RefParam(ref) {}
 
-		real_t EnvTimeParam::GetMilliseconds(real_t paramModulation) const
-		{
-			float param = mParamValue + paramModulation; // apply current modulation value.
-			param = math::clamp01(param);
-			param -= 0.5f;       // -.5 to .5
-			param *= gRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
-			float fact = math::pow2_N16_16(param);
-			param = gCenterValue * fact;
-			param -= gMinRawVal; // pow(2,x) doesn't ever reach 0 value. subtracting the min allows 0 to exist.
-			return math::clamp(param, gMinRealVal, gMaxRealVal);
-		}
+		//real_t EnvTimeParam::GetMilliseconds(real_t paramModulation) const
+		//{
+		//	float param = mParamValue + paramModulation; // apply current modulation value.
+		//	param = math::clamp01(param);
+		//	param -= 0.5f;       // -.5 to .5
+		//	param *= gRangeLog2; // -5 to +5 (2^-5 = .0312; 2^5 = 32), with 375ms center val means [12ms, 12sec]
+		//	float fact = math::pow2_N16_16(param);
+		//	param = gCenterValue * fact;
+		//	param -= gMinRawVal; // pow(2,x) doesn't ever reach 0 value. subtracting the min allows 0 to exist.
+		//	return math::clamp(param, gMinRealVal, gMaxRealVal);
+		//}
 
 
 		//IntParam::IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue) :

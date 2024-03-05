@@ -287,6 +287,7 @@ namespace WaveSabreCore
 			AnalysisStream mInputAnalysis1;
 			AnalysisStream mOutputAnalysis0;
 			AnalysisStream mOutputAnalysis1;
+
 			bool mMuteSoloEnabled;
 #else
 			static constexpr bool mMuteSoloEnabled = true;
@@ -397,13 +398,13 @@ namespace WaveSabreCore
 
 				if (s > mThresholdLin) {
 					// we will be shaping the area above thresh, so map (thresh,1) to (0,1)
-					float s_preshape = s;
 
 					s -= mThresholdLin;
 					s /= (1.0f - mThresholdLin);
 					s /= ModelNaturalSlopes[(int)mModel];
 
 					// perform shaping
+					//float s_preshape = s;
 					switch (mModel) {
 					default:
 					case Model::Thru:
@@ -439,6 +440,7 @@ namespace WaveSabreCore
 						s = shape_trifold(s);
 						break;
 					}
+					//satAmount = s - s_preshape;
 
 					// now map back (0,1) to (thresh,1).
 					s *= (1.0f - mThresholdLin);

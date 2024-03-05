@@ -326,7 +326,7 @@ namespace WaveSabreCore
 						mSamplePlayer.InitPos(); // play.
 					}
 				}
-				auto ms = mpSamplerDevice->mParams.GetEnvTimeMilliseconds(SamplerParamIndexOffsets::Delay, mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::Delay));
+				auto ms = mpSamplerDevice->mParams.GetPowCurvedValue(SamplerParamIndexOffsets::Delay, gEnvTimeCfg, mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::Delay));
 				mDelayStep = math::CalculateInc01PerSampleForMS(ms);
 
 				float pitchFineMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);

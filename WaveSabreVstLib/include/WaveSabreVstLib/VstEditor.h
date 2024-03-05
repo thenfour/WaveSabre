@@ -42,39 +42,39 @@ namespace WaveSabreVstLib
 		return ImColor{ f[0], f[1], f[2], alpha };
 	}
 
-	struct EnvTimeConverter : ImGuiKnobs::IValueConverter
-	{
-		float mBacking;
-		WaveSabreCore::M7::EnvTimeParam mParam;
+	//struct EnvTimeConverter : ImGuiKnobs::IValueConverter
+	//{
+	//	float mBacking;
+	//	WaveSabreCore::M7::EnvTimeParam mParam;
 
-		EnvTimeConverter() :
-			mParam(mBacking, 0)
-		{
-		}
+	//	EnvTimeConverter() :
+	//		mParam(mBacking, 0)
+	//	{
+	//	}
 
-		virtual std::string ParamToDisplayString(double param, void* capture) override {
-			mParam.SetParamValue((float)param);
-			char s[100] = { 0 };
-			M7::real_t ms = mParam.GetMilliseconds();
-			if (ms > 2000)
-			{
-				sprintf_s(s, "%0.1f s", ms / 1000);
-			}
-			else if (ms > 1000) {
-				sprintf_s(s, "%0.2f s", ms / 1000);
-			}
-			else {
-				sprintf_s(s, "%0.2f ms", ms);
-			}
-			return s;
-		}
+	//	virtual std::string ParamToDisplayString(double param, void* capture) override {
+	//		mParam.SetParamValue((float)param);
+	//		char s[100] = { 0 };
+	//		M7::real_t ms = mParam.GetMilliseconds();
+	//		if (ms > 2000)
+	//		{
+	//			sprintf_s(s, "%0.1f s", ms / 1000);
+	//		}
+	//		else if (ms > 1000) {
+	//			sprintf_s(s, "%0.2f s", ms / 1000);
+	//		}
+	//		else {
+	//			sprintf_s(s, "%0.2f ms", ms);
+	//		}
+	//		return s;
+	//	}
 
-		virtual double DisplayValueToParam(double value, void* capture) {
-			//mParam.SetRangedValue((float)value);
-			//return (double)mParam.GetRawParamValue();
-			return 0;
-		}
-	};
+	//	virtual double DisplayValueToParam(double value, void* capture) {
+	//		//mParam.SetRangedValue((float)value);
+	//		//return (double)mParam.GetRawParamValue();
+	//		return 0;
+	//	}
+	//};
 
 	struct PowCurvedConverter : ImGuiKnobs::IValueConverter
 	{
@@ -262,24 +262,24 @@ namespace WaveSabreVstLib
 			};
 
 			//env time
-			EnvTimeConverter envConv{ };
-			ImGuiKnobs::Knob("Env time", &mEnvTimeValue, 0, 1, 0, 0, {}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &envConv, this);
-			ImGui::SameLine(); ImGui::BeginGroup();
-			float envT = 0.25f;
-			M7::ParamAccessor envPA{ &envT , 0 };
-			ImGui::Text("@ .25 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
-			envT = 0.5f;
-			ImGui::Text("@ .50 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
-			envT = 0.75f;
-			ImGui::Text("@ .75 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
-			ImGui::EndGroup();
-			ImColor envTimeColor = ColorFromHTML("00ff00", 0.7f);
+			//EnvTimeConverter envConv{ };
+			//ImGuiKnobs::Knob("Env time", &mEnvTimeValue, 0, 1, 0, 0, {}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &envConv, this);
+			//ImGui::SameLine(); ImGui::BeginGroup();
+			//float envT = 0.25f;
+			//M7::ParamAccessor envPA{ &envT , 0 };
+			//ImGui::Text("@ .25 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
+			//envT = 0.5f;
+			//ImGui::Text("@ .50 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
+			//envT = 0.75f;
+			//ImGui::Text("@ .75 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
+			//ImGui::EndGroup();
+			//ImColor envTimeColor = ColorFromHTML("00ff00", 0.7f);
 
-			auto transferEnvTime = [&](float x01) {
-				envT = x01;
-				float bigval = envPA.GetEnvTimeMilliseconds(0, 0);
-				return M7::math::lerp_rev(M7::EnvTimeParam::gMinRealVal, M7::EnvTimeParam::gMaxRealVal, bigval);
-			};
+			//auto transferEnvTime = [&](float x01) {
+			//	envT = x01;
+			//	float bigval = envPA.GetEnvTimeMilliseconds(0, 0);
+			//	return M7::math::lerp_rev(M7::EnvTimeParam::gMinRealVal, M7::EnvTimeParam::gMaxRealVal, bigval);
+			//};
 
 			//Maj7ImGuiParamVolume
 			{
@@ -312,7 +312,7 @@ namespace WaveSabreVstLib
 				{ [&](float x01) { return x01; }, ColorFromHTML("444444", 0.5f), 1.0f},
 				{ [&](float x01) { return transferPow01(x01); }, powColor, 2.0f},
 				{ [&](float x01) { return transferDiv01(x01); }, divColor, 2.0f},
-				{ [&](float x01) { return transferEnvTime(x01); }, envTimeColor, 2.0f},
+				//{ [&](float x01) { return transferEnvTime(x01); }, envTimeColor, 2.0f},
 				{ [&](float x01) { return transferVolume(x01); }, volumeColor, 2.0f},
 				});
 		}
@@ -1688,18 +1688,18 @@ namespace WaveSabreVstLib
 			}
 		}
 
-		void Maj7ImGuiParamEnvTime(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled, ImGuiKnobs::ModInfo modInfo) {
-			WaveSabreCore::M7::real_t tempVal;
-			M7::EnvTimeParam p{ tempVal , v_defaultScaled };
-			float defaultParamVal = p.GetRawParamValue();
-			p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+		//void Maj7ImGuiParamEnvTime(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled, ImGuiKnobs::ModInfo modInfo) {
+		//	WaveSabreCore::M7::real_t tempVal;
+		//	M7::EnvTimeParam p{ tempVal , v_defaultScaled };
+		//	float defaultParamVal = p.GetRawParamValue();
+		//	p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
 
-			EnvTimeConverter conv{ };
-			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
-			{
-				GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
-			}
-		}
+		//	EnvTimeConverter conv{ };
+		//	if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+		//	{
+		//		GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+		//	}
+		//}
 
 		void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label, M7::real_t v_defaultScaled, float size/*=0*/, ImGuiKnobs::ModInfo modInfo) {
 			WaveSabreCore::M7::real_t tempVal;

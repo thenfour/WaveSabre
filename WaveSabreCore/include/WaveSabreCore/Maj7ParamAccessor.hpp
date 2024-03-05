@@ -45,6 +45,8 @@ namespace WaveSabreCore
 			}
 		};
 
+		static constexpr PowCurvedParamCfg gEnvTimeCfg{ 0.0f, 12000.0f, 12.0f }; // value of K can be found by looking in param explorer in a vst.
+
 		// something like compressor ratio requires a very steep curve, and using 1/x will fit that. it's based off the principle curve 1/(1-x).
 		struct DivCurvedParamCfg {
 			// k should be > 1, but makes little difference over about 2. small k means a steep curve.
@@ -166,22 +168,22 @@ namespace WaveSabreCore
 				return (Tenum)GetIntValue__((int)offset, gEnumIntConfig);
 			}
 
-			static constexpr real_t gEnvTimeCenterValue = 375; // the MS at 0.5 param value.
-			static constexpr int gEnvTimeRangeLog2 = 10;      // must be even for below calculations to work
-			static constexpr real_t gEnvTimeMinRawVal = 12; // slightly above the correct value (~1ms), in order to guarantee envelope times can reach true 0.
-			//(1.0f / (1 << (gRangeLog2 / 2))) *
-			//gCenterValue; // minimum value as described by log calc (before subtracting min).
-			static constexpr real_t gEnvTimeMaxRawVal = (1 << (gEnvTimeRangeLog2 / 2)) * gEnvTimeCenterValue;
-			static constexpr real_t gEnvTimeMinRealVal = 0;
-			static constexpr real_t gEnvTimeMaxRealVal = gEnvTimeMaxRawVal - gEnvTimeMinRawVal;
+			//static constexpr real_t gEnvTimeCenterValue = 375; // the MS at 0.5 param value.
+			//static constexpr int gEnvTimeRangeLog2 = 10;      // must be even for below calculations to work
+			//static constexpr real_t gEnvTimeMinRawVal = 12; // slightly above the correct value (~1ms), in order to guarantee envelope times can reach true 0.
+			////(1.0f / (1 << (gRangeLog2 / 2))) *
+			////gCenterValue; // minimum value as described by log calc (before subtracting min).
+			//static constexpr real_t gEnvTimeMaxRawVal = (1 << (gEnvTimeRangeLog2 / 2)) * gEnvTimeCenterValue;
+			//static constexpr real_t gEnvTimeMinRealVal = 0;
+			//static constexpr real_t gEnvTimeMaxRealVal = gEnvTimeMaxRawVal - gEnvTimeMinRawVal;
 
-			float GetEnvTimeMilliseconds__(int offset, float mod) const;
-			template<typename Toffset>
-			float GetEnvTimeMilliseconds(Toffset offset, float mod) const
-			{
-				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				return GetEnvTimeMilliseconds__((int)offset, mod);
-			}
+			//float GetEnvTimeMilliseconds__(int offset, float mod) const;
+			//template<typename Toffset>
+			//float GetEnvTimeMilliseconds(Toffset offset, float mod) const
+			//{
+			//	static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+			//	return GetEnvTimeMilliseconds__((int)offset, mod);
+			//}
 
 			float GetPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float mod) const;
 			template<typename Toffset>

@@ -671,7 +671,9 @@ public:
 		ImGui::SameLine(0, 60);
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", M7::gPitchBendCfg, 2, 0);
 		ImGui::SameLine();
-		Maj7ImGuiParamEnvTime((VstInt32)M7::ParamIndices::PortamentoTime, "Port##mst", 0.4f, GetModInfo(M7::ModDestination::PortamentoTime));
+
+		Maj7ImGuiPowCurvedParam((VstInt32)M7::ParamIndices::PortamentoTime, "Port##mst", M7::gEnvTimeCfg, 0.4f, GetModInfo(M7::ModDestination::PortamentoTime));
+
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "##portcurvemst", 0.0f, M7CurveRenderStyle::Rising, {});
 		ImGui::SameLine();
@@ -1056,21 +1058,21 @@ public:
 		};
 
 		ImGui::PushID(labelWithID);
-		Maj7ImGuiParamEnvTime(delayTimeParamID + (int)M7::EnvParamIndexOffsets::DelayTime, "Delay", 0, lGetModInfo(M7::EnvModParamIndexOffsets::DelayTime));
+		Maj7ImGuiPowCurvedParam(delayTimeParamID + (int)M7::EnvParamIndexOffsets::DelayTime, "Delay", M7::gEnvTimeCfg, 0, lGetModInfo(M7::EnvModParamIndexOffsets::DelayTime));
 		ImGui::SameLine();
-		Maj7ImGuiParamEnvTime(delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackTime, "Attack", 0, lGetModInfo(M7::EnvModParamIndexOffsets::AttackTime));
+		Maj7ImGuiPowCurvedParam(delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackTime, "Attack", M7::gEnvTimeCfg, 0, lGetModInfo(M7::EnvModParamIndexOffsets::AttackTime));
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve(delayTimeParamID + (int)M7::EnvParamIndexOffsets::AttackCurve, "Curve##attack", 0, M7CurveRenderStyle::Rising, lGetModInfo(M7::EnvModParamIndexOffsets::AttackCurve));
 		ImGui::SameLine();
-		Maj7ImGuiParamEnvTime(delayTimeParamID + (int)M7::EnvParamIndexOffsets::HoldTime, "Hold", 0, lGetModInfo(M7::EnvModParamIndexOffsets::HoldTime));
+		Maj7ImGuiPowCurvedParam(delayTimeParamID + (int)M7::EnvParamIndexOffsets::HoldTime, "Hold", M7::gEnvTimeCfg, 0, lGetModInfo(M7::EnvModParamIndexOffsets::HoldTime));
 		ImGui::SameLine();
-		Maj7ImGuiParamEnvTime(delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayTime, "Decay", .4f, lGetModInfo(M7::EnvModParamIndexOffsets::DecayTime));
+		Maj7ImGuiPowCurvedParam(delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayTime, "Decay", M7::gEnvTimeCfg, .4f, lGetModInfo(M7::EnvModParamIndexOffsets::DecayTime));
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve(delayTimeParamID + (int)M7::EnvParamIndexOffsets::DecayCurve, "Curve##Decay", 0, M7CurveRenderStyle::Falling, lGetModInfo(M7::EnvModParamIndexOffsets::DecayCurve));
 		ImGui::SameLine();
 		Maj7ImGuiParamFloat01(delayTimeParamID + (int)M7::EnvParamIndexOffsets::SustainLevel, "Sustain", 0.4f, 0, 0, lGetModInfo(M7::EnvModParamIndexOffsets::SustainLevel));
 		ImGui::SameLine();
-		Maj7ImGuiParamEnvTime(delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseTime, "Release", 0, lGetModInfo(M7::EnvModParamIndexOffsets::ReleaseTime));
+		Maj7ImGuiPowCurvedParam(delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseTime, "Release", M7::gEnvTimeCfg, 0, lGetModInfo(M7::EnvModParamIndexOffsets::ReleaseTime));
 		ImGui::SameLine();
 		Maj7ImGuiParamCurve(delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseCurve, "Curve##Release", 0, M7CurveRenderStyle::Falling, lGetModInfo(M7::EnvModParamIndexOffsets::ReleaseCurve));
 		ImGui::SameLine();
@@ -1929,7 +1931,7 @@ public:
 			ImGui::SameLine();
 			Maj7ImGuiParamFloat01(sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::SampleStart), "SampleStart", 0, 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::SampleStart));
 			ImGui::SameLine();
-			Maj7ImGuiParamEnvTime(sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Delay), "SampleDelay", 0, lGetModInfo(M7::SamplerModParamIndexOffsets::Delay));
+			Maj7ImGuiPowCurvedParam(sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Delay), "SampleDelay", M7::gEnvTimeCfg, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::Delay));
 
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopStart), "LoopBeg");
 			ImGui::SameLine(); WSImGuiParamKnob((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopLength), "LoopLen");

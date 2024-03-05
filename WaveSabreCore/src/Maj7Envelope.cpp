@@ -30,14 +30,14 @@ namespace WaveSabreCore
                 mReleaseStagePos01 = 0;
                 break;
             case EnvelopeStage::Delay:
-                if (mParams.GetEnvTimeMilliseconds(EnvParamIndexOffsets::DelayTime, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime)) <= 0)
+                if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::DelayTime, gEnvTimeCfg, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DelayTime)) <= 0)
                 {
                     AdvanceToStage(EnvelopeStage::Attack);
                     return;
                 }
                 break;
             case EnvelopeStage::Attack:
-                if (mParams.GetEnvTimeMilliseconds(EnvParamIndexOffsets::AttackTime, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime)) <= 0)
+                if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::AttackTime, gEnvTimeCfg, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::AttackTime)) <= 0)
                 {
                     AdvanceToStage(EnvelopeStage::Hold);
                     return;
@@ -45,14 +45,14 @@ namespace WaveSabreCore
                 mAttackFromValue01 = mLastOutputLevel; // usually 0
                 break;
             case EnvelopeStage::Hold:
-                if (mParams.GetEnvTimeMilliseconds(EnvParamIndexOffsets::HoldTime, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime)) <= 0)
+                if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::HoldTime, gEnvTimeCfg, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::HoldTime)) <= 0)
                 {
                     AdvanceToStage(EnvelopeStage::Decay);
                     return;
                 }
                 break;
             case EnvelopeStage::Decay:
-                if (mParams.GetEnvTimeMilliseconds(EnvParamIndexOffsets::DecayTime, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)) <= 0)
+                if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::DecayTime, gEnvTimeCfg, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::DecayTime)) <= 0)
                 {
                     AdvanceToStage(mMode == EnvelopeMode::Sustain ? EnvelopeStage::Sustain : EnvelopeStage::ReleaseSilence);
                     return;
@@ -61,7 +61,7 @@ namespace WaveSabreCore
             case EnvelopeStage::Sustain:
                 break;
             case EnvelopeStage::Release:
-                if (mParams.GetEnvTimeMilliseconds(EnvParamIndexOffsets::ReleaseTime, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)) <= 0)
+                if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::ReleaseTime, gEnvTimeCfg, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)) <= 0)
                 {
                     AdvanceToStage(EnvelopeStage::ReleaseSilence);
                     return;
@@ -230,7 +230,7 @@ namespace WaveSabreCore
         void EnvelopeNode::RecalcState()
         {
             auto UpdateStagePosInc = [&](EnvParamIndexOffsets paramOffset, EnvModParamIndexOffsets modid) {
-                auto ms = mParams.GetEnvTimeMilliseconds(paramOffset, mModMatrix.GetDestinationValue(mModDestBase + (int)modid));
+                auto ms = mParams.GetPowCurvedValue(paramOffset, gEnvTimeCfg, mModMatrix.GetDestinationValue(mModDestBase + (int)modid));
                 mStagePosIncPerSample = math::CalculateInc01PerSampleForMS(ms);
             };
 
@@ -245,7 +245,7 @@ namespace WaveSabreCore
             case EnvelopeStage::Delay: {
                 UpdateStagePosInc(EnvParamIndexOffsets::DelayTime, EnvModParamIndexOffsets::DelayTime);
                 mReleaseStagePosIncPerSample = math::CalculateInc01PerSampleForMS(
-                    mParams.GetEnvTimeMilliseconds(EnvParamIndexOffsets::ReleaseTime, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
+                    mParams.GetPowCurvedValue(EnvParamIndexOffsets::ReleaseTime, gEnvTimeCfg, mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
                 return;
             }
             case EnvelopeStage::Attack: {
