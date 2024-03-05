@@ -53,15 +53,15 @@ namespace WaveSabreCore
 			return math::clamp(param, gEnvTimeMinRealVal, gEnvTimeMaxRealVal);
 		}
 
-		float ParamAccessor::GetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float mod) const
+		float ParamAccessor::GetPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float mod) const
 		{
 			float param = this->GetRawVal__(offset) + mod; // apply current modulation value.
-			return cfg.Param01ToMilliseconds(param);
+			return cfg.Param01ToValue(param);
 		}
 
-		void ParamAccessor::SetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float ms)
+		void ParamAccessor::SetPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float ms)
 		{
-			float p01 = cfg.MillisecondsToParam01(ms);
+			float p01 = cfg.ValueToParam01(ms);
 			this->SetRawVal__(offset, p01);
 		}
 

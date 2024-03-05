@@ -244,6 +244,9 @@ namespace WaveSabreVstLib
 				if (ImGui::MenuItem("Toggle ImGui demo window", nullptr, showingDemo)) {
 					showingDemo = !showingDemo;
 				}
+				if (ImGui::MenuItem("Toggle param explorer", nullptr, showingParamExplorer)) {
+					showingParamExplorer = !showingParamExplorer;
+				}
 				ImGui::EndMenu();
 			}
 #endif
@@ -256,6 +259,10 @@ namespace WaveSabreVstLib
 			ImGui::TextColored(ImColor{ .5f, .5f, .5f }, "%.1f FPS, CPU: %.2f %s", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100, this->GetMenuBarStatusText().c_str());
 
 			ImGui::EndMenuBar();
+		}
+
+		if (showingParamExplorer) {
+			mParamExplorer.Render();
 		}
 
 		this->renderImgui();

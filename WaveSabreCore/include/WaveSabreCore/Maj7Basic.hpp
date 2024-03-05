@@ -233,10 +233,11 @@ namespace WaveSabreCore
         static constexpr IntParamConfig gMaxVoicesCfg{ 1, gMaxMaxVoices };
         static constexpr IntParamConfig gGmDlsIndexParamCfg{ -1, gGmDlsSampleCount };
 
+        static constexpr VolumeParamConfig gVolumeCfg6db{ 1.9952623149688795f, 6.0f };
         static constexpr VolumeParamConfig gVolumeCfg12db{ 3.9810717055349722f, 12.0f };
         static constexpr VolumeParamConfig gVolumeCfg24db{ 15.848931924611133f, 24.0f };
         static constexpr VolumeParamConfig gVolumeCfg36db{ 63.09573444801933f, 36.0f };
-        static constexpr VolumeParamConfig gMasterVolumeCfg{ 1.9952623149688795f, 6.0f };
+        static constexpr VolumeParamConfig gMasterVolumeCfg = gVolumeCfg6db;
         static constexpr VolumeParamConfig gUnityVolumeCfg{ 1, 0 };
 
         static constexpr size_t gModulationCount = 18;

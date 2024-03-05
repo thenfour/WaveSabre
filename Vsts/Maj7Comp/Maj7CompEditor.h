@@ -116,8 +116,8 @@ struct Maj7CompEditor : public VstEditor
 			{
 				Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Threshold, "Thresh(dB)", -60, 0, -20, 0, 0, {});
 
-				ImGui::SameLine(); Maj7ImGuiParamTime(ParamIndices::Attack, "Attack(ms)", Maj7Comp::gAttackCfg, 50, {});
-				ImGui::SameLine(); Maj7ImGuiParamTime(ParamIndices::Release, "Release(ms)", Maj7Comp::gReleaseCfg, 80, {});
+				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(ParamIndices::Attack, "Attack(ms)", Maj7Comp::gAttackCfg, 50, {});
+				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(ParamIndices::Release, "Release(ms)", Maj7Comp::gReleaseCfg, 80, {});
 
 				ImGui::SameLine(); Maj7ImGuiDivCurvedParam((VstInt32)ParamIndices::Ratio, "Ratio", Maj7Comp::gRatioCfg, 4, {});
 				ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Knee, "Knee(dB)", 0, 30, 8, 0, 0, {});
@@ -143,12 +143,12 @@ struct Maj7CompEditor : public VstEditor
 
 				M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)ParamIndices::RMSWindow);
 				M7::ParamAccessor p{ &tempVal, 0 };
-				float windowMS = p.GetTimeMilliseconds(0, Maj7Comp::gRMSWindowSizeCfg, 0);
+				float windowMS = p.GetPowCurvedValue(0, Maj7Comp::gRMSWindowSizeCfg, 0);
 				const char* windowCaption = "RMS (ms)###rmswindow";
 				if (windowMS < Maj7Comp::gMinRMSWindowMS) {
 					windowCaption = "Peak###rmswindow";
 				}
-				ImGui::SameLine(0, 80); Maj7ImGuiParamTime(ParamIndices::RMSWindow, windowCaption, Maj7Comp::gRMSWindowSizeCfg, 30, {});
+				ImGui::SameLine(0, 80); Maj7ImGuiPowCurvedParam(ParamIndices::RMSWindow, windowCaption, Maj7Comp::gRMSWindowSizeCfg, 30, {});
 
 				ImGui::SameLine(0, 80); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);

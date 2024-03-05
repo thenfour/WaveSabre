@@ -10,7 +10,7 @@ namespace WaveSabreCore
 		// https://www.desmos.com/calculator/ipgewtox2e
 		// so far all time params have similar range which mimics NI Massive. but when we need other time ranges, it's time to 
 		// rethink, and be more like freq param.
-		struct TimeParamCfg {
+		struct PowCurvedParamCfg {
 
 			// from very small but not zero (e.g. 0.0001), as high as you want. use desmos link to visualize. higher values (10+?) make a more linear range.
 			// k = 10 pretty much matches the NI Massive time param curve.
@@ -23,20 +23,20 @@ namespace WaveSabreCore
 			// max += k;
 			// R = max/min;
 			// min * (R ^ x) - k
-			constexpr TimeParamCfg(float minMS, float maxMS, float k) : //
+			constexpr PowCurvedParamCfg(float minMS, float maxMS, float k) : //
 				mK(k),
 				mMinMSPlusK(minMS + k), //
 				mBase((maxMS + k) / mMinMSPlusK)
 			{
 			}
 
-			float Param01ToMilliseconds(float p01) const {
+			float Param01ToValue(float p01) const {
 				p01 = math::clamp01(p01);
 				// min * (R ^ x) - k
 				return mMinMSPlusK * M7::math::pow(mBase, p01) - mK;
 			}
 
-			float MillisecondsToParam01(float ms) const {
+			float ValueToParam01(float ms) const {
 				float t = ms + mK;
 				t /= mMinMSPlusK;
 				float n = M7::math::log10(t);
@@ -183,21 +183,21 @@ namespace WaveSabreCore
 				return GetEnvTimeMilliseconds__((int)offset, mod);
 			}
 
-			float GetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float mod) const;
+			float GetPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float mod) const;
 			template<typename Toffset>
-			float GetTimeMilliseconds(Toffset offset, const TimeParamCfg& cfg, float mod) const
+			float GetPowCurvedValue(Toffset offset, const PowCurvedParamCfg& cfg, float mod) const
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				return GetTimeMilliseconds__((int)offset, cfg, mod);
+				return GetPowCurvedValue__((int)offset, cfg, mod);
 			}
 
-			void SetTimeMilliseconds__(int offset, const TimeParamCfg& cfg, float ms);
+			void SetPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float ms);
 
 			template<typename Toffset>
-			void SetTimeMilliseconds(Toffset offset, const TimeParamCfg& cfg, float ms)
+			void SetPowCurvedValue(Toffset offset, const PowCurvedParamCfg& cfg, float ms)
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				SetTimeMilliseconds__((int)offset, cfg, ms);
+				SetPowCurvedValue__((int)offset, cfg, ms);
 			}
 
 			float GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;

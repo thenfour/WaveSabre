@@ -4,15 +4,9 @@
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
-// no conversion required
-int  __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
-	Echo* tmpEffect = new Echo();
-	ECHO_PARAM_VST_NAMES(paramNames);
-	SetSimpleJSONVstChunk(tmpEffect, Echo::gJSONTagName, inpData, inpSize, tmpEffect->mParamCache, paramNames);
-	*outpSize = GetSimpleMinifiedChunk(tmpEffect->mParamCache, Echo::gDefaults16, outpData);
-	delete tmpEffect;
-	return *outpSize;
+	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<EchoVst>(deviceName, inpSize, inpData, outpSize, outpData);
 }
 
 void __cdecl WaveSabreFreeChunk(void* p)

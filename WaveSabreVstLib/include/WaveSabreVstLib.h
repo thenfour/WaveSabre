@@ -98,25 +98,25 @@ namespace WaveSabreVstLib
 
 	static inline void GenerateDefaults(Leveller* p)
 	{
-		p->mParams.SetDecibels(LevellerParamIndices::MasterVolume, M7::gVolumeCfg12db, 0);
+		//p->mParams.SetDecibels(LevellerParamIndices::MasterVolume, M7::gVolumeCfg12db, 0);
 
-		p->mParams.SetRawVal(LevellerParamIndices::LowShelfFreq, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::LowShelfQ, 0);
+		//p->mParams.SetRawVal(LevellerParamIndices::LowShelfFreq, 0);
+		//p->mParams.SetRawVal(LevellerParamIndices::LowShelfQ, 0);
 
-		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak1Freq, M7::gFilterFreqConfig, 650);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak1Gain, M7::gVolumeCfg12db, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::Peak1Q, 0);
+		//p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak1Freq, M7::gFilterFreqConfig, 650);
+		//p->mParams.SetDecibels(LevellerParamIndices::Peak1Gain, M7::gVolumeCfg12db, 0);
+		//p->mParams.SetRawVal(LevellerParamIndices::Peak1Q, 0);
 
-		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak2Freq, M7::gFilterFreqConfig, 2000);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak2Gain, M7::gVolumeCfg12db, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::Peak2Q, 0);
+		//p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak2Freq, M7::gFilterFreqConfig, 2000);
+		//p->mParams.SetDecibels(LevellerParamIndices::Peak2Gain, M7::gVolumeCfg12db, 0);
+		//p->mParams.SetRawVal(LevellerParamIndices::Peak2Q, 0);
 
-		p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak3Freq, M7::gFilterFreqConfig, 7000);
-		p->mParams.SetDecibels(LevellerParamIndices::Peak3Gain, M7::gVolumeCfg12db, 0);
-		p->mParams.SetRawVal(LevellerParamIndices::Peak3Q, 0);
+		//p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak3Freq, M7::gFilterFreqConfig, 7000);
+		//p->mParams.SetDecibels(LevellerParamIndices::Peak3Gain, M7::gVolumeCfg12db, 0);
+		//p->mParams.SetRawVal(LevellerParamIndices::Peak3Q, 0);
 
-		p->mParams.SetRawVal(LevellerParamIndices::HighShelfFreq, 1);
-		p->mParams.SetRawVal(LevellerParamIndices::HighShelfQ, 0);
+		//p->mParams.SetRawVal(LevellerParamIndices::HighShelfFreq, 1);
+		//p->mParams.SetRawVal(LevellerParamIndices::HighShelfQ, 0);
 	}
 
 	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
@@ -127,31 +127,31 @@ namespace WaveSabreVstLib
 
 	static inline void GenerateDefaults(Echo* p)
 	{
-		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, 3);
-		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, 0);
-		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, 4);
-		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, 0);
-		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, 20);
-		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, 20000 - 20);
-		p->mParams.Set01Val(Echo::ParamIndices::Feedback, 0.5f);
-		p->mParams.Set01Val(Echo::ParamIndices::Cross, 0);
-		p->mParams.Set01Val(Echo::ParamIndices::DryWet, 0.5f);
+		//p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, 3);
+		//p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, 0);
+		//p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, 4);
+		//p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, 0);
+		//p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, 20);
+		//p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, 20000 - 20);
+		//p->mParams.Set01Val(Echo::ParamIndices::Feedback, 0.5f);
+		//p->mParams.Set01Val(Echo::ParamIndices::Cross, 0);
+		//p->mParams.Set01Val(Echo::ParamIndices::DryWet, 0.5f);
 	}
 
-	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
-	static inline void AdjustLegacyParams(Echo* p)
-	{
-		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayCoarse] * 16));
-		p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayFine] * 200));
-		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayCoarse] * 16));
-		p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayFine] * 200));
+	//// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
+	//static inline void AdjustLegacyParams(Echo* p)
+	//{
+	//	p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayCoarse] * 16));
+	//	p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayFine] * 200));
+	//	p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayCoarse] * 16));
+	//	p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayFine] * 200));
 
-		float lowCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::LowCutFreq]);
-		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, lowCut);
+	//	float lowCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::LowCutFreq]);
+	//	p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, lowCut);
 
-		float hiCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::HighCutFreq]);
-		p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, hiCut);
-	}
+	//	float hiCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::HighCutFreq]);
+	//	p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, hiCut);
+	//}
 
 	static inline void GenerateDefaults(Maj7Comp* p) {
 		// nop until needed.

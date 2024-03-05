@@ -5,6 +5,7 @@
 #include "DelayBuffer.h"
 #include "Maj7Basic.hpp"
 #include "Maj7Filter.hpp"
+#include "BiquadFilter.h"
 
 namespace WaveSabreCore
 {
@@ -22,9 +23,12 @@ namespace WaveSabreCore
 			RightDelayFine,// 0-1 => 0-200 inclusive integral
 
 			LowCutFreq, // Helpers::ParamToFrequency(value)
+			LowCutQ, // Helpers::ParamToFrequency(value)
 			HighCutFreq, // Helpers::ParamToFrequency(value)
+			HighCutQ, // Helpers::ParamToFrequency(value)
 
-			Feedback, // 0-1
+			FeedbackLevel, // 0-1
+			FeedbackDriveDB,
 			Cross, // 0-1
 
 			DryWet, // 0-1
@@ -37,27 +41,31 @@ namespace WaveSabreCore
 	{"LdlyF"},\
 	{"RdlyC"},\
 	{"RdlyF"},\
-	{"LCF"},\
-	{"HCF"},\
-	{"Fb"},\
+	{"LCFreq"},\
+	{"LCQ"},\
+	{"HCFreq"},\
+	{"HCQ"},\
+	{"FbLvl"},\
+	{"FbDrive"},\
 	{"Cross"},\
 	{"DryWet"},\
 }
-		static constexpr char gJSONTagName[] = "WSEcho";
 
-		static_assert((int)Echo::ParamIndices::NumParams == 9, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gDefaults16[9] = {
-		  6746, // LdlyC = 0.20588235557079315186
-		  81, // LdlyF = 0.0024875621311366558075
-		  8673, // RdlyC = 0.26470589637756347656
-		  81, // RdlyF = 0.0024875621311366558075
-		  -2109, // LCF = -0.064385592937469482422
-		  30541, // HCF = 0.93204843997955322266
-		  16384, // Fb = 0.5
-		  0, // Cross = 0
-		  16384, // DryWet = 0.5
+		static_assert((int)Echo::ParamIndices::NumParams == 12, "param count probably changed and this needs to be regenerated.");
+		static constexpr int16_t gDefaults16[12] = {
+		  6746, // LdlyC = 0.20587199926376342773
+		  81, // LdlyF = 0.0024719999637454748154
+		  8673, // RdlyC = 0.26467901468276977539
+		  81, // RdlyF = 0.0024719999637454748154
+		  0, // LCFreq = 0
+		  6553, // LCQ = 0.20000000298023223877
+		  32767, // HCFreq = 1
+		  6553, // HCQ = 0.20000000298023223877
+		  16416, // FbLvl = 0.50099998712539672852
+		  16422, // FbDrive = 0.50118720531463623047
+		  8192, // Cross = 0.25
+		  9830, // DryWet = 0.30000001192092895508
 		};
-
 
 		float mParamCache[(int)ParamIndices::NumParams];
 		M7::ParamAccessor mParams { mParamCache, 0 };
@@ -65,8 +73,8 @@ namespace WaveSabreCore
 		DelayBuffer leftBuffer;
 		DelayBuffer rightBuffer;
 
-		M7::OnePoleFilter mLowCutFilter[2];
-		M7::OnePoleFilter mHighCutFilter[2];
+		BiquadFilter mLowCutFilter[2];
+		BiquadFilter mHighCutFilter[2];
 
 		Echo()
 			: Device((int)ParamIndices::NumParams)
@@ -82,40 +90,53 @@ namespace WaveSabreCore
 			leftBuffer.SetLength(leftBufferLengthMs);
 			rightBuffer.SetLength(rightBufferLengthMs);
 
-			for (int i = 0; i < 2; i++)
-			{
-				mLowCutFilter[i].SetParams(M7::FilterType::HP, mParams.GetFrequency(ParamIndices::LowCutFreq, -1, M7::gFilterFreqConfig, 0, 0), 0);
-				mHighCutFilter[i].SetParams(M7::FilterType::LP, mParams.GetFrequency(ParamIndices::HighCutFreq, -1, M7::gFilterFreqConfig, 0, 0), 0);
-			}
+			float feedback = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
+			float feedbackDriveLin = std::max(0.01f, mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0));
+			float cross = mParams.Get01Value(ParamIndices::Cross, 0);
+			float dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
 
 			for (int i = 0; i < numSamples; i++)
 			{
 				float leftInput = inputs[0][i];
 				float rightInput = inputs[1][i];
 
-				float leftDelay = mLowCutFilter[0].ProcessSample(mHighCutFilter[0].ProcessSample(leftBuffer.ReadSample()));
-				float rightDelay = mLowCutFilter[1].ProcessSample(mHighCutFilter[1].ProcessSample(rightBuffer.ReadSample()));
+				float leftDelay = mLowCutFilter[0].Next(mHighCutFilter[0].Next(leftBuffer.ReadSample()));
+				float rightDelay = mLowCutFilter[1].Next(mHighCutFilter[1].Next(rightBuffer.ReadSample()));
 
-				float feedback = mParams.Get01Value(ParamIndices::Feedback, 0);
-				float cross = mParams.Get01Value(ParamIndices::Cross, 0);
-				float dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
-				leftBuffer.WriteSample(leftInput + (leftDelay * (1.0f - cross) + rightDelay * cross) * feedback);
-				rightBuffer.WriteSample(rightInput + (rightDelay * (1.0f - cross) + leftDelay * cross) * feedback);
+				float leftFeedback = M7::math::tanh((leftInput + M7::math::lerp(leftDelay, rightDelay, cross)) * feedback * feedbackDriveLin) / feedbackDriveLin;
+				float rightFeedback = M7::math::tanh((rightInput + M7::math::lerp(rightDelay, leftDelay, cross)) * feedback * feedbackDriveLin) / feedbackDriveLin;
 
-				outputs[0][i] = leftInput * (1.0f - dryWet) + leftDelay * dryWet;
-				outputs[1][i] = rightInput * (1.0f - dryWet) + rightDelay * dryWet;
+				leftBuffer.WriteSample(leftFeedback);
+				rightBuffer.WriteSample(rightFeedback);
+
+				outputs[0][i] = M7::math::lerp(leftInput, leftDelay, dryWet);
+				outputs[1][i] = M7::math::lerp(rightInput, rightDelay, dryWet);
 			}
 		}
-
 
 		virtual void LoadDefaults() override
 		{
 			M7::ImportDefaultsArray(std::size(gDefaults16), gDefaults16, mParamCache);
+			SetParam(0, mParamCache[0]);
 		}
 
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
+
+			for (int i = 0; i < 2; i++)
+			{
+				mLowCutFilter[i].SetParams(
+					BiquadFilterType::Highpass,
+					mParams.GetFrequency(ParamIndices::LowCutFreq, -1, M7::gFilterFreqConfig, 0, 0),
+					mParams.Get01Value(ParamIndices::LowCutQ, 0),
+					0);
+				mHighCutFilter[i].SetParams(
+					BiquadFilterType::Lowpass,
+					mParams.GetFrequency(ParamIndices::HighCutFreq, -1, M7::gFilterFreqConfig, 0, 0),
+					mParams.Get01Value(ParamIndices::HighCutQ, 0),
+					0);
+			}
 		}
 
 		virtual float GetParam(int index) const override

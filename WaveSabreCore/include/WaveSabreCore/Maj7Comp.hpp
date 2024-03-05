@@ -132,9 +132,9 @@ namespace WaveSabreCore
 
 		static constexpr float gMinRMSWindowMS = 0.2f;
 
-		static constexpr M7::TimeParamCfg gAttackCfg{ 0.0f, 500.0f, 9 };
-		static constexpr M7::TimeParamCfg gReleaseCfg{ 0.0f, 1000.0f, 9 };
-		static constexpr M7::TimeParamCfg gRMSWindowSizeCfg{ 0.0f, 100.0f, 9 };
+		static constexpr M7::PowCurvedParamCfg gAttackCfg{ 0.0f, 500.0f, 9 };
+		static constexpr M7::PowCurvedParamCfg gReleaseCfg{ 0.0f, 1000.0f, 9 };
+		static constexpr M7::PowCurvedParamCfg gRMSWindowSizeCfg{ 0.0f, 100.0f, 9 };
 
 		static constexpr M7::DivCurvedParamCfg gRatioCfg{ 1, 50, 1.05f };
 
@@ -194,12 +194,12 @@ namespace WaveSabreCore
 				mThreshCoef = mThreshold - mKnee;
 
 				mFollower.SetParams(
-					mParams.GetTimeMilliseconds(ParamIndices::Attack, gAttackCfg, 0),
-					mParams.GetTimeMilliseconds(ParamIndices::Release, gReleaseCfg, 0)
+					mParams.GetPowCurvedValue(ParamIndices::Attack, gAttackCfg, 0),
+					mParams.GetPowCurvedValue(ParamIndices::Release, gReleaseCfg, 0)
 				);
 
 #ifdef MAJ7COMP_FULL
-				mRMSWindowMS = mParams.GetTimeMilliseconds(ParamIndices::RMSWindow, gRMSWindowSizeCfg, 0);
+				mRMSWindowMS = mParams.GetPowCurvedValue(ParamIndices::RMSWindow, gRMSWindowSizeCfg, 0);
 				if (mRMSWindowMS >= gMinRMSWindowMS) {
 					mRMSDetector.SetWindowSize(mRMSWindowMS);
 				}

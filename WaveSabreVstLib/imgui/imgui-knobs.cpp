@@ -21,7 +21,7 @@ namespace ImGui {
 
     // Note: p_data, p_min and p_max are _pointers_ to a memory address holding the data. For a Drag widget, p_min and p_max are optional.
     // Read code of e.g. DragFloat(), DragInt() etc. or examples in 'Demo->Widgets->Data Types' to understand how to use this function directly.
-    static inline bool DragScalar_Custom(const char* label, double* p_data, float v_speed, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags, ImGuiKnobs::IValueConverter* conv, void* capture)
+    static inline bool DragScalar_Custom(const char* label, double* p_data, double v_speed, const void* p_min, const void* p_max, const char* format, ImGuiSliderFlags flags, ImGuiKnobs::IValueConverter* conv, void* capture)
     {
         static constexpr float          DRAG_MOUSE_THRESHOLD_FACTOR = 0.50f;    // Multiplier for the default value of io.MouseDragThreshold to make DragFloat/DragInt react faster to mouse drags.
         ImGuiDataType data_type = ImGuiDataType_Double;
@@ -104,7 +104,7 @@ namespace ImGui {
         RenderFrame(frame_bb.Min, frame_bb.Max, frame_col, true, style.FrameRounding);
 
         // Drag behavior
-        const bool value_changed = DragBehavior(id, data_type, p_data, v_speed, p_min, p_max, format, flags);
+        const bool value_changed = DragBehavior(id, data_type, p_data, (float)v_speed, p_min, p_max, format, flags);
         if (value_changed)
             MarkItemEdited(id);
 
@@ -285,7 +285,7 @@ namespace ImGuiKnobs {
             ImGuiKnobFlags mFlags;
 
             knob(std::string& _label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center,
-                ModInfo modInfo, float speed, float _radius, const char* format,
+                ModInfo modInfo, double speed, float _radius, const char* format,
                 ImGuiKnobVariant variant, ImGuiKnobFlags flags, IValueConverter* conv, void* capture)
             {
                 mFormat = format;
@@ -329,7 +329,7 @@ namespace ImGuiKnobs {
                     drag_flags |= ImGuiSliderFlags_Vertical;
                 }
 
-                value_changed = ImGui::DragBehavior(gid, data_type, p_value, speed, &v_min, &v_max, format, drag_flags);
+                value_changed = ImGui::DragBehavior(gid, data_type, p_value, (float)speed, &v_min, &v_max, format, drag_flags);
 
                 bool hovered = ImGui::IsItemHovered(ImGuiHoveredFlags_None);
                 bool ctrlClicked = hovered && ImGui::IsMouseClicked(0) && ImGui::GetIO().KeyCtrl;
@@ -469,9 +469,9 @@ namespace ImGuiKnobs {
         // label & id need to be separated if you want to allow editing label.
         template<typename DataType>
         knob<DataType> knob_with_drag(std::string& label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default,
-            DataType v_center, ModInfo modInfo, float _speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, IValueConverter* conv, void* capture)
+            DataType v_center, ModInfo modInfo, double _speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, IValueConverter* conv, void* capture)
         {
-            auto speed = _speed == 0 ? (v_max - v_min) / 250.f : _speed;
+            auto speed = _speed == 0 ? (v_max - v_min) / 250.0 : _speed;
 
             ImGui::PushID(id == nullptr ? label.c_str() : id);
             auto width = size == 0 ? ImGui::GetTextLineHeight() * 3.25f : size * ImGui::GetIO().FontGlobalScale;
@@ -530,7 +530,7 @@ namespace ImGuiKnobs {
                 if (!(flags & ImGuiKnobFlags_DragHorizontal)) {
                     drag_flags |= ImGuiSliderFlags_Vertical;
                 }
-                auto changed = ImGui::DragScalar("###knob_drag", data_type, p_value, speed, &v_min, &v_max, format, drag_flags);
+                auto changed = ImGui::DragScalar("###knob_drag", data_type, p_value, (float)speed, &v_min, &v_max, format, drag_flags);
                 if (changed) {
                     k.value_changed = true;
                 }
@@ -606,7 +606,7 @@ namespace ImGuiKnobs {
     template<typename DataType>
     bool BaseKnob(std::string& label, const char *id, ImGuiDataType data_type, DataType* p_value, DataType v_min, DataType v_max, DataType v_default, DataType v_center,
         ModInfo modInfo,
-        float speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture) {
+        double speed, const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture) {
         auto knob = detail::knob_with_drag(label, id, data_type, p_value, v_min, v_max, v_default, v_center, modInfo, speed, format, variant, size, flags, conv, capture);
 
         switch (variant) {
@@ -716,7 +716,7 @@ namespace ImGuiKnobs {
     }
 
     bool Knob(const char* labelAndID, float* p_value, float v_min, float v_max, float v_default, float v_center, ModInfo modInfo,
-        float normalSpeed, float slowSpeed,
+        double normalSpeed, double slowSpeed,
         const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%.3f" : format;
@@ -727,7 +727,7 @@ namespace ImGuiKnobs {
     }
 
     bool KnobWithEditableLabel(std::string& label, const char *id, float* p_value, float v_min, float v_max, float v_default, float v_center,
-        ModInfo modInfo, float normalSpeed, float slowSpeed, const char* format, ImGuiKnobVariant variant,
+        ModInfo modInfo, double normalSpeed, double slowSpeed, const char* format, ImGuiKnobVariant variant,
         float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%.3f" : format;
@@ -737,7 +737,7 @@ namespace ImGuiKnobs {
     }
 
 
-    bool KnobInt(const char* labelAndID, int* p_value, int v_min, int v_max, int v_default, int v_center, float normalSpeed, float slowSpeed,
+    bool KnobInt(const char* labelAndID, int* p_value, int v_min, int v_max, int v_default, int v_center, double normalSpeed, double slowSpeed,
         const char* format, ImGuiKnobVariant variant, float size, ImGuiKnobFlags flags, int steps, IValueConverter* conv, void* capture)
     {
         const char* _format = format == NULL ? "%i" : format;
