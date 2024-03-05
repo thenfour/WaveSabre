@@ -1,8 +1,6 @@
 
 #include <cstdint>
 #include <WaveSabreCore/Cathedral.h>
-#include <WaveSabreCore/AllPass.h>
-#include <WaveSabreCore/Comb.h>
 #include <WaveSabreCore/Helpers.h>
 
 namespace WaveSabreCore
@@ -23,11 +21,11 @@ namespace WaveSabreCore
 		highCutFreq = 20000.0f - 20.0f;
 		preDelay = 0.0f;
 
-		for (int i = 0; i < 2; i++)
-		{
-			lowCutFilter[i].SetType(StateVariableFilterType::Highpass);
-			highCutFilter[i].SetType(StateVariableFilterType::Lowpass);
-		}
+		//for (int i = 0; i < 2; i++)
+		//{
+		//	lowCutFilter[i].SetType(StateVariableFilterType::Highpass);
+		//	highCutFilter[i].SetType(StateVariableFilterType::Lowpass);
+		//}
 
 		for (int i = 0; i < numCombs; i++)
 		{
@@ -52,11 +50,11 @@ namespace WaveSabreCore
 
 	void Cathedral::Run(double songPosition, float **inputs, float **outputs, int numSamples)
 	{
-		for (int i = 0; i < 2; i++)
-		{
-			lowCutFilter[i].SetFreq(lowCutFreq);
-			highCutFilter[i].SetFreq(highCutFreq);
-		}
+		//for (int i = 0; i < 2; i++)
+		//{
+		//	lowCutFilter[i].SetFreq(lowCutFreq);
+		//	highCutFilter[i].SetFreq(highCutFreq);
+		//}
 
 		preDelayBuffer.SetLength(preDelay * 500.0f);
 
@@ -89,14 +87,14 @@ namespace WaveSabreCore
 				outR = allPassRight[i].Process(outR);
 			}
 
-			outL = lowCutFilter[0].Next(highCutFilter[0].Next(outL));
-			outR = lowCutFilter[1].Next(highCutFilter[1].Next(outR));
+			outL = lowCutFilter[0].SVFhigh(highCutFilter[0].SVFlow(outL, highCutFreq, 1), lowCutFreq, 1);
+			outR = lowCutFilter[1].SVFhigh(highCutFilter[1].SVFlow(outR, highCutFreq, 1), lowCutFreq, 1);
 
 			outL = outL*wet1 + outR*wet2;
 			outR = outR*wet1 + outL*wet2;
 
-			outputs[0][s] = leftInput * (1.0f - dryWet) + outL * dryWet;
-			outputs[1][s] = rightInput * (1.0f - dryWet) + outR * dryWet;
+			outputs[0][s] = M7::math::lerp(leftInput, outL, dryWet);// leftInput* (1.0f - dryWet) + outL * dryWet;
+			outputs[1][s] = M7::math::lerp(rightInput, outR, dryWet); //rightInput * (1.0f - dryWet) + outR * dryWet;
 		}
 	}
 

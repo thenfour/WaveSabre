@@ -104,14 +104,14 @@ namespace WaveSabreCore
 			Envelope ampEnv, modEnv, pitchEnv;
 
 			Oscillator osc1, osc2, osc3;
-			StateVariableFilter filter;
+			//StateVariableFilter filter;
 		};
 
 		float osc1Waveform, osc1PulseWidth, osc1Volume, osc1DetuneCoarse, osc1DetuneFine;
 		float osc2Waveform, osc2PulseWidth, osc2Volume, osc2DetuneCoarse, osc2DetuneFine;
 		float osc3Waveform, osc3PulseWidth, osc3Volume, osc3DetuneCoarse, osc3DetuneFine;
 		float noiseVolume;
-		StateVariableFilterType filterType;
+		//StateVariableFilterType filterType;
 		float filterFreq, filterResonance, filterModAmt;
 		float ampAttack, ampDecay, ampSustain, ampRelease;
 		float modAttack, modDecay, modSustain, modRelease;

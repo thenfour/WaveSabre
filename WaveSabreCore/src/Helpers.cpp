@@ -303,15 +303,15 @@ namespace WaveSabreCore
 		return (resonance - .01f) / .99f;
 	}
 
-	StateVariableFilterType Helpers::ParamToStateVariableFilterType(float param)
-	{
-		return (StateVariableFilterType)(int)(param * 3.0f);
-	}
+	//StateVariableFilterType Helpers::ParamToStateVariableFilterType(float param)
+	//{
+	//	return (StateVariableFilterType)(int)(param * 3.0f);
+	//}
 
-	float Helpers::StateVariableFilterTypeToParam(StateVariableFilterType type)
-	{
-		return (float)type / 3.0f;
-	}
+	//float Helpers::StateVariableFilterTypeToParam(StateVariableFilterType type)
+	//{
+	//	return (float)type / 3.0f;
+	//}
 
 	int Helpers::ParamToUnisono(float param)
 	{
@@ -344,15 +344,15 @@ namespace WaveSabreCore
 		return sqrtf(pan);
 	}
 
-	Spread Helpers::ParamToSpread(float param)
-	{
-		return (Spread)(int)(param * 2.0f);
-	}
-	
-	float Helpers::SpreadToParam(Spread spread)
-	{
-		return (float)spread / 2.0f;
-	}
+	//Spread Helpers::ParamToSpread(float param)
+	//{
+	//	return (Spread)(int)(param * 2.0f);
+	//}
+	//
+	//float Helpers::SpreadToParam(Spread spread)
+	//{
+	//	return (float)spread / 2.0f;
+	//}
 
 	VoiceMode Helpers::ParamToVoiceMode(float param)
 	{

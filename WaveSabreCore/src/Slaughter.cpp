@@ -18,7 +18,7 @@ namespace WaveSabreCore
 		osc1Volume = 1.0f;
 		osc2Volume = osc3Volume = noiseVolume = 0.0f;
 
-		filterType = StateVariableFilterType::Lowpass;
+		//filterType = StateVariableFilterType::Lowpass;
 		filterFreq = 20000.0f - 20.0f;
 		filterResonance = 1.0f;
 		filterModAmt = .5f;
@@ -66,7 +66,7 @@ namespace WaveSabreCore
 
 		case ParamIndices::NoiseVolume: noiseVolume = value; break;
 
-		case ParamIndices::FilterType: filterType = Helpers::ParamToStateVariableFilterType(value); break;
+		//case ParamIndices::FilterType: filterType = Helpers::ParamToStateVariableFilterType(value); break;
 		case ParamIndices::FilterFreq: filterFreq = Helpers::ParamToFrequency(value); break;
 		case ParamIndices::FilterResonance: filterResonance = 1.0f - value; break;
 		case ParamIndices::FilterModAmt: filterModAmt = value; break;
@@ -130,7 +130,7 @@ namespace WaveSabreCore
 
 		case ParamIndices::NoiseVolume: return noiseVolume;
 
-		case ParamIndices::FilterType: return Helpers::StateVariableFilterTypeToParam(filterType);
+		//case ParamIndices::FilterType: return Helpers::StateVariableFilterTypeToParam(filterType);
 		case ParamIndices::FilterFreq: return Helpers::FrequencyToParam(filterFreq);
 		case ParamIndices::FilterResonance: return 1.0f - filterResonance;
 		case ParamIndices::FilterModAmt: return filterModAmt;
@@ -186,8 +186,8 @@ namespace WaveSabreCore
 	{
 		double vibratoFreq = slaughter->VibratoFreq / Helpers::CurrentSampleRate;
 
-		filter.SetType(slaughter->filterType);
-		filter.SetQ(slaughter->filterResonance);
+		//filter.SetType(slaughter->filterType);
+		//filter.SetQ(slaughter->filterResonance);
 
 		float amp = -16.0f * Helpers::VolumeToScalar(slaughter->masterLevel);
 		float panLeft = Helpers::PanToScalarLeft(Pan);
@@ -204,7 +204,7 @@ namespace WaveSabreCore
 
 		for (int i = 0; i < numSamples; i++)
 		{
-			filter.SetFreq(M7::math::clamp(slaughter->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (slaughter->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
+			//filter.SetFreq(M7::math::clamp(slaughter->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (slaughter->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
 
 			double baseNote = GetNote() + Detune + pitchEnv.GetValue() * slaughter->pitchEnvAmt + M7::math::sin((float)vibratoPhase) * slaughter->VibratoAmount + slaughter->Rise * 24.0f;
 			float oscMix = 0.0;
@@ -212,9 +212,9 @@ namespace WaveSabreCore
 			if (osc2VolumeScalar > 0.0f) oscMix += (float)(osc2.Next(baseNote + osc2Detune, slaughter->osc2Waveform, slaughter->osc2PulseWidth) * osc2VolumeScalar);
 			if (osc3VolumeScalar > 0.0f) oscMix += (float)(osc3.Next(baseNote + osc3Detune, slaughter->osc3Waveform, slaughter->osc3PulseWidth) * osc3VolumeScalar);
 			if (noiseScalar > 0.0f) oscMix += Helpers::RandFloat() * noiseScalar;
-			float out = filter.Next(oscMix) * ampEnv.GetValue() * amp;
-			outputs[0][i] += out * panLeft;
-			outputs[1][i] += out * panRight;
+			//float out = filter.Next(oscMix) * ampEnv.GetValue() * amp;
+			//outputs[0][i] += out * panLeft;
+			//outputs[1][i] += out * panRight;
 
 			ampEnv.Next();
 			if (ampEnv.State == EnvelopeState::Finished)

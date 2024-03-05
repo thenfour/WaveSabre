@@ -3,9 +3,10 @@
 
 #include "Device.h"
 #include "DelayBuffer.h"
-#include "StateVariableFilter.h"
+//#include "StateVariableFilter.h"
 #include "Comb.h"
 #include "AllPass.h"
+#include "Maj7Filter.hpp"
 
 namespace WaveSabreCore
 {
@@ -52,7 +53,8 @@ namespace WaveSabreCore
 
 		void UpdateParams();
 
-		StateVariableFilter lowCutFilter[2], highCutFilter[2];
+		//StateVariableFilter lowCutFilter[2], highCutFilter[2];
+		M7::SVFilter lowCutFilter[2], highCutFilter[2];
 
 		Comb combLeft[numCombs];
 		Comb combRight[numCombs];

@@ -4,7 +4,8 @@
 #include "Device.h"
 #include "ResampleBuffer.h"
 #include "AllPassDelay.h"
-#include "StateVariableFilter.h"
+//#include "StateVariableFilter.h"
+#include "Maj7Filter.hpp"
 
 namespace WaveSabreCore
 {
@@ -66,7 +67,7 @@ namespace WaveSabreCore
 		ResampleBuffer leftBuffer;
 		ResampleBuffer rightBuffer;
 		
-		StateVariableFilter lowCutFilter[2], highCutFilter[2];
+		M7::SVFilter lowCutFilter[2], highCutFilter[2];
 	};
 }
 

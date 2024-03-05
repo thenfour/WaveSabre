@@ -29,11 +29,11 @@ namespace WaveSabreCore
 		lastLeft = 0.0f;
 		lastRight = 0.0f;
 
-		for (int i = 0; i < 2; i++)
-		{
-			lowCutFilter[i].SetType(StateVariableFilterType::Highpass);
-			highCutFilter[i].SetType(StateVariableFilterType::Lowpass);
-		}
+		//for (int i = 0; i < 2; i++)
+		//{
+		//	lowCutFilter[i].SetType(StateVariableFilterType::Highpass);
+		//	highCutFilter[i].SetType(StateVariableFilterType::Lowpass);
+		//}
 	}
 
 	Twister::~Twister()
@@ -48,11 +48,11 @@ namespace WaveSabreCore
 		float positionLeft = 0.0f;
 		float positionRight = 0.0f;
 
-		for (int i = 0; i < 2; i++)
-		{
-			lowCutFilter[i].SetFreq(lowCutFreq);
-			highCutFilter[i].SetFreq(highCutFreq);
-		}
+		//for (int i = 0; i < 2; i++)
+		//{
+		//	lowCutFilter[i].SetFreq(lowCutFreq);
+		//	highCutFilter[i].SetFreq(highCutFreq);
+		//}
 
 		for (int i = 0; i < numSamples; i++)
 		{
@@ -61,65 +61,69 @@ namespace WaveSabreCore
 
 			float freq = M7::math::sin((float)vibratoPhase) * vibratoAmount;
 
+			positionLeft = M7::math::clamp01((amount + freq));
 			switch (spread)
 			{
 			case Spread::Mono: 
 			default:
-				positionLeft = M7::math::clamp01((amount + freq));
 				positionRight = positionLeft;
 				break;
 			case Spread::FullInvert:
-				positionLeft = M7::math::clamp01((amount + freq));
 				positionRight = (1.0f - M7::math::clamp01((amount + freq)));
 				break;
 			case Spread::ModInvert:
-				positionLeft = M7::math::clamp01((amount + freq));
 				positionRight = M7::math::clamp01((amount - freq));
 				break;
 			}
 
+			// TODO: this is easily optimizable.
 			switch (type)
 			{
-			case 0:
-				positionLeft *= 132.0f;
-				positionRight *= 132.0f;
-				outputLeft = highCutFilter[0].Next(lowCutFilter[0].Next(leftBuffer.ReadPosition(positionLeft + 2)));
-				outputRight = highCutFilter[1].Next(lowCutFilter[1].Next(rightBuffer.ReadPosition(positionRight + 2)));
-				leftBuffer.WriteSample(leftInput + (outputLeft * feedback));
-				rightBuffer.WriteSample(rightInput + (outputRight * feedback));
-				break;
-			case 1:
-				positionLeft *= 132.0f;
-				positionRight *= 132.0f;
-				outputLeft = highCutFilter[0].Next(lowCutFilter[0].Next(leftBuffer.ReadPosition(positionLeft + 2)));
-				outputRight = highCutFilter[1].Next(lowCutFilter[1].Next(rightBuffer.ReadPosition(positionRight + 2)));
-				leftBuffer.WriteSample(leftInput - (outputLeft * feedback));
-				rightBuffer.WriteSample(rightInput - (outputRight * feedback));
-				break;
-			case 2:
-				for (int i = 0; i<6; i++) allPassLeft[i].Delay(positionLeft);
-				for (int i = 0; i<6; i++) allPassRight[i].Delay(positionRight);
-				outputLeft = highCutFilter[0].Next(lowCutFilter[0].Next(AllPassUpdateLeft(leftInput + lastLeft * feedback)));
-				outputRight = highCutFilter[1].Next(lowCutFilter[1].Next(AllPassUpdateRight(rightInput + lastRight * feedback)));
-				lastLeft = outputLeft;
-				lastRight = outputRight;
-				break;
-			case 3:
-				for (int i = 0; i<6; i++) allPassLeft[i].Delay(positionLeft);
-				for (int i = 0; i<6; i++) allPassRight[i].Delay(positionRight);
-				outputLeft = highCutFilter[0].Next(lowCutFilter[0].Next(AllPassUpdateLeft(leftInput - lastLeft * feedback)));
-				outputRight = highCutFilter[1].Next(lowCutFilter[1].Next(AllPassUpdateRight(rightInput - lastRight * feedback)));
-				lastLeft = outputLeft;
-				lastRight = outputRight;
-				break;
 			default:
-				outputLeft = 0.0f;
-				outputRight = 0.0f;
+			case 0:
+			case 1:
+			{
+				positionLeft *= 132.0f;
+				positionRight *= 132.0f;
+
+				float s0 = leftBuffer.ReadPosition(positionLeft + 2);
+				s0 = lowCutFilter[0].SVFhigh(s0, lowCutFreq, 1);
+				outputLeft = highCutFilter[0].SVFlow(s0, highCutFreq, 1);
+
+				float s1 = rightBuffer.ReadPosition(positionRight + 2);
+				s1 = lowCutFilter[1].SVFhigh(s1, lowCutFreq, 1);
+				outputRight = highCutFilter[1].SVFlow(s1, highCutFreq, 1);
+
+				float g = ((type == 0) ? 1.0f : -1.0f);
+
+				leftBuffer.WriteSample(leftInput + g * (outputLeft * feedback));
+				rightBuffer.WriteSample(rightInput + g * (outputRight * feedback));
 				break;
 			}
+			case 2: {
+				for (int i = 0; i < 6; i++) allPassLeft[i].Delay(positionLeft);
+				for (int i = 0; i < 6; i++) allPassRight[i].Delay(positionRight);
 
-			outputs[0][i] = (leftInput * (1.0f - dryWet)) + (outputLeft * dryWet);
-			outputs[1][i] = (rightInput * (1.0f - dryWet)) + (outputRight * dryWet);
+				float g = ((type == 2) ? 1.0f : -1.0f);
+
+				float s0 = leftInput + g * lastLeft * feedback;
+				s0 = AllPassUpdateLeft(s0);
+				s0 = lowCutFilter[0].SVFhigh(s0, lowCutFreq, 1);
+				outputLeft = highCutFilter[0].SVFlow(s0, highCutFreq, 1);
+
+				float s1 = rightInput + lastRight * feedback;
+				s1 = AllPassUpdateLeft(s1);
+				s1 = lowCutFilter[1].SVFhigh(s1, lowCutFreq, 1);
+				outputRight = highCutFilter[1].SVFlow(s1, highCutFreq, 1);
+
+				lastLeft = outputLeft;
+				lastRight = outputRight;
+				break;
+			}
+			}
+
+			outputs[0][i] = M7::math::lerp(leftInput, outputLeft, dryWet);// (leftInput * (1.0f - dryWet)) + (outputLeft * dryWet);
+			outputs[1][i] = M7::math::lerp(rightInput, outputRight, dryWet);// (rightInput * (1.0f - dryWet)) + (outputRight * dryWet);
 
 			vibratoPhase += vibratoDelta;
 		}
@@ -127,24 +131,32 @@ namespace WaveSabreCore
 
 	float Twister::AllPassUpdateLeft(float input)
 	{
-		return(
-			allPassLeft[0].Update(
-			allPassLeft[1].Update(
-			allPassLeft[2].Update(
-			allPassLeft[3].Update(
-			allPassLeft[4].Update(
-			allPassLeft[5].Update(input)))))));
+		for (int i = int(std::size(allPassLeft)) - 1; i >= 0; --i) {
+			input = allPassLeft[i].Update(input);
+		}
+		//return(
+		//	allPassLeft[0].Update(
+		//	allPassLeft[1].Update(
+		//	allPassLeft[2].Update(
+		//	allPassLeft[3].Update(
+		//	allPassLeft[4].Update(
+		//	allPassLeft[5].Update(input)))))));
+		return input;
 	}
 
 	float Twister::AllPassUpdateRight(float input)
 	{
-		return(
-			allPassRight[0].Update(
-			allPassRight[1].Update(
-			allPassRight[2].Update(
-			allPassRight[3].Update(
-			allPassRight[4].Update(
-			allPassRight[5].Update(input)))))));
+		for (int i = int(std::size(allPassLeft)) - 1; i >= 0; --i) {
+			input = allPassRight[i].Update(input);
+		}
+		return input;
+		//return(
+		//	allPassRight[0].Update(
+		//	allPassRight[1].Update(
+		//	allPassRight[2].Update(
+		//	allPassRight[3].Update(
+		//	allPassRight[4].Update(
+		//	allPassRight[5].Update(input)))))));
 	}
 
 	void Twister::SetParam(int index, float value)
@@ -154,7 +166,12 @@ namespace WaveSabreCore
 		case ParamIndices::Type: type = (int)(value * 3.0f); break;
 		case ParamIndices::Amount: amount = value; break;
 		case ParamIndices::Feedback: feedback = value; break;
-		case ParamIndices::Spread: spread = Helpers::ParamToSpread(value); break;
+		case ParamIndices::Spread: {
+			M7::ParamAccessor p{&value, 0};
+			spread = p.GetEnumValue<Spread>(0);
+			//spread = Helpers::ParamToSpread(value);
+			break;
+		}
 		case ParamIndices::VibratoFreq: vibratoFreq = Helpers::ParamToVibratoFreq(value); break;
 		case ParamIndices::VibratoAmount: vibratoAmount = value; break;
 		case ParamIndices::LowCutFreq: lowCutFreq = Helpers::ParamToFrequency(value); break;
@@ -173,7 +190,13 @@ namespace WaveSabreCore
 
 		case ParamIndices::Amount: return amount;
 		case ParamIndices::Feedback: return feedback;
-		case ParamIndices::Spread: return Helpers::SpreadToParam(spread);
+		case ParamIndices::Spread: {
+			float ret;
+			M7::ParamAccessor p{ &ret, 0 };
+			p.SetEnumValue(0, this->spread);
+			//return Helpers::SpreadToParam(spread);
+			return ret;
+		}
 		case ParamIndices::VibratoFreq: return Helpers::VibratoFreqToParam(vibratoFreq);
 		case ParamIndices::VibratoAmount: return vibratoAmount;
 		case ParamIndices::LowCutFreq: return Helpers::FrequencyToParam(lowCutFreq);

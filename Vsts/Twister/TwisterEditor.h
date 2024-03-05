@@ -41,7 +41,9 @@ public:
 			"Invert",
 			"ModInvert",
 		};
-		WSImGuiParamEnumList((VstInt32)Twister::ParamIndices::Spread, "Width", 3, spreadCaptions);
+		//WSImGuiParamEnumList((VstInt32)Twister::ParamIndices::Spread, "Width", 3, spreadCaptions);
+		Maj7ImGuiParamEnumCombo(Twister::ParamIndices::Spread, "Width", 3, Spread::FullInvert, spreadCaptions);
+		//Maj7ImGuiParamEnumMutexButtonArray();
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)Twister::ParamIndices::DryWet, "DRY/WET");
 	}

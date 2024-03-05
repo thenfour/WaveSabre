@@ -1,5 +1,5 @@
-#include <WaveSabreCore/Adultery.h>
 #include <WaveSabreCore/Helpers.h>
+#include <WaveSabreCore/Adultery.h>
 #include <WaveSabreCore/GmDls.h>
 #include "WaveSabreCore/Maj7Basic.hpp"
 #include <string.h>
@@ -36,7 +36,7 @@ namespace WaveSabreCore
 		coarseTune = 0.5f;
 		fineTune = 0.5f;
 
-		filterType = StateVariableFilterType::Lowpass;
+		//filterType = StateVariableFilterType::Lowpass;
 		filterFreq = 20000.0f - 20.0f;
 		filterResonance = 1.0f;
 		filterModAmt = .5f;
@@ -156,7 +156,7 @@ namespace WaveSabreCore
 		case ParamIndices::CoarseTune: coarseTune = value; break;
 		case ParamIndices::FineTune: fineTune = value; break;
 
-		case ParamIndices::FilterType: filterType = Helpers::ParamToStateVariableFilterType(value); break;
+		//case ParamIndices::FilterType: filterType = Helpers::ParamToStateVariableFilterType(value); break;
 		case ParamIndices::FilterFreq: filterFreq = Helpers::ParamToFrequency(value); break;
 		case ParamIndices::FilterResonance: filterResonance = 1.0f - value; break;
 		case ParamIndices::FilterModAmt: filterModAmt = value; break;
@@ -201,7 +201,7 @@ namespace WaveSabreCore
 		case ParamIndices::CoarseTune: return coarseTune;
 		case ParamIndices::FineTune: return fineTune;
 
-		case ParamIndices::FilterType: return Helpers::StateVariableFilterTypeToParam(filterType);
+		//case ParamIndices::FilterType: return Helpers::StateVariableFilterTypeToParam(filterType);
 		case ParamIndices::FilterFreq: return Helpers::FrequencyToParam(filterFreq);
 		case ParamIndices::FilterResonance: return 1.0f - filterResonance;
 		case ParamIndices::FilterModAmt: return filterModAmt;
@@ -234,8 +234,8 @@ namespace WaveSabreCore
 
 	void Adultery::AdulteryVoice::Run(double songPosition, float **outputs, int numSamples)
 	{
-		filter.SetType(adultery->filterType);
-		filter.SetQ(adultery->filterResonance);
+		//filter.SetType(adultery->filterType);
+		//filter.SetQ(adultery->filterResonance);
 
 		samplePlayer.SampleStart = adultery->sampleStart;
 		samplePlayer.LoopStart = adultery->loopStart;
@@ -255,7 +255,7 @@ namespace WaveSabreCore
 		{
 			calcPitch();
 
-			filter.SetFreq(M7::math::clamp(adultery->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (adultery->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
+			//filter.SetFreq(M7::math::clamp(adultery->filterFreq + modEnv.GetValue() * (20000.0f - 20.0f) * (adultery->filterModAmt * 2.0f - 1.0f), 0.0f, 20000.0f - 20.0f));
 
 			float sample = samplePlayer.Next();
 			if (!samplePlayer.IsActive)
@@ -264,7 +264,7 @@ namespace WaveSabreCore
 				break;
 			}
 
-			sample = filter.Next(sample) * ampEnv.GetValue() * velocity * amp;
+			//sample = filter.Next(sample) * ampEnv.GetValue() * velocity * amp;
 			outputs[0][i] += sample * panLeft;
 			outputs[1][i] += sample * panRight;
 

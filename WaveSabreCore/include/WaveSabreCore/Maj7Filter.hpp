@@ -10,6 +10,11 @@
 //#include "Filters/FilterSEM12.hpp"
 // TODO: comb, notch, butterworth, ??
 
+// disabling these filters saves ~60 bytes of final code
+#define DISABLE_6db_oct_crossover
+#define DISABLE_36db_oct_crossover
+#define DISABLE_onepole_maj7_filter
+
 namespace WaveSabreCore
 {
 	namespace M7
@@ -52,7 +57,9 @@ namespace WaveSabreCore
 			//DiodeFilter mDiode;
 			//K35Filter mK35;
 			MoogLadderFilter mMoog;
+#ifndef DISABLE_onepole_maj7_filter
 			OnePoleFilter mOnePole;
+#endif // DISABLE_onepole_maj7_filter
 			//SEM12Filter mSem12;
 
 			IFilter* mSelectedFilter = &mMoog;
@@ -64,14 +71,17 @@ namespace WaveSabreCore
                 FilterType ft = FilterType::LP;
                 switch (ctype)
                 {
+				default:
                 case FilterModel::Disabled:
                     mSelectedFilter = &mNullFilter;
                     break;
-                case FilterModel::LP_OnePole:
+#ifndef DISABLE_onepole_maj7_filter
+				case FilterModel::LP_OnePole:
                     ft = FilterType::LP;
                     mSelectedFilter = &mOnePole;
                     break;
-                //case FilterModel::LP_SEM12:
+#endif // DISABLE_onepole_maj7_filter
+					//case FilterModel::LP_SEM12:
                 //    ft = FilterType::LP;
                 //    mSelectedFilter = &mSem12;
                 //    break;
@@ -92,11 +102,13 @@ namespace WaveSabreCore
                     ft = FilterType::LP4;
                     mSelectedFilter = &mMoog;
                     break;
-                case FilterModel::HP_OnePole:
+#ifndef DISABLE_onepole_maj7_filter
+				case FilterModel::HP_OnePole:
                     ft = FilterType::HP;
                     mSelectedFilter = &mOnePole;
                     break;
-                //case FilterModel::HP_K35:
+#endif // DISABLE_onepole_maj7_filter
+					//case FilterModel::HP_K35:
                 //    ft = FilterType::HP;
                 //    mSelectedFilter = &mK35;
                 //    break;
@@ -290,10 +302,12 @@ namespace WaveSabreCore
 				case Slope::Slope_24dB:
 					x = svf[0].SVFlow(x, freq, q24);
 					return svf[1].SVFlow(x, freq, q24);
+#ifndef DISABLE_6db_oct_crossover
 				case Slope::Slope_36dB:
 					x = svf[0].SVFlow(x, freq, 1);
 					x = svf[1].SVFlow(x, freq, 1);
 					return svf[2].SVFlow(x, freq, 0.5f);
+#endif // DISABLE_6db_oct_crossover
 				case Slope::Slope_48dB:
 					x = svf[0].SVFlow(x, freq, q48_1);
 					x = svf[1].SVFlow(x, freq, q48_2);
@@ -311,10 +325,12 @@ namespace WaveSabreCore
 				case Slope::Slope_24dB:
 					x = svf[0].SVFhigh(x, freq, q24);
 					return svf[1].SVFhigh(x, freq, q24);
+#ifndef DISABLE_6db_oct_crossover
 				case Slope::Slope_36dB:
 					x = svf[0].SVFhigh(-x, freq, 1);
 					x = svf[1].SVFhigh(x, freq, 1);
 					return svf[2].SVFhigh(x, freq, 0.5f);
+#endif // DISABLE_6db_oct_crossover	
 				case Slope::Slope_48dB:
 					x = svf[0].SVFhigh(x, freq, q48_1);
 					x = svf[1].SVFhigh(x, freq, q48_2);
@@ -327,18 +343,19 @@ namespace WaveSabreCore
 
 			real APF(real x, real freq, Slope slope) {
 				switch (slope) {
+				default:
 				case Slope::Slope_12dB:
 					return svf[0].SVFOPapf_temp(-x, freq);
 				case Slope::Slope_24dB:
 					return svf[0].SVFall(x, freq, q24);
+#ifndef DISABLE_6db_oct_crossover
 				case Slope::Slope_36dB:
 					x = svf[0].SVFall(-x, freq, 1);
 					return svf[1].SVFOPapf_temp(x, freq);
+#endif // DISABLE_6db_oct_crossover
 				case Slope::Slope_48dB:
 					x = svf[0].SVFall(x, freq, q48_1);
 					return svf[1].SVFall(x, freq, q48_2);
-				default:
-					return x; // Invalid slope, return unprocessed signal
 				}
 			}
 		};
@@ -347,19 +364,23 @@ namespace WaveSabreCore
 		struct FrequencySplitter
 		{
 			LinkwitzRileyFilter mLR[6];
+#ifndef DISABLE_6db_oct_crossover
 			M7::OnePoleFilter mOP[2];
+#endif // DISABLE_6db_oct_crossover
 
 			// low, med, high bands.
 			float s[3];
 
 			void frequency_splitter(float x, float crossoverFreqA, LinkwitzRileyFilter::Slope crossoverSlope, float crossoverFreqB)
 			{
+#ifndef DISABLE_6db_oct_crossover
 				if (crossoverSlope == LinkwitzRileyFilter::Slope::Slope_6dB) {
 					s[0] = mOP[0].ProcessSample(x, M7::FilterType::LP2, crossoverFreqA);
 					s[2] = mOP[1].ProcessSample(x, M7::FilterType::HP2, crossoverFreqB);
 					s[1] = x - s[0] - s[2];
 				}
 				else
+#endif // DISABLE_6db_oct_crossover
 				{
 					s[0] = mLR[0].LR_LPF(x, crossoverFreqA, crossoverSlope);
 					s[0] = mLR[1].LR_LPF(s[0], crossoverFreqB, crossoverSlope);

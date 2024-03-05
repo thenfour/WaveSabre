@@ -3,52 +3,52 @@
 
 namespace WaveSabreCore
 {
-	enum class StateVariableFilterType
-	{
-		Lowpass,
-		Highpass,
-		Bandpass,
-		Notch,
-	};
+	//enum class StateVariableFilterType
+	//{
+	//	Lowpass,
+	//	Highpass,
+	//	Bandpass,
+	//	Notch,
+	//};
 
-	class StateVariableFilter
-	{
-	public:
-		StateVariableFilter();
+	//class StateVariableFilter
+	//{
+	//public:
+	//	StateVariableFilter();
 
-		float Next(float input);
+	//	float Next(float input);
 
-		void SetType(StateVariableFilterType type);
-		void SetFreq(float freq);
-		void SetQ(float q);
+	//	void SetType(StateVariableFilterType type);
+	//	void SetFreq(float freq);
+	//	void SetQ(float q);
 
-		//float SVFlow(float v0, float cutoff, float Q) {
-		//	SetType(StateVariableFilterType::Lowpass);
-		//	SetQ(Q);
-		//	SetFreq(cutoff);
-		//	return Next(v0);
-		//}
-		//float SVFhigh(float v0, float cutoff, float Q) {
-		//	SetType(StateVariableFilterType::Highpass);
-		//	SetQ(Q);
-		//	SetFreq(cutoff);
-		//	return Next(v0);
-		//}
+	//	//float SVFlow(float v0, float cutoff, float Q) {
+	//	//	SetType(StateVariableFilterType::Lowpass);
+	//	//	SetQ(Q);
+	//	//	SetFreq(cutoff);
+	//	//	return Next(v0);
+	//	//}
+	//	//float SVFhigh(float v0, float cutoff, float Q) {
+	//	//	SetType(StateVariableFilterType::Highpass);
+	//	//	SetQ(Q);
+	//	//	SetFreq(cutoff);
+	//	//	return Next(v0);
+	//	//}
 
-	private:
-		float run(float input);
+	//private:
+	//	float run(float input);
 
-		bool recalculate;
+	//	bool recalculate;
 
-		StateVariableFilterType type;
-		float freq;
-		float q;
+	//	StateVariableFilterType type;
+	//	float freq;
+	//	float q;
 
-		float lastInput;
-		float low, band;
+	//	float lastInput;
+	//	float low, band;
 
-		float f;
-	};
+	//	float f;
+	//};
 }
 
 #endif

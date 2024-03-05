@@ -21,7 +21,6 @@
 // use to enable/disable
 // - rms detection
 // - parallel processing (dry-wet)
-// - mid-side processing
 // - lowpass filter (it's rarely needed)
 // - compensation gain (just use output gain if no parallel processing there's no point)
 #define MAJ7COMP_FULL
@@ -231,9 +230,6 @@ namespace WaveSabreCore
 			float CompressorPeakSlow(float in) {
 				float dB = M7::math::LinearToDecibels(in);
 				float e = TransferDecibels(dB);
-				//float e = dB - std::min(dB, mThreshCoef) + 0.0000001f; // why the small value?
-				//e = (e * e) / (e + mKnee);
-				//e *= mRatioCoef;
 				e = M7::math::DecibelsToLinear(e);
 				return this->mFollower.ProcessSample(e);
 			}

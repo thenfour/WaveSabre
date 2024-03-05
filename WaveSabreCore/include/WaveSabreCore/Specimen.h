@@ -89,7 +89,7 @@ namespace WaveSabreCore
 
 			SamplePlayer samplePlayer;
 
-			StateVariableFilter filter;
+			//StateVariableFilter filter;
 
 			float velocity;
 		};
@@ -108,7 +108,7 @@ namespace WaveSabreCore
 		int sampleLoopStart, sampleLoopLength;
 		float coarseTune, fineTune;
 		float masterLevel;
-		StateVariableFilterType filterType;
+		//StateVariableFilterType filterType;
 		float filterFreq, filterResonance, filterModAmt;
 		float modAttack, modDecay, modSustain, modRelease;
 	};

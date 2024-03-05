@@ -1,8 +1,8 @@
 #ifndef __WAVESABRECORE_HELPERS_H__
 #define __WAVESABRECORE_HELPERS_H__
 
-#include "StateVariableFilter.h"
-#include "Twister.h"
+//#include "StateVariableFilter.h"
+//#include "Twister.h"
 #include "SynthDevice.h"
 
 #define _USE_MATH_DEFINES
@@ -136,8 +136,8 @@ namespace WaveSabreCore
 		static float ParamToResonance(float param);
 		static float ResonanceToParam(float resonance);
 
-		static StateVariableFilterType ParamToStateVariableFilterType(float param);
-		static float StateVariableFilterTypeToParam(StateVariableFilterType type);
+		//static StateVariableFilterType ParamToStateVariableFilterType(float param);
+		//static float StateVariableFilterTypeToParam(StateVariableFilterType type);
 
 		static int ParamToUnisono(float param);
 		static float UnisonoToParam(int unisono);
@@ -148,8 +148,8 @@ namespace WaveSabreCore
 		static float PanToScalarLeft(float pan);
 		static float PanToScalarRight(float pan);
 
-		static Spread ParamToSpread(float param);
-		static float SpreadToParam(Spread spread);
+		//static Spread ParamToSpread(float param);
+		//static float SpreadToParam(Spread spread);
 
 		static VoiceMode ParamToVoiceMode(float param);
 		static float VoiceModeToParam(VoiceMode type);
