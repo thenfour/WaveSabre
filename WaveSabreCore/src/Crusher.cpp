@@ -7,7 +7,9 @@
 namespace WaveSabreCore
 {
 	Crusher::Crusher()
-		: Device((int)ParamIndices::NumParams)
+		: Device((int)ParamIndices::NumParams),
+		mParams{mParamCache, 0}
+
 	{
 		vertical = 0.0f;
 		horizontal = 0.0f;
@@ -18,6 +20,8 @@ namespace WaveSabreCore
 			phase[i] = 0.0f;
 			hold[i] = 0.0f;
 		}
+
+		LoadDefaults();
 	}
 
 	void Crusher::Run(double songPosition, float **inputs, float **outputs, int numSamples)
@@ -42,26 +46,26 @@ namespace WaveSabreCore
 		}
 	}
 
-	void Crusher::SetParam(int index, float value)
-	{
-		switch ((ParamIndices)index)
-		{
-		case ParamIndices::Vertical: vertical = value; break;
-		case ParamIndices::Horizontal: horizontal = value; break;
-		case ParamIndices::DryWet: dryWet = value; break;
-		}
-	}
+	//void Crusher::SetParam(int index, float value)
+	//{
+	//	switch ((ParamIndices)index)
+	//	{
+	//	case ParamIndices::Vertical: vertical = value; break;
+	//	case ParamIndices::Horizontal: horizontal = value; break;
+	//	case ParamIndices::DryWet: dryWet = value; break;
+	//	}
+	//}
 
-	float Crusher::GetParam(int index) const
-	{
-		switch ((ParamIndices)index)
-		{
-		case ParamIndices::Vertical:
-		default:
-			return vertical;
+	//float Crusher::GetParam(int index) const
+	//{
+	//	switch ((ParamIndices)index)
+	//	{
+	//	case ParamIndices::Vertical:
+	//	default:
+	//		return vertical;
 
-		case ParamIndices::Horizontal: return horizontal;
-		case ParamIndices::DryWet: return dryWet;
-		}
-	}
+	//	case ParamIndices::Horizontal: return horizontal;
+	//	case ParamIndices::DryWet: return dryWet;
+	//	}
+	//}
 }

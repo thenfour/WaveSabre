@@ -3,20 +3,19 @@
 #include "Device.h"
 #include "Maj7Basic.hpp"
 #include "Filters/FilterOnePole.hpp"
+#include "RMS.hpp"
 
 namespace WaveSabreCore
 {
 	struct Maj7Width : public Device
 	{
+		// roughly in order of processing,
 		enum class ParamIndices
 		{
-			// in order of processing,
 			LeftSource, // 0 = left, 1 = right
 			RightSource, // 0 = left, 1 = right
 			RotationAngle,
 			SideHPFrequency,
-			//MidAmt,
-			//SideAmt,
 			MidSideBalance,
 			Pan,
 			OutputGain,
@@ -24,25 +23,51 @@ namespace WaveSabreCore
 			NumParams,
 		};
 
+		// NB: max 8 chars per string.
+#define MAJ7WIDTH_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Width::ParamIndices::NumParams]{ \
+	{"LSrc"},\
+	{"RSrc"},\
+	{"Rot"},\
+	{"SideHPF"},\
+	{"MSBal"},\
+	{"Pan"},\
+	{"OutGain"},\
+}
+
 		static constexpr M7::VolumeParamConfig gVolumeCfg{ 3.9810717055349722f, 12.0f };
 
-		float mParamCache[(int)ParamIndices::NumParams] = {
-			0, // left source
-			1, // right source
-			0.5f, // RotationAngle
-			0, // Side HP
-			0.5f, // mid side balance
-			0.5f, // pan
-			0.5f, // output gain
-		};
+		float mParamCache[(int)ParamIndices::NumParams];
 		M7::ParamAccessor mParams;
 
+		static_assert((int)ParamIndices::NumParams == 7, "param count probably changed and this needs to be regenerated.");
+		static constexpr int16_t gParamDefaults[7] = {
+			0, // left source
+			32767, // right source
+			16383, // RotationAngle
+			0, // Side HP
+			16383, // mid side balance
+			16383, // pan
+			16383, // output gain
+		};
+
 		M7::OnePoleFilter mFilter;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		AnalysisStream mInputAnalysis[2];
+		AnalysisStream mOutputAnalysis[2];
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7Width() :
 			Device((int)ParamIndices::NumParams),
 			mParams(mParamCache, 0)
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			,
+			// quite fast moving here because the user's looking for transients.
+			mInputAnalysis{ AnalysisStream{1200}, AnalysisStream{1200} },
+			mOutputAnalysis{ AnalysisStream{1200}, AnalysisStream{1200} }
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		{
+			LoadDefaults();
 		}
 
 		// 2D rotation around origin
@@ -88,15 +113,33 @@ namespace WaveSabreCore
 				if (msbal > 0) {
 					mid *= 1.0f - msbal;
 				}
-				//side *= mParamCache[(size_t)ParamIndices::SideAmt];
-				//mid *= mParamCache[(size_t)ParamIndices::MidAmt];
 
 				M7::MSDecode(mid, side, &left, &right);
 				left *= gains.first * masterLinearGain;
 				outputs[0][i] = left;
 				right *= gains.second * masterLinearGain;
 				outputs[1][i] = right;
+
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mInputAnalysis[0].WriteSample(inputs[0][i]);
+				mInputAnalysis[1].WriteSample(inputs[1][i]);
+				mOutputAnalysis[0].WriteSample(outputs[0][i]);
+				mOutputAnalysis[1].WriteSample(outputs[1][i]);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 			}
+		}
+		virtual void LoadDefaults() override {
+			cc::log("Width::LoadDefaults 1, importing %d", std::size(gParamDefaults));
+
+			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
+
+			cc::log("Width::LoadDefaults 2");
+
+			SetParam(0, mParamCache[0]); // force recalcing
+
+			cc::log("Width::LoadDefaults 3");
 		}
 
 		virtual void SetParam(int index, float value) override

@@ -156,16 +156,16 @@ namespace WaveSabreVstLib
 		vst_strncpy(text, "Name", kVstMaxParamStrLen);
 	}
 
-	VstInt32 VstPlug::getChunk(void **data, bool isPreset)
-	{
-		return device ? device->GetChunk(data) : 0;
-	}
+	//VstInt32 VstPlug::getChunk(void **data, bool isPreset)
+	//{
+	//	//return device ? device->GetChunk(data) : 0;
+	//}
 
-	VstInt32 VstPlug::setChunk(void *data, VstInt32 byteSize, bool isPreset)
-	{
-		if (device) device->SetChunk(data, byteSize);
-		return byteSize;
-	}
+	//VstInt32 VstPlug::setChunk(void *data, VstInt32 byteSize, bool isPreset)
+	//{
+	//	if (device) device->SetChunk(data, byteSize);
+	//	return byteSize;
+	//}
 
 	bool VstPlug::getEffectName(char *name)
 	{
@@ -211,25 +211,9 @@ namespace WaveSabreVstLib
 		return device;
 	}
 
-
-	//const std::vector<float> VstPlug::GetDefaultParamCache()
-	//{
-	//	auto tmpEffect = NewDevice();
-	//	CCASSERT(!!tmpEffect);
-	//	if (!tmpEffect) {
-	//		return {};
-	//	}
-	//	std::vector<float> ret;
-	//	ret.reserve(numParams);
-	//	for (int i = 0; i < numParams; ++i) {
-	//		ret.push_back(tmpEffect->GetParam(i));
-	//	}
-	//	return ret;
-	//}
-
 	void VstPlug::OptimizeParams()
 	{
-		//
+		// override this to optimize params.
 	}
 
 	// assumes that p has had its default param cache filled.

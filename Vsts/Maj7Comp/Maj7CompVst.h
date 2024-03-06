@@ -34,13 +34,13 @@ public:
 		return true;
 	}
 
+	virtual const char* GetJSONTagName() { return "Maj7Comp"; }
+
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
 		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Comp()->mParamCache, paramNames);
 	}
-
-	virtual const char* GetJSONTagName() { return "Maj7Comp"; }
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{

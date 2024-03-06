@@ -31,7 +31,10 @@ public:
 		WSImGuiParamKnob((VstInt32)Twister::ParamIndices::Feedback, "Feedback");
 
 		ImGui::SameLine(0, 60);
-		WSImGuiParamKnob((VstInt32)Twister::ParamIndices::VibratoFreq, "VIB FREQ", ParamBehavior::VibratoFreq);
+		//WSImGuiParamKnob((VstInt32)Twister::ParamIndices::VibratoFreq, "VIB FREQ", ParamBehavior::VibratoFreq);
+
+		Maj7ImGuiParamFrequency((VstInt16)Twister::ParamIndices::VibratoFreq, -1, "vib freq", M7::gLFOFreqConfig, .5f, {});
+
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)Twister::ParamIndices::VibratoAmount, "VIB AMT");
 

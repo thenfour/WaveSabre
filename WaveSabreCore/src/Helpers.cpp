@@ -173,18 +173,18 @@ namespace WaveSabreCore
 	//	return left + (right - left) * fractMix;
 	//}
 
-	double Helpers::Square135(double phase)
-	{
-		return M7::math::sin((float)phase) +
-			M7::math::sin((float)phase * 3) / 3 +
-			M7::math::sin((float)phase * 5) / 5;
-	}
+	//double Helpers::Square135(double phase)
+	//{
+	//	return M7::math::sin((float)phase) +
+	//		M7::math::sin((float)phase * 3) / 3 +
+	//		M7::math::sin((float)phase * 5) / 5;
+	//}
 
-	double Helpers::Square35(double phase)
-	{
-		return M7::math::sin((float)phase * 3) / 3 +
-			M7::math::sin((float)phase * 5) / 5;
-	}
+	//double Helpers::Square35(double phase)
+	//{
+	//	return M7::math::sin((float)phase * 3) / 3 +
+	//		M7::math::sin((float)phase * 5) / 5;
+	//}
 
 	//float Helpers::Mix(float v1, float v2, float mix)
 	//{
@@ -323,16 +323,16 @@ namespace WaveSabreCore
 		return (float)(unisono - 1) / 15.0f;
 	}
 
-	double Helpers::ParamToVibratoFreq(float param)
-	{
-		return (Pow2((double)param) + .1) * 70.0;
-	}
+	//double Helpers::ParamToVibratoFreq(float param)
+	//{
+	//	return (Pow2((double)param) + .1) * 70.0;
+	//}
 
-	float Helpers::VibratoFreqToParam(double vf)
-	{
-		double d = vf / 70.0 - .1;
-		return d >= 0.0 ? (float)sqrt(d) : 0.0f;
-	}
+	//float Helpers::VibratoFreqToParam(double vf)
+	//{
+	//	double d = vf / 70.0 - .1;
+	//	return d >= 0.0 ? (float)sqrt(d) : 0.0f;
+	//}
 
 	float Helpers::PanToScalarLeft(float pan)
 	{

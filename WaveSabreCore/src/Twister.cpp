@@ -7,21 +7,22 @@ int const lookAhead = 4;
 namespace WaveSabreCore
 {
 	Twister::Twister()
-		: Device((int)ParamIndices::NumParams)
+		: Device((int)ParamIndices::NumParams),
+		mParams{mParamCache, 0}
 	{
-		type = 0;
-		amount = 0;
-		feedback = 0.0f;
-		spread = Spread::Mono;
-		vibratoFreq = Helpers::ParamToVibratoFreq(0.0f);
-		vibratoAmount = 0.0f;
+		//type = 0; // param
+		//amount = 0; // param
+		//feedback = 0.0f; // param
+		//spread = Spread::Mono; // param
+		//vibratoFreq = Helpers::ParamToVibratoFreq(0.0f); // param
+		//vibratoAmount = 0.0f; // param
 		
 		vibratoPhase = 0.0;
-		
-		lowCutFreq = 20.0f;
-		highCutFreq = 20000.0f- 20.0f;
+		//
+		//lowCutFreq = 20.0f; // param
+		//highCutFreq = 20000.0f- 20.0f; // param
 
-		dryWet = .5f;
+		//dryWet = .5f; // param
 
 		leftBuffer.SetLength(1000);
 		rightBuffer.SetLength(1000);
@@ -29,11 +30,8 @@ namespace WaveSabreCore
 		lastLeft = 0.0f;
 		lastRight = 0.0f;
 
-		//for (int i = 0; i < 2; i++)
-		//{
-		//	lowCutFilter[i].SetType(StateVariableFilterType::Highpass);
-		//	highCutFilter[i].SetType(StateVariableFilterType::Lowpass);
-		//}
+
+		LoadDefaults();
 	}
 
 	Twister::~Twister()
@@ -47,12 +45,6 @@ namespace WaveSabreCore
 		float outputRight = 0.0f;
 		float positionLeft = 0.0f;
 		float positionRight = 0.0f;
-
-		//for (int i = 0; i < 2; i++)
-		//{
-		//	lowCutFilter[i].SetFreq(lowCutFreq);
-		//	highCutFilter[i].SetFreq(highCutFreq);
-		//}
 
 		for (int i = 0; i < numSamples; i++)
 		{
@@ -80,8 +72,8 @@ namespace WaveSabreCore
 			switch (type)
 			{
 			default:
-			case 0:
-			case 1:
+			case Type::Type0:
+			case Type::Type1:
 			{
 				positionLeft *= 132.0f;
 				positionRight *= 132.0f;
@@ -94,17 +86,19 @@ namespace WaveSabreCore
 				s1 = lowCutFilter[1].SVFhigh(s1, lowCutFreq, 1);
 				outputRight = highCutFilter[1].SVFlow(s1, highCutFreq, 1);
 
-				float g = ((type == 0) ? 1.0f : -1.0f);
+				float g = ((type == Type::Type0) ? 1.0f : -1.0f);
 
 				leftBuffer.WriteSample(leftInput + g * (outputLeft * feedback));
 				rightBuffer.WriteSample(rightInput + g * (outputRight * feedback));
 				break;
 			}
-			case 2: {
+			case Type::Type2:
+			case Type::Type3:
+			{
 				for (int i = 0; i < 6; i++) allPassLeft[i].Delay(positionLeft);
 				for (int i = 0; i < 6; i++) allPassRight[i].Delay(positionRight);
 
-				float g = ((type == 2) ? 1.0f : -1.0f);
+				float g = ((type == Type::Type2) ? 1.0f : -1.0f);
 
 				float s0 = leftInput + g * lastLeft * feedback;
 				s0 = AllPassUpdateLeft(s0);
@@ -150,58 +144,51 @@ namespace WaveSabreCore
 			input = allPassRight[i].Update(input);
 		}
 		return input;
-		//return(
-		//	allPassRight[0].Update(
-		//	allPassRight[1].Update(
-		//	allPassRight[2].Update(
-		//	allPassRight[3].Update(
-		//	allPassRight[4].Update(
-		//	allPassRight[5].Update(input)))))));
 	}
 
-	void Twister::SetParam(int index, float value)
-	{
-		switch ((ParamIndices)index)
-		{
-		case ParamIndices::Type: type = (int)(value * 3.0f); break;
-		case ParamIndices::Amount: amount = value; break;
-		case ParamIndices::Feedback: feedback = value; break;
-		case ParamIndices::Spread: {
-			M7::ParamAccessor p{&value, 0};
-			spread = p.GetEnumValue<Spread>(0);
-			//spread = Helpers::ParamToSpread(value);
-			break;
-		}
-		case ParamIndices::VibratoFreq: vibratoFreq = Helpers::ParamToVibratoFreq(value); break;
-		case ParamIndices::VibratoAmount: vibratoAmount = value; break;
-		case ParamIndices::LowCutFreq: lowCutFreq = Helpers::ParamToFrequency(value); break;
-		case ParamIndices::HighCutFreq: highCutFreq = Helpers::ParamToFrequency(value); break;
-		case ParamIndices::DryWet: dryWet = value; break;
-		}
-	}
+	//void Twister::SetParam(int index, float value)
+	//{
+	//	switch ((ParamIndices)index)
+	//	{
+	//	case ParamIndices::Type: type = (int)(value * 3.0f); break;
+	//	case ParamIndices::Amount: amount = value; break;
+	//	case ParamIndices::Feedback: feedback = value; break;
+	//	case ParamIndices::Spread: {
+	//		M7::ParamAccessor p{&value, 0};
+	//		spread = p.GetEnumValue<Spread>(0);
+	//		//spread = Helpers::ParamToSpread(value);
+	//		break;
+	//	}
+	//	case ParamIndices::VibratoFreq: vibratoFreq = Helpers::ParamToVibratoFreq(value); break;
+	//	case ParamIndices::VibratoAmount: vibratoAmount = value; break;
+	//	case ParamIndices::LowCutFreq: lowCutFreq = Helpers::ParamToFrequency(value); break;
+	//	case ParamIndices::HighCutFreq: highCutFreq = Helpers::ParamToFrequency(value); break;
+	//	case ParamIndices::DryWet: dryWet = value; break;
+	//	}
+	//}
 
-	float Twister::GetParam(int index) const
-	{
-		switch ((ParamIndices)index)
-		{
-		case ParamIndices::Type: 
-		default: 
-			return type / 3.0f;
+	//float Twister::GetParam(int index) const
+	//{
+	//	switch ((ParamIndices)index)
+	//	{
+	//	case ParamIndices::Type: 
+	//	default: 
+	//		return type / 3.0f;
 
-		case ParamIndices::Amount: return amount;
-		case ParamIndices::Feedback: return feedback;
-		case ParamIndices::Spread: {
-			float ret;
-			M7::ParamAccessor p{ &ret, 0 };
-			p.SetEnumValue(0, this->spread);
-			//return Helpers::SpreadToParam(spread);
-			return ret;
-		}
-		case ParamIndices::VibratoFreq: return Helpers::VibratoFreqToParam(vibratoFreq);
-		case ParamIndices::VibratoAmount: return vibratoAmount;
-		case ParamIndices::LowCutFreq: return Helpers::FrequencyToParam(lowCutFreq);
-		case ParamIndices::HighCutFreq: return Helpers::FrequencyToParam(highCutFreq);
-		case ParamIndices::DryWet: return dryWet;
-		}
-	}
+	//	case ParamIndices::Amount: return amount;
+	//	case ParamIndices::Feedback: return feedback;
+	//	case ParamIndices::Spread: {
+	//		float ret;
+	//		M7::ParamAccessor p{ &ret, 0 };
+	//		p.SetEnumValue(0, this->spread);
+	//		//return Helpers::SpreadToParam(spread);
+	//		return ret;
+	//	}
+	//	case ParamIndices::VibratoFreq: return Helpers::VibratoFreqToParam(vibratoFreq);
+	//	case ParamIndices::VibratoAmount: return vibratoAmount;
+	//	case ParamIndices::LowCutFreq: return Helpers::FrequencyToParam(lowCutFreq);
+	//	case ParamIndices::HighCutFreq: return Helpers::FrequencyToParam(highCutFreq);
+	//	case ParamIndices::DryWet: return dryWet;
+	//	}
+	//}
 }

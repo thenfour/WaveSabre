@@ -11,23 +11,24 @@ using namespace WaveSabreCore;
 struct Maj7WidthEditor : public VstEditor
 {
 	Maj7Width* mpMaj7Width;
+	Maj7WidthVst* mpMaj7WidthVst;
 
-	Maj7WidthEditor(AudioEffect* audioEffect) : VstEditor(audioEffect, 690, 460)
+	Maj7WidthEditor(AudioEffect* audioEffect) : //
+		VstEditor(audioEffect, 690, 460),
+		mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
 	{
 		mpMaj7Width = ((Maj7WidthVst *)audioEffect)->GetMaj7Width();
 	}
 
+	virtual void PopulateMenuBar() override
+	{
+		MAJ7WIDTH_PARAM_VST_NAMES(paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Width", mpMaj7Width, mpMaj7WidthVst, "gParamDefaults", "ParamIndices::NumParams", "Maj7Width", mpMaj7Width->mParamCache, paramNames);
+	}
+
 	virtual void renderImgui() override
 	{
-		//// in order of processing,
-		//LeftSource, // 0 = left, 1 = right
-		//	RightSource, // 0 = left, 1 = right
-		//	SideHPFrequency,
-		//	MidAmt,
-		//	SideAmt,
-		//	Pan,
-		//	OutputGain,
-
+		ImGui::BeginGroup();
 
 		ImGui::BeginGroup();
 		Maj7ImGuiParamFloatN11WithCenter((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LeftSource, "Left source", -1, -1, 0, {});
@@ -58,6 +59,34 @@ struct Maj7WidthEditor : public VstEditor
 		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
 		ImGui::EndGroup();
 		ImGui::SameLine(); ImGui::Text("Final output panning & gain");
+
+		ImGui::EndGroup();
+
+		static const std::vector<VUMeterTick> tickSet = {
+				{-3.0f, "3db"},
+				{-6.0f, "6db"},
+				{-12.0f, "12db"},
+				{-18.0f, "18db"},
+				{-24.0f, "24db"},
+				{-30.0f, "30db"},
+				{-40.0f, "40db"},
+				//{-50.0f, "50db"},
+		};
+
+		VUMeterConfig mainCfg = {
+			{24, 300},
+			VUMeterLevelMode::Audio,
+			VUMeterUnits::Linear,
+			-50, 6,
+			tickSet,
+		};
+
+		VUMeterConfig attenCfg = mainCfg;
+		attenCfg.levelMode = VUMeterLevelMode::Attenuation;
+
+		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg);
+		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg);
+
 	}
 
 };

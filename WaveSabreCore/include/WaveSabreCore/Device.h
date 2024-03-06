@@ -1,7 +1,7 @@
 #ifndef __WAVESABRECORE_DEVICE_H__
 #define __WAVESABRECORE_DEVICE_H__
 
-//#include <WaveSabreCore/Maj7Basic.hpp>
+#include <Windows.h>
 
 namespace WaveSabreCore
 {
@@ -33,7 +33,9 @@ namespace WaveSabreCore
 		virtual int GetChunk(void** data);
 
 		// support for maj7 style chunks, which are 16-bit and differential from default values
-		virtual void LoadDefaults() {}
+		virtual void LoadDefaults() {
+			::OutputDebugStringA("!!! Device::LoadDefaults");
+		}
 		void SetMaj7StyleChunk(M7::Deserializer& ds);
 
 	protected:

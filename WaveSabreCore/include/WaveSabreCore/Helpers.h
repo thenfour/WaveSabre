@@ -107,8 +107,8 @@ namespace WaveSabreCore
 
 		//static double NoteToFreq(double note);
 
-		static double Square135(double phase);
-		static double Square35(double phase);
+		//static double Square135(double phase);
+		//static double Square35(double phase);
 
 		//static float Mix(float v1, float v2, float mix);
 		//static float Clamp(float f, float min, float max);
@@ -142,8 +142,8 @@ namespace WaveSabreCore
 		static int ParamToUnisono(float param);
 		static float UnisonoToParam(int unisono);
 
-		static double ParamToVibratoFreq(float param);
-		static float VibratoFreqToParam(double vf);
+		//static double ParamToVibratoFreq(float param);
+		//static float VibratoFreqToParam(double vf);
 
 		static float PanToScalarLeft(float pan);
 		static float PanToScalarRight(float pan);

@@ -665,7 +665,7 @@ namespace WaveSabreVstLib
 	{
 		Default01,
 		Unisono,
-		VibratoFreq,
+		//VibratoFreq,
 		Frequency,
 		FilterQ,
 		Db,
@@ -821,18 +821,18 @@ namespace WaveSabreVstLib
 			AEffEditor::close();
 		}
 
-		struct VibratoFreqConverter : ImGuiKnobs::IValueConverter
-		{
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
-				char s[100] = { 0 };
-				sprintf_s(s, "%0.2f", (float)::WaveSabreCore::Helpers::ParamToVibratoFreq((float)param));
-				return s;
-			}
+		//struct VibratoFreqConverter : ImGuiKnobs::IValueConverter
+		//{
+		//	virtual std::string ParamToDisplayString(double param, void* capture) override {
+		//		char s[100] = { 0 };
+		//		sprintf_s(s, "%0.2f", (float)::WaveSabreCore::Helpers::ParamToVibratoFreq((float)param));
+		//		return s;
+		//	}
 
-			virtual double DisplayValueToParam(double value, void* capture) {
-				return ::WaveSabreCore::Helpers::VibratoFreqToParam((float)value);
-			}
-		};
+		//	virtual double DisplayValueToParam(double value, void* capture) {
+		//		return ::WaveSabreCore::Helpers::VibratoFreqToParam((float)value);
+		//	}
+		//};
 
 		struct FrequencyConverter : ImGuiKnobs::IValueConverter
 		{
@@ -1082,15 +1082,15 @@ namespace WaveSabreVstLib
 				}
 				break;
 			}
-			case ParamBehavior::VibratoFreq:
-			{
-				static VibratoFreqConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
-				if (r) {
-					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
-				}
-				break;
-			}
+			//case ParamBehavior::VibratoFreq:
+			//{
+			//	static VibratoFreqConverter conv;
+			//	r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
+			//	if (r) {
+			//		GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
+			//	}
+			//	break;
+			//}
 			case ParamBehavior::Db:
 			{
 				static DbConverter conv;

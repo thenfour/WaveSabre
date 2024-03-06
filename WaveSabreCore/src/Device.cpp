@@ -57,9 +57,14 @@ namespace WaveSabreCore
 
 	void Device::SetMaj7StyleChunk(M7::Deserializer& ds)
 	{
-		LoadDefaults();
-		for (int i = 0; i < numParams; ++i)
+		cc::log("SetMaj7StyleChunk 1");
+		float x = this->GetParam(0);
+		cc::log("device getparam: %f", x);
+		this->LoadDefaults();
+		cc::log("SetMaj7StyleChunk 2");
+		for (int i = 0; i < this->numParams; ++i)
 		{
+			cc::log("SetMaj7StyleChunk i = %d", i);
 			float f = GetParam(i) + ds.ReadInt16NormalizedFloat();
 			SetParam(i, f);
 		}

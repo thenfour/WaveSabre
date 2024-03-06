@@ -41,9 +41,16 @@ namespace ProjectManager
                 logger.OnLog += OnLogEvent;
 
                 song = new ProjectConverter().Convert(projectFile, logger, new ConvertOptions { mBoundsMode = (BoundsMode)cbxBoundsMode.SelectedItem });
+            if (song == null)
+            {
+                logger.WriteLine("Failed.");
+            }
+            else
+            {
                 fileName = Path.GetFileNameWithoutExtension(projectFile);
                 logger.WriteLine("Done.");
                 Enable();
+            }
             //}
             //catch (Exception err)
             //{

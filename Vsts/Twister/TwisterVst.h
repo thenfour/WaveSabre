@@ -14,6 +14,23 @@ public:
 	virtual bool getEffectName(char *name);
 	virtual bool getProductString(char *text);
 	virtual const char* GetJSONTagName() { return "Twister"; }
+
+	Twister* GetTwister() const
+	{
+		return (Twister*)getDevice();
+	}
+
+	virtual VstInt32 getChunk(void** data, bool isPreset) override
+	{
+		TWISTER_PARAM_VST_NAMES(paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetTwister()->mParamCache, paramNames);
+	}
+
+	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
+	{
+		TWISTER_PARAM_VST_NAMES(paramNames);
+		return SetSimpleJSONVstChunk(GetTwister(), GetJSONTagName(), data, byteSize, GetTwister()->mParamCache, paramNames);
+	}
 };
 
 #endif

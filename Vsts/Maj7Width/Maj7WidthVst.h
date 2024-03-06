@@ -20,4 +20,16 @@ public:
 	Maj7Width* GetMaj7Width() const;
 
 	virtual const char* GetJSONTagName() { return "Maj7Width"; }
+
+	virtual VstInt32 getChunk(void** data, bool isPreset) override
+	{
+		MAJ7WIDTH_PARAM_VST_NAMES(paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Width()->mParamCache, paramNames);
+	}
+
+	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
+	{
+		MAJ7WIDTH_PARAM_VST_NAMES(paramNames);
+		return SetSimpleJSONVstChunk(GetMaj7Width(), GetJSONTagName(), data, byteSize, GetMaj7Width()->mParamCache, paramNames);
+	}
 };

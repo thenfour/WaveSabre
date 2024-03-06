@@ -365,9 +365,10 @@ namespace WaveSabreVstLib
 
 		if (ImGui::BeginMenu("Debug")) {
 
-			if (ImGui::MenuItem("Init patch (from VST)")) {
-				GenerateDefaults(pDevice);
-			}
+			// the idea of calculating the defaults made sense for things like megalithic Maj7 Synth. but for every other device it's unnecessary.
+			//if (ImGui::MenuItem("Init patch (from VST)")) {
+			//	GenerateDefaults(pDevice);
+			//}
 
 			if (ImGui::MenuItem("Export as C++ defaults to clipboard")) {
 				if (IDYES == ::MessageBoxA(hWnd, "Code will be copied to the clipboard, based on 1st item params.", vstName.c_str(), MB_YESNO | MB_ICONQUESTION)) {
@@ -397,6 +398,63 @@ namespace WaveSabreVstLib
 					::MessageBoxA(hWnd, msg, "WaveSabre - Maj7", MB_OK);
 				}
 			}
+
+
+			if (ImGui::MenuItem("Test chunk roundtrip")) {
+				if (IDYES == ::MessageBoxA(hWnd, "Make sure you save first. If there's any problem, it will ruin your patch. This optimizes & serializes the patch in the wavesabre format, then deserializes it, and compares the before/after param cache for errors.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION))
+				{
+					if (IDYES == ::MessageBoxA(hWnd, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
+						CopyPatchToClipboard(hWnd, jsonKeyName, paramCache, paramNames);
+						::MessageBoxA(hWnd, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
+					}
+
+					// make a copy of param cache.
+					float orig[paramCount];
+					for (size_t i = 0; i < paramCount; ++i) {
+						orig[i] = paramCache[(int)i];
+					}
+
+					// get the wavesabre chunk
+					void* data;
+					pVst->OptimizeParams();
+					int n = pVst->GetMinifiedChunk(&data);
+
+					// apply it back (round trip)
+					M7::Deserializer ds{ (const uint8_t*)data };
+					pDevice->SetMaj7StyleChunk(ds);
+					delete[] data;
+
+					float after[paramCount];
+					for (size_t i = 0; i < paramCount; ++i) {
+						after[i] = paramCache[(int)i];
+					}
+
+					std::vector<std::string> paramReports;
+
+					using vstn = const char[kVstMaxParamStrLen];
+					static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+
+					for (size_t i = 0; i < paramCount; ++i) {
+						if (!M7::math::FloatEquals(orig[i], after[i])) {
+							char msg[200];
+							sprintf_s(msg, "%s before=%.2f after=%.2f", paramNames[i], orig[i], after[i]);
+							paramReports.push_back(msg);
+						}
+					}
+
+					char msg[200];
+					sprintf_s(msg, "Done. %d bytes long. %d params have been messed up.\r\n", n, (int)paramReports.size());
+					std::string smsg{ msg };
+					smsg += "\r\n";
+					for (auto& p : paramReports) {
+						smsg += p;
+					}
+					::MessageBoxA(hWnd, smsg.c_str(), "WaveSabre - Maj7", MB_OK);
+				}
+			}
+
+
+
 			if (ImGui::MenuItem("Analyze minified chunk")) {
 				auto r = pVst->AnalyzeChunkMinification();
 				std::string s = "uncompressed = ";

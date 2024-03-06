@@ -37,12 +37,14 @@ namespace WaveSabreConvert
                     throw new Exception("Invalid file format.");
             }
 
-            song.DetectWarnings(logger);
+            if (song != null)
+            {
+                song.DetectWarnings(logger);
 
-            song.DeltaEncode();
+                song.DeltaEncode();
 
-            song.Restructure(logger);
-
+                song.Restructure(logger);
+            }
             return song;
         }
     }

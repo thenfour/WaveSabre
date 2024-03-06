@@ -20,7 +20,7 @@ struct Maj7CompEditor : public VstEditor
 	bool mShowInputHistory = true;
 	bool mShowDetectorHistory = false;
 	bool mShowOutputHistory = true;
-	bool mShowAttenuationHistory = false;
+	bool mShowAttenuationHistory = true;
 	bool mShowThresh = true;
 	bool mShowLeft = true;
 	bool mShowRight = false;
@@ -120,7 +120,7 @@ struct Maj7CompEditor : public VstEditor
 				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(ParamIndices::Release, "Release(ms)", Maj7Comp::gReleaseCfg, 80, {});
 
 				ImGui::SameLine(); Maj7ImGuiDivCurvedParam((VstInt32)ParamIndices::Ratio, "Ratio", Maj7Comp::gRatioCfg, 4, {});
-				ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Knee, "Knee(dB)", 0, 30, 8, 0, 0, {});
+				ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Knee, "Knee(dB)", 0, 30, 4, 0, 0, {});
 
 				ImGui::EndTabItem();
 			}
@@ -212,8 +212,8 @@ struct Maj7CompEditor : public VstEditor
 			HistoryViewSeriesConfig{ColorFromHTML("ff00ff", mShowLeft && mShowDetectorHistory ? 0.8f : 0), lineWidth},
 			HistoryViewSeriesConfig{ColorFromHTML("880088", mShowRight && mShowDetectorHistory ? 0.8f : 0), lineWidth},
 
-			HistoryViewSeriesConfig{ColorFromHTML("00ff00", mShowLeft && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
-			HistoryViewSeriesConfig{ColorFromHTML("008800", mShowRight && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("cc3333", mShowLeft && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
+			HistoryViewSeriesConfig{ColorFromHTML("881111", mShowRight && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
 
 			HistoryViewSeriesConfig{ColorFromHTML("4444ff", mShowLeft && mShowOutputHistory ? 0.9f : 0), lineWidth},
 			HistoryViewSeriesConfig{ColorFromHTML("0000ff", mShowRight && mShowOutputHistory ? 0.9f : 0), lineWidth},

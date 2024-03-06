@@ -27,7 +27,10 @@ inline int WaveSabreDeviceVSTChunkToMinifiedChunk_Impl(const char* deviceName, i
 {
 	*outpSize = 0;
 	auto p = new TVST(nullptr); // assume too big for stack.
-	p->setChunk(inpData, inpSize, false);
+	Device* pd = (Device*)p;
+	M7::Deserializer ds{ (const uint8_t*)inpData };
+	pd->SetMaj7StyleChunk(ds);
+	//p->setChunk(inpData, inpSize, false);
 	p->OptimizeParams();
 	*outpSize = p->GetMinifiedChunk(outpData);
 	return *outpSize;
@@ -63,35 +66,6 @@ namespace WaveSabreVstLib
 		int lzresult = LzmaEncode(&compressedData[0], &compressedSize, (const Byte*)inpData, inpSize, &props, encodedProps.data(), &encodedPropsSize, 0, nullptr, &alloc, &alloc);
 		return (int)compressedSize;
 	}
-
-	//// generates a list of defaults from the specified device type.
-	//template<typename TDevice>
-	//inline std::vector<float> GetDefaultParamCache()
-	//{
-	//	auto tmpEffect = std::make_unique(new TDevice);
-	//	CCASSERT(!!tmpEffect);
-	//	if (!tmpEffect) {
-	//		return {};
-	//	}
-	//	std::vector<float> ret;
-	//	ret.reserve(numParams);
-	//	for (int i = 0; i < numParams; ++i) {
-	//		ret.push_back(tmpEffect->GetParam(i));
-	//	}
-	//	return ret;
-	//}
-
-	//// generates a list of defaults from the specified device type.
-	////template<typename TDevice>
-	//inline std::vector<float> GetDefaultParamCache(Device * p)
-	//{
-	//	std::vector<float> ret;
-	//	ret.reserve(numParams);
-	//	for (int i = 0; i < numParams; ++i) {
-	//		ret.push_back(p->GetParam(i));
-	//	}
-	//	return ret;
-	//}
 
 	template <typename Treal, size_t N>
 	class MovingAverage
@@ -179,8 +153,8 @@ namespace WaveSabreVstLib
 		virtual void getParameterDisplay(VstInt32 index, char* text);
 		virtual void getParameterName(VstInt32 index, char* text);
 
-		virtual VstInt32 getChunk(void** data, bool isPreset);
-		virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset);
+		virtual VstInt32 getChunk(void** data, bool isPreset) = 0;
+		virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) = 0;
 
 		virtual bool getEffectName(char* name);
 		virtual bool getVendorString(char* text);

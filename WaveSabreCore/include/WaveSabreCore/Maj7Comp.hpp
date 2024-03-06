@@ -112,19 +112,17 @@ namespace WaveSabreCore
 		  15269, // Attack = 0.46597486734390258789
 		  15909, // Release = 0.48552104830741882324
 		  18939, // Ratio = 0.57798200845718383789
-		  8738, // Knee = 0.26666668057441711426
-		  //0, // MSEnable = 0
+		  4369, // Knee = 0.13333334028720855713
 		  26214, // ChanLink = 0.80000001192092895508
-		  //16384, // pan
 		  8230, // CompGain = 0.25118863582611083984
 		  32767, // DryWet = 1
-		  0, // RMSMS = 0.56974124908447265625
+		  0, // RMSMS = 0
 		  0, // HPF = 0
 		  6553, // HPQ = 0.20000000298023223877
 		  32767, // LPF = 1
 		  6553, // LPQ = 0.20000000298023223877
 		  8, // OutSig = 0.0002470355830155313015
-		  8230, // OutGain = 0.25118899345397949219
+		  8230, // OutGain = 0.25118863582611083984
 		};
 
 		float mParamCache[(int)ParamIndices::NumParams];
@@ -321,8 +319,15 @@ namespace WaveSabreCore
 
 		virtual void LoadDefaults() override
 		{
+			cc::log("COMP::LoadDefaults 1, importing %d", std::size(gParamDefaults));
+
 			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing some things
+
+			cc::log("COMP::LoadDefaults 2");
+
+			SetParam(0, mParamCache[0]); // force recalcing
+
+			cc::log("COMP::LoadDefaults 3");
 		}
 
 		virtual void SetParam(int index, float value) override

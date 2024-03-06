@@ -223,6 +223,9 @@ namespace WaveSabreConvert
             IntPtr inputBuffer = Marshal.AllocHGlobal(inputData.Length);
             Marshal.Copy(inputData, 0, inputBuffer, inputData.Length);
 
+            // debugging...
+            var asAscii = System.Text.Encoding.Default.GetString(inputData);
+
             int outputSize = 0;
             IntPtr outputBuffer = IntPtr.Zero;
 
