@@ -100,12 +100,10 @@ namespace WaveSabreCore
 			SawClip,
 			SineClip,
 			SineHarmTrunc,
-			TriClip__obsolete, // aka one-pole tri trunc for some reason
 			TriSquare,
 			TriTrunc,
 			VarTrapezoidHard,
 			VarTrapezoidSoft,
-			VarTriangle,
 			WhiteNoiseSH,
 			Count,
 		};
@@ -113,15 +111,13 @@ namespace WaveSabreCore
 		#define OSCILLATOR_WAVEFORM_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count] { \
 			"Pulse",\
 			"PulseTristate",\
-			"SawClip",\
-			"SineClip",\
+			"Saw",\
+			"Sine",\
 			"SineHarmTrunc",\
-			"<obsolete>",\
 			"TriSquare",\
 			"TriTrunc",\
 			"VarTrapezoidHard",\
 			"VarTrapezoidSoft",\
-			"VarTriangle",\
 			"WhiteNoiseSH",\
 		}
 
@@ -260,109 +256,170 @@ namespace WaveSabreCore
 			}
 		};
 
+		///////////////////////////////////////////////////////////////////////////////
+		//struct SawClipWaveform :IOscillatorWaveform
+		//{
+		//	float mFlatValue = 0;
+
+		//	// returns Y value at specified phase. instance / stateless.
+		//	virtual float NaiveSample(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return mShape * 2 - 1;
+		//		}
+		//		return phase01 * 2 - 1;
+		//	}
+
+		//	virtual float NaiveSampleSlope(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return 0;
+		//		}
+		//		return 1;
+		//	}
+
+		//	virtual void AfterSetParams() override
+		//	{
+		//		float waveshape = std::abs(mShape * 2 - 1); // create reflection to make bipolar
+		//		waveshape = 1 - waveshape;
+		//		waveshape = 1 - (waveshape * waveshape);
+		//		mShape = math::lerp(0, 0.95f, waveshape);
+		//		//mShape = Clamp(waveshape * 0.9f, 0, 1);
+
+		//		mFlatValue = mShape;
+
+		//		mDCOffset = -mShape; // offset so we can scale to fill both axes
+		//		mScale = 1 / (1.0f - mShape); // scale it up so it fills both axes
+		//		//mScale *= gOscillatorHeadroomScalar;
+		//	}
+
+		//	// samples is 0<samples<1
+		//	// assume this.phase is currently 0<t<1
+		//	// this.phase may not be on a sample boundary.
+		//	// returns blep before and blep after discontinuity.
+		//	virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+		//	{
+		//		//mPhaseIncrement += mDTDT * samples;
+		//		//double phaseToAdvance = samples * mPhaseIncrement;
+		//		//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
+
+		//		float blampScale = float(mPhaseIncrement);
+		//		float blepScale = -(1.0f - mShape);
+
+		//		OSC_ACCUMULATE_BLEP(newPhase, 0/*edge*/, blepScale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, -blampScale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(newPhase, this->mShape/*edge*/, blampScale, samples, samplesTillNextSample);
+
+		//		//this->mPhase = newPhase;
+		//		//return bleps;
+		//	}
+		//};
+
 		/////////////////////////////////////////////////////////////////////////////
 		struct SawClipWaveform :IOscillatorWaveform
 		{
-			float mFlatValue = 0;
-
 			// returns Y value at specified phase. instance / stateless.
 			virtual float NaiveSample(float phase01) override
 			{
-				if (phase01 < mShape) {
-					return mShape * 2 - 1;
-				}
 				return phase01 * 2 - 1;
 			}
 
 			virtual float NaiveSampleSlope(float phase01) override
 			{
-				if (phase01 < mShape) {
-					return 0;
-				}
 				return 1;
 			}
 
 			virtual void AfterSetParams() override
 			{
-				float waveshape = std::abs(mShape * 2 - 1); // create reflection to make bipolar
-				waveshape = 1 - waveshape;
-				waveshape = 1 - (waveshape * waveshape);
-				mShape = math::lerp(0, 0.95f, waveshape);
-				//mShape = Clamp(waveshape * 0.9f, 0, 1);
-
-				mFlatValue = mShape;
-
-				mDCOffset = -mShape; // offset so we can scale to fill both axes
-				mScale = 1 / (1.0f - mShape); // scale it up so it fills both axes
-				//mScale *= gOscillatorHeadroomScalar;
 			}
-
-			// samples is 0<samples<1
-			// assume this.phase is currently 0<t<1
-			// this.phase may not be on a sample boundary.
-			// returns blep before and blep after discontinuity.
 			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
-				//mPhaseIncrement += mDTDT * samples;
-				//double phaseToAdvance = samples * mPhaseIncrement;
-				//double newPhase = Fract(mPhase + phaseToAdvance); // advance slave; doing it here helps us calculate discontinuity.
-
-				float blampScale = float(mPhaseIncrement);
-				float blepScale = -(1.0f - mShape);
-
+				float blepScale = -1;
 				OSC_ACCUMULATE_BLEP(newPhase, 0/*edge*/, blepScale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, -blampScale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(newPhase, this->mShape/*edge*/, blampScale, samples, samplesTillNextSample);
-
-				//this->mPhase = newPhase;
-				//return bleps;
 			}
 		};
+
+
+
+		///////////////////////////////////////////////////////////////////////////////
+		//struct SineClipWaveform :IOscillatorWaveform
+		//{
+		//	float mEdge1;
+		//	float mEdge2;
+		//	float mFlatValue;
+		//	// returns Y value at specified phase. instance / stateless.
+		//	virtual float NaiveSample(float phase01) override
+		//	{
+		//		if ((phase01 >= mEdge1) && (phase01 < mEdge2)) {
+		//			return mFlatValue;
+		//		}
+		//		return math::sin(math::gPITimes2 * phase01);
+		//	}
+
+		//	// this is not improved by returing correct slope. blepping curves is too hard 4 me.
+		//	virtual float NaiveSampleSlope(float phase01) override
+		//	{
+		//		if ((phase01 >= mEdge1) && (phase01 < mEdge2)) {
+		//			return 0;
+		//		}
+		//		return math::cos(math::gPITimes2 * phase01);
+		//	}
+
+		//	virtual void AfterSetParams() override
+		//	{
+		//		mShape = std::abs(mShape * 2 - 1); // create reflection to make bipolar
+
+		//		mEdge1 = (0.75f - mShape * .25f);
+		//		mEdge2 = (0.75f + mShape * .25f);
+		//		mFlatValue = math::sin(mEdge1 * 2 * math::gPI); // the Y value that gets sustained
+
+		//		mDCOffset = -(.5f + .5f * mFlatValue); // offset so we can scale to fill both axes
+		//		mScale = 1.0f / (.5f - .5f * mFlatValue); // scale it up so it fills both axes
+		//	}
+
+		//	virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+		//	{
+		//		float scale = float(mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1));
+		//		OSC_ACCUMULATE_BLAMP(newPhase, mEdge1, scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(newPhase, mEdge2, scale, samples, samplesTillNextSample);
+		//	}
+		//};
+
 
 		/////////////////////////////////////////////////////////////////////////////
 		struct SineClipWaveform :IOscillatorWaveform
 		{
-			float mEdge1;
-			float mEdge2;
-			float mFlatValue;
 			// returns Y value at specified phase. instance / stateless.
 			virtual float NaiveSample(float phase01) override
 			{
-				if ((phase01 >= mEdge1) && (phase01 < mEdge2)) {
-					return mFlatValue;
-				}
 				return math::sin(math::gPITimes2 * phase01);
 			}
 
 			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
 			virtual float NaiveSampleSlope(float phase01) override
 			{
-				if ((phase01 >= mEdge1) && (phase01 < mEdge2)) {
-					return 0;
-				}
-				return math::cos(math::gPITimes2 * phase01);
+				return 1;// math::cos(math::gPITimes2 * phase01);
 			}
 
 			virtual void AfterSetParams() override
 			{
-				mShape = std::abs(mShape * 2 - 1); // create reflection to make bipolar
+				//mShape = std::abs(mShape * 2 - 1); // create reflection to make bipolar
 
-				mEdge1 = (0.75f - mShape * .25f);
-				mEdge2 = (0.75f + mShape * .25f);
-				mFlatValue = math::sin(mEdge1 * 2 * math::gPI); // the Y value that gets sustained
+				//mEdge1 = (0.75f - mShape * .25f);
+				//mEdge2 = (0.75f + mShape * .25f);
+				//mFlatValue = math::sin(mEdge1 * 2 * math::gPI); // the Y value that gets sustained
 
-				mDCOffset = -(.5f + .5f * mFlatValue); // offset so we can scale to fill both axes
-				mScale = 1.0f / (.5f - .5f * mFlatValue); // scale it up so it fills both axes
+				//mDCOffset = -(.5f + .5f * mFlatValue); // offset so we can scale to fill both axes
+				//mScale = 1.0f / (.5f - .5f * mFlatValue); // scale it up so it fills both axes
 			}
 
 			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
-				float scale = float(mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1));
-				OSC_ACCUMULATE_BLAMP(newPhase, mEdge1, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(newPhase, mEdge2, scale, samples, samplesTillNextSample);
+				//float scale = float(mPhaseIncrement * math::gPI * -math::cos(math::gPITimes2 * mEdge1));
+				//OSC_ACCUMULATE_BLAMP(newPhase, mEdge1, scale, samples, samplesTillNextSample);
+				//OSC_ACCUMULATE_BLAMP(newPhase, mEdge2, scale, samples, samplesTillNextSample);
 			}
 		};
-
 
 		/////////////////////////////////////////////////////////////////////////////
 		struct PulsePWMWaveform :IOscillatorWaveform
@@ -470,52 +527,52 @@ namespace WaveSabreCore
 
 
 
-		/////////////////////////////////////////////////////////////////////////////
-		struct VarTriWaveform :IOscillatorWaveform
-		{
-			virtual void AfterSetParams() override
-			{
-				mShape = math::lerp(0.99f, .01f, mShape); // just prevent div0
-			}
+		///////////////////////////////////////////////////////////////////////////////
+		//struct VarTriWaveform :IOscillatorWaveform
+		//{
+		//	virtual void AfterSetParams() override
+		//	{
+		//		mShape = math::lerp(0.99f, .01f, mShape); // just prevent div0
+		//	}
 
-			// returns Y value at specified phase. instance / stateless.
-			virtual float NaiveSample(float phase01) override
-			{
-				if (phase01 < mShape) {
-					return phase01 / mShape * 2 - 1;
-				}
-				return (1 - phase01) / (1 - mShape) * 2 - 1;
-			}
+		//	// returns Y value at specified phase. instance / stateless.
+		//	virtual float NaiveSample(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return phase01 / mShape * 2 - 1;
+		//		}
+		//		return (1 - phase01) / (1 - mShape) * 2 - 1;
+		//	}
 
-			// this is not improved by returing correct slope. blepping curves is too hard 4 me.
-			virtual float NaiveSampleSlope(float phase01) override
-			{
-				if (phase01 < mShape) {
-					return 2 * mShape;
-				}
-				return -2 * (1 - mShape);
-			}
+		//	// this is not improved by returing correct slope. blepping curves is too hard 4 me.
+		//	virtual float NaiveSampleSlope(float phase01) override
+		//	{
+		//		if (phase01 < mShape) {
+		//			return 2 * mShape;
+		//		}
+		//		return -2 * (1 - mShape);
+		//	}
 
-			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
-			{
-				//       1-|            ,-',        |
-				//         |         ,-'  | ',      |
-				//       0-|      ,-'         ',    |
-				//         |   ,-'        |     ',  |
-				//      -1-|,-'                   ',|
-				// pw       0-------------|---------1
-				// slope:
-				//         |--------------          | = 1/pw
-				//         |                        | = 0
-				//         |              ----------| = -1/(1-pw)
-				float pw = mShape;
-				// this is
-				// dt / (1/pw - 1/(1-pw))
-				float scale = (float)(mPhaseIncrement / (pw - pw * pw));
-				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-				OSC_ACCUMULATE_BLAMP(newPhase, pw/*edge*/, -scale, samples, samplesTillNextSample);
-			}
-		};
+		//	virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+		//	{
+		//		//       1-|            ,-',        |
+		//		//         |         ,-'  | ',      |
+		//		//       0-|      ,-'         ',    |
+		//		//         |   ,-'        |     ',  |
+		//		//      -1-|,-'                   ',|
+		//		// pw       0-------------|---------1
+		//		// slope:
+		//		//         |--------------          | = 1/pw
+		//		//         |                        | = 0
+		//		//         |              ----------| = -1/(1-pw)
+		//		float pw = mShape;
+		//		// this is
+		//		// dt / (1/pw - 1/(1-pw))
+		//		float scale = (float)(mPhaseIncrement / (pw - pw * pw));
+		//		OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(newPhase, pw/*edge*/, -scale, samples, samplesTillNextSample);
+		//	}
+		//};
 
 		/////////////////////////////////////////////////////////////////////////////
 		struct PulseTristateWaveform :IOscillatorWaveform
@@ -992,7 +1049,7 @@ namespace WaveSabreCore
 				mpWaveforms[(int)OscillatorWaveform::TriTrunc] = new TriTruncWaveform;
 				mpWaveforms[(int)OscillatorWaveform::VarTrapezoidHard] = new VarTrapezoidWaveform{ gVarTrapezoidHardSlope };
 				mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft] = new VarTrapezoidWaveform{ gVarTrapezoidSoftSlope };
-				mpWaveforms[(int)OscillatorWaveform::VarTriangle] = mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = new VarTriWaveform;
+				//mpWaveforms[(int)OscillatorWaveform::VarTriangle] = mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = new VarTriWaveform;
 				mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH] = new WhiteNoiseWaveform;
 			}
 
@@ -1012,7 +1069,7 @@ namespace WaveSabreCore
 				delete (TriTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::TriTrunc];
 				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidHard];
 				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft];
-				delete (VarTriWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTriangle];
+				//delete (VarTriWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTriangle];
 				delete (WhiteNoiseWaveform*)mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH];
 
 

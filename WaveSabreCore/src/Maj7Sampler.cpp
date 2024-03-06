@@ -252,8 +252,8 @@ namespace WaveSabreCore
 			void SamplerVoice::ConfigPlayer()
 			{
 				mSamplePlayer.SampleStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::SampleStart, mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::SampleStart));// mpSamplerDevice->mSampleStart.Get01Value();
-				mSamplePlayer.LoopStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopStart, 0); //mpSamplerDevice->mLoopStart.Get01Value();
-				mSamplePlayer.LoopLength = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopLength, 0); //mpSamplerDevice->mLoopLength.Get01Value();
+				mSamplePlayer.LoopStart = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopStart); //mpSamplerDevice->mLoopStart.Get01Value();
+				mSamplePlayer.LoopLength = mpSamplerDevice->mParams.Get01Value(SamplerParamIndexOffsets::LoopLength); //mpSamplerDevice->mLoopLength.Get01Value();
 				if (!mNoteIsOn && mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::ReleaseExitsLoop)) {// mReleaseExitsLoop.GetBoolValue()) {
 				//if (!mNoteIsOn && mpSamplerDevice->mReleaseExitsLoop.GetBoolValue()) {
 					mSamplePlayer.LoopMode = LoopMode::Disabled;

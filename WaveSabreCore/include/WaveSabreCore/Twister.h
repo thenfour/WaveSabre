@@ -91,18 +91,17 @@ namespace WaveSabreCore
 			mParamCache[index] = value;
 
 			type = mParams.GetEnumValue<Type>(ParamIndices::Type);
-			amount = mParams.Get01Value(ParamIndices::Amount, 0);
-			feedback = mParams.Get01Value(ParamIndices::Feedback, 0);
+			amount = mParams.Get01Value(ParamIndices::Amount);
+			feedback = mParams.Get01Value(ParamIndices::Feedback);
 			spread = mParams.GetEnumValue<Spread>(ParamIndices::Spread);
 
-			vibratoAmount = mParams.Get01Value(ParamIndices::VibratoAmount, 0);
+			vibratoAmount = mParams.Get01Value(ParamIndices::VibratoAmount);
 
 			//case ParamIndices::VibratoFreq: vibratoFreq = Helpers::ParamToVibratoFreq(value); break;
 			// original vibrato freq range is ~0.7hz to ~85hz.
-			vibratoFreq = mParams.GetFrequency(ParamIndices::VibratoFreq, -1, M7::gLFOFreqConfig, 0, 0);// Helpers::ParamToFrequency(value); break;
-
-			lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, -1, M7::gFilterFreqConfig, 0, 0);// Helpers::ParamToFrequency(value); break;
-			highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, -1, M7::gFilterFreqConfig, 0, 0);// Helpers::ParamToFrequency(value); break;
+			vibratoFreq = mParams.GetFrequency(ParamIndices::VibratoFreq, M7::gLFOFreqConfig);// Helpers::ParamToFrequency(value); break;
+			lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
+			highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
 			dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
 		}
 

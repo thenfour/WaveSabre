@@ -145,6 +145,13 @@ namespace WaveSabreCore
 				return Get01Value__((int)offset, mod);
 			}
 
+			float Get01Value__(int offset) const;
+			template<typename T>
+			float Get01Value(T offset) const {
+				static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
+				return Get01Value__((int)offset);
+			}
+
 			bool GetBoolValue__(int offset) const;
 			template<typename T>
 			bool GetBoolValue(T offset) const {
@@ -344,6 +351,13 @@ namespace WaveSabreCore
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
 				static_assert(std::is_integral_v<TktOffset> || std::is_enum_v<TktOffset>, "");
 				return GetFrequency__((int)freqOffset, (int)ktOffset, cfg, noteHz, mod);
+			}
+			float GetFrequency__(int freqOffset, const FreqParamConfig& cfg) const;
+			template<typename Toffset>
+			float GetFrequency(Toffset freqOffset, const FreqParamConfig& cfg) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				return GetFrequency__((int)freqOffset, cfg);
 			}
 
 			// param modulation is normal krate param mod

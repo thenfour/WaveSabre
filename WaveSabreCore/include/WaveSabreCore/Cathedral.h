@@ -74,8 +74,9 @@ namespace WaveSabreCore
 		}
 
 	private:
-		static const int numCombs = 8;
-		static const int numAllPasses = 4;
+		static constexpr int numCombs = 8;
+		static constexpr int numAllPasses = 4;
+
 		float gain;
 		float roomSize, roomSize1;
 		float damp, damp1;
@@ -84,7 +85,7 @@ namespace WaveSabreCore
 		float dryWet;
 		float wet1, wet2;
 		bool freeze;
-		float preDelay;
+		float preDelayMS;
 
 		void UpdateParams();
 

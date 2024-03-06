@@ -824,7 +824,7 @@ namespace WaveSabreCore
 				//mValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::ValueMapping);
 				//mAuxValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::AuxValueMapping);
 				mAuxSource = mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
-				mAuxAttenuation = mParams.Get01Value(ModParamIndexOffsets::AuxAttenuation, 0);
+				mAuxAttenuation = mParams.Get01Value(ModParamIndexOffsets::AuxAttenuation);
 			}
 
 			void SetSourceAmp(ModSource mAmpEnvModSourceID, ModDestination mHiddenVolumeModDestID, const bool* pDestSourceEnabledCached)

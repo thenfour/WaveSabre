@@ -5,6 +5,8 @@
 #include "Filters/FilterOnePole.hpp"
 #include "RMS.hpp"
 
+//#define MAJ7WIDTH_FULL_FEATURE
+
 namespace WaveSabreCore
 {
 	struct Maj7Width : public Device
@@ -70,6 +72,7 @@ namespace WaveSabreCore
 			LoadDefaults();
 		}
 
+#ifdef MAJ7WIDTH_FULL_FEATURE
 		// 2D rotation around origin
 		void Rotate2(float& l, float& r, ParamIndices param) {
 			// https://www.musicdsp.org/en/latest/Effects/255-stereo-field-rotation-via-transformation-matrix.html
@@ -81,13 +84,13 @@ namespace WaveSabreCore
 			r = l * s + r * c;
 			l = t;
 		}
+#endif // MAJ7WIDTH_FULL_FEATURE
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
-			//float width = mParams.Get01Value(ParamIndices::Width, 0);
 			auto gains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
-			mFilter.SetParams(M7::FilterType::HP, mParams.GetFrequency(ParamIndices::SideHPFrequency, -1, M7::gFilterFreqConfig, 0, 0), 0);
-			float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg);
+			mFilter.SetParams(M7::FilterType::HP, mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig), 0);
+			float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg) * M7::math::gPanCompensationGainLin;
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{
@@ -97,7 +100,9 @@ namespace WaveSabreCore
 				float left = M7::math::lerp(l, r, mParamCache[(size_t)ParamIndices::LeftSource]);
 				float right = M7::math::lerp(l, r, mParamCache[(size_t)ParamIndices::RightSource]);
 
+#ifdef MAJ7WIDTH_FULL_FEATURE
 				Rotate2(left, right, ParamIndices::RotationAngle);
+#endif // MAJ7WIDTH_FULL_FEATURE
 
 				float mid;
 				float side;

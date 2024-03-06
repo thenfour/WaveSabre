@@ -201,13 +201,13 @@ namespace WaveSabreCore
 					mRMSDetector.SetWindowSize(mRMSWindowMS);
 				}
 
-				float lpf = mParams.GetFrequency(ParamIndices::LowPassFrequency, -1, M7::gFilterFreqConfig, 0, 0);
+				float lpf = mParams.GetFrequency(ParamIndices::LowPassFrequency, M7::gFilterFreqConfig);
 				float lpq = mParams.GetWSQValue(ParamIndices::LowPassQ);
 				mLowpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Lowpass, lpf, lpq, 0);
 #endif // MAJ7COMP_FULL
 
 				float hpq = mParams.GetWSQValue(ParamIndices::HighPassQ);
-				float hpf = mParams.GetFrequency(ParamIndices::HighPassFrequency, -1, M7::gFilterFreqConfig, 0, 0);
+				float hpf = mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig);
 				mHighpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Highpass, hpf, hpq, 0);
 			}
 
@@ -326,7 +326,7 @@ namespace WaveSabreCore
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
-			mChannelLink01 = mParams.Get01Value(ParamIndices::ChannelLink, 0);
+			mChannelLink01 = mParams.Get01Value(ParamIndices::ChannelLink);
 			mOutputSignal = mParams.GetEnumValue<OutputSignal>(ParamIndices::OutputSignal);
 
 			for (auto& c : mComp) {

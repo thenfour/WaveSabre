@@ -510,6 +510,12 @@ namespace WaveSabreCore
             float SemisToFrequencyMul(float x);
 
             float FrequencyToMIDINote(float hz);
+
+            // our pan functions have a sqrt pan law, which by default attenuates the center position ~3db.
+            // however take for example the width control, or any effect with a pan control. in default center position,
+            // users expect the output to be at unity. so instead of attenuating center, compensate for that which
+            // will have the side-effect of boosting when panned.
+            const float gPanCompensationGainLin = 1.41421356237f; // sqrt(2)
             FloatPair PanToLRVolumeParams(float panN11);
 
             FloatPair PanToFactor(float panN11);

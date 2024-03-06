@@ -153,10 +153,10 @@ namespace WaveSabreCore
 			// 0, 1, 2
 			mode = mParams.GetEnumValue<Mode>(ParamIndices::Mode);// (int)(value * 2.0f); break;
 			feedback = mParams.GetScaledRealValue(ParamIndices::Feedback, 0.5f, 1.0f, 0);// value * .5f + .5f; break;
-			lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, -1, M7::gFilterFreqConfig, 0, 0);// Helpers::ParamToFrequency(value); break;
-			highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, -1, M7::gFilterFreqConfig, 0, 0);// Helpers::ParamToFrequency(value); break;
-			dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
-			preDelay = mParams.Get01Value(ParamIndices::PreDelay, 0);
+			lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
+			highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
+			dryWet = mParams.Get01Value(ParamIndices::DryWet);
+			preDelay = mParams.Get01Value(ParamIndices::PreDelay);
 
 		}
 

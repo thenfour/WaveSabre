@@ -131,6 +131,7 @@ namespace WaveSabreCore
 			//	return ret;
 			//}
 
+			// center = 0.5 for both.
 			FloatPair PanToLRVolumeParams(float panN11)
 			{
 				// -1..+1  -> 1..0

@@ -319,7 +319,7 @@ namespace WaveSabreCore
 
 				mModel = mParams.GetEnumValue<Model>(BandParam::Model);
 
-				mDryWet = mParams.Get01Value(BandParam::DryWet, 0);
+				mDryWet = mParams.Get01Value(BandParam::DryWet);
 				mEvenHarmonicsGainLin = mParams.GetScaledRealValue(BandParam::EvenHarmonics, 0, gAnalogMaxLin, 0); //mParams.GetLinearVolume(BandParam::EvenHarmonics, M7::gVolumeCfg36db, 0);
 
 				mPanMode = mParams.GetEnumValue<PanMode>(BandParam::PanMode);
@@ -624,8 +624,8 @@ namespace WaveSabreCore
 			mInputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
 			mOutputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
 
-			mCrossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, -1, M7::gFilterFreqConfig, 0, 0);
-			mCrossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, -1, M7::gFilterFreqConfig, 0, 0);
+			mCrossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
+			mCrossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
 
 			mCrossoverSlopeA = mParams.GetEnumValue<M7::LinkwitzRileyFilter::Slope>(ParamIndices::CrossoverASlope);
 		}

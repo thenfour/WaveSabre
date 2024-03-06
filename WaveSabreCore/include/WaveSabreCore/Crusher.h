@@ -48,9 +48,9 @@ namespace WaveSabreCore
 		{
 			mParamCache[index] = value;
 
-			vertical = mParams.Get01Value(ParamIndices::Vertical, 0);
-			horizontal = mParams.Get01Value(ParamIndices::Horizontal, 0);
-			dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
+			vertical = mParams.Get01Value(ParamIndices::Vertical);
+			horizontal = mParams.Get01Value(ParamIndices::Horizontal);
+			dryWet = mParams.Get01Value(ParamIndices::DryWet);
 
 		}
 

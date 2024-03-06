@@ -92,8 +92,8 @@ namespace WaveSabreCore
 
 			float feedback = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
 			float feedbackDriveLin = std::max(0.01f, mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0));
-			float cross = mParams.Get01Value(ParamIndices::Cross, 0);
-			float dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
+			float cross = mParams.Get01Value(ParamIndices::Cross);
+			float dryWet = mParams.Get01Value(ParamIndices::DryWet);
 
 			for (int i = 0; i < numSamples; i++)
 			{
@@ -128,12 +128,12 @@ namespace WaveSabreCore
 			{
 				mLowCutFilter[i].SetParams(
 					BiquadFilterType::Highpass,
-					mParams.GetFrequency(ParamIndices::LowCutFreq, -1, M7::gFilterFreqConfig, 0, 0),
+					mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig),
 					mParams.Get01Value(ParamIndices::LowCutQ, 0),
 					0);
 				mHighCutFilter[i].SetParams(
 					BiquadFilterType::Lowpass,
-					mParams.GetFrequency(ParamIndices::HighCutFreq, -1, M7::gFilterFreqConfig, 0, 0),
+					mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig),
 					mParams.Get01Value(ParamIndices::HighCutQ, 0),
 					0);
 			}

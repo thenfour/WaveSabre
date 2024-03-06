@@ -1487,7 +1487,7 @@ public:
 						}
 					}
 
-					float auxAtten = spec.mParams.Get01Value(M7::ModParamIndexOffsets::AuxAttenuation, 0);
+					float auxAtten = spec.mParams.Get01Value(M7::ModParamIndexOffsets::AuxAttenuation);
 					float auxScale = M7::math::lerp(1, 1.0f - auxAtten, auxVal);
 					modVal *= auxScale;
 
@@ -1644,10 +1644,10 @@ public:
 		case M7::OscillatorWaveform::VarTrapezoidSoft:
 			pWaveform.reset(new M7::VarTrapezoidWaveform { M7::gVarTrapezoidSoftSlope });
 			break;
-		case M7::OscillatorWaveform::TriClip__obsolete:
-		case M7::OscillatorWaveform::VarTriangle:
-			pWaveform.reset(new M7::VarTriWaveform);
-			break;
+		//case M7::OscillatorWaveform::TriClip__obsolete:
+		//case M7::OscillatorWaveform::VarTriangle:
+		//	pWaveform.reset(new M7::VarTriWaveform);
+		//	break;
 		case M7::OscillatorWaveform::WhiteNoiseSH:
 		{
 			freq = 8;// 1.0f / 12; // white noise waveforms just have 1 sample level per cycle and always start at 0.
@@ -2139,9 +2139,9 @@ public:
 			cursor /= sampler.mSample->GetSampleLength();
 		}
 
-		auto sampleStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::SampleStart, 0);
-		auto loopStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopStart, 0);
-		auto loopLength = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopLength, 0);
+		auto sampleStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::SampleStart);
+		auto loopStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopStart);
+		auto loopLength = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopLength);
 		WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampleStart, loopStart, loopLength, cursor);
 	}
 

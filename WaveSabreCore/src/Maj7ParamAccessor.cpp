@@ -18,6 +18,11 @@ namespace WaveSabreCore
 			return math::clamp01(GetRawVal__(offset) + mod);
 		}
 
+		float ParamAccessor::Get01Value__(int offset) const {
+			// NB: no clamping. i think its safe, right?
+			return mParamCache[mBaseParamID + offset]; 
+		}
+
 		bool ParamAccessor::GetBoolValue__(int offset) const {
 			return (GetRawVal__(offset) > 0.5f);
 		}
@@ -176,6 +181,13 @@ namespace WaveSabreCore
 			float fact = math::pow2_N16_16(param);
 			return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
 		}
+
+		float ParamAccessor::GetFrequency__(int freqOffset, const FreqParamConfig& cfg) const
+		{
+			return GetFrequency__(freqOffset, -1, cfg, 0, 0);
+		}
+
+
 
 		// param modulation is normal krate param mod
 		// noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;

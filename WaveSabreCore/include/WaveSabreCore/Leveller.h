@@ -134,7 +134,7 @@ namespace WaveSabreCore
 				for (size_t i = 0; i < 2; ++i) {
 					mFilters[i].SetParams(
 						mParams.GetEnumValue<BiquadFilterType>(BandParamOffsets::Type),
-						mParams.GetFrequency(BandParamOffsets::Freq, -1, M7::gFilterFreqConfig, 0, 0),
+						mParams.GetFrequency(BandParamOffsets::Freq, M7::gFilterFreqConfig),
 						mParams.GetWSQValue(BandParamOffsets::Q),
 						mParams.GetDecibels(BandParamOffsets::Gain, M7::gVolumeCfg12db)
 					);

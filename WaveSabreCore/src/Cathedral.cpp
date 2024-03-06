@@ -13,14 +13,14 @@ namespace WaveSabreCore
 		static constexpr int16_t AllPassTuning[] = { 556, 441, 341, 225 };
 		static constexpr int16_t stereoSpread = 23;
 
-		roomSize = 0.5f;
-		damp = 0.0f;
-		width = 1.0f;
-		freeze = false;
-		dryWet = 0.25f;
-		lowCutFreq = 20.0f;
-		highCutFreq = 20000.0f - 20.0f;
-		preDelay = 0.0f;
+		//roomSize = 0.5f;
+		//damp = 0.0f;
+		//width = 1.0f;
+		//freeze = false;
+		//dryWet = 0.25f;
+		//lowCutFreq = 20.0f;
+		//highCutFreq = 20000.0f - 20.0f;
+		//preDelay = 0.0f;
 
 		//for (int i = 0; i < 2; i++)
 		//{
@@ -51,13 +51,7 @@ namespace WaveSabreCore
 
 	void Cathedral::Run(double songPosition, float **inputs, float **outputs, int numSamples)
 	{
-		//for (int i = 0; i < 2; i++)
-		//{
-		//	lowCutFilter[i].SetFreq(lowCutFreq);
-		//	highCutFilter[i].SetFreq(highCutFreq);
-		//}
-
-		preDelayBuffer.SetLength(preDelay * 500.0f);
+		preDelayBuffer.SetLength(preDelayMS);
 
 		for (int s = 0; s < numSamples; s++)
 		{
@@ -65,7 +59,7 @@ namespace WaveSabreCore
 			float rightInput = inputs[1][s];
 			float input = (leftInput + rightInput) * gain;
 
-			if (preDelay > 0)
+			if (preDelayMS > 0)
 			{
 				preDelayBuffer.WriteSample(input);
 				input = preDelayBuffer.ReadSample();
@@ -102,13 +96,13 @@ namespace WaveSabreCore
 	void Cathedral::UpdateParams()
 	{
 		freeze = mParams.GetBoolValue(ParamIndices::Freeze);
-		roomSize = mParams.Get01Value(ParamIndices::RoomSize, 0);
-		damp = mParams.GetBoolValue(ParamIndices::Damp);
-		width = mParams.GetBoolValue(ParamIndices::Width);
-		lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, -1, M7::gFilterFreqConfig, 0, 0);
-		highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, -1, M7::gFilterFreqConfig, 0, 0);
-		dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
-		preDelay = mParams.Get01Value(ParamIndices::PreDelay, 0);
+		roomSize = mParams.Get01Value(ParamIndices::RoomSize);
+		dryWet = mParams.Get01Value(ParamIndices::DryWet);
+		preDelayMS = mParams.Get01Value(ParamIndices::PreDelay) * 500.0f;
+		damp = mParams.Get01Value(ParamIndices::Damp);
+		width = mParams.Get01Value(ParamIndices::Width);
+		lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);
+		highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);
 
 		wet1 = (width / 2 + 0.5f);
 		wet2 = ((1 - width) / 2);
