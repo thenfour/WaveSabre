@@ -32,7 +32,8 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 LevellerVst::LevellerVst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)Leveller::ParamIndices::NumParams, 2, 2, 'Lvlr', new Leveller())
 {
-	setEditor(new LevellerEditor(this));
+	if (audioMaster)
+		setEditor(new LevellerEditor(this));
 }
 
 void LevellerVst::getParameterName(VstInt32 index, char *text)

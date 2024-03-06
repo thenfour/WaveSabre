@@ -227,7 +227,7 @@ namespace WaveSabreVstLib
 		M7::Serializer s;
 
 		//auto defaultParamCache = GetDefaultParamCache();
-		CCASSERT(defaultParamCache.size());
+		CCASSERT(mDefaultParamCache.size());
 
 		for (int i = 0; i < numParams; ++i) {
 			double f = getParameter(i);

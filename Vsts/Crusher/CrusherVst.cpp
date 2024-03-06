@@ -29,7 +29,8 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 CrusherVst::CrusherVst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)Crusher::ParamIndices::NumParams, 2, 2, 'Crsh', new Crusher())
 {
-	setEditor(new CrusherEditor(this));
+	if (audioMaster)
+		setEditor(new CrusherEditor(this));
 }
 
 void CrusherVst::getParameterName(VstInt32 index, char *text)

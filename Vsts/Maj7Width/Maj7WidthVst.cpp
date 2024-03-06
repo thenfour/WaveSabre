@@ -27,7 +27,8 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 Maj7WidthVst::Maj7WidthVst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)Maj7Width::ParamIndices::NumParams, 2, 2, 'M7wd', new Maj7Width(), false)
 {
-	setEditor(new Maj7WidthEditor(this));
+	if (audioMaster)
+		setEditor(new Maj7WidthEditor(this));
 }
 
 void Maj7WidthVst::getParameterName(VstInt32 index, char *text)

@@ -29,7 +29,8 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 TwisterVst::TwisterVst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)Twister::ParamIndices::NumParams, 2, 2, 'Twst', new Twister())
 {
-	setEditor(new TwisterEditor(this));
+	if (audioMaster)
+		setEditor(new TwisterEditor(this));
 }
 
 void TwisterVst::getParameterName(VstInt32 index, char *text)

@@ -229,7 +229,7 @@ namespace WaveSabreVstLib
 		//}
 
 		// todo: read meta data / version / format info?
-		doc.Object_Close();
+		maj7Obj.Object_Close();
 
 		auto paramsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
 		if (paramsObj.IsEOF()) {

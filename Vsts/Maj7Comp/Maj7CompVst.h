@@ -15,7 +15,8 @@ public:
 	Maj7CompVst(audioMasterCallback audioMaster)
 		: VstPlug(audioMaster, (int)Maj7Comp::ParamIndices::NumParams, 2, 2, 'M7cp', new Maj7Comp(), false)
 	{
-		setEditor(createEditor(this));
+		if (audioMaster)
+			setEditor(createEditor(this));
 	}
 
 	virtual void getParameterName(VstInt32 index, char* text) override

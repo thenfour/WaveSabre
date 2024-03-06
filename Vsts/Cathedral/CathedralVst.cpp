@@ -31,7 +31,8 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 CathedralVst::CathedralVst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)Cathedral::ParamIndices::NumParams, 2, 2, 'Cath', new Cathedral())
 {
-	setEditor(new CathedralEditor(this));
+	if (audioMaster)
+		setEditor(new CathedralEditor(this));
 }
 
 void CathedralVst::getParameterName(VstInt32 index, char *text)

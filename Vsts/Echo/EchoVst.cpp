@@ -28,7 +28,8 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 EchoVst::EchoVst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)Echo::ParamIndices::NumParams, 2, 2, 'Echo', new Echo())
 {
-	setEditor(new EchoEditor(this));
+	if (audioMaster)
+		setEditor(new EchoEditor(this));
 }
 
 void EchoVst::getParameterName(VstInt32 index, char *text)

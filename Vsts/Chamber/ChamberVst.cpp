@@ -30,7 +30,8 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 ChamberVst::ChamberVst(audioMasterCallback audioMaster)
 	: VstPlug(audioMaster, (int)Chamber::ParamIndices::NumParams, 2, 2, 'Chmb', new Chamber())
 {
-	setEditor(new ChamberEditor(this));
+	if (audioMaster) 
+		setEditor(new ChamberEditor(this));
 }
 
 void ChamberVst::getParameterName(VstInt32 index, char *text)

@@ -15,7 +15,8 @@ public:
 	Maj7SatVst(audioMasterCallback audioMaster)
 		: VstPlug(audioMaster, (int)Maj7Sat::ParamIndices::NumParams, 2, 2, 'M7st', new Maj7Sat(), false)
 	{
-		setEditor(createEditor(this));
+		if (audioMaster)
+			setEditor(createEditor(this));
 	}
 
 	virtual void getParameterName(VstInt32 index, char* text) override

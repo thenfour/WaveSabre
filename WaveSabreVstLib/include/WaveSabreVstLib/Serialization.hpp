@@ -1400,7 +1400,7 @@ enum class JsonDataType : uint8_t
 struct JsonParentChildHelper
 {
   protected:
-    bool mIsLocked = false;
+    bool mIsLocked = false; // once this object has been parsed, callers are locked out. to parse the document further, you'd need to operate on parent objects.
 
   private:
     JsonParentChildHelper *mParent = nullptr;
