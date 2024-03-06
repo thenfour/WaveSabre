@@ -4,6 +4,7 @@
 #include <WaveSabreCore.h>
 #include "SongRenderer.h"
 
+
 // Leaving this profiling code here because it was pretty useful during development & optimization of the new graph runner.
 
 //#ifdef MIN_SIZE_REL
@@ -735,8 +736,10 @@ namespace WaveSabrePlayerLib
 				d->SetSampleRate((float)sampleRate);
 				d->SetTempo(bpm);
 				int chunkSize = ds.ReadVarUInt32();
-				d->SetChunk((void*)ds.mpCursor, chunkSize);
-				ds.mpCursor += chunkSize;
+				const uint8_t *expectedCursor = ds.mpCursor + chunkSize;
+				d->SetBinary16DiffChunk(ds);
+				CCASSERT(expectedCursor == ds.mpCursor);
+				//ds.mpCursor += chunkSize;
 			}
 
 			numMidiLanes = ds.ReadUInt32();

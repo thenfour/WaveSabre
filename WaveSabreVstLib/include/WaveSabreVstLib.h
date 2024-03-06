@@ -262,11 +262,13 @@ namespace WaveSabreVstLib
 				continue;// return 0; // already set. is this a duplicate? just ignore.
 			}
 
-			// NB: call SetParam so the device has the opportunity to react and recalc if needed.
-			pDevice->SetParam((int)it->second.second, ch.mNumericValue.Get<float>());
+			paramCache[(int)it->second.second] = ch.mNumericValue.Get<float>();
 			it->second.first = true;
 		}
 
+		// call SetParam so the device has the opportunity to react and recalc if needed.
+		// but do it AFTER params have been set so there's not a bunch of undefined values.
+		pDevice->SetParam(0, paramCache[0]);
 
 		return byteSize;
 	}
@@ -421,7 +423,7 @@ namespace WaveSabreVstLib
 
 					// apply it back (round trip)
 					M7::Deserializer ds{ (const uint8_t*)data };
-					pDevice->SetMaj7StyleChunk(ds);
+					pDevice->SetBinary16DiffChunk(ds);
 					delete[] data;
 
 					float after[paramCount];

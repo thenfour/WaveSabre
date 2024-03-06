@@ -6,7 +6,6 @@
 // accepts the VST chunk, optimizes & minifies and outputs the wavesabre optimized chunk.
 int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
-	::DebugBreak();
 	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<Maj7CompVst>(deviceName, inpSize, inpData, outpSize, outpData);
 }
 

@@ -26,17 +26,15 @@ namespace WaveSabreCore
 		void SetSampleRate(float sampleRate);
 		void SetTempo(int tempo);
 
-		virtual void SetParam(int index, float value);
-		virtual float GetParam(int index) const;
+		virtual void SetParam(int index, float value) = 0;
+		virtual float GetParam(int index) const = 0;
 
-		virtual void SetChunk(void* data, int size);
-		virtual int GetChunk(void** data);
+		//virtual void SetChunk(void* data, int size);
+		//virtual int GetChunk(void** data);
 
 		// support for maj7 style chunks, which are 16-bit and differential from default values
-		virtual void LoadDefaults() {
-			::OutputDebugStringA("!!! Device::LoadDefaults");
-		}
-		void SetMaj7StyleChunk(M7::Deserializer& ds);
+		virtual void LoadDefaults() = 0;
+		virtual void SetBinary16DiffChunk(M7::Deserializer& ds);
 
 	protected:
 		void clearOutputs(float **outputs, int numSamples);

@@ -195,11 +195,11 @@ namespace WaveSabreCore
 		}
 
 		// minified
-		virtual void SetChunk(void* data, int size) override
-		{
-			M7::Deserializer ds{ (const uint8_t*)data };
-			SetMaj7StyleChunk(ds);
-		}
+		//virtual void SetChunk(void* data, int size) override
+		//{
+		//	M7::Deserializer ds{ (const uint8_t*)data };
+		//	SetMaj7StyleChunk(ds);
+		//}
 
 		float mParamCache[(size_t)ParamIndices::NumParams];
 		M7::ParamAccessor mParams{ mParamCache, 0 };

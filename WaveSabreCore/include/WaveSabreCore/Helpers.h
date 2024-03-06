@@ -47,7 +47,23 @@ namespace cc
 		}
 	};
 }
-#endif
+#endif // _DEBUG
+
+
+#ifdef _DEBUG
+static inline void assert__(bool condition, const char* conditionStr, const char* file, int line) {
+	if (condition) return;
+	char s[1000];
+	sprintf(s, "ASSERT failed: %s (%s:%d)", conditionStr, file, line);
+	::OutputDebugStringA(s);
+	::DebugBreak();
+}
+
+#define CCASSERT(x) assert__(x, #x, __FILE__, __LINE__)
+#else // _DEBUG
+#define CCASSERT(x)
+#endif // _DEBUG
+
 
 
 namespace WaveSabreCore

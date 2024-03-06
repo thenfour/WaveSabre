@@ -324,10 +324,12 @@ namespace WaveSabreCore
 			}
 
 			// minified
-			virtual void SetChunk(void* data, int size) override
+			virtual void SetBinary16DiffChunk(M7::Deserializer& ds) override
+			//virtual void SetBinary16DiffChunk(void* data, int size) override
 			{
-				Deserializer ds{ (const uint8_t*)data };
-				SetMaj7StyleChunk(ds);
+				//Deserializer ds{ (const uint8_t*)data };
+				Device::SetBinary16DiffChunk(ds);
+				//SetMaj7StyleChunk(ds);
 				for (auto& s : mpSamplerDevices) {
 					s->Deserialize(ds);
 				}

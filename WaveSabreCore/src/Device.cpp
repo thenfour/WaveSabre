@@ -33,56 +33,51 @@ namespace WaveSabreCore
 		Helpers::CurrentTempo = tempo;
 	}
 
-	void Device::SetParam(int index, float value) { }
+	//void Device::SetParam(int index, float value) { }
 
-	float Device::GetParam(int index) const
-	{
-		return 0.0f;
-	}
+	//float Device::GetParam(int index) const
+	//{
+	//	return 0.0f;
+	//}
 
-	void Device::SetChunk(void *data, int size)
-	{
-		auto params = (float *)data;
-		// This may be different than our internal numParams value if this chunk was
-		//  saved with an earlier version of the plug for example. It's important we
-		//  don't read past the chunk data, so we set as many parameters as the
-		//  chunk contains, not the amount of parameters we have available. The
-		//  remaining parameters will retain their default values in that case, which
-		//  if we've done our job right, shouldn't change the sound with respect to
-		//  the parameters we read here.
-		auto numChunkParams = (int)((size - sizeof(int)) / sizeof(float));
-		for (int i = 0; i < numChunkParams; i++)
-			SetParam(i, params[i]);
-	}
+	//void Device::SetChunk(void *data, int size)
+	//{
+	//	auto params = (float *)data;
+	//	// This may be different than our internal numParams value if this chunk was
+	//	//  saved with an earlier version of the plug for example. It's important we
+	//	//  don't read past the chunk data, so we set as many parameters as the
+	//	//  chunk contains, not the amount of parameters we have available. The
+	//	//  remaining parameters will retain their default values in that case, which
+	//	//  if we've done our job right, shouldn't change the sound with respect to
+	//	//  the parameters we read here.
+	//	auto numChunkParams = (int)((size - sizeof(int)) / sizeof(float));
+	//	for (int i = 0; i < numChunkParams; i++)
+	//		SetParam(i, params[i]);
+	//}
 
-	void Device::SetMaj7StyleChunk(M7::Deserializer& ds)
+	void Device::SetBinary16DiffChunk(M7::Deserializer& ds)
 	{
-		cc::log("SetMaj7StyleChunk 1");
-		float x = this->GetParam(0);
-		cc::log("device getparam: %f", x);
-		this->LoadDefaults();
-		cc::log("SetMaj7StyleChunk 2");
+		this->LoadDefaults(); // important for delta behavior to start with defaults.
 		for (int i = 0; i < this->numParams; ++i)
 		{
-			cc::log("SetMaj7StyleChunk i = %d", i);
 			float f = GetParam(i) + ds.ReadInt16NormalizedFloat();
 			SetParam(i, f);
 		}
 	}
 
 	// outputs all float params in a contiguous array, followed by a int32 of the chunk size that was just written (which tbh is pretty useless but maybe it was used as a sort of checksum at some point?)
-	int Device::GetChunk(void **data)
-	{
-		int chunkSize = numParams * sizeof(float) + sizeof(int);
-		if (!chunkData) chunkData = new char[chunkSize];
+	//int Device::GetChunk(void **data)
+	//{
+	//	int chunkSize = numParams * sizeof(float) + sizeof(int);
+	//	if (!chunkData) chunkData = new char[chunkSize];
 
-		for (int i = 0; i < numParams; i++)
-			((float *)chunkData)[i] = GetParam(i);
-		*(int *)((char *)chunkData + chunkSize - sizeof(int)) = chunkSize;
+	//	for (int i = 0; i < numParams; i++)
+	//		((float *)chunkData)[i] = GetParam(i);
+	//	*(int *)((char *)chunkData + chunkSize - sizeof(int)) = chunkSize;
 
-		*data = chunkData;
-		return chunkSize;
-	}
+	//	*data = chunkData;
+	//	return chunkSize;
+	//}
 
 	void Device::clearOutputs(float **outputs, int numSamples)
 	{

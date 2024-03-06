@@ -131,15 +131,8 @@ namespace WaveSabreCore
 			}
 		}
 		virtual void LoadDefaults() override {
-			cc::log("Width::LoadDefaults 1, importing %d", std::size(gParamDefaults));
-
 			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-
-			cc::log("Width::LoadDefaults 2");
-
 			SetParam(0, mParamCache[0]); // force recalcing
-
-			cc::log("Width::LoadDefaults 3");
 		}
 
 		virtual void SetParam(int index, float value) override

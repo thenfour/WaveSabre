@@ -5,11 +5,12 @@
 #include <type_traits>
 #include <string>
 #include <vector>
-//#include "BaseDefs.hpp"
 
 #ifdef CLARINOID_PLATFORM_X86
 #include <map>
 #endif
+
+#include <WaveSabreCore.h>
 
 #define PROGMEM
 
@@ -217,7 +218,6 @@ namespace clarinoid
             function() = delete;
         };
     }
-#define CCASSERT(x)
 
     // effectively just a tuple<bool, string>
     struct Result

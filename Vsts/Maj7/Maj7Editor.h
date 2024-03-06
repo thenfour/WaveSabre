@@ -370,17 +370,26 @@ public:
 			if (ImGui::MenuItem("Test chunk roundtrip")) {
 				if (IDYES == ::MessageBoxA(mCurrentWindow, "Sure? This could ruin your patch. But hopefully it doesn't?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
 
+					// make a copy of param cache.
 					float orig[(size_t)M7::ParamIndices::NumParams];
 					for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
 						orig[i] = pMaj7->GetParam((int)i);
 					}
 
+					// get the wavesabre chunk
+
 					void* data;
+					mpMaj7VST->OptimizeParams();
+					int n = mpMaj7VST->GetMinifiedChunk(&data);
 					//auto defaultParamCache = GetDefaultParamCache();
 					//int n = pMaj7->GetChunk(&data);
-					int n = mpMaj7VST->GetMinifiedChunk(&data);
+					//int n = mpMaj7VST->GetMinifiedChunk(&data);
 					//int n = GetMinifiedChunk(pMaj7, &data, defaultParamCache);
-					pMaj7->SetChunk(data, n);
+					//pMaj7->SetChunk(data, n);
+					
+					// apply it back (round trip)
+					M7::Deserializer ds{ (const uint8_t*)data };
+					pMaj7->SetBinary16DiffChunk(ds);
 					delete[] data;
 
 

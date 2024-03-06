@@ -7,6 +7,8 @@
 
 #include "../7z/LzmaEnc.h"
 
+#include <memory>
+
 #include "audioeffectx.h"
 #include <WaveSabreCore.h>
 #include "./Serialization.hpp"
@@ -21,18 +23,20 @@ inline void Copy16bitDefaults(float* dest, const int16_t(&src)[N])
 }
 
 
-// accepts the VST chunk, optimizes & minifies and outputs the wavesabre optimized chunk.
+// accepts the VST chunk (JSON), optimizes & minifies and outputs the wavesabre optimized binary chunk.
 template<typename TVST>
 inline int WaveSabreDeviceVSTChunkToMinifiedChunk_Impl(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
 {
 	*outpSize = 0;
 	auto p = new TVST(nullptr); // assume too big for stack.
-	Device* pd = (Device*)p;
-	M7::Deserializer ds{ (const uint8_t*)inpData };
-	pd->SetMaj7StyleChunk(ds);
-	//p->setChunk(inpData, inpSize, false);
+	auto* pVst = (WaveSabreVstLib::VstPlug*)p;
+	pVst->setChunk(inpData, inpSize, false); // apply JSON via the VST.
+	//auto* pDevice = pd->getDevice();
+	//M7::Deserializer ds{ (const uint8_t*)inpData };
+	//pDevice->SetMaj7StyleChunk(ds);
 	p->OptimizeParams();
 	*outpSize = p->GetMinifiedChunk(outpData);
+	delete p;
 	return *outpSize;
 }
 
