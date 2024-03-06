@@ -180,8 +180,6 @@ namespace WaveSabreCore
 				mOutputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
 #ifdef MAJ7COMP_FULL
 				mCompensationGainLin = mParams.GetLinearVolume(ParamIndices::CompensationGain, M7::gVolumeCfg24db);
-				//mDryWetMix = ;
-				//mPeakRMSMix = mParams.Get01Value(ParamIndices::PeakRMSMix, 0);
 #endif // MAJ7COMP_FULL
 
 				float ratioParam = mParams.GetDivCurvedValue(ParamIndices::Ratio, gRatioCfg, 0);

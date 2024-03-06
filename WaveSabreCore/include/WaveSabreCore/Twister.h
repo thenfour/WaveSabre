@@ -102,7 +102,7 @@ namespace WaveSabreCore
 			vibratoFreq = mParams.GetFrequency(ParamIndices::VibratoFreq, M7::gLFOFreqConfig);// Helpers::ParamToFrequency(value); break;
 			lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
 			highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
-			dryWet = mParams.Get01Value(ParamIndices::DryWet, 0);
+			dryWet = mParams.Get01Value(ParamIndices::DryWet);
 		}
 
 		virtual float GetParam(int index) const override

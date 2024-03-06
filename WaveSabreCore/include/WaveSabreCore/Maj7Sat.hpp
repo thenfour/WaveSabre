@@ -8,6 +8,9 @@
 #include <vector>
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+//#define MAJ7SAT_ENABLE_RARE_MODELS
+//#define MAJ7SAT_ENABLE_ANALOG
+
 namespace WaveSabreCore
 {
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,8 +43,11 @@ namespace WaveSabreCore
 		enum class Model : uint8_t {
 			Thru,
 			SineClip,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			DivClipSoft,
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			TanhClip,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			DivClipMedium,
 			DivClipHard,
 			HardClip,
@@ -49,8 +55,36 @@ namespace WaveSabreCore
 			TanhSinFold,
 			SinFold,
 			LinearFold,
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			Count__,
 		};
+
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
+
+#define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
+			"Thru", \
+		"SineClip", \
+		"DivClipSoft", \
+			"TanhClip", \
+			"DivClipMedium", \
+			"DivClipHard", \
+			"HardClip", \
+			"TanhFold", \
+			"TanhSinFold", \
+			"SinFold", \
+			"LinearFold", \
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
+		}
+#else // MAJ7SAT_ENABLE_RARE_MODELS
+#define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
+			"Thru", \
+		"SineClip", \
+			"TanhClip", \
+		}
+
+
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
+
 
 		// helps unify the sound of them. nothing magic here just values that seemed to work.
 		// the method is to just keep a fundamental frequency constant, and let the harmonics add.
@@ -58,8 +92,11 @@ namespace WaveSabreCore
 		static constexpr float ModelPregain[(size_t)Model::Count__] = {
 			1, // thru,
 			0.71f, // sinclip
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			0.69f, // div 41
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			0.62f, // tanh clip
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			0.47f, // DivClipMedium,
 			0.21f, // DivClipHard,
 			1, // HardClip,
@@ -67,6 +104,7 @@ namespace WaveSabreCore
 			0.56f,// TanhSinFold,
 			0.71f,// SinFold,
 			1, // LinearFold,
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 		};
 
 		// to calculate the slope...
@@ -79,8 +117,11 @@ namespace WaveSabreCore
 		static constexpr float ModelNaturalSlopes[(size_t)Model::Count__] = {
 			1, // thru,
 			M7::math::gPIHalf, // sinclip
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			gK41 + 1, // div 41
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			2, // tanh clip
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			gK63 + 1, // DivClipMedium,
 			gK85 + 1, // DivClipHard,
 			1, // HardClip,
@@ -88,6 +129,7 @@ namespace WaveSabreCore
 			M7::math::gPI * 3.0f / 4.0f,// TanhSinFold,
 			M7::math::gPIHalf,// SinFold,
 			1, // LinearFold,
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 		};
 
 		//enum class OutputSignal : uint8_t {
@@ -266,21 +308,26 @@ namespace WaveSabreCore
 			float mAutoDriveCompensation ;
 			float mThresholdLin ;
 			float mDryWet ;
+#ifdef MAJ7SAT_ENABLE_ANALOG
 			float mEvenHarmonicsGainLin ;
+#endif // MAJ7SAT_ENABLE_ANALOG
 			float mPanN11 ;
 			float mCorrSlope;
 
-			float output0 ;
-			float output1 ;
+			//float outputs[2];
 
 			Model mModel;
 			PanMode mPanMode;
 			bool mEnableEffect;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			bool mMute;
 			bool mSolo;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			M7::ParamAccessor mParams;
+#ifdef MAJ7SAT_ENABLE_ANALOG
 			M7::DCFilter mDC[2];
+#endif // MAJ7SAT_ENABLE_ANALOG
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			AnalysisStream mInputAnalysis0;
@@ -306,8 +353,10 @@ namespace WaveSabreCore
 
 			void Slider() {
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				mMute = mParams.GetBoolValue(BandParam::Mute);
 				mSolo = mParams.GetBoolValue(BandParam::Solo);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				mEnableEffect = mParams.GetBoolValue(BandParam::EnableEffect);
 
 				mDriveLin = mParams.GetLinearVolume(BandParam::Drive, M7::gVolumeCfg36db);
@@ -320,7 +369,9 @@ namespace WaveSabreCore
 				mModel = mParams.GetEnumValue<Model>(BandParam::Model);
 
 				mDryWet = mParams.Get01Value(BandParam::DryWet);
+#ifdef MAJ7SAT_ENABLE_ANALOG
 				mEvenHarmonicsGainLin = mParams.GetScaledRealValue(BandParam::EvenHarmonics, 0, gAnalogMaxLin, 0); //mParams.GetLinearVolume(BandParam::EvenHarmonics, M7::gVolumeCfg36db, 0);
+#endif // MAJ7SAT_ENABLE_ANALOG
 
 				mPanMode = mParams.GetEnumValue<PanMode>(BandParam::PanMode);
 				mPanN11 = mParams.GetN11Value(BandParam::Pan, 0);
@@ -412,12 +463,15 @@ namespace WaveSabreCore
 					case Model::SineClip:
 						s = shape_sinclip(s);
 						break;
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::DivClipSoft:
 						s = shape_div(s, gK41);
 						break;
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::TanhClip:
 						s = shape_tanhclip(s);
 						break;
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::DivClipMedium:
 						s = shape_div(s, gK63);
 						break;
@@ -439,6 +493,7 @@ namespace WaveSabreCore
 					case Model::LinearFold:
 						s = shape_trifold(s);
 						break;
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 					}
 					//satAmount = s - s_preshape;
 
@@ -458,23 +513,22 @@ namespace WaveSabreCore
 			float distort(float s, size_t chanIndex)
 			{
 				s = transfer(s);
+#ifdef MAJ7SAT_ENABLE_ANALOG
 				float analog = s * s - .5f;
 				analog = mDC[chanIndex].ProcessSample(analog);
 				analog = M7::math::clamp01(analog);// must clip, otherwise values can be huge if s happened to be > 1
 				analog *= mEvenHarmonicsGainLin;
 				s += analog;
-				//diffSignal += analog;
+#endif // MAJ7SAT_ENABLE_ANALOG
 
 				s *= mAutoDriveCompensation;
 				s *= mCompensationGain;
 
-				//diffSignal /= std::max(1.0f, mDriveLin);
-
 				return s;
 			}
 
-			void ProcessSample(float s0, float s1, float masterDryWet) {
-
+			M7::FloatPair ProcessSample(float s0, float s1, float masterDryWet)
+			{
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				if (mEnableEffect && mMuteSoloEnabled) {
 					mInputAnalysis0.WriteSample(s0);
@@ -487,65 +541,82 @@ namespace WaveSabreCore
 				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-				float dry0 = s0;
-				float dry1 = s1;
+				float sa[2] = { s0, s1 };
+				float dry[2] = { s0, s1 };
+				//float dry0 = s0;
+				//float dry1 = s1;
 
 				if (mEnableEffect && mMuteSoloEnabled) {
 					if (mPanMode == PanMode::MidSide) {
-						M7::MSEncode(s0, s1, &s0, &s1);
+						M7::MSEncode(sa[0], sa[1], &sa[0], &sa[1]);
+						dry[0] = sa[0];
+						dry[1] = sa[1];
 					}
-
-					dry0 = s0;
-					dry1 = s1;
-
-					s0 *= ModelPregain[(int)mModel];
-					s0 *= mDriveLin;
-					s1 *= ModelPregain[(int)mModel];
-					s1 *= mDriveLin;
-
-					float this0 = distort(s0, 0);
-					float this1 = distort(s1, 1);
-
-					s0 = this0;
-					s1 = this1;
 
 					// DO PANNING
 					// do NOT use a pan law here; when it's centered it means both channels should get 100% wetness.
-					float dryWet0 = 1;
-					float dryWet1 = 1;
-					if (mPanN11 < 0)dryWet1 = mPanN11 + 1.0f; // left chan (right attenuated)
-					if (mPanN11 > 0) dryWet0 = 1.0f - mPanN11; // right chan (left attenuated)
+					float dryWet[2] = { 1,1 };
+					if (mPanN11 < 0) dryWet[1] = mPanN11 + 1.0f; // left chan (right attenuated)
+					if (mPanN11 > 0) dryWet[0] = 1.0f - mPanN11; // right chan (left attenuated)
 
-					dryWet0 *= mDryWet * masterDryWet;
-					dryWet1 *= mDryWet * masterDryWet;
+					for (int i = 0; i < 2; ++i) {
+						float& s = *(sa + i);
 
-					// note: when (e.g.) saturating only side channel, you'll get a signal that's too wide because of the natural
-					// gain that saturation results in.
-					// in these cases, dry/wet is very important param for balancing the stereo image again, in MidSide mode.
-					s0 = M7::math::lerp(dry0, s0, dryWet0);
-					s1 = M7::math::lerp(dry1, s1, dryWet1);
+						s *= ModelPregain[(int)mModel];
+						s *= mDriveLin;
+						s = distort(s, i);
+
+						// note: when (e.g.) saturating only side channel, you'll get a signal that's too wide because of the natural
+						// gain that saturation results in.
+						// in these cases, dry/wet is very important param for balancing the stereo image again, in MidSide mode.
+						s = M7::math::lerp(dry[i], s, dryWet[i] * mDryWet * masterDryWet);
+					}
+
+					//s0 *= ModelPregain[(int)mModel];
+					//s1 *= ModelPregain[(int)mModel];
+
+					//s0 *= mDriveLin;
+					//s1 *= mDriveLin;
+
+					//float this0 = distort(s0, 0);
+					//float this1 = distort(s1, 1);
+
+					//s0 = this0;
+					//s1 = this1;
+
+					//// DO PANNING
+					//// do NOT use a pan law here; when it's centered it means both channels should get 100% wetness.
+					//float dryWet0 = 1;
+					//float dryWet1 = 1;
+					//if (mPanN11 < 0) dryWet1 = mPanN11 + 1.0f; // left chan (right attenuated)
+					//if (mPanN11 > 0) dryWet0 = 1.0f - mPanN11; // right chan (left attenuated)
+
+					//dryWet0 *= mDryWet * masterDryWet;
+					//dryWet1 *= mDryWet * masterDryWet;
+
+					//// note: when (e.g.) saturating only side channel, you'll get a signal that's too wide because of the natural
+					//// gain that saturation results in.
+					//// in these cases, dry/wet is very important param for balancing the stereo image again, in MidSide mode.
+					//s0 = M7::math::lerp(dry0, s0, dryWet0);
+					//s1 = M7::math::lerp(dry1, s1, dryWet1);
 
 					if (mPanMode == PanMode::MidSide) {
-						M7::MSDecode(s0, s1, &s0, &s1);
-						//M7::MSDecode(diff0, diff1, &diff0, &diff1);
+						M7::MSDecode(sa[0], sa[1], &sa[0], &sa[1]);
 					}
 					//diff0 = M7::math::clampN11(diff0);
 					//diff1 = M7::math::clampN11(diff1);
 				}
-				//else {
-				//	diff0 = 0;
-				//	diff1 = 0;
-				//}
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				float output0, output1;
 				if (mMuteSoloEnabled) {
 					if (mEnableEffect) {
-						output0 = s0;
-						output1 = s1;
+						output0 = sa[0];
+						output1 = sa[1];
 					}
 					else {
-						output0 = dry0;
-						output1 = dry1;
+						output0 = dry[0];
+						output1 = dry[1];
 					}
 					output0 *= mOutputGain;
 					output1 *= mOutputGain;
@@ -564,10 +635,9 @@ namespace WaveSabreCore
 					mOutputAnalysis0.WriteSample(0);
 					mOutputAnalysis1.WriteSample(0);
 				}
-
+				return {output0, output1};
 #else
-				output0 = s0;
-				output1 = s1;
+				return {sa[0], sa[1]};
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			}
@@ -611,7 +681,7 @@ namespace WaveSabreCore
 		float mCrossoverFreqB = 0;
 
 		M7::LinkwitzRileyFilter::Slope mCrossoverSlopeA = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
-		M7::LinkwitzRileyFilter::Slope mCrossoverSlopeB = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
+		//M7::LinkwitzRileyFilter::Slope mCrossoverSlopeB = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
 
 		virtual void SetParam(int index, float value) override
 		{
@@ -676,9 +746,6 @@ namespace WaveSabreCore
 				float s0 = inputs[0][i] * mInputGainLin;
 				float s1 = inputs[1][i] * mInputGainLin;
 
-				float dry0 = s0;
-				float dry1 = s1;
-
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				mInputAnalysis0.WriteSample(s0);
 				mInputAnalysis1.WriteSample(s1);
@@ -688,16 +755,20 @@ namespace WaveSabreCore
 				splitter0.frequency_splitter(s0, mCrossoverFreqA, mCrossoverSlopeA, mCrossoverFreqB);
 				splitter1.frequency_splitter(s1, mCrossoverFreqA, mCrossoverSlopeA, mCrossoverFreqB);
 
+				s0 = 0;
+				s1 = 0;
 				for (int iBand = 0; iBand < gBandCount; ++iBand) {
 					auto& band = mBands[iBand];
-					band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet);
+					auto r = band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet);
+					s0 += r.first * mOutputGainLin;
+					s1 += r.second * mOutputGainLin;
 				}
 
-				s0 = mBands[0].output0 + mBands[1].output0 + mBands[2].output0;
-				s1 = mBands[0].output1 + mBands[1].output1 + mBands[2].output1;
+				//s0 = mBands[0].output0 + mBands[1].output0 + mBands[2].output0;
+				//s1 = mBands[0].output1 + mBands[1].output1 + mBands[2].output1;
 
-				s0 *= mOutputGainLin;
-				s1 *= mOutputGainLin;
+				//s0 *= mOutputGainLin;
+				//s1 *= mOutputGainLin;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				mOutputAnalysis0.WriteSample(s0);
@@ -708,9 +779,6 @@ namespace WaveSabreCore
 				// so clamp at about +12db clip. todo: param smoothing to avoid these spikes.
 				outputs[0][i] = M7::math::clamp(s0, -4, 4);
 				outputs[1][i] = M7::math::clamp(s1, -4, 4);
-
-
-
 			} // for i < numSamples
 		} // Run()
 

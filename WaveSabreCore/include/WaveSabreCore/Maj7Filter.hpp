@@ -13,6 +13,7 @@
 // disabling these filters saves ~60 bytes of final code
 #define DISABLE_6db_oct_crossover
 #define DISABLE_36db_oct_crossover
+#define DISABLE_48db_oct_crossover
 #define DISABLE_onepole_maj7_filter
 
 namespace WaveSabreCore
@@ -297,6 +298,7 @@ namespace WaveSabreCore
 
 			real LR_LPF(real x, real freq, Slope slope) {
 				switch (slope) {
+				default:
 				case Slope::Slope_12dB:
 					return svf[0].SVFlow(x, freq, 0.5f);
 				case Slope::Slope_24dB:
@@ -308,18 +310,19 @@ namespace WaveSabreCore
 					x = svf[1].SVFlow(x, freq, 1);
 					return svf[2].SVFlow(x, freq, 0.5f);
 #endif // DISABLE_6db_oct_crossover
+#ifndef DISABLE_48db_oct_crossover
 				case Slope::Slope_48dB:
 					x = svf[0].SVFlow(x, freq, q48_1);
 					x = svf[1].SVFlow(x, freq, q48_2);
 					x = svf[2].SVFlow(x, freq, q48_1);
 					return svf[3].SVFlow(x, freq, q48_2);
-				default:
-					return x; // Invalid slope, return unprocessed signal
+#endif // DISABLE_48db_oct_crossover
 				}
 			}
 
 			real LR_HPF(real x, real freq, Slope slope) {
 				switch (slope) {
+				default:
 				case Slope::Slope_12dB:
 					return svf[0].SVFhigh(-x, freq, 0.5f);
 				case Slope::Slope_24dB:
@@ -331,13 +334,13 @@ namespace WaveSabreCore
 					x = svf[1].SVFhigh(x, freq, 1);
 					return svf[2].SVFhigh(x, freq, 0.5f);
 #endif // DISABLE_6db_oct_crossover	
+#ifndef DISABLE_48db_oct_crossover
 				case Slope::Slope_48dB:
 					x = svf[0].SVFhigh(x, freq, q48_1);
 					x = svf[1].SVFhigh(x, freq, q48_2);
 					x = svf[2].SVFhigh(x, freq, q48_1);
 					return svf[3].SVFhigh(x, freq, q48_2);
-				default:
-					return x; // Invalid slope, return unprocessed signal
+#endif // DISABLE_48db_oct_crossover
 				}
 			}
 
@@ -353,9 +356,11 @@ namespace WaveSabreCore
 					x = svf[0].SVFall(-x, freq, 1);
 					return svf[1].SVFOPapf_temp(x, freq);
 #endif // DISABLE_6db_oct_crossover
+#ifndef DISABLE_48db_oct_crossover
 				case Slope::Slope_48dB:
 					x = svf[0].SVFall(x, freq, q48_1);
 					return svf[1].SVFall(x, freq, q48_2);
+#endif // DISABLE_48db_oct_crossover
 				}
 			}
 		};

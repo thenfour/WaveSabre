@@ -131,19 +131,7 @@ struct Maj7SatEditor : public VstEditor
 
 				ImGui::SameLine(0, 80); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
 
-				static constexpr char const* const modelNames[(size_t)Maj7Sat::Model::Count__] = {
-					"Thru",
-					"SineClip",
-					"DivClipSoft",
-					"TanhClip",
-					"DivClipMedium",
-					"DivClipHard",
-					"HardClip",
-					"TanhFold",
-					"TanhSinFold",
-					"SinFold",
-					"LinearFold",
-				};
+				MAJ7SAT_MODEL_CAPTIONS(modelNames);
 
 				ImGui::SameLine(); Maj7ImGuiParamEnumCombo(param(BandParam::Model), "Model", (int)Maj7Sat::Model::Count__, Maj7Sat::Model::TanhClip, modelNames, 100);
 
