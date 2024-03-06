@@ -23,9 +23,9 @@ namespace WaveSabreCore
 			RightDelayFine,// 0-1 => 0-200 inclusive integral
 
 			LowCutFreq, // Helpers::ParamToFrequency(value)
-			LowCutQ, // Helpers::ParamToFrequency(value)
+			LowCutQ,
 			HighCutFreq, // Helpers::ParamToFrequency(value)
-			HighCutQ, // Helpers::ParamToFrequency(value)
+			HighCutQ,
 
 			FeedbackLevel, // 0-1
 			FeedbackDriveDB,
@@ -106,9 +106,9 @@ namespace WaveSabreCore
 				float leftInput = inputs[0][i];
 				float rightInput = inputs[1][i];
 
-				float leftDelay = mLowCutFilter[0].Next(mHighCutFilter[0].Next(leftBuffer.ReadSample()));
+				float leftDelay = mLowCutFilter[0].ProcessSample(mHighCutFilter[0].ProcessSample(leftBuffer.ReadSample()));
 				leftDelay = M7::math::tanh(leftDelay * feedbackDriveLin) / feedbackDriveLin;
-				float rightDelay = mLowCutFilter[1].Next(mHighCutFilter[1].Next(rightBuffer.ReadSample()));
+				float rightDelay = mLowCutFilter[1].ProcessSample(mHighCutFilter[1].ProcessSample(rightBuffer.ReadSample()));
 				rightDelay = M7::math::tanh(rightDelay * feedbackDriveLin) / feedbackDriveLin;
 
 				float leftFeedback = (leftInput + M7::math::lerp(leftDelay, rightDelay, cross)) * feedback;

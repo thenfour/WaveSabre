@@ -667,8 +667,8 @@ namespace WaveSabreVstLib
 		Unisono,
 		//VibratoFreq,
 		Frequency,
-		FilterQ,
-		Db,
+		//FilterQ,
+		//Db,
 	};
 
 	class VstEditor : public AEffEditor
@@ -1030,29 +1030,29 @@ namespace WaveSabreVstLib
 			}
 		};
 
-		struct DbConverter : ImGuiKnobs::IValueConverter
-		{
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
-				char s[100] = { 0 };
-				sprintf_s(s, "%0.2f", ::WaveSabreCore::Helpers::ParamToDb((float)param));
-				return s;
-			}
-			virtual double DisplayValueToParam(double value, void* capture) {
-				return ::WaveSabreCore::Helpers::DbToParam((float)value);
-			}
-		};
+		//struct DbConverter : ImGuiKnobs::IValueConverter
+		//{
+		//	virtual std::string ParamToDisplayString(double param, void* capture) override {
+		//		char s[100] = { 0 };
+		//		sprintf_s(s, "%0.2f", ::WaveSabreCore::Helpers::ParamToDb((float)param));
+		//		return s;
+		//	}
+		//	virtual double DisplayValueToParam(double value, void* capture) {
+		//		return ::WaveSabreCore::Helpers::DbToParam((float)value);
+		//	}
+		//};
 
-		struct FilterQConverter : ImGuiKnobs::IValueConverter
-		{
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
-				char s[100] = { 0 };
-				sprintf_s(s, "%0.2f", ::WaveSabreCore::Helpers::ParamToQ((float)param));
-				return s;
-			}
-			virtual double DisplayValueToParam(double value, void* capture) {
-				return ::WaveSabreCore::Helpers::QToParam((float)value);
-			}
-		};
+		//struct FilterQConverter : ImGuiKnobs::IValueConverter
+		//{
+		//	virtual std::string ParamToDisplayString(double param, void* capture) override {
+		//		char s[100] = { 0 };
+		//		sprintf_s(s, "%0.2f", ::WaveSabreCore::Helpers::ParamToQ((float)param));
+		//		return s;
+		//	}
+		//	virtual double DisplayValueToParam(double value, void* capture) {
+		//		return ::WaveSabreCore::Helpers::QToParam((float)value);
+		//	}
+		//};
 
 		// case ParamIndices::LoopMode: return (float)loopMode / (float)((int)LoopMode::NumLoopModes - 1);
 		//template<typename T>
@@ -1091,24 +1091,24 @@ namespace WaveSabreVstLib
 			//	}
 			//	break;
 			//}
-			case ParamBehavior::Db:
-			{
-				static DbConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.5f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
-				if (r) {
-					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
-				}
-				break;
-			}
-			case ParamBehavior::FilterQ:
-			{
-				static FilterQConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
-				if (r) {
-					GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
-				}
-				break;
-			}
+			//case ParamBehavior::Db:
+			//{
+			//	static DbConverter conv;
+			//	r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.5f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
+			//	if (r) {
+			//		GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
+			//	}
+			//	break;
+			//}
+			//case ParamBehavior::FilterQ:
+			//{
+			//	static FilterQConverter conv;
+			//	r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
+			//	if (r) {
+			//		GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
+			//	}
+			//	break;
+			//}
 
 			case ParamBehavior::Frequency:
 			{

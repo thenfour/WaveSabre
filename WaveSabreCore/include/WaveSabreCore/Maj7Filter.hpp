@@ -1,6 +1,7 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/BiquadFilter.h>
 #include "Maj7ModMatrix.hpp"
 // TODO: find a way to only include filters which are actually used in the song.
 //#include "Filters/FilterDiode.hpp"
@@ -8,62 +9,306 @@
 #include "Filters/FilterMoog.hpp"
 #include "Filters/FilterOnePole.hpp"
 //#include "Filters/FilterSEM12.hpp"
-// TODO: comb, notch, butterworth, ??
 
 // disabling these filters saves ~60 bytes of final code
 #define DISABLE_6db_oct_crossover
 #define DISABLE_36db_oct_crossover
-#define DISABLE_48db_oct_crossover
-#define DISABLE_onepole_maj7_filter
+//#define DISABLE_48db_oct_crossover
+//#define DISABLE_onepole_maj7_filter // actually DON'T disable this because it's required for the LFO "sharpness" control. it's pretty much free anyway.
+#define DISABLE_MOOG_FILTER
+
+#define LR_SLOPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::LinkwitzRileyFilter::Slope::Count__] { \
+	"6dB (unsupported)",\
+	"12dB",\
+	"24dB",\
+	"36dB (unsupported)",\
+	"48dB",\
+	}
+
+#define FILTER_MODEL_CAPTIONS { \
+    "Disabled", \
+    "LP_OnePole", \
+    "LP_Moog2 (unsupported)", \
+    "LP_Moog4 (unsupported)", \
+    "BP_Moog2 (unsupported)", \
+    "BP_Moog4 (unsupported)", \
+    "HP_OnePole", \
+    "HP_Moog2 (unsupported)", \
+    "HP_Moog4 (unsupported)", \
+    "LP_Biquad", \
+    "HP_Biquad", \
+}
+
+
 
 namespace WaveSabreCore
 {
 	namespace M7
 	{
-		enum class FilterModel : uint8_t
+		struct SVFilter
+		{
+			SVFilter() {
+				Reset();
+			}
+			// one pole apf
+			float SVFOPapf_temp(float x, float cutoff) {
+				if (d1 != d0) {
+					d0 = cutoff;
+					c = M7::math::tan(M7::math::gPI * (cutoff * Helpers::CurrentSampleRateRecipF - 0.25f)) * 0.5f + 0.5f;
+				}
+				float r = (1 - c) * i + c * x;
+				i = 2 * r - i;
+				return x - 2 * r;
+			}
+
+			// Update filter coefficients if cutoff or Q has changed
+			M7::FloatPair updateCoefficients(float v0, float cutoff, float Q) {
+				float new_d0 = cutoff + Q;
+				if (d1 != new_d0) {
+					d1 = d0;
+					d0 = new_d0;
+					g = M7::math::tan(M7::math::gPI * cutoff * Helpers::CurrentSampleRateRecipF);
+					k = 1.0f / Q;
+					a1 = 1.0f / (1.0f + g * (g + k));
+					a2 = g * a1;
+				}
+				float v1 = a1 * ic1eq + a2 * (v0 - ic2eq);
+				float v2 = ic2eq + g * v1;
+				ic1eq = 2 * v1 - ic1eq;
+				ic2eq = 2 * v2 - ic2eq;
+				return { v1, v2 };
+			}
+
+			float SVFlow(float v0, float cutoff, float Q) {
+				auto x = updateCoefficients(v0, cutoff, Q);
+				return x.second;
+			}
+
+			float SVFhigh(float v0, float cutoff, float Q) {
+				auto x = updateCoefficients(v0, cutoff, Q);
+				return v0 - k * x.first - x.second;
+			}
+
+			float SVFall(float v0, float cutoff, float Q) {
+				auto x = updateCoefficients(v0, cutoff, Q);
+				return v0 - 2 * k * x.first;
+			}
+
+			void Reset() {
+				g = 0, k = 0, a1 = 0, a2 = 0;
+				ic1eq = 0, ic2eq = 0;
+				d0 = 0, d1 = 0; // Used for tracking changes in cutoff and Q
+				c = 0, i = 0; // Additional state variables for SVFOPapf_temp
+			}
+
+		private:
+			float g, k, a1, a2;
+			float ic1eq, ic2eq;
+			float d0, d1; // Used for tracking changes in cutoff and Q
+			float c, i; // Additional state variables for SVFOPapf_temp
+		}; // SVFilter
+
+		struct LinkwitzRileyFilter {
+			using real = float;
+
+			static constexpr real q24 = 0.707106781187f;// sqrt(0.5);
+			static constexpr real q48_1 = 0.541196100146f;// 0.5 / cos($pi / 8 * 1);
+			static constexpr real q48_2 = 1.30656296488f;// 0.5 / cos($pi / 8 * 3);
+
+			enum class Slope : uint8_t {
+				Slope_6dB,
+				Slope_12dB,
+				Slope_24dB,
+				Slope_36dB,
+				Slope_48dB,
+				Count__,
+			};
+
+			SVFilter svf[4];
+
+			void Reset() {
+				for (auto& f : svf) {
+					f.Reset();
+				}
+			}
+
+			real LR_LPF(real x, real freq, Slope slope) {
+				switch (slope) {
+				default:
+				case Slope::Slope_12dB:
+					return svf[0].SVFlow(x, freq, 0.5f);
+				case Slope::Slope_24dB:
+					x = svf[0].SVFlow(x, freq, q24);
+					return svf[1].SVFlow(x, freq, q24);
+#ifndef DISABLE_6db_oct_crossover
+				case Slope::Slope_36dB:
+					x = svf[0].SVFlow(x, freq, 1);
+					x = svf[1].SVFlow(x, freq, 1);
+					return svf[2].SVFlow(x, freq, 0.5f);
+#endif // DISABLE_6db_oct_crossover
+#ifndef DISABLE_48db_oct_crossover
+				case Slope::Slope_48dB:
+					x = svf[0].SVFlow(x, freq, q48_1);
+					x = svf[1].SVFlow(x, freq, q48_2);
+					x = svf[2].SVFlow(x, freq, q48_1);
+					return svf[3].SVFlow(x, freq, q48_2);
+#endif // DISABLE_48db_oct_crossover
+				}
+			}
+
+			real LR_HPF(real x, real freq, Slope slope) {
+				switch (slope) {
+				default:
+				case Slope::Slope_12dB:
+					return svf[0].SVFhigh(-x, freq, 0.5f);
+				case Slope::Slope_24dB:
+					x = svf[0].SVFhigh(x, freq, q24);
+					return svf[1].SVFhigh(x, freq, q24);
+#ifndef DISABLE_6db_oct_crossover
+				case Slope::Slope_36dB:
+					x = svf[0].SVFhigh(-x, freq, 1);
+					x = svf[1].SVFhigh(x, freq, 1);
+					return svf[2].SVFhigh(x, freq, 0.5f);
+#endif // DISABLE_6db_oct_crossover	
+#ifndef DISABLE_48db_oct_crossover
+				case Slope::Slope_48dB:
+					x = svf[0].SVFhigh(x, freq, q48_1);
+					x = svf[1].SVFhigh(x, freq, q48_2);
+					x = svf[2].SVFhigh(x, freq, q48_1);
+					return svf[3].SVFhigh(x, freq, q48_2);
+#endif // DISABLE_48db_oct_crossover
+				}
+			}
+
+			real APF(real x, real freq, Slope slope) {
+				switch (slope) {
+				default:
+				case Slope::Slope_12dB:
+					return svf[0].SVFOPapf_temp(-x, freq);
+				case Slope::Slope_24dB:
+					return svf[0].SVFall(x, freq, q24);
+#ifndef DISABLE_6db_oct_crossover
+				case Slope::Slope_36dB:
+					x = svf[0].SVFall(-x, freq, 1);
+					return svf[1].SVFOPapf_temp(x, freq);
+#endif // DISABLE_6db_oct_crossover
+#ifndef DISABLE_48db_oct_crossover
+				case Slope::Slope_48dB:
+					x = svf[0].SVFall(x, freq, q48_1);
+					return svf[1].SVFall(x, freq, q48_2);
+#endif // DISABLE_48db_oct_crossover
+				}
+			}
+		};
+
+		//struct SVFilterNode : IFilter {
+		//	SVFilter mFilter;
+
+		//	FilterType mType;
+		//	float mCutoffHz;
+		//	float mQ;
+		//	
+		//	virtual void SetParams(FilterType type, float cutoffHz, float reso) override {
+		//		mQ = reso;
+		//		mCutoffHz = cutoffHz;
+		//		switch (type) {
+		//		default:
+		//		case FilterType::LP2:
+		//		case FilterType::LP4:
+		//			mType = FilterType::LP;
+		//			break;
+		//		case FilterType::HP2:
+		//		case FilterType::HP4:
+		//			mType = FilterType::HP;
+		//			break;
+		//		}
+		//	}
+		//	virtual float ProcessSample(float x) override {
+		//		if (mType == FilterType::LP) {
+		//			return mFilter.SVFlow(x, mCutoffHz, mQ);
+		//		}
+		//		return mFilter.SVFhigh(x, mCutoffHz, mQ);
+		//	}
+		//	virtual void Reset() override {
+		//		mFilter.Reset();
+		//	}
+		//};
+
+
+		//struct LinkwitzRileyNode : IFilter {
+		//	LinkwitzRileyFilter mFilter;
+
+		//	FilterType mType;
+		//	LinkwitzRileyFilter::Slope mSlope;
+		//	float mCutoffHz;
+
+		//	virtual void SetParams(FilterType type, float cutoffHz, float reso) override {
+		//		mCutoffHz = cutoffHz;
+		//		switch (type) {
+		//		default:
+		//		case FilterType::LP2:
+		//			mType = FilterType::LP;
+		//			mSlope = LinkwitzRileyFilter::Slope::Slope_24dB;
+		//			break;
+		//		case FilterType::LP4:
+		//			mType = FilterType::LP;
+		//			mSlope = LinkwitzRileyFilter::Slope::Slope_48dB;
+		//			break;
+		//		case FilterType::HP2:
+		//			mType = FilterType::HP;
+		//			mSlope = LinkwitzRileyFilter::Slope::Slope_24dB;
+		//			break;
+		//		case FilterType::HP4:
+		//			mType = FilterType::HP;
+		//			mSlope = LinkwitzRileyFilter::Slope::Slope_48dB;
+		//			break;
+		//		}
+		//	}
+		//	virtual float ProcessSample(float x) override {
+		//		if (mType == FilterType::LP) {
+		//			return mFilter.LR_LPF(x, mCutoffHz, mSlope);
+		//		}
+		//		return mFilter.LR_HPF(x, mCutoffHz, mSlope);
+		//	}
+		//	virtual void Reset() override {
+		//		mFilter.Reset();
+		//	}
+		//};
+
+		// todo: Diode, K35 are all really nice.
+        enum class FilterModel : uint8_t
 		{
 			Disabled = 0,
 			LP_OnePole,
-			//LP_SEM12,
-			//LP_Diode,
-			//LP_K35,
 			LP_Moog2,
 			LP_Moog4,
 			BP_Moog2,
 			BP_Moog4,
 			HP_OnePole,
-			//HP_K35,
 			HP_Moog2,
 			HP_Moog4,
-            Count
+			LP_Biquad,
+			HP_Biquad,
+			Count
 		};
-
-        // size-optimize using macro
-        #define FILTER_MODEL_CAPTIONS { \
-            "Disabled", \
-            "LP_OnePole", \
-            "LP_Moog2", \
-            "LP_Moog4", \
-            "BP_Moog2", \
-            "BP_Moog4", \
-            "HP_OnePole", \
-            "HP_Moog2", \
-            "HP_Moog4", \
-        }
-
 
 		struct FilterNode
 		{
 			NullFilter mNullFilter;
 			//DiodeFilter mDiode;
 			//K35Filter mK35;
-			MoogLadderFilter mMoog;
+#ifndef DISABLE_MOOG_FILTER
+				MoogLadderFilter mMoog;
+#endif // DISABLE_MOOG_FILTER
 #ifndef DISABLE_onepole_maj7_filter
 			OnePoleFilter mOnePole;
 #endif // DISABLE_onepole_maj7_filter
 			//SEM12Filter mSem12;
+			//SVFilterNode mSVF;
+			BiquadFilter mBiquad;
+			//LinkwitzRileyNode mLR;
 
-			IFilter* mSelectedFilter = &mMoog;
+			IFilter* mSelectedFilter = &mNullFilter;
             FilterModel mSelectedModel = FilterModel::LP_Moog4;
 
             void SetParams(FilterModel ctype, float cutoffHz, float reso)
@@ -95,7 +340,8 @@ namespace WaveSabreCore
                 //    ft = FilterType::LP;
                 //    mSelectedFilter = &mK35;
                 //    break;
-                case FilterModel::LP_Moog2:
+#ifndef DISABLE_MOOG_FILTER
+				case FilterModel::LP_Moog2:
                     ft = FilterType::LP2;
                     mSelectedFilter = &mMoog;
                     break;
@@ -103,6 +349,7 @@ namespace WaveSabreCore
                     ft = FilterType::LP4;
                     mSelectedFilter = &mMoog;
                     break;
+#endif // DISABLE_MOOG_FILTER
 #ifndef DISABLE_onepole_maj7_filter
 				case FilterModel::HP_OnePole:
                     ft = FilterType::HP;
@@ -113,7 +360,8 @@ namespace WaveSabreCore
                 //    ft = FilterType::HP;
                 //    mSelectedFilter = &mK35;
                 //    break;
-                case FilterModel::HP_Moog2:
+#ifndef DISABLE_MOOG_FILTER
+				case FilterModel::HP_Moog2:
                     ft = FilterType::HP2;
                     mSelectedFilter = &mMoog;
                     break;
@@ -129,7 +377,49 @@ namespace WaveSabreCore
                     ft = FilterType::BP4;
                     mSelectedFilter = &mMoog;
                     break;
-                }
+#endif // DISABLE_MOOG_FILTER
+
+					// biquad
+				case FilterModel::LP_Biquad:
+					ft = FilterType::LP;
+					mSelectedFilter = &mBiquad;
+					break;
+				case FilterModel::HP_Biquad:
+					ft = FilterType::HP;
+					mSelectedFilter = &mBiquad;
+					break;
+
+				//	// SVF filter alone is not so compelling.
+				//case FilterModel::LP_SVF:
+				//	ft = FilterType::LP;
+				//	mSelectedFilter = &mSVF;
+				//	break;
+				//case FilterModel::HP_SVF:
+				//	ft = FilterType::HP;
+				//	mSelectedFilter = &mSVF;
+				//	break;
+
+				//	// linkwitz riley is also not that interesting.
+				//case FilterModel::LP_LinkwitzRiley24:
+				//	ft = FilterType::LP2;
+				//	mSelectedFilter = &mLR;
+				//	break;
+				//case FilterModel::LP_LinkwitzRiley48:
+				//	ft = FilterType::LP4;
+				//	mSelectedFilter = &mLR;
+				//	break;
+				//case FilterModel::HP_LinkwitzRiley24:
+				//	ft = FilterType::HP2;
+				//	mSelectedFilter = &mLR;
+				//	break;
+				//case FilterModel::HP_LinkwitzRiley48:
+				//	ft = FilterType::HP4;
+				//	mSelectedFilter = &mLR;
+				//	break;
+
+				//
+				
+				}
                 mSelectedFilter->SetParams(ft, cutoffHz, reso);
                 if (mSelectedModel != ctype) {
                     mSelectedFilter->Reset();
@@ -223,147 +513,6 @@ namespace WaveSabreCore
 
             static constexpr real R = 0.998f;
         };
-
-
-		struct SVFilter
-		{
-			// one pole apf
-			float SVFOPapf_temp(float x, float cutoff) {
-				if (d1 != d0) {
-					d0 = cutoff;
-					c = M7::math::tan(M7::math::gPI * (cutoff * Helpers::CurrentSampleRateRecipF - 0.25f)) * 0.5f + 0.5f;
-				}
-				float r = (1 - c) * i + c * x;
-				i = 2 * r - i;
-				return x - 2 * r;
-			}
-
-			// Update filter coefficients if cutoff or Q has changed
-			M7::FloatPair updateCoefficients(float v0, float cutoff, float Q) {
-				float new_d0 = cutoff + Q;
-				if (d1 != new_d0) {
-					d1 = d0;
-					d0 = new_d0;
-					g = M7::math::tan(M7::math::gPI * cutoff * Helpers::CurrentSampleRateRecipF);
-					k = 1.0f / Q;
-					a1 = 1.0f / (1.0f + g * (g + k));
-					a2 = g * a1;
-				}
-				float v1 = a1 * ic1eq + a2 * (v0 - ic2eq);
-				float v2 = ic2eq + g * v1;
-				ic1eq = 2 * v1 - ic1eq;
-				ic2eq = 2 * v2 - ic2eq;
-				return { v1, v2 };
-			}
-
-			float SVFlow(float v0, float cutoff, float Q) {
-				auto x =updateCoefficients(v0, cutoff, Q);
-				return x.second;
-			}
-
-			float SVFhigh(float v0, float cutoff, float Q) {
-				auto x = updateCoefficients(v0, cutoff, Q);
-				return v0 - k * x.first - x.second;
-			}
-
-			float SVFall(float v0, float cutoff, float Q) {
-				auto x = updateCoefficients(v0, cutoff, Q);
-				return v0 - 2 * k * x.first;
-			}
-
-		private:
-			float g = 0, k = 0, a1 = 0, a2 = 0;
-			float ic1eq = 0, ic2eq = 0;
-			float d0 = 0, d1 = 0; // Used for tracking changes in cutoff and Q
-			float c = 0, i = 0; // Additional state variables for SVFOPapf_temp
-		}; // SVFilter
-
-		struct LinkwitzRileyFilter {
-			using real = float;
-
-			static constexpr real q24 = 0.707106781187f;// sqrt(0.5);
-			static constexpr real q48_1 = 0.541196100146f;// 0.5 / cos($pi / 8 * 1);
-			static constexpr real q48_2 = 1.30656296488f;// 0.5 / cos($pi / 8 * 3);
-
-			enum class Slope : uint8_t {
-				Slope_6dB,
-				Slope_12dB,
-				Slope_24dB,
-				Slope_36dB,
-				Slope_48dB,
-				Count__,
-			};
-
-			SVFilter svf[4];
-
-			real LR_LPF(real x, real freq, Slope slope) {
-				switch (slope) {
-				default:
-				case Slope::Slope_12dB:
-					return svf[0].SVFlow(x, freq, 0.5f);
-				case Slope::Slope_24dB:
-					x = svf[0].SVFlow(x, freq, q24);
-					return svf[1].SVFlow(x, freq, q24);
-#ifndef DISABLE_6db_oct_crossover
-				case Slope::Slope_36dB:
-					x = svf[0].SVFlow(x, freq, 1);
-					x = svf[1].SVFlow(x, freq, 1);
-					return svf[2].SVFlow(x, freq, 0.5f);
-#endif // DISABLE_6db_oct_crossover
-#ifndef DISABLE_48db_oct_crossover
-				case Slope::Slope_48dB:
-					x = svf[0].SVFlow(x, freq, q48_1);
-					x = svf[1].SVFlow(x, freq, q48_2);
-					x = svf[2].SVFlow(x, freq, q48_1);
-					return svf[3].SVFlow(x, freq, q48_2);
-#endif // DISABLE_48db_oct_crossover
-				}
-			}
-
-			real LR_HPF(real x, real freq, Slope slope) {
-				switch (slope) {
-				default:
-				case Slope::Slope_12dB:
-					return svf[0].SVFhigh(-x, freq, 0.5f);
-				case Slope::Slope_24dB:
-					x = svf[0].SVFhigh(x, freq, q24);
-					return svf[1].SVFhigh(x, freq, q24);
-#ifndef DISABLE_6db_oct_crossover
-				case Slope::Slope_36dB:
-					x = svf[0].SVFhigh(-x, freq, 1);
-					x = svf[1].SVFhigh(x, freq, 1);
-					return svf[2].SVFhigh(x, freq, 0.5f);
-#endif // DISABLE_6db_oct_crossover	
-#ifndef DISABLE_48db_oct_crossover
-				case Slope::Slope_48dB:
-					x = svf[0].SVFhigh(x, freq, q48_1);
-					x = svf[1].SVFhigh(x, freq, q48_2);
-					x = svf[2].SVFhigh(x, freq, q48_1);
-					return svf[3].SVFhigh(x, freq, q48_2);
-#endif // DISABLE_48db_oct_crossover
-				}
-			}
-
-			real APF(real x, real freq, Slope slope) {
-				switch (slope) {
-				default:
-				case Slope::Slope_12dB:
-					return svf[0].SVFOPapf_temp(-x, freq);
-				case Slope::Slope_24dB:
-					return svf[0].SVFall(x, freq, q24);
-#ifndef DISABLE_6db_oct_crossover
-				case Slope::Slope_36dB:
-					x = svf[0].SVFall(-x, freq, 1);
-					return svf[1].SVFOPapf_temp(x, freq);
-#endif // DISABLE_6db_oct_crossover
-#ifndef DISABLE_48db_oct_crossover
-				case Slope::Slope_48dB:
-					x = svf[0].SVFall(x, freq, q48_1);
-					return svf[1].SVFall(x, freq, q48_2);
-#endif // DISABLE_48db_oct_crossover
-				}
-			}
-		};
 
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		struct FrequencySplitter

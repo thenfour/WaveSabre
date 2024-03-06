@@ -214,14 +214,14 @@ namespace WaveSabreCore
 			this->SetRawVal__(freqOffset, p);
 		}
 
-		float ParamAccessor::GetWSQValue__(int offset) const
-		{
-			return Helpers::ParamToQ(GetRawVal__(offset));
-		}
-		void ParamAccessor::SetWSQValue__(int offset, float q)
-		{
-			SetRawVal__(offset, Helpers::QToParam(q));
-		}
+		//float ParamAccessor::GetWSQValue__(int offset) const
+		//{
+		//	return Helpers::ParamToQ(GetRawVal__(offset));
+		//}
+		//void ParamAccessor::SetWSQValue__(int offset, float q)
+		//{
+		//	SetRawVal__(offset, Helpers::QToParam(q));
+		//}
 
 	} // namespace M7
 

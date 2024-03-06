@@ -249,59 +249,61 @@ namespace WaveSabreCore
 		return sqrtf((freq - 20.0f) / (20000.0f - 20.0f));
 	}
 
-	// input [0,1], output [.33,12]
-	// Q has 2 param regions. [0,.5] scales linearly to [.33,1]
-	// [.5,1] scales linearly to [1,12]
-	float Helpers::ParamToQ(float param)
-	{
-		if (param < .5f)
-		{
-			// scales by 2 (0,.5) => (0,1)
-			// then scales by 0.66... wtf? => (0,.66)
-			// and adds 0.33 so it's (0.33,1).
-			return param / .5f * (1.0f - .33f) + .33f;
-		}
-		else
-		{
-			// 0,.5
-			// why divide by .5?? so it scales 0.5,1 to 0,1
-			// then scales up to 0,11
-			// then adds 1 so it's 1,12
-			return (param - .5f) / .5f * 11.0f + 1.0f;
-		}
-	}
+	// https://www.desmos.com/calculator/23rsmykjp9
+	//// input [0,1], output [.33,12]
+	//// Q has 2 param regions. [0,.5] scales linearly to [.33,1]
+	//// [.5,1] scales linearly to [1,12]
+	//float Helpers::ParamToQ(float param)
+	//{
+	//	if (param < .5f)
+	//	{
+	//		// scales by 2 (0,.5) => (0,1)
+	//		// then scales by 0.66... wtf? => (0,.66)
+	//		// and adds 0.33 so it's (0.33,1).
+	//		return param / .5f * (1.0f - .33f) + .33f;
+	//	}
+	//	else
+	//	{
+	//		// 0,.5
+	//		// why divide by .5?? so it scales 0.5,1 to 0,1
+	//		// then scales up to 0,11
+	//		// then adds 1 so it's 1,12
+	//		return (param - .5f) / .5f * 11.0f + 1.0f;
+	//	}
+	//}
 
-	float Helpers::QToParam(float q)
-	{
-		if (q < 1.0f)
-		{
-			return (q - .33f) / (1.0f - .33f) * .5f;
-		}
-		else
-		{
-			return (q - 1.0f) / 11.0f * .5f + .5f;
-		}
-	}
+	//float Helpers::QToParam(float q)
+	//{
+	//	if (q < 1.0f)
+	//	{
+	//		return (q - .33f) / (1.0f - .33f) * .5f;
+	//	}
+	//	else
+	//	{
+	//		return (q - 1.0f) / 11.0f * .5f + .5f;
+	//	}
+	//}
 
-	float Helpers::ParamToDb(float param, float range)
-	{
-		return (param * 2.0f - 1.0f) * range;
-	}
+	//float Helpers::ParamToDb(float param, float range)
+	//{
+	//	return (param * 2.0f - 1.0f) * range;
+	//}
 
-	float Helpers::DbToParam(float db, float range)
-	{
-		return (db / range + 1.0f) / 2.0f;
-	}
+	//float Helpers::DbToParam(float db, float range)
+	//{
+	//	return (db / range + 1.0f) / 2.0f;
+	//}
 
-	float Helpers::ParamToResonance(float param)
-	{
-		return param * .99f + .01f;
-	}
+	//// linear from 0.01 to 1.0
+	//float Helpers::ParamToResonance(float param)
+	//{
+	//	return param * .99f + .01f;
+	//}
 
-	float Helpers::ResonanceToParam(float resonance)
-	{
-		return (resonance - .01f) / .99f;
-	}
+	//float Helpers::ResonanceToParam(float resonance)
+	//{
+	//	return (resonance - .01f) / .99f;
+	//}
 
 	//StateVariableFilterType Helpers::ParamToStateVariableFilterType(float param)
 	//{

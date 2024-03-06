@@ -143,14 +143,14 @@ namespace WaveSabreCore
 		static float ParamToFrequency(float param);
 		static float FrequencyToParam(float freq);
 
-		static float ParamToQ(float param);
-		static float QToParam(float q);
+		//static float ParamToQ(float param);
+		//static float QToParam(float q);
 
-		static float ParamToDb(float param, float range = 24.0f);
-		static float DbToParam(float db, float range = 24.0f);
+		//static float ParamToDb(float param, float range = 24.0f);
+		//static float DbToParam(float db, float range = 24.0f);
 
-		static float ParamToResonance(float param);
-		static float ResonanceToParam(float resonance);
+		//static float ParamToResonance(float param);
+		//static float ResonanceToParam(float resonance);
 
 		//static StateVariableFilterType ParamToStateVariableFilterType(float param);
 		//static float StateVariableFilterTypeToParam(StateVariableFilterType type);

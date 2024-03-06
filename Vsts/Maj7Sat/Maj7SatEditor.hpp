@@ -190,13 +190,7 @@ struct Maj7SatEditor : public VstEditor
 		{
 			if (WSBeginTabItem("IO"))
 			{
-				static constexpr char const* const slopeNames[(size_t)M7::LinkwitzRileyFilter::Slope::Count__] = {
-			"6dB/oct",
-			"12dB/oct",
-			"24dB/oct",
-			"36dB/oct",
-			"48dB/oct",
-				};
+				LR_SLOPE_CAPTIONS(slopeNames);
 
 				Maj7ImGuiParamFrequencyWithCenter((int)ParamIndices::CrossoverAFrequency, -1, "x1freq(Hz)", M7::gFilterFreqConfig, 550, 0, {});
 				ImGui::SameLine(0); Maj7ImGuiParamFrequencyWithCenter((int)ParamIndices::CrossoverBFrequency, -1, "x2Freq(Hz)", M7::gFilterFreqConfig, 3000, 1, {});

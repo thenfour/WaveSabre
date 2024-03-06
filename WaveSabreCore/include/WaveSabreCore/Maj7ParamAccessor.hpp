@@ -1,7 +1,6 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Maj7ParamAccessor.hpp>
 
 namespace WaveSabreCore
 {
@@ -85,6 +84,8 @@ namespace WaveSabreCore
 				return mK * t / (mK + t - 1);
 			}
 		};
+
+		static constexpr M7::DivCurvedParamCfg gBiquadFilterQCfg{ 0.2f, 12.0f, 1.1f };
 
 		struct ParamAccessor
 		{
@@ -211,7 +212,7 @@ namespace WaveSabreCore
 
 			float GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;
 			template<typename Toffset>
-			float GetDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float mod) const
+			float GetDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float mod = 0) const
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
 				return GetDivCurvedValue__((int)offset, cfg, mod);
@@ -380,21 +381,21 @@ namespace WaveSabreCore
 			}
 
 
-			float GetWSQValue__(int offset) const;
-			template<typename Toffset>
-			float GetWSQValue(Toffset offset) const
-			{
-				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				return GetWSQValue__((int)offset);
-			}
+			//float GetWSQValue__(int offset) const;
+			//template<typename Toffset>
+			//float GetWSQValue(Toffset offset) const
+			//{
+			//	static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+			//	return GetWSQValue__((int)offset);
+			//}
 
-			void SetWSQValue__(int offset, float q);
-			template<typename Toffset>
-			void SetWSQValue(Toffset offset, float q) const
-			{
-				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				SetWSQValue__((int)offset, q);
-			}
+			//void SetWSQValue__(int offset, float q);
+			//template<typename Toffset>
+			//void SetWSQValue(Toffset offset, float q) const
+			//{
+			//	static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+			//	SetWSQValue__((int)offset, q);
+			//}
 
 		};
 

@@ -239,7 +239,6 @@ namespace WaveSabreVstLib
 
 		if (ImGui::BeginMenuBar()) {
 
-#ifdef _DEBUG
 			if (ImGui::BeginMenu("Wavesabre")) {
 				if (ImGui::MenuItem("Toggle ImGui demo window", nullptr, showingDemo)) {
 					showingDemo = !showingDemo;
@@ -249,7 +248,6 @@ namespace WaveSabreVstLib
 				}
 				ImGui::EndMenu();
 			}
-#endif
 			PopulateMenuBar();
 
 			//char effectName[kVstMaxEffectNameLen * 2 + 50];

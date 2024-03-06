@@ -75,7 +75,8 @@ public:
 		ImGui::SameLine(); Maj7ImGuiParamVolume((int)paramOffset + (int)Leveller::BandParamOffsets::Gain, "Gain", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
 		ImGui::EndDisabled();
 		//WSImGuiParamKnob((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q");
-		ImGui::SameLine(); Maj7ImGuiParamFloat01((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", 0.2f, 0);
+		//ImGui::SameLine(); Maj7ImGuiParamFloat01((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", 0.2f, 0);
+		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", M7::gBiquadFilterQCfg, 0.2f, {});
 
 		const char* selectedColor = "4400aa";
 		const char* notSelectedColor = "222222";

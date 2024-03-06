@@ -135,7 +135,7 @@ namespace WaveSabreCore
 					mFilters[i].SetParams(
 						mParams.GetEnumValue<BiquadFilterType>(BandParamOffsets::Type),
 						mParams.GetFrequency(BandParamOffsets::Freq, M7::gFilterFreqConfig),
-						mParams.GetWSQValue(BandParamOffsets::Q),
+						mParams.GetDivCurvedValue(BandParamOffsets::Q, M7::gBiquadFilterQCfg),
 						mParams.GetDecibels(BandParamOffsets::Gain, M7::gVolumeCfg12db)
 					);
 				}
@@ -171,8 +171,8 @@ namespace WaveSabreCore
 						b.RecalcFilters();
 					}
 					if (b.mParams.GetBoolValue(BandParamOffsets::Enable)) {
-						s1 = b.mFilters[0].Next(s1);
-						s2 = b.mFilters[1].Next(s2);
+						s1 = b.mFilters[0].ProcessSample(s1);
+						s2 = b.mFilters[1].ProcessSample(s2);
 					}
 				}
 

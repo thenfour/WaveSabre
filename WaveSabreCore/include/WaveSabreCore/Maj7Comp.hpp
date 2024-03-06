@@ -200,11 +200,11 @@ namespace WaveSabreCore
 				}
 
 				float lpf = mParams.GetFrequency(ParamIndices::LowPassFrequency, M7::gFilterFreqConfig);
-				float lpq = mParams.GetWSQValue(ParamIndices::LowPassQ);
+				float lpq = mParams.GetDivCurvedValue(ParamIndices::LowPassQ, M7::gBiquadFilterQCfg);
 				mLowpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Lowpass, lpf, lpq, 0);
 #endif // MAJ7COMP_FULL
 
-				float hpq = mParams.GetWSQValue(ParamIndices::HighPassQ);
+				float hpq = mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg);
 				float hpf = mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig);
 				mHighpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Highpass, hpf, hpq, 0);
 			}
@@ -235,9 +235,9 @@ namespace WaveSabreCore
 				mSidechain = mDry = mInput = input * mInputGainLin;
 
 				// filter the sidechain before we destroy its listenability via rectification
-				mSidechain = mHighpassFilter.Next(mSidechain);
+				mSidechain = mHighpassFilter.ProcessSample(mSidechain);
 #ifdef MAJ7COMP_FULL
-				mSidechain = mLowpassFilter.Next(mSidechain);
+				mSidechain = mLowpassFilter.ProcessSample(mSidechain);
 #endif // MAJ7COMP_FULL
 
 				mPreDetector = std::abs(mSidechain);

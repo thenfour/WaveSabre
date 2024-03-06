@@ -10,11 +10,11 @@ namespace WaveSabreCore
 {
 	BiquadFilter::BiquadFilter()
 	{
-		lastInput = lastLastInput = 0.0f;
-		lastOutput = lastLastOutput = 0.0f;
+		Reset();
 	}
 
-	float BiquadFilter::Next(float input)
+	float BiquadFilter::ProcessSample(float input) 
+	//float BiquadFilter::Next(float input)
 	{
 		//if (this->thru)
 		//	return input;
