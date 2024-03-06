@@ -312,11 +312,51 @@ namespace WaveSabreConvert
 
                 // write whether note ons incur velocities
                 // find all tracks using this
-                bool fixedVel = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixedvelocity"));
-                writer.WriteMidiLane(iMidiLane, (byte)(fixedVel ? 1 : 0));
 
-                writer.WriteMidiLane(iMidiLane, midiLane.MidiEvents.Count);
-                foreach (var e in midiLane.MidiEvents)
+                // the output format 
+                // - flags (fixed velocity)
+                // - count of all midi events
+                // - all midi types + time deltas, encoded
+                // - all midi note values
+                // - all velocities for note ons, or CC values.
+
+                // fixed velocity saves space by eliding all velocities which would otherwise be emitted for every note on.
+                bool fixedVel = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixedvelocity"));
+
+                // oneshot elides all note off events (huge)
+                bool oneShot = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#oneshot"));
+
+                // fixednote elides note value for note on events.
+                bool fixedNote = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixednote"));
+                int flags = (fixedVel ? 1 : 0) + (fixedNote ? 2 : 0) + (oneShot ? 4 : 0);
+                writer.WriteMidiLane(iMidiLane, (byte)flags);
+
+                var midiEvents = midiLane.MidiEvents.Where(m => true);
+                if (oneShot)
+                {
+                    // oneshot track styles just don't emit noteoffs at all. but for each event we elide, we have to roll the time delta into the next emitted event.
+                    List<DeltaCodedEvent> l = new List<DeltaCodedEvent>();
+                    int remainderTime = 0;
+                    for (int i = 0; i < midiLane.MidiEvents.Count; ++ i)
+                    {
+                        var midiEvent = midiLane.MidiEvents[i];
+                        if (midiEvent.Type == EventType.NoteOff)
+                        {
+                            remainderTime += midiEvent.TimeFromLastEvent;
+                        } else
+                        {
+                            // emit.
+                            midiEvent.TimeFromLastEvent += remainderTime;
+                            remainderTime = 0;
+                            l.Add(midiEvent);
+                        }
+                    }
+
+                    midiEvents = l;
+                }
+
+                writer.WriteMidiLane(iMidiLane, midiEvents.Count());
+                foreach (var e in midiEvents)
                 {
                     if (e.TimeFromLastEvent < 0)
                     {
@@ -332,11 +372,25 @@ namespace WaveSabreConvert
                     t |= (UInt32)eventType;
                     writer.WriteMidiLaneVarUint32(iMidiLane, t);
                 }
-                foreach (var e in midiLane.MidiEvents)
+                foreach (var e in midiEvents)
                 {
-                    writer.WriteMidiLane(iMidiLane, (byte)e.Note);
+                    switch (e.Type)
+                    {
+                        case EventType.NoteOff:
+                        case EventType.NoteOn:
+                            if (fixedNote)
+                            {
+                                continue;
+                            }
+                            writer.WriteMidiLane(iMidiLane, (byte)e.Note);
+                            break;
+                        case EventType.CC: // always specify CC values
+                        default:
+                            writer.WriteMidiLane(iMidiLane, (byte)e.Note);
+                            break;
+                    }
                 }
-                foreach (var e in midiLane.MidiEvents)
+                foreach (var e in midiEvents)
                 {
                     switch (e.Type)
                     {
@@ -354,7 +408,6 @@ namespace WaveSabreConvert
                             writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
                             break;
                     }
-
                 }
             }
 

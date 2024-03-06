@@ -746,7 +746,9 @@ namespace WaveSabrePlayerLib
 			midiLanes = new MidiLane[numMidiLanes];
 			for (int i = 0; i < numMidiLanes; i++)
 			{
-				bool fixedVelocity = !!ds.ReadUByte();
+				int flags = ds.ReadUByte();
+				bool fixedVelocity = !!(flags & 1);
+				bool fixedNote = !!(flags & 2);
 				int numEvents = ds.ReadUInt32();
 				auto& midiLane = midiLanes[i];
 				midiLane.numEvents = numEvents;
@@ -762,7 +764,16 @@ namespace WaveSabrePlayerLib
 
 				for (int m = 0; m < numEvents; m++)
 				{
-					midiLane.events[m].Note = ds.ReadUByte();
+					auto& e = midiLane.events[m];
+					e.Note = 60;
+					switch (e.Type) {
+					case EventType::NoteOff:
+					case EventType::NoteOn:
+						if (fixedNote)
+							continue;
+						break;
+					}
+					e.Note = ds.ReadUByte();
 				}
 
 				for (int m = 0; m < numEvents; m++)
