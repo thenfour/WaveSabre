@@ -43,14 +43,14 @@ namespace WaveSabreCore
 
 		enum class Model : uint8_t {
 			Thru,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			SineClip,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
-			DivClipSoft,
 #endif // MAJ7SAT_ENABLE_RARE_MODELS
+			DivClipSoft,
 			TanhClip,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			DivClipMedium,
 			DivClipHard,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			HardClip,
 			TanhFold,
 			TanhSinFold,
@@ -78,9 +78,10 @@ namespace WaveSabreCore
 		}
 #else // MAJ7SAT_ENABLE_RARE_MODELS
 #define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
-			"Thru", \
-		"SineClip", \
-			"TanhClip", \
+			"DivClipSoft",\
+		"TanhClip",\
+			"DivClipMedium",\
+			"DivClipHard",\
 		}
 
 
@@ -92,14 +93,14 @@ namespace WaveSabreCore
 		// so using a fft meter to match a sine wave fundamental level.
 		static constexpr float ModelPregain[(size_t)Model::Count__] = {
 			1, // thru,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			0.71f, // sinclip
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
-			0.69f, // div 41
 #endif // MAJ7SAT_ENABLE_RARE_MODELS
+			0.69f, // div 41
 			0.62f, // tanh clip
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			0.47f, // DivClipMedium,
 			0.21f, // DivClipHard,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			1, // HardClip,
 			0.41f,// TanhFold,
 			0.56f,// TanhSinFold,
@@ -117,14 +118,14 @@ namespace WaveSabreCore
 		//calcslope =(shape_hardclip(z) - shape_hardclip(0)) / z;
 		static constexpr float ModelNaturalSlopes[(size_t)Model::Count__] = {
 			1, // thru,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			M7::math::gPIHalf, // sinclip
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
-			gK41 + 1, // div 41
 #endif // MAJ7SAT_ENABLE_RARE_MODELS
+			gK41 + 1, // div 41
 			2, // tanh clip
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			gK63 + 1, // DivClipMedium,
 			gK85 + 1, // DivClipHard,
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			1, // HardClip,
 			M7::math::gPI,// TanhFold, <-- really?
 			M7::math::gPI * 3.0f / 4.0f,// TanhSinFold,
@@ -461,24 +462,24 @@ namespace WaveSabreCore
 					default:
 					case Model::Thru:
 						break;// nop
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::SineClip:
 						s = shape_sinclip(s);
 						break;
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::DivClipSoft:
 						s = shape_div(s, gK41);
 						break;
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::TanhClip:
 						s = shape_tanhclip(s);
 						break;
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::DivClipMedium:
 						s = shape_div(s, gK63);
 						break;
 					case Model::DivClipHard:
 						s = shape_div(s, gK85);
 						break;
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::HardClip:
 						s = shape_hardclip(s);
 						break;
