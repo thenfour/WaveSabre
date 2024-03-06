@@ -5,10 +5,13 @@
 
 namespace WaveSabreCore
 {
-	Device::Device(int numParams)
+
+	Device::Device(int numParams, float* paramCache, const int16_t* defaults16) :
+		numParams(numParams),
+		mParamCache__(paramCache),
+		mDefaults16__(defaults16)
 	{
 		M7::Init();
-		this->numParams = numParams;
 		chunkData = nullptr;
 	}
 
@@ -54,6 +57,12 @@ namespace WaveSabreCore
 	//	for (int i = 0; i < numChunkParams; i++)
 	//		SetParam(i, params[i]);
 	//}
+
+	void Device::LoadDefaults() {
+		M7::ImportDefaultsArray(numParams, mDefaults16__, mParamCache__);
+		SetParam(0, mParamCache__[0]);
+	}
+
 
 	void Device::SetBinary16DiffChunk(M7::Deserializer& ds)
 	{

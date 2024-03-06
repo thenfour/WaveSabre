@@ -17,7 +17,7 @@ namespace WaveSabreCore
 	class Maj7SynthDevice : public Device
 	{
 	public:
-		Maj7SynthDevice(int numParams);
+		Maj7SynthDevice(int numParams, float *paramCache);
 
 		virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) = 0;
 		virtual void HandlePitchBend(float pbN11) = 0;

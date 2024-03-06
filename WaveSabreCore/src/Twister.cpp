@@ -7,7 +7,7 @@ int const lookAhead = 4;
 namespace WaveSabreCore
 {
 	Twister::Twister()
-		: Device((int)ParamIndices::NumParams),
+		: Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 		mParams{mParamCache, 0}
 	{
 		//type = 0; // param

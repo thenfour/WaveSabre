@@ -7,9 +7,8 @@
 namespace WaveSabreCore
 {
 	Crusher::Crusher()
-		: Device((int)ParamIndices::NumParams),
+		: Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 		mParams{mParamCache, 0}
-
 	{
 		vertical = 0.0f;
 		horizontal = 0.0f;

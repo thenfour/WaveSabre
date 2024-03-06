@@ -81,11 +81,6 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float **inputs, float **outputs, int numSamples);
 
-		virtual void LoadDefaults() override {
-			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing
-		}
-
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
@@ -103,11 +98,6 @@ namespace WaveSabreCore
 			lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
 			highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
 			dryWet = mParams.Get01Value(ParamIndices::DryWet);
-		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
 		}
 
 	private:

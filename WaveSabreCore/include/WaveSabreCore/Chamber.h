@@ -73,7 +73,7 @@ namespace WaveSabreCore
 		M7::OnePoleFilter mHighCutFilter[2];
 
 		Chamber()
-			: Device((int)ParamIndices::NumParams),
+			: Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 			mParams{mParamCache, 0}
 		{
 			LoadDefaults();
@@ -134,11 +134,6 @@ namespace WaveSabreCore
 			}
 		}
 
-		virtual void LoadDefaults() override {
-			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing
-		}
-
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
@@ -158,11 +153,6 @@ namespace WaveSabreCore
 			dryWet = mParams.Get01Value(ParamIndices::DryWet);
 			preDelay = mParams.Get01Value(ParamIndices::PreDelay);
 
-		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
 		}
 	};
 }

@@ -21,11 +21,12 @@ public:
 
 	virtual void renderImgui() override
 	{
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Crusher::ParamIndices::Vertical, "Bitcrush");
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Crusher::ParamIndices::Horizontal, "Samplecrush");
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Crusher::ParamIndices::DryWet, "DRY/WET");
+		ImGui::Text("not usable at the moment. possibly we remove this device.");
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Crusher::ParamIndices::Vertical, "Bitcrush");
+		//ImGui::SameLine();
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Crusher::ParamIndices::Horizontal, "Samplecrush");
+		//ImGui::SameLine();
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Crusher::ParamIndices::DryWet, "DRY/WET");
 	}
 
 };

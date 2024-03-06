@@ -148,18 +148,15 @@ namespace WaveSabreCore
 
 
 		Leveller() :
-			Device((int)ParamIndices::NumParams)
+			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16)
 		{
 			LoadDefaults();
 		}
 
-		virtual void LoadDefaults() override
-		{
-			M7::ImportDefaultsArray(std::size(gLevellerDefaults16), gLevellerDefaults16, mParamCache);
-		}
-
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
+			// you may be tempted to "size optimize" this by looping over 0,1 channel to eliminate all the double calls.
+			// it doesn't help i assure you. this code is more compressible.
 			auto recalcMask = M7::GetModulationRecalcSampleMask();
 			float masterGain = mParams.GetLinearVolume(ParamIndices::OutputVolume, M7::gVolumeCfg12db);
 			for (int iSample = 0; iSample < numSamples; iSample++)
@@ -183,23 +180,6 @@ namespace WaveSabreCore
 				outputs[1][iSample] = masterGain * s2;
 			}
 		}
-
-		virtual void SetParam(int index, float value) override
-		{
-			mParamCache[index] = value;
-		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
-		}
-
-		// minified
-		//virtual void SetChunk(void* data, int size) override
-		//{
-		//	M7::Deserializer ds{ (const uint8_t*)data };
-		//	SetMaj7StyleChunk(ds);
-		//}
 
 		float mParamCache[(size_t)ParamIndices::NumParams];
 		M7::ParamAccessor mParams{ mParamCache, 0 };

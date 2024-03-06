@@ -39,11 +39,6 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float **inputs, float **outputs, int numSamples);
 
-		virtual void LoadDefaults() override {
-			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing
-		}
-
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
@@ -54,10 +49,6 @@ namespace WaveSabreCore
 
 		}
 
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
-		}
 	private:
 		float vertical, horizontal;
 		float dryWet;

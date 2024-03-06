@@ -17,8 +17,8 @@
 
 namespace WaveSabreCore
 {
-	Maj7SynthDevice::Maj7SynthDevice(int numParams)
-		: Device(numParams)
+	Maj7SynthDevice::Maj7SynthDevice(int numParams, float* paramCache)
+		: Device(numParams, paramCache, nullptr)
 	{
 		AllNotesOff();
 	}

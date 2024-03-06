@@ -23,7 +23,7 @@
 // - parallel processing (dry-wet)
 // - lowpass filter (it's rarely needed)
 // - compensation gain (just use output gain if no parallel processing there's no point)
-#define MAJ7COMP_FULL
+//#define MAJ7COMP_FULL
 
 namespace WaveSabreCore
 {
@@ -299,7 +299,7 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7Comp() :
-			Device((int)ParamIndices::NumParams),
+			Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 			mParams(mParamCache, 0)
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			,
@@ -315,12 +315,6 @@ namespace WaveSabreCore
 			LoadDefaults();
 		}
 
-		virtual void LoadDefaults() override
-		{
-			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing
-		}
-
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
@@ -330,11 +324,6 @@ namespace WaveSabreCore
 			for (auto& c : mComp) {
 				c.OnParamChange();
 			}
-		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
 		}
 
 		void CompressorComb(float in0, float in1) {

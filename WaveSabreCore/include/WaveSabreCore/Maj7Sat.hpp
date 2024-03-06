@@ -621,7 +621,7 @@ namespace WaveSabreCore
 		M7::ParamAccessor mParams;
 
 		Maj7Sat() :
-			Device((int)ParamIndices::NumParams),
+			Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 			mParams(mParamCache, 0)
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			,
@@ -632,12 +632,6 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		{
 			LoadDefaults();
-		}
-
-		virtual void LoadDefaults() override
-		{
-			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing
 		}
 
 		static constexpr size_t gBandCount = 3;
@@ -671,11 +665,6 @@ namespace WaveSabreCore
 			mCrossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
 
 			mCrossoverSlopeA = mParams.GetEnumValue<M7::LinkwitzRileyFilter::Slope>(ParamIndices::CrossoverASlope);
-		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
 		}
 
 		M7::FrequencySplitter splitter0;

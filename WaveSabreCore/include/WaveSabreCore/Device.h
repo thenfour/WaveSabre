@@ -2,6 +2,7 @@
 #define __WAVESABRECORE_DEVICE_H__
 
 #include <Windows.h>
+#include <stdint.h>
 
 namespace WaveSabreCore
 {
@@ -12,7 +13,7 @@ namespace WaveSabreCore
 	class Device
 	{
 	public:
-		Device(int numParams);
+		explicit Device(int numParams, float* paramCache, const int16_t* defaults16);
 		virtual ~Device();
 
 		virtual void Run(double songPosition, float **inputs, float **outputs, int numSamples) = 0;
@@ -26,14 +27,15 @@ namespace WaveSabreCore
 		void SetSampleRate(float sampleRate);
 		void SetTempo(int tempo);
 
-		virtual void SetParam(int index, float value) = 0;
-		virtual float GetParam(int index) const = 0;
-
-		//virtual void SetChunk(void* data, int size);
-		//virtual int GetChunk(void** data);
+		virtual void SetParam(int index, float value) {
+			mParamCache__[index] = value;
+		}
+		virtual float GetParam(int index) const {
+			return mParamCache__[index];
+		}
 
 		// support for maj7 style chunks, which are 16-bit and differential from default values
-		virtual void LoadDefaults() = 0;
+		virtual void LoadDefaults();
 		virtual void SetBinary16DiffChunk(M7::Deserializer& ds);
 
 	protected:
@@ -41,6 +43,10 @@ namespace WaveSabreCore
 
 		int numParams;
 		void *chunkData;
+
+	private:
+		float* mParamCache__;
+		const int16_t* mDefaults16__;
 	};
 }
 

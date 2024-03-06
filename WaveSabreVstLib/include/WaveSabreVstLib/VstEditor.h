@@ -917,8 +917,8 @@ namespace WaveSabreVstLib
 
 		struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
 		{
-			float mBacking;
-			float mBackingKT;
+			float mBacking = 0;
+			float mBackingKT = 0;
 			WaveSabreCore::M7::FrequencyParam mParam;
 			VstInt32 mKTParamID;
 
@@ -936,7 +936,7 @@ namespace WaveSabreVstLib
 				}
 
 				char s[100] = { 0 };
-				if (mParam.mKTValue.Get01Value() < 0.00001f) {
+				if ((mKTParamID < 0) || mParam.mKTValue.Get01Value() < 0.00001f) {
 					M7::real_t hz = mParam.GetFrequency(0, 0);
 					if (hz >= 1000) {
 						sprintf_s(s, "%.0fHz", hz);

@@ -21,17 +21,18 @@ public:
 
 	virtual void renderImgui() override
 	{
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::Feedback, "Feedback");
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::PreDelay, "Pre delay");
-		ImGui::SameLine();
-		WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Chamber::ParamIndices::Mode, "Variation", 0, 2, 0, 0);
+		ImGui::Text("not usable at the moment. possibly we remove this device.");
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::Feedback, "Feedback");
+		//ImGui::SameLine();
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::PreDelay, "Pre delay");
+		//ImGui::SameLine();
+		//WSImGuiParamKnobInt((VstInt32)WaveSabreCore::Chamber::ParamIndices::Mode, "Variation", 0, 2, 0, 0);
 
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::LowCutFreq, "Lowcut", ParamBehavior::Frequency);
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::HighCutFreq, "Highcut", ParamBehavior::Frequency);
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::LowCutFreq, "Lowcut", ParamBehavior::Frequency);
+		//ImGui::SameLine();
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::HighCutFreq, "Highcut", ParamBehavior::Frequency);
 
-		WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::DryWet, "Dry/wet");
+		//WSImGuiParamKnob((VstInt32)WaveSabreCore::Chamber::ParamIndices::DryWet, "Dry/wet");
 	}
 };
 

@@ -225,7 +225,7 @@ namespace WaveSabreCore
 			ISoundSourceDevice* mSources[gSourceCount];
 
 			Maj7() :
-				Maj7SynthDevice((int)ParamIndices::NumParams)
+				Maj7SynthDevice((int)ParamIndices::NumParams, mParamCache)
 			{
 				for (int i = 0; i < (int)std::size(mpModulations); ++i)
 				{
@@ -363,14 +363,6 @@ namespace WaveSabreCore
 				}
 
 			}
-
-			float GetParam(int index) const
-			{
-				if (index < 0) return 0;
-				if (index >= (int)ParamIndices::NumParams) return 0;
-				return mParamCache[index];
-			}
-
 
 			virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) override
 			{

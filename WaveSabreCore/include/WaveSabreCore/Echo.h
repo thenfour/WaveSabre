@@ -31,7 +31,8 @@ namespace WaveSabreCore
 			FeedbackDriveDB,
 			Cross, // 0-1
 
-			DryWet, // 0-1
+			DryOutput, // 0-1
+			WetOutput, // 0-1
 
 			NumParams,
 		};
@@ -48,23 +49,25 @@ namespace WaveSabreCore
 	{"FbLvl"},\
 	{"FbDrive"},\
 	{"Cross"},\
-	{"DryWet"},\
+	{"DryOut"},\
+	{"WetOut"},\
 }
 
-		static_assert((int)Echo::ParamIndices::NumParams == 12, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gDefaults16[12] = {
+		static_assert((int)Echo::ParamIndices::NumParams == 13, "param count probably changed and this needs to be regenerated.");
+		static constexpr int16_t gDefaults16[13] = {
 		  6746, // LdlyC = 0.20587199926376342773
 		  81, // LdlyF = 0.0024719999637454748154
-		  8673, // RdlyC = 0.26467901468276977539
+		  8673, // RdlyC = 0.26470589637756347656
 		  81, // RdlyF = 0.0024719999637454748154
-		  0, // LCFreq = 0
+		  2221, // LCFreq = 0.06780719757080078125
 		  6553, // LCQ = 0.20000000298023223877
-		  32767, // HCFreq = 1
-		  6553, // HCQ = 0.20000000298023223877
-		  16416, // FbLvl = 0.50099998712539672852
+		  26500, // HCFreq = 0.80874627828598022461
+		  6553, // HCQ = 0.1999820023775100708
+		  17396, // FbLvl = 0.5308844447135925293
 		  16422, // FbDrive = 0.50118720531463623047
 		  8192, // Cross = 0.25
-		  9830, // DryWet = 0.30000001192092895508
+		  16422, // DryOut = 0.50118720531463623047
+		  11626, // WetOut = 0.35481339693069458008
 		};
 
 		float mParamCache[(int)ParamIndices::NumParams];
@@ -77,7 +80,7 @@ namespace WaveSabreCore
 		BiquadFilter mHighCutFilter[2];
 
 		Echo()
-			: Device((int)ParamIndices::NumParams)
+			: Device((int)ParamIndices::NumParams, mParamCache, gDefaults16)
 		{
 			LoadDefaults();
 		}
@@ -93,7 +96,10 @@ namespace WaveSabreCore
 			float feedback = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
 			float feedbackDriveLin = std::max(0.01f, mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0));
 			float cross = mParams.Get01Value(ParamIndices::Cross);
-			float dryWet = mParams.Get01Value(ParamIndices::DryWet);
+			//float dryWet = mParams.Get01Value(ParamIndices::DryWet);
+
+			float dryMul = mParams.GetLinearVolume(ParamIndices::DryOutput, M7::gVolumeCfg12db);
+			float wetMul = mParams.GetLinearVolume(ParamIndices::WetOutput, M7::gVolumeCfg12db);
 
 			for (int i = 0; i < numSamples; i++)
 			{
@@ -101,23 +107,19 @@ namespace WaveSabreCore
 				float rightInput = inputs[1][i];
 
 				float leftDelay = mLowCutFilter[0].Next(mHighCutFilter[0].Next(leftBuffer.ReadSample()));
+				leftDelay = M7::math::tanh(leftDelay * feedbackDriveLin) / feedbackDriveLin;
 				float rightDelay = mLowCutFilter[1].Next(mHighCutFilter[1].Next(rightBuffer.ReadSample()));
+				rightDelay = M7::math::tanh(rightDelay * feedbackDriveLin) / feedbackDriveLin;
 
-				float leftFeedback = M7::math::tanh((leftInput + M7::math::lerp(leftDelay, rightDelay, cross)) * feedback * feedbackDriveLin) / feedbackDriveLin;
-				float rightFeedback = M7::math::tanh((rightInput + M7::math::lerp(rightDelay, leftDelay, cross)) * feedback * feedbackDriveLin) / feedbackDriveLin;
+				float leftFeedback = (leftInput + M7::math::lerp(leftDelay, rightDelay, cross)) * feedback;
+				float rightFeedback = (rightInput + M7::math::lerp(rightDelay, leftDelay, cross)) * feedback;
 
 				leftBuffer.WriteSample(leftFeedback);
 				rightBuffer.WriteSample(rightFeedback);
 
-				outputs[0][i] = M7::math::lerp(leftInput, leftDelay, dryWet);
-				outputs[1][i] = M7::math::lerp(rightInput, rightDelay, dryWet);
+				outputs[0][i] = leftInput * dryMul + leftDelay * wetMul;// M7::math::lerp(leftInput, leftDelay, dryWet);
+				outputs[1][i] = rightInput * dryMul + rightDelay * wetMul; //M7::math::lerp(rightInput, rightDelay, dryWet);
 			}
-		}
-
-		virtual void LoadDefaults() override
-		{
-			M7::ImportDefaultsArray(std::size(gDefaults16), gDefaults16, mParamCache);
-			SetParam(0, mParamCache[0]);
 		}
 
 		virtual void SetParam(int index, float value) override
@@ -138,18 +140,6 @@ namespace WaveSabreCore
 					0);
 			}
 		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
-		}
-
-		// minified
-		//virtual void SetChunk(void* data, int size) override
-		//{
-		//	M7::Deserializer ds{ (const uint8_t*)data };
-		//	SetMaj7StyleChunk(ds);
-		//}
 
 	};
 }

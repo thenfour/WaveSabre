@@ -43,13 +43,13 @@ namespace WaveSabreCore
 
 		static_assert((int)ParamIndices::NumParams == 7, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[7] = {
-			0, // left source
-			32767, // right source
-			16383, // RotationAngle
-			0, // Side HP
-			16383, // mid side balance
-			16383, // pan
-			16383, // output gain
+		  0, // LSrc = 0
+		  32767, // RSrc = 1
+		  16384, // Rot = 0.5
+		  0, // SideHPF = 0
+		  16384, // MSBal = 0.5
+		  16384, // Pan = 0.5
+		  16422, // OutGain = 0.50118720531463623047
 		};
 
 		M7::OnePoleFilter mFilter;
@@ -60,7 +60,7 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7Width() :
-			Device((int)ParamIndices::NumParams),
+			Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 			mParams(mParamCache, 0)
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			,
@@ -135,21 +135,6 @@ namespace WaveSabreCore
 
 			}
 		}
-		virtual void LoadDefaults() override {
-			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing
-		}
-
-		virtual void SetParam(int index, float value) override
-		{
-			mParamCache[index] = value;
-		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
-		}
-
 	};
 }
 

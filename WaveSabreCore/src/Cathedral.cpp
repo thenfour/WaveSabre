@@ -6,7 +6,7 @@
 namespace WaveSabreCore
 {
 	Cathedral::Cathedral()
-		: Device((int)ParamIndices::NumParams),
+		: Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 		mParams{mParamCache, 0}
 	{
 		static constexpr int16_t CombTuning[] = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };
@@ -17,10 +17,9 @@ namespace WaveSabreCore
 		//damp = 0.0f;
 		//width = 1.0f;
 		//freeze = false;
-		//dryWet = 0.25f;
 		//lowCutFreq = 20.0f;
 		//highCutFreq = 20000.0f - 20.0f;
-		//preDelay = 0.0f;
+		//preDelayMS = 0.0f;
 
 		//for (int i = 0; i < 2; i++)
 		//{
@@ -38,20 +37,30 @@ namespace WaveSabreCore
 		{
 			allPassLeft[i].SetBufferSize(AllPassTuning[i]);
 			allPassRight[i].SetBufferSize(AllPassTuning[i] + stereoSpread);
-			allPassLeft[i].SetFeedback(roomSize);
-			allPassRight[i].SetFeedback(roomSize);
+
+			// NOTE: this is never set again, so effectively it means a fixed feedback amount of 0.5.
+			allPassLeft[i].SetFeedback(/*roomSize*/0.5f);
+			allPassRight[i].SetFeedback(/*roomSize*/0.5f);
 		}
 
 		LoadDefaults();
 	}
 
-	Cathedral::~Cathedral()
-	{
-	}
-
 	void Cathedral::Run(double songPosition, float **inputs, float **outputs, int numSamples)
 	{
+		//for (int i = 0; i < 2; i++)
+		//{
+		//	lowCutFilter[i].SetFreq(lowCutFreq);
+		//	highCutFilter[i].SetFreq(highCutFreq);
+		//}
+
 		preDelayBuffer.SetLength(preDelayMS);
+
+		float dryMul = mParams.GetLinearVolume(ParamIndices::DryOut, M7::gVolumeCfg12db);
+		float wetMul = mParams.GetLinearVolume(ParamIndices::WetOut, M7::gVolumeCfg12db);
+
+		static constexpr float SVQ = 1;
+		//float SVQ = mParams.GetScaledRealValue(ParamIndices::X, 0.1, 3, 0);
 
 		for (int s = 0; s < numSamples; s++)
 		{
@@ -82,14 +91,19 @@ namespace WaveSabreCore
 				outR = allPassRight[i].Process(outR);
 			}
 
-			outL = lowCutFilter[0].SVFhigh(highCutFilter[0].SVFlow(outL, highCutFreq, 1), lowCutFreq, 1);
-			outR = lowCutFilter[1].SVFhigh(highCutFilter[1].SVFlow(outR, highCutFreq, 1), lowCutFreq, 1);
+			//outL = lowCutFilter[0].Next(highCutFilter[0].Next(outL));
+			//outR = lowCutFilter[1].Next(highCutFilter[1].Next(outR));
+
+			outL = lowCutFilter[0].SVFhigh(highCutFilter[0].SVFlow(outL, highCutFreq, SVQ), lowCutFreq, SVQ);
+			outR = lowCutFilter[1].SVFhigh(highCutFilter[1].SVFlow(outR, highCutFreq, SVQ), lowCutFreq, SVQ);
 
 			outL = outL*wet1 + outR*wet2;
 			outR = outR*wet1 + outL*wet2;
 
-			outputs[0][s] = M7::math::lerp(leftInput, outL, dryWet);// leftInput* (1.0f - dryWet) + outL * dryWet;
-			outputs[1][s] = M7::math::lerp(rightInput, outR, dryWet); //rightInput * (1.0f - dryWet) + outR * dryWet;
+			//outputs[0][s] = M7::math::lerp(leftInput, outL, dryWet);// leftInput* (1.0f - dryWet) + outL * dryWet;
+			//outputs[1][s] = M7::math::lerp(rightInput, outR, dryWet); //rightInput * (1.0f - dryWet) + outR * dryWet;
+			outputs[0][s] = leftInput* dryMul + outL * wetMul;
+			outputs[1][s] = rightInput * dryMul + outR * wetMul;
 		}
 	}
 
@@ -97,7 +111,6 @@ namespace WaveSabreCore
 	{
 		freeze = mParams.GetBoolValue(ParamIndices::Freeze);
 		roomSize = mParams.Get01Value(ParamIndices::RoomSize);
-		dryWet = mParams.Get01Value(ParamIndices::DryWet);
 		preDelayMS = mParams.Get01Value(ParamIndices::PreDelay) * 500.0f;
 		damp = mParams.Get01Value(ParamIndices::Damp);
 		width = mParams.Get01Value(ParamIndices::Width);
@@ -120,6 +133,13 @@ namespace WaveSabreCore
 			gain = 0.015f;
 		}
 
+		//// this does not exist in the original. it feels like it should belong but causes a lot of ringing and ugliness.
+		//for (int i = 0; i < numAllPasses; i++)
+		//{
+		//	allPassLeft[i].SetFeedback(roomSize);
+		//	allPassRight[i].SetFeedback(roomSize);
+		//}
+
 		for (int i = 0; i < numCombs; i++)
 		{
 			combLeft[i].SetFeedback(roomSize1);
@@ -129,36 +149,4 @@ namespace WaveSabreCore
 		}
 	}
 
-	//void Cathedral::SetParam(int index, float value)
-	//{
-	//	switch ((ParamIndices)index)
-	//	{
-	//	case ParamIndices::Freeze: freeze = Helpers::ParamToBoolean(value); UpdateParams(); break;
-	//	case ParamIndices::RoomSize: roomSize = value; UpdateParams();  break;
-	//	case ParamIndices::Damp: damp = value; UpdateParams(); break;
-	//	case ParamIndices::Width: width = value; UpdateParams(); break;
-	//	case ParamIndices::LowCutFreq: lowCutFreq = Helpers::ParamToFrequency(value); break;
-	//	case ParamIndices::HighCutFreq: highCutFreq = Helpers::ParamToFrequency(value); break;
-	//	case ParamIndices::DryWet: dryWet = value; break;
-	//	case ParamIndices::PreDelay: preDelay = value; break;
-	//	}
-	//}
-
-	//float Cathedral::GetParam(int index) const
-	//{
-	//	switch ((ParamIndices)index)
-	//	{
-	//	case ParamIndices::Freeze:
-	//	default:
-	//		return Helpers::BooleanToParam(freeze);
-
-	//	case ParamIndices::RoomSize: return roomSize;
-	//	case ParamIndices::Damp: return damp;
-	//	case ParamIndices::Width: return width;
-	//	case ParamIndices::LowCutFreq: return Helpers::FrequencyToParam(lowCutFreq);
-	//	case ParamIndices::HighCutFreq: return Helpers::FrequencyToParam(highCutFreq);
-	//	case ParamIndices::DryWet: return dryWet;
-	//	case ParamIndices::PreDelay: return preDelay;
-	//	}
-	//}
 }

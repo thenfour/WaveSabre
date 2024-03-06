@@ -148,7 +148,7 @@ struct Maj7CompEditor : public VstEditor
 				if (windowMS < Maj7Comp::gMinRMSWindowMS) {
 					windowCaption = "Peak###rmswindow";
 				}
-				ImGui::SameLine(0, 80); Maj7ImGuiPowCurvedParam(ParamIndices::RMSWindow, windowCaption, Maj7Comp::gRMSWindowSizeCfg, 30, {});
+				ImGui::SameLine(0, 80); Maj7ImGuiPowCurvedParam(ParamIndices::RMSWindow, windowCaption, Maj7Comp::gRMSWindowSizeCfg, 0, {});
 
 				ImGui::SameLine(0, 80); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);

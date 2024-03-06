@@ -37,17 +37,8 @@ CathedralVst::CathedralVst(audioMasterCallback audioMaster)
 
 void CathedralVst::getParameterName(VstInt32 index, char *text)
 {
-	switch ((Cathedral::ParamIndices)index)
-	{
-	case Cathedral::ParamIndices::Freeze: vst_strncpy(text, "Freeze", kVstMaxParamStrLen); break;
-	case Cathedral::ParamIndices::RoomSize: vst_strncpy(text, "Roomsize", kVstMaxParamStrLen); break;
-	case Cathedral::ParamIndices::Damp: vst_strncpy(text, "Damp", kVstMaxParamStrLen); break;
-	case Cathedral::ParamIndices::Width: vst_strncpy(text, "Width", kVstMaxParamStrLen); break; 
-	case Cathedral::ParamIndices::LowCutFreq: vst_strncpy(text, "LC Freq", kVstMaxParamStrLen); break;
-	case Cathedral::ParamIndices::HighCutFreq: vst_strncpy(text, "HC Freq", kVstMaxParamStrLen); break;
-	case Cathedral::ParamIndices::DryWet: vst_strncpy(text, "Dry/Wet", kVstMaxParamStrLen); break;
-	case Cathedral::ParamIndices::PreDelay: vst_strncpy(text, "Pre Dly", kVstMaxParamStrLen); break;
-	}
+	CATHEDRAL_PARAM_VST_NAMES(paramNames);
+	vst_strncpy(text, paramNames[index], kVstMaxParamStrLen);
 }
 
 bool CathedralVst::getEffectName(char *name)
