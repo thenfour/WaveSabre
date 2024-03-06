@@ -688,8 +688,8 @@ public:
 
 		Maj7ImGuiPowCurvedParam((VstInt32)M7::ParamIndices::PortamentoTime, "Port##mst", M7::gEnvTimeCfg, 0.4f, GetModInfo(M7::ModDestination::PortamentoTime));
 
-		ImGui::SameLine();
-		Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "##portcurvemst", 0.0f, M7CurveRenderStyle::Rising, {});
+		//ImGui::SameLine();
+		//Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "##portcurvemst", 0.0f, M7CurveRenderStyle::Rising, {});
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::MaxVoices, "MaxVox", M7::gMaxVoicesCfg, 24, 1);
 

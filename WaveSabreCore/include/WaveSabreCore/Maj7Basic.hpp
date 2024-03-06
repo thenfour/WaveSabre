@@ -905,7 +905,7 @@ namespace WaveSabreCore
             FMBrightness,
 
             PortamentoTime,
-            PortamentoCurve,
+            //PortamentoCurve,
             PitchBendRange,
 
             MaxVoices,
@@ -1638,7 +1638,6 @@ namespace WaveSabreCore
 {"UniSpr"}, \
 {"FMBrigh"}, \
 {"PortTm"}, \
-{"PortCv"}, \
 {"PBRng"}, \
 {"MaxVox"}, \
 {"Macro1"}, \
@@ -2324,7 +2323,7 @@ namespace WaveSabreCore
             FMBrightness,
 
             PortamentoTime,
-            PortamentoCurve,
+            //PortamentoCurve,
             PitchBendRange,
 
             MaxVoices,

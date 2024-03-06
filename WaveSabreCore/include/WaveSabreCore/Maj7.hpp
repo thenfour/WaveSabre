@@ -155,7 +155,7 @@ namespace WaveSabreCore
 					NoteOn(mTargetNote, true); // disengages
 					return;
 				}
-				t = mParams.ApplyCurveToValue(ParamIndices::PortamentoCurve, t, 0);// mCurve.ApplyToValue(t, 0);
+				//t = mParams.ApplyCurveToValue(ParamIndices::PortamentoCurve, t, 0);// mCurve.ApplyToValue(t, 0);
 				mCurrentNote = math::lerp(mSourceNote, mTargetNote, t);
 			}
 

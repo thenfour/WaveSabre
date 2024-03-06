@@ -12,14 +12,14 @@ namespace WaveSabreCore
 		void SetBufferSize(int size);
 		float Process(float inp);
 		void SetDamp(float val);
-		float GetDamp();
+		//float GetDamp();
 		void SetFeedback(float val);
-		float GetFeedback();
+		//float GetFeedback();
 
 	private:
 		float feedback, filterStore;
 		float damp1, damp2;
-		float *buffer;
+		float *buffer = nullptr;
 		int bufferSize, bufferIndex;
 	};
 }

@@ -7,9 +7,9 @@ namespace WaveSabreCore
 {
 	Comb::Comb()
 	{
-		buffer = nullptr;
-		filterStore = 0;
-		bufferIndex = 0;
+		//buffer = nullptr;
+		//filterStore = 0;
+		//bufferIndex = 0;
 	}
 
 	Comb::~Comb()
@@ -32,23 +32,22 @@ namespace WaveSabreCore
 	void Comb::SetDamp(float val)
 	{
 		damp1 = val;
-		damp2 = 1 - val;
 	}
 
-	float Comb::GetDamp()
-	{
-		return damp1;
-	}
+	//float Comb::GetDamp()
+	//{
+	//	return damp1;
+	//}
 
 	void Comb::SetFeedback(float val)
 	{
 		feedback = val;
 	}
 
-	float Comb::GetFeedback()
-	{
-		return feedback;
-	}
+	//float Comb::GetFeedback()
+	//{
+	//	return feedback;
+	//}
 
 	float Comb::Process(float input)
 	{
@@ -56,7 +55,7 @@ namespace WaveSabreCore
 
 		output = buffer[bufferIndex];
 
-		filterStore = (output * damp2) + (filterStore * damp1);
+		filterStore = (output * (1 - damp1)) + (filterStore * damp1);
 
 		buffer[bufferIndex] = input + (filterStore * feedback);
 
