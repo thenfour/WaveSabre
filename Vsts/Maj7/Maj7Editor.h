@@ -673,12 +673,12 @@ public:
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);
 
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorDetune, "OscDetune##mst");
+		//ImGui::SameLine();
+		//WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorDetune, "OscDetune##mst");
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoDetune, "UniDetune##mst");
-		ImGui::SameLine();
-		WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorSpread, "OscPan##mst");
+		//ImGui::SameLine();
+		//WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorSpread, "OscPan##mst");
 		ImGui::SameLine();
 		WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoStereoSpread, "UniPan##mst");
 
@@ -700,6 +700,24 @@ public:
 		//AUX_ROUTE_CAPTIONS(auxRouteCaptions);
 		//ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)M7::ParamIndices::AuxRouting, "AuxRoute", (int)M7::AuxRoute::Count, M7::AuxRoute::TwoTwo, auxRouteCaptions, 100);
 		//ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)M7::ParamIndices::AuxWidth, "AuxWidth", 1, 0, {});
+
+		{
+			static const std::vector<VUMeterTick> tickSet = {
+					{-6.0f, "6db"},
+					{-18.0f, "18db"},
+					{-30.0f, "30db"},
+			};
+
+			VUMeterConfig mainCfg = {
+				{24, 70},
+				VUMeterLevelMode::Audio,
+				VUMeterUnits::Linear,
+				-40, 6,
+				tickSet,
+			};
+
+			ImGui::SameLine(0, 80); VUMeter("outputVU", pMaj7->mOutputAnalysis[0], pMaj7->mOutputAnalysis[1], mainCfg);
+		}
 
 		// osc1
 		if (BeginTabBar2("osc", ImGuiTabBarFlags_None))

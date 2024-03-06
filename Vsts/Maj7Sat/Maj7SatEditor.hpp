@@ -8,6 +8,12 @@ using namespace WaveSabreCore;
 
 #include "Maj7SatVst.hpp"
 
+
+//#define MAJ7SAT_ENABLE_RARE_MODELS
+//#define MAJ7SAT_ENABLE_ANALOG
+//#define MAJ7SAT_ENABLE_MIDSIDE
+
+
 struct Maj7SatEditor : public VstEditor
 {
 	Maj7Sat* mpMaj7Sat;
@@ -135,14 +141,22 @@ struct Maj7SatEditor : public VstEditor
 
 				ImGui::SameLine(); Maj7ImGuiParamEnumCombo(param(BandParam::Model), "Model", (int)Maj7Sat::Model::Count__, Maj7Sat::Model::TanhClip, modelNames, 100);
 
+#ifdef MAJ7SAT_ENABLE_ANALOG
 				ImGui::SameLine(); Maj7ImGuiParamScaledFloat(param(BandParam::EvenHarmonics), "Analog", 0, Maj7Sat::gAnalogMaxLin, 0.12f, 0, 0, {});
+#else
+				ImGui::SameLine(); ImGui::Text("Analog\r\n#undef");
+#endif // MAJ7SAT_ENABLE_ANALOG
 
+#ifdef MAJ7SAT_ENABLE_MIDSIDE
 				static constexpr char const* const panModeNames[(size_t)Maj7Sat::PanMode::Count__] = {
 					"Stereo",
 					"MidSide",
 				};
 				ImGui::SameLine(); Maj7ImGuiParamEnumList<Maj7Sat::PanMode>(param(BandParam::PanMode), "PanMode", (int)Maj7Sat::PanMode::Count__, Maj7Sat::PanMode::Stereo, panModeNames);
 				ImGui::SameLine(); Maj7ImGuiParamFloatN11(param(BandParam::Pan), "EffectPan", 0, 0, {});
+#else
+				ImGui::SameLine(); ImGui::Text("Mid/Side\r\n#undef");
+#endif // MAJ7SAT_ENABLE_MIDSIDE
 
 				ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::CompensationGain), "Makeup", M7::gVolumeCfg12db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "DryWet", 1, 0);

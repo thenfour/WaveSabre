@@ -898,9 +898,9 @@ namespace WaveSabreCore
             MasterVolume,
             VoicingMode,
             Unisono,
-            OscillatorDetune,
+            //OscillatorDetune,
             UnisonoDetune,
-            OscillatorSpread,
+            //OscillatorSpread,
             UnisonoStereoSpread,
             FMBrightness,
 
@@ -1632,9 +1632,7 @@ namespace WaveSabreCore
 {"Master"}, \
 {"PolyMon"}, \
 {"Unisono"}, \
-{"OscDet"}, \
 {"UniDet"}, \
-{"OscSpr"}, \
 {"UniSpr"}, \
 {"FMBrigh"}, \
 {"PortTm"}, \
@@ -2316,9 +2314,7 @@ namespace WaveSabreCore
             MasterVolume,
             VoicingMode,
             Unisono,
-            OscillatorDetune,
             UnisonoDetune,
-            OscillatorSpread,
             UnisonoStereoSpread,
             FMBrightness,
 

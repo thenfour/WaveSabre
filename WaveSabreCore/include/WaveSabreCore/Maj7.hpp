@@ -33,6 +33,8 @@
 #include <WaveSabreCore/Maj7Sampler.hpp>
 #include <WaveSabreCore/Maj7GmDls.hpp>
 
+#include <WaveSabreCore/RMS.hpp>
+
 //#include <Windows.h>
 //#undef min
 //#undef max
@@ -191,6 +193,9 @@ namespace WaveSabreCore
 		{
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			OutputStream mOutputStreams[2] = {OutputStream::Master, OutputStream::Master };
+
+			AnalysisStream mOutputAnalysis[2]{ AnalysisStream{1000}, AnalysisStream{1000} };
+
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			// BASE PARAMS & state
@@ -383,8 +388,8 @@ namespace WaveSabreCore
 					mpModulations[i]->BeginBlock();
 				}
 
-				float sourceModDistribution[gSourceCount];
-				BipolarDistribute(gSourceCount, sourceEnabled, sourceModDistribution);
+				//float sourceModDistribution[gSourceCount];
+				//BipolarDistribute(gSourceCount, sourceEnabled, sourceModDistribution);
 
 				bool unisonoEnabled[gUnisonoVoiceMax] = { false };
 				for (size_t i = 0; i < (size_t)mVoicesUnisono; ++i) {
@@ -398,12 +403,12 @@ namespace WaveSabreCore
 					mUnisonoDetuneAmts[i] *= mParamCache[(int)ParamIndices::UnisonoDetune] /*+ mUnisonoDetuneMod*/;
 				}
 
-				for (size_t i = 0; i < gSourceCount; ++i) {
-					auto* src = mSources[i];
-					// for the moment mOscDetuneAmts[i] is just a generic spread value.
-					src->mAuxPanDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorSpread] /*+ mOscillatorStereoSpreadMod*/);
-					src->mDetuneDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorDetune]/* + mOscillatorDetuneMod*/);
-				}
+				//for (size_t i = 0; i < gSourceCount; ++i) {
+				//	auto* src = mSources[i];
+				//	// for the moment mOscDetuneAmts[i] is just a generic spread value.
+				//	src->mAuxPanDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorSpread] /*+ mOscillatorStereoSpreadMod*/);
+				//	src->mDetuneDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorDetune]/* + mOscillatorDetuneMod*/);
+				//}
 
 				for (size_t i = 0; i < gModLFOCount; ++i) {
 					auto& lfo = mpLFOs[i];
@@ -432,6 +437,7 @@ namespace WaveSabreCore
 						o *= masterGain;
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 						outputs[ioutput][iSample] = SelectStreamValue(mOutputStreams[ioutput], o);
+						mOutputAnalysis[ioutput].WriteSample(o);
 #else
 						outputs[ioutput][iSample] = o;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -682,7 +688,7 @@ namespace WaveSabreCore
 						// treat panning as added to modulation value
 						float panParam = myUnisonoPan +
 							srcVoice->mpSrcDevice->GetAuxPan() + //>mAuxPanParam.mCachedVal +
-							srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
+							//srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
 							mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
 						float outputVolLin = srcVoice->mpSrcDevice->GetLinearVolume(volumeMod);
 						auto panGains = math::PanToFactor(panParam);
@@ -751,7 +757,7 @@ namespace WaveSabreCore
 						srcVoice->mAmpEnvGain = ampEnvGain;
 						sourceValues[i] = srcVoice->GetLastSample() * ampEnvGain;
 
-						float semis = myUnisonoDetune + srcVoice->mpSrcDevice->mDetuneDeviceModAmt * 2;
+						float semis = myUnisonoDetune;// +srcVoice->mpSrcDevice->mDetuneDeviceModAmt * 2;
 						float det = detuneMul[i] = math::SemisToFrequencyMul(semis);
 
 						if (i >= gOscillatorCount)

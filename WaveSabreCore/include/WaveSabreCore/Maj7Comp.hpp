@@ -265,7 +265,7 @@ namespace WaveSabreCore
 				wet *= mCompensationGainLin;
 				mOutput = M7::math::lerp(mDry, wet, mParams.Get01Value(ParamIndices::DryWet, 0));
 #endif // MAJ7COMP_FULL
-				mOutput *= mOutputGainLin;
+				mOutput = wet * mOutputGainLin;
 			}
 		};
 

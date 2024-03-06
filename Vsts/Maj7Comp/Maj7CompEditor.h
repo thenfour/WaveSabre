@@ -8,6 +8,15 @@ using namespace WaveSabreCore;
 
 #include "Maj7CompVst.h"
 
+
+// use to enable/disable
+// - rms detection
+// - parallel processing (dry-wet)
+// - lowpass filter (it's rarely needed)
+// - compensation gain (just use output gain if no parallel processing there's no point)
+//#define MAJ7COMP_FULL
+
+
 struct Maj7CompEditor : public VstEditor
 {
 	Maj7Comp* mpMaj7Comp;
@@ -134,13 +143,7 @@ struct Maj7CompEditor : public VstEditor
 				//ImGui::SameLine();
 				Maj7ImGuiParamFloat01((VstInt32)ParamIndices::ChannelLink, "Stereo", 0.8f, 0);
 
-				//ImGui::Separator();
-
-				//ImGui::SameLine(); Maj7ImGuiParamFloatN11((VstInt32)ParamIndices::Pan, "EffectPan", 0, 0, {});
-
-				//ImGui::SameLine(0, 60); Maj7ImGuiParamFloat01((VstInt32)ParamIndices::PeakRMSMix, "Peak-RMS", 0, 0);
-
-
+#ifdef MAJ7COMP_FULL
 				M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)ParamIndices::RMSWindow);
 				M7::ParamAccessor p{ &tempVal, 0 };
 				float windowMS = p.GetPowCurvedValue(0, Maj7Comp::gRMSWindowSizeCfg, 0);
@@ -149,21 +152,28 @@ struct Maj7CompEditor : public VstEditor
 					windowCaption = "Peak###rmswindow";
 				}
 				ImGui::SameLine(0, 80); Maj7ImGuiPowCurvedParam(ParamIndices::RMSWindow, windowCaption, Maj7Comp::gRMSWindowSizeCfg, 0, {});
+#else
+				ImGui::SameLine(0, 80); ImGui::Text("Peak-RMS\r\nDisabled");
+#endif // MAJ7COMP_FULL
 
 				ImGui::SameLine(0, 80); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);
-
+#ifdef MAJ7COMP_FULL
 				ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP Freq(Hz)", M7::gFilterFreqConfig, 22000, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::LowPassQ, "LP Q", 0.2f, 0.2f);
-				ImGui::SameLine(); 
+#else
+				ImGui::SameLine(); ImGui::Text("Lowpass\r\nDisabled");
+#endif // MAJ7COMP_FULL
+
 
 				//const BiquadFilter* filters[2] = {
 				//	&mpMaj7Comp->mComp[0].mLowpassFilter,
 				//	& mpMaj7Comp->mComp[0].mHighpassFilter,
 				//};
-
 				const std::array<FrequencyResponseRendererFilter, 2> filters{
+#ifdef MAJ7COMP_FULL
 					FrequencyResponseRendererFilter{ColorFromHTML("cc4444", 0.8f), &mpMaj7Comp->mComp[0].mLowpassFilter},
+#endif // MAJ7COMP_FULL
 					FrequencyResponseRendererFilter{ColorFromHTML("4444cc", 0.8f), &mpMaj7Comp->mComp[0].mHighpassFilter}
 				};
 
@@ -177,6 +187,7 @@ struct Maj7CompEditor : public VstEditor
 					cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
 				}
 
+				ImGui::SameLine();
 				mResponseGraph.OnRender(cfg);
 
 				ImGui::EndTabItem();
@@ -187,9 +198,17 @@ struct Maj7CompEditor : public VstEditor
 		{
 			if (WSBeginTabItem("IO"))
 			{
+#ifdef MAJ7COMP_FULL
 				Maj7ImGuiParamVolume((VstInt32)ParamIndices::CompensationGain, "Makeup", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((VstInt32)ParamIndices::DryWet, "Dry-Wet", 1, 0);
-				ImGui::SameLine(0, 80); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
+				ImGui::SameLine(0, 80);
+#else
+				ImGui::Text("Makeup\r\nDisabled");
+				ImGui::SameLine(); ImGui::Text("Dry-wet\r\nDisabled");
+				ImGui::SameLine(0, 80);
+#endif
+
+				Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
 				static constexpr char const* const signalNames[] = { "Normal", "Diff", "Sidechain" };//  , "GainReduction", "Detector"};

@@ -33,8 +33,8 @@ namespace WaveSabreCore
 			virtual float GetAuxPan() const = 0; // does not account for modulation
 			virtual float GetLinearVolume(float mod) const = 0;
 			// device-level values set at the beginning of block processing
-			float mDetuneDeviceModAmt = 0;
-			float mAuxPanDeviceModAmt = 0;
+			//float mDetuneDeviceModAmt = 0;
+			//float mAuxPanDeviceModAmt = 0;
 
 			virtual ~ISoundSourceDevice()
 			{}
