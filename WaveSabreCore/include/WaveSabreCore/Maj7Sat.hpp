@@ -10,6 +10,7 @@
 
 //#define MAJ7SAT_ENABLE_RARE_MODELS
 //#define MAJ7SAT_ENABLE_ANALOG
+//#define MAJ7SAT_ENABLE_MIDSIDE
 
 namespace WaveSabreCore
 {
@@ -543,15 +544,15 @@ namespace WaveSabreCore
 
 				float sa[2] = { s0, s1 };
 				float dry[2] = { s0, s1 };
-				//float dry0 = s0;
-				//float dry1 = s1;
 
 				if (mEnableEffect && mMuteSoloEnabled) {
+#ifdef MAJ7SAT_ENABLE_MIDSIDE
 					if (mPanMode == PanMode::MidSide) {
 						M7::MSEncode(sa[0], sa[1], &sa[0], &sa[1]);
 						dry[0] = sa[0];
 						dry[1] = sa[1];
 					}
+#endif // MAJ7SAT_ENABLE_MIDSIDE
 
 					// DO PANNING
 					// do NOT use a pan law here; when it's centered it means both channels should get 100% wetness.
@@ -572,39 +573,11 @@ namespace WaveSabreCore
 						s = M7::math::lerp(dry[i], s, dryWet[i] * mDryWet * masterDryWet);
 					}
 
-					//s0 *= ModelPregain[(int)mModel];
-					//s1 *= ModelPregain[(int)mModel];
-
-					//s0 *= mDriveLin;
-					//s1 *= mDriveLin;
-
-					//float this0 = distort(s0, 0);
-					//float this1 = distort(s1, 1);
-
-					//s0 = this0;
-					//s1 = this1;
-
-					//// DO PANNING
-					//// do NOT use a pan law here; when it's centered it means both channels should get 100% wetness.
-					//float dryWet0 = 1;
-					//float dryWet1 = 1;
-					//if (mPanN11 < 0) dryWet1 = mPanN11 + 1.0f; // left chan (right attenuated)
-					//if (mPanN11 > 0) dryWet0 = 1.0f - mPanN11; // right chan (left attenuated)
-
-					//dryWet0 *= mDryWet * masterDryWet;
-					//dryWet1 *= mDryWet * masterDryWet;
-
-					//// note: when (e.g.) saturating only side channel, you'll get a signal that's too wide because of the natural
-					//// gain that saturation results in.
-					//// in these cases, dry/wet is very important param for balancing the stereo image again, in MidSide mode.
-					//s0 = M7::math::lerp(dry0, s0, dryWet0);
-					//s1 = M7::math::lerp(dry1, s1, dryWet1);
-
+#ifdef MAJ7SAT_ENABLE_MIDSIDE
 					if (mPanMode == PanMode::MidSide) {
 						M7::MSDecode(sa[0], sa[1], &sa[0], &sa[1]);
 					}
-					//diff0 = M7::math::clampN11(diff0);
-					//diff1 = M7::math::clampN11(diff1);
+#endif // MAJ7SAT_ENABLE_MIDSIDE
 				}
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
