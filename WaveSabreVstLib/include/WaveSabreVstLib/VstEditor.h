@@ -689,10 +689,18 @@ namespace WaveSabreVstLib
 			// 2. adding X cursor pos for side-by-side positioning
 			// 3. pushing empty separator color so BeginTabBarEx doesn't display a separator line (we'll do it later).
 			if (width == 0) {
-				tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + (window->WorkRect.Max.x), window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
+				tabBarBB = ImRect(
+					window->DC.CursorPos.x,
+					window->DC.CursorPos.y,
+					window->DC.CursorPos.x + (window->WorkRect.Max.x),
+					window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
 			}
 			else {
-				tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y, window->DC.CursorPos.x + width, window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
+				tabBarBB = ImRect(
+					window->DC.CursorPos.x,
+					window->DC.CursorPos.y,
+					window->DC.CursorPos.x + width,
+					window->DC.CursorPos.y + g.FontSize + g.Style.FramePadding.y * 2);
 			}
 			tab_bar->ID = id;
 			ImGui::PushStyleColor(ImGuiCol_TabActive, {});// : ImGuiCol_TabUnfocusedActive
@@ -767,7 +775,12 @@ namespace WaveSabreVstLib
 
 			// account for the popup indicator arrow thingy.
 			float separator_min_x = std::min(tab_bar->BarRect.Min.x, tabBarBB.Min.x) - M7::math::floor(window->WindowPadding.x * 0.5f);
+
+			// this value is too big; there's some huge space at the right of all tabs.
 			float separator_max_x = tab_bar->BarRect.Max.x + M7::math::floor(window->WindowPadding.x * 0.5f);
+
+			//auto cursor = ImGui::GetCursorScreenPos();
+			//float separator_max_x = cursor.x;// +M7::math::floor(window->WindowPadding.x * 0.5f);
 
 			ImRect body_bb;
 			body_bb.Min = { separator_min_x, y };
@@ -776,18 +789,30 @@ namespace WaveSabreVstLib
 			ImColor c2 = { col };
 			float h, s, v;
 			ImGui::ColorConvertRGBtoHSV(c2.Value.x, c2.Value.y, c2.Value.z, h, s, v);
-			auto halfAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.5f);
+			auto halfAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.45f);
 			auto lowAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.15f);
 
 			//window->DrawList->AddLine(ImVec2(separator_min_x, y), ImVec2(separator_max_x, y), col, 1.0f);
 
-			ImGui::GetBackgroundDrawList()->AddRectFilled(body_bb.Min, body_bb.Max, lowAlpha, 6, ImDrawFlags_RoundCornersAll);
-			ImGui::GetBackgroundDrawList()->AddRect(body_bb.Min, body_bb.Max, halfAlpha, 6, ImDrawFlags_RoundCornersAll);
+			ImGui::GetBackgroundDrawList()->AddRectFilled(body_bb.Min, body_bb.Max, lowAlpha, 2, ImDrawFlags_RoundCornersAll);
+			ImGui::GetBackgroundDrawList()->AddRect(body_bb.Min, body_bb.Max, halfAlpha, 2, ImDrawFlags_RoundCornersAll);
 
 			ImGui::EndTabBar();
 
 			// add some bottom margin.
-			ImGui::Dummy({ 0, 7 });
+			ImGui::Dummy({ 0, 6 });
+		}
+
+		void IndicatorDot(const char* colorHTML, const char* caption = nullptr) {
+
+			auto c = ImGui::GetCursorScreenPos();
+			ImRect bb = { c, c + ImVec2{20,20} };
+			auto* dl = ImGui::GetWindowDrawList();
+			dl->AddCircleFilled(c, 6, ColorFromHTML(colorHTML, 0.8f));
+			if (caption) {
+				dl->AddText(c + ImVec2{ 8,8 }, ColorFromHTML(colorHTML, 0.8f), caption);
+			}
+
 		}
 
 
@@ -1345,14 +1370,14 @@ namespace WaveSabreVstLib
 			for (size_t i = 0; i < Tcount; i++)
 			{
 				auto& cfg = itemCfg[i];
-				const bool is_selected = (selectedVal  == cfg.value);
+				const bool is_selected = (selectedVal == cfg.value);
 				int colorsPushed = 0;
 
 				if (is_selected) {
 					if (cfg.selectedColor) {
 						ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.selectedColor));
 						ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.selectedColor));
-						colorsPushed +=2;
+						colorsPushed += 2;
 					}
 					if (cfg.selectedHoveredColor) {
 						ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.selectedHoveredColor));
@@ -1380,7 +1405,7 @@ namespace WaveSabreVstLib
 			}
 
 			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
-			 
+
 			ImGui::EndGroup();
 			ImGui::PopID();
 		}
@@ -1396,66 +1421,67 @@ namespace WaveSabreVstLib
 			TEnum value;
 		};
 
-			// the point of this is that you can have a different set of buttons than enum options. the idea is that when "none" are selected, you can do something different.
-			template<typename Tenum, typename TparamID, size_t Tcount>
-			void Maj7ImGuiParamEnumMutexButtonArray(TparamID paramID, const char* ctrlLabel, float width, bool horiz, const EnumMutexButtonArrayItem<Tenum>(&itemCfg)[Tcount]) {
-				M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-				M7::ParamAccessor pa{ &tempVal, 0 };
-				auto selectedVal = pa.GetEnumValue<Tenum>(0);
+		// the point of this is that you can have a different set of buttons than enum options. the idea is that when "none" are selected, you can do something different.
+		template<typename Tenum, typename TparamID, size_t Tcount>
+		void Maj7ImGuiParamEnumMutexButtonArray(TparamID paramID, const char* ctrlLabel, float width, bool horiz, const EnumMutexButtonArrayItem<Tenum>(&itemCfg)[Tcount], int spacing = 0) {
+			const char* defaultSelectedColor = "4400aa";
+			const char* defaultNotSelectedColor = "222222";
+			const char* defaultSelectedHoveredColor = "8800ff";
+			const char* defaultNotSelectedHoveredColor = "222299";
 
-				ImGui::PushID(ctrlLabel);
+			auto coalesce = [](const char* a, const char* b) {
+				return !!a ? a : b;
+			};
 
-				ImGui::BeginGroup();
+			M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+			M7::ParamAccessor pa{ &tempVal, 0 };
+			auto selectedVal = pa.GetEnumValue<Tenum>(0);
 
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
-				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+			ImGui::PushID(ctrlLabel);
 
-				for (size_t i = 0; i < Tcount; i++)
-				{
-					auto& cfg = itemCfg[i];
-					const bool is_selected = (selectedVal == cfg.value);
-					int colorsPushed = 0;
+			ImGui::BeginGroup();
 
-					if (is_selected) {
-						if (cfg.selectedColor) {
-							ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.selectedColor));
-							ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.selectedColor));
-							colorsPushed += 2;
-						}
-						if (cfg.selectedHoveredColor) {
-							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.selectedHoveredColor));
-							colorsPushed++;
-						}
-					}
-					else {
-						if (cfg.notSelectedColor) {
-							ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
-							ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
-							colorsPushed += 2;
-						}
-						if (cfg.notSelectedHoveredColor) {
-							ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.notSelectedHoveredColor));
-							colorsPushed++;
-						}
-					}
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
-					if (horiz) {
-						ImGui::SameLine();
-					}
+			for (size_t i = 0; i < Tcount; i++)
+			{
+				auto& cfg = itemCfg[i];
+				const bool is_selected = (selectedVal == cfg.value);
+				int colorsPushed = 0;
 
-					if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {
-						pa.SetEnumValue(0, cfg.value);
-						GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
-					}
-
-					ImGui::PopStyleColor(colorsPushed);
+				if (is_selected) {
+					ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(coalesce(cfg.selectedColor, defaultSelectedColor)));
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(coalesce(cfg.selectedColor, defaultSelectedColor)));
+					colorsPushed += 2;
+				}
+				else {
+					ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(coalesce(cfg.notSelectedColor, defaultNotSelectedColor)));
+					ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(coalesce(cfg.notSelectedColor, defaultNotSelectedColor)));
+					ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(coalesce(cfg.notSelectedHoveredColor, defaultNotSelectedHoveredColor)));
+					colorsPushed += 3;
 				}
 
-				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+				if (horiz) {
+					ImGui::SameLine(0, (float)spacing);
+				}
+				else if (spacing != 0) {
+					ImGui::Dummy({ 1.0f,(float)spacing });
+				}
 
-				ImGui::EndGroup();
-				ImGui::PopID();
+				if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {
+					pa.SetEnumValue(0, cfg.value);
+					GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
+				}
+
+				ImGui::PopStyleColor(colorsPushed);
 			}
+
+			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+
+			ImGui::EndGroup();
+			ImGui::PopID();
+		}
 
 
 			template<typename TparamID>

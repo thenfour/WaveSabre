@@ -9,7 +9,7 @@
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 //#define MAJ7SAT_ENABLE_RARE_MODELS
-//#define MAJ7SAT_ENABLE_ANALOG
+#define MAJ7SAT_ENABLE_ANALOG
 //#define MAJ7SAT_ENABLE_MIDSIDE
 
 namespace WaveSabreCore
@@ -41,26 +41,22 @@ namespace WaveSabreCore
 		//	Count__,
 		//};
 
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 		enum class Model : uint8_t {
 			Thru,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			SineClip,
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			DivClipSoft,
 			TanhClip,
 			DivClipMedium,
 			DivClipHard,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			HardClip,
 			TanhFold,
 			TanhSinFold,
 			SinFold,
 			LinearFold,
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			Count__,
 		};
 
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 
 #define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
 			"Thru", \
@@ -74,39 +70,23 @@ namespace WaveSabreCore
 			"TanhSinFold", \
 			"SinFold", \
 			"LinearFold", \
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 		}
-#else // MAJ7SAT_ENABLE_RARE_MODELS
-#define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
-			"DivClipSoft",\
-		"TanhClip",\
-			"DivClipMedium",\
-			"DivClipHard",\
-		}
-
-
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
-
 
 		// helps unify the sound of them. nothing magic here just values that seemed to work.
 		// the method is to just keep a fundamental frequency constant, and let the harmonics add.
 		// so using a fft meter to match a sine wave fundamental level.
 		static constexpr float ModelPregain[(size_t)Model::Count__] = {
 			1, // thru,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			0.71f, // sinclip
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			0.69f, // div 41
 			0.62f, // tanh clip
 			0.47f, // DivClipMedium,
 			0.21f, // DivClipHard,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			1, // HardClip,
 			0.41f,// TanhFold,
 			0.56f,// TanhSinFold,
 			0.71f,// SinFold,
 			1, // LinearFold,
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 		};
 
 		// to calculate the slope...
@@ -118,28 +98,72 @@ namespace WaveSabreCore
 		//calcslope =(shape_hardclip(z) - shape_hardclip(0)) / z;
 		static constexpr float ModelNaturalSlopes[(size_t)Model::Count__] = {
 			1, // thru,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			M7::math::gPIHalf, // sinclip
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 			gK41 + 1, // div 41
 			2, // tanh clip
 			gK63 + 1, // DivClipMedium,
 			gK85 + 1, // DivClipHard,
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 			1, // HardClip,
 			M7::math::gPI,// TanhFold, <-- really?
 			M7::math::gPI * 3.0f / 4.0f,// TanhSinFold,
 			M7::math::gPIHalf,// SinFold,
 			1, // LinearFold,
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 		};
 
-		//enum class OutputSignal : uint8_t {
-		//	Normal, // process this band (wet out)
-		//	Bypass, // don't process this band (dry out)
-		//	Diff, // output a diff / delta signal of sorts.
-		//	Count__,
-		//};
+
+#else // MAJ7SAT_ENABLE_RARE_MODELS
+		enum class Model : uint8_t {
+			Thru,
+			DivClipSoft,
+			TanhClip,
+			DivClipMedium,
+			DivClipHard,
+			TanhFold,
+			Count__,
+		};
+
+
+#define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
+			"Thru", \
+		"DivClipSoft", \
+			"TanhClip", \
+			"DivClipMedium", \
+			"DivClipHard", \
+			"TanhFold", \
+		}
+
+
+		// helps unify the sound of them. nothing magic here just values that seemed to work.
+		// the method is to just keep a fundamental frequency constant, and let the harmonics add.
+		// so using a fft meter to match a sine wave fundamental level.
+		static constexpr float ModelPregain[(size_t)Model::Count__] = {
+			1, // thru,
+			0.69f, // div 41
+			0.62f, // tanh clip
+			0.47f, // DivClipMedium,
+			0.21f, // DivClipHard,
+			0.41f,// TanhFold,
+		};
+
+		// to calculate the slope...
+		//z = 0.000001;
+		//alpha = .85;
+		//calcslope =(shape_ws1(z,alpha) - shape_ws1(0,alpha)) / z;
+		//calcslope =(shape_sinclip(z) - shape_sinclip(-z)) / (2*z);
+		//calcslope =(shape_tanh(z) - shape_tanh(0)) / z;
+		//calcslope =(shape_hardclip(z) - shape_hardclip(0)) / z;
+		static constexpr float ModelNaturalSlopes[(size_t)Model::Count__] = {
+			1, // thru,
+			gK41 + 1, // div 41
+			2, // tanh clip
+			gK63 + 1, // DivClipMedium,
+			gK85 + 1, // DivClipHard,
+			M7::math::gPI,// TanhFold, <-- really?
+		};
+
+
+
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 
 		enum class ParamIndices
 		{
@@ -483,9 +507,11 @@ namespace WaveSabreCore
 					case Model::HardClip:
 						s = shape_hardclip(s);
 						break;
+#endif // MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::TanhFold:
 						s = shape_tanhfold(s);
 						break;
+#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::TanhSinFold:
 						s = shape_tanhSinFold(s);
 						break;

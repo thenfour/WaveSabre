@@ -737,7 +737,7 @@ public:
 			EndTabBarWithColoredSeparator();
 		}
 
-		ImGui::BeginTable("##fmaux", 2);
+		ImGui::BeginTable("##fmaux", 3);
 		ImGui::TableNextRow();
 		ImGui::TableNextColumn();
 
@@ -750,7 +750,7 @@ public:
 		};
 
 		//ImGui::BeginGroup();
-		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 400))
+		if (BeginTabBar2("FM", ImGuiTabBarFlags_None, 330))
 		{
 			auto colorModToken = mFMColors.Push();
 			static_assert(M7::gOscillatorCount == 4, "osc count");
@@ -848,12 +848,18 @@ public:
 		ImGui::TableNextColumn();
 
 		// aux
-		if (BeginTabBar2("aux", ImGuiTabBarFlags_None, 400))
+		if (BeginTabBar2("aux", ImGuiTabBarFlags_None, 330))
 		{
-
 			AuxEffectTab("Filter1", 0);
-			AuxEffectTab("Filter2", 1);
+			EndTabBarWithColoredSeparator();
+		}
 
+		ImGui::TableNextColumn();
+
+		// aux
+		if (BeginTabBar2("aux2", ImGuiTabBarFlags_None, 330))
+		{
+			AuxEffectTab("Filter2", 1);
 			EndTabBarWithColoredSeparator();
 		}
 
@@ -1611,8 +1617,31 @@ public:
 
 			WSImGuiParamCheckbox(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
 
-			ImGui::SameLine(); Maj7ImGuiParamEnumCombo(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-			ImGui::SameLine(); Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq), filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "Freq##filt", M7::gFilterFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::FilterAuxModDestOffsets::Freq));
+			ImGui::SameLine(0, 40);
+			
+			//Maj7ImGuiParamEnumCombo(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
+			EnumMutexButtonArrayItem< M7::FilterModel> filterItems[] = {
+				{ "OFF", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::Disabled, },
+				{ "LP-OP", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_OnePole, },
+#ifndef DISABLE_MOOG_FILTER
+				{ "LP_Moog2", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Moog2, },
+				{ "LP_Moog4", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Moog4, },
+				{ "BP_Moog2", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::BP_Moog2, },
+				{ "BP_Moog4", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::BP_Moog4, },
+#endif // DISABLE_MOOG_FILTER
+				{ "HP-OP", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_OnePole, },
+#ifndef DISABLE_MOOG_FILTER
+				{ "HP_Moog2", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Moog2, },
+				{ "HP_Moog4", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Moog4, },
+#endif // DISABLE_MOOG_FILTER
+				{ "LP-BQ", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Biquad, },
+				{ "HP-BQ", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Biquad, },
+			};
+
+			Maj7ImGuiParamEnumMutexButtonArray(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "", 45, true, filterItems, 4);
+
+			
+			Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq), filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "Freq##filt", M7::gFilterFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::FilterAuxModDestOffsets::Freq));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "KT##filt", 0, 1, 1, 1, 0, {});
 			ImGui::SameLine(); Maj7ImGuiParamFloat01(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Q), "Q##filt", 0, 0, 0, lGetModInfo(M7::FilterAuxModDestOffsets::Q));
 
