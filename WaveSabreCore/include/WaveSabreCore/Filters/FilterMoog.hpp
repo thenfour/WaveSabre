@@ -15,27 +15,13 @@ namespace WaveSabreCore
 
             virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
-                bool recalc = false;
-                if (m_FilterType != type) {
+                if ((m_FilterType != type) || (cutoffHz != m_cutoffHz) || (reso != m_resonance)){
                     m_FilterType = type;
-                    recalc = true;
-                }
-                if (cutoffHz != m_cutoffHz) {
                     m_cutoffHz = cutoffHz;
-                    recalc = true;
-                }
-                if (reso != m_resonance) {
                     m_resonance = reso;
-                    // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
-                    static const auto t88 = Real(3.88);
-                    m_k = t88 * reso;
-                    // this is not smaller code; use clamp.
-                    //if (m_k < 0) m_k = 0;
-                    //if (m_k > t88) m_k = t88;
-                    m_k = math::clamp(m_k, Real0, Real(3.88));
-                    recalc = true;
+                    m_k = reso * Real(3.88);// this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
+                    Recalc();
                 }
-                if (recalc) Recalc();
             }
 
             virtual real ProcessSample(real x) override
@@ -72,11 +58,11 @@ namespace WaveSabreCore
 
                 // --- cascade of 4 filters
                 float output = 0;
-                for (size_t i = 0; i < 4; ++i) {
-                    dLP[i + 1] = m_LPF[i].ProcessSample(dLP[i]);
+                for (size_t i = 0; i <= 4; ++i) {
+                    if (i < 4) dLP[i + 1] = m_LPF[i].ProcessSample(dLP[i]);
                     output += dLP[i] * letterVals[(size_t)m_FilterType][i];
                 }
-                output += dLP[4] * letterVals[(size_t)m_FilterType][4];
+                //output += dLP[4] * letterVals[(size_t)m_FilterType][4];
 
                 return output;
             }
@@ -85,14 +71,14 @@ namespace WaveSabreCore
             void Recalc()
             {
                 // prewarp for BZT
-                real wd = PITimes2 * m_cutoffHz;
+                //real wd = PITimes2 * m_cutoffHz;
 
                 // note: measured input to tan function, it seemed limited to (0.005699, 1.282283).
                 // input for fasttan shall be limited to (-pi/2, pi/2) according to documentation
                 //real wa = (2 * Helpers::CurrentSampleRateF) * math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
                 //real g = wa * Helpers::CurrentSampleRateRecipF * Real(0.5);
 
-                real g = math::tan(wd * Helpers::CurrentSampleRateRecipF * Real(0.5));
+                real g = math::tan(m_cutoffHz * Helpers::CurrentSampleRateRecipF * math::gPI);
 
                 // G - the feedforward coeff in the VA One Pole
                 //     same for LPF, HPF
@@ -111,12 +97,12 @@ namespace WaveSabreCore
 
             OnePoleFilter m_LPF[4];
 
-            FilterType m_FilterType = FilterType::LP2;
-            real m_alpha_0 = 1; // see block diagram
-            real m_cutoffHz = 0;
-            real m_resonance = 0;// Real(-1); // cached resonance for knowing when recalc is not needed.
-            real m_k = 0;       // K, set with Q
-            real m_gamma = 0;       // see block diagram
+            FilterType m_FilterType = (FilterType) - 1;// = FilterType::LP2; initialize to some invaliid value to force an initial recalc.
+            real m_alpha_0;// = 1; // see block diagram
+            real m_cutoffHz;// = 0;
+            real m_resonance;// = 0;// Real(-1); // cached resonance for knowing when recalc is not needed.
+            real m_k;/// = 0;       // K, set with Q
+            real m_gamma;// = 0;       // see block diagram
         };
     } // namespace M7
 } // namespace WaveSabreCore

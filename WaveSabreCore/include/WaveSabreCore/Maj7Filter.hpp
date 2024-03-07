@@ -15,15 +15,15 @@
 #define DISABLE_36db_oct_crossover
 //#define DISABLE_48db_oct_crossover
 //#define DISABLE_onepole_maj7_filter // actually DON'T disable this because it's required for the LFO "sharpness" control. it's pretty much free anyway.
-#define DISABLE_MOOG_FILTER
-
-#define LR_SLOPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::LinkwitzRileyFilter::Slope::Count__] { \
-	"6dB (unsupported)",\
-	"12dB",\
-	"24dB",\
-	"36dB (unsupported)",\
-	"48dB",\
-	}
+//#define DISABLE_MOOG_FILTER
+//
+//#define LR_SLOPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::LinkwitzRileyFilter::Slope::Count__] { \
+//	"6dB (unsupported)",\
+//	"12dB",\
+//	"24dB",\
+//	"36dB (unsupported)",\
+//	"48dB",\
+//	}
 
 #define FILTER_MODEL_CAPTIONS { \
     "Disabled", \
@@ -115,16 +115,17 @@ namespace WaveSabreCore
 			static constexpr real q48_1 = 0.541196100146f;// 0.5 / cos($pi / 8 * 1);
 			static constexpr real q48_2 = 1.30656296488f;// 0.5 / cos($pi / 8 * 3);
 
-			enum class Slope : uint8_t {
-				Slope_6dB,
-				Slope_12dB,
-				Slope_24dB,
-				Slope_36dB,
-				Slope_48dB,
-				Count__,
-			};
+			//enum class Slope : uint8_t {
+			//	Slope_6dB,
+			//	Slope_12dB,
+			//	Slope_24dB,
+			//	Slope_36dB,
+			//	Slope_48dB,
+			//	Count__,
+			//};
 
-			SVFilter svf[4];
+			//SVFilter svf[4];
+			SVFilter svf[2];
 
 			void Reset() {
 				for (auto& f : svf) {
@@ -132,72 +133,72 @@ namespace WaveSabreCore
 				}
 			}
 
-			real LR_LPF(real x, real freq, Slope slope) {
-				switch (slope) {
-				default:
-				case Slope::Slope_12dB:
-					return svf[0].SVFlow(x, freq, 0.5f);
-				case Slope::Slope_24dB:
+			real LR_LPF(real x, real freq/*, Slope slope*/) {
+				//switch (slope) {
+				//default:
+				//case Slope::Slope_12dB:
+//					return svf.SVFlow(x, freq, 0.5f);
+//				case Slope::Slope_24dB:
 					x = svf[0].SVFlow(x, freq, q24);
 					return svf[1].SVFlow(x, freq, q24);
-#ifndef DISABLE_6db_oct_crossover
-				case Slope::Slope_36dB:
-					x = svf[0].SVFlow(x, freq, 1);
-					x = svf[1].SVFlow(x, freq, 1);
-					return svf[2].SVFlow(x, freq, 0.5f);
-#endif // DISABLE_6db_oct_crossover
-#ifndef DISABLE_48db_oct_crossover
-				case Slope::Slope_48dB:
-					x = svf[0].SVFlow(x, freq, q48_1);
-					x = svf[1].SVFlow(x, freq, q48_2);
-					x = svf[2].SVFlow(x, freq, q48_1);
-					return svf[3].SVFlow(x, freq, q48_2);
-#endif // DISABLE_48db_oct_crossover
-				}
+//#ifndef DISABLE_6db_oct_crossover
+//				case Slope::Slope_36dB:
+//					x = svf[0].SVFlow(x, freq, 1);
+//					x = svf[1].SVFlow(x, freq, 1);
+//					return svf[2].SVFlow(x, freq, 0.5f);
+//#endif // DISABLE_6db_oct_crossover
+//#ifndef DISABLE_48db_oct_crossover
+//				case Slope::Slope_48dB:
+//					x = svf[0].SVFlow(x, freq, q48_1);
+//					x = svf[1].SVFlow(x, freq, q48_2);
+//					x = svf[2].SVFlow(x, freq, q48_1);
+//					return svf[3].SVFlow(x, freq, q48_2);
+//#endif // DISABLE_48db_oct_crossover
+//				}
 			}
 
-			real LR_HPF(real x, real freq, Slope slope) {
-				switch (slope) {
-				default:
-				case Slope::Slope_12dB:
-					return svf[0].SVFhigh(-x, freq, 0.5f);
-				case Slope::Slope_24dB:
+			real LR_HPF(real x, real freq/*, Slope slope*/) {
+				//switch (slope) {
+				//default:
+				//case Slope::Slope_12dB:
+					//return svf.SVFhigh(-x, freq, 0.5f);
+//				case Slope::Slope_24dB:
 					x = svf[0].SVFhigh(x, freq, q24);
 					return svf[1].SVFhigh(x, freq, q24);
-#ifndef DISABLE_6db_oct_crossover
-				case Slope::Slope_36dB:
-					x = svf[0].SVFhigh(-x, freq, 1);
-					x = svf[1].SVFhigh(x, freq, 1);
-					return svf[2].SVFhigh(x, freq, 0.5f);
-#endif // DISABLE_6db_oct_crossover	
-#ifndef DISABLE_48db_oct_crossover
-				case Slope::Slope_48dB:
-					x = svf[0].SVFhigh(x, freq, q48_1);
-					x = svf[1].SVFhigh(x, freq, q48_2);
-					x = svf[2].SVFhigh(x, freq, q48_1);
-					return svf[3].SVFhigh(x, freq, q48_2);
-#endif // DISABLE_48db_oct_crossover
-				}
+//#ifndef DISABLE_6db_oct_crossover
+//				case Slope::Slope_36dB:
+//					x = svf[0].SVFhigh(-x, freq, 1);
+//					x = svf[1].SVFhigh(x, freq, 1);
+//					return svf[2].SVFhigh(x, freq, 0.5f);
+//#endif // DISABLE_6db_oct_crossover	
+//#ifndef DISABLE_48db_oct_crossover
+//				case Slope::Slope_48dB:
+//					x = svf[0].SVFhigh(x, freq, q48_1);
+//					x = svf[1].SVFhigh(x, freq, q48_2);
+//					x = svf[2].SVFhigh(x, freq, q48_1);
+//					return svf[3].SVFhigh(x, freq, q48_2);
+//#endif // DISABLE_48db_oct_crossover
+//				}
 			}
 
-			real APF(real x, real freq, Slope slope) {
-				switch (slope) {
-				default:
-				case Slope::Slope_12dB:
-					return svf[0].SVFOPapf_temp(-x, freq);
-				case Slope::Slope_24dB:
+			real APF(real x, real freq/*, Slope slope*/) {
+				//switch (slope) {
+				//default:
+				//case Slope::Slope_12dB:
+					//return svf.SVFOPapf_temp(-x, freq);
+//				case Slope::Slope_24dB:
 					return svf[0].SVFall(x, freq, q24);
-#ifndef DISABLE_6db_oct_crossover
-				case Slope::Slope_36dB:
-					x = svf[0].SVFall(-x, freq, 1);
-					return svf[1].SVFOPapf_temp(x, freq);
-#endif // DISABLE_6db_oct_crossover
-#ifndef DISABLE_48db_oct_crossover
-				case Slope::Slope_48dB:
-					x = svf[0].SVFall(x, freq, q48_1);
-					return svf[1].SVFall(x, freq, q48_2);
-#endif // DISABLE_48db_oct_crossover
-				}
+//#ifndef DISABLE_6db_oct_crossover
+//				case Slope::Slope_36dB:
+//					x = svf[0].SVFall(-x, freq, 1);
+//					return svf[1].SVFOPapf_temp(x, freq);
+//#endif // DISABLE_6db_oct_crossover
+//#ifndef DISABLE_48db_oct_crossover
+//				case Slope::Slope_48dB:
+//					x = svf[0].SVFall(x, freq, q48_1);
+//					return svf[1].SVFall(x, freq, q48_2);
+//#endif // DISABLE_48db_oct_crossover
+//				}
 			}
 		};
 
@@ -525,7 +526,7 @@ namespace WaveSabreCore
 			// low, med, high bands.
 			float s[3];
 
-			void frequency_splitter(float x, float crossoverFreqA, LinkwitzRileyFilter::Slope crossoverSlope, float crossoverFreqB)
+			void frequency_splitter(float x, float crossoverFreqA, /*, LinkwitzRileyFilter::Slope crossoverSlope,*/ float crossoverFreqB)
 			{
 #ifndef DISABLE_6db_oct_crossover
 				if (crossoverSlope == LinkwitzRileyFilter::Slope::Slope_6dB) {
@@ -536,14 +537,14 @@ namespace WaveSabreCore
 				else
 #endif // DISABLE_6db_oct_crossover
 				{
-					s[0] = mLR[0].LR_LPF(x, crossoverFreqA, crossoverSlope);
-					s[0] = mLR[1].LR_LPF(s[0], crossoverFreqB, crossoverSlope);
+					s[0] = mLR[0].LR_LPF(x, crossoverFreqA/*crossoverSlope*/);
+					s[0] = mLR[1].LR_LPF(s[0], crossoverFreqB/*crossoverSlope*/);
 
-					s[1] = mLR[2].LR_HPF(x, crossoverFreqA, crossoverSlope);
-					s[1] = mLR[3].LR_LPF(s[1], crossoverFreqB, crossoverSlope);
+					s[1] = mLR[2].LR_HPF(x, crossoverFreqA /*crossoverSlope*/);
+					s[1] = mLR[3].LR_LPF(s[1], crossoverFreqB /*crossoverSlope*/);
 
-					s[2] = mLR[4].APF(x, crossoverFreqA, crossoverSlope);
-					s[2] = mLR[5].LR_HPF(s[2], crossoverFreqB, crossoverSlope);
+					s[2] = mLR[4].APF(x, crossoverFreqA/*, crossoverSlope*/);
+					s[2] = mLR[5].LR_HPF(s[2], crossoverFreqB/*, crossoverSlope*/);
 				}
 			}
 		};

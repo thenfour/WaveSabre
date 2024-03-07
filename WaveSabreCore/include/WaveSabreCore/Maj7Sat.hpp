@@ -269,7 +269,7 @@ namespace WaveSabreCore
 		static constexpr int16_t gParamDefaults[42] = {
 		  8230, // InpGain = 0.25115966796875
 		  13557, // xAFreq = 0.4137503504753112793
-		  40, // xASlope = 0.001220703125
+		  0, // xASlope = 0.001220703125
 		  21577, // xBFreq = 0.65849626064300537109
 		  32767, // GDryWet = 0.999969482421875
 		  8230, // OutpGain = 0.25115966796875
@@ -674,7 +674,7 @@ namespace WaveSabreCore
 		float mCrossoverFreqA = 0;
 		float mCrossoverFreqB = 0;
 
-		M7::LinkwitzRileyFilter::Slope mCrossoverSlopeA = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
+		//M7::LinkwitzRileyFilter::Slope mCrossoverSlopeA = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
 		//M7::LinkwitzRileyFilter::Slope mCrossoverSlopeB = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
 
 		virtual void SetParam(int index, float value) override
@@ -691,7 +691,7 @@ namespace WaveSabreCore
 			mCrossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
 			mCrossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
 
-			mCrossoverSlopeA = mParams.GetEnumValue<M7::LinkwitzRileyFilter::Slope>(ParamIndices::CrossoverASlope);
+			//mCrossoverSlopeA = mParams.GetEnumValue<M7::LinkwitzRileyFilter::Slope>(ParamIndices::CrossoverASlope);
 		}
 
 		M7::FrequencySplitter splitter0;
@@ -741,8 +741,8 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// split into 3 bands
-				splitter0.frequency_splitter(s0, mCrossoverFreqA, mCrossoverSlopeA, mCrossoverFreqB);
-				splitter1.frequency_splitter(s1, mCrossoverFreqA, mCrossoverSlopeA, mCrossoverFreqB);
+				splitter0.frequency_splitter(s0, mCrossoverFreqA, /*, mCrossoverSlopeA, */mCrossoverFreqB);
+				splitter1.frequency_splitter(s1, mCrossoverFreqA, /*, mCrossoverSlopeA, */mCrossoverFreqB);
 
 				s0 = 0;
 				s1 = 0;

@@ -53,7 +53,8 @@ public:
 	{
 		using Params = Maj7Sat::ParamIndices;
 		M7::ParamAccessor p{GetMaj7Sat()->mParamCache, 0};
-		OptimizeEnumParam<M7::LinkwitzRileyFilter::Slope>(p, Params::CrossoverASlope);
+		//OptimizeEnumParam<M7::LinkwitzRileyFilter::Slope>(p, Params::CrossoverASlope);
+		p.SetRawVal(Params::CrossoverASlope, 0);
 		OptimizeBand(Params::AMute);
 		OptimizeBand(Params::BMute);
 		OptimizeBand(Params::CMute);

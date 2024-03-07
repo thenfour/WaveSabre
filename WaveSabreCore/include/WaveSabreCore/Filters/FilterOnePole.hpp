@@ -14,7 +14,7 @@ namespace WaveSabreCore
         {
             virtual void SetParams(FilterType type, real cutoffHz, real reso) override
             {
-                if ((m_FilterType == type) && math::FloatEquals(m_cutoffHz, cutoffHz) && math::FloatEquals(m_q, reso))
+                if ((m_FilterType == type) && (m_cutoffHz == cutoffHz) && (m_q == reso))
                 {
                     return;
                 }

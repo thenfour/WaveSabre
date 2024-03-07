@@ -1423,7 +1423,7 @@ namespace WaveSabreVstLib
 
 		// the point of this is that you can have a different set of buttons than enum options. the idea is that when "none" are selected, you can do something different.
 		template<typename Tenum, typename TparamID, size_t Tcount>
-		void Maj7ImGuiParamEnumMutexButtonArray(TparamID paramID, const char* ctrlLabel, float width, bool horiz, const EnumMutexButtonArrayItem<Tenum>(&itemCfg)[Tcount], int spacing = 0) {
+		void Maj7ImGuiParamEnumMutexButtonArray(TparamID paramID, const char* ctrlLabel, float width, bool horiz, const EnumMutexButtonArrayItem<Tenum>(&itemCfg)[Tcount], int spacing = 0, int columns = 0) {
 			const char* defaultSelectedColor = "4400aa";
 			const char* defaultNotSelectedColor = "222222";
 			const char* defaultSelectedHoveredColor = "8800ff";
@@ -1444,6 +1444,7 @@ namespace WaveSabreVstLib
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
 			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
+			int column = 0;
 			for (size_t i = 0; i < Tcount; i++)
 			{
 				auto& cfg = itemCfg[i];
@@ -1462,17 +1463,25 @@ namespace WaveSabreVstLib
 					colorsPushed += 3;
 				}
 
-				if (horiz) {
+				if (horiz && column != 0) {
 					ImGui::SameLine(0, (float)spacing);
 				}
 				else if (spacing != 0) {
 					ImGui::Dummy({ 1.0f,(float)spacing });
 				}
 
-				if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {
-					pa.SetEnumValue(0, cfg.value);
-					GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
+				if (cfg.caption) {
+					if (ImGui::Button(cfg.caption, ImVec2{ width , 0 })) {
+						pa.SetEnumValue(0, cfg.value);
+						GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
+					}
 				}
+				else {
+					float height = ImGui::GetTextLineHeightWithSpacing();
+					ImGui::Dummy(ImVec2{width, height});
+				}
+
+				column = (column + 1) % columns;
 
 				ImGui::PopStyleColor(colorsPushed);
 			}
