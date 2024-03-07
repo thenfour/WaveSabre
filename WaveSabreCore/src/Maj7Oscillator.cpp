@@ -12,7 +12,7 @@ namespace WaveSabreCore
 				srcinfo.mAmpModSource,
 				srcinfo.mModDestBase,
 				(ModDestination)(int(srcinfo.mModDestBase) + int(OscModParamIndexOffsets::Volume)),
-				(ModDestination)(int(srcinfo.mModDestBase) + int(OscModParamIndexOffsets::AuxMix)),
+				//(ModDestination)(int(srcinfo.mModDestBase) + int(OscModParamIndexOffsets::AuxMix)),
 				(ModDestination)(int(srcinfo.mModDestBase) + int(OscModParamIndexOffsets::PreFMVolume))
 			),
 			mIntention(OscillatorIntention::Audio)
@@ -25,7 +25,7 @@ namespace WaveSabreCore
 				ModSource::Invalid, // amp env mod source doesn't exist for lfo
 				gLFOInfo[ilfo].mModBase,
 				ModDestination::Invalid, // volume mod dest
-				ModDestination::Invalid, // AuxMix mod dest
+				//ModDestination::Invalid, // AuxMix mod dest
 				ModDestination::Invalid // PreFMVolume mod dest
 			)
 			,

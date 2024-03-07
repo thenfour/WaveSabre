@@ -23,14 +23,14 @@ namespace WaveSabreCore
 			const ModSource mAmpEnvModSourceID;
 			const ModDestination mModDestBaseID;
 			const ModDestination mVolumeModDestID;
-			const ModDestination mAuxPanModDestID;
+			//const ModDestination mAuxPanModDestID;
 			const ModDestination mHiddenVolumeModDestID;
 
 			ModulationSpec* mAmpEnvModulation;
 
 			virtual bool IsEnabled() const = 0;
 			virtual bool MatchesKeyRange(int midiNote) const = 0;
-			virtual float GetAuxPan() const = 0; // does not account for modulation
+			//virtual float GetAuxPan() const = 0; // does not account for modulation
 			virtual float GetLinearVolume(float mod) const = 0;
 			// device-level values set at the beginning of block processing
 			//float mDetuneDeviceModAmt = 0;
@@ -40,13 +40,12 @@ namespace WaveSabreCore
 			{}
 
 			ISoundSourceDevice(float* paramCache, ModulationSpec* ampEnvModulation, ParamIndices baseParamID,
-				ModSource ampEnvModSourceID, ModDestination modDestBaseID, ModDestination volumeModDestID, ModDestination auxPanModDestID, ModDestination hiddenVolumeModDestID
+				ModSource ampEnvModSourceID, ModDestination modDestBaseID, ModDestination volumeModDestID, ModDestination hiddenVolumeModDestID
 			) :
 				mParams(paramCache, baseParamID),
 				mAmpEnvModulation(ampEnvModulation),
 				mAmpEnvModSourceID(ampEnvModSourceID),
 				mVolumeModDestID(volumeModDestID),
-				mAuxPanModDestID(auxPanModDestID),
 				mModDestBaseID(modDestBaseID),
 				mHiddenVolumeModDestID(hiddenVolumeModDestID)
 			{
@@ -78,7 +77,8 @@ namespace WaveSabreCore
 				{}
 
 				// used as temporary values during block processing.
-				float mOutputGain[2];// = { 0 }; // linear output volume gain calculated from output VolumeParam + panning
+				//float mOutputGain[2];// = { 0 }; // linear output volume gain calculated from output VolumeParam + panning
+				//float mOutputGain;
 				float mAmpEnvGain;// = 0;// = { 0 }; // linear gain calculated frequently from osc ampenv
 
 				virtual void NoteOn(bool legato) = 0;
@@ -982,11 +982,6 @@ namespace WaveSabreCore
 				return true;
 			}
 
-			virtual float GetAuxPan() const override
-			{
-				// only valid for audio (no lfo)
-				return mParams.GetN11Value(OscParamIndexOffsets::AuxMix, 0);
-			}
 
 			virtual float GetLinearVolume(float mod) const override
 			{

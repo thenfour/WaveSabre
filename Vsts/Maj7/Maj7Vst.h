@@ -938,7 +938,7 @@ namespace WaveSabreCore
 		{
 			p->mParams.SetBoolValue(OscParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
 			p->mParams.SetDecibels(OscParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
-			p->mParams.SetN11Value(OscParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
+			//p->mParams.SetN11Value(OscParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParamKT, 1);//p->mFrequencyParam.mKTValue.SetParamValue(0);
 			p->mParams.SetIntValue(OscParamIndexOffsets::PitchSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
@@ -961,7 +961,7 @@ namespace WaveSabreCore
 
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
 			p->mParams.SetDecibels(SamplerParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
-			p->mParams.SetN11Value(SamplerParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
+			//p->mParams.SetN11Value(SamplerParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 0);//p->mFrequencyParam.mKTValue.SetParamValue(0);
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::TuneSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),

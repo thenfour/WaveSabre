@@ -22,7 +22,7 @@ namespace WaveSabreCore {
         {}
 
 
-
+		// why not make these static constexpr??
 		LFOInfo gLFOInfo[gModLFOCount] = {
 			{ParamIndices::LFO1Waveform, ModDestination::LFO1Waveshape, ModSource::LFO1},
 			{ParamIndices::LFO2Waveform, ModDestination::LFO2Waveshape, ModSource::LFO2},

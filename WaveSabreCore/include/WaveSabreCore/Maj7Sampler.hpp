@@ -90,10 +90,10 @@ namespace WaveSabreCore
 				return true;
 			}
 
-			virtual float GetAuxPan() const override
-			{
-				return mParams.GetN11Value(SamplerParamIndexOffsets::AuxMix, 0);
-			}
+			//virtual float GetAuxPan() const override
+			//{
+			//	return mParams.GetN11Value(SamplerParamIndexOffsets::AuxMix, 0);
+			//}
 
 			virtual float GetLinearVolume(float mod) const override
 			{

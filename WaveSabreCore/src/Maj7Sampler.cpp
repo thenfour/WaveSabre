@@ -170,7 +170,7 @@ namespace WaveSabreCore
 					srcInfo.mAmpModSource,
 					srcInfo.mModDestBase,
 					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::Volume)),
-					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::AuxMix)),
+					//(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::AuxMix)),
 					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::HiddenVolume))
 				)//,
 				//mParams(paramCache, sourceInfo.mParamBase)

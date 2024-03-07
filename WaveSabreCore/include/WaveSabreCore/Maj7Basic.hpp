@@ -909,6 +909,7 @@ namespace WaveSabreCore
             PitchBendRange,
 
             MaxVoices,
+            Pan,
 
             Macro1,
             Macro2,
@@ -948,7 +949,6 @@ namespace WaveSabreCore
             Osc1PitchFine,
             Osc1FreqMul,
             Osc1FMFeedback,
-            Osc1AuxMix,
 
             Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc1AmpEnvAttackTime,
@@ -979,7 +979,6 @@ namespace WaveSabreCore
             Osc2PitchFine,
             Osc2FreqMul,
             Osc2FMFeedback,
-            Osc2AuxMix,
 
             Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc2AmpEnvAttackTime,
@@ -1010,7 +1009,6 @@ namespace WaveSabreCore
             Osc3PitchFine,
             Osc3FreqMul,
             Osc3FMFeedback,
-            Osc3AuxMix,
 
             Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
             Osc3AmpEnvAttackTime,
@@ -1041,7 +1039,6 @@ namespace WaveSabreCore
                 Osc4PitchFine,
                 Osc4FreqMul,
                 Osc4FMFeedback,
-                Osc4AuxMix,
                    
                 Osc4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                 Osc4AmpEnvAttackTime,
@@ -1503,7 +1500,6 @@ namespace WaveSabreCore
                 Sampler1FreqKT,
                 Sampler1InterpolationType,
                 Sampler1ReleaseExitsLoop,
-                Sampler1AuxMix,
                     Sampler1Delay,
 
                 Sampler1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
@@ -1538,7 +1534,6 @@ namespace WaveSabreCore
                     Sampler2FreqKT,
                     Sampler2InterpolationType,
                 Sampler2ReleaseExitsLoop,
-                Sampler2AuxMix,
                                 Sampler2Delay,
 
                     Sampler2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
@@ -1573,7 +1568,6 @@ namespace WaveSabreCore
                 Sampler3FreqKT,
                 Sampler3InterpolationType,
                 Sampler3ReleaseExitsLoop,
-                Sampler3AuxMix,
                         Sampler3Delay,
 
                 Sampler3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
@@ -1608,7 +1602,6 @@ namespace WaveSabreCore
                 Sampler4FreqKT,
                 Sampler4InterpolationType,
                     Sampler4ReleaseExitsLoop,
-                    Sampler4AuxMix,
                     Sampler4Delay,
 
                 Sampler4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
@@ -1638,6 +1631,7 @@ namespace WaveSabreCore
 {"PortTm"}, \
 {"PBRng"}, \
 {"MaxVox"}, \
+{"Pan"}, \
 {"Macro1"}, \
 {"Macro2"}, \
 {"Macro3"}, \
@@ -1674,7 +1668,6 @@ namespace WaveSabreCore
 {"O1Fine"}, \
 {"O1Mul"}, \
 {"O1FMFb"}, \
-{"O1Xmix"}, \
 {"AE1dlt"}, \
 {"AE1att"}, \
 {"AE1atc"}, \
@@ -1703,7 +1696,6 @@ namespace WaveSabreCore
 {"O2Fine"}, \
 {"O2Mul"}, \
 {"O2FMFb"}, \
-{"O2Xmix"}, \
 {"AE2dlt"}, \
 {"AE2att"}, \
 {"AE2atc"}, \
@@ -1732,7 +1724,6 @@ namespace WaveSabreCore
 {"O3Fine"}, \
 {"O3Mul"}, \
 {"O3FMFb"}, \
-{"O3Xmix"}, \
 {"AE3dlt"}, \
 {"AE3att"}, \
 {"AE3atc"}, \
@@ -1761,7 +1752,6 @@ namespace WaveSabreCore
 {"O4Fine"}, \
 {"O4Mul"}, \
 {"O4FMFb"}, \
-{"O4Xmix"}, \
 {"AE4dlt"}, \
 {"AE4att"}, \
 {"AE4atc"}, \
@@ -2195,7 +2185,6 @@ namespace WaveSabreCore
 {"S1FrqKT"}, \
 {"S1Intrp"}, \
 {"S1RelX"}, \
-{"S1AxMix"}, \
 {"S1Dly"}, \
 {"S1Edlt"}, \
 {"S1Eatt"}, \
@@ -2228,7 +2217,6 @@ namespace WaveSabreCore
 {"S2FrqKT"}, \
 {"S2Intrp"}, \
 {"S2RelX"}, \
-{"S2AxMix"}, \
 {"S2Dly"}, \
 {"S2Edlt"}, \
 {"S2Eatt"}, \
@@ -2261,7 +2249,6 @@ namespace WaveSabreCore
 {"S3FrqKT"}, \
 {"S3Intrp"}, \
 {"S3RelX"}, \
-{"S3AxMix"}, \
 {"S3Dly"}, \
 {"S3Edlt"}, \
 {"S3Eatt"}, \
@@ -2294,7 +2281,6 @@ namespace WaveSabreCore
 {"S4FrqKT"}, \
 {"S4Intrp"}, \
 {"S4RelX"}, \
-{"S4AxMix"}, \
 {"S4Dly"}, \
 {"S4Edlt"}, \
 {"S4Eatt"}, \
@@ -2323,6 +2309,7 @@ namespace WaveSabreCore
             PitchBendRange,
 
             MaxVoices,
+            Pan,
 
             Macro1,
             Macro2,
@@ -2370,7 +2357,6 @@ namespace WaveSabreCore
             FreqKT,
             InterpolationType,
             ReleaseExitsLoop,
-            AuxMix,
             Delay,
             AmpEnvDelayTime,
             Count = AmpEnvDelayTime,
@@ -2446,7 +2432,6 @@ namespace WaveSabreCore
             PitchFine,
             FreqMul,
             FMFeedback,
-            AuxMix,
             AmpEnvDelayTime,
             Count = AmpEnvDelayTime,
         };
@@ -2465,8 +2450,8 @@ namespace WaveSabreCore
 
         enum class FilterAuxModDestOffsets : uint8_t // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
         {
-            Q, // filter Q
             Freq, // filter freq
+            Q, // filter Q
             Count,
         };
 

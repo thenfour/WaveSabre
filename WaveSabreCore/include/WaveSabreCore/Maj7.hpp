@@ -554,7 +554,7 @@ namespace WaveSabreCore
 							mpFilters[ifilt][ich] = new FilterAuxNode(
 								owner->mParamCache,
 								(ParamIndices)((int)ParamIndices::Filter1Enabled + (int)FilterParamIndexOffsets::Count * ifilt),
-								(ModDestination)((int)ModDestination::Filter1Q + ((int)FilterAuxModDestOffsets::Count * ifilt)));
+								(ModDestination)((int)ModDestination::Filter1Freq + ((int)FilterAuxModDestOffsets::Count * ifilt)));
 						}
 					}
 
@@ -677,23 +677,24 @@ namespace WaveSabreCore
 						}
 					}
 
-					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
+					//float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
 
-						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
+						//float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
 
 						// treat panning as added to modulation value
-						float panParam = myUnisonoPan +
-							srcVoice->mpSrcDevice->GetAuxPan() + //>mAuxPanParam.mCachedVal +
+						//float panParam = myUnisonoPan;// +
+							//srcVoice->mpSrcDevice->GetAuxPan() + //>mAuxPanParam.mCachedVal +
 							//srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
-							mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
-						float outputVolLin = srcVoice->mpSrcDevice->GetLinearVolume(volumeMod);
-						auto panGains = math::PanToFactor(panParam);
-						srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
-						srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
+							//mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
+						//float outputVolLin = srcVoice->mpSrcDevice->GetLinearVolume(volumeMod);
+						//auto panGains = math::PanToFactor(panParam);
+						//srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
+						//srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
+						//srcVoice->mOutputGain = outputVolLin;// *panGains.second;
 
 						srcVoice->BeginBlock();
 					}
@@ -741,11 +742,14 @@ namespace WaveSabreCore
 
 					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
 
-					float sourceValues[gSourceCount];// = { 0 };
+					float sourceValues[gSourceCount];// required for FM to hold all source values
 					float detuneMul[gSourceCount];// = { 0 };
+					float mixedSources = 0;
 
 					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mModMatrix.GetDestinationValue(ModDestination::FMBrightness));
 
+					// populate previous source sample values
+					// populate source->mAmpEnvGain which has modulation info
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
 						auto* srcVoice = mSourceVoices[i];
@@ -753,39 +757,51 @@ namespace WaveSabreCore
 						float hiddenVolumeBacking = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mHiddenVolumeModDestID);
 						ParamAccessor hiddenAmpParam{ &hiddenVolumeBacking, 0 };
 
+						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
 						float ampEnvGain = hiddenAmpParam.GetLinearVolume(0, gUnityVolumeCfg);
-						srcVoice->mAmpEnvGain = ampEnvGain;
+						float outputGain = srcVoice->mpSrcDevice->GetLinearVolume(volumeMod);
+						srcVoice->mAmpEnvGain = ampEnvGain * outputGain;
 						sourceValues[i] = srcVoice->GetLastSample() * ampEnvGain;
 
 						float semis = myUnisonoDetune;// +srcVoice->mpSrcDevice->mDetuneDeviceModAmt * 2;
 						float det = detuneMul[i] = math::SemisToFrequencyMul(semis);
 
-						if (i >= gOscillatorCount)
+						if (i >= gOscillatorCount) // if sampler
 						{
 							auto ps = static_cast<SamplerVoice*>(srcVoice);
-							sourceValues[i] = ps->ProcessSample(mMidiNote, det, 0) * ampEnvGain;
+							mixedSources += ps->ProcessSample(mMidiNote, det, 0) * ampEnvGain;
 						}
 					}
 
 					// unfortunately cannot do this in previous loop because we need all the source values in advance.
 					for (int i = 0; i < gOscillatorCount; ++i) {
 						auto* po = mpOscillatorNodes[i];
-						sourceValues[i] = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale, mpOwner->mParams, sourceValues, i);
+						mixedSources += po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale, mpOwner->mParams, sourceValues, i);
 					}
+
+					// apply panning & filter, and mix with s[] as requested
+					float panN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan, mModMatrix.GetDestinationValue(ModDestination::Pan));
+					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
+					//M7::math::PanToLRVolumeParams();
+					auto panFactors = M7::math::PanToFactor(panN11 + myUnisonoPan);
+					float stereoMix[2]{
+						mixedSources * panFactors.first,
+						mixedSources * panFactors.second,
+					};
+					//PanToLRVolumeParams
+					//float mPan = mParams
+						//mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID)
+						//
+						//float stereoMix[2]{
+						//mixedSources,
+				//};
 
 					for (size_t ich = 0; ich < 2; ++ich)
 					{
-						float q = 0;
-						for (size_t i = 0; i < gSourceCount; ++i)
-						{
-							q += sourceValues[i] * mSourceVoices[i]->mOutputGain[ich];
-						}
-
-						// send through serial filter
 						for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter) {
-							q = mpFilters[ifilter][ich]->AuxProcessSample(q);
+							stereoMix[ich] = mpFilters[ifilter][ich]->AuxProcessSample(stereoMix[ich]);
 						}
-						s[ich] += q;
+						s[ich] += stereoMix[ich];
 					}
 
 					mPortamento.Advance(1,

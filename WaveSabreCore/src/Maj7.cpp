@@ -1,17 +1,18 @@
 #include <WaveSabreCore/Maj7.hpp>
 namespace WaveSabreCore {
     namespace M7 {
-        static_assert((int)M7::MainParamIndices::Count == 28, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultMasterParams[28] = {
+        static_assert((int)M7::MainParamIndices::Count == 29, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultMasterParams[29] = {
           16422, // Master = 0.50115966796875
           8, // PolyMon = 0.000244140625
           1365, // Unisono = 0.041656494140625
           0, // UniDet = 0
           0, // UniSpr = 0
           16384, // FMBrigh = 0.5
-          5996, // PortTm = 0.18299999833106994629
+          5996, // PortTm = 0.1829833984375
           17721, // PBRng = 0.540802001953125
           12032, // MaxVox = 0.3671875
+          16384, // pan
           0, // Macro1 = 0
           0, // Macro2 = 0
           0, // Macro3 = 0
@@ -32,8 +33,8 @@ namespace WaveSabreCore {
           0, // FM2to4 = 0
           0, // FM3to4 = 0
         };
-        static_assert((int)M7::SamplerParamIndexOffsets::Count == 22, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultSamplerParams[22] = {
+        static_assert((int)M7::SamplerParamIndexOffsets::Count == 21, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultSamplerParams[21] = {
           0, // S1En = 0
           32767, // S1Vol = 0.999969482421875
           128, // S1KRmin = 0.00390625
@@ -54,7 +55,6 @@ namespace WaveSabreCore {
           32767, // S1FrqKT = 0.999969482421875
           24, // S1Intrp = 0.000732421875
           32767, // S1RelX = 0.999969482421875
-          16384, // S1AxMix = 0.5
           0, // S1Dly = 0
         };
         static_assert((int)M7::ModParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
@@ -81,7 +81,7 @@ namespace WaveSabreCore {
         };
         static_assert((int)M7::LFOParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
         const int16_t gDefaultLFOParams[7] = {
-          121, // LFO1wav = 0.003692626953125
+          105, // LFO1wav = 0.0032114624045789241791
           16384, // LFO1shp = 0.5
           0, // LFO1rst = 0
           16384, // LFO1ph = 0.5
@@ -103,8 +103,8 @@ namespace WaveSabreCore {
           32767, // AE1rst = 0.999969482421875
           0, // AE1mode = 0
         };
-        static_assert((int)M7::OscParamIndexOffsets::Count == 18, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultOscillatorParams[18] = {
+        static_assert((int)M7::OscParamIndexOffsets::Count == 17, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultOscillatorParams[17] = {
           0, // O1En = 0
           32767, // O1Vol = 0.999969482421875
           128, // O1KRmin = 0.00390625
@@ -122,12 +122,11 @@ namespace WaveSabreCore {
           16384, // O1Fine = 0.5
           512, // O1Mul = 0.015625
           0, // O1FMFb = 0
-          16384, // O1Xmix = 0.5
         };
         static_assert((int)M7::FilterParamIndexOffsets::Count == 5, "param count probably changed and this needs to be regenerated.");
         const int16_t gDefaultFilterParams[5] = {
           0, // F1En = 0
-          153, // F1Type = 0.0046936757862567901611
+          153, // F1Type = 0.004669189453125
           6553, // F1Q = 0.199981689453125
           9830, // F1Freq = 0.29998779296875
           32767, // F1FKT = 0.999969482421875

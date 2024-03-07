@@ -126,6 +126,14 @@ namespace WaveSabreCore
 			FMBrightness, // krate, 01
 			PortamentoTime, // krate, 01
 
+			Pan,
+
+			Filter1Freq, // DENOTES the base filter dest; keep in sync with FilterAuxModDestOffsets
+			Filter1Q, // Aux1Param2
+
+			Filter2Freq, // Aux2Param4
+			Filter2Q, // Aux2Param2
+
 			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
 			Osc1Volume, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
@@ -135,7 +143,7 @@ namespace WaveSabreCore
 			Osc1PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1FMFeedback, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1Phase, // krate, N11 // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc1AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			//Osc1AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
 			// NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by 
 			Osc1AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -156,7 +164,7 @@ namespace WaveSabreCore
 			Osc2PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc2AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			//Osc2AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
 			Osc2AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Osc2AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -176,7 +184,7 @@ namespace WaveSabreCore
 			Osc3PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			//Osc3AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
 			Osc3AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Osc3AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -196,7 +204,7 @@ namespace WaveSabreCore
 			Osc4PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc4FMFeedback, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc4Phase, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc4AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			//Osc4AuxMix, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
 			Osc4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Osc4AmpEnvAttackTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
@@ -261,17 +269,11 @@ namespace WaveSabreCore
 			FMAmt2to4, // arate, 01
 			FMAmt3to4, // arate, 01
 
-				Filter1Q, // Aux1Param2
-				Filter1Freq, // Aux1Param4
-
-				Filter2Q, // Aux2Param2
-				Filter2Freq, // Aux2Param4
-
 			Sampler1Volume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler1HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler1PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler1FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler1AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			//Sampler1AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 				Sampler1SampleStart,
 				Sampler1Delay,
 
@@ -290,7 +292,7 @@ namespace WaveSabreCore
 			Sampler2HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler2PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler2FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler2AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			//Sampler2AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 				Sampler2SampleStart,
 				Sampler2Delay,
 
@@ -309,7 +311,7 @@ namespace WaveSabreCore
 			Sampler3HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler3PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler3FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler3AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			//Sampler3AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 				Sampler3SampleStart,
 				Sampler3Delay,
 
@@ -328,7 +330,7 @@ namespace WaveSabreCore
 			Sampler4HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler4PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			Sampler4FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			Sampler4AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			//Sampler4AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 					Sampler4SampleStart,
 					Sampler4Delay,
 
@@ -367,7 +369,7 @@ namespace WaveSabreCore
 			PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			FMFeedback,
 			Phase,
-			AuxMix,
+			//AuxMix,
 		};
 
 		enum class SamplerModParamIndexOffsets// : uint8_t // MUST BE IN SYNC WITH ABOVE
@@ -376,7 +378,7 @@ namespace WaveSabreCore
 			HiddenVolume, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			PitchFine, //// KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			FrequencyParam, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
-			AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
+			//AuxMix, // KEEP IN SYNC WITH SamplerModParamIndexOffsets
 			SampleStart,
 			Delay,
 		};
@@ -394,7 +396,12 @@ namespace WaveSabreCore
 			"None", \
 			"FMBrightness", \
 			"PortamentoTime", \
-			"Osc1Volume", \
+			"Pan", \
+			"Filt1Freq", \
+			"Filt1Q", \
+			"Filt2Freq", \
+			"Filt2Q", \
+		"Osc1Volume", \
 			"Osc1PreFMVolume", \
 			"Osc1Waveshape", \
 			"Osc1SyncFrequency", \
@@ -402,7 +409,6 @@ namespace WaveSabreCore
 			"Osc1PitchFine", \
 			"Osc1FMFeedback", \
 			"Osc1Phase", \
-			"Osc1AuxMix", \
 			"Osc1AmpEnvDelayTime",  \
 			"Osc1AmpEnvAttackTime", \
 			"Osc1AmpEnvAttackCurve", \
@@ -420,7 +426,6 @@ namespace WaveSabreCore
 			"Osc2PitchFine", \
 			"Osc2FMFeedback", \
 			"Osc2Phase", \
-			"Osc2AuxMix", \
 			"Osc2AmpEnvDelayTime",  \
 			"Osc2AmpEnvAttackTime", \
 			"Osc2AmpEnvAttackCurve", \
@@ -438,7 +443,6 @@ namespace WaveSabreCore
 			"Osc3PitchFine", \
 			"Osc3FMFeedback", \
 			"Osc3Phase", \
-			"Osc3AuxMix", \
 			"Osc3AmpEnvDelayTime",  \
 			"Osc3AmpEnvAttackTime", \
 			"Osc3AmpEnvAttackCurve", \
@@ -456,7 +460,6 @@ namespace WaveSabreCore
 			"Osc4PitchFine", \
 			"Osc4FMFeedback", \
 			"Osc4Phase", \
-			"Osc4AuxMix", \
 			"Osc4AmpEnvDelayTime", \
 			"Osc4AmpEnvAttackTime", \
 			"Osc4AmpEnvAttackCurve", \
@@ -512,15 +515,10 @@ namespace WaveSabreCore
 			"FMAmt1to4", \
 			"FMAmt2to4", \
 			"FMAmt3to4", \
-			"Filt1Q", \
-			"Filt1Freq", \
-			"Filt2Q", \
-			"Filt2Freq", \
 			"Sampler1Volume", \
 		"Sampler1HiddenVolume", \
 			"Sampler1PitchFine", \
 		"Sampler1FrequencyParam", \
-		"Sampler1AuxMix", \
 		"Sampler1SampleStart", \
 		"Sampler1Delay", \
 		"Sampler1AmpEnvDelayTime",  \
@@ -536,7 +534,6 @@ namespace WaveSabreCore
 "Sampler2HiddenVolume", \
 "Sampler2PitchFine", \
 "Sampler2FrequencyParam", \
-"Sampler2AuxMix", \
 		"Sampler2SampleStart", \
 		"Sampler2Delay", \
 "Sampler2AmpEnvDelayTime", \
@@ -552,7 +549,6 @@ namespace WaveSabreCore
 "Sampler3HiddenVolume", \
 "Sampler3PitchFine", \
 "Sampler3FrequencyParam", \
-"Sampler3AuxMix", \
 		"Sampler3SampleStart", \
 		"Sampler3Delay", \
 "Sampler3AmpEnvDelayTime", \
@@ -568,7 +564,6 @@ namespace WaveSabreCore
 "Sampler4HiddenVolume", \
 "Sampler4PitchFine", \
 "Sampler4FrequencyParam", \
-"Sampler4AuxMix", \
 		"Sampler4SampleStart", \
 		"Sampler4Delay", \
 "Sampler4AmpEnvDelayTime", \
@@ -586,6 +581,11 @@ namespace WaveSabreCore
 "-", \
 "FMAmt", \
 "Port", \
+"Pan",\
+"Filt1 Hz", \
+"Filt1 Q", \
+"Filt2 Hz", \
+"Filt2 Q", \
 "O1Vol", \
 "O1PreVol", \
 "O1Shape", \
@@ -594,7 +594,6 @@ namespace WaveSabreCore
 "O1Fine", \
 "O1FMFB", \
 "O1Phase", \
-"O1Pan", \
 "O1EnvDly", \
 "O1EnvAtt", \
 "O1EnvAttCrv", \
@@ -612,7 +611,6 @@ namespace WaveSabreCore
 "O2Fine", \
 "O2FMFB", \
 "O2Phase", \
-"O2Pan", \
 "O2EnvDly", \
 "O2EnvAtt", \
 "O2EnvAttCrv", \
@@ -630,7 +628,6 @@ namespace WaveSabreCore
 "O3Fine", \
 "O3FMFB", \
 "O3Phase", \
-"O3Pan", \
 "O3EnvDly", \
 "O3EnvAtt", \
 "O3EnvAttCrv", \
@@ -648,7 +645,6 @@ namespace WaveSabreCore
 "O4Fine", \
 "O4FMFB", \
 "O4Phase", \
-"O4Pan", \
 "O4EnvDly", \
 "O4EnvAtt", \
 "O4EnvAttCrv", \
@@ -704,15 +700,10 @@ namespace WaveSabreCore
 "FM1to4", \
 "FM2to4", \
 "FM3to4", \
-"Flt1Q", \
-"Flt1Freq", \
-"Flt2Q", \
-"Flt2Freq", \
 "S1Vol", \
 "S1PreVol", \
 "S1Fine", \
 "S1Freq", \
-"S1Pan", \
 "S1Strt", \
 "S1Dly", \
 "S1EnvDly", \
@@ -728,7 +719,6 @@ namespace WaveSabreCore
 "S2PreVol", \
 "S2Fine", \
 "S2Freq", \
-"S2Pan", \
 "S2Strt", \
 "S2Dly", \
 "S2EnvDly", \
@@ -744,7 +734,6 @@ namespace WaveSabreCore
 "S3PreVol", \
 "S3Fine", \
 "S3Freq", \
-"S3Pan", \
 "S3Strt", \
 "S3Dly", \
 "S3EnvDly", \
@@ -760,7 +749,6 @@ namespace WaveSabreCore
 "S4PreVol", \
 "S4Fine", \
 "S4Freq", \
-"S4Pan", \
 "S4Strt", \
 "S4Dly", \
 "S4EnvDly", \
