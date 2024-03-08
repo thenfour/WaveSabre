@@ -33,10 +33,11 @@ namespace WaveSabreCore {
           0, // FM2to4 = 0
           0, // FM3to4 = 0
         };
-        static_assert((int)M7::SamplerParamIndexOffsets::Count == 21, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultSamplerParams[21] = {
+        static_assert((int)M7::SamplerParamIndexOffsets::Count == 22, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultSamplerParams[22] = {
           0, // S1En = 0
           32767, // S1Vol = 0.999969482421875
+          16384, // pan
           128, // S1KRmin = 0.00390625
           32640, // S1KRmax = 0.99609375
           15488, // S1base = 0.47265625
@@ -103,10 +104,11 @@ namespace WaveSabreCore {
           32767, // AE1rst = 0.999969482421875
           0, // AE1mode = 0
         };
-        static_assert((int)M7::OscParamIndexOffsets::Count == 17, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultOscillatorParams[17] = {
+        static_assert((int)M7::OscParamIndexOffsets::Count == 18, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultOscillatorParams[18] = {
           0, // O1En = 0
           32767, // O1Vol = 0.999969482421875
+          16384, // pan
           128, // O1KRmin = 0.00390625
           32640, // O1KRmax = 0.99609375
           56, // O1Wave = 0.001708984375

@@ -619,7 +619,8 @@ public:
 					bool isHiddenVolumeDest = false;
 					for (auto& src : GetMaj7()->mSources)
 					{
-						if (src->mHiddenVolumeModDestID == dest) {
+						auto hiddenVolumeModDestID = M7::AddEnum(src->mModDestBaseID, M7::SourceModParamIndexOffsets::HiddenVolume);
+						if (hiddenVolumeModDestID == dest) {
 							isHiddenVolumeDest = true;
 							// the mod spec is modulating from this env to a hidden volume control; likely a built-in modulationspec for osc vol.
 							// if that source is enabled, then consider this used.

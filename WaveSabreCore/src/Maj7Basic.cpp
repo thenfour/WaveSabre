@@ -144,8 +144,8 @@ namespace WaveSabreCore
 			{
 				// SQRT pan law
 				auto volumes = PanToLRVolumeParams(panN11);
-				float leftChannel = math::sqrt01(volumes.first);
-				float rightChannel = math::sqrt01(volumes.second);
+				float leftChannel = math::sqrt01(volumes.x[0]);
+				float rightChannel = math::sqrt01(volumes.x[1]);
 				return { leftChannel, rightChannel };
 			}
 

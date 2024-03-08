@@ -95,10 +95,10 @@ namespace WaveSabreCore
 			//	return mParams.GetN11Value(SamplerParamIndexOffsets::AuxMix, 0);
 			//}
 
-			virtual float GetLinearVolume(float mod) const override
-			{
-				return mParams.GetLinearVolume(SamplerParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
-			}
+			//virtual float GetLinearVolume(float mod) const override
+			//{
+			//	return mParams.GetLinearVolume(SamplerParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
+			//}
 
 
 		}; // struct SamplerDevice
@@ -121,9 +121,9 @@ namespace WaveSabreCore
 
 			virtual void BeginBlock() override;
 
-			virtual float GetLastSample() const override { return 0; } // not used
+			//virtual float GetLastSample() const override { return 0; } // not used; this is for 
 
-			float ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale);
+			float ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale, float ampEnvLin);
 
 		}; // struct SamplerVoice
 

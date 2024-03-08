@@ -120,9 +120,9 @@ namespace WaveSabreCore
 				}
 
 				M7::MSDecode(mid, side, &left, &right);
-				left *= gains.first * masterLinearGain;
+				left *= gains.x[0] * masterLinearGain;
 				outputs[0][i] = left;
-				right *= gains.second * masterLinearGain;
+				right *= gains.x[1] * masterLinearGain;
 				outputs[1][i] = right;
 
 

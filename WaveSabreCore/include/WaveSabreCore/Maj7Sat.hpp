@@ -749,8 +749,8 @@ namespace WaveSabreCore
 				for (int iBand = 0; iBand < gBandCount; ++iBand) {
 					auto& band = mBands[iBand];
 					auto r = band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet);
-					s0 += r.first * mOutputGainLin;
-					s1 += r.second * mOutputGainLin;
+					s0 += r.x[0] * mOutputGainLin;
+					s1 += r.x[1] * mOutputGainLin;
 				}
 
 				//s0 = mBands[0].output0 + mBands[1].output0 + mBands[2].output0;

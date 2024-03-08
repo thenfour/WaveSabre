@@ -168,10 +168,7 @@ namespace WaveSabreCore
 			SamplerDevice::SamplerDevice(float* paramCache, ModulationList modulations, const SourceInfo& srcInfo) :
 				ISoundSourceDevice(paramCache, modulations[srcInfo.mModulationIndex], srcInfo.mParamBase, //ampEnvBaseParamID,
 					srcInfo.mAmpModSource,
-					srcInfo.mModDestBase,
-					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::Volume)),
-					//(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::AuxMix)),
-					(ModDestination)(int(srcInfo.mModDestBase) + int(SamplerModParamIndexOffsets::HiddenVolume))
+					srcInfo.mModDestBase
 				)//,
 				//mParams(paramCache, sourceInfo.mParamBase)
 			{
@@ -314,7 +311,7 @@ namespace WaveSabreCore
 
 			}
 
-			float SamplerVoice::ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale)
+			float SamplerVoice::ProcessSample(real_t midiNote, float detuneFreqMul, float fmScale, float ampEnvLin)
 			{
 				if (!mpSrcDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::Enabled))
 					return 0;
@@ -344,7 +341,7 @@ namespace WaveSabreCore
 
 				mSamplePlayer.SetPlayRate(rate);
 
-				return math::clampN11(mSamplePlayer.Next()); // clamp addresses craz glitch when changing samples.
+				return math::clampN11(mSamplePlayer.Next() * ampEnvLin); // clamp addresses craz glitch when changing samples.
 			}
 
 

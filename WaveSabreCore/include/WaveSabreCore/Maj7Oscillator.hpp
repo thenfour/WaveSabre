@@ -16,43 +16,32 @@ namespace WaveSabreCore
 		// sampler, oscillator, LFO @ device level
 		struct ISoundSourceDevice
 		{
-			//SourceInfo& mSourceInfo;
 			ParamAccessor mParams;
 			bool mEnabledCache;
 
 			const ModSource mAmpEnvModSourceID;
 			const ModDestination mModDestBaseID;
-			const ModDestination mVolumeModDestID;
-			//const ModDestination mAuxPanModDestID;
-			const ModDestination mHiddenVolumeModDestID;
 
 			ModulationSpec* mAmpEnvModulation;
 
 			virtual bool IsEnabled() const = 0;
 			virtual bool MatchesKeyRange(int midiNote) const = 0;
-			//virtual float GetAuxPan() const = 0; // does not account for modulation
-			virtual float GetLinearVolume(float mod) const = 0;
-			// device-level values set at the beginning of block processing
-			//float mDetuneDeviceModAmt = 0;
-			//float mAuxPanDeviceModAmt = 0;
 
 			virtual ~ISoundSourceDevice()
 			{}
 
 			ISoundSourceDevice(float* paramCache, ModulationSpec* ampEnvModulation, ParamIndices baseParamID,
-				ModSource ampEnvModSourceID, ModDestination modDestBaseID, ModDestination volumeModDestID, ModDestination hiddenVolumeModDestID
+				ModSource ampEnvModSourceID, ModDestination modDestBaseID
 			) :
 				mParams(paramCache, baseParamID),
 				mAmpEnvModulation(ampEnvModulation),
 				mAmpEnvModSourceID(ampEnvModSourceID),
-				mVolumeModDestID(volumeModDestID),
-				mModDestBaseID(modDestBaseID),
-				mHiddenVolumeModDestID(hiddenVolumeModDestID)
+				mModDestBaseID(modDestBaseID)
 			{
 			}
 
 			void InitDevice() {
-				mAmpEnvModulation->SetSourceAmp(mAmpEnvModSourceID, mHiddenVolumeModDestID, &mEnabledCache);
+				mAmpEnvModulation->SetSourceAmp(mAmpEnvModSourceID, AddEnum(mModDestBaseID, SourceModParamIndexOffsets::HiddenVolume), &mEnabledCache);
 			}
 
 			virtual void BeginBlock()
@@ -76,15 +65,9 @@ namespace WaveSabreCore
 				virtual ~Voice()
 				{}
 
-				// used as temporary values during block processing.
-				//float mOutputGain[2];// = { 0 }; // linear output volume gain calculated from output VolumeParam + panning
-				//float mOutputGain;
-				float mAmpEnvGain;// = 0;// = { 0 }; // linear gain calculated frequently from osc ampenv
-
 				virtual void NoteOn(bool legato) = 0;
 				virtual void NoteOff() = 0;
 				virtual void BeginBlock() = 0;
-				virtual float GetLastSample() const = 0;
 
 				void SetModMatrix(ModMatrixNode* pModMatrix)
 				{
@@ -983,10 +966,10 @@ namespace WaveSabreCore
 			}
 
 
-			virtual float GetLinearVolume(float mod) const override
-			{
-				return mParams.GetLinearVolume(OscParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
-			}
+			//virtual float GetLinearVolume(float mod) const override
+			//{
+			//	return mParams.GetLinearVolume(OscParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
+			//}
 
 			// for Audio
 			explicit OscillatorDevice(/*OscillatorIntentionAudio, */float* paramCache, ModulationList modulations, const SourceInfo& srcinfo/* ModulationSpec* pAmpModulation, size_t isrc*/);
@@ -1072,7 +1055,7 @@ namespace WaveSabreCore
 
 			}
 
-			virtual float GetLastSample() const override { return mOutSample; }
+			float GetLastSample() const { return mOutSample; }
 
 			// used by LFOs to just hard-set the phase. nothing fancy.
 			void SetPhase(double phase01)
@@ -1111,7 +1094,7 @@ namespace WaveSabreCore
 			}
 
 			real_t ProcessSampleForAudio(real_t midiNote, float detuneFreqMul, float fmScale,
-				const ParamAccessor& globalParams, float const *otherSignals, int iosc)
+				const ParamAccessor& globalParams, float const *otherSignals, int iosc, float ampEnvLin)
 			{
 				const ParamAccessor& params = mpSrcDevice->mParams;
 				if (!this->mpSrcDevice->mEnabledCache) {
@@ -1131,7 +1114,6 @@ namespace WaveSabreCore
 
 				if (0 == mnSamples) // NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
-
 					// - osc pitch semis                  note         oscillator                  
 					// - osc fine (semis)                 note         oscillator                   
 					// - osc sync freq / kt (Hz)          hz           oscillator                        
@@ -1204,9 +1186,9 @@ namespace WaveSabreCore
 				// current sample will be used on next sample (this is the 1-sample delay)
 				mCurrentSample += mpSlaveWave->NaiveSample(float(mpSlaveWave->mPhase + phaseMod));
 				mCurrentSample = math::clampN11(mCurrentSample); // prevent FM from going crazy.
-				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale * gOscillatorHeadroomScalar;
+				mOutSample = (mPrevSample + mpSlaveWave->mDCOffset) * mpSlaveWave->mScale * gOscillatorHeadroomScalar * ampEnvLin;
 
-				return mOutSample * mAmpEnvGain;
+				return mOutSample;
 			} // process sample for audio
 
 

@@ -1049,7 +1049,7 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::gSyncFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::OscModParamIndexOffsets::SyncFrequency));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT", 0, 1, 1, 1, 0, {});
 
-			//ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::AuxMix, "Pan", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::AuxMix));
+			ImGui::SameLine(0, 60); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::Pan, "Pan", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::Pan));
 
 			static_assert(M7::gOscillatorCount == 4, "osc count");
 			M7::ParamIndices ampEnvSources[M7::gOscillatorCount] = {

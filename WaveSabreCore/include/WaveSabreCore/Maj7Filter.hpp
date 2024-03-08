@@ -81,17 +81,17 @@ namespace WaveSabreCore
 
 			float SVFlow(float v0, float cutoff, float Q) {
 				auto x = updateCoefficients(v0, cutoff, Q);
-				return x.second;
+				return x.x[1];
 			}
 
 			float SVFhigh(float v0, float cutoff, float Q) {
 				auto x = updateCoefficients(v0, cutoff, Q);
-				return v0 - k * x.first - x.second;
+				return v0 - k * x.x[0] - x.x[1];
 			}
 
 			float SVFall(float v0, float cutoff, float Q) {
 				auto x = updateCoefficients(v0, cutoff, Q);
-				return v0 - 2 * k * x.first;
+				return v0 - 2 * k * x.x[0];
 			}
 
 			void Reset() {

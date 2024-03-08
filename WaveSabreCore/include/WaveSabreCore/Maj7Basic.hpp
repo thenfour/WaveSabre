@@ -142,7 +142,31 @@ namespace WaveSabreCore
             Tsecond second;
         };
 
-        using FloatPair = Pair<float, float>;
+        struct FloatPair
+        {
+            float x[2];
+            FloatPair mul(float m)const {
+                return { x[0] * m, x[1] * m };
+            }
+            FloatPair mul(const FloatPair& m)const {
+                return { x[0] * m.x[0], x[1] * m.x[1]};
+            }
+            void Accumulate(const float m) {
+                x[0] += m;
+                x[1] += m;
+            }
+            void Accumulate(const FloatPair m) {
+                x[0] += m.x[0];
+                x[1] += m.x[1];
+            }
+        };
+
+
+        template<typename Tret, typename Tb>
+        Tret AddEnum(Tret a, Tb b) {
+            return Tret((int)a + (int)b);
+        }
+
 
         struct FreqParamConfig
         {
@@ -934,8 +958,10 @@ namespace WaveSabreCore
 
             Osc1Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc1Volume,
+            Osc1Pan,
             Osc1KeyrangeMin,
             Osc1KeyrangeMax,
+
             Osc1Waveform,
             Osc1Waveshape,
             Osc1PhaseRestart,
@@ -964,6 +990,7 @@ namespace WaveSabreCore
 
             Osc2Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc2Volume,
+            Osc2Pan,
             Osc2KeyrangeMin,
             Osc2KeyrangeMax,
             Osc2Waveform,
@@ -994,7 +1021,8 @@ namespace WaveSabreCore
 
             Osc3Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
             Osc3Volume,
-            Osc3KeyrangeMin,
+                Osc3Pan,
+                Osc3KeyrangeMin,
             Osc3KeyrangeMax,
             Osc3Waveform,
             Osc3Waveshape,
@@ -1024,6 +1052,7 @@ namespace WaveSabreCore
 
                 Osc4Enabled, // KEEP IN SYNC WITH OscParamIndexOffsets
                 Osc4Volume,
+                Osc4Pan,
                 Osc4KeyrangeMin,
                 Osc4KeyrangeMax,
                 Osc4Waveform,
@@ -1039,7 +1068,7 @@ namespace WaveSabreCore
                 Osc4PitchFine,
                 Osc4FreqMul,
                 Osc4FMFeedback,
-                   
+
                 Osc4AmpEnvDelayTime, // KEEP IN SYNC WITH EnvParamIndexOffsets
                 Osc4AmpEnvAttackTime,
                 Osc4AmpEnvAttackCurve,
@@ -1482,7 +1511,8 @@ namespace WaveSabreCore
 
                 Sampler1Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler1Volume,
-                Sampler1KeyrangeMin,
+                    Sampler1Pan,
+                    Sampler1KeyrangeMin,
                 Sampler1KeyrangeMax,
                 Sampler1BaseNote,
                 Sampler1LegatoTrig,
@@ -1516,7 +1546,8 @@ namespace WaveSabreCore
 
                     Sampler2Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                     Sampler2Volume,
-                Sampler2KeyrangeMin,
+                                Sampler2Pan,
+                                Sampler2KeyrangeMin,
                 Sampler2KeyrangeMax,
                 Sampler2BaseNote,
                 Sampler2LegatoTrig,
@@ -1550,6 +1581,7 @@ namespace WaveSabreCore
 
                 Sampler3Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler3Volume,
+                    Sampler3Pan,
                     Sampler3KeyrangeMin,
                     Sampler3KeyrangeMax,
                     Sampler3BaseNote,
@@ -1584,7 +1616,8 @@ namespace WaveSabreCore
 
                 Sampler4Enabled, // KEEP IN SYNC WITH SamplerParamIndexOffsets
                 Sampler4Volume,
-                Sampler4KeyrangeMin,
+                    Sampler4Pan,
+                    Sampler4KeyrangeMin,
                 Sampler4KeyrangeMax,
                 Sampler4BaseNote,
                 Sampler4LegatoTrig,
@@ -1653,6 +1686,7 @@ namespace WaveSabreCore
 {"FM3to4"}, \
 {"O1En"}, \
 {"O1Vol"}, \
+{"O1Pan"}, \
 {"O1KRmin"}, \
 {"O1KRmax"}, \
 {"O1Wave"}, \
@@ -1681,6 +1715,7 @@ namespace WaveSabreCore
 {"AE1mode"}, \
 {"O2En"}, \
 {"O2Vol"}, \
+{"O2Pan"}, \
 {"O2KRmin"}, \
 {"O2KRmax"}, \
 {"O2Wave"}, \
@@ -1709,6 +1744,7 @@ namespace WaveSabreCore
 {"AE2mode"}, \
 {"O3En"}, \
 {"O3Vol"}, \
+{"O3Pan"}, \
 {"O3KRmin"}, \
 {"O3KRmax"}, \
 {"O3Wave"}, \
@@ -1737,6 +1773,7 @@ namespace WaveSabreCore
 {"AE3mode"}, \
 {"O4En"}, \
 {"O4Vol"}, \
+{"O4Pan"}, \
 {"O4KRmin"}, \
 {"O4KRmax"}, \
 {"O4Wave"}, \
@@ -2167,6 +2204,7 @@ namespace WaveSabreCore
 {"M18rgXB"}, \
 {"S1En"}, \
 {"S1Vol"}, \
+{"S1Pan"}, \
 {"S1KRmin"}, \
 {"S1KRmax"}, \
 {"S1base"}, \
@@ -2198,6 +2236,7 @@ namespace WaveSabreCore
 {"S1Erst"}, \
 {"S1Emode"}, \
 {"S2En"}, \
+{"S2Pan"}, \
 {"S2Vol"}, \
 {"S2KRmin"}, \
 {"S2KRmax"}, \
@@ -2231,6 +2270,7 @@ namespace WaveSabreCore
 {"S2Emode"}, \
 {"S3En"}, \
 {"S3Vol"}, \
+{"S3Pan"}, \
 {"S3KRmin"}, \
 {"S3KRmax"}, \
 {"S3base"}, \
@@ -2263,6 +2303,7 @@ namespace WaveSabreCore
 {"S3Emode"}, \
 {"S4En"}, \
 {"S4Vol"}, \
+{"S4Pan"}, \
 {"S4KRmin"}, \
 {"S4KRmax"}, \
 {"S4base"}, \
@@ -2335,12 +2376,24 @@ namespace WaveSabreCore
             Count,
         };
 
+        // offsets which are shared between sampler & oscillator, usable then by the caller on all sources equally.
+        enum class SourceParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+        {
+            Enabled, // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+            Volume, // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+            Pan, // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+            KeyRangeMin, // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+            KeyRangeMax, // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+        };
+
         enum class SamplerParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
         {
-            Enabled,
+            Enabled, // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
             Volume,
+            Pan,
             KeyRangeMin,
             KeyRangeMax,
+
             BaseNote,
             LegatoTrig,
             Reverse,
@@ -2358,6 +2411,31 @@ namespace WaveSabreCore
             InterpolationType,
             ReleaseExitsLoop,
             Delay,
+            AmpEnvDelayTime,
+            Count = AmpEnvDelayTime,
+        };
+
+        enum class OscParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
+        {
+            Enabled,
+            Volume,
+            Pan,
+            KeyRangeMin,
+            KeyRangeMax,
+
+            Waveform,
+            Waveshape,
+            PhaseRestart,
+            PhaseOffset,
+            SyncEnable,
+            SyncFrequency,
+            SyncFrequencyKT,
+            FrequencyParam,
+            FrequencyParamKT,
+            PitchSemis,
+            PitchFine,
+            FreqMul,
+            FMFeedback,
             AmpEnvDelayTime,
             Count = AmpEnvDelayTime,
         };
@@ -2412,28 +2490,6 @@ namespace WaveSabreCore
             LegatoRestart,
             Mode,
             Count,
-        };
-        enum class OscParamIndexOffsets : uint8_t // MUST BE IN SYNC WITH ABOVE
-        {
-            Enabled,
-            Volume,
-            KeyRangeMin,
-            KeyRangeMax,
-            Waveform,
-            Waveshape,
-            PhaseRestart,
-            PhaseOffset,
-            SyncEnable,
-            SyncFrequency,
-            SyncFrequencyKT,
-            FrequencyParam,
-            FrequencyParamKT,
-            PitchSemis,
-            PitchFine,
-            FreqMul,
-            FMFeedback,
-            AmpEnvDelayTime,
-            Count = AmpEnvDelayTime,
         };
 
 

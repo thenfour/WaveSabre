@@ -740,54 +740,67 @@ namespace WaveSabreCore
 					// one area where this is quite sensitive is envelopes with instant attacks/releases
 					mModMatrix.ProcessSample(mpOwner->mpModulations); // this sets dest values to 0.
 
-					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
-
-					float sourceValues[gSourceCount];// required for FM to hold all source values
-					float detuneMul[gSourceCount];// = { 0 };
-					float mixedSources = 0;
-
 					float globalFMScale = 3 * mpOwner->mParams.Get01Value(ParamIndices::FMBrightness, mModMatrix.GetDestinationValue(ModDestination::FMBrightness));
 
-					// populate previous source sample values
-					// populate source->mAmpEnvGain which has modulation info
+					float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
+					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
+
+					float sourceValues[gOscillatorCount];// required for FM to hold all source values
+					float detuneMul[gSourceCount];// = { 0 };
+					float ampEnvGains[gSourceCount];
+					FloatPair outputGains[gSourceCount];
+
+					FloatPair mixedSources{0,0};
+
 					for (size_t i = 0; i < gSourceCount; ++i)
 					{
-						auto* srcVoice = mSourceVoices[i];
+						auto* const srcVoice = mSourceVoices[i];
+						auto* const dev = srcVoice->mpSrcDevice;
 
-						float hiddenVolumeBacking = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mHiddenVolumeModDestID);
+						// the amp envelope gain...
+						float hiddenVolumeBacking = mModMatrix.GetDestinationValue(AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::HiddenVolume));
 						ParamAccessor hiddenAmpParam{ &hiddenVolumeBacking, 0 };
+						float ampEnvGain = ampEnvGains[i] = hiddenAmpParam.GetLinearVolume(0, gUnityVolumeCfg);
 
-						float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
-						float ampEnvGain = hiddenAmpParam.GetLinearVolume(0, gUnityVolumeCfg);
-						float outputGain = srcVoice->mpSrcDevice->GetLinearVolume(volumeMod);
-						srcVoice->mAmpEnvGain = ampEnvGain * outputGain;
-						sourceValues[i] = srcVoice->GetLastSample() * ampEnvGain;
+						float volumeMod = mModMatrix.GetDestinationValue(AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Volume));
+						float volumeLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::Volume, gUnityVolumeCfg, volumeMod);
 
-						float semis = myUnisonoDetune;// +srcVoice->mpSrcDevice->mDetuneDeviceModAmt * 2;
+						float panMod = mModMatrix.GetDestinationValue(AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Pan));
+						float panN11 = dev->mParams.GetN11Value(SourceParamIndexOffsets::Pan, panMod);
+
+						auto panLin = M7::math::PanToFactor(panN11);
+						outputGains[i] = panLin.mul(volumeLin);
+
+						float semis = myUnisonoDetune;
 						float det = detuneMul[i] = math::SemisToFrequencyMul(semis);
 
-						if (i >= gOscillatorCount) // if sampler
+						if (i >= gOscillatorCount) // if sampler, process sample here while it's fresh
 						{
 							auto ps = static_cast<SamplerVoice*>(srcVoice);
-							mixedSources += ps->ProcessSample(mMidiNote, det, 0) * ampEnvGain;
+							float s = ps->ProcessSample(mMidiNote, det, 0, ampEnvGain);
+							mixedSources.Accumulate(outputGains[i].mul(s));
+						}
+						else {
+							auto po = static_cast<OscillatorNode*>(srcVoice);
+							sourceValues[i] = po->GetLastSample();
 						}
 					}
 
-					// unfortunately cannot do this in previous loop because we need all the source values in advance.
+					// cannot do this in previous loop because we need all the source values in advance.
 					for (int i = 0; i < gOscillatorCount; ++i) {
 						auto* po = mpOscillatorNodes[i];
-						mixedSources += po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale, mpOwner->mParams, sourceValues, i);
+						float s = po->ProcessSampleForAudio(mMidiNote, detuneMul[i], globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
+						mixedSources.Accumulate(outputGains[i].mul(s));
 					}
 
 					// apply panning & filter, and mix with s[] as requested
-					float panN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan, mModMatrix.GetDestinationValue(ModDestination::Pan));
-					float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
-					//M7::math::PanToLRVolumeParams();
-					auto panFactors = M7::math::PanToFactor(panN11 + myUnisonoPan);
-					float stereoMix[2]{
-						mixedSources * panFactors.first,
-						mixedSources * panFactors.second,
-					};
+					float masterPanN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan, mModMatrix.GetDestinationValue(ModDestination::Pan));
+					auto panFactors = M7::math::PanToFactor(masterPanN11 + myUnisonoPan);
+					FloatPair stereoMix = panFactors.mul(mixedSources);
+					//float stereoMix[2]{
+					//	mixedSources * panFactors.first,
+					//	mixedSources * panFactors.second,
+					//};
 					//PanToLRVolumeParams
 					//float mPan = mParams
 						//mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID)
@@ -799,9 +812,9 @@ namespace WaveSabreCore
 					for (size_t ich = 0; ich < 2; ++ich)
 					{
 						for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter) {
-							stereoMix[ich] = mpFilters[ifilter][ich]->AuxProcessSample(stereoMix[ich]);
+							stereoMix.x[ich] = mpFilters[ifilter][ich]->AuxProcessSample(stereoMix.x[ich]);
 						}
-						s[ich] += stereoMix[ich];
+						s[ich] += stereoMix.x[ich];
 					}
 
 					mPortamento.Advance(1,
