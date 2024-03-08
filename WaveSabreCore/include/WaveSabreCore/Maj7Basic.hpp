@@ -920,20 +920,17 @@ namespace WaveSabreCore
         enum class ParamIndices : uint16_t
         {
             MasterVolume,
+            Pan,
             VoicingMode,
             Unisono,
-            //OscillatorDetune,
             UnisonoDetune,
-            //OscillatorSpread,
             UnisonoStereoSpread,
             FMBrightness,
 
             PortamentoTime,
-            //PortamentoCurve,
             PitchBendRange,
 
             MaxVoices,
-            Pan,
 
             Macro1,
             Macro2,
@@ -1656,6 +1653,7 @@ namespace WaveSabreCore
         // 
         #define MAJ7_PARAM_VST_NAMES { \
 {"Master"}, \
+{"Pan"},\
 {"PolyMon"}, \
 {"Unisono"}, \
 {"UniDet"}, \
@@ -1664,7 +1662,6 @@ namespace WaveSabreCore
 {"PortTm"}, \
 {"PBRng"}, \
 {"MaxVox"}, \
-{"Pan"}, \
 {"Macro1"}, \
 {"Macro2"}, \
 {"Macro3"}, \
@@ -2339,6 +2336,7 @@ namespace WaveSabreCore
         enum class MainParamIndices : uint8_t
         {
             MasterVolume,
+            Pan,
             VoicingMode,
             Unisono,
             UnisonoDetune,
@@ -2346,11 +2344,9 @@ namespace WaveSabreCore
             FMBrightness,
 
             PortamentoTime,
-            //PortamentoCurve,
             PitchBendRange,
 
             MaxVoices,
-            Pan,
 
             Macro1,
             Macro2,

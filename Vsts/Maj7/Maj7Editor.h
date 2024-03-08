@@ -1636,22 +1636,22 @@ public:
 				{ "/ 1Pole", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_OnePole, },
 				{ "/ Moog2", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Moog2, },
 				{ "/ Moog4", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Moog4, },
-				{ "/ Biq", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Biquad, },
+				//{ "/ Biq", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Biquad, },
 
 				{ nullptr },
 				{ nullptr },
 				{ "^ Moog2", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::BP_Moog2, },
 				{ "^ Moog4", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::BP_Moog4, },
-				{ nullptr },
+				//{ nullptr },
 
 				{ nullptr },
 				{ "\\ 1Pole", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_OnePole, },
 				{ "\\ Moog2", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Moog2, },
 				{ "\\ Moog4", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Moog4, },
-				{ "\\ Biqu", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Biquad, },
+				//{ "\\ Biqu", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Biquad, },
 			};
 
-			Maj7ImGuiParamEnumMutexButtonArray(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "", 55, true, filterItems, 4, 5);
+			Maj7ImGuiParamEnumMutexButtonArray(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "", 60, true, filterItems, 4, 4);
 						
 			Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq), filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "Freq##filt", M7::gFilterFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::FilterAuxModDestOffsets::Freq));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "KT##filt", 0, 1, 1, 1, 0, {});

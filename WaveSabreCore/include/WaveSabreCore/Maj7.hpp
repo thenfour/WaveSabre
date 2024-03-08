@@ -796,25 +796,14 @@ namespace WaveSabreCore
 					// apply panning & filter, and mix with s[] as requested
 					float masterPanN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan, mModMatrix.GetDestinationValue(ModDestination::Pan));
 					auto panFactors = M7::math::PanToFactor(masterPanN11 + myUnisonoPan);
-					FloatPair stereoMix = panFactors.mul(mixedSources);
-					//float stereoMix[2]{
-					//	mixedSources * panFactors.first,
-					//	mixedSources * panFactors.second,
-					//};
-					//PanToLRVolumeParams
-					//float mPan = mParams
-						//mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID)
-						//
-						//float stereoMix[2]{
-						//mixedSources,
-				//};
+					mixedSources = panFactors.mul(mixedSources);
 
 					for (size_t ich = 0; ich < 2; ++ich)
 					{
 						for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter) {
-							stereoMix.x[ich] = mpFilters[ifilter][ich]->AuxProcessSample(stereoMix.x[ich]);
+							mixedSources.x[ich] = mpFilters[ifilter][ich]->AuxProcessSample(mixedSources.x[ich]);
 						}
-						s[ich] += stereoMix.x[ich];
+						s[ich] += mixedSources.x[ich];
 					}
 
 					mPortamento.Advance(1,

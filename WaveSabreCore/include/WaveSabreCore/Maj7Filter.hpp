@@ -16,6 +16,7 @@
 //#define DISABLE_48db_oct_crossover
 //#define DISABLE_onepole_maj7_filter // actually DON'T disable this because it's required for the LFO "sharpness" control. it's pretty much free anyway.
 //#define DISABLE_MOOG_FILTER
+#define DISABLE_BIQUAD_MAJ7_FILTER
 //
 //#define LR_SLOPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::LinkwitzRileyFilter::Slope::Count__] { \
 //	"6dB (unsupported)",\
@@ -35,8 +36,8 @@
     "HP_OnePole", \
     "HP_Moog2 (unsupported)", \
     "HP_Moog4 (unsupported)", \
-    "LP_Biquad", \
-    "HP_Biquad", \
+    "-"/*"LP_Biquad"*/, \
+    "-"/*"HP_Biquad"*/, \
 }
 
 
@@ -306,7 +307,9 @@ namespace WaveSabreCore
 #endif // DISABLE_onepole_maj7_filter
 			//SEM12Filter mSem12;
 			//SVFilterNode mSVF;
+#ifndef DISABLE_BIQUAD_MAJ7_FILTER
 			BiquadFilter mBiquad;
+#endif // DISABLE_BIQUAD_MAJ7_FILTER
 			//LinkwitzRileyNode mLR;
 
 			IFilter* mSelectedFilter = &mNullFilter;
@@ -380,6 +383,7 @@ namespace WaveSabreCore
                     break;
 #endif // DISABLE_MOOG_FILTER
 
+#ifndef DISABLE_BIQUAD_MAJ7_FILTER
 					// biquad
 				case FilterModel::LP_Biquad:
 					ft = FilterType::LP;
@@ -389,6 +393,7 @@ namespace WaveSabreCore
 					ft = FilterType::HP;
 					mSelectedFilter = &mBiquad;
 					break;
+#endif // DISABLE_BIQUAD_MAJ7_FILTER
 
 				//	// SVF filter alone is not so compelling.
 				//case FilterModel::LP_SVF:

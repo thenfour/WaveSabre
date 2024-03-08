@@ -118,7 +118,6 @@ namespace WaveSabreCore
 			TanhClip,
 			DivClipMedium,
 			DivClipHard,
-			TanhFold,
 			Count__,
 		};
 
@@ -129,7 +128,6 @@ namespace WaveSabreCore
 			"TanhClip", \
 			"DivClipMedium", \
 			"DivClipHard", \
-			"TanhFold", \
 		}
 
 
@@ -142,7 +140,6 @@ namespace WaveSabreCore
 			0.62f, // tanh clip
 			0.47f, // DivClipMedium,
 			0.21f, // DivClipHard,
-			0.41f,// TanhFold,
 		};
 
 		// to calculate the slope...
@@ -158,7 +155,6 @@ namespace WaveSabreCore
 			2, // tanh clip
 			gK63 + 1, // DivClipMedium,
 			gK85 + 1, // DivClipHard,
-			M7::math::gPI,// TanhFold, <-- really?
 		};
 
 
@@ -507,11 +503,9 @@ namespace WaveSabreCore
 					case Model::HardClip:
 						s = shape_hardclip(s);
 						break;
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::TanhFold:
 						s = shape_tanhfold(s);
 						break;
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
 					case Model::TanhSinFold:
 						s = shape_tanhSinFold(s);
 						break;
