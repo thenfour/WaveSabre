@@ -194,6 +194,14 @@ public:
 			if (!s.empty()) {
 				// todo: use an internal setchunk and report load errors
 				mpMaj7VST->setChunk((void*)s.c_str(), VstInt32(s.size() + 1), false); // const cast oooooooh :/
+
+				// reset voice states etc.
+				auto p = mpMaj7VST->GetMaj7();
+
+				for (auto& s : p->mSources) {
+					s->InitDevice();
+				}
+
 				::MessageBoxA(mCurrentWindow, "Loaded successfully.", "WaveSabre - Maj7", MB_OK | MB_ICONINFORMATION);
 			}
 		}
@@ -1177,13 +1185,29 @@ public:
 		MODSOURCE_SHORT_CAPTIONS(srcCaptions);
 
 		if (spec.mType == M7::ModulationSpecType::SourceAmp) {
+
+			if ((int)src < 0 || (int)src >= (int)M7::ModSource::Count) {
+				sprintf_s(ret, "(unknown source %d)###mod%d", (int)src, imod);
+				return ret;
+			}
+
 			sprintf_s(ret, "%s###mod%d", srcCaptions[(int)src], imod);
 			return ret;
 		}
 
 		MODDEST_SHORT_CAPTIONS(destCaptions);
 
-		sprintf_s(ret, "%s > %s###mod%d", srcCaptions[(int)src], destCaptions[(int)dest], imod);
+		const char* srcCaption = "(unknown src)";
+		if ((int)src >= 0 && (int)src < (int)M7::ModSource::Count) {
+			srcCaption = srcCaptions[(int)src];
+		}
+
+		const char* destCaption = "(unknown dest)";
+		if ((int)dest >= 0 && (int)dest < (int)M7::ModDestination::Count) {
+			destCaption = destCaptions[(int)dest];
+		}
+
+		sprintf_s(ret, "%s > %s###mod%d", srcCaption, destCaption, imod);
 		return ret;
 	}
 
@@ -1669,6 +1693,10 @@ public:
 		float freq = 1; // 1 hz at width-in-pixels samplerate will put 1 cycle in frame.
 		switch (waveform) {
 		default:
+			// if the waveform is not supported, careful because it would crash gWaveformCaptions. bring it into usable range.
+			waveform = M7::OscillatorWaveform::Pulse;
+			pWaveform.reset(new M7::PulsePWMWaveform);
+			break;
 		case M7::OscillatorWaveform::Pulse:
 			pWaveform.reset(new M7::PulsePWMWaveform);
 			break;
@@ -1995,7 +2023,7 @@ public:
 			ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop), "Rel");
 			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::InterpolationType), "Interp.##mst", (int)WaveSabreCore::InterpolationMode::NumInterpolationModes, WaveSabreCore::InterpolationMode::Linear, interpModeNames);
 
-			//ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::AuxMix), "Pan", 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::AuxMix));
+			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Pan), "Pan", 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::Pan));
 
 			ImGui::BeginGroup();
 			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Reverse), "Reverse");
