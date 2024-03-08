@@ -428,6 +428,7 @@ namespace WaveSabrePlayerLib
 			Maj7Width,
 			Maj7Comp,
 			Maj7Sat,
+			Maj7MBC,
 		};
 
 		typedef WaveSabreCore::Device* (*DeviceFactory)(DeviceId);

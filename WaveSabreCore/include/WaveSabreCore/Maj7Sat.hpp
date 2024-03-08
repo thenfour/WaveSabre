@@ -17,6 +17,12 @@ namespace WaveSabreCore
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	struct Maj7Sat : public Device
 	{
+		struct BandConfig {
+			// let's just assume bool is atomic.
+			bool mMute = false;
+			bool mSolo = false;
+		};
+
 		//static constexpr float CalcDivK(float alpha) {
 		//	return 2.0f * alpha / (1.0f - alpha);
 		//}
@@ -157,50 +163,39 @@ namespace WaveSabreCore
 		{
 			InputGain,
 			CrossoverAFrequency,
-			CrossoverASlope,
 			CrossoverBFrequency,
 			OverallDryWet,
 			OutputGain,
 
 			// low band
-			AMute,
-			ASolo,
-			APanMode,
-			APan,
+			//APanMode,
+			//APan,
 			AModel,
 			ADrive,
 			ACompensationGain,
 			AOutputGain,
 			AThreshold,
-			AEvenHarmonics,
+			//AEvenHarmonics,
 			ADryWet,
 			AEnable,
 
 			// mid band
-			BMute,
-			BSolo,
-			BPanMode,
-			BPan,
 			BModel,
 			BDrive,
 			BCompensationGain,
 			BOutputGain,
 			BThreshold,
-			BEvenHarmonics,
+			//BEvenHarmonics,
 			BDryWet,
 			BEnable,
 
 			// hi band
-			CMute,
-			CSolo,
-			CPanMode,
-			CPan,
 			CModel,
 			CDrive,
 			CCompensationGain,
 			COutputGain,
 			CThreshold,
-			CEvenHarmonics,
+			//CEvenHarmonics,
 			CDryWet,
 			CEnable,
 
@@ -211,90 +206,60 @@ namespace WaveSabreCore
 #define MAJ7SAT_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::ParamIndices::NumParams]{ \
 			{"InpGain"}, /* InputGain */ \
 			{"xAFreq"}, /* CrossoverAFrequency */ \
-			{"xASlope"}, /* CrossoverASlope */ \
 			{"xBFreq"}, /* CrossoverBFrequency */ \
 			{"GDryWet"}, /* drywet global */ \
 			{"OutpGain"}, /* OutputGain */ \
-		{"0Mute"}, \
-		{"0Solo"}, \
-		{"0PanMode"}, /* PanMode */ \
-		{"0Pan"}, /* Pan */ \
 		{"0Model"}, /* Model */ \
 		{"0Drive"}, /* Drive */ \
 		{"0CmpGain"}, /* CompensationGain */ \
 		{"0OutGain"}, /* CompensationGain */ \
 		{"0Thresh"}, /* Threshold */ \
-		{"0Analog"}, /* EvenHarmonics */ \
 		{"0DryWet"}, /* DryWet */ \
 		{"0Enable"}, /* */\
-		{"1Mute"}, \
-		{"1Solo"}, \
-		{"1PanMode"}, /* PanMode */ \
-		{"1Pan"}, /* Pan */ \
 		{"1Model"}, /* Model */ \
 		{"1Drive"}, /* Drive */ \
 		{"1CmpGain"}, /* CompensationGain */ \
 		{"1OutGain"}, /* CompensationGain */ \
 		{"1Thresh"}, /* Threshold */ \
-		{"1Analog"}, /* EvenHarmonics */ \
 		{"1DryWet"}, /* DryWet */ \
 		{"1Enable"}, /* */\
-		{"2Mute"}, \
-		{"2Solo"}, \
-		{"2PanMode"}, /* PanMode */ \
-		{"2Pan"}, /* Pan */ \
 		{"2Model"}, /* Model */ \
 		{"2Drive"}, /* Drive */ \
 		{"2CmpGain"}, /* CompensationGain */ \
 		{"2OutGain"}, /* CompensationGain */ \
 		{"2Thresh"}, /* Threshold */ \
-		{"2Analog"}, /* EvenHarmonics */ \
 		{"2DryWet"}, /* DryWet */ \
 		{"2Enable"}, /* */\
 }
 
-		static_assert((int)ParamIndices::NumParams == 42, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gParamDefaults[42] = {
+		static_assert((int)ParamIndices::NumParams == 26, "param count probably changed and this needs to be regenerated.");
+		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InpGain = 0.25115966796875
 		  13557, // xAFreq = 0.4137503504753112793
-		  0, // xASlope = 0.001220703125
+		  //0, // xASlope = 0.001220703125
 		  21577, // xBFreq = 0.65849626064300537109
+		  //0, // xASlope = 0.001220703125
 		  32767, // GDryWet = 0.999969482421875
 		  8230, // OutpGain = 0.25115966796875
-		  0, // 0Mute = 0
-		  0, // 0Solo = 0
-		  -32768, // 0PanMode = -1
-		  16384, // 0Pan = 0.5
 		  24, // 0Model = 0.000732421875
 		  4125, // 0Drive = 0.125885009765625
 		  16422, // 0CmpGain = 0.50115966796875
 		  16422, // 0OutGain = 0.50115966796875
 		  20675, // 0Thresh = 0.630950927734375
-		  1966, // 0Analog = 0.05999755859375
 		  32767, // 0DryWet = 0.999969482421875
 		  24, // 0OutSig = 0.00074110669083893299103
-		  0, // 1Mute = 0
-		  0, // 1Solo = 0
-		  -32768, // 1PanMode = -1
-		  16384, // 1Pan = 0.5
 		  24, // 1Model = 0.000732421875
 		  4125, // 1Drive = 0.125885009765625
 		  16422, // 1CmpGain = 0.50115966796875
 		  16422, // 1OutGain = 0.50115966796875
 		  20675, // 1Thresh = 0.630950927734375
-		  1966, // 1Analog = 0.05999755859375
 		  32767, // 1DryWet = 0.999969482421875
 		  8, // 1OutSig = 0.0002470355830155313015
-		  0, // 2Mute = 0
-		  0, // 2Solo = 0
-		  8, // 2PanMode = 0.000244140625
-		  16384, // 2Pan = 0.5
 		  24, // 2Model = 0.000732421875
 		  4125, // 2Drive = 0.125885009765625
 		  16422, // 2CmpGain = 0.50115966796875
 		  16422, // 2OutGain = 0.50115966796875
 		  20675, // 2Thresh = 0.630950927734375
-		  1966, // 2Analog = 0.05999755859375
 		  32767, // 2DryWet = 0.999969482421875
 		  24, // 2OutSig = 0.00074110669083893299103
 		};
@@ -302,16 +267,16 @@ namespace WaveSabreCore
 		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 		struct FreqBand {
 			enum class BandParam {
-				Mute,
-				Solo,
-				PanMode,
-				Pan,
+				//Mute,
+				//Solo,
+				//PanMode,
+				//Pan,
 				Model,
 				Drive,
 				CompensationGain,
 				OutputGain,
 				Threshold,
-				EvenHarmonics,
+				//EvenHarmonics,
 				DryWet,
 				EnableEffect,
 			};
@@ -325,13 +290,14 @@ namespace WaveSabreCore
 #ifdef MAJ7SAT_ENABLE_ANALOG
 			float mEvenHarmonicsGainLin ;
 #endif // MAJ7SAT_ENABLE_ANALOG
-			float mPanN11 ;
 			float mCorrSlope;
 
-			//float outputs[2];
+#ifdef MAJ7SAT_ENABLE_MIDSIDE//#define MAJ7SAT_ENABLE_MIDSIDE
+			float mPanN11;
+			PanMode mPanMode;
+#endif//#define MAJ7SAT_ENABLE_MIDSIDE
 
 			Model mModel;
-			PanMode mPanMode;
 			bool mEnableEffect;
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			bool mMute;
@@ -350,8 +316,7 @@ namespace WaveSabreCore
 			AnalysisStream mOutputAnalysis1;
 
 			bool mMuteSoloEnabled;
-#else
-			static constexpr bool mMuteSoloEnabled = true;
+			BandConfig mVSTConfig;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			FreqBand(float* paramCache, ParamIndices baseParamID) : //
@@ -368,8 +333,8 @@ namespace WaveSabreCore
 			void Slider() {
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mMute = mParams.GetBoolValue(BandParam::Mute);
-				mSolo = mParams.GetBoolValue(BandParam::Solo);
+				//mMute = mParams.GetBoolValue(BandParam::Mute);
+				//mSolo = mParams.GetBoolValue(BandParam::Solo);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				mEnableEffect = mParams.GetBoolValue(BandParam::EnableEffect);
 
@@ -387,8 +352,10 @@ namespace WaveSabreCore
 				mEvenHarmonicsGainLin = mParams.GetScaledRealValue(BandParam::EvenHarmonics, 0, gAnalogMaxLin, 0); //mParams.GetLinearVolume(BandParam::EvenHarmonics, M7::gVolumeCfg36db, 0);
 #endif // MAJ7SAT_ENABLE_ANALOG
 
+#ifdef MAJ7SAT_ENABLE_MIDSIDE//#define MAJ7SAT_ENABLE_MIDSIDE
 				mPanMode = mParams.GetEnumValue<PanMode>(BandParam::PanMode);
 				mPanN11 = mParams.GetN11Value(BandParam::Pan, 0);
+#endif//#define MAJ7SAT_ENABLE_MIDSIDE
 
 				static constexpr float dck = 1.5f; // this controls how extreme the compensation is. this feels about right.
 				//but in theory it depends on the input signal; some plugins do auto gain compensation by comparing RMS... i'm not doing that.
@@ -560,20 +527,20 @@ namespace WaveSabreCore
 				float sa[2] = { s0, s1 };
 				float dry[2] = { s0, s1 };
 
-				if (mEnableEffect && mMuteSoloEnabled) {
+				if (mEnableEffect) {
 #ifdef MAJ7SAT_ENABLE_MIDSIDE
 					if (mPanMode == PanMode::MidSide) {
 						M7::MSEncode(sa[0], sa[1], &sa[0], &sa[1]);
 						dry[0] = sa[0];
 						dry[1] = sa[1];
 					}
-#endif // MAJ7SAT_ENABLE_MIDSIDE
 
 					// DO PANNING
 					// do NOT use a pan law here; when it's centered it means both channels should get 100% wetness.
 					float dryWet[2] = { 1,1 };
 					if (mPanN11 < 0) dryWet[1] = mPanN11 + 1.0f; // left chan (right attenuated)
 					if (mPanN11 > 0) dryWet[0] = 1.0f - mPanN11; // right chan (left attenuated)
+#endif // MAJ7SAT_ENABLE_MIDSIDE
 
 					for (int i = 0; i < 2; ++i) {
 						float& s = *(sa + i);
@@ -585,7 +552,11 @@ namespace WaveSabreCore
 						// note: when (e.g.) saturating only side channel, you'll get a signal that's too wide because of the natural
 						// gain that saturation results in.
 						// in these cases, dry/wet is very important param for balancing the stereo image again, in MidSide mode.
+#ifdef MAJ7SAT_ENABLE_MIDSIDE
 						s = M7::math::lerp(dry[i], s, dryWet[i] * mDryWet * masterDryWet);
+#else
+						s = M7::math::lerp(dry[i], s, mDryWet * masterDryWet);
+#endif // MAJ7SAT_ENABLE_MIDSIDE
 					}
 
 #ifdef MAJ7SAT_ENABLE_MIDSIDE
@@ -651,9 +622,9 @@ namespace WaveSabreCore
 
 		static constexpr size_t gBandCount = 3;
 		FreqBand mBands[gBandCount] = {
-			{mParamCache, ParamIndices::AMute },
-			{mParamCache, ParamIndices::BMute},
-			{mParamCache, ParamIndices::CMute},
+			{mParamCache, ParamIndices::AModel },
+			{mParamCache, ParamIndices::BModel},
+			{mParamCache, ParamIndices::CModel},
 		};
 
 		float mInputGainLin = 0;
@@ -694,29 +665,17 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-			// update "disable because mute or solo".
-			bool soloExists = false;
-
-			// Check if there's at least one Solo
-			for (const auto& band : mBands) {
-				if (band.mSolo) {
-					soloExists = true;
-					break;
-				}
-			}
-
-			for (auto& band : mBands) {
-				if (soloExists) {
-					band.mMuteSoloEnabled = band.mSolo;
-				}
-				else {
-					band.mMuteSoloEnabled = !band.mMute;
-				}
-			}
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
 			float masterDryWet = mParams.GetRawVal(ParamIndices::OverallDryWet);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			bool muteSoloEnabled[Maj7MBC::gBandCount] = { false, false, false };
+			bool mutes[Maj7MBC::gBandCount] = { mBands[0].mVSTConfig.mMute, mBands[1].mVSTConfig.mMute , mBands[2].mVSTConfig.mMute };
+			bool solos[Maj7MBC::gBandCount] = { mBands[0].mVSTConfig.mSolo, mBands[1].mVSTConfig.mSolo , mBands[2].mVSTConfig.mSolo };
+			M7::CalculateMuteSolo(mutes, solos, muteSoloEnabled);
+			mBands[0].mMuteSoloEnabled = muteSoloEnabled[0];
+			mBands[1].mMuteSoloEnabled = muteSoloEnabled[1];
+			mBands[2].mMuteSoloEnabled = muteSoloEnabled[2];
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{

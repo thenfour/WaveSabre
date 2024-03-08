@@ -19,14 +19,14 @@ public:
 	{
 		LEVELLER_PARAM_VST_NAMES(paramNames);
 		auto* p = (Leveller*)getDevice();
-		return GetSimpleJSONVstChunk("WSLeveller", data, p->mParamCache, paramNames);
+		return GetSimpleJSONVstChunk("WSLeveller", data, p->mParamCache, paramNames, [](clarinoid::JsonVariantWriter&) {});
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		LEVELLER_PARAM_VST_NAMES(paramNames);
 		auto* p = (Leveller*)getDevice();
-		return SetSimpleJSONVstChunk(p, "WSLeveller", data, byteSize, p->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(p, "WSLeveller", data, byteSize, p->mParamCache, paramNames, [](clarinoid::JsonVariantReader&) {});
 	}
 
 	virtual const char* GetJSONTagName() { return "Leveller"; }

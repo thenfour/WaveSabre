@@ -23,13 +23,13 @@ public:
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
 		CATHEDRAL_PARAM_VST_NAMES(paramNames);
-		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetCathedral()->mParamCache, paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetCathedral()->mParamCache, paramNames, [](clarinoid::JsonVariantWriter&) {});
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		CATHEDRAL_PARAM_VST_NAMES(paramNames);
-		return SetSimpleJSONVstChunk(GetCathedral(), GetJSONTagName(), data, byteSize, GetCathedral()->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(GetCathedral(), GetJSONTagName(), data, byteSize, GetCathedral()->mParamCache, paramNames, [](clarinoid::JsonVariantReader&) {});
 	}
 };
 

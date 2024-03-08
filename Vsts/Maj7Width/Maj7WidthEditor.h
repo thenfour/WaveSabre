@@ -23,7 +23,7 @@ struct Maj7WidthEditor : public VstEditor
 	virtual void PopulateMenuBar() override
 	{
 		MAJ7WIDTH_PARAM_VST_NAMES(paramNames);
-		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Width", mpMaj7Width, mpMaj7WidthVst, "gParamDefaults", "ParamIndices::NumParams", "Maj7Width", mpMaj7Width->mParamCache, paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Width", mpMaj7Width, mpMaj7WidthVst, "gParamDefaults", "ParamIndices::NumParams", mpMaj7Width->mParamCache, paramNames);
 	}
 
 	virtual void renderImgui() override

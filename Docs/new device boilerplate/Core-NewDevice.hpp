@@ -29,26 +29,10 @@ namespace WaveSabreCore
 		M7::ParamAccessor mParams;
 
 		Maj7Comp() :
-			Device((int)ParamIndices::NumParams),
+			Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
 			mParams(mParamCache, 0)
 		{
 			LoadDefaults();
-		}
-
-		virtual void LoadDefaults() override
-		{
-			M7::ImportDefaultsArray(std::size(gParamDefaults), gParamDefaults, mParamCache);
-			SetParam(0, mParamCache[0]); // force recalcing some things
-		}
-
-		virtual void SetParam(int index, float value) override
-		{
-			mParamCache[index] = value;
-		}
-
-		virtual float GetParam(int index) const override
-		{
-			return mParamCache[index];
 		}
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override

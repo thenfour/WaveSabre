@@ -23,13 +23,13 @@ public:
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
 		TWISTER_PARAM_VST_NAMES(paramNames);
-		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetTwister()->mParamCache, paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetTwister()->mParamCache, paramNames, [](clarinoid::JsonVariantWriter&) {});
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		TWISTER_PARAM_VST_NAMES(paramNames);
-		return SetSimpleJSONVstChunk(GetTwister(), GetJSONTagName(), data, byteSize, GetTwister()->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(GetTwister(), GetJSONTagName(), data, byteSize, GetTwister()->mParamCache, paramNames, [](clarinoid::JsonVariantReader&) {});
 	}
 };
 

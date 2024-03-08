@@ -40,13 +40,13 @@ public:
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
-		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Comp()->mParamCache, paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Comp()->mParamCache, paramNames, [](clarinoid::JsonVariantWriter&) {});
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
-		return SetSimpleJSONVstChunk(GetMaj7Comp(), GetJSONTagName(), data, byteSize, GetMaj7Comp()->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(GetMaj7Comp(), GetJSONTagName(), data, byteSize, GetMaj7Comp()->mParamCache, paramNames, [](clarinoid::JsonVariantReader&) {});
 	}
 
 	Maj7Comp* GetMaj7Comp() const {

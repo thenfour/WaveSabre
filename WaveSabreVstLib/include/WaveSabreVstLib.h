@@ -15,6 +15,14 @@
 namespace WaveSabreVstLib
 {
 
+	template<typename Tenum>
+	Tenum ToEnum(clarinoid::JsonVariantReader& value, Tenum count)
+	{
+		if (value.mNumericValue.mIntValue < 0) return (Tenum)0;
+		if (value.mNumericValue.mIntValue >= (int)count) return (Tenum)0;
+		return (Tenum)value.mNumericValue.mIntValue;
+	};
+
 	inline void CopyTextToClipboard(const std::string& s) {
 
 		if (!OpenClipboard(NULL)) return;
@@ -94,73 +102,6 @@ namespace WaveSabreVstLib
 	}
 
 
-
-
-	static inline void GenerateDefaults(Leveller* p)
-	{
-		//p->mParams.SetDecibels(LevellerParamIndices::MasterVolume, M7::gVolumeCfg12db, 0);
-
-		//p->mParams.SetRawVal(LevellerParamIndices::LowShelfFreq, 0);
-		//p->mParams.SetRawVal(LevellerParamIndices::LowShelfQ, 0);
-
-		//p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak1Freq, M7::gFilterFreqConfig, 650);
-		//p->mParams.SetDecibels(LevellerParamIndices::Peak1Gain, M7::gVolumeCfg12db, 0);
-		//p->mParams.SetRawVal(LevellerParamIndices::Peak1Q, 0);
-
-		//p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak2Freq, M7::gFilterFreqConfig, 2000);
-		//p->mParams.SetDecibels(LevellerParamIndices::Peak2Gain, M7::gVolumeCfg12db, 0);
-		//p->mParams.SetRawVal(LevellerParamIndices::Peak2Q, 0);
-
-		//p->mParams.SetFrequencyAssumingNoKeytracking(LevellerParamIndices::Peak3Freq, M7::gFilterFreqConfig, 7000);
-		//p->mParams.SetDecibels(LevellerParamIndices::Peak3Gain, M7::gVolumeCfg12db, 0);
-		//p->mParams.SetRawVal(LevellerParamIndices::Peak3Q, 0);
-
-		//p->mParams.SetRawVal(LevellerParamIndices::HighShelfFreq, 1);
-		//p->mParams.SetRawVal(LevellerParamIndices::HighShelfQ, 0);
-	}
-
-	// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
-	static inline void AdjustLegacyParams(Leveller* p)
-	{
-		// in the case of Leveller, there's no adjustment necessary as it was already using ParamAccessor.
-	}
-
-	static inline void GenerateDefaults(Echo* p)
-	{
-		//p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, 3);
-		//p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, 0);
-		//p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, 4);
-		//p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, 0);
-		//p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, 20);
-		//p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, 20000 - 20);
-		//p->mParams.Set01Val(Echo::ParamIndices::Feedback, 0.5f);
-		//p->mParams.Set01Val(Echo::ParamIndices::Cross, 0);
-		//p->mParams.Set01Val(Echo::ParamIndices::DryWet, 0.5f);
-	}
-
-	//// take old-style params and adjust them into being compatible with M7 ParamAccessor-style params.
-	//static inline void AdjustLegacyParams(Echo* p)
-	//{
-	//	p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayCoarse] * 16));
-	//	p->mParams.SetIntValue(Echo::ParamIndices::LeftDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::LeftDelayFine] * 200));
-	//	p->mParams.SetIntValue(Echo::ParamIndices::RightDelayCoarse, Echo::gDelayCoarseCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayCoarse] * 16));
-	//	p->mParams.SetIntValue(Echo::ParamIndices::RightDelayFine, Echo::gDelayFineCfg, int(p->mParamCache[(int)Echo::ParamIndices::RightDelayFine] * 200));
-
-	//	float lowCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::LowCutFreq]);
-	//	p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::LowCutFreq, M7::gFilterFreqConfig, lowCut);
-
-	//	float hiCut = Helpers::ParamToFrequency(p->mParamCache[(int)Echo::ParamIndices::HighCutFreq]);
-	//	p->mParams.SetFrequencyAssumingNoKeytracking(Echo::ParamIndices::HighCutFreq, M7::gFilterFreqConfig, hiCut);
-	//}
-
-	static inline void GenerateDefaults(Maj7Comp* p) {
-		// nop until needed.
-	}
-
-	static inline void GenerateDefaults(Maj7Sat* p) {
-		// nop until needed.
-	}
-
 	// returns params as a minified chunk
 	template<size_t paramCount>
 	inline int GetSimpleMinifiedChunk(const float(&paramCache)[paramCount], const int16_t(&defaults16)[paramCount], void** data)
@@ -183,98 +124,91 @@ namespace WaveSabreVstLib
 		return (int)ret.second;
 	}
 
-	//// see impl of int Device::GetChunk(void **data)
-	//template<typename TDevice, size_t paramCount>
-	//inline int SetOldVstChunk(TDevice* pDevice, void* data, int byteSize, float(&paramCache)[paramCount])
-	//{
-	//	if (byteSize != sizeof(float) * paramCount + sizeof(int))
-	//		return 0;
-
-	//	auto src = (const float*)data;
-	//	for (int i = 0; i < paramCount; ++i) {
-	//		paramCache[i] = src[i];
-	//	}
-	//	AdjustLegacyParams(pDevice);
-	//	return byteSize;
-	//}
-
+	// return bool if error
+	inline bool VisitChildren(clarinoid::JsonVariantReader& parent, std::function<void(clarinoid::JsonVariantReader&)> handler) {
+		while (true) {
+			auto ch = parent.GetNextObjectItem();
+			if (ch.IsEOF())
+				return true; // done.
+			if (ch.mParseResult.IsFailure()) {
+				break;
+			}
+			handler(ch);
+		}
+		return false;
+	}
 
 	// reads JSON and populates params. return bytes read.
 	// we want to support the old chunk style as well.
 	template<typename TDevice, size_t paramCount>
-	inline int SetSimpleJSONVstChunk(TDevice* pDevice, const std::string& expectedKeyName, void* data, int byteSize, float(&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
+	inline int SetSimpleJSONVstChunk(
+		TDevice* pDevice,
+		const std::string& expectedKeyName,
+		void* data,
+		int byteSize,
+		float(&paramCache)[paramCount],
+		char const* const (&paramNames)[paramCount],
+		std::function<void(clarinoid::JsonVariantReader&)> setVSTParam
+	)
 	{
 		if (!byteSize) return byteSize;
 		const char* pstr = (const char*)data;
-
-		//if (strnlen(pstr, byteSize - 1) >= (size_t)byteSize) {
-		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache);
-		//}
 
 		clarinoid::MemoryStream memStream{ (const uint8_t*)data, (size_t)byteSize };
 		clarinoid::BufferedStream buffering{ memStream };
 		clarinoid::TextStream textStream{ buffering };
 		clarinoid::JsonVariantReader doc{ textStream };
 
-		// @ root there is exactly 1 KV object.
-		auto maj7Obj = doc.GetNextObjectItem();
-		//if (maj7Obj.IsEOF()) {
-		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache); // empty doc?
-		//}
-		//if (maj7Obj.mParseResult.IsFailure()) {
-		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache);//return ch.mParseResult;
-		//}
-		//if (expectedKeyName != maj7Obj.mKeyName) {
-		//	return SetOldVstChunk(pDevice, data, byteSize, paramCache);
-		//}
+		auto handleM7Params = [&](clarinoid::JsonVariantReader& paramsObj)
+		{
+			std::map<std::string, std::pair<bool, size_t>> paramMap; // maps string name to whether it's been set + which param index is it.
+			for (size_t i = 0; i < paramCount; ++i) {
+				paramMap[paramNames[i]] = std::make_pair(false, i);
+			}
 
-		// todo: read meta data / version / format info?
-		maj7Obj.Object_Close();
+			if (!VisitChildren(paramsObj, [&](clarinoid::JsonVariantReader& elem)
+				{
+					auto it = paramMap.find(elem.mKeyName);
+					if (it == paramMap.end()) {
+						return; // unknown param name. just ignore and allow loading.
+					}
+					if (it->second.first) {
+						return;// return 0; // already set. is this a duplicate? just ignore.
+					}
 
-		auto paramsObj = doc.GetNextObjectItem(); // assumes these are in this order. ya probably should not.
-		if (paramsObj.IsEOF()) {
-			return 0;
-		}
-		if (paramsObj.mParseResult.IsFailure()) {
-			return 0;
-		}
-		if (paramsObj.mKeyName != "params") {
-			return 0;
-		}
-
-		std::map<std::string, std::pair<bool, size_t>> paramMap; // maps string name to whether it's been set + which param index is it.
-		for (size_t i = 0; i < paramCount; ++i) {
-			paramMap[paramNames[i]] = std::make_pair(false, i);
-		}
-
-		while (true) {
-			auto ch = paramsObj.GetNextObjectItem();
-			if (ch.IsEOF())
-				break;
-			if (ch.mParseResult.IsFailure()) {
+					paramCache[(int)it->second.second] = elem.mNumericValue.Get<float>();
+					it->second.first = true;
+				})) {
 				return 0;
 			}
-			auto it = paramMap.find(ch.mKeyName);
-			if (it == paramMap.end()) {
-				continue;// return 0; // unknown param name. just ignore and allow loading.
-			}
-			if (it->second.first) {
-				continue;// return 0; // already set. is this a duplicate? just ignore.
-			}
 
-			paramCache[(int)it->second.second] = ch.mNumericValue.Get<float>();
-			it->second.first = true;
-		}
+			// call SetParam so the device has the opportunity to react and recalc if needed.
+			// but do it AFTER params have been set so there's not a bunch of undefined values.
+			pDevice->SetParam(0, paramCache[0]);
 
-		// call SetParam so the device has the opportunity to react and recalc if needed.
-		// but do it AFTER params have been set so there's not a bunch of undefined values.
-		pDevice->SetParam(0, paramCache[0]);
+			return byteSize;
+		};
 
-		return byteSize;
+		return VisitChildren(doc, [&](clarinoid::JsonVariantReader& elem)
+			{
+				if (elem.mKeyName == expectedKeyName.c_str()) {
+					VisitChildren(elem, setVSTParam);
+					//setVSTParam(elem);
+				}
+				else if (elem.mKeyName == "params") {
+					handleM7Params(elem);
+				}
+			});
 	}
 
 	template<size_t paramCount>
-	inline int GetSimpleJSONVstChunk(const std::string& keyName, void** data, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
+	inline int GetSimpleJSONVstChunk(
+		const std::string& keyName,
+		void** data,
+		float const (&paramCache)[paramCount],
+		char const* const (&paramNames)[paramCount],
+		std::function<void(clarinoid::JsonVariantWriter&)> getVSTParams
+	)
 	{
 		clarinoid::MemoryStream memStream;
 		clarinoid::BufferedStream buffering{ memStream };
@@ -286,6 +220,8 @@ namespace WaveSabreVstLib
 
 		auto maj7Element = doc.Object_MakeKey(keyName);
 		maj7Element.BeginObject();
+
+		getVSTParams(maj7Element);
 
 		auto paramsElement = doc.Object_MakeKey("params");
 		paramsElement.BeginObject();
@@ -306,18 +242,24 @@ namespace WaveSabreVstLib
 		return (VstInt32)size;
 	}
 
+	
 
-	template<size_t paramCount>
-	inline void CopyPatchToClipboard(HWND hWnd, const std::string& keyName, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
-	{
-		void* data;
-		auto size = GetSimpleJSONVstChunk(keyName, &data, paramCache, paramNames);
-		if (data && size) {
-			CopyTextToClipboard((const char*)data);
+		inline void CopyPatchToClipboard(HWND hWnd, VstPlug* p/*, const std::string& keyName, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount]*/)
+		{
+			void* data = nullptr;
+			size_t size = (size_t)p->getChunk(&data, false);
+
+			//void* data;
+			//auto size = GetSimpleJSONVstChunk(keyName, &data, paramCache, paramNames);
+			if (data && size) {
+				CopyTextToClipboard((const char*)data);
+				::MessageBoxA(hWnd, "Copied patch to clipboard", "WaveSabre", MB_OK | MB_ICONINFORMATION);
+			}
+			else {
+				::MessageBoxA(hWnd, "Something went wrong... hm.", "WaveSabre", MB_OK | MB_ICONEXCLAMATION);
+			}
+			delete[] data;
 		}
-		delete[] data;
-		::MessageBoxA(hWnd, "Copied patch to clipboard", "WaveSabre", MB_OK | MB_ICONINFORMATION);
-	}
 
 	template<size_t paramCount>
 	void CopyParamCache(HWND hWnd, const std::string& symbolName, const std::string& paramCountExpr, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
@@ -325,7 +267,7 @@ namespace WaveSabreVstLib
 		std::stringstream ss;
 
 		ss << "static_assert((int)" << paramCountExpr << " == " << paramCount << ", \"param count probably changed and this needs to be regenerated.\");" << std::endl;
-		ss << "static constexpr int16_t " << symbolName << "[" << paramCount << "] = {" << std::endl;
+		ss << "static constexpr int16_t " << symbolName << "[(int)" << paramCountExpr << "] = {" << std::endl;
 		for (size_t i = 0; i < paramCount; ++i) {
 			float valf = paramCache[i];
 			ss << std::setprecision(20) << "  " << M7::math::Sample32To16(valf) << ", // " << paramNames[i] << " = " << valf << std::endl;
@@ -338,7 +280,7 @@ namespace WaveSabreVstLib
 	}
 
 	template<size_t paramCount, typename TDevice>
-	inline void PopulateStandardMenuBar(HWND hWnd, const std::string& vstName, TDevice* pDevice, VstPlug* pVst, const std::string& defaultsArrayName, const std::string& paramCountExpr, const std::string& jsonKeyName, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
+	inline void PopulateStandardMenuBar(HWND hWnd, const std::string& vstName, TDevice* pDevice, VstPlug* pVst, const std::string& defaultsArrayName, const std::string& paramCountExpr, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
 	{
 		if (ImGui::BeginMenu(vstName.c_str())) 
 		{
@@ -352,7 +294,8 @@ namespace WaveSabreVstLib
 			ImGui::Separator();
 
 			if (ImGui::MenuItem("Copy patch to clipboard")) {
-				CopyPatchToClipboard(hWnd, jsonKeyName, paramCache, paramNames);
+				CopyPatchToClipboard(hWnd, pVst);
+				//CopyPatchToClipboard(hWnd, jsonKeyName, paramCache, paramNames);
 			}
 
 			if (ImGui::MenuItem("Paste patch from clipboard")) {
@@ -385,7 +328,7 @@ namespace WaveSabreVstLib
 				// that compresses better. this is a bit tricky though; i guess i should only do this for like, samplers, oscillators, modulations 1-8, and all envelopes.
 				if (IDYES == ::MessageBoxA(hWnd, "Unused objects will be clobbered; are you sure? Do this as a post-processing step before rendering the minified song.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
 					if (IDYES == ::MessageBoxA(hWnd, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-						CopyPatchToClipboard(hWnd, jsonKeyName, paramCache, paramNames);
+						CopyPatchToClipboard(hWnd, pVst);
 						::MessageBoxA(hWnd, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
 					}
 					auto r1 = pVst->AnalyzeChunkMinification();
@@ -406,7 +349,7 @@ namespace WaveSabreVstLib
 				if (IDYES == ::MessageBoxA(hWnd, "Make sure you save first. If there's any problem, it will ruin your patch. This optimizes & serializes the patch in the wavesabre format, then deserializes it, and compares the before/after param cache for errors.", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION))
 				{
 					if (IDYES == ::MessageBoxA(hWnd, "Backup current patch to clipboard?", "WaveSabre - Maj7", MB_YESNO | MB_ICONQUESTION)) {
-						CopyPatchToClipboard(hWnd, jsonKeyName, paramCache, paramNames);
+						CopyPatchToClipboard(hWnd, pVst);
 						::MessageBoxA(hWnd, "Copied to clipboard... click OK to continue to optimization", "WaveSabre - Maj7", MB_OK);
 					}
 
@@ -433,8 +376,8 @@ namespace WaveSabreVstLib
 
 					std::vector<std::string> paramReports;
 
-					using vstn = const char[kVstMaxParamStrLen];
-					static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+					//using vstn = const char[kVstMaxParamStrLen];
+					//static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 
 					for (size_t i = 0; i < paramCount; ++i) {
 						if (!M7::math::FloatEquals(orig[i], after[i])) {
@@ -473,4 +416,105 @@ namespace WaveSabreVstLib
 			ImGui::EndMenu();
 		} // debug menu
 	}
+
+
+	template<int historyViewWidth, int historyViewHeight>
+	struct CompressorVis
+	{
+		bool mShowInputHistory = true;
+		bool mShowDetectorHistory = false;
+		bool mShowOutputHistory = true;
+		bool mShowAttenuationHistory = true;
+		bool mShowThresh = true;
+		bool mShowLeft = true;
+		bool mShowRight = false;
+
+		//static constexpr int historyViewHeight = 110;
+		static constexpr float historyViewMinDB = -60;
+		HistoryView<9, historyViewWidth, historyViewHeight> mHistoryView;
+
+		void Render(bool enabled, MonoCompressor& comp, AnalysisStream(&inputAnalysis)[2], AnalysisStream(&detectorAnalysis)[2], AnalysisStream(&attenuationAnalysis)[2], AnalysisStream(&outputAnalysis)[2])
+		{
+			//INLINE float LookupLUT1D(const float(&mpTable)[N], float x)
+
+			ImGui::BeginGroup();
+			static constexpr float lineWidth = 2.0f;
+
+			// ... transfer curve.
+			CompressorTransferCurve(comp, { historyViewHeight , historyViewHeight }, detectorAnalysis);
+
+			ImGui::SameLine(); mHistoryView.Render({
+				// input
+				HistoryViewSeriesConfig{ColorFromHTML("666666", mShowLeft && mShowInputHistory ? 0.6f : 0), lineWidth},
+				HistoryViewSeriesConfig{ColorFromHTML("444444", mShowRight && mShowInputHistory ? 0.6f : 0), lineWidth},
+
+				HistoryViewSeriesConfig{ColorFromHTML("ffcc00", mShowLeft && mShowDetectorHistory ? 0.8f : 0), lineWidth},
+				HistoryViewSeriesConfig{ColorFromHTML("aa8800", mShowRight && mShowDetectorHistory ? 0.8f : 0), lineWidth},
+
+				HistoryViewSeriesConfig{ColorFromHTML("cc3333", mShowLeft && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
+				HistoryViewSeriesConfig{ColorFromHTML("881111", mShowRight && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
+
+				HistoryViewSeriesConfig{ColorFromHTML("4444ff", mShowLeft && mShowOutputHistory ? 0.9f : 0), lineWidth},
+				HistoryViewSeriesConfig{ColorFromHTML("0000ff", mShowRight && mShowOutputHistory ? 0.9f : 0), lineWidth},
+
+				HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.2f : 0), 1.0f},
+				}, {
+				inputAnalysis[0].mCurrentPeak,
+				inputAnalysis[1].mCurrentPeak,
+				detectorAnalysis[0].mCurrentPeak,
+				detectorAnalysis[1].mCurrentPeak,
+				attenuationAnalysis[0].mCurrentPeak,
+				attenuationAnalysis[1].mCurrentPeak,
+				outputAnalysis[0].mCurrentPeak,
+				outputAnalysis[1].mCurrentPeak,
+				M7::math::DecibelsToLinear(comp.mThreshold),
+				});
+
+			ImGui::Checkbox("Input", &mShowInputHistory);
+			ImGui::SameLine(); ImGui::Checkbox("Detector", &mShowDetectorHistory);
+			ImGui::SameLine(); ImGui::Checkbox("Attenuation", &mShowAttenuationHistory);
+			ImGui::SameLine(); ImGui::Checkbox("Output", &mShowOutputHistory);
+
+			ImGui::Checkbox("Left", &mShowLeft);
+			ImGui::SameLine(); ImGui::Checkbox("Right", &mShowRight);
+
+			ImGui::EndGroup();
+
+			ImGui::SameLine();
+
+			static const std::vector<VUMeterTick> tickSet = {
+					{-3.0f, "3db"},
+					{-6.0f, "6"},
+					{-12.0f, "12"},
+					{-18.0f, "18"},
+					{-24.0f, "24"},
+					{-30.0f, "30"},
+					{-40.0f, "40"},
+					{-50.0f, "50"},
+			};
+
+			VUMeterConfig mainCfg = {
+				{20, historyViewHeight},
+				VUMeterLevelMode::Audio,
+				VUMeterUnits::Linear,
+				-50, 6,
+				tickSet,
+			};
+
+			VUMeterConfig attenCfg = mainCfg;
+			attenCfg.levelMode = VUMeterLevelMode::Attenuation;
+
+			VUMeterConfig disabledCfg = mainCfg;
+			disabledCfg.levelMode = VUMeterLevelMode::Disabled;
+
+			ImGui::SameLine(); VUMeter("vu_inp", inputAnalysis[0], inputAnalysis[1], mainCfg);
+
+			ImGui::SameLine(); VUMeter("vu_atten", attenuationAnalysis[0], attenuationAnalysis[1], enabled ? attenCfg : disabledCfg);
+
+			ImGui::SameLine(); VUMeter("vu_outp", outputAnalysis[0], outputAnalysis[1], mainCfg);
+
+
+		}
+	};
+
 } // namespace WaveSabreVstLib

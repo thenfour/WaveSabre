@@ -27,11 +27,12 @@
 
 namespace WaveSabreCore
 {
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	struct Maj7CompFollower {
 
 		float e = 1.0f; // ongoing follower output
-		float a = 0; // attack coef
-		float r = 0; // release coef
+		float a; // attack coef
+		float r; // release coef
 		const float s = 0; // smoothing coef
 		float tmp = 0; // a continuous value
 
@@ -59,6 +60,95 @@ namespace WaveSabreCore
 		}
 	};
 
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	struct MonoCompressor {
+
+		static constexpr float gMinRMSWindowMS = 0.2f;
+		static constexpr M7::PowCurvedParamCfg gAttackCfg{ 0.0f, 500.0f, 9 };
+		static constexpr M7::PowCurvedParamCfg gReleaseCfg{ 0.0f, 1000.0f, 9 };
+		static constexpr M7::PowCurvedParamCfg gRMSWindowSizeCfg{ 0.0f, 100.0f, 9 };
+
+		static constexpr M7::DivCurvedParamCfg gRatioCfg{ 1, 50, 1.05f };
+
+		// params
+		float mInputGainLin;
+		float mOutputGainLin;
+		float mRatioCoef;
+		float mKnee;
+		float mThreshold;
+
+		// outputs
+		float mSidechain;
+		float mDetector; // with channel mixing & RMS applied
+		float mGainReduction; // multiplier that illustrates the gain reduction factor. (1 = no reduction)
+		float mDiff;
+
+		Maj7CompFollower mFollower;
+		BiquadFilter mHighpassFilter;
+
+		void SetParams(
+			float inputGainLin,
+			float outputGainLin,
+			float ratio, // user-facing ratio (2.5 for example)
+			float kneeDB,
+			float thresholdDB,
+			float attackMS,
+			float releaseMS,
+			float highPassFreq, // hz
+			float highPassQ // biquad q ~0.2 - ~12.0f
+			)
+		{
+			mInputGainLin = inputGainLin;
+			mOutputGainLin = outputGainLin;
+			mRatioCoef = (1.0f - (1.0f / ratio));
+			mKnee = kneeDB;
+			mThreshold = thresholdDB;
+
+			mFollower.SetParams(attackMS, releaseMS);
+
+			mHighpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Highpass, highPassFreq, highPassQ, 0);
+		}
+
+		// this function defines the transfer curve.
+		// given a decibel value (-inf to 0), 
+		// returns the decibel value to reduce by, considering thresh, ratio, knee.
+		// when no compression is applied, it returns a constant 0 (0dB reduction)
+		// otherwise it returns a positive dB value.
+		float TransferDecibels(float dB) const {
+			float e = dB - std::min(dB, mThreshold - mKnee) + 0.0000001f; // avoid div0 with small value.
+			e = (e * e) / (e + mKnee);
+			e *= mRatioCoef;
+			return e;
+		}
+
+		// responsible for calculating mInput, mDry, mSidechain, mPreDetector
+		float ProcessSample(float inputAudio, float detectorInput) {
+			inputAudio *= mInputGainLin;
+			//mDry = inputAudio;
+			mSidechain = mHighpassFilter.ProcessSample(detectorInput);
+			mDetector = std::abs(mSidechain);
+			//float attFactor = CompressorPeakSlow(mDetector);
+
+			float detectorDB = M7::math::LinearToDecibels(mDetector);
+			float e = TransferDecibels(detectorDB);
+			e = M7::math::DecibelsToLinear(e);
+			float attFactor = this->mFollower.ProcessSample(e);
+
+			float wet = inputAudio / attFactor;
+			mGainReduction = 1.0f / attFactor;
+			mDiff = wet - inputAudio;
+			return wet * mOutputGainLin;
+		}
+
+	}; // struct MonoCompressor
+
+
+
+
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	struct Maj7Comp: public Device
 	{
 		enum class ParamIndices
@@ -127,164 +217,9 @@ namespace WaveSabreCore
 
 		float mParamCache[(int)ParamIndices::NumParams];
 
-		static constexpr float gMinRMSWindowMS = 0.2f;
-
-		static constexpr M7::PowCurvedParamCfg gAttackCfg{ 0.0f, 500.0f, 9 };
-		static constexpr M7::PowCurvedParamCfg gReleaseCfg{ 0.0f, 1000.0f, 9 };
-		static constexpr M7::PowCurvedParamCfg gRMSWindowSizeCfg{ 0.0f, 100.0f, 9 };
-
-		static constexpr M7::DivCurvedParamCfg gRatioCfg{ 1, 50, 1.05f };
-
 		M7::ParamAccessor mParams;
 
-		struct MonoCompressor {
-			M7::ParamAccessor mParams;
-			float mRatioCoef = 0;
-			float mThreshCoef = 0;
-			float mThreshold = 0;
-			float mKnee = 0;
-			float mInputGainLin = 0;
-			float mRMSWindowMS = 0;
-#ifdef MAJ7COMP_FULL
-			float mCompensationGainLin = 0;
-			//float mDryWetMix = 0;
-			//float mPeakRMSMix = 0;
-#endif // MAJ7COMP_FULL
-			float mOutputGainLin = 0;
-
-			// pre-channel-mixing
-			//float mInput;
-			//float mDry;
-			float mSidechain;
-			//float mPreDetector; // peaking-only, and pre-mixing. kind of a temp variable.
-			// post-channel-mixing
-			float mDetector; // with channel mixing & RMS applied
-			float mGainReduction; // multiplier that illustrates the gain reduction factor. (1 = no reduction)
-			float mDiff;
-			//float mOutput;
-
-			Maj7CompFollower mFollower;
-#ifdef MAJ7COMP_FULL
-			RMSDetector mRMSDetector;
-			BiquadFilter mLowpassFilter;
-#endif // MAJ7COMP_FULL
-			BiquadFilter mHighpassFilter;
-
-			MonoCompressor(float* paramCache) : mParams(paramCache, 0)
-			{}
-
-			void OnParamChange()
-			{
-				mInputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
-				mOutputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
-#ifdef MAJ7COMP_FULL
-				mCompensationGainLin = mParams.GetLinearVolume(ParamIndices::CompensationGain, M7::gVolumeCfg24db);
-#endif // MAJ7COMP_FULL
-
-				float ratioParam = mParams.GetDivCurvedValue(ParamIndices::Ratio, gRatioCfg, 0);
-				mRatioCoef = (1.0f - (1.0f / ratioParam));
-				mKnee = mParams.GetScaledRealValue(ParamIndices::Knee, 0, 30, 0);
-				mThreshold = mParams.GetScaledRealValue(ParamIndices::Threshold, -60, 0, 0);
-				mThreshCoef = mThreshold - mKnee;
-
-				mFollower.SetParams(
-					mParams.GetPowCurvedValue(ParamIndices::Attack, gAttackCfg, 0),
-					mParams.GetPowCurvedValue(ParamIndices::Release, gReleaseCfg, 0)
-				);
-
-#ifdef MAJ7COMP_FULL
-				mRMSWindowMS = mParams.GetPowCurvedValue(ParamIndices::RMSWindow, gRMSWindowSizeCfg, 0);
-				if (mRMSWindowMS >= gMinRMSWindowMS) {
-					mRMSDetector.SetWindowSize(mRMSWindowMS);
-				}
-
-				float lpf = mParams.GetFrequency(ParamIndices::LowPassFrequency, M7::gFilterFreqConfig);
-				float lpq = mParams.GetDivCurvedValue(ParamIndices::LowPassQ, M7::gBiquadFilterQCfg);
-				mLowpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Lowpass, lpf, lpq, 0);
-#endif // MAJ7COMP_FULL
-
-				float hpq = mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg);
-				float hpf = mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig);
-				mHighpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Highpass, hpf, hpq, 0);
-			}
-
-			// this function defines the transfer curve.
-			// given a decibel value (-inf to 0), 
-			// returns the decibel value to reduce by, considering thresh, ratio, knee.
-			// when no compression is applied, it returns a constant 0 (0dB reduction)
-			// otherwise it returns a positive dB value.
-			float TransferDecibels(float dB) const {
-				float e = dB - std::min(dB, mThreshCoef) + 0.0000001f; // avoid div0 with small value.
-				e = (e * e) / (e + mKnee);
-				e *= mRatioCoef;
-				return e;
-			}
-
-			// inputs: `in` = rectified input SAMPLE VALUE (not db)
-			// outputs a value which the original can be divided by
-			float CompressorPeakSlow(float in) {
-				float dB = M7::math::LinearToDecibels(in);
-				float e = TransferDecibels(dB);
-				e = M7::math::DecibelsToLinear(e);
-				return this->mFollower.ProcessSample(e);
-			}
-
-
-#ifdef MAJ7COMP_FULL
-			// if you re-enable this, please review this code...
-
-			// responsible for calculating mInput, mDry, mSidechain, mPreDetector
-			void ProcessSampleBeforeChannelMixing(float input) {
-				mSidechain = mDry = mInput = input * mInputGainLin;
-
-				// filter the sidechain before we destroy its listenability via rectification
-				mSidechain = mHighpassFilter.ProcessSample(mSidechain);
-				mSidechain = mLowpassFilter.ProcessSample(mSidechain);
-
-				mPreDetector = std::abs(mSidechain);
-			}
-
-			void ProcessSampleAfterChannelMixing(float mixedDetector) {
-				if (mRMSWindowMS >= gMinRMSWindowMS) {
-					float trmsLevelL = mRMSDetector.ProcessSample(mixedDetector);
-					mPostDetector = trmsLevelL;
-				}
-				else {
-					mPostDetector = mixedDetector;
-				}
-
-				float attFactor = CompressorPeakSlow(mPostDetector);
-				float wet = mDry / attFactor;
-				mGainReduction = 1.0f / attFactor;
-				mDiff = wet - mDry;
-				wet *= mCompensationGainLin;
-				mOutput = M7::math::lerp(mDry, wet, mParams.Get01Value(ParamIndices::DryWet, 0));
-				mOutput = wet * mOutputGainLin;
-			}
-
-
-#else
-
-#endif // MAJ7COMP_FULL
-
-			// responsible for calculating mInput, mDry, mSidechain, mPreDetector
-			float ProcessSample(float inputAudio, float detectorInput) {
-				//mDry = inputAudio;
-				mSidechain = mHighpassFilter.ProcessSample(detectorInput);
-				mDetector = std::abs(mSidechain);
-				float attFactor = CompressorPeakSlow(mDetector);
-				float wet = inputAudio / attFactor;
-				mGainReduction = 1.0f / attFactor;
-				mDiff = wet - inputAudio;
-				return wet * mOutputGainLin;
-			}
-
-		};
-
-
-
-
-		MonoCompressor mComp[2] = { {mParamCache},{mParamCache} }; // 2 channels
+MonoCompressor mComp[2];
 
 		enum class OutputSignal : byte {
 			Normal = 0,
@@ -292,8 +227,6 @@ namespace WaveSabreCore
 			Sidechain,
 			Count__,
 		};
-
-		float mChannelLink01 = 0;
 
 #ifdef MAJ7COMP_FULL
 		//bool mMidSideEnable = false;
@@ -333,11 +266,21 @@ namespace WaveSabreCore
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
-			mChannelLink01 = mParams.Get01Value(ParamIndices::ChannelLink);
 			mOutputSignal = mParams.GetEnumValue<OutputSignal>(ParamIndices::OutputSignal);
 
 			for (auto& c : mComp) {
-				c.OnParamChange();
+				//c.OnParamChange();
+				c.SetParams(
+					mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db),
+					mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db),
+					mParams.GetDivCurvedValue(ParamIndices::Ratio, MonoCompressor::gRatioCfg, 0),
+					mParams.GetScaledRealValue(ParamIndices::Knee, 0, 30, 0),
+					mParams.GetScaledRealValue(ParamIndices::Threshold, -60, 0, 0),
+					mParams.GetPowCurvedValue(ParamIndices::Attack, MonoCompressor::gAttackCfg, 0),
+					mParams.GetPowCurvedValue(ParamIndices::Release, MonoCompressor::gReleaseCfg, 0),
+					mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig),
+					mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg)
+				);
 			}
 		}
 
@@ -361,6 +304,7 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
+			float channelLink01 = mParams.Get01Value(ParamIndices::ChannelLink);
 			//bool midside = mParams.GetBoolValue(ParamIndices::MidSideEnable);
 			for (size_t iSample = 0; iSample < (size_t)numSamples; ++iSample)
 			{
@@ -387,7 +331,7 @@ namespace WaveSabreCore
 
 				for (size_t ich = 0; ich < 2; ++ich) {
 					float inpAudio = inputs[ich][iSample];
-					float detector = M7::math::lerp(inpAudio, monoDetector, mChannelLink01);
+					float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
 					outputs[ich][iSample] = mComp[ich].ProcessSample(inpAudio, detector);
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT

@@ -24,7 +24,7 @@ public:
 	virtual void PopulateMenuBar() override
 	{
 		ECHO_PARAM_VST_NAMES(paramNames);
-		PopulateStandardMenuBar(mCurrentWindow, "Echo", mpEcho, mpEchoVST, "gDefaults16", "Echo::ParamIndices::NumParams", mpEchoVST->GetJSONTagName(), mpEcho->mParamCache, paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Echo", mpEcho, mpEchoVST, "gDefaults16", "Echo::ParamIndices::NumParams", mpEcho->mParamCache, paramNames);
 	}
 
 	virtual void renderImgui() override

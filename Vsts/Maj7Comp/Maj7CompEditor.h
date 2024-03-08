@@ -24,19 +24,9 @@ struct Maj7CompEditor : public VstEditor
 
 	using ParamIndices = WaveSabreCore::Maj7Comp::ParamIndices;
 
-	FrequencyResponseRenderer<150, 50, 50, 2, (size_t)Maj7Comp::ParamIndices::NumParams> mResponseGraph;
+	FrequencyResponseRenderer<160, 75, 50, 2, (size_t)Maj7Comp::ParamIndices::NumParams> mResponseGraph;
 
-	bool mShowInputHistory = true;
-	bool mShowDetectorHistory = false;
-	bool mShowOutputHistory = true;
-	bool mShowAttenuationHistory = true;
-	bool mShowThresh = true;
-	bool mShowLeft = true;
-	bool mShowRight = false;
-
-	static constexpr int historyViewHeight = 150;
-	static constexpr float historyViewMinDB = -60;
-	HistoryView<9, 500, historyViewHeight> mHistoryView;
+	CompressorVis<480, 180> mCompressorVis[Maj7MBC::gBandCount];
 
 	Maj7CompEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 834, 680),
@@ -49,73 +39,9 @@ struct Maj7CompEditor : public VstEditor
 	virtual void PopulateMenuBar() override
 	{
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
-		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Comp Compressor", mpMaj7Comp, mpMaj7CompVst, "gParamDefaults", "ParamIndices::NumParams", "Maj7Comp", mpMaj7Comp->mParamCache, paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Comp Compressor", mpMaj7Comp, mpMaj7CompVst, "gParamDefaults", "ParamIndices::NumParams", mpMaj7Comp->mParamCache, paramNames);
 	}
 
-	void TransferCurve() {
-		ImRect bb;
-		ImVec2 size { historyViewHeight , historyViewHeight };
-		bb.Min = ImGui::GetCursorScreenPos();
-		bb.Max = bb.Min + size;
-
-		ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
-		ImColor curveColor = ColorFromHTML("999999", 1.0f);
-		ImColor gridColor = ColorFromHTML("444444", 1.0f);
-		ImColor detectorColorAtt = ColorFromHTML("ed4d4d", 0.9f);
-		ImColor detectorColor = ColorFromHTML("eeeeee", 0.9f);
-
-		ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
-
-		static constexpr int segmentCount = 33;
-		std::vector<ImVec2> points;
-
-		auto dbToY = [&](float dB) {
-			float lin = dB / gHistoryViewMinDB;
-			float t01 = M7::math::clamp01(1.0f - lin);
-			return bb.Max.y - t01 * size.y;
-		};
-
-		auto dbToX = [&](float dB) {
-			float lin = dB / gHistoryViewMinDB;
-			float t01 = M7::math::clamp01(1.0f - lin);
-			return bb.Min.x + t01 * size.y;
-		};
-
-		for (int iSeg = 0; iSeg < segmentCount; ++iSeg) {
-			float inLin = float(iSeg) / (segmentCount - 1); // touch 0 and 1
-			float dbIn = (1.0f - inLin) * gHistoryViewMinDB; // db from gHistoryViewMinDB to 0.
-			float dbAttenOut = mpMaj7Comp->mComp[0].TransferDecibels(dbIn);// / 5;
-			float outDB = dbIn - dbAttenOut;
-			points.push_back(ImVec2{ bb.Min.x + inLin * size.x, dbToY(outDB)});
-		}
-
-		auto* dl = ImGui::GetWindowDrawList();
-
-		// linear guideline
-		dl->AddLine({ bb.Min.x, bb.Max.y }, {bb.Max.x, bb.Min.y}, gridColor, 1.0f);
-
-		// threshold guideline
-		float threshY = dbToY(mpMaj7Comp->mComp[0].mThreshold);
-		dl->AddLine({ bb.Min.x, threshY }, {bb.Max.x, threshY}, gridColor, 1.0f);
-
-		dl->AddPolyline(points.data(), (int)points.size(), curveColor, 0, 2.0f);
-
-		// detector indicator dot
-		float detectorLevel = std::max(mpMaj7Comp->mDetectorAnalysis[0].mCurrentPeak, mpMaj7Comp->mDetectorAnalysis[1].mCurrentPeak);// std::max(mpMaj7Comp->mComp[0].mPostDetector, mpMaj7Comp->mComp[1].mPostDetector);
-		float detectorDB = M7::math::LinearToDecibels(detectorLevel);
-
-		float detAtten = mpMaj7Comp->mComp[0].TransferDecibels(detectorDB);
-		float detOutDB = detectorDB - detAtten;
-
-		if (detAtten > 0.00001) {
-			dl->AddCircleFilled({ dbToX(detectorDB), dbToY(detOutDB) }, 6.0f, detectorColorAtt);
-		}
-		else {
-			dl->AddCircleFilled({ dbToX(detectorDB), dbToY(detOutDB) }, 3.0f, detectorColor);
-		}
-
-		ImGui::Dummy(size);
-	}
 
 	virtual void renderImgui() override
 	{
@@ -125,10 +51,10 @@ struct Maj7CompEditor : public VstEditor
 			{
 				Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Threshold, "Thresh(dB)", -60, 0, -20, 0, 0, {});
 
-				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(ParamIndices::Attack, "Attack(ms)", Maj7Comp::gAttackCfg, 50, {});
-				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(ParamIndices::Release, "Release(ms)", Maj7Comp::gReleaseCfg, 80, {});
+				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(ParamIndices::Attack, "Attack(ms)", MonoCompressor::gAttackCfg, 50, {});
+				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(ParamIndices::Release, "Release(ms)", MonoCompressor::gReleaseCfg, 80, {});
 
-				ImGui::SameLine(); Maj7ImGuiDivCurvedParam((VstInt32)ParamIndices::Ratio, "Ratio", Maj7Comp::gRatioCfg, 4, {});
+				ImGui::SameLine(); Maj7ImGuiDivCurvedParam((VstInt32)ParamIndices::Ratio, "Ratio", MonoCompressor::gRatioCfg, 4, {});
 				ImGui::SameLine(); Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::Knee, "Knee(dB)", 0, 30, 4, 0, 0, {});
 
 				ImGui::EndTabItem();
@@ -220,78 +146,7 @@ struct Maj7CompEditor : public VstEditor
 			EndTabBarWithColoredSeparator();
 		}
 
-		ImGui::BeginGroup();
-		static constexpr float lineWidth = 2.0f;
-
-		mHistoryView.Render({
-			// input
-			HistoryViewSeriesConfig{ColorFromHTML("666666", mShowLeft && mShowInputHistory ? 0.6f : 0), lineWidth},
-			HistoryViewSeriesConfig{ColorFromHTML("444444", mShowRight && mShowInputHistory ? 0.6f : 0), lineWidth},
-
-			HistoryViewSeriesConfig{ColorFromHTML("ff00ff", mShowLeft && mShowDetectorHistory ? 0.8f : 0), lineWidth},
-			HistoryViewSeriesConfig{ColorFromHTML("880088", mShowRight && mShowDetectorHistory ? 0.8f : 0), lineWidth},
-
-			HistoryViewSeriesConfig{ColorFromHTML("cc3333", mShowLeft && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
-			HistoryViewSeriesConfig{ColorFromHTML("881111", mShowRight && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
-
-			HistoryViewSeriesConfig{ColorFromHTML("4444ff", mShowLeft && mShowOutputHistory ? 0.9f : 0), lineWidth},
-			HistoryViewSeriesConfig{ColorFromHTML("0000ff", mShowRight && mShowOutputHistory ? 0.9f : 0), lineWidth},
-
-			HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.2f : 0), 1.0f},
-			}, {
-			mpMaj7Comp->mInputAnalysis[0].mCurrentPeak,
-			mpMaj7Comp->mInputAnalysis[1].mCurrentPeak,
-			mpMaj7Comp->mDetectorAnalysis[0].mCurrentPeak,
-			mpMaj7Comp->mDetectorAnalysis[1].mCurrentPeak,
-			mpMaj7Comp->mAttenuationAnalysis[0].mCurrentPeak,
-			mpMaj7Comp->mAttenuationAnalysis[1].mCurrentPeak,
-			mpMaj7Comp->mOutputAnalysis[0].mCurrentPeak,
-			mpMaj7Comp->mOutputAnalysis[1].mCurrentPeak,
-			M7::math::DecibelsToLinear(mpMaj7Comp->mComp[0].mThreshold),
-			});
-
-		// ... transfer curve.
-		ImGui::SameLine(); TransferCurve();
-
-		ImGui::Checkbox("Input", &mShowInputHistory);
-		ImGui::SameLine(); ImGui::Checkbox("Detector", &mShowDetectorHistory);
-		ImGui::SameLine(); ImGui::Checkbox("Attenuation", &mShowAttenuationHistory);
-		ImGui::SameLine(); ImGui::Checkbox("Output", &mShowOutputHistory);
-		//ImGui::SameLine(); ImGui::Checkbox("Threshold", &mShowThresh);
-
-		ImGui::Checkbox("Left", &mShowLeft);
-		ImGui::SameLine(); ImGui::Checkbox("Right", &mShowRight);
-
-		ImGui::EndGroup();
-
-		static const std::vector<VUMeterTick> tickSet = {
-				{-3.0f, "3db"},
-				{-6.0f, "6db"},
-				{-12.0f, "12db"},
-				{-18.0f, "18db"},
-				{-24.0f, "24db"},
-				{-30.0f, "30db"},
-				{-40.0f, "40db"},
-				//{-50.0f, "50db"},
-		};
-
-		VUMeterConfig mainCfg = {
-			{24, 300},
-			VUMeterLevelMode::Audio,
-			VUMeterUnits::Linear,
-			-50, 6,
-			tickSet,
-		};
-
-		VUMeterConfig attenCfg = mainCfg;
-		attenCfg.levelMode = VUMeterLevelMode::Attenuation;
-
-		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Comp->mInputAnalysisSlow[0], mpMaj7Comp->mInputAnalysisSlow[1], mainCfg);
-
-		ImGui::SameLine(); VUMeter("vu_atten", &mpMaj7Comp->mAttenuationAnalysis[0].mCurrentPeak, nullptr, nullptr, nullptr, false, attenCfg);
-
-		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Comp->mOutputAnalysisSlow[0], mpMaj7Comp->mOutputAnalysisSlow[1], mainCfg);
-
+		mCompressorVis->Render(true, mpMaj7Comp->mComp[0], mpMaj7Comp->mInputAnalysis, mpMaj7Comp->mDetectorAnalysis, mpMaj7Comp->mAttenuationAnalysis, mpMaj7Comp->mOutputAnalysis);
 	}
 };
 

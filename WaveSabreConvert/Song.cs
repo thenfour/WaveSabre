@@ -19,6 +19,7 @@ namespace WaveSabreConvert
             Maj7Width,
             Maj7Comp,
             Maj7Sat,
+            Maj7MBC,
         }
 
         public class Receive

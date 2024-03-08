@@ -37,14 +37,60 @@ public:
 
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
+		auto p = GetMaj7Sat();
 		MAJ7SAT_PARAM_VST_NAMES(paramNames);
-		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Sat()->mParamCache, paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Sat()->mParamCache, paramNames, [&](clarinoid::JsonVariantWriter& elem)
+			{
+				elem.Object_MakeKey("BandASolo").WriteBoolean(p->mBands[0].mVSTConfig.mSolo);
+				elem.Object_MakeKey("BandAMute").WriteBoolean(p->mBands[0].mVSTConfig.mMute);
+				//elem.Object_MakeKey("BandAOutputStream").WriteBoolean(int(p->mBands[0].mVSTConfig.mOutputStream));
+
+				elem.Object_MakeKey("BandBSolo").WriteBoolean(p->mBands[1].mVSTConfig.mSolo);
+				elem.Object_MakeKey("BandBMute").WriteBoolean(p->mBands[1].mVSTConfig.mMute);
+				//elem.Object_MakeKey("BandBOutputStream").WriteBoolean(int(p->mBands[1].mVSTConfig.mOutputStream));
+
+				elem.Object_MakeKey("BandCSolo").WriteBoolean(p->mBands[2].mVSTConfig.mSolo);
+				elem.Object_MakeKey("BandCMute").WriteBoolean(p->mBands[2].mVSTConfig.mMute);
+				//elem.Object_MakeKey("BandCOutputStream").WriteBoolean(int(p->mBands[2].mVSTConfig.mOutputStream));
+			}
+		);
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
+		auto p = GetMaj7Sat();
 		MAJ7SAT_PARAM_VST_NAMES(paramNames);
-		return SetSimpleJSONVstChunk(GetMaj7Sat(), GetJSONTagName(), data, byteSize, GetMaj7Sat()->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(GetMaj7Sat(), GetJSONTagName(), data, byteSize, GetMaj7Sat()->mParamCache, paramNames, [&](clarinoid::JsonVariantReader& elem) {
+			if (elem.mKeyName == "BandASolo") {
+				p->mBands[0].mVSTConfig.mSolo = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "BandAMute") {
+				p->mBands[0].mVSTConfig.mMute = elem.mBooleanValue;
+			}
+			//else if (elem.mKeyName == "BandAOutputStream") {
+			//	p->mBands[0].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
+			//}
+
+			else if (elem.mKeyName == "BandBSolo") {
+				p->mBands[1].mVSTConfig.mSolo = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "BandBMute") {
+				p->mBands[1].mVSTConfig.mMute = elem.mBooleanValue;
+			}
+			//else if (elem.mKeyName == "BandBOutputStream") {
+			//	p->mBands[1].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
+			//}
+
+			else if (elem.mKeyName == "BandCSolo") {
+				p->mBands[2].mVSTConfig.mSolo = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "BandCMute") {
+				p->mBands[2].mVSTConfig.mMute = elem.mBooleanValue;
+			}
+			//else if (elem.mKeyName == "BandCOutputStream") {
+			//	p->mBands[2].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
+			//}
+			});
 	}
 
 	virtual const char* GetJSONTagName() { return "Maj7Sat"; }
@@ -54,10 +100,10 @@ public:
 		using Params = Maj7Sat::ParamIndices;
 		M7::ParamAccessor p{GetMaj7Sat()->mParamCache, 0};
 		//OptimizeEnumParam<M7::LinkwitzRileyFilter::Slope>(p, Params::CrossoverASlope);
-		p.SetRawVal(Params::CrossoverASlope, 0);
-		OptimizeBand(Params::AMute);
-		OptimizeBand(Params::BMute);
-		OptimizeBand(Params::CMute);
+		//p.SetRawVal(Params::CrossoverASlope, 0);
+		OptimizeBand(Params::AModel);
+		OptimizeBand(Params::BModel);
+		OptimizeBand(Params::CModel);
 	}
 
 	void OptimizeBand(Maj7Sat::ParamIndices baseParam) {
@@ -67,18 +113,18 @@ public:
 		OptimizeBoolParam(p, Param::EnableEffect);
 		if (!p.GetBoolValue(Param::EnableEffect)) {
 			// effect not enabled; set defaults to params.
-			p.SetRawVal(Param::PanMode, defaults.GetRawVal(Param::PanMode));
-			p.SetRawVal(Param::Pan, defaults.GetRawVal(Param::Pan));
+			//p.SetRawVal(Param::PanMode, defaults.GetRawVal(Param::PanMode));
+			//p.SetRawVal(Param::Pan, defaults.GetRawVal(Param::Pan));
 			p.SetRawVal(Param::Model, defaults.GetRawVal(Param::Model));
 			p.SetRawVal(Param::Drive, defaults.GetRawVal(Param::Drive));
 			p.SetRawVal(Param::CompensationGain, defaults.GetRawVal(Param::CompensationGain));
 			p.SetRawVal(Param::Threshold, defaults.GetRawVal(Param::Threshold));
-			p.SetRawVal(Param::EvenHarmonics, defaults.GetRawVal(Param::EvenHarmonics));
+			//p.SetRawVal(Param::EvenHarmonics, defaults.GetRawVal(Param::EvenHarmonics));
 			p.SetRawVal(Param::DryWet, defaults.GetRawVal(Param::DryWet));
 		}
-		OptimizeBoolParam(p, Param::Mute);
-		OptimizeBoolParam(p, Param::Solo);
-		OptimizeEnumParam<Maj7Sat::PanMode>(p, Param::PanMode);
+		//OptimizeBoolParam(p, Param::Mute);
+		//OptimizeBoolParam(p, Param::Solo);
+		//OptimizeEnumParam<Maj7Sat::PanMode>(p, Param::PanMode);
 		OptimizeEnumParam<Maj7Sat::Model>(p, Param::Model);
 	}
 

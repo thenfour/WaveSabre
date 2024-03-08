@@ -557,6 +557,30 @@ namespace WaveSabreCore
 
         } // namespace math
 
+        // takes an array of mute & solo switches, and outputs whether each band would be output eventually.
+        template<size_t NBands>
+        void CalculateMuteSolo(bool (&mutes)[NBands], bool(&solos)[NBands], bool(&outputs)[NBands])
+        {
+            auto x = outputs[0];
+            bool soloExists = false;
+            for (size_t i = 0; i < NBands; ++i) {
+                if (solos[i]) {
+                    soloExists = true;
+                    break;
+                }
+            }
+
+            for (size_t i = 0; i < NBands; ++i) {
+                bool mute = mutes[i];
+                bool solo = solos[i];
+                if (soloExists) { // if solo exists, it's enabled if it's part of the solo'd group.
+                    outputs[i] = solo;
+                }
+                else {
+                    outputs[i] = !mute;
+                }
+            }
+        }
 
         inline void MSEncode(float left, float right, float* mid, float* side) {
             *mid = (left + right) * math::gSqrt2Recip;

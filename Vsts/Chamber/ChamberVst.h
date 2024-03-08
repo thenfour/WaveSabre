@@ -22,13 +22,13 @@ public:
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
 		CHAMBER_PARAM_VST_NAMES(paramNames);
-		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetChamber()->mParamCache, paramNames);
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetChamber()->mParamCache, paramNames, [](clarinoid::JsonVariantWriter&) {});
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
 		CHAMBER_PARAM_VST_NAMES(paramNames);
-		return SetSimpleJSONVstChunk(GetChamber(), GetJSONTagName(), data, byteSize, GetChamber()->mParamCache, paramNames);
+		return SetSimpleJSONVstChunk(GetChamber(), GetJSONTagName(), data, byteSize, GetChamber()->mParamCache, paramNames, [](clarinoid::JsonVariantReader&) {});
 	}
 };
 

@@ -22,7 +22,7 @@ public:
 	virtual void PopulateMenuBar() override
 	{
 		CATHEDRAL_PARAM_VST_NAMES(paramNames);
-		PopulateStandardMenuBar(mCurrentWindow, "Cathedral", mpCathedral, mpCathedralVST, "gParamDefaults", "Cathedral::ParamIndices::NumParams", mpCathedralVST->GetJSONTagName(), mpCathedral->mParamCache, paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Cathedral", mpCathedral, mpCathedralVST, "gParamDefaults", "Cathedral::ParamIndices::NumParams", mpCathedral->mParamCache, paramNames);
 	}
 
 	virtual void renderImgui() override

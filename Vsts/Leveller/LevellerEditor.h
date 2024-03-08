@@ -30,7 +30,7 @@ public:
 	virtual void PopulateMenuBar() override
 	{
 		LEVELLER_PARAM_VST_NAMES(paramNames);
-		PopulateStandardMenuBar(mCurrentWindow, "Leveller", mpLeveller, mpLevellerVST, "gLevellerDefaults16", "ParamIndices::NumParams", "WSLeveller", mpLeveller->mParamCache, paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Leveller", mpLeveller, mpLevellerVST, "gLevellerDefaults16", "ParamIndices::NumParams", mpLeveller->mParamCache, paramNames);
 	}
 
 	void RenderBand(int id, const char* label, Leveller::ParamIndices paramOffset, float defaultFreqParamHz, ImColor color)

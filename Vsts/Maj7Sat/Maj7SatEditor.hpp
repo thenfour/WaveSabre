@@ -33,7 +33,7 @@ struct Maj7SatEditor : public VstEditor
 	virtual void PopulateMenuBar() override
 	{
 		MAJ7SAT_PARAM_VST_NAMES(paramNames);
-		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Sat Saturator", mpMaj7Sat, mpMaj7SatVst, "gParamDefaults", "ParamIndices::NumParams", "Maj7Sat", mpMaj7Sat->mParamCache, paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Sat Saturator", mpMaj7Sat, mpMaj7SatVst, "gParamDefaults", "ParamIndices::NumParams", mpMaj7Sat->mParamCache, paramNames);
 	}
 
 	struct TransferCurveColors
@@ -100,6 +100,7 @@ struct Maj7SatEditor : public VstEditor
 	void RenderBand(size_t iBand, ParamIndices enabledParam, const char *caption)
 	{
 		auto& band = mpMaj7Sat->mBands[iBand];
+		auto& bandConfig = band.mVSTConfig;// mpMaj7MBCVst->mBandConfig[iBand];
 
 		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
@@ -120,14 +121,54 @@ struct Maj7SatEditor : public VstEditor
 					ColorMod& cm = mBandColors;
 					auto token = cm.Push();
 
-					Maj7ImGuiParamBoolToggleButtonArray<int>("", 50, {
-						{ param(BandParam::EnableEffect), "Enable", "339933", "294a7a", "669966", "294a44"},
-						});
+					//Maj7ImGuiParamBoolToggleButtonArray<int>("", 50, {
+					//	{ param(BandParam::EnableEffect), "Enable", "339933", "294a7a", "669966", "294a44"},
+					//	});
 
-					Maj7ImGuiParamBoolToggleButtonArray<int>("", 50, {
-						{ param(BandParam::Mute), "Mute", "990000", "294a7a", "990044", "294a44"},
-						{ param(BandParam::Solo), "Solo", "999900", "294a7a", "999944", "294a44"},
-						});
+					//Maj7ImGuiParamBoolToggleButtonArray<int>("", 50, {
+					//	{ param(BandParam::Mute), "Mute", "990000", "294a7a", "990044", "294a44"},
+					//	{ param(BandParam::Solo), "Solo", "999900", "294a7a", "999944", "294a44"},
+					//	});
+
+
+
+
+
+					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+					Maj7ImGuiBoolParamToggleButton(param(BandParam::EnableEffect), "Enable", { 0,0 }, { "339933", "294a7a", "999999", });
+
+					//bool delta = bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta;
+					//bool sidechain = bandConfig.mOutputStream == Maj7MBC::OutputStream::Sidechain;
+					//ImGui::SameLine(0, 60);
+					//if (ToggleButton(&delta, "DELTA", { 0,0 }, { "22cc22", "294a7a", "999999", })) {
+					//	// NB: ToggleButton() has flipped the value.
+					//	bandConfig.mOutputStream = !delta ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Delta;
+					//}
+
+					//ImGui::SameLine();
+					//if (ToggleButton(&sidechain, "SIDECHAIN", { 0,0 }, { "cc22cc", "294a7a", "999999", })) {
+					//	// NB: ToggleButton() has flipped the value.
+					//	bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
+					//}
+
+					ImGui::SameLine(0, 60);
+					if (ToggleButton(&bandConfig.mMute, "MUTE", { 0,0 }, { "990000", "294a7a", "999999", })) {
+						// this doesn't work; the common wisdom seems to be to 
+						//GetEffectX()->setParameter(0, GetEffectX()->getParameter(0)); // tell the host that the params have changed (even though they haven't)
+					}
+
+					ImGui::SameLine();
+					if (ToggleButton(&bandConfig.mSolo, "SOLO", { 0,0 }, { "999900", "294a7a", "999999", })) {
+						//GetEffectX()->setParameter(0, GetEffectX()->getParameter(0)); // tell the host that the params have changed (even though they haven't)
+						//mpMaj7MBCVst->updateDisplay();
+					}
+
+					ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+
+
+
 				}
 				ImGui::EndGroup();
 
@@ -206,19 +247,42 @@ struct Maj7SatEditor : public VstEditor
 				ImGui::SameLine(); VUMeter("inputVU", mpMaj7Sat->mInputAnalysis0, mpMaj7Sat->mInputAnalysis1, { 15,100 });
 				ImGui::SameLine(); VUMeter("outputVU", mpMaj7Sat->mOutputAnalysis0, mpMaj7Sat->mOutputAnalysis1, { 15,100 });
 
+
+				bool showWarning = false;
+				for (auto& b : mpMaj7Sat->mBands) {
+					if (b.mVSTConfig.mMute || b.mVSTConfig.mSolo) {
+						showWarning = true;
+						break;
+					}
+				}
+
+				if (showWarning) {
+					ImGui::SameLine();
+					ImGui::PushStyleColor(ImGuiCol_Text, ColorFromHTML("ff3333", 1).operator ImVec4());
+					ImGui::Text("Mute, solo, delta are not supported by EXE player");
+					ImGui::PopStyleColor();
+				}
+
+				// do this simply to avoid jittery vertical positioning when the warning is shown/hidden.
+				ImGui::SameLine();
+				ImGui::Text(" ");
+
+
+
+
 				ImGui::EndTabItem();
 			}
 			EndTabBarWithColoredSeparator();
 		}
 
 		ImGui::PushID("band0");
-		RenderBand(0, ParamIndices::AMute, "Lows");
+		RenderBand(0, ParamIndices::AModel, "Lows");
 		ImGui::PopID();
 		ImGui::PushID("band1");
-		RenderBand(1, ParamIndices::BMute, "Mids");
+		RenderBand(1, ParamIndices::BModel, "Mids");
 		ImGui::PopID();
 		ImGui::PushID("band2");
-		RenderBand(2, ParamIndices::CMute, "Highs");
+		RenderBand(2, ParamIndices::CModel, "Highs");
 		ImGui::PopID();
 	}
 
