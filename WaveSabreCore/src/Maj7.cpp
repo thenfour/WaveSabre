@@ -4,6 +4,7 @@ namespace WaveSabreCore {
         static_assert((int)M7::MainParamIndices::Count == 29, "param count probably changed and this needs to be regenerated.");
         const int16_t gDefaultMasterParams[29] = {
           16422, // Master = 0.50115966796875
+          16384, // pan
           8, // PolyMon = 0.000244140625
           1365, // Unisono = 0.041656494140625
           0, // UniDet = 0
@@ -12,7 +13,6 @@ namespace WaveSabreCore {
           5996, // PortTm = 0.1829833984375
           17721, // PBRng = 0.540802001953125
           12032, // MaxVox = 0.3671875
-          16384, // pan
           0, // Macro1 = 0
           0, // Macro2 = 0
           0, // Macro3 = 0

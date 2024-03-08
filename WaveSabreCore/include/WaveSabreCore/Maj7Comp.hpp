@@ -153,16 +153,15 @@ namespace WaveSabreCore
 			float mOutputGainLin = 0;
 
 			// pre-channel-mixing
-			float mInput;
-			float mDry;
+			//float mInput;
+			//float mDry;
 			float mSidechain;
-			float mPreDetector; // peaking-only, and pre-mixing. kind of a temp variable.
-
+			//float mPreDetector; // peaking-only, and pre-mixing. kind of a temp variable.
 			// post-channel-mixing
-			float mPostDetector; // with channel mixing & RMS applied
+			float mDetector; // with channel mixing & RMS applied
 			float mGainReduction; // multiplier that illustrates the gain reduction factor. (1 = no reduction)
 			float mDiff;
-			float mOutput;
+			//float mOutput;
 
 			Maj7CompFollower mFollower;
 #ifdef MAJ7COMP_FULL
@@ -230,21 +229,22 @@ namespace WaveSabreCore
 				return this->mFollower.ProcessSample(e);
 			}
 
+
+#ifdef MAJ7COMP_FULL
+			// if you re-enable this, please review this code...
+
 			// responsible for calculating mInput, mDry, mSidechain, mPreDetector
 			void ProcessSampleBeforeChannelMixing(float input) {
 				mSidechain = mDry = mInput = input * mInputGainLin;
 
 				// filter the sidechain before we destroy its listenability via rectification
 				mSidechain = mHighpassFilter.ProcessSample(mSidechain);
-#ifdef MAJ7COMP_FULL
 				mSidechain = mLowpassFilter.ProcessSample(mSidechain);
-#endif // MAJ7COMP_FULL
 
 				mPreDetector = std::abs(mSidechain);
 			}
 
 			void ProcessSampleAfterChannelMixing(float mixedDetector) {
-#ifdef MAJ7COMP_FULL
 				if (mRMSWindowMS >= gMinRMSWindowMS) {
 					float trmsLevelL = mRMSDetector.ProcessSample(mixedDetector);
 					mPostDetector = trmsLevelL;
@@ -252,22 +252,37 @@ namespace WaveSabreCore
 				else {
 					mPostDetector = mixedDetector;
 				}
-				//mPostDetector = M7::math::lerp(mixedDetector, trmsLevelL, mPeakRMSMix);
-#else
-				mPostDetector = mixedDetector;
-#endif // MAJ7COMP_FULL
 
 				float attFactor = CompressorPeakSlow(mPostDetector);
 				float wet = mDry / attFactor;
 				mGainReduction = 1.0f / attFactor;
 				mDiff = wet - mDry;
-#ifdef MAJ7COMP_FULL
 				wet *= mCompensationGainLin;
 				mOutput = M7::math::lerp(mDry, wet, mParams.Get01Value(ParamIndices::DryWet, 0));
-#endif // MAJ7COMP_FULL
 				mOutput = wet * mOutputGainLin;
 			}
+
+
+#else
+
+#endif // MAJ7COMP_FULL
+
+			// responsible for calculating mInput, mDry, mSidechain, mPreDetector
+			float ProcessSample(float inputAudio, float detectorInput) {
+				//mDry = inputAudio;
+				mSidechain = mHighpassFilter.ProcessSample(detectorInput);
+				mDetector = std::abs(mSidechain);
+				float attFactor = CompressorPeakSlow(mDetector);
+				float wet = inputAudio / attFactor;
+				mGainReduction = 1.0f / attFactor;
+				mDiff = wet - inputAudio;
+				return wet * mOutputGainLin;
+			}
+
 		};
+
+
+
 
 		MonoCompressor mComp[2] = { {mParamCache},{mParamCache} }; // 2 channels
 
@@ -341,11 +356,6 @@ namespace WaveSabreCore
 			mComp[0].ProcessSampleAfterChannelMixing(mixedDetector0);
 			float mixedDetector1 = M7::math::lerp(mComp[1].mPreDetector, sum, mChannelLink01);
 			mComp[1].ProcessSampleAfterChannelMixing(mixedDetector1);
-#else
-			mComp[0].ProcessSampleBeforeChannelMixing(in0);
-			mComp[0].ProcessSampleAfterChannelMixing(mComp[0].mPreDetector);
-			mComp[1].ProcessSampleBeforeChannelMixing(in1);
-			mComp[1].ProcessSampleAfterChannelMixing(mComp[1].mPreDetector);
 #endif // MAJ7COMP_FULL
 		}
 
@@ -354,12 +364,11 @@ namespace WaveSabreCore
 			//bool midside = mParams.GetBoolValue(ParamIndices::MidSideEnable);
 			for (size_t iSample = 0; iSample < (size_t)numSamples; ++iSample)
 			{
+#ifdef MAJ7COMP_FULL
 				float in0 = inputs[0][iSample];
 				float in1 = inputs[1][iSample];
 
 				float out0, out1;
-
-#ifdef MAJ7COMP_FULL
 				//if (mParams.GetBoolValue(ParamIndices::MidSideEnable)) {
 				//	float m, s;
 				//	M7::MSEncode(in0, in1, &m, &s);
@@ -369,49 +378,41 @@ namespace WaveSabreCore
 				//	M7::MSDecode(mComp[0].mSidechain, mComp[1].mSidechain, &mComp[0].mSidechain, &mComp[1].mSidechain);
 				//}
 				//else {
-#endif // MAJ7COMP_FULL
-				CompressorComb(in0, in1); // the output of this is mComp[...].mOutput
-				out0 = mComp[0].mOutput;
-				out1 = mComp[1].mOutput;
-#ifdef MAJ7COMP_FULL
-				//}
-#endif // MAJ7COMP_FULL
-
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mInputAnalysis[0].WriteSample(mComp[0].mInput);
-				mInputAnalysis[1].WriteSample(mComp[1].mInput);
-
-				mOutputAnalysis[0].WriteSample(mComp[0].mOutput);
-				mOutputAnalysis[1].WriteSample(mComp[1].mOutput);
-
-				mInputAnalysisSlow[0].WriteSample(mComp[0].mInput);
-				mInputAnalysisSlow[1].WriteSample(mComp[1].mInput);
-
-				mOutputAnalysisSlow[0].WriteSample(mComp[0].mOutput);
-				mOutputAnalysisSlow[1].WriteSample(mComp[1].mOutput);
-
-				mDetectorAnalysis[0].WriteSample(mComp[0].mPostDetector);
-				mDetectorAnalysis[1].WriteSample(mComp[1].mPostDetector);
-
-				mAttenuationAnalysis[0].WriteSample(mComp[0].mGainReduction);
-				mAttenuationAnalysis[1].WriteSample(mComp[1].mGainReduction);
-
-				switch (mOutputSignal) {
-				case OutputSignal::Normal:
-					break;
-				case OutputSignal::Diff:
-					out0 = mComp[0].mDiff;
-					out1 = mComp[1].mDiff;
-					break;
-				case OutputSignal::Sidechain:
-					out0 = mComp[0].mSidechain;
-					out1 = mComp[1].mSidechain;
-					break;
-				}
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
 				outputs[0][iSample] = out0;
 				outputs[1][iSample] = out1;
+#endif // MAJ7COMP_FULL
+
+				// apply stereo linking
+				float monoDetector = inputs[0][iSample] + inputs[1][iSample];
+
+				for (size_t ich = 0; ich < 2; ++ich) {
+					float inpAudio = inputs[ich][iSample];
+					float detector = M7::math::lerp(inpAudio, monoDetector, mChannelLink01);
+					outputs[ich][iSample] = mComp[ich].ProcessSample(inpAudio, detector);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+					mInputAnalysis[ich].WriteSample(inpAudio);
+					mOutputAnalysis[ich].WriteSample(outputs[ich][iSample]);
+
+					mInputAnalysisSlow[ich].WriteSample(inpAudio);
+					mOutputAnalysisSlow[ich].WriteSample(outputs[ich][iSample]);
+
+					mDetectorAnalysis[ich].WriteSample(mComp[ich].mDetector);
+					mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
+
+					switch (mOutputSignal) {
+					case OutputSignal::Normal:
+						break;
+					case OutputSignal::Diff:
+						outputs[ich][iSample] = mComp[ich].mDiff;
+						break;
+					case OutputSignal::Sidechain:
+						outputs[ich][iSample] = mComp[ich].mSidechain;
+						break;
+					}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+				}
 			}
 
 		}

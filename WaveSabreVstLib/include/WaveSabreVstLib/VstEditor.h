@@ -1481,7 +1481,8 @@ namespace WaveSabreVstLib
 					ImGui::Dummy(ImVec2{width, height});
 				}
 
-				column = (column + 1) % columns;
+				column = (column + 1);
+				if (columns) column %= columns;
 
 				ImGui::PopStyleColor(colorsPushed);
 			}
