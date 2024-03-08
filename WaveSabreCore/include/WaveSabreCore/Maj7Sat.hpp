@@ -9,7 +9,7 @@
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 //#define MAJ7SAT_ENABLE_RARE_MODELS
-#define MAJ7SAT_ENABLE_ANALOG
+//#define MAJ7SAT_ENABLE_ANALOG
 //#define MAJ7SAT_ENABLE_MIDSIDE
 
 namespace WaveSabreCore
@@ -114,9 +114,7 @@ namespace WaveSabreCore
 #else // MAJ7SAT_ENABLE_RARE_MODELS
 		enum class Model : uint8_t {
 			Thru,
-			DivClipSoft,
 			TanhClip,
-			DivClipMedium,
 			DivClipHard,
 			Count__,
 		};
@@ -124,9 +122,7 @@ namespace WaveSabreCore
 
 #define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
 			"Thru", \
-		"DivClipSoft", \
 			"TanhClip", \
-			"DivClipMedium", \
 			"DivClipHard", \
 		}
 
@@ -136,9 +132,7 @@ namespace WaveSabreCore
 		// so using a fft meter to match a sine wave fundamental level.
 		static constexpr float ModelPregain[(size_t)Model::Count__] = {
 			1, // thru,
-			0.69f, // div 41
 			0.62f, // tanh clip
-			0.47f, // DivClipMedium,
 			0.21f, // DivClipHard,
 		};
 
@@ -151,9 +145,7 @@ namespace WaveSabreCore
 		//calcslope =(shape_hardclip(z) - shape_hardclip(0)) / z;
 		static constexpr float ModelNaturalSlopes[(size_t)Model::Count__] = {
 			1, // thru,
-			gK41 + 1, // div 41
 			2, // tanh clip
-			gK63 + 1, // DivClipMedium,
 			gK85 + 1, // DivClipHard,
 		};
 
@@ -462,8 +454,11 @@ namespace WaveSabreCore
 				// mostly because we do a lot of gain application.
 				// The dry signal is just before this function is called. so keep track of all these gain applications so we can undo it for a better diff.
 
-				float g = s < 0 ? -1.0f : 1.0f;
-				s = std::abs(s); // work only in positive pole for shaping.
+				float g = 1;
+				if (s < 0) {
+					g = -1;
+					s = -s;// work only in positive pole for shaping.
+				}
 
 				// at thresh=1, no shaping occurs and slope is 1 (linear).
 				// at thresh=0, the whole curve is shaped so gets the natural slope of the model = pi/2.
@@ -471,9 +466,10 @@ namespace WaveSabreCore
 
 				if (s > mThresholdLin) {
 					// we will be shaping the area above thresh, so map (thresh,1) to (0,1)
+					s = M7::math::map(s, mThresholdLin, 1, 0, 1);
+					//s -= mThresholdLin;
+					//s /= (1.0f - mThresholdLin);
 
-					s -= mThresholdLin;
-					s /= (1.0f - mThresholdLin);
 					s /= ModelNaturalSlopes[(int)mModel];
 
 					// perform shaping
@@ -482,24 +478,19 @@ namespace WaveSabreCore
 					default:
 					case Model::Thru:
 						break;// nop
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
-					case Model::SineClip:
-						s = shape_sinclip(s);
-						break;
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
-					case Model::DivClipSoft:
-						s = shape_div(s, gK41);
-						break;
 					case Model::TanhClip:
 						s = shape_tanhclip(s);
-						break;
-					case Model::DivClipMedium:
-						s = shape_div(s, gK63);
 						break;
 					case Model::DivClipHard:
 						s = shape_div(s, gK85);
 						break;
 #ifdef MAJ7SAT_ENABLE_RARE_MODELS
+					case Model::SineClip:
+						s = shape_sinclip(s);
+						break;
+					case Model::DivClipSoft:
+						s = shape_div(s, gK41);
+						break;
 					case Model::HardClip:
 						s = shape_hardclip(s);
 						break;
@@ -515,14 +506,17 @@ namespace WaveSabreCore
 					case Model::LinearFold:
 						s = shape_trifold(s);
 						break;
+					case Model::DivClipMedium:
+						s = shape_div(s, gK63);
+						break;
 #endif // MAJ7SAT_ENABLE_RARE_MODELS
 					}
 					//satAmount = s - s_preshape;
 
 					// now map back (0,1) to (thresh,1).
-					s *= (1.0f - mThresholdLin);
-					s += mThresholdLin;
-					//diffSignal = (s - s_preshape) * g;
+					s = M7::math::lerp(mThresholdLin, 1, s);
+					//s *= (1.0f - mThresholdLin);
+					//s += mThresholdLin;
 				}
 				//else {
 				//	diffSignal = 0;
