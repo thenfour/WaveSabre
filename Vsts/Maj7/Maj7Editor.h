@@ -339,6 +339,13 @@ public:
 		} // maj7 menu
 
 		if (ImGui::BeginMenu("[Debug]")) {
+			if (ImGui::MenuItem("Fix amp envelope mods")) {
+				auto p = mpMaj7VST->GetMaj7();
+
+				for (auto& s : p->mSources) {
+					s->InitDevice();
+				}
+			}
 
 			if (ImGui::MenuItem("Show polyphonic inspector", nullptr, &mShowingInspector)) {
 				if (!mShowingInspector) mShowingModulationInspector = false;
