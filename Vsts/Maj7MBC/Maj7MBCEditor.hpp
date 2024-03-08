@@ -100,9 +100,10 @@ struct Maj7MBCEditor : public VstEditor
 				Maj7ImGuiParamFrequency(param(BandParam::HighPassFrequency), -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::HighPassQ), "HP Q", 0.2f, 0.2f);
 
-				ImGui::SameLine(0, 90); Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "ChanLink", 0.8f, 0);
-				ImGui::SameLine(0, 90); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input gain", M7::gVolumeCfg24db, 0, {});
-				ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Output gain", M7::gVolumeCfg24db, 0, {});
+				ImGui::SameLine(0, 40); Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "ChanLink", 0.8f, 0);
+				ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
+				ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
+				ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Output", M7::gVolumeCfg24db, 0, {});
 
 				ImGui::EndDisabled();
 

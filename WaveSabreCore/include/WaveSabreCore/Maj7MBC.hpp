@@ -41,6 +41,7 @@ namespace WaveSabreCore
 			AEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
 			AHighPassFrequency, // biquad freq; default lo
 			AHighPassQ, // default 0.2
+			ADrive,
 
 			BInputGain,
 			BOutputGain,
@@ -53,6 +54,7 @@ namespace WaveSabreCore
 			BEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
 			BHighPassFrequency, // biquad freq; default lo
 			BHighPassQ, // default 0.2
+			BDrive,
 
 			CInputGain,
 			COutputGain,
@@ -65,6 +67,7 @@ namespace WaveSabreCore
 			CEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
 			CHighPassFrequency, // biquad freq; default lo
 			CHighPassQ, // default 0.2
+			CDrive,
 
 			NumParams,
 		};
@@ -86,6 +89,7 @@ namespace WaveSabreCore
 			{"AEnable"},\
 			{"AHPF"},\
 			{"AHPQ"},\
+			{"ADrive"},\
 			{"BInVol"},\
 			{"BOutVol"},\
 			{"BThresh"},\
@@ -97,6 +101,7 @@ namespace WaveSabreCore
 			{"BEnable"},\
 			{"BHPF"},\
 			{"BHPQ"},\
+			{"BDrive"},\
 			{"CInVol"},\
 			{"COutVol"},\
 			{"CThresh"},\
@@ -108,9 +113,10 @@ namespace WaveSabreCore
 			{"CEnable"},\
 			{"CHPF"},\
 			{"CHPQ"},\
+			{"CDrive"},\
 }
 
-		static_assert((int)ParamIndices::NumParams == 37, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 40, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InGain = 0.25118863582611083984
 		  13557, // xAFreq = 0.4137503504753112793
@@ -127,6 +133,7 @@ namespace WaveSabreCore
 		  0, // AEnable = 0
 		  0, // AHPF = 0
 		  6553, // AHPQ = 0.20000000298023223877
+  4125, // ADrive = 0.12589254975318908691
 		  8230, // BInVol = 0.25118863582611083984
 		  8230, // BOutVol = 0.25118863582611083984
 		  21845, // BThresh = 0.6666666865348815918
@@ -138,6 +145,7 @@ namespace WaveSabreCore
 		  0, // BEnable = 0
 		  0, // BHPF = 0
 		  6553, // BHPQ = 0.20000000298023223877
+  4125, // ADrive = 0.12589254975318908691
 		  8230, // CInVol = 0.25118863582611083984
 		  8230, // COutVol = 0.25118863582611083984
 		  21845, // CThresh = 0.6666666865348815918
@@ -149,6 +157,7 @@ namespace WaveSabreCore
 		  0, // CEnable = 0
 		  0, // CHPF = 0
 		  6553, // CHPQ = 0.20000000298023223877
+  4125, // ADrive = 0.12589254975318908691
 		};
 
 
@@ -166,6 +175,7 @@ namespace WaveSabreCore
 				Enable,
 				HighPassFrequency,
 				HighPassQ,
+				Drive,
 				Count__,
 			};
 
@@ -174,6 +184,9 @@ namespace WaveSabreCore
 			M7::ParamAccessor mParams;
 			MonoCompressor mComp[2];
 			bool mEnable;
+			float mDriveLin;
+			float mInputGainLin;
+			float mOutputGainLin;
 
 			FreqBand(float* paramCache, ParamIndices baseParamID) : //
 				mParams(paramCache, baseParamID)
@@ -202,10 +215,12 @@ namespace WaveSabreCore
 			void Slider() {
 
 				mEnable = mParams.GetBoolValue(BandParam::Enable);
-				for (auto& c : mComp) {
+				mDriveLin = mParams.GetLinearVolume(BandParam::Drive, M7::gVolumeCfg36db);
+				mInputGainLin = mParams.GetLinearVolume(BandParam::InputGain, M7::gVolumeCfg24db);
+				mOutputGainLin = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg24db);
+					
+					for (auto& c : mComp) {
 					c.SetParams(
-						mParams.GetLinearVolume(BandParam::InputGain, M7::gVolumeCfg24db),
-						mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg24db),
 						mParams.GetDivCurvedValue(BandParam::Ratio, MonoCompressor::gRatioCfg, 0),
 						mParams.GetScaledRealValue(BandParam::Knee, 0, 30, 0),
 						mParams.GetScaledRealValue(BandParam::Threshold, -60, 0, 0),
@@ -226,12 +241,19 @@ namespace WaveSabreCore
 
 				if (mEnable) {
 					for (size_t ich = 0; ich < 2; ++ich) {
-						float inpAudio = input.x[ich];
+						float inpAudio = input.x[ich] * mInputGainLin;
 						float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
-						output.x[ich] = mComp[ich].ProcessSample(inpAudio, detector);
+						float sout = mComp[ich].ProcessSample(inpAudio, detector);
+						if (mDriveLin > 1) {
+							// i'd love to do some kind of volume correction but it's not really practical.
+							sout = M7::math::tanh(mDriveLin * sout);
+						}
+						sout *= mOutputGainLin;
+						output.x[ich] = sout;
+
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-						mInputAnalysis[ich].WriteSample(input.x[ich]);
-						mOutputAnalysis[ich].WriteSample(output.x[ich]);
+						mInputAnalysis[ich].WriteSample(inpAudio);
+						mOutputAnalysis[ich].WriteSample(sout);
 						mDetectorAnalysis[ich].WriteSample(detector);
 						mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -365,7 +387,3 @@ namespace WaveSabreCore
 		}
 	};
 }
-
-
-
-

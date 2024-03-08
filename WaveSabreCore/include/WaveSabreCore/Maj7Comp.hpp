@@ -72,8 +72,8 @@ namespace WaveSabreCore
 		static constexpr M7::DivCurvedParamCfg gRatioCfg{ 1, 50, 1.05f };
 
 		// params
-		float mInputGainLin;
-		float mOutputGainLin;
+		//float mInputGainLin;
+		//float mOutputGainLin;
 		float mRatioCoef;
 		float mKnee;
 		float mThreshold;
@@ -88,8 +88,8 @@ namespace WaveSabreCore
 		BiquadFilter mHighpassFilter;
 
 		void SetParams(
-			float inputGainLin,
-			float outputGainLin,
+			//float inputGainLin,
+			//float outputGainLin,
 			float ratio, // user-facing ratio (2.5 for example)
 			float kneeDB,
 			float thresholdDB,
@@ -99,8 +99,8 @@ namespace WaveSabreCore
 			float highPassQ // biquad q ~0.2 - ~12.0f
 			)
 		{
-			mInputGainLin = inputGainLin;
-			mOutputGainLin = outputGainLin;
+			//mInputGainLin = inputGainLin;
+			//mOutputGainLin = outputGainLin;
 			mRatioCoef = (1.0f - (1.0f / ratio));
 			mKnee = kneeDB;
 			mThreshold = thresholdDB;
@@ -124,7 +124,7 @@ namespace WaveSabreCore
 
 		// responsible for calculating mInput, mDry, mSidechain, mPreDetector
 		float ProcessSample(float inputAudio, float detectorInput) {
-			inputAudio *= mInputGainLin;
+			//inputAudio *= mInputGainLin;
 			//mDry = inputAudio;
 			mSidechain = mHighpassFilter.ProcessSample(detectorInput);
 			mDetector = std::abs(mSidechain);
@@ -138,7 +138,7 @@ namespace WaveSabreCore
 			float wet = inputAudio / attFactor;
 			mGainReduction = 1.0f / attFactor;
 			mDiff = wet - inputAudio;
-			return wet * mOutputGainLin;
+			return wet;// *mOutputGainLin;
 		}
 
 	}; // struct MonoCompressor
@@ -231,7 +231,10 @@ MonoCompressor mComp[2];
 #ifdef MAJ7COMP_FULL
 		//bool mMidSideEnable = false;
 #endif // MAJ7COMP_FULL
-		OutputSignal mOutputSignal = OutputSignal::Normal;
+		float mInputGainLin;
+		float mOutputGainLin;
+
+			OutputSignal mOutputSignal = OutputSignal::Normal;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		AnalysisStream mInputAnalysis[2];
@@ -267,12 +270,12 @@ MonoCompressor mComp[2];
 		{
 			mParamCache[index] = value;
 			mOutputSignal = mParams.GetEnumValue<OutputSignal>(ParamIndices::OutputSignal);
+			mInputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
+			mOutputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
 
 			for (auto& c : mComp) {
 				//c.OnParamChange();
 				c.SetParams(
-					mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db),
-					mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db),
 					mParams.GetDivCurvedValue(ParamIndices::Ratio, MonoCompressor::gRatioCfg, 0),
 					mParams.GetScaledRealValue(ParamIndices::Knee, 0, 30, 0),
 					mParams.GetScaledRealValue(ParamIndices::Threshold, -60, 0, 0),
@@ -327,12 +330,14 @@ MonoCompressor mComp[2];
 #endif // MAJ7COMP_FULL
 
 				// apply stereo linking
-				float monoDetector = inputs[0][iSample] + inputs[1][iSample];
+				float s0 = inputs[0][iSample] * mInputGainLin;
+				float s1 = inputs[1][iSample] * mInputGainLin;
+				float monoDetector = s0 + s1;
 
 				for (size_t ich = 0; ich < 2; ++ich) {
-					float inpAudio = inputs[ich][iSample];
+					float inpAudio = inputs[ich][iSample] * mInputGainLin;
 					float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
-					outputs[ich][iSample] = mComp[ich].ProcessSample(inpAudio, detector);
+					outputs[ich][iSample] = mComp[ich].ProcessSample(inpAudio, detector) * mOutputGainLin;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 					mInputAnalysis[ich].WriteSample(inpAudio);
