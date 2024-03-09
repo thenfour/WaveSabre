@@ -979,7 +979,7 @@ namespace WaveSabreVstLib
 		//dl->AddRectFilled(threshbb.Min, threshbb.Max, colors.tick);
 
 		// draw clip
-		if (clipIndicator && *clipIndicator) {
+		if (clipIndicator && *clipIndicator && (cfg.levelMode != VUMeterLevelMode::Attenuation)) {
 			dl->AddRectFilled(bb.Min, { bb.Max.x, bb.Min.y + 8 }, colors.clipTick);
 		}
 

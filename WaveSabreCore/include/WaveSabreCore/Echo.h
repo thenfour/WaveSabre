@@ -12,16 +12,18 @@ namespace WaveSabreCore
 {
 	struct Echo : public Device
 	{
-		static constexpr M7::IntParamConfig gDelayCoarseCfg{ 0, 16 };
-		static constexpr M7::IntParamConfig gDelayFineCfg{ 0, 200 };
+		static constexpr M7::IntParamConfig gDelayCoarseCfg{ 0, 48 };
+		//static constexpr M7::IntParamConfig gDelayFineCfg{ 0, 200 };
 
 		enum class ParamIndices
 		{
-			LeftDelayCoarse, // 0-1 => 0-16 inclusive integral
-			LeftDelayFine, // 0-1 => 0-200 inclusive integral
+			LeftDelayCoarse, // in 8ths range of 4 beats, 0-4*8
+			LeftDelayFine, // -1 to 1 8th
+			LeftDelayMS, // -200,200 ms
 
 			RightDelayCoarse,// 0-1 => 0-16 inclusive integral
-			RightDelayFine,// 0-1 => 0-200 inclusive integral
+			RightDelayFine,
+			RightDelayMS,
 
 			LowCutFreq, // Helpers::ParamToFrequency(value)
 			LowCutQ,
@@ -41,8 +43,10 @@ namespace WaveSabreCore
 #define ECHO_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Echo::ParamIndices::NumParams]{ \
 	{"LdlyC"},\
 	{"LdlyF"},\
+	{"LdlyMS"},\
 	{"RdlyC"},\
 	{"RdlyF"},\
+	{"RdlyMS"},\
 	{"LCFreq"},\
 	{"LCQ"},\
 	{"HCFreq"},\
@@ -54,12 +58,14 @@ namespace WaveSabreCore
 	{"WetOut"},\
 }
 
-		static_assert((int)Echo::ParamIndices::NumParams == 13, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)Echo::ParamIndices::NumParams == 15, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gDefaults16[(int)Echo::ParamIndices::NumParams] = {
-		  6746, // LdlyC = 0.20587199926376342773
-		  81, // LdlyF = 0.0024719999637454748154
-		  8673, // RdlyC = 0.26470589637756347656
-		  81, // RdlyF = 0.0024875621311366558075
+		  5684, // LdlyC = 0.17346939444541931152
+		  16384, // LdlyF = 0.5
+		  16384, // LdlyMS = 0.5
+		  4346, // RdlyC = 0.13265305757522583008
+		  16384, // RdlyF = 0.5
+		  16384, // RdlyMS = 0.5
 		  2221, // LCFreq = 0.06780719757080078125
 		  6553, // LCQ = 0.20000000298023223877
 		  26500, // HCFreq = 0.80874627828598022461
@@ -140,21 +146,38 @@ namespace WaveSabreCore
 			}
 		}
 
+		float CalcDelayMS(int coarse, float fine, float msParam) {
+			// 60000/bpm = milliseconds per beat. but we are going to be in 8 divisions per beat.
+			// 60000/8 = 7500
+			float eighths = fine + float(coarse);
+			float ms = 7500.0f / Helpers::CurrentTempo * eighths;
+
+			ms += msParam;
+			return std::max(0.0f, ms);
+		}
+
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
 			mCrossMix = mParams.Get01Value(ParamIndices::Cross);
-
-			float delayScalar = 120.0f / Helpers::CurrentTempo / 8.0f * 1000.0f;
-			float leftBufferLengthMs = mParams.GetIntValue(ParamIndices::LeftDelayCoarse, gDelayCoarseCfg) * delayScalar + mParams.GetIntValue(ParamIndices::LeftDelayFine, gDelayFineCfg);
-			mBuffers[0].SetLength(leftBufferLengthMs);
-			float rightBufferLengthMs = mParams.GetIntValue(ParamIndices::RightDelayCoarse, gDelayCoarseCfg) * delayScalar + mParams.GetIntValue(ParamIndices::RightDelayFine, gDelayFineCfg);
-			mBuffers[1].SetLength(leftBufferLengthMs);
-
 			mFeedbackLin = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
 			mFeedbackDriveLin = mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0);
 			mDryLin = mParams.GetLinearVolume(ParamIndices::DryOutput, M7::gVolumeCfg12db);
 			mWetLin = mParams.GetLinearVolume(ParamIndices::WetOutput, M7::gVolumeCfg12db);
+
+			float leftBufferLengthMs = CalcDelayMS(
+				mParams.GetIntValue(ParamIndices::LeftDelayCoarse, gDelayCoarseCfg),
+				mParams.GetN11Value(ParamIndices::LeftDelayFine, 0),
+				mParams.GetScaledRealValue(ParamIndices::LeftDelayMS, -200, 200, 0)
+			);
+			mBuffers[0].SetLength(leftBufferLengthMs);
+
+			float rightBufferLengthMs = CalcDelayMS(
+				mParams.GetIntValue(ParamIndices::RightDelayCoarse, gDelayCoarseCfg),
+				mParams.GetN11Value(ParamIndices::RightDelayFine, 0),
+				mParams.GetScaledRealValue(ParamIndices::RightDelayMS, -200, 200, 0)
+			);
+			mBuffers[1].SetLength(rightBufferLengthMs);
 
 			for (int i = 0; i < 2; i++)
 			{

@@ -15,7 +15,7 @@ class EchoEditor : public VstEditor
 	EchoVst* mpEchoVST;
 public:
 	EchoEditor(AudioEffect* audioEffect)
-		: VstEditor(audioEffect, 550, 450),
+		: VstEditor(audioEffect, 570, 450),
 		mpEchoVST((EchoVst*)audioEffect)//,
 	{
 		mpEcho = (Echo*)mpEchoVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
@@ -31,13 +31,15 @@ public:
 	{
 		ImGui::BeginGroup();
 
-		Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayCoarse, "Left coarse", Echo::gDelayCoarseCfg, 3, 0);
-		ImGui::SameLine();
-		Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayFine, "Left fine", Echo::gDelayFineCfg, 0, 0);
-		ImGui::SameLine();
-		Maj7ImGuiParamInt((int)Echo::ParamIndices::RightDelayCoarse, "Right coarse", Echo::gDelayCoarseCfg, 4, 0);
-		ImGui::SameLine();
-		Maj7ImGuiParamInt((int)Echo::ParamIndices::RightDelayFine, "Right fine", Echo::gDelayFineCfg, 0, 0);
+		Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayCoarse, "Left 8ths", Echo::gDelayCoarseCfg, 8, 0);
+		ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)Echo::ParamIndices::LeftDelayFine, "(fine)##left", 0, 0, {});
+		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)Echo::ParamIndices::LeftDelayMS, "(ms)##left", -200, 200, 0, 0, 0, {});
+
+		ImGui::SameLine(0, 60); Maj7ImGuiParamInt((int)Echo::ParamIndices::RightDelayCoarse, "Right 8ths", Echo::gDelayCoarseCfg, 6, 0);
+		ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)Echo::ParamIndices::RightDelayFine, "(fine)##right", 0, 0, {});
+		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)Echo::ParamIndices::RightDelayMS, "(ms)##right", -200, 200, 0, 0, 0, {});
+
+
 
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackLevel, "Feedback", M7::gVolumeCfg6db, -15.0f, {});
 		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackDriveDB, "FB Drive", M7::gVolumeCfg12db, 3, {});
