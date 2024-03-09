@@ -106,19 +106,13 @@ public:
 		mEnabledColors.EnsureInitialized();
 		mDisabledColors.EnsureInitialized();
 
-		//if (BeginTabBar2("master", ImGuiTabBarFlags_None))
-		{
-			//if (WSBeginTabItem("Master"))
-			{
-				Maj7ImGuiParamVolume((VstInt32)Leveller::ParamIndices::OutputVolume, "Output volume", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
-				//ImGui::EndTabItem();
-			}
+		ImGui::BeginGroup();
 
-			//EndTabBarWithColoredSeparator();
-		}
+		Maj7ImGuiParamVolume((VstInt32)Leveller::ParamIndices::OutputVolume, "Output volume", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
 
-		//ImGui::BeginTable("##fmaux", Leveller::gBandCount);
-		//ImGui::TableNextRow();
+		ImGui::SameLine();
+		ImGui::Text("DC Filter enabled");
+
 		const ImColor bandColors[Leveller::gBandCount] = {
 			ColorFromHTML("cc44cc", 0.8f),
 			ColorFromHTML("44cc44", 0.8f),
@@ -132,6 +126,11 @@ public:
 		RenderBand(2, "band3", Leveller::ParamIndices::Band3Type, 1100, bandColors[2]);
 		RenderBand(3, "band4", Leveller::ParamIndices::Band4Type, 3000, bandColors[3]);
 		RenderBand(4, "band5", Leveller::ParamIndices::Band5Type, 8500, bandColors[4]);
+
+		ImGui::EndGroup();
+
+		ImGui::SameLine(); VUMeter("vu_inp", mpLeveller->mInputAnalysis[0], mpLeveller->mInputAnalysis[1]);
+		ImGui::SameLine(); VUMeter("vu_outp", mpLeveller->mOutputAnalysis[0], mpLeveller->mOutputAnalysis[1]);
 
 		//ImGui::EndTable();
 		//
@@ -154,6 +153,8 @@ public:
 		}
 
 		mResponseGraph.OnRender(cfg);
+
+
 	}
 
 

@@ -15,7 +15,7 @@ class EchoEditor : public VstEditor
 	EchoVst* mpEchoVST;
 public:
 	EchoEditor(AudioEffect* audioEffect)
-		: VstEditor(audioEffect, 700, 900),
+		: VstEditor(audioEffect, 550, 450),
 		mpEchoVST((EchoVst*)audioEffect)//,
 	{
 		mpEcho = (Echo*)mpEchoVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
@@ -29,6 +29,8 @@ public:
 
 	virtual void renderImgui() override
 	{
+		ImGui::BeginGroup();
+
 		Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayCoarse, "Left coarse", Echo::gDelayCoarseCfg, 3, 0);
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayFine, "Left fine", Echo::gDelayFineCfg, 0, 0);
@@ -37,8 +39,8 @@ public:
 		ImGui::SameLine();
 		Maj7ImGuiParamInt((int)Echo::ParamIndices::RightDelayFine, "Right fine", Echo::gDelayFineCfg, 0, 0);
 
-		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackLevel, "Feedback", M7::gVolumeCfg6db, -5, {});
-		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackDriveDB, "FB Drive", M7::gVolumeCfg12db, 0, {});
+		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackLevel, "Feedback", M7::gVolumeCfg6db, -15.0f, {});
+		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackDriveDB, "FB Drive", M7::gVolumeCfg12db, 3, {});
 		ImGui::SameLine();
 		Maj7ImGuiParamFloat01((VstInt32)WaveSabreCore::Echo::ParamIndices::Cross, "crosstalk", 0.25f, 0);
 
@@ -55,7 +57,13 @@ public:
 
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::DryOutput, "Dry output", M7::gVolumeCfg12db, 0, {});
 		ImGui::SameLine();
-		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::WetOutput, "Wet output", M7::gVolumeCfg12db, -6, {});
+		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::WetOutput, "Wet output", M7::gVolumeCfg12db, -12, {});
+
+		ImGui::EndGroup();
+
+		ImGui::SameLine(); VUMeter("vu_inp", mpEcho->mInputAnalysis[0], mpEcho->mInputAnalysis[1]);
+		ImGui::SameLine(); VUMeter("vu_outp", mpEcho->mOutputAnalysis[0], mpEcho->mOutputAnalysis[1]);
+
 
 	}
 

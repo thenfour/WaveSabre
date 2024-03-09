@@ -6,7 +6,6 @@ namespace WaveSabreCore
 	class DelayBuffer
 	{
 	public:
-		DelayBuffer(float lengthMs = 0.0f);
 		~DelayBuffer();
 
 		void SetLength(float lengthMs);
@@ -16,7 +15,7 @@ namespace WaveSabreCore
 
 	private:
 		int length;
-		float *buffer;
+		float *buffer = nullptr;
 		int currentPosition;
 	};
 }

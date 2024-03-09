@@ -459,14 +459,14 @@ namespace WaveSabreVstLib
 
 				HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.2f : 0), 1.0f},
 				}, {
-				inputAnalysis[0].mCurrentPeak,
-				inputAnalysis[1].mCurrentPeak,
-				detectorAnalysis[0].mCurrentPeak,
-				detectorAnalysis[1].mCurrentPeak,
-				attenuationAnalysis[0].mCurrentPeak,
-				attenuationAnalysis[1].mCurrentPeak,
-				outputAnalysis[0].mCurrentPeak,
-				outputAnalysis[1].mCurrentPeak,
+				float(inputAnalysis[0].mCurrentPeak),
+				float(inputAnalysis[1].mCurrentPeak),
+				float(detectorAnalysis[0].mCurrentPeak),
+				float(detectorAnalysis[1].mCurrentPeak),
+				float(attenuationAnalysis[0].mCurrentPeak),
+				float(attenuationAnalysis[1].mCurrentPeak),
+				float(outputAnalysis[0].mCurrentPeak),
+				float(outputAnalysis[1].mCurrentPeak),
 				M7::math::DecibelsToLinear(comp.mThreshold),
 				});
 

@@ -9,28 +9,30 @@ namespace WaveSabreCore
 		return M7::math::expf(-1.0f / (Helpers::CurrentSampleRateF * ms / 1000.0f));
 	}
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 	struct RMSDetector
 	{
-		float mContinuousValue = 0;
+		double mContinuousValue = 0;
 
-        float mWindowMS = 0;
-		float mAlpha = 0;
+        double mWindowMS = 0;
+        double mAlpha = 0;
 
         void Reset() {
             mContinuousValue = 0;
         }
 		// because this is not a perfect curve, the "milliseconds" is a misnomer, it's a sort of approximation.
-		void SetWindowSize(float ms) {
+		void SetWindowSize(double ms) {
 			if (ms == mWindowMS) return;
 			mWindowMS = ms;
-			mAlpha = 1.0f - CalcFollowerCoef(ms);
+			mAlpha = 1.0 - CalcFollowerCoef(float(ms));
 		}
 
 		// returns the current "RMS"
-		float ProcessSample(float s) {
+		double ProcessSample(double s) {
 			// a sort of one-pole LP filter to smooth continuously, without requiring a memory buffer
-			mContinuousValue = M7::math::lerp(mContinuousValue, s * s, mAlpha);
-			return M7::math::sqrt(mContinuousValue);
+			mContinuousValue = M7::math::lerpD(mContinuousValue, s * s, mAlpha);
+			return M7::math::sqrt(float(mContinuousValue));
 		}
 
 	}; // struct RMSDetector
@@ -40,7 +42,7 @@ namespace WaveSabreCore
         // configuration
         int mClipHoldSamples;
         int mPeakHoldSamples;
-        float mPeakFalloffPerSample;
+        double mPeakFalloffPerSample;
 
         // state
         int mClipHoldCounter = 0;
@@ -48,12 +50,12 @@ namespace WaveSabreCore
 
         // running values
         bool mClipIndicator = 0;
-        float mCurrentPeak = 0; // the current peak rectified value, accounting for hold & falloff
+        double mCurrentPeak = 0; // the current peak rectified value, accounting for hold & falloff
 
-        void SetParams(float clipHoldMS, float peakHoldMS, float peakFalloffMaxMS) {
+        void SetParams(double clipHoldMS, double peakHoldMS, double peakFalloffMaxMS) {
             mClipHoldSamples = int(clipHoldMS * Helpers::CurrentSampleRateF / 1000);
             mPeakHoldSamples = int(peakHoldMS * Helpers::CurrentSampleRateF / 1000);
-            mPeakFalloffPerSample = std::max(0.000001f, 1.0f / (peakFalloffMaxMS * Helpers::CurrentSampleRateF / 1000));
+            mPeakFalloffPerSample = std::max(0.0000001, 1.0 / (peakFalloffMaxMS * Helpers::CurrentSampleRateF / 1000));
         }
 
         void Reset() {
@@ -63,8 +65,8 @@ namespace WaveSabreCore
             mCurrentPeak = 0;
         }
 
-        void ProcessSample(float s) {
-            float rectifiedSample = fabs(s); // Assuming 's' is the input sample
+        void ProcessSample(double s) {
+            double rectifiedSample = fabs(s); // Assuming 's' is the input sample
 
             // Clip detection
             if (rectifiedSample >= 1.0f) { // Assuming clipping occurs at 1.0f
@@ -94,36 +96,26 @@ namespace WaveSabreCore
         }
     };
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     // for VST-only, things like VU meters and history graphs require outputting many additional channels of audio.
     // this class goes in the Device, feed it samples. the VST can then access them in a safe way.
-    //struct OutputStream
-    //{
-    //    std::vector<float> mSamples;
-    //    void WriteSample(float s) {
-    //        mSamples.push_back(s);
-    //    }
-    //    //
-    //};
 
     struct AnalysisStream {
-        //std::vector<float> mSamples;
         RMSDetector mRMSDetector;
         PeakDetector mPeakDetector;
         PeakDetector mPeakHoldDetector;
 
-        float mCurrentRMSValue = 0;
+        double mCurrentRMSValue = 0;
         bool mClipIndicator = 0;
-        float mCurrentPeak = 0;
-        float mCurrentHeldPeak = 0; 
+        double mCurrentPeak = 0;
+        double mCurrentHeldPeak = 0;
 
-        explicit AnalysisStream(float peakFalloffMS) {
+        explicit AnalysisStream(double peakFalloffMS = 1200) {
             mRMSDetector.SetWindowSize(140);
             mPeakDetector.SetParams(0, 0, peakFalloffMS);
             mPeakHoldDetector.SetParams(1000, 1000, 600);
         }
 
-        void WriteSample(float s) {
+        void WriteSample(double s) {
             mCurrentRMSValue = mRMSDetector.ProcessSample(s);
             mPeakDetector.ProcessSample(s);
             mPeakHoldDetector.ProcessSample(s);

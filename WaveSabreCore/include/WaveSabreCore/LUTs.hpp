@@ -82,6 +82,10 @@ namespace WaveSabreCore
             {
                 return a * (1.0f - t) + b * t;
             }
+            INLINE double lerpD(double a, double b, double t)
+            {
+                return a * (1.0 - t) + b * t;
+            }
             INLINE float lerp_rev(float v_min, float v_max, float v_val) // inverse of lerp; returns 0-1 where t lies between a and b.
             {
                 return (v_val - v_min) / (v_max - v_min);

@@ -7,14 +7,14 @@ WaveSabreCore::Device* SongFactory(SongRenderer::DeviceId id)
 	{
 	case SongRenderer::DeviceId::Leveller: return new WaveSabreCore::Leveller();
 	case SongRenderer::DeviceId::Echo: return new WaveSabreCore::Echo();
-	case SongRenderer::DeviceId::Maj7Comp: return new WaveSabreCore::Maj7Comp();
+	case SongRenderer::DeviceId::Maj7MBC: return new WaveSabreCore::Maj7MBC();
 	case SongRenderer::DeviceId::Cathedral: return new WaveSabreCore::Cathedral();
 	case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::Maj7();
 	case SongRenderer::DeviceId::Maj7Width: return new WaveSabreCore::Maj7Width();
-	case SongRenderer::DeviceId::Maj7Sat: return new WaveSabreCore::Maj7Sat();
 	}
 	return nullptr;
 }
+
 
 const unsigned char SongBlob[] =
 {

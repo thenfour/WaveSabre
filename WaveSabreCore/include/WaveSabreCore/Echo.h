@@ -6,6 +6,7 @@
 #include "Maj7Basic.hpp"
 #include "Maj7Filter.hpp"
 #include "BiquadFilter.h"
+#include "RMS.hpp"
 
 namespace WaveSabreCore
 {
@@ -54,30 +55,41 @@ namespace WaveSabreCore
 }
 
 		static_assert((int)Echo::ParamIndices::NumParams == 13, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gDefaults16[13] = {
+		static constexpr int16_t gDefaults16[(int)Echo::ParamIndices::NumParams] = {
 		  6746, // LdlyC = 0.20587199926376342773
 		  81, // LdlyF = 0.0024719999637454748154
 		  8673, // RdlyC = 0.26470589637756347656
-		  81, // RdlyF = 0.0024719999637454748154
+		  81, // RdlyF = 0.0024875621311366558075
 		  2221, // LCFreq = 0.06780719757080078125
 		  6553, // LCQ = 0.20000000298023223877
 		  26500, // HCFreq = 0.80874627828598022461
-		  6553, // HCQ = 0.1999820023775100708
-		  17396, // FbLvl = 0.5308844447135925293
-		  16422, // FbDrive = 0.50118720531463623047
+		  6553, // HCQ = 0.20000000298023223877
+		  9782, // FbLvl = 0.29853826761245727539
+		  19518, // FbDrive = 0.59566217660903930664
 		  8192, // Cross = 0.25
 		  16422, // DryOut = 0.50118720531463623047
-		  11626, // WetOut = 0.35481339693069458008
+		  8230, // WetOut = 0.25118863582611083984
 		};
 
 		float mParamCache[(int)ParamIndices::NumParams];
 		M7::ParamAccessor mParams { mParamCache, 0 };
 
-		DelayBuffer leftBuffer;
-		DelayBuffer rightBuffer;
-
+		DelayBuffer mBuffers[2];
 		BiquadFilter mLowCutFilter[2];
 		BiquadFilter mHighCutFilter[2];
+
+		float mFeedbackLin;
+		float mFeedbackDriveLin;
+
+		float mDryLin;
+		float mWetLin;
+		float mCrossMix;
+
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		AnalysisStream mInputAnalysis[2];
+		AnalysisStream mOutputAnalysis[2];
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Echo()
 			: Device((int)ParamIndices::NumParams, mParamCache, gDefaults16)
@@ -87,44 +99,62 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
-			float delayScalar = 120.0f / Helpers::CurrentTempo / 8.0f * 1000.0f;
-			float leftBufferLengthMs = mParams.GetIntValue(ParamIndices::LeftDelayCoarse, gDelayCoarseCfg) * delayScalar + mParams.GetIntValue(ParamIndices::LeftDelayFine, gDelayFineCfg);
-			float rightBufferLengthMs = mParams.GetIntValue(ParamIndices::RightDelayCoarse, gDelayCoarseCfg) * delayScalar + mParams.GetIntValue(ParamIndices::RightDelayFine, gDelayFineCfg);
-			leftBuffer.SetLength(leftBufferLengthMs);
-			rightBuffer.SetLength(rightBufferLengthMs);
-
-			float feedback = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
-			float feedbackDriveLin = std::max(0.01f, mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0));
-			float cross = mParams.Get01Value(ParamIndices::Cross);
-			//float dryWet = mParams.Get01Value(ParamIndices::DryWet);
-
-			float dryMul = mParams.GetLinearVolume(ParamIndices::DryOutput, M7::gVolumeCfg12db);
-			float wetMul = mParams.GetLinearVolume(ParamIndices::WetOutput, M7::gVolumeCfg12db);
-
 			for (int i = 0; i < numSamples; i++)
 			{
-				float leftInput = inputs[0][i];
-				float rightInput = inputs[1][i];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mInputAnalysis[0].WriteSample(inputs[0][i]);
+				mInputAnalysis[1].WriteSample(inputs[1][i]);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-				float leftDelay = mLowCutFilter[0].ProcessSample(mHighCutFilter[0].ProcessSample(leftBuffer.ReadSample()));
-				leftDelay = M7::math::tanh(leftDelay * feedbackDriveLin) / feedbackDriveLin;
-				float rightDelay = mLowCutFilter[1].ProcessSample(mHighCutFilter[1].ProcessSample(rightBuffer.ReadSample()));
-				rightDelay = M7::math::tanh(rightDelay * feedbackDriveLin) / feedbackDriveLin;
+				// read buffer, apply processing (filtering, cross mix, drive)
+				M7::FloatPair delayBufferSignal = { mBuffers[0].ReadSample() ,mBuffers[1].ReadSample() };
 
-				float leftFeedback = (leftInput + M7::math::lerp(leftDelay, rightDelay, cross)) * feedback;
-				float rightFeedback = (rightInput + M7::math::lerp(rightDelay, leftDelay, cross)) * feedback;
+				delayBufferSignal[0] = mHighCutFilter[0].ProcessSample(delayBufferSignal[0]);
+				delayBufferSignal[1] = mHighCutFilter[1].ProcessSample(delayBufferSignal[1]);
 
-				leftBuffer.WriteSample(leftFeedback);
-				rightBuffer.WriteSample(rightFeedback);
+				delayBufferSignal[0] = mLowCutFilter[0].ProcessSample(delayBufferSignal[0]);
+				delayBufferSignal[1] = mLowCutFilter[1].ProcessSample(delayBufferSignal[1]);
 
-				outputs[0][i] = leftInput * dryMul + leftDelay * wetMul;// M7::math::lerp(leftInput, leftDelay, dryWet);
-				outputs[1][i] = rightInput * dryMul + rightDelay * wetMul; //M7::math::lerp(rightInput, rightDelay, dryWet);
+				// apply drive
+				delayBufferSignal[0] = M7::math::tanh(delayBufferSignal[0] * mFeedbackDriveLin);
+				delayBufferSignal[1] = M7::math::tanh(delayBufferSignal[1] * mFeedbackDriveLin);
+
+				// cross mix
+				delayBufferSignal = {
+					M7::math::lerp(delayBufferSignal[0], delayBufferSignal[1], mCrossMix),
+					M7::math::lerp(delayBufferSignal[1], delayBufferSignal[0], mCrossMix)
+				};
+
+				M7::FloatPair dry{ inputs[0][i], inputs[1][i] };
+
+				mBuffers[0].WriteSample(dry[0] + delayBufferSignal[0] * mFeedbackLin);
+				mBuffers[1].WriteSample(dry[1] + delayBufferSignal[1] * mFeedbackLin);
+
+				outputs[0][i] = dry[0] * mDryLin + delayBufferSignal[0] * mWetLin;
+				outputs[1][i] = dry[1] * mDryLin + delayBufferSignal[1] * mWetLin;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mOutputAnalysis[0].WriteSample(outputs[0][i]);
+				mOutputAnalysis[1].WriteSample(outputs[1][i]);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 			}
 		}
 
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
+			mCrossMix = mParams.Get01Value(ParamIndices::Cross);
+
+			float delayScalar = 120.0f / Helpers::CurrentTempo / 8.0f * 1000.0f;
+			float leftBufferLengthMs = mParams.GetIntValue(ParamIndices::LeftDelayCoarse, gDelayCoarseCfg) * delayScalar + mParams.GetIntValue(ParamIndices::LeftDelayFine, gDelayFineCfg);
+			mBuffers[0].SetLength(leftBufferLengthMs);
+			float rightBufferLengthMs = mParams.GetIntValue(ParamIndices::RightDelayCoarse, gDelayCoarseCfg) * delayScalar + mParams.GetIntValue(ParamIndices::RightDelayFine, gDelayFineCfg);
+			mBuffers[1].SetLength(leftBufferLengthMs);
+
+			mFeedbackLin = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
+			mFeedbackDriveLin = mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0);
+			mDryLin = mParams.GetLinearVolume(ParamIndices::DryOutput, M7::gVolumeCfg12db);
+			mWetLin = mParams.GetLinearVolume(ParamIndices::WetOutput, M7::gVolumeCfg12db);
 
 			for (int i = 0; i < 2; i++)
 			{

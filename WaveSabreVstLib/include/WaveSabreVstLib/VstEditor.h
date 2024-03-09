@@ -758,8 +758,8 @@ namespace WaveSabreVstLib
 		dl->AddPolyline(points.data(), (int)points.size(), curveColor, 0, 2.0f);
 
 		// detector indicator dot
-		float detectorLevel = std::max(detectorAnalysis[0].mCurrentPeak, detectorAnalysis[1].mCurrentPeak);// std::max(mpMaj7Comp->mComp[0].mPostDetector, mpMaj7Comp->mComp[1].mPostDetector);
-		float detectorDB = M7::math::LinearToDecibels(detectorLevel);
+		double detectorLevel = std::max(detectorAnalysis[0].mCurrentPeak, detectorAnalysis[1].mCurrentPeak);// std::max(mpMaj7Comp->mComp[0].mPostDetector, mpMaj7Comp->mComp[1].mPostDetector);
+		float detectorDB = M7::math::LinearToDecibels(float(detectorLevel));
 
 		float detAtten = c.TransferDecibels(detectorDB);
 		float detOutDB = detectorDB - detAtten;
@@ -825,7 +825,7 @@ namespace WaveSabreVstLib
 	// peak level may be nullptr to not graph it.
 	// clipindicator same.
 	// return true if clicked.
-	inline bool VUMeter(const char* id, const float* rmsLevel, const float* peakLevel, const float* heldPeakLevel, const bool* clipIndicator, bool allowTickText, const VUMeterConfig& cfg)
+	inline bool VUMeter(const char* id, const double* rmsLevel, const double* peakLevel, const double* heldPeakLevel, const bool* clipIndicator, bool allowTickText, const VUMeterConfig& cfg)
 	{
 		VUMeterColors colors;
 		switch (cfg.levelMode) {
@@ -886,30 +886,30 @@ namespace WaveSabreVstLib
 		float rmsDB = 0;
 		if (rmsLevel) {
 			if (cfg.units == VUMeterUnits::Linear) {
-				rmsDB = M7::math::LinearToDecibels(::fabsf(*rmsLevel));
+				rmsDB = M7::math::LinearToDecibels(::fabsf(float(* rmsLevel)));
 			}
 			else {
-				rmsDB = (*rmsLevel);
+				rmsDB = float(*rmsLevel);
 			}
 		}
 
 		float peakDb = 0;
 		if (peakLevel) {
 			if (cfg.units == VUMeterUnits::Linear) {
-				peakDb = M7::math::LinearToDecibels(::fabsf(*peakLevel));
+				peakDb = M7::math::LinearToDecibels(::fabsf(float(*peakLevel)));
 			}
 			else {
-				peakDb = (*peakLevel);
+				peakDb = float(*peakLevel);
 			}
 		}
 
 		float heldPeakDb = 0;
 		if (heldPeakLevel) {
 			if (cfg.units == VUMeterUnits::Linear) {
-				heldPeakDb = M7::math::LinearToDecibels(::fabsf(*heldPeakLevel));
+				heldPeakDb = M7::math::LinearToDecibels(::fabsf(float(*heldPeakLevel)));
 			}
 			else {
-				heldPeakDb = (*heldPeakLevel);
+				heldPeakDb = float(*heldPeakLevel);
 			}
 		}
 

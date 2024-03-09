@@ -9,6 +9,8 @@
 #include <WaveSabreCore/Maj7ParamAccessor.hpp>
 #include "Device.h"
 #include "BiquadFilter.h"
+#include "RMS.hpp"
+#include "Maj7Filter.hpp"
 
 namespace WaveSabreCore
 {
@@ -146,6 +148,10 @@ namespace WaveSabreCore
 			BiquadFilter mFilters[2];
 		};
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		AnalysisStream mInputAnalysis[2];
+		AnalysisStream mOutputAnalysis[2];
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Leveller() :
 			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16)
@@ -161,8 +167,16 @@ namespace WaveSabreCore
 			float masterGain = mParams.GetLinearVolume(ParamIndices::OutputVolume, M7::gVolumeCfg12db);
 			for (int iSample = 0; iSample < numSamples; iSample++)
 			{
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mInputAnalysis[0].WriteSample(inputs[0][iSample]);
+				mInputAnalysis[1].WriteSample(inputs[1][iSample]);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 				float s1 = inputs[0][iSample];
 				float s2 = inputs[1][iSample];
+
+				s1 = mDCFilters->ProcessSample(s1);
+				s2 = mDCFilters->ProcessSample(s2);
 
 				for (int iBand = 0; iBand < gBandCount; ++iBand)
 				{
@@ -178,6 +192,12 @@ namespace WaveSabreCore
 
 				outputs[0][iSample] = masterGain * s1;
 				outputs[1][iSample] = masterGain * s2;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				mOutputAnalysis[0].WriteSample(outputs[0][iSample]);
+				mOutputAnalysis[1].WriteSample(outputs[1][iSample]);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 			}
 		}
 
@@ -191,6 +211,8 @@ namespace WaveSabreCore
 			{mParamCache, ParamIndices::Band4Type/*, 7000 */},
 			{mParamCache, ParamIndices::Band5Type/*, 22050 */},
 		};
+
+		M7::DCFilter mDCFilters[2];
 	};
 }
 

@@ -134,6 +134,7 @@ namespace WaveSabreCore
         void Init();
 
         using real_t = float;
+        using real2 = float; // internal filter real type. filters are theoretically more stable. but for the moment it doesn't cause issues.
 
         template<typename Tfirst, typename Tsecond>
         struct Pair
@@ -145,6 +146,15 @@ namespace WaveSabreCore
         struct FloatPair
         {
             float x[2];
+            float& operator [](size_t i) {
+                return x[i];
+            }
+            const float& operator [](size_t i) const {
+                return x[i];
+            }
+            FloatPair add(FloatPair m)const {
+                return { x[0] + m.x[0], x[1] + m.x[1]};
+            }
             FloatPair mul(float m)const {
                 return { x[0] * m, x[1] * m };
             }

@@ -533,6 +533,13 @@ namespace WaveSabreCore
 
 			void frequency_splitter(float x, float crossoverFreqA, /*, LinkwitzRileyFilter::Slope crossoverSlope,*/ float crossoverFreqB)
 			{
+				// do some fixing of crossover frequencies.
+				float a = math::clamp(crossoverFreqA, 30, 18000);
+				float b = math::clamp(crossoverFreqB, 30, 18000);
+				//if (a > b) {
+				//	std::swap(a, b);
+				//}
+
 #ifndef DISABLE_6db_oct_crossover
 				if (crossoverSlope == LinkwitzRileyFilter::Slope::Slope_6dB) {
 					s[0] = mOP[0].ProcessSample(x, M7::FilterType::LP2, crossoverFreqA);
