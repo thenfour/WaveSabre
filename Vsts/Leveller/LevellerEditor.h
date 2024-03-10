@@ -84,11 +84,11 @@ public:
 		const char* notSelectedHoveredColor = "222299";
 
 		ImGui::SameLine(); Maj7ImGuiParamEnumMutexButtonArray<BiquadFilterType>((int)paramOffset + (int)Leveller::BandParamOffsets::Type, "type", 40, true, {
-			{ "Lowcut", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Highpass, },
-			{ "Lowshelf", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::LowShelf, },
-			{ "Peak", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Peak, },
-			{ "Highshelf", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::HighShelf, },
-			{ "Highcut", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Lowpass, },
+			{ "/HP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Highpass, },
+			{ "/LS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::LowShelf, },
+			{ "^Peak", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Peak, },
+			{ "\\HS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::HighShelf, },
+			{ "\\LP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Lowpass, },
 			});
 
 
@@ -111,7 +111,8 @@ public:
 		Maj7ImGuiParamVolume((VstInt32)Leveller::ParamIndices::OutputVolume, "Output volume", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
 
 		ImGui::SameLine();
-		ImGui::Text("DC Filter enabled");
+
+		WSImGuiParamCheckbox((VstInt32)Leveller::ParamIndices::EnableDCFilter, "Enable DC Filter?");
 
 		const ImColor bandColors[Leveller::gBandCount] = {
 			ColorFromHTML("cc44cc", 0.8f),

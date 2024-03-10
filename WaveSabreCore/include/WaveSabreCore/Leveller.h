@@ -21,6 +21,7 @@ namespace WaveSabreCore
 		enum class ParamIndices : uint8_t
 		{
 			OutputVolume,
+			EnableDCFilter,
 
 			Band1Type,
 			Band1Freq,
@@ -56,6 +57,7 @@ namespace WaveSabreCore
 		};
 #define LEVELLER_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Leveller::ParamIndices::NumParams]{ \
 	{"OutpVol"},\
+	{"DCEn"},\
 		{"AType"}, \
 		{"AFreq"}, \
 		{"AGain"}, \
@@ -83,9 +85,10 @@ namespace WaveSabreCore
 		{"EEn"}, \
 }
 
-		static_assert((int)ParamIndices::NumParams == 26, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gLevellerDefaults16[26] = {
+		static_assert((int)ParamIndices::NumParams == 27, "param count probably changed and this needs to be regenerated.");
+		static constexpr int16_t gLevellerDefaults16[27] = {
 		  16422, // OutpVol = 0.50118720531463623047
+		  0,// dc enable
 		  72, // AType = 0.0022233200725167989731
 		  8144, // AFreq = 0.24853515625
 		  16422, // AGain = 0.50115966796875
@@ -165,6 +168,7 @@ namespace WaveSabreCore
 			// it doesn't help i assure you. this code is more compressible.
 			auto recalcMask = M7::GetModulationRecalcSampleMask();
 			float masterGain = mParams.GetLinearVolume(ParamIndices::OutputVolume, M7::gVolumeCfg12db);
+			bool enableDC = mParams.GetBoolValue(ParamIndices::EnableDCFilter);
 			for (int iSample = 0; iSample < numSamples; iSample++)
 			{
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -175,8 +179,10 @@ namespace WaveSabreCore
 				float s1 = inputs[0][iSample];
 				float s2 = inputs[1][iSample];
 
-				s1 = mDCFilters->ProcessSample(s1);
-				s2 = mDCFilters->ProcessSample(s2);
+				if (enableDC) {
+					s1 = mDCFilters->ProcessSample(s1);
+					s2 = mDCFilters->ProcessSample(s2);
+				}
 
 				for (int iBand = 0; iBand < gBandCount; ++iBand)
 				{

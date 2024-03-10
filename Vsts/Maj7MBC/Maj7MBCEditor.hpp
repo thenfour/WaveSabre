@@ -97,6 +97,35 @@ struct Maj7MBCEditor : public VstEditor
 				ImGui::SameLine(0,90); Maj7ImGuiPowCurvedParam(param(BandParam::Attack), "Attack(ms)", MonoCompressor::gAttackCfg, 50, {});
 				ImGui::SameLine(); Maj7ImGuiPowCurvedParam(param(BandParam::Release), "Release(ms)", MonoCompressor::gReleaseCfg, 80, {});
 
+				ImGui::SameLine();
+				ImGui::BeginGroup();
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 2 });
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+				ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("222222").operator ImVec4());
+
+				if (iBand != 0) {
+					if (ImGui::Button("->Lows", {60,0})) {
+						CopyBand((int)iBand, 0);
+					}
+				}
+
+				if (iBand != 1) {
+					if (ImGui::Button("->Mids", { 60,0 })) {
+						CopyBand((int)iBand, 1);
+					}
+				}
+
+				if (iBand != 2) {
+					if (ImGui::Button("->Highs", { 60,0 })) {
+						CopyBand((int)iBand, 2);
+					}
+				}
+
+				ImGui::PopStyleColor();
+				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+				ImGui::EndGroup();
+
+
 				Maj7ImGuiParamFrequency(param(BandParam::HighPassFrequency), -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::HighPassQ), "HP Q", 0.2f, 0.2f);
 
@@ -120,6 +149,39 @@ struct Maj7MBCEditor : public VstEditor
 	}
 
 
+	void CopyBand(int ifrom, int ito)
+	{
+		auto bandToStr = [&](int i) {
+			switch (i) {
+			case 0:
+				return "lows";
+			case 1:
+				return "mids";
+			case 2:
+				return "highs";
+			default:
+				return "unknown";
+			}
+		};
+		auto bandToParamOffset = [&](int i) {
+			return mpMaj7MBC->mBands[i].mParams.mBaseParamID;
+		};
+		const char* fromstr = bandToStr(ifrom);
+		const char* tostr = bandToStr(ito);
+		char s[200];
+		const int fromParamOffset = bandToParamOffset(ifrom);
+		const int toParamOffset = bandToParamOffset(ito);
+		std::sprintf(s, "click OK to copy settings from band %s to %s", fromstr, tostr);
+		if (::MessageBox(mCurrentWindow, s, "Maj7", MB_ICONQUESTION | MB_OKCANCEL) == IDOK) {
+
+			int bandParamCount = (int)ParamIndices::BAttack - (int)ParamIndices::AAttack;
+			for (int i = 0; i < bandParamCount; ++i) {
+				float val = mpMaj7MBCVst->getParameter(fromParamOffset + i);
+				mpMaj7MBCVst->setParameter(toParamOffset + i, val);
+			}
+			::MessageBoxA(mCurrentWindow, "Done.", "Maj7", MB_ICONINFORMATION | MB_OK);
+		}
+	}
 
 
 
