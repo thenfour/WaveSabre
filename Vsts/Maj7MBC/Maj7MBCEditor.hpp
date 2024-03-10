@@ -32,12 +32,12 @@ struct Maj7MBCEditor : public VstEditor
 		PopulateStandardMenuBar(mCurrentWindow, "Maj7 MBC Muli-band compressor", mpMaj7MBC, mpMaj7MBCVst, "gParamDefaults", "ParamIndices::NumParams", mpMaj7MBC->mParamCache, paramNames);
 	}
 
-	void RenderBand(size_t iBand, ParamIndices enabledParam, const char* caption, bool muteSoloEnabled)
+	void RenderBand(size_t iBand, ParamIndices enabledParam, const char* caption, bool muteSoloEnabled, bool mbEnabledEnabled)
 	{
 		auto& band = mpMaj7MBC->mBands[iBand];
 		auto& bandConfig = band.mVSTConfig;// mpMaj7MBCVst->mBandConfig[iBand];
 
-		ColorMod& cm = muteSoloEnabled ? mBandColors : mBandDisabledColors;
+		ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
 		auto token = cm.Push();
 
 		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
@@ -50,7 +50,7 @@ struct Maj7MBCEditor : public VstEditor
 				};
 
 				//bool effectEnabled = band.mEnableEffect;// && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
-				ColorMod& cm = muteSoloEnabled ? mBandColors : mBandDisabledColors;
+				ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
 				auto token = cm.Push();
 
 				ImGui::BeginGroup();
@@ -135,16 +135,45 @@ struct Maj7MBCEditor : public VstEditor
 		bool solos[Maj7MBC::gBandCount] = { mpMaj7MBC->mBands[0].mVSTConfig.mSolo, mpMaj7MBC->mBands[1].mVSTConfig.mSolo , mpMaj7MBC->mBands[2].mVSTConfig.mSolo };
 		M7::CalculateMuteSolo(mutes, solos, muteSoloEnabled);
 
+		float backing = mpMaj7MBCVst->getParameter((int)ParamIndices::MultibandEnable);
+		M7::ParamAccessor pa{ &backing, 0 };
+		bool mbEnabled = pa.GetBoolValue(0);
+
+
 		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
 			if (WSBeginTabItem("IO"))
 			{
 				//LR_SLOPE_CAPTIONS(slopeNames);
 
-				Maj7ImGuiParamFrequencyWithCenter((int)ParamIndices::CrossoverAFrequency, -1, "x1freq(Hz)", M7::gFilterFreqConfig, 550, 0, {});
-				ImGui::SameLine(0); Maj7ImGuiParamFrequencyWithCenter((int)ParamIndices::CrossoverBFrequency, -1, "x2Freq(Hz)", M7::gFilterFreqConfig, 3000, 1, {});
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+				bool mbdisabled = !mbEnabled;
+				ImGui::BeginGroup();
+				if (ToggleButton(&mbdisabled, "SINGLE BAND", { 100,40 }, { "5555ee", "294a7a", "999999", })) {
+					// NB: ToggleButton() has flipped the value.
+					pa.SetBoolValue(0, false);
+					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
+				}
+				if (ToggleButton(&mbEnabled, "MULTIBAND", { 100,40 }, { "ee55ee", "294a7a", "999999", })) {
+					// NB: ToggleButton() has flipped the value.
+					pa.SetBoolValue(0, true);
+					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
+				}
+				ImGui::EndGroup();
+
+				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+
+
+				ImGui::BeginDisabled(mbdisabled);
+
+				ImGui::SameLine(); Maj7ImGuiParamFrequencyWithCenter((int)ParamIndices::CrossoverAFrequency, -1, "x1freq(Hz)", M7::gFilterFreqConfig, 550, 0, {});
+				ImGui::SameLine(); Maj7ImGuiParamFrequencyWithCenter((int)ParamIndices::CrossoverBFrequency, -1, "x2Freq(Hz)", M7::gFilterFreqConfig, 3000, 1, {});
 				//ImGui::SameLine(); Maj7ImGuiParamEnumCombo((VstInt32)ParamIndices::CrossoverASlope, "xASlope", (int)M7::LinkwitzRileyFilter::Slope::Count__, M7::LinkwitzRileyFilter::Slope::Slope_12dB, slopeNames, 100);
 				ImGui::SameLine(); ImGui::Text("slope\r\n#disabled");
+
+				ImGui::EndDisabled();
 
 				ImGui::SameLine(0, 80); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
@@ -179,13 +208,13 @@ struct Maj7MBCEditor : public VstEditor
 		}
 
 		ImGui::PushID("band0");
-		RenderBand(0, ParamIndices::AInputGain, "Lows", muteSoloEnabled[0]);
+		RenderBand(0, ParamIndices::AInputGain, "Lows", muteSoloEnabled[0], mbEnabled);
 		ImGui::PopID();
 		ImGui::PushID("band1");
-		RenderBand(1, ParamIndices::BInputGain, "Mids", muteSoloEnabled[1]);
+		RenderBand(1, ParamIndices::BInputGain, "Mids", muteSoloEnabled[1], true);
 		ImGui::PopID();
 		ImGui::PushID("band2");
-		RenderBand(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2]);
+		RenderBand(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2], mbEnabled);
 		ImGui::PopID();
 
 	}

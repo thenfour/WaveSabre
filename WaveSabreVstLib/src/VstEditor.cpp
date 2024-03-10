@@ -229,6 +229,7 @@ namespace WaveSabreVstLib
 		ImGui::NewFrame();
 
 		ImGui::GetStyle().FrameRounding = 3.0f;
+		ImGui::GetStyle().DisabledAlpha = .2f;
 
 		auto& io = ImGui::GetIO();
 

@@ -26,6 +26,7 @@ namespace WaveSabreCore
 		enum class ParamIndices
 		{
 			InputGain,
+			MultibandEnable,
 			CrossoverAFrequency,
 			CrossoverBFrequency,
 			OutputGain,
@@ -75,6 +76,7 @@ namespace WaveSabreCore
 		// NB: max 8 chars per string.
 #define MAJ7MBC_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7MBC::ParamIndices::NumParams]{ \
 			{"InGain"},\
+			{"MBEnable"},\
 			{"xAFreq"},\
 			{"xBFreq"},\
 			{"OutGain"},\
@@ -116,9 +118,10 @@ namespace WaveSabreCore
 			{"CDrive"},\
 }
 
-		static_assert((int)ParamIndices::NumParams == 40, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 41, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InGain = 0.25118863582611083984
+		  0,
 		  13557, // xAFreq = 0.4137503504753112793
 		  21577, // xBFreq = 0.65849626064300537109
 		  8230, // OutGain = 0.25118863582611083984
@@ -340,6 +343,7 @@ namespace WaveSabreCore
 			float outputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
 			float crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
 			float crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
+			bool mbEnable = mParams.GetBoolValue(ParamIndices::MultibandEnable);
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			bool muteSoloEnabled[Maj7MBC::gBandCount] = { false, false, false };
@@ -361,17 +365,25 @@ namespace WaveSabreCore
 				mInputAnalysis[1].WriteSample(s1);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-				// split into 3 bands
-				splitter0.frequency_splitter(s0, crossoverFreqA, crossoverFreqB);
-				splitter1.frequency_splitter(s1, crossoverFreqA, crossoverFreqB);
+				if (mbEnable) {
+					// split into 3 bands
+					splitter0.frequency_splitter(s0, crossoverFreqA, crossoverFreqB);
+					splitter1.frequency_splitter(s1, crossoverFreqA, crossoverFreqB);
 
-				s0 = 0;
-				s1 = 0;
-				for (int iBand = 0; iBand < gBandCount; ++iBand) {
-					auto& band = mBands[iBand];
-					auto r = band.ProcessSample({ splitter0.s[iBand], splitter1.s[iBand] });
-					s0 += r.x[0] * outputGainLin;
-					s1 += r.x[1] * outputGainLin;
+					s0 = 0;
+					s1 = 0;
+					for (int iBand = 0; iBand < gBandCount; ++iBand) {
+						auto& band = mBands[iBand];
+						auto r = band.ProcessSample({ splitter0.s[iBand], splitter1.s[iBand] });
+						s0 += r.x[0] * outputGainLin;
+						s1 += r.x[1] * outputGainLin;
+					}
+				}
+				else {
+					auto& band = mBands[1];
+					auto r = band.ProcessSample({ s0, s1 });
+					s0 = r[0] * outputGainLin;
+					s1 = r[1] * outputGainLin;
 				}
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
