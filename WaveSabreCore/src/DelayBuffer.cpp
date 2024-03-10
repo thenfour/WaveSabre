@@ -14,13 +14,14 @@ namespace WaveSabreCore
 		if (newLength < 1) newLength = 1;
 		if (newLength != length || !buffer)
 		{
+			// seems that this gets called on a separate thread than audio processing; make it naively thread-safe.
+			auto oldBuf = buffer;
 			auto newBuffer = new float[newLength];
 			memset(newBuffer, 0, sizeof(float) * newLength);
-			//for (int i = 0; i < newLength; i++) newBuffer[i] = 0.0f;
 			currentPosition = 0;
-			delete[] buffer;
-			buffer = newBuffer;
 			length = newLength;
+			buffer = newBuffer;
+			delete[] oldBuf;
 		}
 	}
 
