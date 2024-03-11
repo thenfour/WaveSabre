@@ -27,6 +27,27 @@ namespace WaveSabreVstLib
 	static constexpr double gNormalKnobSpeed = 0.0015;
 	static constexpr double gSlowKnobSpeed = 0.000003;
 
+
+	inline std::vector<std::pair<std::string, int>> autocomplete(std::string input, const std::vector<std::pair<std::string, int>>& entries) {
+		std::vector<std::pair<std::string, int>> suggestions;
+		std::transform(input.begin(), input.end(), input.begin(), ::tolower); // convert input to lowercase
+		for (auto entry : entries) {
+			std::string lowercaseEntry = entry.first;
+			std::transform(lowercaseEntry.begin(), lowercaseEntry.end(), lowercaseEntry.begin(), ::tolower); // convert entry to lowercase
+			int inputIndex = 0, entryIndex = 0;
+			while ((size_t)inputIndex < input.size() && (size_t)entryIndex < lowercaseEntry.size()) {
+				if (input[inputIndex] == lowercaseEntry[entryIndex]) {
+					inputIndex++;
+				}
+				entryIndex++;
+			}
+			if (inputIndex == input.size()) {
+				suggestions.push_back(entry);
+			}
+		}
+		return suggestions;
+	}
+
 	// stolen from ImGui::ColorEdit4
 	static ImColor ColorFromHTML(const char* buf, float alpha = 1.0f)
 	{
@@ -79,39 +100,23 @@ namespace WaveSabreVstLib
 		return ret;
 	}
 
-	//struct EnvTimeConverter : ImGuiKnobs::IValueConverter
-	//{
-	//	float mBacking;
-	//	WaveSabreCore::M7::EnvTimeParam mParam;
-
-	//	EnvTimeConverter() :
-	//		mParam(mBacking, 0)
-	//	{
-	//	}
-
-	//	virtual std::string ParamToDisplayString(double param, void* capture) override {
-	//		mParam.SetParamValue((float)param);
-	//		char s[100] = { 0 };
-	//		M7::real_t ms = mParam.GetMilliseconds();
-	//		if (ms > 2000)
-	//		{
-	//			sprintf_s(s, "%0.1f s", ms / 1000);
-	//		}
-	//		else if (ms > 1000) {
-	//			sprintf_s(s, "%0.2f s", ms / 1000);
-	//		}
-	//		else {
-	//			sprintf_s(s, "%0.2f ms", ms);
-	//		}
-	//		return s;
-	//	}
-
-	//	virtual double DisplayValueToParam(double value, void* capture) {
-	//		//mParam.SetRangedValue((float)value);
-	//		//return (double)mParam.GetRawParamValue();
-	//		return 0;
-	//	}
-	//};
+	inline std::string FloatToString(float x, const char *suffix = nullptr) {
+		if (!suffix) suffix = "";
+		char s[100] = { 0 };
+		if (x >= 1000) {
+			sprintf_s(s, "%0.0f%s", x, suffix); // 3333
+		}
+		else if (x >= 100) {
+			sprintf_s(s, "%0.1f%s", x, suffix); // 333.2
+		}
+		else if (x >= 10) {
+			sprintf_s(s, "%0.2f%s", x, suffix); // 12.34
+		}
+		else {
+			sprintf_s(s, "%0.3f%s", x, suffix); // 12.34
+		}
+		return s;
+	}
 
 	struct PowCurvedConverter : ImGuiKnobs::IValueConverter
 	{
@@ -122,28 +127,29 @@ namespace WaveSabreVstLib
 		PowCurvedConverter(const M7::PowCurvedParamCfg& cfg) : mConfig(cfg)
 		{}
 
-		virtual std::string ParamToDisplayString(double param, void* capture) override {
+		virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 			mBacking = (float)param;
 			char s[100] = { 0 };
 			M7::real_t ms = mParam.GetPowCurvedValue(0, mConfig, 0);
-			if (ms > 2000)
-			{
-				sprintf_s(s, "%0.1f s", ms / 1000);
-			}
-			else if (ms > 1000) {
-				sprintf_s(s, "%0.2f s", ms / 1000);
-			}
-			else {
-				sprintf_s(s, "%0.2f ms", ms);
-			}
-			return s;
+			return FloatToString(ms);
 		}
 
-		//virtual double DisplayValueToParam(double value, void* capture) {
-		//	//mParam.SetRangedValue((float)value);
-		//	//return (double)mParam.GetRawParamValue();
-		//	return 0;
-		//}
+		virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+		{
+			try {
+				double d = std::stod(s);
+				M7::QuickParam p;
+				p.SetPowCurvedValue(mConfig, float(d));
+				return { p.GetRawValue(), true };
+			}
+			catch (const std::invalid_argument&) {
+				return { 0, false };
+			}
+			catch (const std::out_of_range&) {
+				return { 0, false };
+			}
+		}
+
 	};
 
 	struct DivCurvedConverter : ImGuiKnobs::IValueConverter
@@ -155,17 +161,29 @@ namespace WaveSabreVstLib
 		DivCurvedConverter(const M7::DivCurvedParamCfg& cfg) : mConfig(cfg)
 		{}
 
-		virtual std::string ParamToDisplayString(double param, void* capture) override {
+		virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 			mBacking = (float)param;
 			char s[100] = { 0 };
 			M7::real_t v = mParam.GetDivCurvedValue(0, mConfig, 0);
-			sprintf_s(s, "%0.2f", v);
-			return s;
+			return FloatToString(v);
 		}
 
-		//virtual double DisplayValueToParam(double value, void* capture) {
-		//	return 0;
-		//}
+
+		virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+		{
+			try {
+				double d = std::stod(s);
+				M7::QuickParam p;
+				p.SetDivCurvedValue(mConfig, float(d));
+				return { p.GetRawValue(), true };
+			}
+			catch (const std::invalid_argument&) {
+				return { 0, false };
+			}
+			catch (const std::out_of_range&) {
+				return { 0, false };
+			}
+		}
 	};
 
 	struct M7VolumeConverter : ImGuiKnobs::IValueConverter
@@ -180,7 +198,7 @@ namespace WaveSabreVstLib
 		{
 		}
 
-		virtual std::string ParamToDisplayString(double param, void* capture) override {
+		virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 			mBacking = (float)param;
 			//mParam.SetParamValue((float)param);
 			char s[100] = { 0 };
@@ -189,10 +207,30 @@ namespace WaveSabreVstLib
 				return "-inf";
 			}
 			float db = mParam.GetDecibels(0, mCfg);
-			sprintf_s(s, "%c%0.2fdB", db < 0 ? '-' : '+', ::fabsf(db));
+			if (inputContinuity) {
+				sprintf_s(s, "%0.2f",db);
+			}
+			else {
+				sprintf_s(s, "%c%0.2fdB", db < 0 ? '-' : '+', ::fabsf(db));
+			}
 			return s;
 		}
 
+		virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+		{
+			try {
+				double d = std::stod(s);
+				M7::QuickParam p;
+				p.SetVolumeDB(mCfg, float(d));
+				return { p.GetRawValue(), true };
+			}
+			catch (const std::invalid_argument&) {
+				return { 0, false };
+			}
+			catch (const std::out_of_range&) {
+				return { 0, false };
+			}
+		}
 	};
 
 
@@ -1091,6 +1129,7 @@ namespace WaveSabreVstLib
 	class VstEditor : public AEffEditor
 	{
 	public:
+		char mFilterInputText[200] = { 0 };
 		ImRect tabBarBB;
 		ImU32 tabBarStoredSeparatorColor;
 
@@ -1263,19 +1302,6 @@ namespace WaveSabreVstLib
 			AEffEditor::close();
 		}
 
-		struct FrequencyConverter : ImGuiKnobs::IValueConverter
-		{
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
-				char s[100] = { 0 };
-				sprintf_s(s, "%0.2f", (float)::WaveSabreCore::Helpers::ParamToFrequency((float)param));
-				return s;
-			}
-
-			//virtual double DisplayValueToParam(double value, void* capture) {
-			//	return ::WaveSabreCore::Helpers::FrequencyToParam((float)value);
-			//}
-		};
-
 		struct ScaledFloatConverter : ImGuiKnobs::IValueConverter
 		{
 			float mBacking;
@@ -1289,7 +1315,7 @@ namespace WaveSabreVstLib
 			{
 			}
 
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
+			virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 				//mParam.SetParamValue((float)param);
 				mBacking = (float)param;
 				char s[100] = { 0 };
@@ -1297,11 +1323,23 @@ namespace WaveSabreVstLib
 				return s;
 			}
 
-			//virtual double DisplayValueToParam(double value, void* capture) {
-			//	//mParam.SetRangedValue((float)value);
-			//	mParams.SetRangedValue(0, mMin, mMax, (float)value);
-			//	return (double)mBacking;
-			//}
+
+			virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+			{
+				try {
+					double d = std::stod(s);
+					M7::QuickParam p;
+					p.SetScaledValue(mMin, mMax, float(d));
+					return { p.GetRawValue(), true };
+				}
+				catch (const std::invalid_argument&) {
+					return { 0, false };
+				}
+				catch (const std::out_of_range&) {
+					return { 0, false };
+				}
+			}
+
 		};
 
 		struct Maj7IntConverter : ImGuiKnobs::IValueConverter
@@ -1316,7 +1354,7 @@ namespace WaveSabreVstLib
 			{
 			}
 
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
+			virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 				//mParams.SetParamValue((float)param);
 				mBacking = (float)param;
 				int val = mParams.GetIntValue(0, mCfg);
@@ -1325,11 +1363,21 @@ namespace WaveSabreVstLib
 				return s;
 			}
 
-			//virtual double DisplayValueToParam(double value, void* capture) {
-
-			//	mParam.SetIntValue((int)value);
-			//	return (double)mParam.GetRawParamValue();
-			//}
+			virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+			{
+				try {
+					int d = std::stoi(s);
+					M7::QuickParam p;
+					p.SetIntValue(mCfg, d);
+					return { p.GetRawValue(), true };
+				}
+				catch (const std::invalid_argument&) {
+					return { 0, false };
+				}
+				catch (const std::out_of_range&) {
+					return { 0, false };
+				}
+			}
 		};
 
 		struct Maj7MidiNoteConverter : ImGuiKnobs::IValueConverter
@@ -1337,14 +1385,12 @@ namespace WaveSabreVstLib
 			float mBacking;
 			M7::ParamAccessor mParams{ &mBacking, 0 };
 
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
+			virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 				mBacking = (float)param;
 				return midiNoteToString(mParams.GetIntValue(0, M7::gKeyRangeCfg));
 			}
 
 		};
-
-		
 
 		struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
 		{
@@ -1360,40 +1406,58 @@ namespace WaveSabreVstLib
 			{
 			}
 
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
-				mBacking[0] = (float)param;
+			// returns whether keytracking is on
+			bool TouchKeytracking(void* capture) {
 				mBacking[1] = 0;
+				if (mKTParamID < 0) {
+					return false;
+				}
 				VstEditor* pThis = (VstEditor*)capture;
-				if (mKTParamID >= 0) {
-					mBacking[1] = pThis->GetEffectX()->getParameter(mKTParamID);
-				}
-
-
-				char s[100] = { 0 };
-				if ((mKTParamID < 0) || mBacking[1] < 0.00001f) {
-					float hz = mParams.GetFrequency(0, 1, mCfg, 0, 0);
-					//M7::real_t hz = mParam.GetFrequency(0, 0);
-					if (hz >= 1000) {
-						sprintf_s(s, "%.0fHz", hz);
-					}
-					else if (hz >= 100) {
-						sprintf_s(s, "%.2fHz", hz);
-					}
-					else if (hz >= 10) {
-						sprintf_s(s, "%.3fHz", hz);
-					}
-					else {
-						sprintf_s(s, "%.4fHz", hz);
-					}
-				}
-				else {
-					// with KT applied, the frequency doesn't really matter.
-					sprintf_s(s, "%0.0f%%", mBacking[0] * 100);
-				}
-
-				return s;
+				M7::QuickParam qp{ pThis->GetEffectX()->getParameter(mKTParamID) };
+				return qp.GetRawValue() > 0.0001f;
 			}
 
+			virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
+				char s[100] = { 0 };
+				mBacking[0] = (float)param;
+
+				if (inputContinuity) {
+					if (!TouchKeytracking(capture)) {
+						float hz = mParams.GetFrequency(0, 1, mCfg, 0, 0);
+						return FloatToString(hz);
+					}
+					// with KT applied, the frequency doesn't really matter.
+					return FloatToString(mBacking[0] * 100);
+				}
+
+				if (!TouchKeytracking(capture)) {
+					float hz = mParams.GetFrequency(0, 1, mCfg, 0, 0);
+					return FloatToString(hz, "Hz");
+				}
+				// with KT applied, the frequency doesn't really matter.
+				return FloatToString(mBacking[0] * 100, "%");
+			}
+
+			// when KT is off, the value is in hz
+			// when KT is on, the value is in 0-1
+			virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+			{
+				try {
+					if (TouchKeytracking(capture)) {
+						return { std::stod(s), true }; // Hz directly.
+					}
+					float hz = float(std::stod(s) / 100); // percent scaled by 100
+					M7::QuickParam p;
+					p.SetFrequencyAssumingNoKeytracking(mCfg, hz);
+					return { p.GetRawValue(), true };
+				}
+				catch (const std::invalid_argument&) {
+					return { 0, false };
+				}
+				catch (const std::out_of_range&) {
+					return { 0, false };
+				}
+			}
 		};
 
 		struct FloatN11Converter : ImGuiKnobs::IValueConverter
@@ -1401,7 +1465,7 @@ namespace WaveSabreVstLib
 			float mBacking;
 			M7::ParamAccessor mParams{ &mBacking, 0 };
 
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
+			virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 				mBacking = (float)param;
 				float n11 = mParams.GetN11Value(0, 0);
 				char s[100] = { 0 };
@@ -1409,6 +1473,21 @@ namespace WaveSabreVstLib
 				return s;
 			}
 
+			virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+			{
+				try {
+					double d = std::stod(s);
+					M7::QuickParam p;
+					p.SetN11Value(float(d));
+					return { p.GetRawValue(), true};
+				}
+				catch (const std::invalid_argument&) {
+					return { 0, false };
+				}
+				catch (const std::out_of_range&) {
+					return { 0, false };
+				}
+			}
 		};
 
 		struct Float01Converter : ImGuiKnobs::IValueConverter
@@ -1416,7 +1495,7 @@ namespace WaveSabreVstLib
 			float mBacking;
 			M7::ParamAccessor mParams{ &mBacking, 0 };
 
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
+			virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 				mBacking = (float)param;
 				char s[100] = { 0 };
 				sprintf_s(s, "%0.3f", mParams.Get01Value(0));
@@ -1429,7 +1508,7 @@ namespace WaveSabreVstLib
 			float mBacking;
 			M7::ParamAccessor mParams{ &mBacking, 0 };
 
-			virtual std::string ParamToDisplayString(double param, void* capture) override {
+			virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
 				mBacking = (float)param;
 				char s[100] = { 0 };
 				sprintf_s(s, "%d", int(mParams.Get01Value(0) * 100));
@@ -1437,19 +1516,6 @@ namespace WaveSabreVstLib
 			}
 		};
 
-		//// case ParamIndices::LoopMode: return (float)loopMode / (float)((int)LoopMode::NumLoopModes - 1);
-		////template<typename T>
-		//float EnumToParam(int value, int valueCount, int baseVal = 0) {
-		//	return (float)(value - baseVal) / (valueCount - 1);
-		//}
-
-		//// case ParamIndices::LoopMode: loopMode = (LoopMode)(int)(value * (float)((int)LoopMode::NumLoopModes - 1)); break;
-		////template<typename T>
-		//int ParamToEnum(float value, int valueCount, int baseVal = 0) {
-		//	if (value < 0) value = 0;
-		//	if (value > 1) value = 1;
-		//	return baseVal + (int)(value * (valueCount - 1));
-		//}
 
 		bool WSImGuiParamKnob(VstInt32 id, const char* name, ParamBehavior behavior = ParamBehavior::Default01, const char* fmt = "%.3f") {
 			float paramValue = GetEffectX()->getParameter((VstInt32)id);
@@ -1465,44 +1531,7 @@ namespace WaveSabreVstLib
 				}
 				break;
 			}
-			//case ParamBehavior::VibratoFreq:
-			//{
-			//	static VibratoFreqConverter conv;
-			//	r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
-			//	if (r) {
-			//		GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
-			//	}
-			//	break;
-			//}
-			//case ParamBehavior::Db:
-			//{
-			//	static DbConverter conv;
-			//	r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.5f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
-			//	if (r) {
-			//		GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
-			//	}
-			//	break;
-			//}
-			//case ParamBehavior::FilterQ:
-			//{
-			//	static FilterQConverter conv;
-			//	r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
-			//	if (r) {
-			//		GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
-			//	}
-			//	break;
-			//}
 
-			case ParamBehavior::Frequency:
-			{
-				static FrequencyConverter conv;
-				r = ImGuiKnobs::Knob(name, &paramValue, 0.0f, 1.0f, 0.5f, 0.0f, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, "%.2fHz", ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this);
-
-				if (r) {
-					GetEffectX()->setParameterAutomated(id, M7::math::clamp01(paramValue));
-				}
-				break;
-			}
 			case ParamBehavior::Default01:
 			default:
 			{
@@ -1516,27 +1545,6 @@ namespace WaveSabreVstLib
 			return r;
 		}
 
-		//void WSImGuiParamKnobInt(VstInt32 id, const char* name, int v_min, int v_max, int v_default, int v_center) {
-		//	float paramValue = GetEffectX()->getParameter((VstInt32)id);
-		//	M7::ParamAccessor pa{ &paramValue, 0 };
-		//	//int v_count = v_max - v_min + 1;
-		//	//int iparam = ParamToEnum(paramValue, v_count, v_min);
-		//	enum AnyEnum{};
-		//	int iparam = (int)pa.GetEnumValue<AnyEnum>(0);
-		//	if (ImGuiKnobs::KnobInt(name, &iparam, v_min, v_max, v_default, v_center, 0.003f * v_count, 0.0001f * v_count, NULL, ImGuiKnobVariant_WiperOnly))
-		//	{
-		//		paramValue = EnumToParam(iparam, v_count, v_min);
-		//		GetEffectX()->setParameterAutomated(id, Clamp01(paramValue));
-		//	}
-		//}
-
-
-		//float Clamp01(float x)
-		//{
-		//	if (x < 0) return 0;
-		//	if (x > 1) return 1;
-		//	return x;
-		//}
 
 		std::string GetRenderedTextFromID(const char* id) {
 			auto end = ImGui::FindRenderedTextEnd(id, 0);
@@ -1701,6 +1709,70 @@ namespace WaveSabreVstLib
 			ImGui::PopID();
 		}
 
+
+
+
+		// copied from BeginComboBox
+		bool ComboLookingButton(const char* label, const char* preview_value)
+		{
+			ImGuiContext& g = *GImGui;
+			ImGuiWindow* window = ImGui::GetCurrentWindow();
+
+			const ImGuiStyle& style = g.Style;
+			const ImGuiID id = window->GetID(label);
+
+			const float arrow_size = ImGui::GetFrameHeight();
+			const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
+			const float w = ImGui::CalcItemWidth();
+			const ImRect bb(window->DC.CursorPos, window->DC.CursorPos + ImVec2(w, label_size.y + style.FramePadding.y * 2.0f));
+			const ImRect total_bb(bb.Min, bb.Max + ImVec2(label_size.x > 0.0f ? style.ItemInnerSpacing.x + label_size.x : 0.0f, 0.0f));
+			ImGui::ItemSize(total_bb, style.FramePadding.y);
+			if (!ImGui::ItemAdd(total_bb, id, &bb))
+				return false;
+
+			// Open on click
+			bool hovered, held;
+			bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held);
+			const ImGuiID popup_id = ImHashStr("##ComboPopup", 0, id);
+			bool popup_open = ImGui::IsPopupOpen(popup_id, ImGuiPopupFlags_None);
+			if (pressed && !popup_open)
+			{
+				//ImGui::OpenPopupEx(popup_id, ImGuiPopupFlags_None);
+				popup_open = true;
+			}
+
+			// Render shape
+			const ImU32 frame_col = ImGui::GetColorU32(hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
+			const float value_x2 = ImMax(bb.Min.x, bb.Max.x - arrow_size);
+			ImGui::RenderNavHighlight(bb, id);
+			window->DrawList->AddRectFilled(bb.Min, ImVec2(value_x2, bb.Max.y), frame_col, style.FrameRounding, ImDrawFlags_RoundCornersLeft);
+
+			ImU32 bg_col = ImGui::GetColorU32((popup_open || hovered) ? ImGuiCol_ButtonHovered : ImGuiCol_Button);
+			ImU32 text_col = ImGui::GetColorU32(ImGuiCol_Text);
+			window->DrawList->AddRectFilled(ImVec2(value_x2, bb.Min.y), bb.Max, bg_col, style.FrameRounding, (w <= arrow_size) ? ImDrawFlags_RoundCornersAll : ImDrawFlags_RoundCornersRight);
+			if (value_x2 + arrow_size - style.FramePadding.x <= bb.Max.x)
+				ImGui::RenderArrow(window->DrawList, ImVec2(value_x2 + style.FramePadding.y, bb.Min.y + style.FramePadding.y), text_col, ImGuiDir_Down, 1.0f);
+			ImGui::RenderFrameBorder(bb.Min, bb.Max, style.FrameRounding);
+
+			// Render preview and label
+			if (preview_value != NULL)
+			{
+				if (g.LogEnabled)
+					ImGui::LogSetNextTextDecoration("{", "}");
+				ImGui::RenderTextClipped(bb.Min + style.FramePadding, ImVec2(value_x2, bb.Max.y), preview_value, NULL, NULL);
+			}
+			if (label_size.x > 0)
+				ImGui::RenderText(ImVec2(bb.Max.x + style.ItemInnerSpacing.x, bb.Min.y + style.FramePadding.y), label);
+
+			if (!popup_open)
+				return false;
+
+			//g.NextWindowData.Flags = backup_next_window_data_flags;
+			//return ImGui::BeginComboPopup(popup_id, bb, flags);
+			return pressed;
+		}
+
+
 		template<typename Tenum, typename TparamID, typename Tcount>
 		void Maj7ImGuiParamEnumCombo(TparamID paramID, const char* ctrlLabel, Tcount elementCount, Tenum defaultVal, const char* const* const captions, float width = 120) {
 			//M7::real_t tempVal;
@@ -1709,6 +1781,9 @@ namespace WaveSabreVstLib
 			M7::QuickParam p{ GetEffectX()->getParameter((VstInt32)paramID) };
 			auto friendlyVal = p.GetEnumValue<Tenum>();// ParamToEnum(paramValue, elementCount); //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
 			int enumIndex = (int)friendlyVal;
+
+			CCASSERT(enumIndex >= 0);
+			CCASSERT(enumIndex < elementCount);
 
 			const char* elem_name = "ERROR";
 
@@ -1719,19 +1794,51 @@ namespace WaveSabreVstLib
 
 			auto end = ImGui::FindRenderedTextEnd(ctrlLabel, 0);
 			auto txt = std::string(ctrlLabel, end);
-			ImGui::Text("%s", txt.c_str());
 
-			if (ImGui::BeginCombo("##enumlist", captions[enumIndex]))
+			ImGui::SetNextItemWidth(150);
+			if (ComboLookingButton(txt.c_str(), captions[enumIndex])) {
+				ImGui::OpenPopup("##enumlist");
+				mFilterInputText[0] = 0;
+			}
+
+			if (ImGui::BeginPopup("##enumlist"))
 			{
+				// set initial focus
+				// https://github.com/ocornut/imgui/issues/455
+				if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows) && !ImGui::IsAnyItemActive() && !ImGui::IsMouseClicked(0))
+					ImGui::SetKeyboardFocusHere(0);
+
+				ImGui::InputText("##filterText", mFilterInputText, std::size(mFilterInputText));
+
+				ImGui::SameLine();
+				if (ImGui::SmallButton("close")) {
+					ImGui::CloseCurrentPopup();
+				}
+
+				std::vector<std::pair<std::string, int>> options;
 				for (int n = 0; n < (int)elementCount; n++)
 				{
+					options.push_back({ captions[n], n });
+				}
+
+				auto matches = (std::strlen(mFilterInputText) > 0) ? autocomplete(mFilterInputText, options) : options;
+
+				for (auto& option : matches)
+				{
+					ImGui::PushID(option.second);
+					int n = option.second;
+					std::string caption = option.first;// captions[n];
+
 					const bool is_selected = (enumIndex == n);
-					if (ImGui::Selectable(captions[n], is_selected)) {
+					if (ImGui::Selectable(caption.c_str(), is_selected)) {
 						p.SetEnumValue((Tenum)n);
 						GetEffectX()->setParameterAutomated((VstInt32)paramID, p.GetRawValue());
+						ImGui::CloseCurrentPopup();
 					}
+
+					ImGui::PopID();
 				}
-				ImGui::EndCombo();
+				ImGui::EndPopup();
 			}
 
 			ImGui::EndGroup();
@@ -2024,10 +2131,7 @@ namespace WaveSabreVstLib
 		void Maj7ImGuiParamFMKnob(VstInt32 paramID, const char* label) {
 			WaveSabreCore::M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
 			M7::ParamAccessor pa{ &tempVal, 0 };
-			//M7::Float01Param p{ tempVal };
-			//p.SetParamValue();
 			const float v_default = 0;
-			//const float size = ImGui::GetTextLineHeight()* 2.5f;// default is 3.25f;
 			FMValueConverter conv;
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, v_default, 0, ImGuiKnobs::ModInfo{}, gNormalKnobSpeed, gSlowKnobSpeed, "%.2f", ImGuiKnobVariant_ProgressBarWithValue, 0, ImGuiKnobFlags_CustomInput | ImGuiKnobFlags_NoInput, 10, &conv, this))
 			{

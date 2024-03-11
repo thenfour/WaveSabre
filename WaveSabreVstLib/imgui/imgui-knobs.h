@@ -8,6 +8,9 @@
 
 #include <cstdlib>
 #include <string>
+#include <functional>
+#include <variant>
+
 #include <WaveSabreCore/Maj7.hpp>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
@@ -215,11 +218,29 @@ namespace ImGuiKnobs {
         }
     };
 
+	using variant = std::variant<int, double>;
+
     // converts 0-1 parameter values to a display value.
     struct IValueConverter
     {
-        virtual std::string ParamToDisplayString(double param, void* capture) = 0;
-        //virtual double DisplayValueToParam(double param, void* capture) = 0;
+		// input continuity = true when formatting for the initial text input value that the user can type.
+		// this should output a string that uses consistent units, and no unit suffix. it should be the same format as would be parsed when a user types the value.
+		// for example envelope time display normally can be in milliseconds or seconds ("20ms", "1.2sec")
+		// but when you double-click the value to get ready to type, it would be confusing to see "20ms" because if you just hit enter, it would parse error because of the suffix.
+		// and "1.2sec" would be even more confusing because "1.2" is not valid; input should be in milliseconds only.
+        virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) = 0;
+		virtual std::pair<variant, bool> DisplayValueToParam(const std::string& s, void* capture) {
+			//default impl
+			try {
+				return { std::stod(s), true };
+			}
+			catch (const std::invalid_argument&) {
+				return { 0, false };
+			}
+			catch (const std::out_of_range&) {
+				return { 0, false };
+			}
+		}
     };
 
     struct ModInfo

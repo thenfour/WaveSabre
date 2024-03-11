@@ -857,7 +857,7 @@ public:
 				ImGui::PopStyleVar();
 				ImGui::EndGroup();
 
-				ImGui::SameLine(0, 60);	Maj7ImGuiParamFloat01((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst", 0.5f, 0.5f, 0, GetModInfo(M7::ModDestination::FMBrightness));
+				ImGui::SameLine(0, 20);	Maj7ImGuiParamFloat01((VstInt32)M7::ParamIndices::FMBrightness, "Brightness##mst", 0.5f, 0.5f, 0, GetModInfo(M7::ModDestination::FMBrightness));
 
 				ImGui::EndTabItem();
 			}
@@ -1979,25 +1979,25 @@ public:
 	static WAVEFORMATEX* foundWaveFormat;
 
 
-	std::vector<std::pair<std::string, int>> autocomplete(std::string input, const std::vector<std::pair<std::string, int>>& entries) {
-		std::vector<std::pair<std::string, int>> suggestions;
-		std::transform(input.begin(), input.end(), input.begin(), ::tolower); // convert input to lowercase
-		for (auto entry : entries) {
-			std::string lowercaseEntry = entry.first;
-			std::transform(lowercaseEntry.begin(), lowercaseEntry.end(), lowercaseEntry.begin(), ::tolower); // convert entry to lowercase
-			int inputIndex = 0, entryIndex = 0;
-			while ((size_t)inputIndex < input.size() && (size_t)entryIndex < lowercaseEntry.size()) {
-				if (input[inputIndex] == lowercaseEntry[entryIndex]) {
-					inputIndex++;
-				}
-				entryIndex++;
-			}
-			if (inputIndex == input.size()) {
-				suggestions.push_back(entry);
-			}
-		}
-		return suggestions;
-	}
+	//std::vector<std::pair<std::string, int>> autocomplete(std::string input, const std::vector<std::pair<std::string, int>>& entries) {
+	//	std::vector<std::pair<std::string, int>> suggestions;
+	//	std::transform(input.begin(), input.end(), input.begin(), ::tolower); // convert input to lowercase
+	//	for (auto entry : entries) {
+	//		std::string lowercaseEntry = entry.first;
+	//		std::transform(lowercaseEntry.begin(), lowercaseEntry.end(), lowercaseEntry.begin(), ::tolower); // convert entry to lowercase
+	//		int inputIndex = 0, entryIndex = 0;
+	//		while ((size_t)inputIndex < input.size() && (size_t)entryIndex < lowercaseEntry.size()) {
+	//			if (input[inputIndex] == lowercaseEntry[entryIndex]) {
+	//				inputIndex++;
+	//			}
+	//			entryIndex++;
+	//		}
+	//		if (inputIndex == input.size()) {
+	//			suggestions.push_back(entry);
+	//		}
+	//	}
+	//	return suggestions;
+	//}
 
 	void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc, int ampEnvModDestBase)
 	{

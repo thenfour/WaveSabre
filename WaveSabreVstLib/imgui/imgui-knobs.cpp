@@ -1,18 +1,110 @@
 
-#include "imgui-knobs.h"
-
 #include <cmath>
 #include <cstdlib>
 #include <string>
 #include <Windows.h>
 
+//#include "imgui.h"
 
-#include "imgui.h"
+#include "imgui-knobs.h"
 #include "imgui_internal.h"
 
 #define IMGUIKNOBS_PI 3.14159265358979323846f
 
 namespace ImGui {
+
+
+    // copied from ImGui::TempInputScalar
+    // 
+    // Note that Drag/Slider functions are only forwarding the min/max values clamping values if the ImGuiSliderFlags_AlwaysClamp flag is set!
+    // This is intended: this way we allow CTRL+Click manual input to set a value out of bounds, for maximum flexibility.
+    // However this may not be ideal for all uses, as some user code may break on out of bound values.
+    bool TempInputScalarCustom(const ImRect& bb, ImGuiID id, const char* label, ImGuiDataType data_type, void* p_data, const char* format, const void* p_clamp_min, const void* p_clamp_max, ImGuiKnobs::IValueConverter* valueConverter, void* capture)
+    {
+        //char fmt_buf[100];
+        char data_buf[100];
+        //format = ImParseFormatTrimDecorations(format, fmt_buf, IM_ARRAYSIZE(fmt_buf));
+        //DataTypeFormatString(data_buf, IM_ARRAYSIZE(data_buf), data_type, p_data, format);
+        //std::strncpy(data_buf, label, IM_ARRAYSIZE(data_buf));
+        //ImStrTrimBlanks(data_buf);
+        double paramVal = 0;
+        switch (data_type) {
+        default:
+            CCASSERT(!"unsupported datatype");
+            return false;
+        case ImGuiDataType_Double:
+            paramVal = *((double*)p_data);
+            break;
+        case ImGuiDataType_Float:
+            paramVal = *((float*)p_data);
+            break;
+        }
+        auto ds = valueConverter->ParamToDisplayString(paramVal, capture,  true);
+        std::strncpy(data_buf, ds.c_str(), IM_ARRAYSIZE(data_buf));
+
+
+        ImGuiInputTextFlags flags = ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoMarkEdited;
+        //flags |= InputScalar_DefaultCharsFilter(data_type, format);
+
+        bool value_changed = false;
+        if (TempInputText(bb, id, label, data_buf, IM_ARRAYSIZE(data_buf), flags))
+        {
+            // Backup old value
+            size_t data_type_size = DataTypeGetInfo(data_type)->Size;
+            ImGuiDataTypeTempStorage data_backup;
+            memcpy(&data_backup, p_data, data_type_size);
+
+            // Apply new value (or operations) then clamp
+            //DataTypeApplyFromText(data_buf, data_type, p_data, format);
+            // convert data_buf string to the destination value.
+            //if (!valueConverter(data_buf, data_type, p_data, format)) {
+            //    memcpy(p_data , &data_backup, data_type_size);
+            //}
+            auto convResult = valueConverter->DisplayValueToParam(data_buf, capture);
+            if (!convResult.second) {
+                memcpy(p_data, &data_backup, data_type_size); // restore original val on parse error
+            }
+            else {
+                switch (data_type) {
+                default:
+                    CCASSERT(!"unsupported datatype");
+                    return false;
+                case ImGuiDataType_Double:
+                    *((double*)p_data) = std::get<double>(convResult.first);
+                    break;
+                case ImGuiDataType_Float:
+                    *((float*)p_data) = float(std::get<double>(convResult.first));
+                    break;
+                case ImGuiDataType_S8:
+                    *((int8_t*)p_data) = std::get<int>(convResult.first);
+                    break;
+                case ImGuiDataType_S16:
+                    *((int16_t*)p_data) = std::get<int>(convResult.first);
+                    break;
+                case ImGuiDataType_S32:
+                    *((int32_t*)p_data) = std::get<int>(convResult.first);
+                    break;
+                case ImGuiDataType_S64:
+                    *((int64_t*)p_data) = std::get<int>(convResult.first);
+                    break;
+                }
+            }
+
+            if (p_clamp_min || p_clamp_max)
+            {
+                if (p_clamp_min && p_clamp_max && DataTypeCompare(data_type, p_clamp_min, p_clamp_max) > 0)
+                    ImSwap(p_clamp_min, p_clamp_max);
+                DataTypeClamp(data_type, p_data, p_clamp_min, p_clamp_max);
+            }
+
+            // Only mark as edited if new value is different
+            value_changed = memcmp(&data_backup, p_data, data_type_size) != 0;
+            if (value_changed)
+                MarkItemEdited(id);
+        }
+        return value_changed;
+    }
+
 
     // WS: this is effectively copied from Imgui, but
     // 1. hard-codes the datatype as a `double`
@@ -32,7 +124,7 @@ namespace ImGui {
 
         char value_buf[64];
         double paramValue = *p_data;
-        auto strValue = conv->ParamToDisplayString(paramValue, capture);
+        auto strValue = conv->ParamToDisplayString(paramValue, capture, false);
         strcpy_s(value_buf, strValue.c_str());
 
         ImGuiContext& g = *GImGui;
@@ -95,7 +187,7 @@ namespace ImGui {
         {
             // Only clamp CTRL+Click input when ImGuiSliderFlags_AlwaysClamp is set
             const bool is_clamp_input = (flags & ImGuiSliderFlags_AlwaysClamp) != 0 && (p_min == NULL || p_max == NULL || DataTypeCompare(data_type, p_min, p_max) < 0);
-            return TempInputScalar(frame_bb, id, label, data_type, p_data, format, is_clamp_input ? p_min : NULL, is_clamp_input ? p_max : NULL);
+            return TempInputScalarCustom(frame_bb, id, label, data_type, p_data, format, is_clamp_input ? p_min : NULL, is_clamp_input ? p_max : NULL, conv, capture);
         }
 
         // Draw frame
@@ -319,7 +411,8 @@ namespace ImGuiKnobs {
                     knobSize = { radius * 2, radius * 0.33f };
                 }
                 if (variant == ImGuiKnobVariant_ProgressBarWithValue) {
-                    knobSize = { radius * 2, GImGui->FontSize + ImGuiKnobVariant_ProgressBarWithValue_Padding * 2 };
+                    //knobSize = { radius * 2, GImGui->FontSize + ImGuiKnobVariant_ProgressBarWithValue_Padding * 2 };
+                    knobSize = { 50, 16 };
                 }
 
                 ImGui::InvisibleButton(labelAndID.c_str(), knobSize); // TODO: what is this for??
@@ -367,7 +460,7 @@ namespace ImGuiKnobs {
             void draw_value_centered() {
                 std::string formatted;
                 if (mFlags & ImGuiKnobFlags_CustomInput) {
-                    formatted = mpConv->ParamToDisplayString(mValue, mpConvCapture);
+                    formatted = mpConv->ParamToDisplayString(mValue, mpConvCapture, false);
                 }
                 else {
                     char s[100]; // lul

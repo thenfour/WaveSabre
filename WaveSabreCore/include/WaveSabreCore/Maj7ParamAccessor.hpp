@@ -421,21 +421,49 @@ namespace WaveSabreCore
 
 			bool mHasFreqCfg = false;
 			FreqParamConfig mFreqCfg{ gFilterFreqConfig };
+
+			bool mHasPowCurvedCfg = false;
+			PowCurvedParamCfg mPowCurvedCfg{ 0.0f, 500.0f, 9 };
+
+
+			bool mHasDivCurvedCfg = false;
+			DivCurvedParamCfg mDivCurvedCfg{ 1, 50, 1.05f };
+
+			bool mHasVolumeCfg = false;
+			VolumeParamConfig mVolumeCfg{ 1.9952623149688795f, 6.0f };
 		public:
 
 			explicit QuickParam(float val01) : mBacking(val01), mHasValue(true) {
 			}
 			QuickParam() {
 			}
+
 			QuickParam(float val01, const IntParamConfig& cfg) : mHasValue(true), mBacking(val01), mHasIntCfg(true), mIntCfg(cfg) {
 			}
 			explicit QuickParam(const IntParamConfig& cfg) : mHasIntCfg(true), mIntCfg(cfg) {
 			}
+
 			QuickParam(float val01, const FreqParamConfig& cfg) : mHasValue(true), mBacking(val01), mHasFreqCfg(true), mFreqCfg(cfg) {
 			}
 			explicit QuickParam(const FreqParamConfig& cfg) : mHasFreqCfg(true), mFreqCfg(cfg) {
 			}
 
+			QuickParam(float val01, const PowCurvedParamCfg& cfg) : mHasValue(true), mBacking(val01), mHasPowCurvedCfg(true), mPowCurvedCfg(cfg) {
+			}
+			explicit QuickParam(const PowCurvedParamCfg& cfg) : mHasPowCurvedCfg(true), mPowCurvedCfg(cfg) {
+			}
+
+			QuickParam(float val01, const DivCurvedParamCfg& cfg) : mHasValue(true), mBacking(val01), mHasDivCurvedCfg(true), mDivCurvedCfg(cfg) {
+			}
+			explicit QuickParam(const DivCurvedParamCfg& cfg) : mHasDivCurvedCfg(true), mDivCurvedCfg(cfg) {
+			}
+
+			QuickParam(float val01, const VolumeParamConfig& cfg) : mHasValue(true), mBacking(val01), mHasVolumeCfg(true), mVolumeCfg(cfg) {
+			}
+			explicit QuickParam(const VolumeParamConfig& cfg) : mHasVolumeCfg(true), mVolumeCfg(cfg) {
+			}
+
+			// RAW -------------------------------------------------------------------------------
 			void SetRawValue(float val01) {
 				mHasValue = true;
 				mBacking = val01;
@@ -445,6 +473,7 @@ namespace WaveSabreCore
 				return mBacking;
 			}
 
+			// INT -------------------------------------------------------------------------------
 			int GetIntValue() const {
 				CCASSERT(!!mHasValue);
 				CCASSERT(!!mHasIntCfg);
@@ -454,7 +483,19 @@ namespace WaveSabreCore
 				CCASSERT(!!mHasValue);
 				return mAccessor.GetIntValue(0, cfg);
 			}
+			float SetIntValue(int n) {
+				CCASSERT(!!mHasIntCfg);
+				mHasValue = true;
+				mAccessor.SetIntValue(0, mIntCfg, n);
+				return mBacking;
+			}
+			float SetIntValue(const IntParamConfig& cfg, int n) {
+				mHasValue = true;
+				mAccessor.SetIntValue(0, cfg, n);
+				return mBacking;
+			}
 
+			// ENUM -------------------------------------------------------------------------------
 			template<typename Tenum>
 			Tenum GetEnumValue() const {
 				CCASSERT(!!mHasValue);
@@ -467,16 +508,24 @@ namespace WaveSabreCore
 				return mBacking;
 			}
 
+			// BOOL -------------------------------------------------------------------------------
 			bool GetBoolValue() const {
 				CCASSERT(!!mHasValue);
 				return mAccessor.GetBoolValue(0);
 			}
 
+			// N11 (-1 to 1 range) -------------------------------------------------------------------------------
 			float GetN11Value() const {
 				CCASSERT(!!mHasValue);
 				return mAccessor.GetN11Value(0, 0);
 			}
+			float SetN11Value(float n11) {
+				mHasValue = true;
+				mAccessor.SetN11Value(0, n11);
+				return mBacking;
+			}
 
+			// FREQUENCY -------------------------------------------------------------------------------
 			float SetFrequencyAssumingNoKeytracking(float hz) {
 				CCASSERT(!!mHasFreqCfg);
 				mHasValue = true;
@@ -494,6 +543,101 @@ namespace WaveSabreCore
 				CCASSERT(!!mHasFreqCfg);
 				return mAccessor.GetFrequency(0, mFreqCfg);
 			}
+
+
+			// SCALED (arbitrary float range) -------------------------------------------------------------------------------
+			float GetScaledValue(float vmin, float vmax) const {
+				CCASSERT(!!mHasValue);
+				return mAccessor.GetScaledRealValue(0, vmin, vmax);
+			}
+			float SetScaledValue(float vmin, float vmax, float val) {
+				mHasValue = true;
+				mAccessor.SetRangedValue(0, vmin, vmax, val);
+				return mBacking;
+			}
+
+			// POW-CURVED -------------------------------------------------------------------------------
+			float GetPowCurvedValue() const {
+				CCASSERT(mHasValue);
+				CCASSERT(mHasPowCurvedCfg);
+				return mAccessor.GetPowCurvedValue(0, mPowCurvedCfg, 0);
+			}
+			float SetPowCurvedValue(float val) {
+				CCASSERT(mHasPowCurvedCfg);
+				mHasValue = true;
+				mAccessor.SetPowCurvedValue(0, mPowCurvedCfg, val);
+				return mBacking;
+			}
+			float GetPowCurvedValue(const PowCurvedParamCfg& cfg) const {
+				CCASSERT(mHasValue);
+				return mAccessor.GetPowCurvedValue(0, cfg, 0);
+			}
+			float SetPowCurvedValue(const PowCurvedParamCfg& cfg, float val) {
+				mHasValue = true;
+				mAccessor.SetPowCurvedValue(0, cfg, val);
+				return mBacking;
+			}
+
+			// DIV-CURVED -------------------------------------------------------------------------------
+			float GetDivCurvedValue() const {
+				CCASSERT(mHasValue);
+				CCASSERT(mHasDivCurvedCfg);
+				return mAccessor.GetDivCurvedValue(0, mDivCurvedCfg, 0);
+			}
+			float SetDivCurvedValue(float val) {
+				CCASSERT(mHasDivCurvedCfg);
+				mHasValue = true;
+				mAccessor.SetDivCurvedValue(0, mDivCurvedCfg, val);
+				return mBacking;
+			}
+			float GetDivCurvedValue(const DivCurvedParamCfg& cfg) const {
+				CCASSERT(mHasValue);
+				return mAccessor.GetDivCurvedValue(0, cfg, 0);
+			}
+			float SetDivCurvedValue(const DivCurvedParamCfg& cfg, float val) {
+				mHasValue = true;
+				mAccessor.SetDivCurvedValue(0, cfg, val);
+				return mBacking;
+			}
+
+
+			// VOLUME (-inf to N) -------------------------------------------------------------------------------
+			float GetVolumeLin() const {
+				CCASSERT(mHasValue);
+				CCASSERT(mHasVolumeCfg);
+				return mAccessor.GetLinearVolume(0, mVolumeCfg);
+			}
+			float SetVolumeLin(float val) {
+				CCASSERT(mHasVolumeCfg);
+				mHasValue = true;
+				mAccessor.SetLinearVolume(0, mVolumeCfg, val);
+				return mBacking;
+			}
+			float GetVolumeLin(const VolumeParamConfig& cfg) const {
+				CCASSERT(mHasValue);
+				return mAccessor.GetLinearVolume(0, cfg);
+			}
+			float SetVolumeLin(const VolumeParamConfig& cfg, float val) {
+				mHasValue = true;
+				mAccessor.SetLinearVolume(0, cfg, val);
+				return mBacking;
+			}
+
+			float GetVolumeDB() const {
+				return math::LinearToDecibels(GetVolumeLin());
+			}
+			float SetVolumeDB(float val) {
+				val = math::DecibelsToLinear(val);
+				return SetVolumeLin(val);
+			}
+			float GetVolumeDB(const VolumeParamConfig& cfg) const {
+				return math::LinearToDecibels(GetVolumeLin(cfg));
+			}
+			float SetVolumeDB(const VolumeParamConfig& cfg, float val) {
+				val = math::DecibelsToLinear(val);
+				return SetVolumeLin(cfg, val);
+			}
+
 		};
 
 
