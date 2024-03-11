@@ -81,45 +81,45 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float **inputs, float **outputs, int numSamples);
 
-		virtual void SetParam(int index, float value) override
-		{
-			mParamCache[index] = value;
+	//	virtual void SetParam(int index, float value) override
+	//	{
+	//		mParamCache[index] = value;
 
-			type = mParams.GetEnumValue<Type>(ParamIndices::Type);
-			amount = mParams.Get01Value(ParamIndices::Amount);
-			feedback = mParams.Get01Value(ParamIndices::Feedback);
-			spread = mParams.GetEnumValue<Spread>(ParamIndices::Spread);
+	//		type = mParams.GetEnumValue<Type>(ParamIndices::Type);
+	//		amount = mParams.Get01Value(ParamIndices::Amount);
+	//		feedback = mParams.Get01Value(ParamIndices::Feedback);
+	//		spread = mParams.GetEnumValue<Spread>(ParamIndices::Spread);
 
-			vibratoAmount = mParams.Get01Value(ParamIndices::VibratoAmount);
+	//		vibratoAmount = mParams.Get01Value(ParamIndices::VibratoAmount);
 
-			//case ParamIndices::VibratoFreq: vibratoFreq = Helpers::ParamToVibratoFreq(value); break;
-			// original vibrato freq range is ~0.7hz to ~85hz.
-			vibratoFreq = mParams.GetFrequency(ParamIndices::VibratoFreq, M7::gLFOFreqConfig);// Helpers::ParamToFrequency(value); break;
-			lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
-			highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
-			dryWet = mParams.Get01Value(ParamIndices::DryWet);
-		}
+	//		//case ParamIndices::VibratoFreq: vibratoFreq = Helpers::ParamToVibratoFreq(value); break;
+	//		// original vibrato freq range is ~0.7hz to ~85hz.
+	//		vibratoFreq = mParams.GetFrequency(ParamIndices::VibratoFreq, M7::gLFOFreqConfig);// Helpers::ParamToFrequency(value); break;
+	//		lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
+	//		highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);// Helpers::ParamToFrequency(value); break;
+	//		dryWet = mParams.Get01Value(ParamIndices::DryWet);
+	//	}
 
-	private:
-		Type type;
-		float amount, feedback;
-		Spread spread;
-		double vibratoFreq;
-		float vibratoAmount;
-		double vibratoPhase;
-		float lowCutFreq, highCutFreq;
-		float dryWet;
-		float lastLeft, lastRight;
+	//private:
+	//	Type type;
+	//	float amount, feedback;
+	//	Spread spread;
+	//	double vibratoFreq;
+	//	float vibratoAmount;
+	//	double vibratoPhase;
+	//	float lowCutFreq, highCutFreq;
+	//	float dryWet;
+	//	float lastLeft, lastRight;
 
-		AllPassDelay allPassLeft[6];
-		AllPassDelay allPassRight[6];
-		float AllPassUpdateLeft(float input);
-		float AllPassUpdateRight(float input);
+	//	AllPassDelay allPassLeft[6];
+	//	AllPassDelay allPassRight[6];
+	//	float AllPassUpdateLeft(float input);
+	//	float AllPassUpdateRight(float input);
 
-		ResampleBuffer leftBuffer;
-		ResampleBuffer rightBuffer;
-		
-		M7::SVFilter lowCutFilter[2], highCutFilter[2];
+	//	ResampleBuffer leftBuffer;
+	//	ResampleBuffer rightBuffer;
+	//	
+	//	M7::SVFilter lowCutFilter[2], highCutFilter[2];
 	};
 }
 
