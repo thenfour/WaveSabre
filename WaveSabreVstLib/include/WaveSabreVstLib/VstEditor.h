@@ -64,31 +64,42 @@ namespace WaveSabreVstLib
 	}
 
 	struct ButtonColorSpec {
-		const char* selectedColor = nullptr;
-		const char* notSelectedColor = nullptr;
-		const char* hoveredColor = nullptr;
+	private:
+		ImU32 mActive = 0;
+		ImU32 mNormal = 0;
+		ImU32 mHovered = 0;
+	public:
+		ButtonColorSpec() {
+			mActive = ImGui::GetColorU32(ImGuiCol_FrameBgActive);
+			mNormal = ImGui::GetColorU32(ImGuiCol_FrameBg);
+			mHovered = ImGui::GetColorU32(ImGuiCol_FrameBgHovered);
+		}
+		ButtonColorSpec(const char *selColor, const char* notSelColor, const char *hoverColor) {
+			mActive = ColorFromHTML(selColor);
+			mNormal = ColorFromHTML(notSelColor);
+			mHovered = ColorFromHTML(hoverColor);
+		}
+		ImU32 ActiveU32() const {
+			return mActive;
+		}
+		ImU32 NormalU32() const {
+			return mNormal;
+		}
+		ImU32 HoveredU32() const {
+			return mHovered;
+		}
 	};
 
 	inline bool ToggleButton(bool* value, const char* label, ImVec2 size = {}, const ButtonColorSpec& cfg = {}) {
 		bool ret = false;
-		int colorsPushed = 0;
-		if (cfg.hoveredColor) {
-			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.hoveredColor));
-			colorsPushed++;
-		}
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, cfg.HoveredU32());
 		if (*value) {
-			if (cfg.selectedColor) {
-				ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.selectedColor));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.selectedColor));
-				colorsPushed += 2;
-			}
+			ImGui::PushStyleColor(ImGuiCol_Button, cfg.ActiveU32());
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, cfg.ActiveU32());
 		}
 		else {
-			if (cfg.notSelectedColor) {
-				ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
-				ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
-				colorsPushed += 2;
-			}
+			ImGui::PushStyleColor(ImGuiCol_Button, cfg.NormalU32());
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, cfg.NormalU32());
 		}
 
 		if (ImGui::Button(label, size)) {
@@ -96,7 +107,7 @@ namespace WaveSabreVstLib
 			ret = true;
 		}
 
-		ImGui::PopStyleColor(colorsPushed);
+		ImGui::PopStyleColor(3);
 		return ret;
 	}
 
@@ -1571,38 +1582,28 @@ namespace WaveSabreVstLib
 		template<typename TParamID>
 		void Maj7ImGuiBoolParamToggleButton(TParamID paramID, const char* label, ImVec2 size = {}, const ButtonColorSpec& cfg = {}) {
 			bool ret = false;
-			int colorsPushed = 0;
+			//int colorsPushed = 0;
 			float backing = GetEffectX()->getParameter((VstInt32)paramID);
 			M7::ParamAccessor p{ &backing, 0 };
 			bool value = p.GetBoolValue(0);
 
-			if (cfg.hoveredColor) {
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(cfg.hoveredColor));
-				colorsPushed++;
-			}
-			if (value) {
-				if (cfg.selectedColor) {
-					ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.selectedColor));
-					ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.selectedColor));
-					colorsPushed += 2;
-				}
-			}
-			else {
-				if (cfg.notSelectedColor) {
-					ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
-					ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(cfg.notSelectedColor));
-					colorsPushed += 2;
-				}
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+			if (ToggleButton(&value, label, size, cfg)) {
+				p.SetBoolValue(0, value);
+				GetEffectX()->setParameterAutomated((VstInt32)paramID, backing);
 			}
 
-			if (ImGui::Button(label, size)) {
-				p.SetBoolValue(0, !value);
-				GetEffectX()->setParameterAutomated(paramID, backing);
-			}
-
-			ImGui::PopStyleColor(colorsPushed);
+			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
 		}
 
+		template<typename TparamID>
+		void Maj7ImGuiBoolParamToggleButton(TparamID paramID, const char* label, const char* selectedColorHTML) {
+			ButtonColorSpec cfg;
+			cfg.selectedColor = selectedColorHTML;
+			Maj7ImGuiBoolParamToggleButton(paramID, label, {}, cfg);
+		}
 
 
 		ImVec2 CalcListBoxSize(float items)
@@ -2071,43 +2072,6 @@ namespace WaveSabreVstLib
 				ImGui::EndGroup();
 				ImGui::PopID();
 			}
-
-		template<typename TparamID>
-		void Maj7ImGuiParamBoolToggleButton(TparamID paramID, const char* label, const char* selectedColorHTML = 0) {
-			M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-			M7::ParamAccessor pa{ &tempVal, 0 };
-			auto is_selected = pa.GetBoolValue(0);
-
-			ImGui::PushID(label);
-
-			ImGui::BeginGroup();
-
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 0, 0 });
-			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
-
-			int colorsPushed = 0;
-
-			if (is_selected) {
-				if (selectedColorHTML) {
-					ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(selectedColorHTML));
-					ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(selectedColorHTML));
-					colorsPushed += 2;
-				}
-			}
-
-			if (ImGui::Button(label)) {
-				pa.SetBoolValue(0, !is_selected);
-				GetEffectX()->setParameterAutomated((VstInt32)paramID, tempVal);
-			}
-
-			ImGui::PopStyleColor(colorsPushed);
-
-			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
-
-			ImGui::EndGroup();
-			ImGui::PopID();
-		}
-
 
 
 		void Maj7ImGuiParamScaledFloat(VstInt32 paramID, const char* label, M7::real_t v_min, M7::real_t v_max, M7::real_t v_defaultScaled, float v_centerScaled, float sizePixels, ImGuiKnobs::ModInfo modInfo) {

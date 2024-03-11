@@ -105,7 +105,8 @@ public:
 
 		ImGui::SameLine();
 
-		WSImGuiParamCheckbox((VstInt32)Leveller::ParamIndices::EnableDCFilter, "Enable DC Filter?");
+		//WSImGuiParamCheckbox((VstInt32)Leveller::ParamIndices::EnableDCFilter, "Enable DC Filter?");
+		Maj7ImGuiBoolParamToggleButton(Leveller::ParamIndices::EnableDCFilter, "DC Filter");
 
 		const ImColor bandColors[Leveller::gBandCount] = {
 			ColorFromHTML("cc44cc", 0.8f),

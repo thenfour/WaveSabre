@@ -1041,8 +1041,9 @@ public:
 		//sth.GetImGuiFlags(oscID, &mpMaj7VST->mSelectedSource)
 		//if (WSBeginTabItem(labelWithID, 0, 0)) {
 		if (WSBeginTabItemWithSel(labelWithID, oscID, mSourceTabSelHelper)) {
-			//sth.OnSelectedTab();
-			WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
+			//WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
+			Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
+			//Maj7ImGuiParamBoolToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::gUnityVolumeCfg, 0, lGetModInfo(M7::OscModParamIndexOffsets::Volume ));
 
 			ImGui::SameLine(); WaveformParam(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, nullptr);
@@ -1053,9 +1054,13 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamInt(enabledParamID + (int)M7::OscParamIndexOffsets::PitchSemis, "Transp", M7::gSourcePitchSemisRange, 0, 0);
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PitchFine, "FineTune", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::PitchFine));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::gFrequencyMulMax, 1, 0, 0, {});
-			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
+			
+			//ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
+			ImGui::SameLine(0, 60); Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
+
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::Phase));
-			ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
+			//ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
+			ImGui::SameLine(0, 60); Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
 			ImGui::SameLine(); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequency, enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncFreq", M7::gSyncFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::OscModParamIndexOffsets::SyncFrequency));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::SyncFrequencyKT, "SyncKT", 0, 1, 1, 1, 0, {});
 
@@ -1103,7 +1108,8 @@ public:
 		//ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
 		ImGui::SameLine(); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFreqConfig, 0.4f, lGetModInfo(M7::LFOModParamIndexOffsets::FrequencyParam));
 		ImGui::SameLine(); Maj7ImGuiParamFloatN11(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::LFOModParamIndexOffsets::Phase));
-		ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
+		//ImGui::SameLine(); WSImGuiParamCheckbox(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
+		ImGui::SameLine(); Maj7ImGuiBoolParamToggleButton(waveformParamID + (int)M7::LFOParamIndexOffsets::Restart, "Restart");
 
 		ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::Sharpness, -1, "Sharpness", M7::gLFOLPFreqConfig, 0.5f, lGetModInfo(M7::LFOModParamIndexOffsets::Sharpness));
 
@@ -1136,8 +1142,9 @@ public:
 		Maj7ImGuiParamCurve(delayTimeParamID + (int)M7::EnvParamIndexOffsets::ReleaseCurve, "Curve##Release", 0, M7CurveRenderStyle::Falling, lGetModInfo(M7::EnvModParamIndexOffsets::ReleaseCurve));
 		ImGui::SameLine();
 		ImGui::BeginGroup();
-		WSImGuiParamCheckbox(delayTimeParamID + (int)M7::EnvParamIndexOffsets::LegatoRestart, "Leg.Restart");
-
+		Maj7ImGuiBoolParamToggleButton(delayTimeParamID + (int)M7::EnvParamIndexOffsets::LegatoRestart, "Leg.Restart");
+		//WSImGuiParamCheckbox(delayTimeParamID + (int)M7::EnvParamIndexOffsets::LegatoRestart, "Leg.Restart");
+		
 		ImGui::Text("OneShot");
 
 		M7::QuickParam qp{ GetEffectX()->getParameter(delayTimeParamID + (int)M7::EnvParamIndexOffsets::Mode) };
@@ -1434,7 +1441,8 @@ public:
 		{
 			ImGui::BeginDisabled(isLocked);
 			int enabledParamID = spec.mParams.mBaseParamID;
-			WSImGuiParamCheckbox(spec.mParams.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
+			//WSImGuiParamCheckbox(spec.mParams.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
+			Maj7ImGuiBoolParamToggleButton(spec.mParams.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
 			ImGui::EndDisabled();
 			ImGui::SameLine();
 			{
@@ -1508,7 +1516,8 @@ public:
 			}
 			ImGui::EndDisabled();
 
-			ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
+			//ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
+			ImGui::SameLine(0, 60); Maj7ImGuiBoolParamToggleButton((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
 			bool isAuxEnabled = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
 
 			{
@@ -1659,7 +1668,8 @@ public:
 				return GetModInfo((M7::ModDestination)((int)filter.mModDestBase + (int)x));
 			};
 
-			WSImGuiParamCheckbox(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
+			//WSImGuiParamCheckbox(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
+			Maj7ImGuiBoolParamToggleButton(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
 
 			ImGui::SameLine(0, 0);
 			
@@ -2013,7 +2023,8 @@ public:
 
 
 		if (WSBeginTabItemWithSel(labelWithID, (int)isrc, mSourceTabSelHelper)) {
-			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled), "Enabled");
+			//WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled), "Enabled");
+			Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled), "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Volume), "Volume", M7::gUnityVolumeCfg, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::Volume));
 
 			ImGui::SameLine(0, 50); Maj7ImGuiParamFrequency((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqParam),
@@ -2024,7 +2035,8 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::TuneFine), "FineTune", 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::PitchFine));
 			ImGui::SameLine(); Maj7ImGuiParamInt((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::BaseNote), "BaseNote", M7::gKeyRangeCfg, 60, 60);
 
-			ImGui::SameLine(0, 50); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LegatoTrig), "Leg.Trig");
+			//ImGui::SameLine(0, 50); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LegatoTrig), "Leg.Trig");
+			ImGui::SameLine(0, 50); Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LegatoTrig), "Leg.Trig");
 
 			ImGui::SameLine();
 			ImGui::BeginGroup();
@@ -2034,14 +2046,16 @@ public:
 
 			ImGui::SameLine(0, 50); Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopMode), "LoopMode##mst", (int)WaveSabreCore::LoopMode::NumLoopModes, WaveSabreCore::LoopMode::Repeat, loopModeNames);
 			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopSource), "LoopSrc##mst", (int)WaveSabreCore::LoopBoundaryMode::NumLoopBoundaryModes, WaveSabreCore::LoopBoundaryMode::FromSample, loopBoundaryModeNames);
-			ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop), "Rel");
+			//ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop), "Rel");
+			ImGui::SameLine(); Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop), "Rel");
 			ImGui::SameLine(); Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::InterpolationType), "Interp.##mst", (int)WaveSabreCore::InterpolationMode::NumInterpolationModes, WaveSabreCore::InterpolationMode::Linear, interpModeNames);
 
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Pan), "Pan", 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::Pan));
 
 			ImGui::BeginGroup();
-			WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Reverse), "Reverse");
-			
+			//WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Reverse), "Reverse");
+			Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Reverse), "Reverse");
+
 			ImGui::SameLine();
 			Maj7ImGuiParamFloat01(sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::SampleStart), "SampleStart", 0, 0, 0, lGetModInfo(M7::SamplerModParamIndexOffsets::SampleStart));
 			ImGui::SameLine();

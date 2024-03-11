@@ -27,7 +27,8 @@ public:
 
 	virtual void renderImgui() override
 	{
-		WSImGuiParamCheckbox((VstInt32)WaveSabreCore::Cathedral::ParamIndices::Freeze, "Freeze");
+		//WSImGuiParamCheckbox((VstInt32)WaveSabreCore::Cathedral::ParamIndices::Freeze, "Freeze");
+		Maj7ImGuiBoolParamToggleButton(WaveSabreCore::Cathedral::ParamIndices::Freeze, "Freeze");
 
 		using ParamIndices = WaveSabreCore::Cathedral::ParamIndices;
 
