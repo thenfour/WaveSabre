@@ -1,5 +1,6 @@
 #include <WaveSabreCore/DelayBuffer.h>
 #include <WaveSabreCore/Helpers.h>
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 namespace WaveSabreCore
 {
@@ -30,7 +31,7 @@ namespace WaveSabreCore
 
 	void DelayBuffer::SetLength(float lengthMs)
 	{
-		int newLength = (int)(lengthMs * (Helpers::CurrentSampleRateF / 1000.0f));
+		int newLength = (int)M7::math::MillisecondsToSamples(lengthMs);// (int)(lengthMs * (Helpers::CurrentSampleRateF / 1000.0f));
 		//if (newLength < 1) newLength = 1;
 		//currentPosition = 0;
 		mBuffer.SetLengthSamples(newLength);

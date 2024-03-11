@@ -6,8 +6,10 @@
 namespace WaveSabreCore
 {
 	static inline float CalcFollowerCoef(float ms) {
-		return M7::math::expf(-1.0f / (Helpers::CurrentSampleRateF * ms / 1000.0f));
-	}
+        auto samples = M7::math::MillisecondsToSamples(ms);
+        return M7::math::expf(-1.0f / samples);
+        //return M7::math::expf(-1.0f / (Helpers::CurrentSampleRateF * ms / 1000.0f));
+    }
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
