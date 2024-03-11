@@ -70,6 +70,49 @@ namespace WaveSabreCore
 			this->SetRawVal__(offset, p01);
 		}
 
+		float ParamAccessor::GetBipolarPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float mod) const
+		{
+			float param = this->GetRawVal__(offset) + mod; // apply current modulation value.
+			// scale 01 to N11
+			param = param * 2 - 1;
+
+			// save sign bit and abs
+			bool isNeg = (param < 0);
+			if (isNeg) {
+				param = -param;
+			}
+
+			// curve
+			param = cfg.Param01ToValue(param);
+
+			// apply sign
+			if (isNeg) {
+				param = -param;
+			}
+			return param;
+		}
+
+		void ParamAccessor::SetBipolarPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float param)
+		{
+			// save sign & abs
+			bool isNeg = (param < 0);
+			if (isNeg) {
+				param = -param;
+			}
+
+			// uncurve
+			param = cfg.ValueToParam01(param);
+
+			// to N11
+			if (isNeg) {
+				param = -param;
+			}
+
+			// map N11 to 01
+			param = param * .5f + .5f;
+			this->SetRawVal__(offset, param);
+		}
+
 		float ParamAccessor::GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const
 		{
 			float param = this->GetRawVal__(offset) + mod;

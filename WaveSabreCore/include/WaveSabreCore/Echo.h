@@ -169,14 +169,16 @@ namespace WaveSabreCore
 			float leftBufferLengthMs = CalcDelayMS(
 				mParams.GetIntValue(ParamIndices::LeftDelayCoarse, gDelayCoarseCfg),
 				mParams.GetN11Value(ParamIndices::LeftDelayFine, 0),
-				mParams.GetScaledRealValue(ParamIndices::LeftDelayMS, -200, 200, 0)
+				//mParams.GetScaledRealValue(ParamIndices::LeftDelayMS, -200, 200, 0)
+				mParams.GetBipolarPowCurvedValue(ParamIndices::LeftDelayMS, M7::gEnvTimeCfg, 0)
 			);
 			mBuffers[0].SetLength(leftBufferLengthMs);
 
 			float rightBufferLengthMs = CalcDelayMS(
 				mParams.GetIntValue(ParamIndices::RightDelayCoarse, gDelayCoarseCfg),
 				mParams.GetN11Value(ParamIndices::RightDelayFine, 0),
-				mParams.GetScaledRealValue(ParamIndices::RightDelayMS, -200, 200, 0)
+				//mParams.GetScaledRealValue(ParamIndices::RightDelayMS, -200, 200, 0)
+				mParams.GetBipolarPowCurvedValue(ParamIndices::RightDelayMS, M7::gEnvTimeCfg, 0)
 			);
 			mBuffers[1].SetLength(rightBufferLengthMs);
 

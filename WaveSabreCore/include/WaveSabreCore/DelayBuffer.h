@@ -23,24 +23,8 @@ namespace WaveSabreCore
 
 		// seems that this gets called on a separate thread than audio processing; make it naively thread-safe.
 		void SetLengthSamples(size_t sampleCount);
-		//	void SetLengthSamples(size_t sampleCount) {
-		//	if (sampleCount == mLength) return;
-		//	if (sampleCount < 1) sampleCount = 1;
-		//	auto oldBuf = mBuffer;
-		//	auto newBuffer = new float[sampleCount];
-		//	memset(newBuffer, 0, sizeof(float) * sampleCount);
-		//	mCursor = 0;
-		//	mLength = (int)sampleCount;
-		//	mBuffer = newBuffer;
-		//	delete[] oldBuf;
-		//}
 
 		void WriteAndAdvance(float sample);
-		//{
-		//	void WriteAndAdvance(float sample) {
-		//		mBuffer[mCursor] = sample;
-		//	mCursor = (mCursor + 1) % mLength;
-		//}
 
 		float PeekAtCursor() const
 		{
@@ -54,11 +38,11 @@ namespace WaveSabreCore
 		}
 	};
 
+
+	// --------------------------------------------------------------------------------------------------------------------------------------------
 	class DelayBuffer
 	{
 	public:
-		//~DelayBuffer();
-
 		void SetLength(float lengthMs);
 
 		void WriteSample(float sample);
@@ -66,9 +50,6 @@ namespace WaveSabreCore
 
 	private:
 		AudioBuffer mBuffer;
-		//int length;
-		//float *buffer = nullptr;
-		//int currentPosition;
 	};
 }
 

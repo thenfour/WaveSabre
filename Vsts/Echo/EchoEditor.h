@@ -33,13 +33,13 @@ public:
 
 		Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayCoarse, "Left 8ths", Echo::gDelayCoarseCfg, 8, 0);
 		ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)Echo::ParamIndices::LeftDelayFine, "(fine)##left", 0, 0, {});
-		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)Echo::ParamIndices::LeftDelayMS, "(ms)##left", -200, 200, 0, 0, 0, {});
+		//ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)Echo::ParamIndices::LeftDelayMS, "(ms)##left", -200, 200, 0, 0, 0, {});
+		ImGui::SameLine(); Maj7ImGuiBipolarPowCurvedParam((int)Echo::ParamIndices::LeftDelayMS, "(ms)##left", M7::gEnvTimeCfg, 0, {});
 
 		ImGui::SameLine(0, 60); Maj7ImGuiParamInt((int)Echo::ParamIndices::RightDelayCoarse, "Right 8ths", Echo::gDelayCoarseCfg, 6, 0);
 		ImGui::SameLine(); Maj7ImGuiParamFloatN11((int)Echo::ParamIndices::RightDelayFine, "(fine)##right", 0, 0, {});
-		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)Echo::ParamIndices::RightDelayMS, "(ms)##right", -200, 200, 0, 0, 0, {});
-
-
+		//ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)Echo::ParamIndices::RightDelayMS, "(ms)##right", -200, 200, 0, 0, 0, {});
+		ImGui::SameLine(); Maj7ImGuiBipolarPowCurvedParam((int)Echo::ParamIndices::RightDelayMS, "(ms)##right", M7::gEnvTimeCfg, 0, {});
 
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackLevel, "Feedback", M7::gVolumeCfg6db, -15.0f, {});
 		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackDriveDB, "FB Drive", M7::gVolumeCfg12db, 3, {});
@@ -131,12 +131,14 @@ public:
 		float leftPeriodMS = mpEcho->CalcDelayMS(
 			pa.GetIntValue(0, Echo::gDelayCoarseCfg),
 			pa.GetN11Value(1, 0),
-			pa.GetScaledRealValue(2, -200, 200, 0)
+			pa.GetBipolarPowCurvedValue(2, M7::gEnvTimeCfg, 0)
+			//pa.GetScaledRealValue(2, -200, 200, 0)
 		);
 		float rightPeriodMS = mpEcho->CalcDelayMS(
 			pa.GetIntValue(3, Echo::gDelayCoarseCfg),
 			pa.GetN11Value(4, 0),
-			pa.GetScaledRealValue(5, -200, 200, 0)
+			pa.GetBipolarPowCurvedValue(5, M7::gEnvTimeCfg, 0)
+			//pa.GetScaledRealValue(5, -200, 200, 0)
 		);
 		float crossMix10 = backing[6];
 
@@ -177,6 +179,12 @@ public:
 			panR = M7::math::lerp(panR, panL, crossMix10);
 			panL = xpanL;
 		}
+
+		char s[100];
+		std::sprintf(s, "%d ms left\r\n%d ms right", (int)std::round(leftPeriodMS), (int)std::round(rightPeriodMS));
+
+		dl->AddText(bb.Min, ColorFromHTML("999999"), s);
+
 	}
 
 }; // EchoEditor

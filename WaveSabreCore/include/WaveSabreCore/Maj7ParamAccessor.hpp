@@ -210,6 +210,30 @@ namespace WaveSabreCore
 				SetPowCurvedValue__((int)offset, cfg, ms);
 			}
 
+
+
+			float GetBipolarPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float mod) const;
+			template<typename Toffset>
+			float GetBipolarPowCurvedValue(Toffset offset, const PowCurvedParamCfg& cfg, float mod) const
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				return GetBipolarPowCurvedValue__((int)offset, cfg, mod);
+			}
+
+			void SetBipolarPowCurvedValue__(int offset, const PowCurvedParamCfg& cfg, float ms);
+
+			template<typename Toffset>
+			void SetBipolarPowCurvedValue(Toffset offset, const PowCurvedParamCfg& cfg, float ms)
+			{
+				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+				SetBipolarPowCurvedValue__((int)offset, cfg, ms);
+			}
+
+
+
+
+
+
 			float GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;
 			template<typename Toffset>
 			float GetDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float mod = 0) const
@@ -575,6 +599,28 @@ namespace WaveSabreCore
 			float SetPowCurvedValue(const PowCurvedParamCfg& cfg, float val) {
 				mHasValue = true;
 				mAccessor.SetPowCurvedValue(0, cfg, val);
+				return mBacking;
+			}
+
+			// BIPOLAR POW-CURVED -------------------------------------------------------------------------------
+			float GetBipolarPowCurvedValue() const {
+				CCASSERT(mHasValue);
+				CCASSERT(mHasPowCurvedCfg);
+				return mAccessor.GetBipolarPowCurvedValue(0, mPowCurvedCfg, 0);
+			}
+			float SetBipolarPowCurvedValue(float val) {
+				CCASSERT(mHasPowCurvedCfg);
+				mHasValue = true;
+				mAccessor.SetBipolarPowCurvedValue(0, mPowCurvedCfg, val);
+				return mBacking;
+			}
+			float GetBipolarPowCurvedValue(const PowCurvedParamCfg& cfg) const {
+				CCASSERT(mHasValue);
+				return mAccessor.GetBipolarPowCurvedValue(0, cfg, 0);
+			}
+			float SetBipolarPowCurvedValue(const PowCurvedParamCfg& cfg, float val) {
+				mHasValue = true;
+				mAccessor.SetBipolarPowCurvedValue(0, cfg, val);
 				return mBacking;
 			}
 

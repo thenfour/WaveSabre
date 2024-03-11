@@ -160,8 +160,41 @@ namespace WaveSabreVstLib
 				return { 0, false };
 			}
 		}
-
 	};
+
+	struct BipolarPowCurvedConverter : ImGuiKnobs::IValueConverter
+	{
+		float mBacking;
+		M7::ParamAccessor mParam{ &mBacking, 0 };
+		const M7::PowCurvedParamCfg& mConfig;
+
+		BipolarPowCurvedConverter(const M7::PowCurvedParamCfg& cfg) : mConfig(cfg)
+		{}
+
+		virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override {
+			mBacking = (float)param;
+			char s[100] = { 0 };
+			M7::real_t ms = mParam.GetBipolarPowCurvedValue(0, mConfig, 0);
+			return FloatToString(ms);
+		}
+
+		virtual std::pair<ImGuiKnobs::variant, bool> DisplayValueToParam(const std::string& s, void* capture) override
+		{
+			try {
+				double d = std::stod(s);
+				M7::QuickParam p;
+				p.SetBipolarPowCurvedValue(mConfig, float(d));
+				return { p.GetRawValue(), true };
+			}
+			catch (const std::invalid_argument&) {
+				return { 0, false };
+			}
+			catch (const std::out_of_range&) {
+				return { 0, false };
+			}
+		}
+	};
+
 
 	struct DivCurvedConverter : ImGuiKnobs::IValueConverter
 	{
@@ -2187,6 +2220,23 @@ namespace WaveSabreVstLib
 
 			PowCurvedConverter conv{ cfg };
 			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
+			{
+				GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
+			}
+		}
+
+		// reflects the pow curve to negative range
+		template<typename Tparam>
+		void Maj7ImGuiBipolarPowCurvedParam(Tparam paramID, const char* label, const M7::PowCurvedParamCfg& cfg, M7::real_t defaultMS, ImGuiKnobs::ModInfo modInfo) {
+			M7::real_t tempVal;
+			M7::ParamAccessor p{ &tempVal, 0 };
+			p.SetBipolarPowCurvedValue(0, cfg, defaultMS);
+			float defaultParamVal = tempVal;
+			tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+			//float ms = p.GetTimeMilliseconds(0, cfg, 0);
+
+			BipolarPowCurvedConverter conv{ cfg };
+			if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput, 10, &conv, this))
 			{
 				GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
 			}

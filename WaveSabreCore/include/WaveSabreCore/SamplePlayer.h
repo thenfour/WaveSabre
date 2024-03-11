@@ -1,9 +1,11 @@
 #ifndef __WAVESABRECORE_SAMPLEPLAYER_H__
 #define __WAVESABRECORE_SAMPLEPLAYER_H__
 
+#include <cstdint>
+
 namespace WaveSabreCore
 {
-	enum class InterpolationMode
+	enum class InterpolationMode : uint8_t
 	{
 		Nearest,
 		Linear,
@@ -11,7 +13,7 @@ namespace WaveSabreCore
 		NumInterpolationModes,
 	};
 
-	enum class LoopMode
+	enum class LoopMode : uint8_t
 	{
 		Disabled,
 		Repeat,
@@ -20,7 +22,7 @@ namespace WaveSabreCore
 		NumLoopModes,
 	};
 
-	enum class LoopBoundaryMode
+	enum class LoopBoundaryMode : uint8_t
 	{
 		FromSample,
 		Manual,
@@ -60,33 +62,32 @@ namespace WaveSabreCore
 		SamplePlayer();
 
 		void SetPlayRate(double ratio);
-		void CalcPitch(double note);
 		void InitPos();
 		void RunPrep();
 		float Next();
 
 		bool IsActive;
-
-		float SampleStart;
 		bool Reverse;
 		WaveSabreCore::LoopMode LoopMode;
 		WaveSabreCore::LoopBoundaryMode LoopBoundaryMode;
+		WaveSabreCore::InterpolationMode InterpolationMode;
+
+		float SampleStart;
 		float LoopStart;
 		float LoopLength;
-
-		WaveSabreCore::InterpolationMode InterpolationMode;
 
 		const float *SampleData;
 		int SampleLength;
 		int SampleLoopStart;
 		int SampleLoopLength;
 
-
 		double samplePos;
 
 	private:
 		double sampleDelta;
-		int roundedLoopStart, roundedLoopLength, roundedLoopEnd;
+		int roundedLoopStart;
+		int roundedLoopLength;
+		int roundedLoopEnd;
 		bool reverse;
 	};
 }

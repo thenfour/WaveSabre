@@ -30,19 +30,6 @@ namespace WaveSabreCore
 		this->sampleDelta = reverse ? -ratio : ratio;
 	}
 
-	void SamplePlayer::CalcPitch(double note)
-	{
-		double freqDelta = M7::math::SemisToFrequencyMul((float)note);
-		if (!reverse)
-		{
-			sampleDelta = freqDelta;
-		}
-		else
-		{
-			sampleDelta = -freqDelta;
-		}
-	}
-
 	void SamplePlayer::InitPos()
 	{
 		reverse = Reverse;

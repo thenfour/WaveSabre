@@ -8,10 +8,6 @@ namespace WaveSabreCore
 	class Comb
 	{
 	public:
-//#ifndef MIN_SIZE_REL
-//		virtual ~Comb();
-//#endif
-//
 		void SetBufferSize(int size);
 		float Process(float inp);
 		void SetParams(float damp, float feedback);
@@ -20,8 +16,6 @@ namespace WaveSabreCore
 		float feedback;
 		float filterStore = 0;
 		float damp1;
-		//float *buffer = nullptr;
-		//int bufferSize;
 		AudioBuffer mBuffer;
 		int bufferIndex;
 	};
