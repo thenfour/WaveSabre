@@ -46,15 +46,17 @@ public:
 		ImGui::SameLine();
 		Maj7ImGuiParamFloat01((VstInt32)WaveSabreCore::Echo::ParamIndices::Cross, "crosstalk", 0.25f, 0);
 
-		float f1 = 0, f2 = 0;
-		M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };
+		//float f1 = 0, f2 = 0;
+		//M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };
+		//fp.SetFrequencyAssumingNoKeytracking(50);
+		M7::QuickParam fp{ M7::gFilterFreqConfig };
 		fp.SetFrequencyAssumingNoKeytracking(50);
 
-		Maj7ImGuiParamFrequency((int)Echo::ParamIndices::LowCutFreq, -1, "Lowcut", M7::gFilterFreqConfig, f1, {});
+		Maj7ImGuiParamFrequency((int)Echo::ParamIndices::LowCutFreq, -1, "Lowcut", M7::gFilterFreqConfig, fp.GetRawValue(), {});
 		ImGui::SameLine(); Maj7ImGuiParamFloat01((int)Echo::ParamIndices::LowCutQ, "Low Q", 0.2f, 0.2f);
 
 		fp.SetFrequencyAssumingNoKeytracking(8500);
-		ImGui::SameLine(); Maj7ImGuiParamFrequency((int)Echo::ParamIndices::HighCutFreq, -1, "Highcut", M7::gFilterFreqConfig, f1, {});
+		ImGui::SameLine(); Maj7ImGuiParamFrequency((int)Echo::ParamIndices::HighCutFreq, -1, "Highcut", M7::gFilterFreqConfig, fp.GetRawValue(), {});
 		ImGui::SameLine(); Maj7ImGuiParamFloat01((int)Echo::ParamIndices::HighCutQ, "High Q", 0.2f, 0.2f);
 
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::DryOutput, "Dry output", M7::gVolumeCfg12db, 0, {});

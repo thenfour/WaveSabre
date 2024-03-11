@@ -463,6 +463,8 @@ namespace WaveSabreCore
 		};
 
 		/////////////////////////////////////////////////////////////////////////////
+		// frequency = sample and hold (a sort of sample-crush, in the spirit of a low pass)
+		// shape = sigle pole high pass
 		struct WhiteNoiseWaveform :IOscillatorWaveform
 		{
 			OnePoleFilter mHPFilter;
@@ -491,18 +493,25 @@ namespace WaveSabreCore
 				}
 
 				mCurrentSample = mHPFilter.ProcessSample(mCurrentLevel);
-
-				//return { 0,0 };
+				//mCurrentSample = mCurrentLevel;
 			}
 
 
 			virtual void AfterSetParams() override
 			{
-				float kt = 0;
-				FrequencyParam fp{ mShape, kt, { mFrequency, 6, 0 /*assume never used*/}};
-				float lfoFreqShape = mFrequency * mShape * mShape;// *0.25f;
+				// shape determines the high pass frequency
+				float cutoff;
 
-				mHPFilter.SetParams(FilterType::HP, (mIntention == OscillatorIntention::LFO) ? lfoFreqShape : fp.GetFrequency(0, 0), 0);
+				if (mIntention == OscillatorIntention::LFO) {
+					cutoff = mFrequency * mShape * mShape;
+				}
+				else {
+					ParamAccessor pa{ &mShape, 0 };
+					cutoff = pa.GetFrequency(0, FreqParamConfig{ mFrequency, 6, 0 /*assume never used*/ });
+				}
+
+
+				mHPFilter.SetParams(FilterType::HP, cutoff, 0);
 			}
 
 		};

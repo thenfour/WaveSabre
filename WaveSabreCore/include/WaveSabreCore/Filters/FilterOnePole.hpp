@@ -92,7 +92,8 @@ namespace WaveSabreCore
 
             void Recalc()
             {
-                real2 cutoff = math::clamp(m_cutoffHz, 30, 20000);
+                // NB: LFOs use this filter so the cutoff should support VERY low frequencies with precision. fortunately single poles are fine with that.
+                real2 cutoff = math::clamp(m_cutoffHz, 0, 20000);
                 real2 wd = math::gPI * cutoff;
                 real2 T = Helpers::CurrentSampleRateRecipF;
                 //real wa = (2 / T) * math::tan(wd * T / 2);

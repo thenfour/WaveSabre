@@ -190,26 +190,26 @@ namespace WaveSabreCore
 		}
 
 
-		//Float01Param::Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
-		Float01Param::Float01Param(real_t& ref) : Float01RefParam(ref) {}
-		float Float01Param::Get01Value(real_t modVal) const {
-			return math::clamp01(mParamValue + modVal);
-		}
-
-		//FloatN11Param::FloatN11Param(real_t& ref, real_t initialValueN11) : Float01RefParam(ref, initialValueN11 * .5f + .5f) {
+		////Float01Param::Float01Param(real_t& ref, real_t initialValue) : Float01RefParam(ref, initialValue) {}
+		//Float01Param::Float01Param(real_t& ref) : Float01RefParam(ref) {}
+		//float Float01Param::Get01Value(real_t modVal) const {
+		//	return math::clamp01(mParamValue + modVal);
 		//}
-		FloatN11Param::FloatN11Param(real_t& ref) : Float01RefParam(ref) {
-			CacheValue();
-		}
 
-		real_t FloatN11Param::GetN11Value(real_t modVal) const {
-			real_t r = mParamValue + modVal;
-			return math::clampN11(r * 2 - 1);
-		}
-		void FloatN11Param::SetN11Value(real_t v) {
-			SetParamValue(v * .5f + .5f);
-			CacheValue();
-		}
+		////FloatN11Param::FloatN11Param(real_t& ref, real_t initialValueN11) : Float01RefParam(ref, initialValueN11 * .5f + .5f) {
+		////}
+		//FloatN11Param::FloatN11Param(real_t& ref) : Float01RefParam(ref) {
+		//	CacheValue();
+		//}
+
+		//real_t FloatN11Param::GetN11Value(real_t modVal) const {
+		//	real_t r = mParamValue + modVal;
+		//	return math::clampN11(r * 2 - 1);
+		//}
+		//void FloatN11Param::SetN11Value(real_t v) {
+		//	SetParamValue(v * .5f + .5f);
+		//	CacheValue();
+		//}
 
 
 
@@ -241,204 +241,204 @@ namespace WaveSabreCore
 		//{
 		//    SetIntValue(initialValue);
 		//}
-		IntParam::IntParam(real_t& ref, const IntParamConfig& cfg) :
-			Float01Param(ref),
-			mCfg(cfg)
-			//mMinValueInclusive(minValueInclusive),
-			//mMaxValueInclusive(maxValueInclusive)//,
-			//mHalfMinusMinVal(0.5f - minValueInclusive)
-		{
-			CacheValue();
-		}
-
-		//int IntParam::GetDiscreteValueCount() const {
-		//	return mMaxValueInclusive - mMinValueInclusive + 1;
-		//}
-		// we want to split the float 0-1 range into equal portions. so if you have 3 values (0 - 2 inclusive),
-		//     0      1        2
-		// |------|-------|-------|
-		// 0     .33     .66     1.00
-		int IntParam::GetIntValue() const {
-			int c = mCfg.GetDiscreteValueCount();
-			int r = (int)(mParamValue * c);
-			r = math::ClampI(r, 0, c - 1);
-			return r + mCfg.mMinValInclusive;
-		}
-		void IntParam::SetIntValue(int val) {
-			int c = mCfg.GetDiscreteValueCount();
-			//if (val == this->mMinValueInclusive) {
-			//	mParamValue = 0; // helps compression!
-			//}
-			//else if (val == this->mMaxValueInclusive) {
-			//	mParamValue = 1; // helps compression!
-			//} else {
-				real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
-				p += 0.5f - mCfg.mMinValInclusive;
-				p /= c;
-				mParamValue = p;
-			//}
-			CacheValue();
-		}
-
-		ScaledRealParam::ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive) :
-			Float01Param(ref),
-			mMinValueInclusive(minValueInclusive),
-			mMaxValueInclusive(maxValueInclusive)
-		{
-			CacheValue();
-		}
-
-		real_t ScaledRealParam::GetRange() const {
-			return mMaxValueInclusive - mMinValueInclusive;
-		}
-
-		real_t ScaledRealParam::GetRangedValue() const {
-			real_t range = GetRange();
-			real_t r = mParamValue * range;
-			r = math::clamp(r, 0, range);
-			return r + mMinValueInclusive;
-		}
-
-		void ScaledRealParam::SetRangedValue(real_t val) {
-			mParamValue = (val - mMinValueInclusive) / GetRange();
-			CacheValue();
-		}
-
-
-
-		float VolumeParam::ParamToLinear(float x) const
-		{
-			if (x <= 0)
-				return 0;
-			return x * x * mCfg.mMaxValLinear;// mMaxVolumeLinearGain;
-		}
-		float VolumeParam::LinearToParam(float x) const
-		{ // expensive
-			return math::sqrt(x / mCfg.mMaxValLinear);// mMaxVolumeLinearGain);
-		}
-
-		float VolumeParam::ParamToDecibels(float x) const
-		{
-			return math::LinearToDecibels(ParamToLinear(x));
-		}
-		float VolumeParam::DecibelsToParam(float db) const
-		{ // pretty expensive
-			return LinearToParam(math::DecibelsToLinear(db));
-		}
-
-		//VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01) :
-		//    Float01Param(ref, initialParamValue01),
-		//    mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
-		//{}
-		//VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels) :
+		//IntParam::IntParam(real_t& ref, const IntParamConfig& cfg) :
 		//	Float01Param(ref),
-		//	mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
-		//{}
+		//	mCfg(cfg)
+		//	//mMinValueInclusive(minValueInclusive),
+		//	//mMaxValueInclusive(maxValueInclusive)//,
+		//	//mHalfMinusMinVal(0.5f - minValueInclusive)
+		//{
+		//	CacheValue();
+		//}
 
-		VolumeParam::VolumeParam(real_t& ref, const VolumeParamConfig& cfg) :
-			Float01Param(ref),
-			mCfg(cfg)
-		{
+		////int IntParam::GetDiscreteValueCount() const {
+		////	return mMaxValueInclusive - mMinValueInclusive + 1;
+		////}
+		//// we want to split the float 0-1 range into equal portions. so if you have 3 values (0 - 2 inclusive),
+		////     0      1        2
+		//// |------|-------|-------|
+		//// 0     .33     .66     1.00
+		//int IntParam::GetIntValue() const {
+		//	int c = mCfg.GetDiscreteValueCount();
+		//	int r = (int)(mParamValue * c);
+		//	r = math::ClampI(r, 0, c - 1);
+		//	return r + mCfg.mMinValInclusive;
+		//}
+		//void IntParam::SetIntValue(int val) {
+		//	int c = mCfg.GetDiscreteValueCount();
+		//	//if (val == this->mMinValueInclusive) {
+		//	//	mParamValue = 0; // helps compression!
+		//	//}
+		//	//else if (val == this->mMaxValueInclusive) {
+		//	//	mParamValue = 1; // helps compression!
+		//	//} else {
+		//		real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
+		//		p += 0.5f - mCfg.mMinValInclusive;
+		//		p /= c;
+		//		mParamValue = p;
+		//	//}
+		//	CacheValue();
+		//}
 
-		}
+		//ScaledRealParam::ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive) :
+		//	Float01Param(ref),
+		//	mMinValueInclusive(minValueInclusive),
+		//	mMaxValueInclusive(maxValueInclusive)
+		//{
+		//	CacheValue();
+		//}
 
-		float VolumeParam::GetLinearGain(float modVal) const
-		{
-			return ParamToLinear(mParamValue + modVal);
-		}
-		float VolumeParam::GetDecibels() const // expensive (ish)
-		{
-			return ParamToDecibels(mParamValue);
-		}
+		//real_t ScaledRealParam::GetRange() const {
+		//	return mMaxValueInclusive - mMinValueInclusive;
+		//}
 
-		bool VolumeParam::IsSilent() const
-		{
-			return math::IsSilentGain(GetLinearGain());
-		}
-		void VolumeParam::SetLinearValue(float f)
-		{ // expensive
-			mParamValue = LinearToParam(f);
-		}
-		void VolumeParam::SetDecibels(float db)
-		{ // expensive
-			mParamValue = DecibelsToParam(db);
-		}
+		//real_t ScaledRealParam::GetRangedValue() const {
+		//	real_t range = GetRange();
+		//	real_t r = mParamValue * range;
+		//	r = math::clamp(r, 0, range);
+		//	return r + mMinValueInclusive;
+		//}
+
+		//void ScaledRealParam::SetRangedValue(real_t val) {
+		//	mParamValue = (val - mMinValueInclusive) / GetRange();
+		//	CacheValue();
+		//}
 
 
-		//FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT) :
-		//    mValue(valRef, initialValue),
-		//    mKTValue(ktRef, initialKT),
-		//    mCenterFrequency(centerFrequency),
-		//    mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
-		//    mScale(scale)
-		//{}
 
-		FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, const FreqParamConfig& cfg) :
-			mValue(valRef),
-			mKTValue(ktRef),
-			mCfg(cfg)
-		{
-			//
-		}
+		//float VolumeParam::ParamToLinear(float x) const
+		//{
+		//	if (x <= 0)
+		//		return 0;
+		//	return x * x * mCfg.mMaxValLinear;// mMaxVolumeLinearGain;
+		//}
+		//float VolumeParam::LinearToParam(float x) const
+		//{ // expensive
+		//	return math::sqrt(x / mCfg.mMaxValLinear);// mMaxVolumeLinearGain);
+		//}
 
-		//FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/) :
+		//float VolumeParam::ParamToDecibels(float x) const
+		//{
+		//	return math::LinearToDecibels(ParamToLinear(x));
+		//}
+		//float VolumeParam::DecibelsToParam(float db) const
+		//{ // pretty expensive
+		//	return LinearToParam(math::DecibelsToLinear(db));
+		//}
+
+		////VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels, real_t initialParamValue01) :
+		////    Float01Param(ref, initialParamValue01),
+		////    mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
+		////{}
+		////VolumeParam::VolumeParam(real_t& ref, real_t maxDecibels) :
+		////	Float01Param(ref),
+		////	mMaxVolumeLinearGain(math::DecibelsToLinear(maxDecibels))
+		////{}
+
+		//VolumeParam::VolumeParam(real_t& ref, const VolumeParamConfig& cfg) :
+		//	Float01Param(ref),
+		//	mCfg(cfg)
+		//{
+
+		//}
+
+		//float VolumeParam::GetLinearGain(float modVal) const
+		//{
+		//	return ParamToLinear(mParamValue + modVal);
+		//}
+		//float VolumeParam::GetDecibels() const // expensive (ish)
+		//{
+		//	return ParamToDecibels(mParamValue);
+		//}
+
+		//bool VolumeParam::IsSilent() const
+		//{
+		//	return math::IsSilentGain(GetLinearGain());
+		//}
+		//void VolumeParam::SetLinearValue(float f)
+		//{ // expensive
+		//	mParamValue = LinearToParam(f);
+		//}
+		//void VolumeParam::SetDecibels(float db)
+		//{ // expensive
+		//	mParamValue = DecibelsToParam(db);
+		//}
+
+
+		////FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT) :
+		////    mValue(valRef, initialValue),
+		////    mKTValue(ktRef, initialKT),
+		////    mCenterFrequency(centerFrequency),
+		////    mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
+		////    mScale(scale)
+		////{}
+
+		//FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, const FreqParamConfig& cfg) :
 		//	mValue(valRef),
 		//	mKTValue(ktRef),
-		//	mCenterFrequency(centerFrequency),
-		//	mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
-		//	mScale(scale)
-		//{}
+		//	mCfg(cfg)
+		//{
+		//	//
+		//}
 
-		// noteHz is the playing note, to support key-tracking.
-		float FrequencyParam::GetFrequency(float noteHz, float paramModulation) const
-		{
-			float param = mValue.Get01Value() + paramModulation; // apply current modulation value.
-			// at 0.5, we use 1khz.
-			// for each 0.1 param value, it's +/- one octave
+		////FrequencyParam::FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/) :
+		////	mValue(valRef),
+		////	mKTValue(ktRef),
+		////	mCenterFrequency(centerFrequency),
+		////	mCenterMidiNote(math::FrequencyToMIDINote(centerFrequency)),
+		////	mScale(scale)
+		////{}
 
-			//float centerFreq = 1000; // the cutoff frequency at 0.5 param value.
+		//// noteHz is the playing note, to support key-tracking.
+		//float FrequencyParam::GetFrequency(float noteHz, float paramModulation) const
+		//{
+		//	float param = mValue.Get01Value() + paramModulation; // apply current modulation value.
+		//	// at 0.5, we use 1khz.
+		//	// for each 0.1 param value, it's +/- one octave
 
-			// with no KT,
-			// so if param is 0.8, we want to multiply by 8 (2^3)
-			// if param is 0.3, multiply by 1/4 (2^(1/4))
+		//	//float centerFreq = 1000; // the cutoff frequency at 0.5 param value.
 
-			// with full KT,
-			// at 0.3, we use playFrequency.
-			// for each 0.1 param value, it's +/- one octave.
-			// to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
-			float ktFreq = noteHz * 4;
-			float centerFreq = math::lerp(mCfg.mCenterFrequency, ktFreq, mKTValue.Get01Value());
+		//	// with no KT,
+		//	// so if param is 0.8, we want to multiply by 8 (2^3)
+		//	// if param is 0.3, multiply by 1/4 (2^(1/4))
 
-			param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)   [-.5,+.5]
-			param *= mCfg.mScale;// 10.0f; // (.3 = -2, .8 = 3) [-15,+15]
-			//float fact = math::pow(2, param);
-			float fact = math::pow2_N16_16(param);
-			return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
-		}
+		//	// with full KT,
+		//	// at 0.3, we use playFrequency.
+		//	// for each 0.1 param value, it's +/- one octave.
+		//	// to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
+		//	float ktFreq = noteHz * 4;
+		//	float centerFreq = math::lerp(mCfg.mCenterFrequency, ktFreq, mKTValue.Get01Value());
 
-		void FrequencyParam::SetFrequencyAssumingNoKeytracking(float hz) {
-			// 2 ^ param
-			float  p = math::log2(hz / mCfg.mCenterFrequency);
-			p /= mCfg.mScale;
-			p += 0.5f;
-			this->mValue.SetParamValue(math::clamp01(p));
-		}
+		//	param -= 0.5f;  // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)   [-.5,+.5]
+		//	param *= mCfg.mScale;// 10.0f; // (.3 = -2, .8 = 3) [-15,+15]
+		//	//float fact = math::pow(2, param);
+		//	float fact = math::pow2_N16_16(param);
+		//	return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
+		//}
 
-		// param modulation is normal krate param mod
-		// noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
-		float FrequencyParam::GetMidiNote(float playingMidiNote, float paramModulation) const
-		{
-			float ktNote = playingMidiNote + 24; // center represents playing note + 2 octaves.
+		//void FrequencyParam::SetFrequencyAssumingNoKeytracking(float hz) {
+		//	// 2 ^ param
+		//	float  p = math::log2(hz / mCfg.mCenterFrequency);
+		//	p /= mCfg.mScale;
+		//	p += 0.5f;
+		//	this->mValue.SetParamValue(math::clamp01(p));
+		//}
 
-			float centerNote = math::lerp(mCfg.mCenterMidiNote, ktNote, mKTValue.Get01Value());
+		//// param modulation is normal krate param mod
+		//// noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
+		//float FrequencyParam::GetMidiNote(float playingMidiNote, float paramModulation) const
+		//{
+		//	float ktNote = playingMidiNote + 24; // center represents playing note + 2 octaves.
 
-			float param = mValue.Get01Value() + paramModulation;
+		//	float centerNote = math::lerp(mCfg.mCenterMidiNote, ktNote, mKTValue.Get01Value());
 
-			param = (param - 0.5f) * mCfg.mScale;// 10; // rescale from 0-1 to -5 to +5 (octaves)
-			float paramSemis =
-				centerNote + param * 12; // each 1 param = 1 octave. because we're in semis land, it's just a mul.
-			return paramSemis;
-		}
+		//	float param = mValue.Get01Value() + paramModulation;
+
+		//	param = (param - 0.5f) * mCfg.mScale;// 10; // rescale from 0-1 to -5 to +5 (octaves)
+		//	float paramSemis =
+		//		centerNote + param * 12; // each 1 param = 1 octave. because we're in semis land, it's just a mul.
+		//	return paramSemis;
+		//}
 
 
 		Serializer::~Serializer() {

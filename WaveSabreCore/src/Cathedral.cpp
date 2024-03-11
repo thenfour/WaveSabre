@@ -107,7 +107,7 @@ namespace WaveSabreCore
 		}
 	}
 
-	void Cathedral::UpdateParams()
+	void Cathedral::OnParamsChanged()
 	{
 		freeze = mParams.GetBoolValue(ParamIndices::Freeze);
 		roomSize = mParams.Get01Value(ParamIndices::RoomSize);

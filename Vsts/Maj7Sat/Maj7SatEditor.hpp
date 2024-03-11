@@ -56,13 +56,13 @@ struct Maj7SatEditor : public VstEditor
 
 		auto LinToY = [&](float lin) {
 			float t = M7::math::lerp_rev(0, gMaxLin, lin);
-			t = Clamp01(t);
+			t = M7::math::clamp01(t);
 			return M7::math::lerp(bb.Max.y, bb.Min.y, t);
 		};
 
 		auto LinToX = [&](float lin) {
 			float t = M7::math::lerp_rev(0, gMaxLin, lin);
-			t = Clamp01(t);
+			t = M7::math::clamp01(t);
 			return M7::math::lerp(bb.Min.x, bb.Max.x, t);
 		};
 

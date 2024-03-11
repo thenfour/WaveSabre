@@ -423,10 +423,11 @@ namespace ImGuiKnobs {
 
             void draw_m7_curve(color_set linecolor, float val, bool invertX, bool invertY) {
                 //ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
-                float backing;
-                WaveSabreCore::M7::CurveParam param { backing };
-                param.SetParamValue(val);
-                AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, param, linecolor.base, 2.0f);
+                //float backing = val;
+                //WaveSabreCore::M7::ParamAccessor param{ &backing, 0 };
+                //WaveSabreCore::M7::CurveParam param { backing };
+                //param.SetParamValue(val);
+                AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, val, linecolor.base, 2.0f);
             }
 
             void draw_progress_bar(color_set bgcolor, color_set linecolor, color_set tickColor, float center01, bool roundThumb) {

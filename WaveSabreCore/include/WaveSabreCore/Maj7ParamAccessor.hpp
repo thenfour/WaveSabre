@@ -287,7 +287,7 @@ namespace WaveSabreCore
 
 			float GetScaledRealValue__(int offset, float minIncl, float maxIncl, float mod) const;
 			template<typename Toffset>
-			float GetScaledRealValue(Toffset offset, float minIncl, float maxIncl, float mod) const {
+			float GetScaledRealValue(Toffset offset, float minIncl, float maxIncl, float mod = 0) const {
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
 				return GetScaledRealValue__((int)offset, minIncl, maxIncl, mod);
 			}
@@ -397,7 +397,105 @@ namespace WaveSabreCore
 			//	SetWSQValue__((int)offset, q);
 			//}
 
+		}; // paramaccessor
+
+		// convenience for VST only, a small param cache and param accessor sorta combined.
+		// TODO...
+		// the idea is to avoid having this very verbose:
+		// float backing = paramValue;
+		// ParamAccessor pa {&backing, 0};
+		// int x = pa.GetIntVal(0, intcfg);
+		//
+		// into something more like:
+		// QuickParam qp{paramValue};
+		// int x = qp.GetIntVal(intcfg);
+		struct QuickParam
+		{
+		private:
+			bool mHasValue = false;
+			float mBacking;
+			ParamAccessor mAccessor{ &mBacking, 0 };
+
+			bool mHasIntCfg = false;
+			IntParamConfig mIntCfg{ 0, 1 };
+
+			bool mHasFreqCfg = false;
+			FreqParamConfig mFreqCfg{ gFilterFreqConfig };
+		public:
+
+			explicit QuickParam(float val01) : mBacking(val01), mHasValue(true) {
+			}
+			QuickParam() {
+			}
+			QuickParam(float val01, const IntParamConfig& cfg) : mHasValue(true), mBacking(val01), mHasIntCfg(true), mIntCfg(cfg) {
+			}
+			explicit QuickParam(const IntParamConfig& cfg) : mHasIntCfg(true), mIntCfg(cfg) {
+			}
+			QuickParam(float val01, const FreqParamConfig& cfg) : mHasValue(true), mBacking(val01), mHasFreqCfg(true), mFreqCfg(cfg) {
+			}
+			explicit QuickParam(const FreqParamConfig& cfg) : mHasFreqCfg(true), mFreqCfg(cfg) {
+			}
+
+			void SetRawValue(float val01) {
+				mHasValue = true;
+				mBacking = val01;
+			}
+			float GetRawValue() const {
+				CCASSERT(!!mHasValue);
+				return mBacking;
+			}
+
+			int GetIntValue() const {
+				CCASSERT(!!mHasValue);
+				CCASSERT(!!mHasIntCfg);
+				return mAccessor.GetIntValue(0, mIntCfg);
+			}
+			int GetIntValue(const IntParamConfig& cfg) const {
+				CCASSERT(!!mHasValue);
+				return mAccessor.GetIntValue(0, cfg);
+			}
+
+			template<typename Tenum>
+			Tenum GetEnumValue() const {
+				CCASSERT(!!mHasValue);
+				return mAccessor.GetEnumValue<Tenum>(0);
+			}
+			template<typename Tenum>
+			float SetEnumValue(Tenum val) {
+				mAccessor.SetEnumValue(0, val);
+				mHasValue = true;
+				return mBacking;
+			}
+
+			bool GetBoolValue() const {
+				CCASSERT(!!mHasValue);
+				return mAccessor.GetBoolValue(0);
+			}
+
+			float GetN11Value() const {
+				CCASSERT(!!mHasValue);
+				return mAccessor.GetN11Value(0, 0);
+			}
+
+			float SetFrequencyAssumingNoKeytracking(float hz) {
+				CCASSERT(!!mHasFreqCfg);
+				mHasValue = true;
+				mAccessor.SetFrequencyAssumingNoKeytracking(0, mFreqCfg, hz);
+				return mBacking;
+			}
+			float SetFrequencyAssumingNoKeytracking(const FreqParamConfig& cfg, float hz) {
+				mHasValue = true;
+				mAccessor.SetFrequencyAssumingNoKeytracking(0, cfg, hz);
+				return mBacking;
+			}
+
+			float GetFrequency() const {
+				CCASSERT(!!mHasValue);
+				CCASSERT(!!mHasFreqCfg);
+				return mAccessor.GetFrequency(0, mFreqCfg);
+			}
 		};
+
 
 	} // namespace M7
 

@@ -329,9 +329,8 @@ namespace WaveSabreCore
 			LoadDefaults();
 		}
 
-		virtual void SetParam(int index, float value) override
+		virtual void OnParamsChanged() override
 		{
-			mParamCache[index] = value;
 			for (auto& b : mBands) {
 				b.Slider();
 			}

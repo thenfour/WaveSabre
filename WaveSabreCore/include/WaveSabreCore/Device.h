@@ -26,9 +26,10 @@ namespace WaveSabreCore
 
 		void SetSampleRate(float sampleRate);
 		void SetTempo(int tempo);
-
+		virtual void OnParamsChanged() {} // like Reaper's @slider section, run when params have changed. means you don't have to override setparam() to do that kind of recalcing.
 		virtual void SetParam(int index, float value) {
 			mParamCache__[index] = value;
+			OnParamsChanged();
 		}
 		virtual float GetParam(int index) const {
 			return mParamCache__[index];

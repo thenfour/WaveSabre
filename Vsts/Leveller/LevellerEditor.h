@@ -35,13 +35,10 @@ public:
 
 	void RenderBand(int id, const char* label, Leveller::ParamIndices paramOffset, float defaultFreqParamHz, ImColor color)
 	{
-		//ImGui::TableNextColumn();
 		ImGui::PushID(id);
 
-		float enabledBacking;
-		M7::BoolParam bp{ enabledBacking };
-		bp.SetRawParamValue(GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Enable));
-		ColorMod& cm = bp.GetBoolValue() ? mEnabledColors : mDisabledColors;
+		M7::QuickParam enabledParam{ GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Enable) };
+		ColorMod& cm = enabledParam.GetBoolValue() ? mEnabledColors : mDisabledColors;
 
 		auto token = cm.Push();
 
@@ -55,18 +52,14 @@ public:
 
 		ImGui::SameLine(); WSImGuiParamCheckbox((int)paramOffset + (int)Leveller::BandParamOffsets::Enable, "Enable?");
 
-		//if (BeginTabBar2("##tabs", ImGuiTabBarFlags_None))
-		//{
-			//WaveSabreCore::M7::real_t tempVal;
-			//M7::VolumeParam p{ tempVal, cfg };
 		float gainParam = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Gain);
 
-		//if (WSBeginTabItem(label)) {
-		float f1 = 0, f2 = 0;
-		M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };// :gFilterCenterFrequency, M7::gFilterFrequencyScale};
+		M7::QuickParam fp{ M7::gFilterFreqConfig };
+		//float f1 = 0, f2 = 0;
+		//M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };// :gFilterCenterFrequency, M7::gFilterFrequencyScale};
 		fp.SetFrequencyAssumingNoKeytracking(defaultFreqParamHz);
 
-		ImGui::SameLine();  Maj7ImGuiParamFrequency((int)paramOffset + (int)Leveller::BandParamOffsets::Freq, -1, "Freq", M7::gFilterFreqConfig, f1, {});
+		ImGui::SameLine();  Maj7ImGuiParamFrequency((int)paramOffset + (int)Leveller::BandParamOffsets::Freq, -1, "Freq", M7::gFilterFreqConfig, fp.GetRawValue(), {});
 
 		float typeB = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Type);
 		M7::ParamAccessor typePA{ &typeB, 0 };

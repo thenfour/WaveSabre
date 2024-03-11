@@ -546,10 +546,11 @@ public:
 
 	void Maj7ImGuiParamMacro(int imacro) {
 		int paramID = (int)M7::ParamIndices::Macro1 + imacro;
-		float tempVal = 0;
-		M7::Float01Param p{ tempVal };
-		float defaultParamVal = p.Get01Value();
-		p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
+		float tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+		//M7::Float01Param p{ tempVal };
+		//M7::ParamAccessor pa{ &tempVal, 0 };
+		float defaultParamVal = 0;// p.Get01Value();
+		//p.SetParamValue();
 		float centerVal01 = 0;
 		Float01Converter conv{ };
 
@@ -568,7 +569,7 @@ public:
 
 		if (ImGuiKnobs::KnobWithEditableLabel(label, id.c_str(), &tempVal, 0, 1, defaultParamVal, centerVal01, {}, gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput | ImGuiKnobFlags_EditableTitle, 10, &conv, this))
 		{
-			GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
+			GetEffectX()->setParameterAutomated(paramID, (tempVal));
 		}
 		if (label != mpMaj7VST->mMacroNames[imacro]) {
 			mpMaj7VST->mMacroNames[imacro] = label;
@@ -1021,10 +1022,11 @@ public:
 
 	void Oscillator(const char* labelWithID, int enabledParamID, int oscID, int ampEnvModDestBase)
 	{
-		float enabledBacking;
-		M7::BoolParam bp{ enabledBacking };
-		bp.SetRawParamValue(GetEffectX()->getParameter(enabledParamID));
-		ColorMod& cm = bp.GetBoolValue() ? mOscColors : mOscDisabledColors;
+		float enabledBacking = GetEffectX()->getParameter(enabledParamID);
+		M7::ParamAccessor pa{ &enabledBacking, 0 };
+		//M7::BoolParam bp{ enabledBacking };
+		//bp.SetRawParamValue();
+		ColorMod& cm = pa.GetBoolValue(0) ? mOscColors : mOscDisabledColors;
 		auto token = cm.Push();
 
 		auto lGetModInfo = [&](M7::OscModParamIndexOffsets x) {
@@ -1137,14 +1139,18 @@ public:
 		WSImGuiParamCheckbox(delayTimeParamID + (int)M7::EnvParamIndexOffsets::LegatoRestart, "Leg.Restart");
 
 		ImGui::Text("OneShot");
-		float backing = GetEffectX()->getParameter(delayTimeParamID + (int)M7::EnvParamIndexOffsets::Mode);
-		M7::EnumParam<M7::EnvelopeMode> modeParam{ backing, M7::EnvelopeMode::Count };
-		bool boneshot = modeParam.GetEnumValue() == M7::EnvelopeMode::OneShot;
+
+		M7::QuickParam qp{ GetEffectX()->getParameter(delayTimeParamID + (int)M7::EnvParamIndexOffsets::Mode) };
+
+		//float backing = GetEffectX()->getParameter(delayTimeParamID + (int)M7::EnvParamIndexOffsets::Mode);
+		//M7::EnumParam<M7::EnvelopeMode> modeParam{ backing, M7::EnvelopeMode::Count };
+		//M7::ParamAccessor pa{ &backing, 0 };
+		bool boneshot = qp.GetEnumValue<M7::EnvelopeMode>() == M7::EnvelopeMode::OneShot;
 		bool r = ImGui::Checkbox("##cb", &boneshot);
 		if (r) {
-			modeParam.SetEnumValue(boneshot ? M7::EnvelopeMode::OneShot : M7::EnvelopeMode::Sustain);
+			qp.SetEnumValue(boneshot ? M7::EnvelopeMode::OneShot : M7::EnvelopeMode::Sustain);
 			GetEffectX()->setParameterAutomated(delayTimeParamID + (int)M7::EnvParamIndexOffsets::Mode,
-				backing);
+				qp.GetRawValue());
 		}
 
 		ImGui::EndGroup();
@@ -1159,24 +1165,27 @@ public:
 	{
 		char ret[200];
 
-		float enabledBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Enabled));
-		M7::BoolParam mEnabled {enabledBacking};
-		if (!mEnabled.GetBoolValue()) {
+		M7::QuickParam enabledParam{ GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Enabled)) };
+		//M7::BoolParam mEnabled {enabledBacking};
+		if (!enabledParam.GetBoolValue()) {
 			sprintf_s(ret, "Mod %d###mod%d", imod, imod);
 			return ret;
 		}
 
-		float srcBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Source));
-		M7::EnumParam<M7::ModSource> mSource{ srcBacking, M7::ModSource::Count };
-		auto src = mSource.GetEnumValue();
+		M7::QuickParam srcParam{ GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Source)) };
+		//float srcBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Source));
+		//M7::EnumParam<M7::ModSource> mSource{ srcBacking, M7::ModSource::Count };
+		auto src = srcParam.GetEnumValue<M7::ModSource>();
 		if (src == M7::ModSource::None) {
 			sprintf_s(ret, "Mod %d###mod%d", imod, imod);
 			return ret;
 		}
 
-		float destBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Destination1));
-		M7::EnumParam<M7::ModDestination> mDestination{ destBacking, M7::ModDestination::Count };
-		auto dest = mDestination.GetEnumValue();
+		M7::QuickParam destParam{ GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Destination1)) };
+		//float destBacking = GetEffectX()->getParameter(spec.mParams.GetParamIndex(M7::ModParamIndexOffsets::Destination1));
+		//M7::EnumParam<M7::ModDestination> mDestination{ destBacking, M7::ModDestination::Count };
+		//auto dest = mDestination.GetEnumValue();
+		auto dest = destParam.GetEnumValue<M7::ModDestination>();
 		if (dest == M7::ModDestination::None) {
 			sprintf_s(ret, "Mod %d###mod%d", imod, imod);
 			return ret;
@@ -1814,11 +1823,15 @@ public:
 	void WaveformParam(int waveformParamID, int waveshapeParamID, int phaseOffsetParamID, float* phaseCursor)
 	{
 		OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
-		M7::EnumParam<M7::OscillatorWaveform> waveformParam(pMaj7->mParamCache[waveformParamID], M7::OscillatorWaveform::Count);
-		M7::Float01Param waveshapeParam(pMaj7->mParamCache[waveshapeParamID]);
-		M7::OscillatorWaveform selectedWaveform = waveformParam.GetEnumValue();
-		float waveshape01 = waveshapeParam.Get01Value();
-		M7::FloatN11Param phaseOffsetParam(pMaj7->mParamCache[phaseOffsetParamID]);
+
+		M7::QuickParam waveformParam{ pMaj7->mParamCache[waveformParamID] };
+
+		//M7::EnumParam<M7::OscillatorWaveform> waveformParam(pMaj7->mParamCache[waveformParamID], M7::OscillatorWaveform::Count);
+		//M7::Float01Param waveshapeParam(pMaj7->mParamCache[waveshapeParamID]);
+		M7::OscillatorWaveform selectedWaveform = waveformParam.GetEnumValue< M7::OscillatorWaveform>();
+		float waveshape01 = GetEffectX()->getParameter((VstInt32)waveshapeParamID);// waveshapeParam.Get01Value();
+		//M7::FloatN11Param phaseOffsetParam(pMaj7->mParamCache[phaseOffsetParamID]);
+		M7::QuickParam phaseOffsetParam{ GetEffectX()->getParameter((VstInt32)phaseOffsetParamID) };
 		float phaseOffsetN11 = phaseOffsetParam.GetN11Value();
 
 		if (WaveformButton(waveformParamID, selectedWaveform, waveshape01, phaseOffsetN11, phaseCursor)) {
@@ -1831,11 +1844,12 @@ public:
 			{
 				M7::OscillatorWaveform wf = (M7::OscillatorWaveform)n;
 				ImGui::PushID(n);
-				if (WaveformButton(n, wf, waveshapeParam.Get01Value(), phaseOffsetN11, phaseCursor)) {
-					float t;
-					M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count);
-					tp.SetEnumValue(wf);
-					GetEffectX()->setParameter(waveformParamID, t);
+				if (WaveformButton(n, wf, waveshape01, phaseOffsetN11, phaseCursor)) {
+					//float t;
+					//M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count);
+					//tp.SetEnumValue(wf);
+					M7::QuickParam t{};
+					GetEffectX()->setParameter(waveformParamID, t.SetEnumValue(wf));
 				}
 				ImGui::PopID();
 			}

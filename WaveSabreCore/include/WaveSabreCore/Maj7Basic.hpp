@@ -196,6 +196,7 @@ namespace WaveSabreCore
                 mCenterMidiNote(centerMidiNote)
             {
             }
+            constexpr FreqParamConfig(const FreqParamConfig& rhs) = default;
         };
 
         struct IntParamConfig
@@ -647,51 +648,51 @@ namespace WaveSabreCore
                 "Beats", \
         };
 
-        // raw param values are stored in a huge array. the various sub-objects (osc, filters, envelopes)
-        // will refer to param values in that array using this. sub classes of this class can do whatever
-        // needed alterations mappings etc.
-        struct Float01RefParam
-        {
-        protected:
-            real_t& mParamValue;
+        //// raw param values are stored in a huge array. the various sub-objects (osc, filters, envelopes)
+        //// will refer to param values in that array using this. sub classes of this class can do whatever
+        //// needed alterations mappings etc.
+        //struct Float01RefParam
+        //{
+        //protected:
+        //    real_t& mParamValue;
 
-        public:
-            explicit Float01RefParam(real_t& ref) : mParamValue(ref)
-            {}
-            explicit Float01RefParam(real_t& ref, real_t initialValue) : mParamValue(ref) {
-                mParamValue = initialValue;
-            }
+        //public:
+        //    explicit Float01RefParam(real_t& ref) : mParamValue(ref)
+        //    {}
+        //    explicit Float01RefParam(real_t& ref, real_t initialValue) : mParamValue(ref) {
+        //        mParamValue = initialValue;
+        //    }
 
-            real_t GetRawParamValue() const {
-                return mParamValue;
-            }
-            // you should rarely need to set this outside of subclasses because params are set using the backed float value.
-            // but one case is when you need to do an ad-hoc conversion.
-            void SetParamValue(real_t v) {
-                mParamValue = v;
-            }
-        };
+        //    real_t GetRawParamValue() const {
+        //        return mParamValue;
+        //    }
+        //    // you should rarely need to set this outside of subclasses because params are set using the backed float value.
+        //    // but one case is when you need to do an ad-hoc conversion.
+        //    void SetParamValue(real_t v) {
+        //        mParamValue = v;
+        //    }
+        //};
 
-        // overkill? maybe but no judging plz
-        struct Float01Param : Float01RefParam
-        {
-            //explicit Float01Param(real_t& ref, real_t initialValue);
-            explicit Float01Param(real_t& ref);
-            real_t Get01Value(real_t modVal = 0.0f) const;
-        };
+        //// overkill? maybe but no judging plz
+        //struct Float01Param : Float01RefParam
+        //{
+        //    //explicit Float01Param(real_t& ref, real_t initialValue);
+        //    explicit Float01Param(real_t& ref);
+        //    real_t Get01Value(real_t modVal = 0.0f) const;
+        //};
 
-        struct FloatN11Param : Float01RefParam
-        {
-            float mCachedVal;
-            //explicit FloatN11Param(real_t& ref, real_t initialValueN11);
-            explicit FloatN11Param(real_t& ref);
+        //struct FloatN11Param : Float01RefParam
+        //{
+        //    float mCachedVal;
+        //    //explicit FloatN11Param(real_t& ref, real_t initialValueN11);
+        //    explicit FloatN11Param(real_t& ref);
 
-            real_t GetN11Value(real_t modVal = 0.0f) const;
-            void SetN11Value(real_t v);
-            inline float CacheValue() {
-                return mCachedVal = GetN11Value();
-            }
-        };
+        //    real_t GetN11Value(real_t modVal = 0.0f) const;
+        //    void SetN11Value(real_t v);
+        //    inline float CacheValue() {
+        //        return mCachedVal = GetN11Value();
+        //    }
+        //};
 
         //// todo: time should not always be the same; allow configuring the range.
         //// min value is always 0 milliseconds.
@@ -711,170 +712,170 @@ namespace WaveSabreCore
 
         //    real_t GetMilliseconds(real_t paramModulation = 0.0f) const;
         //};
-
-        // paramvalue N11
-        struct CurveParam : FloatN11Param
-        {
-            //explicit CurveParam(real_t& ref, real_t initialValueN11) : FloatN11Param(ref, initialValueN11) {}
-            explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
-
-            real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
-                float k = GetN11Value() + modVal;
-                if (k < 0.0001 && k > -0.0001) return x; // speed optimization; most curves being processed are flat so skip the lookup entirely.
-                return math::modCurve_xN11_kN11(x, k);
-            }
-        };
-
-        // stores an integral parameter as a 0-1 float param
-        struct IntParam : Float01Param
-        {
-            IntParamConfig mCfg;
-            //const int mMinValueInclusive;
-            //const int mMaxValueInclusive;
-            //const float mHalfMinusMinVal; // precalc to avoid an add
-            int mCachedVal;
-            //explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue);
-            explicit IntParam(real_t& ref, const IntParamConfig& cfg);
-//            int GetDiscreteValueCount() const;
-            // we want to split the float 0-1 range into equal portions. so if you have 3 values (0 - 2 inclusive),
-            //     0      1        2
-            // |------|-------|-------|
-            // 0     .33     .66     1.00
-            int GetIntValue() const;
-            void SetIntValue(int val);
-            inline int CacheValue() {
-                return mCachedVal = GetIntValue();
-            }
-        };
-
-        // so i had this idea:
-        //   "in order to ease backwards compatibility, we assume each enum < 2000 elements.
-        //      that way when you add a new enum value at the end, it doesn't break all values." 
-        // that's fine but has some side-effects i don't want:
-        // - it means the param range in the DAW is impossible to use. not that these enum values are automated much but worth mentioning.
-        // - it feels deceptive that the range is advertised as huge, but the real range is small. for serialization of enums for example this just feels like spaghetti where assumptions are incompatible.
-        // that being said it's still practical, as these are not the kinds of params that get automated via an envelope.
-        template <typename T>
-        struct EnumParam : IntParam
-        {
-            static constexpr size_t MaxItems = 2023;
-            static constexpr IntParamConfig gEnumIntCfg{ 0, MaxItems };
-            T mCachedVal;
-            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, gEnumIntCfg)
-            {
-                CacheValue();
-            }
-            T GetEnumValue() const {
-                return (T)GetIntValue();
-            }
-            void SetEnumValue(T v) {
-                SetIntValue((int)v);
-                mCachedVal = v;
-            }
-            inline T CacheValue() {
-                return mCachedVal = GetEnumValue();
-            }
-        };
-
-        struct BoolParam
-        {
-        private:
-            float& mVal;
-        public:
-            bool mCachedVal = false;
-            inline explicit BoolParam(real_t& ref) : mVal(ref) {
-                CacheValue();
-            }
-            inline bool GetBoolValue() const { return mVal > 0.5f; } // this generates slightly smaller code than == 0, or even >0
-            inline void SetBoolValue(bool b) { mVal = float(b ? 1 : 0); }
-            inline void SetRawParamValue(float f) { mVal = f; }
-            inline bool CacheValue() {
-                return mCachedVal = GetBoolValue();
-            }
-        };
-
-        // stores a floating-point value which is always scaled linear to 0-1 param range.
-        // this is useful because it
-        // 1) attaches range info directly to the value
-        // 2) ensures the param scale is always the same, more ergonomic for GUI.
-        // 3) includes clamping
-        // used for things like FrequencyMultiplier
-        struct ScaledRealParam : Float01Param
-        {
-        protected:
-            real_t mMinValueInclusive;
-            real_t mMaxValueInclusive;
-
-        public:
-            float mCachedVal;
-            //explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive, real_t initialRangedValue);
-            explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive);
-            real_t GetRange() const;
-            real_t GetRangedValue() const;
-            void SetRangedValue(real_t val);
-            inline float CacheValue() {
-                return mCachedVal = GetRangedValue();
-            }
-        };
-
-        // stores a volume parameter as a 0-1 float param with linear sweeping
-        // "volume" parameters use a custom scale, so they feel more usable.
-        // massive uses a square curve, and a -inf db to +1 db range.
-        // various params use different volume ranges. master volume can be amplified, but oscillator volume should never be >1.
-        // min volume is ALWAYS silence.
-        struct VolumeParam : Float01Param
-        {
-        private:
-            //const float mMaxVolumeLinearGain;// 1.122f = +1 db.
-            VolumeParamConfig mCfg;
-
-            float ParamToLinear(float x) const;
-            float LinearToParam(float x) const;
-            float ParamToDecibels(float x) const;
-            float DecibelsToParam(float db) const;
-
-        public:
-            explicit VolumeParam(real_t& ref, const VolumeParamConfig& cfg);
-            float GetLinearGain(float modVal = 0.0f) const;
-            float GetDecibels() const;
-            bool IsSilent() const;
-            void SetLinearValue(float f);
-            void SetDecibels(float db);
-        };
-
-        // value 0.3 = unity, and each 0.1 param value = 1 octave transposition, when KT = 1.
-        // when KT = 0, 0.5 = 1khz, and each 0.1 param value = +/- octave.
-        struct FrequencyParam
-        {
-            const FreqParamConfig mCfg;
-
-        public:
-            Float01Param mValue;
-            Float01Param mKTValue; // how much key tracking to apply. when 0, the frequency doesn't change based on playing note. when 1, it scales completely with the note's frequency.
-
-            //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT);
-            //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
-            explicit FrequencyParam(real_t& valRef, real_t& ktRef, const FreqParamConfig& mCfg);
-            // noteHz is the playing note, to support key-tracking.
-            float GetFrequency(float noteHz, float paramModulation) const;
-            void SetFrequencyAssumingNoKeytracking(float hz);
-            // param modulation is normal krate param mod
-            // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
-            float GetMidiNote(float playingMidiNote, float paramModulation) const;
-        };
-
-        struct Float01ParamArray
-        {
-            float* mpArray;
-            size_t mCount;
-            Float01ParamArray(float* parr, size_t count) : mpArray(parr), mCount(count) {}
-            float Get01Value(size_t i) const {
-                return math::clamp01(mpArray[i]);
-            }
-            float Get01Value(size_t i, float mod) const {
-                return math::clamp01(mpArray[i] + mod);
-            }
-        };
+//
+//        // paramvalue N11
+//        struct CurveParam : FloatN11Param
+//        {
+//            //explicit CurveParam(real_t& ref, real_t initialValueN11) : FloatN11Param(ref, initialValueN11) {}
+//            explicit CurveParam(real_t& ref) : FloatN11Param(ref) {}
+//
+//            real_t ApplyToValue(real_t x, real_t modVal = 0.0f) const {
+//                float k = GetN11Value() + modVal;
+//                if (k < 0.0001 && k > -0.0001) return x; // speed optimization; most curves being processed are flat so skip the lookup entirely.
+//                return math::modCurve_xN11_kN11(x, k);
+//            }
+//        };
+//
+//        // stores an integral parameter as a 0-1 float param
+//        struct IntParam : Float01Param
+//        {
+//            IntParamConfig mCfg;
+//            //const int mMinValueInclusive;
+//            //const int mMaxValueInclusive;
+//            //const float mHalfMinusMinVal; // precalc to avoid an add
+//            int mCachedVal;
+//            //explicit IntParam(real_t& ref, int minValueInclusive, int maxValueInclusive, int initialValue);
+//            explicit IntParam(real_t& ref, const IntParamConfig& cfg);
+////            int GetDiscreteValueCount() const;
+//            // we want to split the float 0-1 range into equal portions. so if you have 3 values (0 - 2 inclusive),
+//            //     0      1        2
+//            // |------|-------|-------|
+//            // 0     .33     .66     1.00
+//            int GetIntValue() const;
+//            void SetIntValue(int val);
+//            inline int CacheValue() {
+//                return mCachedVal = GetIntValue();
+//            }
+//        };
+//
+//        // so i had this idea:
+//        //   "in order to ease backwards compatibility, we assume each enum < 2000 elements.
+//        //      that way when you add a new enum value at the end, it doesn't break all values." 
+//        // that's fine but has some side-effects i don't want:
+//        // - it means the param range in the DAW is impossible to use. not that these enum values are automated much but worth mentioning.
+//        // - it feels deceptive that the range is advertised as huge, but the real range is small. for serialization of enums for example this just feels like spaghetti where assumptions are incompatible.
+//        // that being said it's still practical, as these are not the kinds of params that get automated via an envelope.
+//        template <typename T>
+//        struct EnumParam : IntParam
+//        {
+//            static constexpr size_t MaxItems = 2023;
+//            static constexpr IntParamConfig gEnumIntCfg{ 0, MaxItems };
+//            T mCachedVal;
+//            explicit EnumParam(real_t& ref, T maxValue) : IntParam(ref, gEnumIntCfg)
+//            {
+//                CacheValue();
+//            }
+//            T GetEnumValue() const {
+//                return (T)GetIntValue();
+//            }
+//            void SetEnumValue(T v) {
+//                SetIntValue((int)v);
+//                mCachedVal = v;
+//            }
+//            inline T CacheValue() {
+//                return mCachedVal = GetEnumValue();
+//            }
+//        };
+//
+//        struct BoolParam
+//        {
+//        private:
+//            float& mVal;
+//        public:
+//            bool mCachedVal = false;
+//            inline explicit BoolParam(real_t& ref) : mVal(ref) {
+//                CacheValue();
+//            }
+//            inline bool GetBoolValue() const { return mVal > 0.5f; } // this generates slightly smaller code than == 0, or even >0
+//            inline void SetBoolValue(bool b) { mVal = float(b ? 1 : 0); }
+//            inline void SetRawParamValue(float f) { mVal = f; }
+//            inline bool CacheValue() {
+//                return mCachedVal = GetBoolValue();
+//            }
+//        };
+//
+//        // stores a floating-point value which is always scaled linear to 0-1 param range.
+//        // this is useful because it
+//        // 1) attaches range info directly to the value
+//        // 2) ensures the param scale is always the same, more ergonomic for GUI.
+//        // 3) includes clamping
+//        // used for things like FrequencyMultiplier
+//        struct ScaledRealParam : Float01Param
+//        {
+//        protected:
+//            real_t mMinValueInclusive;
+//            real_t mMaxValueInclusive;
+//
+//        public:
+//            float mCachedVal;
+//            //explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive, real_t initialRangedValue);
+//            explicit ScaledRealParam(real_t& ref, real_t minValueInclusive, real_t maxValueInclusive);
+//            real_t GetRange() const;
+//            real_t GetRangedValue() const;
+//            void SetRangedValue(real_t val);
+//            inline float CacheValue() {
+//                return mCachedVal = GetRangedValue();
+//            }
+//        };
+//
+//        // stores a volume parameter as a 0-1 float param with linear sweeping
+//        // "volume" parameters use a custom scale, so they feel more usable.
+//        // massive uses a square curve, and a -inf db to +1 db range.
+//        // various params use different volume ranges. master volume can be amplified, but oscillator volume should never be >1.
+//        // min volume is ALWAYS silence.
+//        struct VolumeParam : Float01Param
+//        {
+//        private:
+//            //const float mMaxVolumeLinearGain;// 1.122f = +1 db.
+//            VolumeParamConfig mCfg;
+//
+//            float ParamToLinear(float x) const;
+//            float LinearToParam(float x) const;
+//            float ParamToDecibels(float x) const;
+//            float DecibelsToParam(float db) const;
+//
+//        public:
+//            explicit VolumeParam(real_t& ref, const VolumeParamConfig& cfg);
+//            float GetLinearGain(float modVal = 0.0f) const;
+//            float GetDecibels() const;
+//            bool IsSilent() const;
+//            void SetLinearValue(float f);
+//            void SetDecibels(float db);
+//        };
+//
+//        // value 0.3 = unity, and each 0.1 param value = 1 octave transposition, when KT = 1.
+//        // when KT = 0, 0.5 = 1khz, and each 0.1 param value = +/- octave.
+//        struct FrequencyParam
+//        {
+//            const FreqParamConfig mCfg;
+//
+//        public:
+//            Float01Param mValue;
+//            Float01Param mKTValue; // how much key tracking to apply. when 0, the frequency doesn't change based on playing note. when 1, it scales completely with the note's frequency.
+//
+//            //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/, real_t initialValue, real_t initialKT);
+//            //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
+//            explicit FrequencyParam(real_t& valRef, real_t& ktRef, const FreqParamConfig& mCfg);
+//            // noteHz is the playing note, to support key-tracking.
+//            float GetFrequency(float noteHz, float paramModulation) const;
+//            void SetFrequencyAssumingNoKeytracking(float hz);
+//            // param modulation is normal krate param mod
+//            // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
+//            float GetMidiNote(float playingMidiNote, float paramModulation) const;
+//        };
+//
+//        struct Float01ParamArray
+//        {
+//            float* mpArray;
+//            size_t mCount;
+//            Float01ParamArray(float* parr, size_t count) : mpArray(parr), mCount(count) {}
+//            float Get01Value(size_t i) const {
+//                return math::clamp01(mpArray[i]);
+//            }
+//            float Get01Value(size_t i, float mod) const {
+//                return math::clamp01(mpArray[i] + mod);
+//            }
+//        };
 
 
         struct Serializer

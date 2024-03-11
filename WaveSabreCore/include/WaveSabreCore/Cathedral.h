@@ -161,11 +161,13 @@ namespace WaveSabreCore
 
 		virtual void Run(double songPosition, float **inputs, float **outputs, int numSamples);
 
-		virtual void SetParam(int index, float value) override
-		{
-			mParamCache[index] = value;
-			UpdateParams();
-		}
+		//virtual void SetParam(int index, float value) override
+		//{
+		//	mParamCache[index] = value;
+		//	UpdateParams();
+		//}
+
+		virtual void OnParamsChanged() override;
 
 	private:
 		static constexpr int numCombs = 8;
@@ -180,7 +182,6 @@ namespace WaveSabreCore
 		bool freeze;
 		float preDelayMS;
 
-		void UpdateParams();
 
 		//StateVariableFilter lowCutFilter[2], highCutFilter[2];
 		M7::SVFilter lowCutFilter[2], highCutFilter[2];

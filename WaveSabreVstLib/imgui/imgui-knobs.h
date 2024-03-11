@@ -161,7 +161,8 @@ enum ImGuiKnobVariant_ {
 };
 
 
-inline static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertX, bool invertY, const WaveSabreCore::M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
+//inline static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertX, bool invertY, const WaveSabreCore::M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
+inline static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertX, bool invertY, float paramValue01, ImU32 color, float thickness, int segments = 16)
 {
     ImVec2 p = pos;
     segments = std::max(segments, 2);
@@ -173,9 +174,11 @@ inline static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool 
     }
     dl->PathLineTo(p);
 
+	WaveSabreCore::M7::ParamAccessor pa{ &paramValue01, 0 };
+
     for (int i = 0; i < segments; ++i) {
         float x2 = float(i + 1) / segments; // end of the line
-        float y2 = param.ApplyToValue(invertX ? 1.0f - x2 : x2);
+        float y2 = pa.ApplyCurveToValue(0, invertX ? 1.0f - x2 : x2);
         y2 = invertY ? 1.0f - y2 : y2;
         ImVec2 e = { pos.x + size.x * x2, pos.y + y2 * size.y };
         dl->PathLineTo(e);
@@ -216,7 +219,7 @@ namespace ImGuiKnobs {
     struct IValueConverter
     {
         virtual std::string ParamToDisplayString(double param, void* capture) = 0;
-        virtual double DisplayValueToParam(double param, void* capture) = 0;
+        //virtual double DisplayValueToParam(double param, void* capture) = 0;
     };
 
     struct ModInfo

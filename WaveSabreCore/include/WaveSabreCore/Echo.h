@@ -156,9 +156,10 @@ namespace WaveSabreCore
 			return std::max(0.0f, ms);
 		}
 
-		virtual void SetParam(int index, float value) override
+		//virtual void SetParam(int index, float value) override
+		virtual void OnParamsChanged() override
 		{
-			mParamCache[index] = value;
+			//mParamCache[index] = value;
 			mCrossMix = mParams.Get01Value(ParamIndices::Cross);
 			mFeedbackLin = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
 			mFeedbackDriveLin = mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0);

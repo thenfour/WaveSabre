@@ -36,11 +36,12 @@ public:
 		ImGui::SameLine(); Maj7ImGuiParamFloat01((VstInt32)ParamIndices::Damp, "Damp", 0, 0);
 		ImGui::SameLine(); Maj7ImGuiParamFloat01((VstInt32)ParamIndices::Width, "Width", 0.9f, 0);
 
-		float f1 = 0, f2 = 0;
-		M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };
+		//float f1 = 0, f2 = 0;
+		//M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };
+		M7::QuickParam fp{ M7::gFilterFreqConfig };
 
 		fp.SetFrequencyAssumingNoKeytracking(100);
-		Maj7ImGuiParamFrequency((int)ParamIndices::LowCutFreq, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, f1, {});
+		Maj7ImGuiParamFrequency((int)ParamIndices::LowCutFreq, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, fp.GetRawValue(), {});
 		ImGui::SameLine();
 
 		Maj7ImGuiParamFrequency((int)ParamIndices::HighCutFreq, -1, "LP Freq(Hz)", M7::gFilterFreqConfig, 1, {});

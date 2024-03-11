@@ -166,7 +166,7 @@ namespace WaveSabreCore
 		{
 			// you may be tempted to "size optimize" this by looping over 0,1 channel to eliminate all the double calls.
 			// it doesn't help i assure you. this code is more compressible.
-			auto recalcMask = M7::GetModulationRecalcSampleMask();
+			//auto recalcMask = M7::GetModulationRecalcSampleMask();
 			float masterGain = mParams.GetLinearVolume(ParamIndices::OutputVolume, M7::gVolumeCfg12db);
 			bool enableDC = mParams.GetBoolValue(ParamIndices::EnableDCFilter);
 			for (int iSample = 0; iSample < numSamples; iSample++)
@@ -187,9 +187,9 @@ namespace WaveSabreCore
 				for (int iBand = 0; iBand < gBandCount; ++iBand)
 				{
 					auto& b = mBands[iBand];
-					if ((iSample & recalcMask) == 0) {
-						b.RecalcFilters();
-					}
+					//if ((iSample & recalcMask) == 0) {
+					//	b.RecalcFilters();
+					//}
 					if (b.mParams.GetBoolValue(BandParamOffsets::Enable)) {
 						s1 = b.mFilters[0].ProcessSample(s1);
 						s2 = b.mFilters[1].ProcessSample(s2);
@@ -204,6 +204,15 @@ namespace WaveSabreCore
 				mOutputAnalysis[1].WriteSample(outputs[1][iSample]);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+			}
+		}
+
+		virtual void OnParamsChanged() override
+		{
+			for (int iBand = 0; iBand < gBandCount; ++iBand)
+			{
+				auto& b = mBands[iBand];
+				b.RecalcFilters();
 			}
 		}
 
