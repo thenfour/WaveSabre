@@ -33,15 +33,16 @@ namespace WaveSabreCore
 		float e = 1.0f; // ongoing follower output
 		float a; // attack coef
 		float r; // release coef
-		const float s = 0; // smoothing coef
+		//const float s = 0; // smoothing coef
+		static constexpr float s = 0.997735023f; // CalcFollowerCoef(smoothingMS) where smoothingMS is 10.0
 		float tmp = 0; // a continuous value
 
 		// the smoothing time ensures that attack/release changes don't cause weird gain compensation values.
 		static constexpr float smoothingMS = 10.0f;
 
-		Maj7CompFollower() : s(CalcFollowerCoef(smoothingMS)) //
-		{
-		}
+		//Maj7CompFollower() : s(CalcFollowerCoef(smoothingMS)) //
+		//{
+		//}
 
 		void SetParams(float attackMS, float releaseMS) {
 			this->a = CalcFollowerCoef(attackMS);

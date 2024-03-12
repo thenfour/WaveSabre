@@ -1,6 +1,7 @@
 ﻿using ReaperParser.ReaperElements;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
@@ -87,6 +88,10 @@ namespace WaveSabreConvert
             var master = CreateMaster();
             projectTracks.Add(master);
 
+            //var busStack = new List<Song.Track>(); // stack of buses in hierarchy.
+            var busStack = new Stack<Song.Track>();
+            busStack.Push(master);
+
             var currentBus = master;
 
             int busLevel = 0;
@@ -116,7 +121,9 @@ namespace WaveSabreConvert
                             SendingTrackIndex = trackIndex,
                             Volume = 1.0f
                         });
+                        Debug.Assert(reaperTrack.BusConfig.BusIcrement == 1); // opening multiple buses would make no sense, and mode=Open but increment<1 makes no sense either.
                         busLevel += reaperTrack.BusConfig.BusIcrement;
+                        busStack.Push(track);
                         currentBus = track;
                         break;
                     case ReaperBusMode.CloseBus:
@@ -127,7 +134,12 @@ namespace WaveSabreConvert
                             SendingTrackIndex = trackIndex,
                             Volume = 1.0f
                         });
-                        currentBus = master;
+                        Debug.Assert(reaperTrack.BusConfig.BusIcrement < 0);
+                        for (int i = 0; i < -reaperTrack.BusConfig.BusIcrement; i++)
+                        {
+                            busStack.Pop();
+                        }
+                        currentBus = busStack.Peek();
                         busLevel += reaperTrack.BusConfig.BusIcrement;
                         break;
                 }
