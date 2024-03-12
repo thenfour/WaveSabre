@@ -36,67 +36,6 @@ struct Maj7SatEditor : public VstEditor
 		PopulateStandardMenuBar(mCurrentWindow, "Maj7 Sat Saturator", mpMaj7Sat, mpMaj7SatVst, "gParamDefaults", "ParamIndices::NumParams", mpMaj7Sat->mParamCache, paramNames);
 	}
 
-	struct TransferCurveColors
-	{
-		ImColor background;
-		ImColor line;
-		ImColor lineClip;
-		ImColor tick;
-	};
-
-	void RenderTransferCurve(ImVec2 size, const TransferCurveColors& colors, const Maj7Sat::FreqBand& band)
-	{
-		auto* dl = ImGui::GetWindowDrawList();
-		ImRect bb;
-		bb.Min = ImGui::GetCursorScreenPos();
-		bb.Max = bb.Min + size;
-		ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
-
-		static constexpr float gMaxLin = 1.5f;
-
-		auto LinToY = [&](float lin) {
-			float t = M7::math::lerp_rev(0, gMaxLin, lin);
-			t = M7::math::clamp01(t);
-			return M7::math::lerp(bb.Max.y, bb.Min.y, t);
-		};
-
-		auto LinToX = [&](float lin) {
-			float t = M7::math::lerp_rev(0, gMaxLin, lin);
-			t = M7::math::clamp01(t);
-			return M7::math::lerp(bb.Min.x, bb.Max.x, t);
-		};
-
-		static constexpr int segmentCount = 16;
-		std::vector<ImVec2> points;
-		std::vector<ImVec2> clipPoints;
-
-		for (int i = 0; i < segmentCount; ++i)
-		{
-			float t01 = float(i) / (segmentCount - 1); // touch 0 and 1
-			float tLin = M7::math::lerp(0, gMaxLin, t01);
-			float yLin = band.transfer(tLin);
-			if (tLin >= 1) {
-				if (clipPoints.empty()) {
-					points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
-				}
-				clipPoints.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
-			}
-			else {
-				points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
-			}
-		}
-
-		dl->AddLine({ bb.Min.x, bb.Max.y }, {bb.Max.x, bb.Min.y}, colors.tick, 1);
-		dl->AddLine({ bb.Min.x, LinToY(1) }, { bb.Max.x, LinToY(1) }, colors.tick, 1);
-		dl->AddLine({ LinToX(1), bb.Min.y }, { LinToX(1), bb.Max.y }, colors.tick, 1);
-
-		dl->AddPolyline(points.data(), (int)points.size(), colors.line, 0, 3);
-		dl->AddPolyline(clipPoints.data(), (int)clipPoints.size(), colors.lineClip, 0, 3);
-
-		ImGui::Dummy(size);
-
-	} // void RenderTransferCurve()
-
 	void RenderBand(size_t iBand, ParamIndices enabledParam, const char *caption)
 	{
 		auto& band = mpMaj7Sat->mBands[iBand];
@@ -208,7 +147,9 @@ struct Maj7SatEditor : public VstEditor
 					ColorFromHTML(effectEnabled ? "8888cc" : "777777"), // line
 					 ColorFromHTML(effectEnabled ? "ffff00" : "777777"), // line clipped
 					 ColorFromHTML("444444"), // tick
-					}, band);
+					}, [&](float x) {
+						return band.transfer(x);
+					});
 
 				ImGui::SameLine(); VUMeter("inputVU", band.mInputAnalysis0, band.mInputAnalysis1, {15,100 });
 				ImGui::SameLine(); VUMeter("outputVU", band.mOutputAnalysis0, band.mOutputAnalysis1, { 15,100 });

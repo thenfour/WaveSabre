@@ -30,6 +30,9 @@ namespace WaveSabreCore
 			CrossoverAFrequency,
 			CrossoverBFrequency,
 			OutputGain,
+			SoftClipEnable,
+			SoftClipThresh,
+			SoftClipOutput,
 
 			AInputGain,
 			AOutputGain,
@@ -80,6 +83,9 @@ namespace WaveSabreCore
 			{"xAFreq"},\
 			{"xBFreq"},\
 			{"OutGain"},\
+			{"SCEn"},\
+			{"SCThr"},\
+			{"SCOutp"},\
 			{"AInVol"},\
 			{"AOutVol"},\
 			{"AThresh"},\
@@ -118,49 +124,52 @@ namespace WaveSabreCore
 			{"CDrive"},\
 }
 
-		static_assert((int)ParamIndices::NumParams == 41, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 44, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-		  8230, // InGain = 0.25118863582611083984
-		  0,
-		  13557, // xAFreq = 0.4137503504753112793
-		  21577, // xBFreq = 0.65849626064300537109
-		  8230, // OutGain = 0.25118863582611083984
-		  8230, // AInVol = 0.25118863582611083984
-		  8230, // AOutVol = 0.25118863582611083984
-		  21845, // AThresh = 0.6666666865348815918
-		  15269, // AAttack = 0.46597486734390258789
-		  15909, // ARelease = 0.48552104830741882324
-		  18939, // ARatio = 0.57798200845718383789
-		  4369, // AKnee = 0.13333334028720855713
-		  26214, // AChanLnk = 0.80000001192092895508
+		  20512, // InGain = 0.62599998712539672852
+		  0, // MBEnable = 0
+		  13557, // xAFreq = 0.41372698545455932617
+		  21577, // xBFreq = 0.65847802162170410156
+		  8230, // OutGain = 0.25118899345397949219
+		  0, // SCEn = 0
+		  23197, // SCThr = 0.70794582366943359375
+		  32206, // SCOutp = 0.98287886381149291992
+		  8230, // AInVol = 0.25115999579429626465
+		  8230, // AOutVol = 0.25115999579429626465
+		  21845, // AThresh = 0.66665697097778320312
+		  15269, // AAttack = 0.46597298979759216309
+		  15908, // ARelease = 0.48550400137901306152
+		  18938, // ARatio = 0.57797199487686157227
+		  4368, // AKnee = 0.13333100080490112305
+		  26214, // AChanLnk = 0.79998797178268432617
 		  0, // AEnable = 0
 		  0, // AHPF = 0
-		  6553, // AHPQ = 0.20000000298023223877
-  4125, // ADrive = 0.12589254975318908691
-		  8230, // BInVol = 0.25118863582611083984
-		  8230, // BOutVol = 0.25118863582611083984
-		  21845, // BThresh = 0.6666666865348815918
-		  15269, // BAttack = 0.46597486734390258789
-		  15909, // BRelease = 0.48552104830741882324
-		  18939, // BRatio = 0.57798200845718383789
-		  4369, // BKnee = 0.133331298828125
-		  26214, // BChanLnk = 0.80000001192092895508
+		  6553, // AHPQ = 0.1999820023775100708
+		  4124, // ADrive = 0.12588499486446380615
+		  8230, // BInVol = 0.25115999579429626465
+		  8230, // BOutVol = 0.25115999579429626465
+		  21845, // BThresh = 0.66665697097778320312
+		  15269, // BAttack = 0.46597298979759216309
+		  15908, // BRelease = 0.48550400137901306152
+		  18938, // BRatio = 0.57797199487686157227
+		  4368, // BKnee = 0.13333100080490112305
+		  26214, // BChanLnk = 0.79998797178268432617
 		  0, // BEnable = 0
 		  0, // BHPF = 0
-		  6553, // BHPQ = 0.20000000298023223877
-  4125, // ADrive = 0.12589254975318908691
-		  8230, // CInVol = 0.25118863582611083984
-		  8230, // COutVol = 0.25118863582611083984
-		  21845, // CThresh = 0.6666666865348815918
-		  15269, // CAttack = 0.46597486734390258789
-		  15909, // CRelease = 0.48552104830741882324
-		  18939, // CRatio = 0.57798200845718383789
-		  4369, // CKnee = 0.13333334028720855713
-		  26214, // CChanLnk = 0.80000001192092895508
+		  6553, // BHPQ = 0.1999820023775100708
+		  4124, // BDrive = 0.12588499486446380615
+		  8230, // CInVol = 0.25115999579429626465
+		  8230, // COutVol = 0.25115999579429626465
+		  21845, // CThresh = 0.66665697097778320312
+		  15269, // CAttack = 0.46597298979759216309
+		  15908, // CRelease = 0.48550400137901306152
+		  18938, // CRatio = 0.57797199487686157227
+		  4368, // CKnee = 0.13333100080490112305
+		  26214, // CChanLnk = 0.79998797178268432617
 		  0, // CEnable = 0
 		  0, // CHPF = 0
-		  6553, // CHPQ = 0.20000000298023223877
-  4125, // ADrive = 0.12589254975318908691
+		  6553, // CHPQ = 0.1999820023775100708
+		  4124, // CDrive = 0.12588499486446380615
 		};
 
 
@@ -255,21 +264,21 @@ namespace WaveSabreCore
 						output.x[ich] = sout;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-						mInputAnalysis[ich].WriteSample(inpAudio);
-						mOutputAnalysis[ich].WriteSample(sout);
-						mDetectorAnalysis[ich].WriteSample(detector);
-						mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
+mInputAnalysis[ich].WriteSample(inpAudio);
+mOutputAnalysis[ich].WriteSample(sout);
+mDetectorAnalysis[ich].WriteSample(detector);
+mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					}
 				}
 				else {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-					for (size_t ich = 0; ich < 2; ++ich) {
-						mInputAnalysis[ich].WriteSample(0);
-						mOutputAnalysis[ich].WriteSample(0);
-						mDetectorAnalysis[ich].WriteSample(0);
-						mAttenuationAnalysis[ich].WriteSample(0);
-					}
+				for (size_t ich = 0; ich < 2; ++ich) {
+					mInputAnalysis[ich].WriteSample(0);
+					mOutputAnalysis[ich].WriteSample(0);
+					mDetectorAnalysis[ich].WriteSample(0);
+					mAttenuationAnalysis[ich].WriteSample(0);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				}
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -315,6 +324,7 @@ namespace WaveSabreCore
 		static constexpr float gAnalysisFalloffMS = 500;
 		AnalysisStream mInputAnalysis[2];
 		AnalysisStream mOutputAnalysis[2];
+		AttenuationAnalysisStream mClippingAnalysis[2];
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7MBC() :
@@ -323,7 +333,11 @@ namespace WaveSabreCore
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			,
 			mInputAnalysis{ AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS} },
-			mOutputAnalysis{ AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS} }
+			mOutputAnalysis{ AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS} },
+			mClippingAnalysis {
+				AttenuationAnalysisStream{ 6000 },
+				AttenuationAnalysisStream{ 6000 }
+		}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		{
 			LoadDefaults();
@@ -336,6 +350,50 @@ namespace WaveSabreCore
 			}
 		}
 
+		// returns {output sample, clip amount}
+		// NOTE: clip amount is 0 for anything below clipping level, even though shaping actually does mess with amplitudes.
+		// the visualizations just don't care about that area though; users only care about how much is being clipped.
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		static M7::FloatPair Softclip(float s, float thresh, float outputGain) {
+#else
+		static float Softclip(float s, float thresh, float outputGain) {
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+				// thresh of 1 (unity gain) means hard clipping. 0.99 is something like 0.001dB so this is an optimal way to approximate hard clipping
+			// and a thresh of 0 would cause our attenuation calc to fail.
+				thresh = M7::math::clamp(thresh, 0.01f, 0.99f);
+				if (s < 0) {
+					s = -s;
+					outputGain = -outputGain;
+				}
+				static constexpr float naturalSlope = M7::math::gPIHalf;
+				float corrSlope = M7::math::lerp(naturalSlope, 1, thresh);
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				float atten = 1;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+				s *= corrSlope;
+				if (s > thresh) {
+					s = M7::math::lerp_rev(thresh, 1, s); // pull down above thresh range to 0,1
+					s /= naturalSlope;
+					if (s > 1) {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+						atten = (1.0f / s);
+						// we are clipping. for analysis purposes, make it CLEAR.
+						atten = std::min(0.95f, atten); // this means attenuation is MINIMUM reported as .5dB
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+						s = 1;
+					}
+					else {
+						s = M7::math::sin(s * M7::math::gPIHalf);
+					}
+					s = M7::math::lerp(thresh, 1, s);
+				}
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				return { s * outputGain, atten }; // readd sign bit
+#else
+				return s * outputGain; // readd sign bit
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+			}
+
 		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
 		{
 			float inputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
@@ -343,6 +401,10 @@ namespace WaveSabreCore
 			float crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
 			float crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
 			bool mbEnable = mParams.GetBoolValue(ParamIndices::MultibandEnable);
+
+			bool softClipEnabled = mParams.GetBoolValue(ParamIndices::SoftClipEnable);
+			float softClipThreshLin = mParams.GetLinearVolume(ParamIndices::SoftClipThresh, M7::gUnityVolumeCfg);
+			float softClipOutputLin = mParams.GetLinearVolume(ParamIndices::SoftClipOutput, M7::gUnityVolumeCfg);
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			bool muteSoloEnabled[Maj7MBC::gBandCount] = { false, false, false };
@@ -383,6 +445,20 @@ namespace WaveSabreCore
 					auto r = band.ProcessSample({ s0, s1 });
 					s0 = r[0] * outputGainLin;
 					s1 = r[1] * outputGainLin;
+				}
+
+				if (softClipEnabled) {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+					auto sc0 = Softclip(s0, softClipThreshLin, softClipOutputLin);
+					auto sc1 = Softclip(s1, softClipThreshLin, softClipOutputLin);
+					s0 = sc0[0];
+					s1 = sc1[0];
+					mClippingAnalysis[0].WriteSample(sc0[1]);
+					mClippingAnalysis[1].WriteSample(sc1[1]);
+#else
+					s0 = Softclip(s0, softClipThreshLin, softClipOutputLin);
+					s1 = Softclip(s1, softClipThreshLin, softClipOutputLin);
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				}
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT

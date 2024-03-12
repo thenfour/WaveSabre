@@ -102,10 +102,15 @@ public:
 	virtual void OptimizeParams() override
 	{
 		using Params = Maj7MBC::ParamIndices;
+		M7::ParamAccessor defaults{ mDefaultParamCache.data(), 0 };
 		M7::ParamAccessor p{ GetMaj7MBC()->mParamCache, 0 };
 		OptimizeBand(Params::AInputGain);
 		OptimizeBand(Params::BInputGain);
 		OptimizeBand(Params::CInputGain);
+		if (!p.GetBoolValue(Params::SoftClipEnable)) {
+			p.SetRawVal(Params::SoftClipOutput, defaults.GetRawVal(Params::SoftClipOutput));
+			p.SetRawVal(Params::SoftClipThresh, defaults.GetRawVal(Params::SoftClipThresh));
+		}
 	}
 
 	void OptimizeBand(Maj7MBC::ParamIndices baseParam) {

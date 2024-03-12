@@ -339,10 +339,10 @@ namespace WaveSabreCore
 		this->mVoiceMode = voiceMode;
 	}
 
-	VoiceMode Maj7SynthDevice::GetVoiceMode() const
-	{
-		return mVoiceMode;
-	}
+	//VoiceMode Maj7SynthDevice::GetVoiceMode() const
+	//{
+	//	return mVoiceMode;
+	//}
 
 
 

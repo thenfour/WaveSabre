@@ -863,6 +863,75 @@ namespace WaveSabreVstLib
 
 
 
+	struct TransferCurveColors
+	{
+		ImColor background;
+		ImColor line;
+		ImColor lineClip;
+		ImColor tick;
+	};
+
+	inline void RenderTransferCurve(ImVec2 size, const TransferCurveColors& colors, std::function<float(float)> transferFn)
+	{
+		auto* dl = ImGui::GetWindowDrawList();
+		ImRect bb;
+		bb.Min = ImGui::GetCursorScreenPos();
+		bb.Max = bb.Min + size;
+		ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
+
+		static constexpr float gMinLin = -1.5f;
+		static constexpr float gMaxLin = 1.5f;
+
+		auto LinToY = [&](float lin) {
+			return M7::math::map(lin, gMinLin, gMaxLin, bb.Max.y, bb.Min.y);
+			//float t = M7::math::lerp_rev(0, gMaxLin, lin);
+			//t = M7::math::clamp01(t);
+			//return M7::math::lerp(bb.Max.y, bb.Min.y, t);
+		};
+
+		auto LinToX = [&](float lin) {
+			return M7::math::map(lin, gMinLin, gMaxLin, bb.Min.x, bb.Max.x);
+			//float t = M7::math::lerp_rev(0, gMaxLin, lin);
+			//t = M7::math::clamp01(t);
+			//return M7::math::lerp(bb.Min.x, bb.Max.x, t);
+		};
+
+		static constexpr int segmentCount = 16;
+		std::vector<ImVec2> points;
+		std::vector<ImVec2> clipPoints;
+
+		for (int i = 0; i < segmentCount; ++i)
+		{
+			float t01 = float(i) / (segmentCount - 1); // touch 0 and 1
+			float tLin = M7::math::lerp(gMinLin, gMaxLin, t01);
+			float yLin = transferFn(tLin);
+			if (tLin >= 1) {
+				if (clipPoints.empty()) {
+					points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
+				}
+				clipPoints.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
+			}
+			else {
+				points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
+			}
+		}
+
+		dl->AddLine({ bb.Min.x, bb.Max.y }, { bb.Max.x, bb.Min.y }, colors.tick, 1); // diag linear tick
+		dl->AddLine({ bb.Min.x, LinToY(1) }, { bb.Max.x, LinToY(1) }, colors.tick, 1);
+		dl->AddLine({ bb.Min.x, LinToY(0) }, { bb.Max.x, LinToY(0) }, colors.tick, 1);
+		dl->AddLine({ bb.Min.x, LinToY(-1) }, { bb.Max.x, LinToY(-1) }, colors.tick, 1);
+		dl->AddLine({ LinToX(1), bb.Min.y }, { LinToX(1), bb.Max.y }, colors.tick, 1);
+		dl->AddLine({ LinToX(0), bb.Min.y }, { LinToX(0), bb.Max.y }, colors.tick, 1);
+		dl->AddLine({ LinToX(-1), bb.Min.y }, { LinToX(-1), bb.Max.y }, colors.tick, 1);
+
+		dl->AddPolyline(points.data(), (int)points.size(), colors.line, 0, 3);
+		dl->AddPolyline(clipPoints.data(), (int)clipPoints.size(), colors.lineClip, 0, 3);
+
+		ImGui::Dummy(size);
+
+	} // void RenderTransferCurve()
+
+
 
 
 
@@ -932,15 +1001,15 @@ namespace WaveSabreVstLib
 		case VUMeterLevelMode::Attenuation:
 		{
 			colors.background = ColorFromHTML("462e2e");
-			colors.foregroundRMS = ColorFromHTML("ed4d4d");
-			colors.foregroundPeak = ColorFromHTML("4a6332");
+			colors.foregroundRMS = ColorFromHTML("ff9030"); // not used.
+			colors.foregroundPeak = ColorFromHTML("935f23");
 
 			colors.backgroundOverUnity = ColorFromHTML("440000");
 			colors.foregroundOverUnity = ColorFromHTML("cccc00");
 
 			colors.text = ColorFromHTML("ffffff");
 			colors.tick = ColorFromHTML("00ffff");
-			colors.clipTick = colors.foregroundRMS;// don't bother with clipping for attenuation ColorFromHTML("ff0000");
+			colors.clipTick = ColorFromHTML("ff0000");
 			colors.peak = ColorFromHTML("6c9b0a", 0.8f);
 			break;
 		}
@@ -1063,7 +1132,8 @@ namespace WaveSabreVstLib
 		//dl->AddRectFilled(threshbb.Min, threshbb.Max, colors.tick);
 
 		// draw clip
-		if (clipIndicator && *clipIndicator && (cfg.levelMode != VUMeterLevelMode::Attenuation)) {
+		bool allowClipIndicator = true;// (cfg.levelMode != VUMeterLevelMode::Attenuation);
+		if (clipIndicator && *clipIndicator && allowClipIndicator) {
 			dl->AddRectFilled(bb.Min, { bb.Max.x, bb.Min.y + 8 }, colors.clipTick);
 		}
 
@@ -1141,7 +1211,7 @@ namespace WaveSabreVstLib
 		ImGui::PopStyleVar();
 	}
 
-	inline void VUMeter(const char* id, AnalysisStream& a0, AnalysisStream& a1, const VUMeterConfig& cfg)
+	inline void VUMeter(const char* id, IAnalysisStream& a0, IAnalysisStream& a1, const VUMeterConfig& cfg)
 	{
 		ImGui::PushID(id);
 		if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
@@ -1152,6 +1222,40 @@ namespace WaveSabreVstLib
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
 		ImGui::SameLine();
 		if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg))
+		{
+			a0.Reset();
+			a1.Reset();
+		}
+		ImGui::PopID();
+		ImGui::PopStyleVar();
+	}
+
+	inline void VUMeterAtten(const char* id, IAnalysisStream& a0, IAnalysisStream& a1, ImVec2 size = { 30,300 })
+	{
+		static const std::vector<VUMeterTick> smallTickSet = {
+				{-1, "-1"},
+				//{-2, "-2"},
+				{-3, "-3"},
+				{-6, "-6"},
+		};
+
+		const VUMeterConfig cfg = {
+			size,
+			VUMeterLevelMode::Attenuation,
+			VUMeterUnits::Linear,
+			-6.5f, 0.3f,
+			smallTickSet
+		};
+
+		ImGui::PushID(id);
+		if (VUMeter("VU L", nullptr, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
+		{
+			a0.Reset();
+			a1.Reset();
+		}
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
+		ImGui::SameLine();
+		if (VUMeter("VU R", nullptr, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg))
 		{
 			a0.Reset();
 			a1.Reset();

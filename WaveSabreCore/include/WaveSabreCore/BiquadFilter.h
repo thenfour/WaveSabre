@@ -23,6 +23,7 @@ namespace WaveSabreCore
 
 		//float Next(float input);
 
+		// q is ~0 to ~12
 		void SetParams(BiquadFilterType type, float freq, float q, float gain);
 
 		//bool thru;
@@ -45,7 +46,7 @@ namespace WaveSabreCore
 		float lastOutput, lastLastOutput;
 
 		// IFilter
-		virtual void SetParams(M7::FilterType type, float cutoffHz, float reso) override {
+		virtual void SetParams(M7::FilterType type, float cutoffHz, float reso01) override {
 			BiquadFilterType bt;
 			switch (type) {
 			case M7::FilterType::HP2:
@@ -59,7 +60,7 @@ namespace WaveSabreCore
 				break;
 			}
 
-			M7::ParamAccessor pa{ &reso, 0 };
+			M7::ParamAccessor pa{ &reso01, 0 };
 			float q = pa.GetDivCurvedValue(0, M7::gBiquadFilterQCfg, 0);
 
 			SetParams(bt, cutoffHz, q,q);

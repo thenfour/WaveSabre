@@ -53,11 +53,13 @@ public:
 		fp.SetFrequencyAssumingNoKeytracking(50);
 
 		Maj7ImGuiParamFrequency((int)Echo::ParamIndices::LowCutFreq, -1, "Lowcut", M7::gFilterFreqConfig, fp.GetRawValue(), {});
-		ImGui::SameLine(); Maj7ImGuiParamFloat01((int)Echo::ParamIndices::LowCutQ, "Low Q", 0.2f, 0.2f);
+		//ImGui::SameLine(); Maj7ImGuiParamFloat01((int)Echo::ParamIndices::LowCutQ, "Low Q", 0.2f, 0.2f);
+		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)Echo::ParamIndices::LowCutQ, "Low Q", M7::gBiquadFilterQCfg, 0.75f, {});
 
 		fp.SetFrequencyAssumingNoKeytracking(8500);
 		ImGui::SameLine(); Maj7ImGuiParamFrequency((int)Echo::ParamIndices::HighCutFreq, -1, "Highcut", M7::gFilterFreqConfig, fp.GetRawValue(), {});
-		ImGui::SameLine(); Maj7ImGuiParamFloat01((int)Echo::ParamIndices::HighCutQ, "High Q", 0.2f, 0.2f);
+		//ImGui::SameLine(); Maj7ImGuiParamFloat01((int)Echo::ParamIndices::HighCutQ, "High Q", 0.2f, 0.2f);
+		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)Echo::ParamIndices::HighCutQ, "High Q", M7::gBiquadFilterQCfg, 0.75f, {});
 
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::DryOutput, "Dry output", M7::gVolumeCfg12db, 0, {});
 		ImGui::SameLine();

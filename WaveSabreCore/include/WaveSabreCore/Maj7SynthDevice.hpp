@@ -32,7 +32,7 @@ namespace WaveSabreCore
 		virtual void PitchBend(int lsb, int msb, int deltaSamples) override;
 
 		void SetVoiceMode(VoiceMode voiceMode);
-		VoiceMode GetVoiceMode() const;
+		//VoiceMode GetVoiceMode() const;
 
 		void SetMaxVoices(int x)
 		{
@@ -190,7 +190,8 @@ namespace WaveSabreCore
 
 		// old max used to be 64. but in a DAW you can easily exceed this limit, for example fast moving chords + pitch bend / CC stuff
 		// and DAW stalling like saving or other events that might interrupt processing a bit.
-		static constexpr int maxEvents = 1024;
+		// but note: this limit is only reached in DAWs, and rarely.
+		static constexpr int maxEvents = 128;
 		static constexpr int maxActiveNotes = 128; // should always be 128 for all midi notes.
 
 		// params, midi, other activity may come in on other threads. those threads need to be able to affect state concurrently

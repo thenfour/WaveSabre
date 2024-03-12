@@ -187,13 +187,18 @@ namespace WaveSabreCore
 				mLowCutFilter[i].SetParams(
 					BiquadFilterType::Highpass,
 					mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig),
-					mParams.Get01Value(ParamIndices::LowCutQ, 0),
-					0);
+					//ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", M7::gBiquadFilterQCfg, 1.00f, {});
+					mParams.GetDivCurvedValue(ParamIndices::LowCutQ, M7::gBiquadFilterQCfg),
+					//mParams.Get01Value(ParamIndices::LowCutQ, 0),
+					0 // gain
+				);
 				mHighCutFilter[i].SetParams(
 					BiquadFilterType::Lowpass,
 					mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig),
-					mParams.Get01Value(ParamIndices::HighCutQ, 0),
-					0);
+					mParams.GetDivCurvedValue(ParamIndices::HighCutQ, M7::gBiquadFilterQCfg),
+					//mParams.Get01Value(ParamIndices::HighCutQ, 0),
+					0 // gain
+				);
 			}
 		}
 

@@ -127,7 +127,8 @@ struct Maj7MBCEditor : public VstEditor
 
 
 				Maj7ImGuiParamFrequency(param(BandParam::HighPassFrequency), -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
-				ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::HighPassQ), "HP Q", 0.2f, 0.2f);
+				ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::HighPassQ), "HP Q", M7::gBiquadFilterQCfg, 1.0f, {});
+				//ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::HighPassQ), "HP Q", 0.2f, 0.2f);
 
 				ImGui::SameLine(0, 40); Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "ChanLink", 0.8f, 0);
 				ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
@@ -240,8 +241,33 @@ struct Maj7MBCEditor : public VstEditor
 				ImGui::SameLine(0, 80); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
-				ImGui::SameLine(); VUMeter("inputVU", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[1], {15,100});
-				ImGui::SameLine(); VUMeter("outputVU", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[1], {15,100});
+				ImGui::SameLine(); VUMeter("inputVU", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[1], {15,120 });
+				ImGui::SameLine(); VUMeter("outputVU", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[1], {15,120 });
+
+
+				ImGui::SameLine(); Maj7ImGuiBoolParamToggleButton(ParamIndices::SoftClipEnable, "Softclip");
+				M7::QuickParam qp{mpMaj7MBCVst->getParameter((VstInt32)ParamIndices::SoftClipEnable)};
+				if (qp.GetBoolValue()) {
+					//ImGui::BeginDisabled(!qp.GetBoolValue());
+					ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::SoftClipThresh, "Thresh", M7::gUnityVolumeCfg, -6, {});
+					ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::SoftClipOutput, "Output", M7::gUnityVolumeCfg, -0.3f, {});
+					//ImGui::EndDisabled();
+
+					M7::QuickParam qp{ mpMaj7MBCVst->getParameter((VstInt32)ParamIndices::SoftClipThresh) };
+					float softClipThreshLin = qp.GetVolumeLin(M7::gUnityVolumeCfg);
+
+					ImGui::SameLine(); RenderTransferCurve({ 120, 120 }, {
+						ColorFromHTML("222222"), // bg
+						ColorFromHTML("8888cc"), // line
+						 ColorFromHTML("ffff00"), // line clipped
+						 ColorFromHTML("444444"), // tick
+						}, [&](float x) {
+							return Maj7MBC::Softclip(x, softClipThreshLin, 1)[0];
+						});
+
+
+					ImGui::SameLine(); VUMeterAtten("scclip", mpMaj7MBC->mClippingAnalysis[0], mpMaj7MBC->mClippingAnalysis[1], {30,120});
+				}
 
 
 				bool showWarning = false;
@@ -269,16 +295,21 @@ struct Maj7MBCEditor : public VstEditor
 			EndTabBarWithColoredSeparator();
 		}
 
-		ImGui::PushID("band0");
-		RenderBand(0, ParamIndices::AInputGain, "Lows", muteSoloEnabled[0], mbEnabled);
-		ImGui::PopID();
+		if (mbEnabled) {
+			ImGui::PushID("band0");
+			RenderBand(0, ParamIndices::AInputGain, "Lows", muteSoloEnabled[0], mbEnabled);
+			ImGui::PopID();
+		}
+
 		ImGui::PushID("band1");
 		RenderBand(1, ParamIndices::BInputGain, "Mids", muteSoloEnabled[1], true);
 		ImGui::PopID();
-		ImGui::PushID("band2");
-		RenderBand(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2], mbEnabled);
-		ImGui::PopID();
 
+		if (mbEnabled) {
+			ImGui::PushID("band2");
+			RenderBand(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2], mbEnabled);
+			ImGui::PopID();
+		}
 	}
 
 };
