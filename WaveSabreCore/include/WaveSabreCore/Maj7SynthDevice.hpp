@@ -54,7 +54,9 @@ namespace WaveSabreCore
 			bool mIsMusicallyHeld;// = false;
 		};
 
-		int GetCurrentPolyphony() const;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		int GetCurrentPolyphony();
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		struct Voice
 		{
@@ -118,6 +120,11 @@ namespace WaveSabreCore
 			// this assumes events are chronological and that we'll never get events during a pruning operation.
 
 			mEventCount++;
+			if (mEventCount >= maxEvents) {
+				// if you overflow event buffer, we don't have much choice but to abort mission. if you choose to ignore events,
+				// you're likely going to ignore events that are musically continuous with previous events and will cause chaos.
+				AllNotesOff();
+			}
 		}
 
 		// do not extern; inline is best.
@@ -177,12 +184,19 @@ namespace WaveSabreCore
 			AllNotesOff(); // helps make things predictable, reduce cases
 			mVoicesUnisono = n;
 		}
-		int GetUnisonoVoices()const {
-			return mVoicesUnisono;
-		}
+		//int GetUnisonoVoices()const {
+		//	return mVoicesUnisono;
+		//}
 
-		static constexpr int maxEvents = 64;
+		// old max used to be 64. but in a DAW you can easily exceed this limit, for example fast moving chords + pitch bend / CC stuff
+		// and DAW stalling like saving or other events that might interrupt processing a bit.
+		static constexpr int maxEvents = 1024;
 		static constexpr int maxActiveNotes = 128; // should always be 128 for all midi notes.
+
+		// params, midi, other activity may come in on other threads. those threads need to be able to affect state concurrently
+		// with ProcessEvents.
+		// so, all data below this is protected by this critsec.
+		CriticalSection mCritsec;
 
 		int mMaxVoices = 32;
 		int mVoicesUnisono = 1; // # of voices to double.
@@ -194,8 +208,8 @@ namespace WaveSabreCore
 		Voice* mVoices[M7::gMaxMaxVoices] = { 0 }; // allow child class to instantiate derived voice classes; don't template due to bloat.
 		VoiceMode mVoiceMode = VoiceMode::Polyphonic;
 
-		Event mEvents[maxEvents];
 		int mEventCount = 0;
+		Event mEvents[maxEvents];
 		bool mIsPedalDown = false;
 	};
 }

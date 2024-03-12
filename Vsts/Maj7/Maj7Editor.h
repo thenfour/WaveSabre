@@ -1055,8 +1055,7 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PitchFine, "FineTune", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::PitchFine));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::gFrequencyMulMax, 1, 0, 0, {});
 			
-			//ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
-			ImGui::SameLine(0, 60); Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "PhaseRst");
+			ImGui::SameLine(0, 60); Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "Phase\r\nRst");
 
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::Phase));
 			//ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");

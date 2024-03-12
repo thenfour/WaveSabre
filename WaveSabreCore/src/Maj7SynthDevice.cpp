@@ -23,13 +23,16 @@ namespace WaveSabreCore
 		AllNotesOff();
 	}
 
-	int Maj7SynthDevice::GetCurrentPolyphony() const {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+	int Maj7SynthDevice::GetCurrentPolyphony() {
+		auto guard = this->mCritsec.Enter();
 		int r = 0;
 		for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv) {
 			r += mVoices[iv]->IsPlaying() ? 1 : 0;
 		}
 		return r;
 	}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 
 
@@ -198,6 +201,8 @@ namespace WaveSabreCore
 		// it also means we can just slide over the 1 block of obsolete events each main chunk, rather than hunting & pecking to defragment. we assume there are no fragments.
 		int iEvent = 0;
 
+		auto guard = this->mCritsec.Enter();
+
 		while (numSamples)
 		{
 			int samplesToNextEvent = numSamples; // initially assume we'll process the remainder of the buffer. this may change if we hit an event to mark the next sub-chunk.
@@ -276,12 +281,14 @@ namespace WaveSabreCore
 
 	void Maj7SynthDevice::AllNotesOff()
 	{
+		auto guard = this->mCritsec.Enter();
 		for (int i = 0; i < M7::gMaxMaxVoices; i++)
 		{
 			if (!mVoices[i]) continue; // necessary because on ctor this gets called before voices are cerated. because this function is an initialization of state as well as all notes off.
 			mVoices[i]->NoteOff();
 		}
 		// clear events
+		mIsPedalDown = false; // not strictly necessary but makes sense in the spirit of "resetting".
 		mEventCount = 0;
 		memset(mEvents, 0, sizeof(mEvents[0]) * maxEvents);
 
@@ -290,11 +297,11 @@ namespace WaveSabreCore
 		{
 			mNoteStates[i].MidiNoteValue = i;
 		}
-
 	}
 
 	void Maj7SynthDevice::NoteOn(int note, int velocity, int deltaSamples)
 	{
+		auto oec = mEventCount;
 		//cc::log("[buf:%d] Pushing note on event; note=%d, velocity=%d, deltasamples=%d", cc::gBufferCount, note, velocity, deltaSamples);
 		if (velocity == 0) {
 			//PushEvent(EventType::NoteOff, note, 0, deltaSamples);
@@ -308,6 +315,7 @@ namespace WaveSabreCore
 	void Maj7SynthDevice::NoteOff(int note, int deltaSamples)
 	{
 		//cc::log("[buf:%d] Pushing note off event; note=%d, deltasamples=%d", cc::gBufferCount, note, deltaSamples);
+		auto oec = mEventCount;
 		PushEvent(EventType::NoteOff, note, 0, deltaSamples);
 	}
 
@@ -322,6 +330,7 @@ namespace WaveSabreCore
 
 	void Maj7SynthDevice::SetVoiceMode(VoiceMode voiceMode)
 	{
+		auto guard = this->mCritsec.Enter();
 		AllNotesOff();
 		for (int i = 0; i < M7::gMaxMaxVoices; i++)
 		{
