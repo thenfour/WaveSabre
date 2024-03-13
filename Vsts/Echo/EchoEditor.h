@@ -42,7 +42,7 @@ public:
 		ImGui::SameLine(); Maj7ImGuiBipolarPowCurvedParam((int)Echo::ParamIndices::RightDelayMS, "(ms)##right", M7::gEnvTimeCfg, 0, {});
 
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackLevel, "Feedback", M7::gVolumeCfg6db, -15.0f, {});
-		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackDriveDB, "FB Drive", M7::gVolumeCfg12db, 3, {});
+		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Echo::ParamIndices::FeedbackDriveDB, "FB Drive", M7::gVolumeCfg36db, 3, {});
 		ImGui::SameLine();
 		Maj7ImGuiParamFloat01((VstInt32)WaveSabreCore::Echo::ParamIndices::Cross, "crosstalk", 0.25f, 0);
 

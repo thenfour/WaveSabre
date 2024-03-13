@@ -78,6 +78,11 @@ namespace WaveSabreCore
 				return clamp01(1000.0f / (std::max(0.01f, ms) * (real_t)Helpers::CurrentSampleRate));
 			}
 
+			float MillisecondsToSamples(float ms)
+			{
+				static constexpr float oneOver1000 = 1.0f / 1000.0f; // obsessive optimization?
+				return (ms * ::WaveSabreCore::Helpers::CurrentSampleRateF) * oneOver1000;
+			}
 
 			bool DoesEncounter(double t1, double t2, float x) {
 				if (t1 < t2) {
@@ -123,6 +128,16 @@ namespace WaveSabreCore
 				static constexpr float OneTwelfth = 1.0f / 12.0f;
 				return math::pow2_N16_16(x * OneTwelfth);
 				//return math::pow2(x / 12.0f);
+			}
+
+			float CalcTanhGainCompensation(float driveFactor)
+			{
+				if (driveFactor <= 1) return 1; // no gain compensation if drive is actually attenuating
+
+				// this constant just feels about right. there's no "perfect" way to gain compensate a non-linearity like tanh because it depends on
+				// the incoming signal to get it perfect. what we DONT want is to feel too much attenuation as drive increases. this seems to balance well.
+				//return M7::math::expf(-0.14f * driveFactor); // this has a good curve until past like 25db
+				return 1.0f / M7::math::sqrt(driveFactor);
 			}
 
 			//float FrequencyToMIDINote(float hz)

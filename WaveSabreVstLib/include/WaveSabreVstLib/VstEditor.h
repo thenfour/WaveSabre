@@ -1000,9 +1000,9 @@ namespace WaveSabreVstLib
 		}
 		case VUMeterLevelMode::Attenuation:
 		{
-			colors.background = ColorFromHTML("462e2e");
-			colors.foregroundRMS = ColorFromHTML("ff9030"); // not used.
-			colors.foregroundPeak = ColorFromHTML("935f23");
+			colors.background = ColorFromHTML("402e2e");
+			colors.foregroundRMS = ColorFromHTML("900000");
+			colors.foregroundPeak = ColorFromHTML("600000");
 
 			colors.backgroundOverUnity = ColorFromHTML("440000");
 			colors.foregroundOverUnity = ColorFromHTML("cccc00");
@@ -1233,17 +1233,19 @@ namespace WaveSabreVstLib
 	inline void VUMeterAtten(const char* id, IAnalysisStream& a0, IAnalysisStream& a1, ImVec2 size = { 30,300 })
 	{
 		static const std::vector<VUMeterTick> smallTickSet = {
-				{-1, "-1"},
-				//{-2, "-2"},
+				{-1, nullptr},
+				{-2, nullptr},
 				{-3, "-3"},
 				{-6, "-6"},
+				{-9, "-9"},
+				{-12, "-12"},
 		};
 
 		const VUMeterConfig cfg = {
 			size,
 			VUMeterLevelMode::Attenuation,
 			VUMeterUnits::Linear,
-			-6.5f, 0.3f,
+			-12.0f, 0.3f,
 			smallTickSet
 		};
 

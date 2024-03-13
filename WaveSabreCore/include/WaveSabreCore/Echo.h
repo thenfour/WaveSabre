@@ -86,6 +86,7 @@ namespace WaveSabreCore
 
 		float mFeedbackLin;
 		float mFeedbackDriveLin;
+		float mFeedbackDriveGainCompensationFact;
 
 		float mDryLin;
 		float mWetLin;
@@ -122,8 +123,8 @@ namespace WaveSabreCore
 				delayBufferSignal[1] = mLowCutFilter[1].ProcessSample(delayBufferSignal[1]);
 
 				// apply drive
-				delayBufferSignal[0] = M7::math::tanh(delayBufferSignal[0] * mFeedbackDriveLin);
-				delayBufferSignal[1] = M7::math::tanh(delayBufferSignal[1] * mFeedbackDriveLin);
+				delayBufferSignal[0] = M7::math::tanh(delayBufferSignal[0] * mFeedbackDriveLin) * mFeedbackDriveGainCompensationFact;
+				delayBufferSignal[1] = M7::math::tanh(delayBufferSignal[1] * mFeedbackDriveLin) * mFeedbackDriveGainCompensationFact;
 
 				// cross mix
 				delayBufferSignal = {
@@ -162,9 +163,11 @@ namespace WaveSabreCore
 			//mParamCache[index] = value;
 			mCrossMix = mParams.Get01Value(ParamIndices::Cross);
 			mFeedbackLin = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
-			mFeedbackDriveLin = mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg12db, 0);
+			mFeedbackDriveLin = mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg36db, 0);
 			mDryLin = mParams.GetLinearVolume(ParamIndices::DryOutput, M7::gVolumeCfg12db);
 			mWetLin = mParams.GetLinearVolume(ParamIndices::WetOutput, M7::gVolumeCfg12db);
+
+			mFeedbackDriveGainCompensationFact = M7::math::CalcTanhGainCompensation(mFeedbackDriveLin);
 
 			float leftBufferLengthMs = CalcDelayMS(
 				mParams.GetIntValue(ParamIndices::LeftDelayCoarse, gDelayCoarseCfg),

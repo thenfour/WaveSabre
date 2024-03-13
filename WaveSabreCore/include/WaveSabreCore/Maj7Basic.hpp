@@ -404,7 +404,7 @@ namespace WaveSabreCore
             real_t CalculateInc01PerSampleForMS(real_t ms);
 
             inline float sign(float x) {
-                return ::signbit(x);
+                return x < 0 ? -1.0f : 1.0f;// ::signbit(x);
             }
 
             inline bool IsSilentGain(float gain)
@@ -412,11 +412,7 @@ namespace WaveSabreCore
                 return gain <= gMinGainLinear;
             }
 
-            inline float MillisecondsToSamples(float ms)
-            {
-                static constexpr float oneOver1000 = 1.0f / 1000.0f; // obsessive optimization?
-                return (ms * ::WaveSabreCore::Helpers::CurrentSampleRateF) * oneOver1000;
-            }
+            float MillisecondsToSamples(float ms);
 
 //            inline void* GetCrtProc(const char * const imp)
 //            {
@@ -544,7 +540,9 @@ namespace WaveSabreCore
             float MIDINoteToFreq(float x);
             float SemisToFrequencyMul(float x);
 
-            float FrequencyToMIDINote(float hz);
+            //float FrequencyToMIDINote(float hz);
+
+            float CalcTanhGainCompensation(float driveFactor);
 
             // our pan functions have a sqrt pan law, which by default attenuates the center position ~3db.
             // however take for example the width control, or any effect with a pan control. in default center position,

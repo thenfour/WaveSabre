@@ -197,6 +197,7 @@ namespace WaveSabreCore
 			MonoCompressor mComp[2];
 			bool mEnable;
 			float mDriveLin;
+			float mDriveGainCompensationFact;
 			float mInputGainLin;
 			float mOutputGainLin;
 
@@ -230,8 +231,11 @@ namespace WaveSabreCore
 				mDriveLin = mParams.GetLinearVolume(BandParam::Drive, M7::gVolumeCfg36db);
 				mInputGainLin = mParams.GetLinearVolume(BandParam::InputGain, M7::gVolumeCfg24db);
 				mOutputGainLin = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg24db);
-					
-					for (auto& c : mComp) {
+
+				// tanh gain compensation is not perfect, but experimentally this works quite well.
+				mDriveGainCompensationFact = M7::math::CalcTanhGainCompensation(mDriveLin);
+
+				for (auto& c : mComp) {
 					c.SetParams(
 						mParams.GetDivCurvedValue(BandParam::Ratio, MonoCompressor::gRatioCfg, 0),
 						mParams.GetScaledRealValue(BandParam::Knee, 0, 30, 0),
@@ -257,10 +261,9 @@ namespace WaveSabreCore
 						float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
 						float sout = mComp[ich].ProcessSample(inpAudio, detector);
 						if (mDriveLin > 1) {
-							// i'd love to do some kind of volume correction but it's not really practical.
 							sout = M7::math::tanh(mDriveLin * sout);
 						}
-						sout *= mOutputGainLin;
+						sout *= mOutputGainLin * mDriveGainCompensationFact;
 						output.x[ich] = sout;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -270,7 +273,7 @@ mDetectorAnalysis[ich].WriteSample(detector);
 mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					}
-				}
+				} // ENABLE
 				else {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				for (size_t ich = 0; ich < 2; ++ich) {
