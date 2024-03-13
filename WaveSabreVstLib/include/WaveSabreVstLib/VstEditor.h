@@ -1592,9 +1592,9 @@ namespace WaveSabreVstLib
 			{
 				try {
 					if (TouchKeytracking(capture)) {
-						return { std::stod(s), true }; // Hz directly.
+						return { std::stod(s) / 100, true }; // Hz directly.
 					}
-					float hz = float(std::stod(s) / 100); // percent scaled by 100
+					float hz = float(std::stod(s)); // percent scaled by 100
 					M7::QuickParam p;
 					p.SetFrequencyAssumingNoKeytracking(mCfg, hz);
 					return { p.GetRawValue(), true };

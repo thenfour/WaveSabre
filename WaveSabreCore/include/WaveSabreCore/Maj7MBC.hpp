@@ -126,50 +126,50 @@ namespace WaveSabreCore
 
 		static_assert((int)ParamIndices::NumParams == 44, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-		  20512, // InGain = 0.62599998712539672852
+		  8230, // InGain = 0.25118863582611083984
 		  0, // MBEnable = 0
-		  13557, // xAFreq = 0.41372698545455932617
-		  21577, // xBFreq = 0.65847802162170410156
-		  8230, // OutGain = 0.25118899345397949219
+		  13557, // xAFreq = 0.413726806640625
+		  21577, // xBFreq = 0.658477783203125
+		  8230, // OutGain = 0.25115966796875
 		  0, // SCEn = 0
-		  23197, // SCThr = 0.70794582366943359375
-		  32206, // SCOutp = 0.98287886381149291992
-		  8230, // AInVol = 0.25115999579429626465
-		  8230, // AOutVol = 0.25115999579429626465
-		  21845, // AThresh = 0.66665697097778320312
-		  15269, // AAttack = 0.46597298979759216309
-		  15908, // ARelease = 0.48550400137901306152
-		  18938, // ARatio = 0.57797199487686157227
-		  4368, // AKnee = 0.13333100080490112305
-		  26214, // AChanLnk = 0.79998797178268432617
+		  23197, // SCThr = 0.707916259765625
+		  32206, // SCOutp = 0.98284912109375
+		  8230, // AInVol = 0.25115966796875
+		  8230, // AOutVol = 0.25115966796875
+		  21845, // AThresh = 0.666656494140625
+		  15269, // AAttack = 0.465972900390625
+		  15908, // ARelease = 0.4854736328125
+		  18938, // ARatio = 0.57794189453125
+		  4368, // AKnee = 0.13330078125
+		  26214, // AChanLnk = 0.79998779296875
 		  0, // AEnable = 0
 		  0, // AHPF = 0
-		  6553, // AHPQ = 0.1999820023775100708
-		  4124, // ADrive = 0.12588499486446380615
-		  8230, // BInVol = 0.25115999579429626465
-		  8230, // BOutVol = 0.25115999579429626465
-		  21845, // BThresh = 0.66665697097778320312
-		  15269, // BAttack = 0.46597298979759216309
-		  15908, // BRelease = 0.48550400137901306152
-		  18938, // BRatio = 0.57797199487686157227
-		  4368, // BKnee = 0.13333100080490112305
-		  26214, // BChanLnk = 0.79998797178268432617
+		  6553, // AHPQ = 0.199981689453125
+		  4124, // ADrive = 0.1258544921875
+		  8230, // BInVol = 0.25115966796875
+		  8230, // BOutVol = 0.25115966796875
+		  21845, // BThresh = 0.666656494140625
+		  15269, // BAttack = 0.465972900390625
+		  15908, // BRelease = 0.4854736328125
+		  18938, // BRatio = 0.57794189453125
+		  4368, // BKnee = 0.13330078125
+		  26214, // BChanLnk = 0.79998779296875
 		  0, // BEnable = 0
 		  0, // BHPF = 0
-		  6553, // BHPQ = 0.1999820023775100708
-		  4124, // BDrive = 0.12588499486446380615
-		  8230, // CInVol = 0.25115999579429626465
-		  8230, // COutVol = 0.25115999579429626465
-		  21845, // CThresh = 0.66665697097778320312
-		  15269, // CAttack = 0.46597298979759216309
-		  15908, // CRelease = 0.48550400137901306152
-		  18938, // CRatio = 0.57797199487686157227
-		  4368, // CKnee = 0.13333100080490112305
-		  26214, // CChanLnk = 0.79998797178268432617
+		  6553, // BHPQ = 0.199981689453125
+		  4124, // BDrive = 0.1258544921875
+		  8230, // CInVol = 0.25115966796875
+		  8230, // COutVol = 0.25115966796875
+		  21845, // CThresh = 0.666656494140625
+		  15269, // CAttack = 0.465972900390625
+		  15908, // CRelease = 0.4854736328125
+		  18938, // CRatio = 0.57794189453125
+		  4368, // CKnee = 0.13330078125
+		  26214, // CChanLnk = 0.79998779296875
 		  0, // CEnable = 0
 		  0, // CHPF = 0
-		  6553, // CHPQ = 0.1999820023775100708
-		  4124, // CDrive = 0.12588499486446380615
+		  6553, // CHPQ = 0.199981689453125
+		  4124, // CDrive = 0.1258544921875
 		};
 
 
@@ -335,8 +335,8 @@ mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
 			mInputAnalysis{ AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS} },
 			mOutputAnalysis{ AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS} },
 			mClippingAnalysis {
-				AttenuationAnalysisStream{ 6000 },
-				AttenuationAnalysisStream{ 6000 }
+				AttenuationAnalysisStream{ 4000 },
+				AttenuationAnalysisStream{ 4000 }
 		}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		{
