@@ -1,5 +1,5 @@
 
-# Maj7 MBC Multiband compressor
+# Maj7 MBC Multiband compressor - Limiter - Saturator
 
 Maj7 MBC is a high quality and feature-rich multi-band compressor and saturator. All the features pro audio engineers are used to are implemented in a robust and stable way.
 
@@ -11,11 +11,28 @@ Note: Some features are disabled for code size.
 
 ## Background / Justification
 
-Is a multiband compressor overkill for a size-optimized demoscene prod? Yes absolutely, but there are also good reasons to include it:
+For size reasons, devices should have the right amount of features to avoid redundancy or device overhead. We want to avoid having multiple compressor devices, but typical "production quality" mixing necessitates a few different compressor/dynamics needs:
 
-The introduction of Maj7 Sat means we have a phase-coherent Linkwitz Riley crossover, so it's almost free to include multi-band processing in general. And then rolling them together becomes quite practical and is very size-optimal.
+* Utility compressors for shaping transients, taming tracks. Separate stereo operation, fast response times.
+* Bus compressors for gluing. Slower response times, stronger stereo linking, and range from aggressive to transparent.
+* Multiband compression, mostly used for mastering.
+* Master Limiting, for final transient handling in a transparent way, overall loudness management, standard conformance.
 
-MB compression is not strictly required, but it's pretty much required for a "final mix". One of the ideas behind the Maj7 suite is that it will output a production-quality prod, and in that case MB compression feels like a necessity. This means the output can be ready for a final release straight out of WaveSabre, without having to go back and rework a "final mix" replacing devices with high quality Fab Filter plugins.
+Is a multiband compressor overkill for a size-optimized demoscene prod? Yes absolutely, but there are also good reasons to include it. Saturation/excitation often wants to be band-independent, so there are multiple justifications for these crossovers.
+
+One of the ideas behind the Maj7 suite is that it will output a production-quality prod, and in that case MB compression feels like a necessity. This means the output can be ready for a final release straight out of WaveSabre, without having to go back and rework a "final mix" replacing devices with high quality Fab Filter plugins.
+
+With the right set of features, we can try to cover the most ground.
+
+
+## Features
+
+  * Single or multi-band compression & saturation
+  * Compression with thresh, ratio, knee, attack, release
+    * attack is instant, useful for naive brickwall limiting
+  * Channel linking
+  * Filtering of sidechain signal
+  * Soft clipping, to soften the sound of over-limit brickwalling.
 
 ## Parameters
 
@@ -84,7 +101,7 @@ When 0, it means left and right stereo channels are processed independently. Whe
 Too wide (e.g. 0%), and you may hear unnatural distracting compression happening in only 1 channel at a time. Refer to the history graph window to see the attenuation between left & right signals; when they are very different, the effect can be undesirable.
 
 
-### Peak-RMS
+### Peak-RMS (disabled in some variations)
 
 When this is set to 0ms, peak detection is used. This allows for instant attack, where not even 1 sample will escape compression. Peak is actually almost always usable (RMS is rarely *needed*).
 
@@ -96,6 +113,8 @@ When do you need RMS? RMS window can smooth out transients before compression. I
 
 ### Highpass & Lowpass Frequency / Q
 
+ (Lowpass is disabled in some variations)
+
 The input detection can have lowpass & highpass filters applied, in order to avoid responding to certain frequencies. Most common is when a kick drum is dominating the response of the compressor on a drum bus. In this case, adjust the highpass filter to reduce the impact of low frequencies on the compression.
 
 Refer to the frequency response graph; it's calculated based on the actual filters in the effect, not contrived.
@@ -104,7 +123,15 @@ To hear the filtered detection signal, listen to the "Sidechain" signal.
 
 Note: when frequencies are out of range, the filters are fully bypassed.
 
+### Drive (saturation)
+
+When 0dB or below, this disables drive.
+
+This adds odd harmonic saturation. It's effectively the "clean tape" setting you'd find ind Fab Filter Saturn.
+
 ### Makeup gain
+
+This is disabled in some builds; the idea is that if you don't have parallel processing then there's no reason for this extra gain stage. Just adjust the output gain.
 
 This is the amount of gain to apply after compression to bring the signal to the same level as the input signal. This is not quite the same as output gain, because of where it's applied during processing.
 
@@ -132,10 +159,43 @@ This is NOT makeup gain. For gain-staging please use makeup gain, which is inten
 
 Here you can select the signal that's actually output by the device. I find "diff" very useful sometime as another way to hear the character of the compression being applied. "Sidechain" allows hearing the incoming signal with filtering applied.
 
+### Soft clipping enable
+
+This enables the soft clipping processing stage, which is designed as a mastering tool, but could be useful for brickwall limiting of any kind.
+
+If this is disabled, clipping is not performed, and over-unity output is possible without clipping.
+
+When this is enabled, output will never exceed unity, which makes this useful as a last processing stage in a master bus.
+
+The VU meter to the right shows the amount of clipping that's been attenuated. If a signal is not over-unity, this meter will be empty. The meter only registers something if the input signal was clipping. This is useful for mastering.
+
+Note: Even if the signal is not clipping, shaping is occurring above the selected threshold.
+
+Note: Compressor output gain is applied before soft clipping. It means compressor output gain is effectively an input gain to the soft clipper, for dialing in final loudness.
+
+### Soft clip threshold
+
+Like Maj7 Sat, this threshold determines the amplitude at which a signal has shaping applied. Below the threshold, the signal will be linear and you won't hear the saturation that is natural with soft clipping.
+
+Above the threshold will have soft clipping applied. For individual tracks this is not likely to be a big deal; `-inf` would be common. But for mastering, it can shape the signal a bit too much and feel heavy-handed, even if clipping is not occurring.
+
+As the saturation range shrinks (threshold approaching `0dB`), the clipping will take more and more the shape of hard clipping, which is quite ugly, but reduces the influence of the wave shaper.
+
+If this is too low, you might feel that the signal is becoming too saturated, too thick. But if it's too close to unity (`0dB`), then clipping results in quite ugly hard clipping which sounds like non-musical tearing or glitching.
+
+So for a master bus soft clipper, this threshold control is actually very important to the final dynamic character.
+
+For a master bus, around -9 to -6dB seems to be a sweet spot. You want something that engages in loud parts, but mostly stays out of the way during non-critical passages.
+
+### Soft clip output (maximum output level)
+
+After soft clipping, the output range is attenuated using this parameter. Output level will never exceed this.
+
+Note: this is of course in the digital domain, with no oversampling. True peak is not even close to being in scope of this project.
+
 ## Known issues
 
 * annoyance: the dB scale of the VU Meters is different than the scale of the history view & transfer curve. it's a bit confusing when you look at the legends of one and thinking it applies to the other.
-* annoyance: the VU meter & history are not very beautiful and give me a headache after some time. better envelope following, and processing of all samples would help this. for now it's serving its purpose.
 
 ## GUI
 
@@ -144,7 +204,7 @@ Here you can select the signal that's actually output by the device. I find "dif
 This shows the ongoing signal levels. You can select the checkboxes to determine what gets shown.
 
 * Input (gray): The incoming signal, with input gain applied (effectively the dry signal)
-* Detector (pink) The signal that the compressor is using to calculate attenuation
+* Detector (yellow) The signal that the compressor is using to calculate attenuation
 * Attenuation (green): The amount of attenuation applied to the signal
 * Output (blue): The wet signal
 * Left: Show left signals. All these signals have left and right versions (left is bright, right is darker)
@@ -166,9 +226,65 @@ They're not perfect, but they do the job.
 
 * Input Left
 * Input Right
-* Attenuation amount, in red
+* Attenuation left amount, in red
+* Attenuation right amount, in red
 * Output Left
 * Output Right
+
+
+## Processing flow
+
+  * input gain
+  * band splitting
+  * for each band,
+    * input gain
+    * channel linking
+    * highpass filter, if enabled
+    * compression stage
+    * output gain
+  * output gain
+  * soft clipping
+    * waveshaping
+    * output gain
+
+
+
+## Usage as a saturator / exciter
+
+MBC contains all the parts of both a compressor and saturator. The multi-band processing and process flow make it very cheap to combine the two operations.
+
+The main saturation control is the "Drive" knob buried among the compressor controls.
+
+So the workflow for using this as a saturator are:
+
+1. enable compressor band (either single band or multi-band)
+2. set ratio to 1 which forces compression to not attenuate
+3. adjust drive as necessary; this is your saturation control.
+
+Saturation can be applied to the 3 bands independently. Note that adding saturation will introduce frequencies that are outside of that band's crossover boundary.
+
+## Usage as a limiter
+
+Several features are combined to allow MBC to act as a limiter: 
+
+* Instant attack times
+* High ratios
+* Soft clipping
+
+To use MBC as a limiter,
+
+- Be in single band mode. While you can do multiband compression in a limiter workflow, it probably doesn't make much sense. Do your MB processing, THEN do a single-band limiting stage.
+- Ratio set to maximum (50:1)
+- Attack to 0, to "catch" transients
+- Other compressor params:
+  - Gentle threshold and knee to maximize transparency, but wide enough that transients are hidden through treatment.
+  - Probably don't add drive; that kind of treatment should come earlier in the chain.
+  - Channel link probably leave default for transparency. Drop to 0 if you want to catch transients perfectly without the other channel interrupting.
+- Enable soft clipping, to guarantee samples don't exceed unity.
+  - Threshold & output defaults are probably fine; they're intended for limiting.
+
+
+
 
 ## Why no Mid-Side processing?
 

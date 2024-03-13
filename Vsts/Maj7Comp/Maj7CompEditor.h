@@ -146,7 +146,7 @@ struct Maj7CompEditor : public VstEditor
 			EndTabBarWithColoredSeparator();
 		}
 
-		mCompressorVis->Render(true, mpMaj7Comp->mComp[0], mpMaj7Comp->mInputAnalysis, mpMaj7Comp->mDetectorAnalysis, mpMaj7Comp->mAttenuationAnalysis, mpMaj7Comp->mOutputAnalysis);
+		mCompressorVis->Render(true, true, mpMaj7Comp->mComp[0], mpMaj7Comp->mInputAnalysis, mpMaj7Comp->mDetectorAnalysis, mpMaj7Comp->mAttenuationAnalysis, mpMaj7Comp->mOutputAnalysis);
 	}
 };
 

@@ -15,12 +15,14 @@ struct Maj7MBCEditor : public VstEditor
 	using ParamIndices = Maj7MBC::ParamIndices;
 
 	CompressorVis<330, 120> mCompressorVis[Maj7MBC::gBandCount];
+	CompressorVis<650, 320> mCompressorVisBig[Maj7MBC::gBandCount];
+	CompressorVis<330, 60> mCompressorVisSmall[Maj7MBC::gBandCount];
 
 	ColorMod mBandColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mBandDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
-		VstEditor(audioEffect, 1150, 820),
+		VstEditor(audioEffect, 1150, 950),
 		mpMaj7MBCVst((Maj7MBCVst*)audioEffect)
 	{
 		mpMaj7MBC = ((Maj7MBCVst *)audioEffect)->GetMaj7MBC();
@@ -62,19 +64,29 @@ struct Maj7MBCEditor : public VstEditor
 
 				Maj7ImGuiBoolParamToggleButton(param(BandParam::Enable), "Enable", { 0,0 }, { "22aa22", "294a7a", "999999", });
 
-				ImGui::SameLine(0, 60);
-				if (ToggleButton(&bandConfig.mMute, "MUTE", { 0,0 }, { "990000", "294a7a", "999999", })) {
-					// this doesn't work; the common wisdom seems to be to 
-					//GetEffectX()->setParameter(0, GetEffectX()->getParameter(0)); // tell the host that the params have changed (even though they haven't)
+				bool isCompactDisplay = bandConfig.mDisplayStyle == Maj7MBC::DisplayStyle::Compact;
+				ImGui::SameLine(0, 30);
+				if (ToggleButton(&isCompactDisplay, "Small")) {
+					bandConfig.mDisplayStyle = Maj7MBC::DisplayStyle::Compact;
+				}
+				bool isNormalDisplay = bandConfig.mDisplayStyle == Maj7MBC::DisplayStyle::Normal;
+				ImGui::SameLine();
+				if (ToggleButton(&isNormalDisplay, "Default")) {
+					bandConfig.mDisplayStyle = Maj7MBC::DisplayStyle::Normal;
+				}
+				bool isBigDisplay = bandConfig.mDisplayStyle == Maj7MBC::DisplayStyle::Big;
+				ImGui::SameLine();
+				if (ToggleButton(&isBigDisplay, "Big")) {
+					bandConfig.mDisplayStyle = Maj7MBC::DisplayStyle::Big;
 				}
 
-				if (mbEnabled) {
-					ImGui::SameLine();
-					if (ToggleButton(&bandConfig.mSolo, "SOLO", { 0,0 }, { "999900", "294a7a", "999999", })) {
-						//GetEffectX()->setParameter(0, GetEffectX()->getParameter(0)); // tell the host that the params have changed (even though they haven't)
-						//mpMaj7MBCVst->updateDisplay();
-					}
-				}
+
+				ImGui::SameLine(0, 40);
+				if (mbEnabled)
+				{
+					ToggleButton(&bandConfig.mMute, "MUTE", { 0,0 }, { "990000", "294a7a", "999999", });
+					ImGui::SameLine(); ToggleButton(&bandConfig.mSolo, "SOLO", { 0,0 }, { "999900", "294a7a", "999999", });
+				} // mbenabled
 
 				if (bandEnabled) {
 					bool delta = bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta;
@@ -96,15 +108,16 @@ struct Maj7MBCEditor : public VstEditor
 
 				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
 
-				if (bandEnabled) {
-
+				if (bandEnabled && !isCompactDisplay)
+				{
 					Maj7ImGuiParamScaledFloat(param(BandParam::Threshold), "Thresh(dB)", -60, 0, -20, 0, 0, {});
 					ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::Ratio), "Ratio", MonoCompressor::gRatioCfg, 4, {});
 					ImGui::SameLine(); Maj7ImGuiParamScaledFloat(param(BandParam::Knee), "Knee(dB)", 0, 30, 4, 0, 0, {});
 					ImGui::SameLine(0, 80); Maj7ImGuiPowCurvedParam(param(BandParam::Attack), "Attack(ms)", MonoCompressor::gAttackCfg, 50, {});
 					ImGui::SameLine(); Maj7ImGuiPowCurvedParam(param(BandParam::Release), "Release(ms)", MonoCompressor::gReleaseCfg, 80, {});
 
-					if (mbEnabled) {
+					if (mbEnabled)
+					{
 						ImGui::SameLine();
 						ImGui::BeginGroup(); // lows mids highs group
 						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 2 });
@@ -142,13 +155,24 @@ struct Maj7MBCEditor : public VstEditor
 					ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
 
 					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Output", M7::gVolumeCfg24db, 0, {});
-				}
+				} // band enabled
 
 				ImGui::EndGroup();
 
 				if (bandEnabled) {
-					ImGui::SameLine();
-					mCompressorVis[iBand].Render(band.mEnable, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
+					switch (bandConfig.mDisplayStyle) {
+					case Maj7MBC::DisplayStyle::Compact:
+						ImGui::SameLine();
+						mCompressorVisSmall[iBand].Render(band.mEnable, false, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
+						break;
+					case Maj7MBC::DisplayStyle::Normal:
+						ImGui::SameLine();
+						mCompressorVis[iBand].Render(band.mEnable, true, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
+						break;
+					case Maj7MBC::DisplayStyle::Big:
+						mCompressorVisBig[iBand].Render(band.mEnable, true, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
+						break;
+					}
 				}
 
 				ImGui::EndTabItem();

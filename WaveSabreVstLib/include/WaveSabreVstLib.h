@@ -14,13 +14,13 @@
 
 namespace WaveSabreVstLib
 {
-
+	// converts a value to enum, via its integral value. todo: structured with a string value.
 	template<typename Tenum>
 	Tenum ToEnum(clarinoid::JsonVariantReader& value, Tenum count)
 	{
-		if (value.mNumericValue.mIntValue < 0) return (Tenum)0;
-		if (value.mNumericValue.mIntValue >= (int)count) return (Tenum)0;
-		return (Tenum)value.mNumericValue.mIntValue;
+		if (value.mNumericValue.Get<int>() < 0) return (Tenum)0;
+		if (value.mNumericValue.Get<int>() >= (int)count) return (Tenum)0;
+		return (Tenum)(value.mNumericValue.Get<int>());
 	};
 
 	inline void CopyTextToClipboard(const std::string& s) {
@@ -433,7 +433,7 @@ namespace WaveSabreVstLib
 		static constexpr float historyViewMinDB = -60;
 		HistoryView<9, historyViewWidth, historyViewHeight> mHistoryView;
 
-		void Render(bool enabled, MonoCompressor& comp, AnalysisStream(&inputAnalysis)[2], AnalysisStream(&detectorAnalysis)[2], AnalysisStream(&attenuationAnalysis)[2], AnalysisStream(&outputAnalysis)[2])
+		void Render(bool enabled, bool showToggles, MonoCompressor& comp, AnalysisStream(&inputAnalysis)[2], AnalysisStream(&detectorAnalysis)[2], AnalysisStream(&attenuationAnalysis)[2], AnalysisStream(&outputAnalysis)[2])
 		{
 			//INLINE float LookupLUT1D(const float(&mpTable)[N], float x)
 
@@ -470,14 +470,20 @@ namespace WaveSabreVstLib
 				M7::math::DecibelsToLinear(comp.mThreshold),
 				});
 
-			ImGui::Checkbox("Input", &mShowInputHistory);
-			ImGui::SameLine(); ImGui::Checkbox("Detector", &mShowDetectorHistory);
-			ImGui::SameLine(); ImGui::Checkbox("Attenuation", &mShowAttenuationHistory);
-			ImGui::SameLine(); ImGui::Checkbox("Output", &mShowOutputHistory);
+			if (showToggles) {
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
-			ImGui::Checkbox("Left", &mShowLeft);
-			ImGui::SameLine(); ImGui::Checkbox("Right", &mShowRight);
+				ToggleButton(&mShowInputHistory, "Input");
+				ImGui::SameLine(); ToggleButton(&mShowDetectorHistory, "Detector");
+				ImGui::SameLine(); ToggleButton(&mShowAttenuationHistory, "Attenuation");
+				ImGui::SameLine(); ToggleButton(&mShowOutputHistory, "Output");
 
+				ImGui::SameLine(0, 40); ToggleButton(&mShowLeft, "L");
+				ImGui::SameLine(); ToggleButton(&mShowRight, "R");
+
+				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+			}
 			ImGui::EndGroup();
 
 			ImGui::SameLine();
@@ -486,11 +492,10 @@ namespace WaveSabreVstLib
 					{-3.0f, "3db"},
 					{-6.0f, "6"},
 					{-12.0f, "12"},
-					{-18.0f, "18"},
-					{-24.0f, "24"},
+					{-20.0f, "20"},
 					{-30.0f, "30"},
 					{-40.0f, "40"},
-					{-50.0f, "50"},
+					//{-50.0f, "50"},
 			};
 
 			VUMeterConfig mainCfg = {
