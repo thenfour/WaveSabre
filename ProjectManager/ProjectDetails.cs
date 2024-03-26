@@ -38,9 +38,13 @@ namespace ProjectManager
             var deviceCount = 0;
 
             var t = 0;
-            foreach (var track in song.Tracks)
+            var orderedTracks = song.Tracks.OrderBy((track) => {
+                return -song.MidiLanes[track.MidiLaneId].MidiEvents.Count;
+            });
+            foreach (var track in orderedTracks)
             {
-                var trackName = string.Format("{0}: {1}", t, track.Name, track);
+                var midiLane = song.MidiLanes[track.MidiLaneId];                
+                var trackName = string.Format($"{t}: {track.Name} ({midiLane.MidiEvents.Count} events)");
                 var trackNode = new TreeNode(trackName);
                 var deviceNodes = new List<TreeNode>();
 

@@ -474,7 +474,7 @@ namespace WaveSabreCore
 			// returns Y value at specified phase. instance / stateless.
 			virtual float NaiveSample(float phase01) override
 			{
-				return mCurrentSample;// math::randN11();// Helpers::RandFloat() * 2 - 1;
+				return mCurrentSample;
 			}
 
 			virtual float NaiveSampleSlope(float phase01) override

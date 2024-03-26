@@ -88,11 +88,11 @@ namespace WaveSabreCore
 		static float CurrentSampleRateRecipF;
 
 		static int CurrentTempo;
-		static int RandomSeed;
+		//static int RandomSeed;
 
 		//static void Init();
 
-		static float RandFloat();
+		//static float RandFloat();
 
 		static double Exp2(double x);
 		static float Exp2F(float x);
@@ -131,11 +131,11 @@ namespace WaveSabreCore
 
 		//static float DbToScalar(float db);
 
-		static float EnvValueToScalar(float value);
-		static float ScalarToEnvValue(float scalar);
+		//static float EnvValueToScalar(float value);
+		//static float ScalarToEnvValue(float scalar);
 
-		static float VolumeToScalar(float volume);
-		static float ScalarToVolume(float scalar);
+		//static float VolumeToScalar(float volume);
+		//static float ScalarToVolume(float scalar);
 
 		static bool ParamToBoolean(float value);
 		static float BooleanToParam(bool b);
@@ -155,20 +155,20 @@ namespace WaveSabreCore
 		//static StateVariableFilterType ParamToStateVariableFilterType(float param);
 		//static float StateVariableFilterTypeToParam(StateVariableFilterType type);
 
-		static int ParamToUnisono(float param);
-		static float UnisonoToParam(int unisono);
+		//static int ParamToUnisono(float param);
+		//static float UnisonoToParam(int unisono);
 
 		//static double ParamToVibratoFreq(float param);
 		//static float VibratoFreqToParam(double vf);
 
-		static float PanToScalarLeft(float pan);
-		static float PanToScalarRight(float pan);
+		//static float PanToScalarLeft(float pan);
+		//static float PanToScalarRight(float pan);
 
 		//static Spread ParamToSpread(float param);
 		//static float SpreadToParam(Spread spread);
 
-		static VoiceMode ParamToVoiceMode(float param);
-		static float VoiceModeToParam(VoiceMode type);
+		//static VoiceMode ParamToVoiceMode(float param);
+		//static float VoiceModeToParam(VoiceMode type);
 	//private:
 	//	static const int fastSinTabLog2Size = 9; // size = 512
 	//	static const int fastSinTabSize = (1 << fastSinTabLog2Size);

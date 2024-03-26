@@ -785,9 +785,9 @@ namespace WaveSabreVstLib
 	enum class ParamBehavior
 	{
 		Default01,
-		Unisono,
+		//Unisono,
 		//VibratoFreq,
-		Frequency,
+		//Frequency,
 		//FilterQ,
 		//Db,
 	};
@@ -1671,16 +1671,16 @@ namespace WaveSabreVstLib
 			float paramValue = GetEffectX()->getParameter((VstInt32)id);
 			bool r = false;
 			switch (behavior) {
-			case ParamBehavior::Unisono:
-			{
-				int iparam = ::WaveSabreCore::Helpers::ParamToUnisono(paramValue);
-				r = ImGuiKnobs::KnobInt(name, &iparam, 1, 16, 1, 0, .1f, .001f, NULL, ImGuiKnobVariant_WiperOnly);
-				if (r) {
-					paramValue = ::WaveSabreCore::Helpers::UnisonoToParam(iparam);
-					GetEffectX()->setParameterAutomated(id, M7::math::clamp01(paramValue));
-				}
-				break;
-			}
+			//case ParamBehavior::Unisono:
+			//{
+			//	int iparam = ::WaveSabreCore::Helpers::ParamToUnisono(paramValue);
+			//	r = ImGuiKnobs::KnobInt(name, &iparam, 1, 16, 1, 0, .1f, .001f, NULL, ImGuiKnobVariant_WiperOnly);
+			//	if (r) {
+			//		paramValue = ::WaveSabreCore::Helpers::UnisonoToParam(iparam);
+			//		GetEffectX()->setParameterAutomated(id, M7::math::clamp01(paramValue));
+			//	}
+			//	break;
+			//}
 
 			case ParamBehavior::Default01:
 			default:

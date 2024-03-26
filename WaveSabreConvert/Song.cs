@@ -45,7 +45,7 @@ namespace WaveSabreConvert
 
         public class Event
         {
-            public int TimeStamp;
+            public int TimeStamp; // in samples
             public EventType Type;
             public byte Note;
             public byte Velocity;
@@ -53,7 +53,7 @@ namespace WaveSabreConvert
 
         public class DeltaCodedEvent
         {
-            public int TimeFromLastEvent;
+            public int TimeFromLastEvent; // in samples
             public EventType Type;
             public byte Note;
             public byte Velocity;

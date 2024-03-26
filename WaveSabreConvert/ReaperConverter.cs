@@ -52,6 +52,11 @@ namespace WaveSabreConvert
                 logger.WriteLine("WARN: This project has a tempo map which is not supported, although it contains 0 points so maybe it's OK.");
             }
 
+            if (project.ChildElements.Any(e => e.ElementName.Contains("MASTERVOLENV")))
+            {
+                logger.WriteLine("ERROR: You have a volume envelope on the master track; this is not supported. Use a parameter instead.");
+            }
+
             if (project.TempoEnvelope.Points.Count > 0)
             {
                 logger.WriteLine("ERROR: This project has a tempo map which is not supported. Even if there's only 1 point, it can mess everything up. Delete the tempo envelope entirely and try again.");
@@ -100,6 +105,16 @@ namespace WaveSabreConvert
                 var track = CreateTrack(reaperTrack);
                 projectTracks.Add(track);
                 var trackIndex = projectTracks.IndexOf(track);
+
+                if (reaperTrack.ChildElements.Any(e => e.ElementName.Contains("VOLENV")))
+                {
+                    logger.WriteLine($"ERROR: Track {reaperTrack.TrackName} has a volume envelope; this is not supported. Use a parameter instead.");
+                }
+                if (reaperTrack.ChildElements.Any(e => e.ElementName.Contains("PANENV")))
+                {
+                    logger.WriteLine($"ERROR: Track {reaperTrack.TrackName} has a panning envelope; this is not supported (nor is track panning at all). Use a parameter on an effect instead.");
+                }
+
 
                 // bus fun!
                 switch (reaperTrack.BusConfig.BusMode)
@@ -285,13 +300,13 @@ namespace WaveSabreConvert
                 }
                 if (device == null)
                 {
-                    logger.WriteLine("ERROR: Device skipped (unsupported plugin): " + f.Vst.VstFile);
+                    logger.WriteLine($"ERROR: Track {reaperTrack.TrackName}; Unsupported plugin skipped: {f.Vst.VstFile}");
                 }
                 else
                 {
                     if (f.IsBypassed)
                     {
-                        logger.WriteLine("ERROR: Bypassed devices cause problems: " + f.Vst.VstName);
+                        logger.WriteLine($"ERROR: Track {reaperTrack.TrackName}; Bypassed devices cause problems: {f.Vst.VstName}");
                     }
 
                     track.Devices.Add(device);

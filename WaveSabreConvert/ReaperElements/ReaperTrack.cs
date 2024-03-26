@@ -274,14 +274,30 @@ namespace ReaperParser.ReaperElements
         }
     }
 
+    // for automation envelopes, also for tempo map.
     [ReaperTag("PT")]
     public class ReaperAutomationPoint : ReaperElement
     {
         public float Position { get; set; }
-        public float Value { get; set; }
-        public ReaperPointShape Shape { get; set; }
-        public float Unknown { get; set; }
+        public float Value { get; set; } // tempo BPM, scaled by BPM basis!
+        public ReaperPointShape Shape { get; set; } // tempo: only linear & square are supported.
+        public UInt32 TimeSignatureFlags { get; set; } // time signature flags. bits 0-8:numerator, 16-24=denominator.
         public bool Selected { get; set; }
+        public string Unknown1 { get; set; }
+        public UInt32 MetronomePattern1 { get; set; } // bit mask, 2 bits per character, in reverse order. 0=skip, 1=A, 2=B, 3=T. ignored for our purposes.
+        public UInt32 MetronomePattern2 { get; set; }
+        public float Unknown2 { get; set; } // always 0
+        public ReaperBPMBasis BPMBasis { get; set; } // which type of beat gets the BPM value.
+    }
+
+    public enum ReaperBPMBasis
+    {
+        Quarter = 0,
+        Eighth = 1,
+        Half = 2,
+        QuarterDot = 3,
+        EighthDot = 4,
+        HalfDot = 5,
     }
 
     public enum ReaperPointShape
