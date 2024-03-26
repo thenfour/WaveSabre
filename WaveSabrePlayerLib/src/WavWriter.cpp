@@ -16,7 +16,7 @@ namespace WaveSabrePlayerLib
 
 	void WavWriter::Write(const char *fileName, ProgressCallback callback, void *data)
 	{
-		int sampleRate = songRenderer->GetSampleRate();
+		static constexpr int sampleRate = HARD_CODED_SAMPLE_RATE;// songRenderer->GetSampleRate();
 		const int bitsPerSample = sizeof(SongRenderer::Sample) * 8;
 
 		const int stepSize = 100 * SongRenderer::NumChannels;

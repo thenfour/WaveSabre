@@ -96,5 +96,7 @@ namespace WaveSabreConvert
     public class ConvertOptions
     {
         public BoundsMode mBoundsMode = BoundsMode.Regions;
+        public int TimestampScaleLog2;
+        public int DurationScaleLog2;
     }
 }

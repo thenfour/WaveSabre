@@ -2,7 +2,8 @@
 
 #include <new>     // for placement new
 #include <WaveSabreCore.h>
-#include "SongRenderer.h"
+
+#define HARD_CODED_SAMPLE_RATE 44100
 
 
 // Leaving this profiling code here because it was pretty useful during development & optimization of the new graph runner.
@@ -442,15 +443,24 @@ namespace WaveSabrePlayerLib
 		{
 			NoteOff = 0,
 			NoteOn = 1,
-			CC = 2,
-			PitchBend = 3,
+			//CC = 2,
+			//PitchBend = 3,
 		};
 
+		// POD because we have it in an array and sort it during deserialization.
 		typedef struct
 		{
-			int TimeStamp;
+			// samples, DELTA since the previous entry.
+			// well, most of the time. DURING deserializion this can temporarily be an absolute position.
+			int TimeStamp; 
 			EventType Type;
-			int Note, Velocity;
+			int Note;
+			int Velocity;
+
+			// -1 means N/A. for oneshot tracks for example; this would not produce any note off events.
+			// For note off events this is just ignored. It's only really used during deserialization
+			// before note ons & offs are separated.
+			int DurationSamples; 
 		} Event;
 
 		class Devices
@@ -482,12 +492,12 @@ namespace WaveSabrePlayerLib
 				float Volume;
 			} Receive;
 
-			Track(SongRenderer* songRenderer, DeviceFactory factory, WaveSabreCore::M7::Deserializer& ds)
+			Track(SongRenderer* songRenderer, DeviceFactory factory, WaveSabreCore::M7::Deserializer& ds, int timestampScaleLog2)
 			{
 				this->songRenderer = songRenderer;
 
 				for (int i = 0; i < numBuffers; i++) {
-					Buffers[i] = new float[songRenderer->sampleRate];
+					Buffers[i] = new float[HARD_CODED_SAMPLE_RATE];// songRenderer->sampleRate];
 				}
 
 				volume = ds.ReadFloat();
@@ -524,7 +534,7 @@ namespace WaveSabrePlayerLib
 					for (int i = 0; i < numAutomations; i++)
 					{
 						int deviceIndex = ds.ReadVarUInt32();
-						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]], ds);
+						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]], ds, timestampScaleLog2);
 					}
 				}
 
@@ -579,12 +589,12 @@ namespace WaveSabrePlayerLib
 						case EventType::NoteOff:
 							pd->NoteOff(e.Note, samplesToEvent);
 							break;
-						case EventType::CC:
-							pd->MidiCC(e.Note, e.Velocity, samplesToEvent);
-							break;
-						case EventType::PitchBend:
-							pd->PitchBend(e.Note, e.Velocity, samplesToEvent);
-							break;
+						//case EventType::CC:
+						//	pd->MidiCC(e.Note, e.Velocity, samplesToEvent);
+						//	break;
+						//case EventType::PitchBend:
+						//	pd->PitchBend(e.Note, e.Velocity, samplesToEvent);
+						//	break;
 						}
 					}
 					accumEventTimestamp += e.TimeStamp;
@@ -632,7 +642,7 @@ namespace WaveSabrePlayerLib
 			class Automation
 			{
 			public:
-				Automation(SongRenderer* songRenderer, WaveSabreCore::Device* device, WaveSabreCore::M7::Deserializer& ds)
+				Automation(SongRenderer* songRenderer, WaveSabreCore::Device* device, WaveSabreCore::M7::Deserializer& ds, int timestampScaleLog2)
 				{
 					this->device = device;
 					paramId = ds.ReadVarUInt32();
@@ -641,10 +651,14 @@ namespace WaveSabrePlayerLib
 					int lastPointTime = 0;
 					for (int i = 0; i < numPoints; i++)
 					{
-						int absTime = lastPointTime + ds.ReadVarUInt32();
+						int absTime = lastPointTime + (ds.ReadVarUInt32() << timestampScaleLog2);
 						auto& p = points[i];
 						p.TimeStamp = absTime;
 						lastPointTime = absTime;
+					}
+					for (int i = 0; i < numPoints; i++)
+					{
+						auto& p = points[i];
 						p.Value = (float)ds.ReadUByte() / 255.0f;
 					}
 					samplePos = 0;
@@ -721,77 +735,128 @@ namespace WaveSabrePlayerLib
 		{
 			WaveSabreCore::M7::Deserializer ds{ (const uint8_t*)song->blob };
 
-			ds.ReadUInt32(); // assert(r = WSBR)
-			ds.ReadUInt32(); // assert 4-byte version
+			//ds.ReadUInt32(); // assert(r = WSBR)
+			//ds.ReadUInt32(); // assert 4-byte version
 
 			bpm = ds.ReadUInt32();
-			sampleRate = ds.ReadUInt32();
+			//sampleRate = ds.ReadUInt32();
 			length = ds.ReadDouble();
+			uint32_t timestampScaleLog2 = ds.ReadUByte();
+			uint32_t noteDurationScaleLog2 = ds.ReadUByte();
 
+			// deserialize all devices
 			numDevices = ds.ReadUInt32();
 			devices = new WaveSabreCore::Device * [numDevices];
 			for (int i = 0; i < numDevices; i++)
 			{
 				auto& d = devices[i];
 				d = song->factory((DeviceId)ds.ReadUByte());
-				d->SetSampleRate((float)sampleRate);
+				d->SetSampleRate(HARD_CODED_SAMPLE_RATE);// (float)sampleRate);
 				d->SetTempo(bpm);
 				int chunkSize = ds.ReadVarUInt32();
-				const uint8_t *expectedCursor = ds.mpCursor + chunkSize;
+				const uint8_t* expectedCursor = ds.mpCursor + chunkSize;
 				d->SetBinary16DiffChunk(ds);
 				CCASSERT(expectedCursor == ds.mpCursor);
 				//ds.mpCursor += chunkSize;
 			}
 
+			// we need to do extra work to separate note ons & note offs.
+			// the payload contains just note+duration data;
+
+			// deserialize all midi event lanes
 			numMidiLanes = ds.ReadUInt32();
 			midiLanes = new MidiLane[numMidiLanes];
 			for (int i = 0; i < numMidiLanes; i++)
 			{
 				int flags = ds.ReadUByte();
-				bool fixedVelocity = !!(flags & 1);
-				bool fixedNote = !!(flags & 2);
+				bool fixedVelocity = !!(flags & 1); // no velocities serialized
+				bool fixedNote = !!(flags & 2); // no note values serialized
+				//bool oneShot = !!(flags & 4); // no durations serialized
+
 				int numEvents = ds.ReadUInt32();
 				auto& midiLane = midiLanes[i];
 				midiLane.numEvents = numEvents;
-				midiLane.events = new Event[numEvents];
+				midiLane.events = new Event[numEvents * 2]; // pre-emptively allocate enough for note off events
 
+				// timestamps
+				int timestampCursor = 0;
 				for (int m = 0; m < numEvents; m++)
 				{
 					auto& e = midiLane.events[m];
 					auto t = ds.ReadVarUInt32();
-					e.Type = (EventType)(t & 3);
-					e.TimeStamp = t >> 2;
-				}
-
-				for (int m = 0; m < numEvents; m++)
-				{
-					auto& e = midiLane.events[m];
+					//e.Type = (EventType)(t & 3);
+					//e.TimeStamp = t >> 2;
+					e.Type = EventType::NoteOn;
+					timestampCursor += t << timestampScaleLog2;
+					e.TimeStamp = timestampCursor; // NB: this is now an absolute time! to be later handled
 					e.Note = 60;
-					switch (e.Type) {
-					case EventType::NoteOff:
-					case EventType::NoteOn:
-						if (fixedNote)
-							continue;
-						break;
-					}
-					e.Note = ds.ReadUByte();
+					e.Velocity = 100;
+					e.DurationSamples = -1;
 				}
+
+				// note value field.
+				if (!fixedNote)
+				{
+					for (int m = 0; m < numEvents; m++)
+					{
+						midiLane.events[m].Note = ds.ReadUByte();
+					}
+				}
+
+				// velocity field
+				if (!fixedVelocity)
+				{
+					for (int m = 0; m < numEvents; m++)
+					{
+						midiLane.events[m].Velocity = ds.ReadUByte();
+					}
+				}
+
+				// duration field
+				//if (!oneShot) {
+				for (int m = 0; m < numEvents; m++)
+				{
+					midiLane.events[m].DurationSamples = ds.ReadVarUInt32() << noteDurationScaleLog2;
+				}
+				//}
+
+				// now we have a collection of notes, but we need to convert it to a list of note on / note off pairs.
+				//if (!oneShot) {
+				midiLane.numEvents *= 2;
+				// we already have the space allocated. we need to fill that extra space with the note off events with absolute timestamps.
+				// then, use qsort() based on timestamp
+				// then, delta encode because that's what the graph processor wants.
+
+				auto noteOffCursor = midiLane.events + numEvents; // array position where we can write to.
 
 				for (int m = 0; m < numEvents; m++)
 				{
 					auto& e = midiLane.events[m];
-					e.Velocity = 100;
-					switch (e.Type) {
-					case EventType::NoteOff:
-						continue;
-					case EventType::NoteOn:
-						if (fixedVelocity)
-							continue;
-						break;
-					}
-					e.Velocity = ds.ReadUByte();
+					noteOffCursor->Note = e.Note;
+					noteOffCursor->TimeStamp = e.TimeStamp + e.DurationSamples;
+					noteOffCursor->Type = EventType::NoteOff;
+					noteOffCursor++;
 				}
-			}
+
+				qsort(midiLane.events, midiLane.numEvents, sizeof(midiLane.events[0]), [](const void* a, const void* b) {
+					Event* eventA = (Event*)a;
+					Event* eventB = (Event*)b;
+					return eventA->TimeStamp - eventB->TimeStamp;
+					});
+
+				//} // if !oneshot
+
+				// delta encode.
+				int lastEventTimestamp = 0;
+				for (int i = 0; i < midiLane.numEvents; i++)
+				{
+					auto& e = midiLane.events[i];
+					int t = e.TimeStamp;
+					e.TimeStamp -= lastEventTimestamp;
+					lastEventTimestamp = t;
+				}
+
+			} // for each midi lane
 
 			numTracks = ds.ReadUInt32();
 			this->INodeList_NodeCount = numTracks;
@@ -799,7 +864,7 @@ namespace WaveSabrePlayerLib
 			this->tracks = (Track*)malloc(sizeof(Track) * numTracks);
 			for (int i = 0; i < numTracks; i++)
 			{
-				new (this->tracks + i) Track(this, song->factory, ds);
+				new (this->tracks + i) Track(this, song->factory, ds, timestampScaleLog2);
 			}
 
 			// it's interesting to just create a thread for each track and let the system schedule (and therefore less synchronization in our threads). but it's not more efficient.
@@ -822,10 +887,10 @@ namespace WaveSabrePlayerLib
 		{
 			return bpm;
 		}
-		int GetSampleRate() const
-		{
-			return sampleRate;
-		}
+		//int GetSampleRate() const
+		//{
+		//	return sampleRate;
+		//}
 		double GetLength() const
 		{
 			return length;
@@ -837,7 +902,7 @@ namespace WaveSabrePlayerLib
 		int songDataIndex;
 
 		int bpm;
-		int sampleRate;
+		//int sampleRate;
 		double length;
 
 		int numDevices;

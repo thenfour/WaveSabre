@@ -572,6 +572,11 @@ namespace WaveSabreCore
 			uint32_t shift = 0;
 			// byte stream: [c-------]...
 			uint8_t b = 0;
+			//do {
+			//	b = ReadUByte();
+			//	value |= static_cast<uint32_t>(b >> 1) << shift;
+			//	shift += 7;
+			//} while (!!(b & 1));
 			do {
 				b = ReadUByte();
 				value |= static_cast<uint32_t>(b & 0x7f) << shift;

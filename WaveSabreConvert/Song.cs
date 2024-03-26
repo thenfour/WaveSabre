@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 
 namespace WaveSabreConvert
 {
@@ -46,6 +48,7 @@ namespace WaveSabreConvert
         public class Event
         {
             public int TimeStamp; // in samples
+            public int? DurationSamples; // for note ons, this gets populated during delta encoding phase; for note offs this is also populated just as a marker that it's been associated with a corresponding note on
             public EventType Type;
             public byte Note;
             public byte Velocity;
@@ -54,7 +57,8 @@ namespace WaveSabreConvert
         public class DeltaCodedEvent
         {
             public int TimeFromLastEvent; // in samples
-            public EventType Type;
+            public int DurationSamples;
+            //public EventType Type;
             public byte Note;
             public byte Velocity;
         }
@@ -117,6 +121,11 @@ namespace WaveSabreConvert
         public int Tempo;
         public int SampleRate;
         public double Length;
+
+        // we can save hundreds of bytes by just scaling down timestamps. Normally in samples,
+        // if we just work in N-sample chunks then we remove entropy by quantizing.
+        public int TimestampScaleLog2;
+        public int NoteDurationScaleLog2;
 
         public List<Track> Tracks = new List<Track>();
         /// <summary>
@@ -211,7 +220,7 @@ namespace WaveSabreConvert
                     {
                         if (m.MidiEvents[i].Note != midiLane.MidiEvents[i].Note
                             || m.MidiEvents[i].Velocity != midiLane.MidiEvents[i].Velocity
-                            || m.MidiEvents[i].Type != midiLane.MidiEvents[i].Type
+                            || m.MidiEvents[i].DurationSamples != midiLane.MidiEvents[i].DurationSamples
                             || m.MidiEvents[i].TimeFromLastEvent != midiLane.MidiEvents[i].TimeFromLastEvent)
                         {
                             duplicate = false;
@@ -281,8 +290,12 @@ namespace WaveSabreConvert
         }
 
         // performs delta encoding on midi and automation events
-        public void DeltaEncode()
+        // also calculates note durations from note on / off pairs.
+        public void DeltaEncodeAndOther(ILog logger)
         {
+            var allDurations = new List<(int durationSamples, string description)>();
+            //int? shortestDuration = null;
+            //string shortestDurationDesc = "";
             int lastTime;
             foreach (var t in Tracks)
             {
@@ -301,19 +314,116 @@ namespace WaveSabreConvert
                     }
                 }
 
-                lastTime = 0; 
-                foreach (var e in t.Events)
+                // populate note on durations by finding each's corresponding note off.
+                int currentTimestamp = 0;
+                for (int i = 0; i < t.Events.Count; ++ i)
                 {
+                    var e = t.Events[i];
+                    Debug.Assert(e.TimeStamp >= currentTimestamp); // this algo assumes that events are ordered by time
+                    currentTimestamp = e.TimeStamp;
+
+                    switch (e.Type)
+                    {
+                        case EventType.NoteOn: // we only care about processing note ons.
+                            break;
+                        case EventType.NoteOff: // ignore note offs
+                        case EventType.CC: // ignore.
+                            continue;
+                        case EventType.PitchBend:
+                            //logger.WriteLine($"! ERROR: Pitchbend data is not supported. track:{t.Name}, event:{i}, type:{e.Note}, value:{e.Velocity}: {Utils.MidiEventToString(e.Note, e.Velocity)}");
+                            continue;
+                    }
+
+                    // find corresponding note off.
+                    for (int j = i + 1; j < t.Events.Count; ++ j)
+                    {
+                        var off = t.Events[j];
+                        if (off.TimeStamp < e.TimeStamp)
+                        {
+                            // this is actually an error.
+                            logger.WriteLine($"! ERROR: note events out of order? {e.TimeStamp} should not be less than {off.TimeStamp}; track {t.Name}");
+                            return;
+                        }
+                        if (off.Note != e.Note) continue;
+                        if (off.Type == EventType.NoteOn)
+                        {
+                            // so this is quite an interesting scenario imo. Reaper thinks so too. You have 2 note ons for the same note, before the note off event.
+                            // that's fine, but when a note off happens, which note does it correspond to? it could be:
+                            // Scenario A:
+                            // xxxxxxxxx
+                            //     xxxxxxxxxx
+                            // |on |on |off |off
+                            //
+                            // OR scenario B: the same sequence of events could represent:
+                            // |on |on |off |off
+                            // xxxxxxxxxxxxxx
+                            //     xxxxx
+                            //
+                            // Reaper does not distinguish between the two. When you create the MIDI of scenario B, save the file, then open it again,
+                            // you'll get scenario A. So we should not bend over backwards in supporting this kind of thing anyway. Let's do the simplest thing,
+                            // the thing Reaper currently does: pick the first note off.
+                            // therefore, just ignore note ons.
+                            continue;
+                        }
+                        if (off.Type != EventType.NoteOff) continue;
+
+                        // we have found the corresponding note off.
+                        if (off.DurationSamples != null)
+                        {
+                            // this note off has already been visited. but it could have been because of the overlapping scenario shown above.
+                            //logger.WriteLine($"!ERROR: note off has been visited multiple times while calculating durations?; track {t.Name}");
+                            continue;
+                        }
+
+                        e.DurationSamples = off.TimeStamp - e.TimeStamp;
+                        off.DurationSamples = e.DurationSamples; // put here to just mark that we visited this note off.
+
+                        allDurations.Add((
+                            durationSamples: e.DurationSamples.Value,
+                            description: $"shortest duration {e.DurationSamples} samples in {t.Name}, event:{i} at {e.TimeStamp} samples ({(double)e.TimeStamp / 44100.0} sec)")
+                            );
+                        //if (!shortestDuration.HasValue || (e.DurationSamples < shortestDuration))
+                        //{
+                        //    shortestDuration = e.DurationSamples;
+                        //    shortestDurationDesc = $"shortest duration {shortestDuration} samples in {t.Name}, event:{i} at {e.TimeStamp} samples ({(double)e.TimeStamp / 44100.0} sec)";
+                        //}
+
+                        break;
+                    }
+
+                    // was a duration calculated?
+                    if (e.DurationSamples == null)
+                    {
+                        logger.WriteLine($"!ERROR: no duration was found. Maybe no corresponding note off event for a note on?; track {t.Name}");
+                        continue;
+                    }
+                }
+
+                // populate delta encoded MIDI events ONLY for note ons.
+                lastTime = 0; 
+                foreach (var e in t.Events.Where(e => e.Type == EventType.NoteOn))
+                {
+                    if (e.DurationSamples == null)
+                    {
+                        logger.WriteLine($"unable to serialize note event with no duration.");
+                        continue;
+                    }
                     t.DeltaCodedEvents.Add(new DeltaCodedEvent()
                     {
                         TimeFromLastEvent = e.TimeStamp - lastTime,
-                        Type = e.Type,
+                        DurationSamples = e.DurationSamples.Value,
                         Note = e.Note,
                         Velocity = e.Velocity
                     });
 
                     lastTime = e.TimeStamp;
                 }
+            } // for each track
+
+            var shortestDurations = allDurations.OrderBy(x => x.durationSamples);
+            foreach (var x in shortestDurations.Take(10))
+            {
+                logger.WriteLine(x.description);
             }
         }
 

@@ -44,8 +44,15 @@ namespace WaveSabreConvert
             var song = new Song();
 
             song.SampleRate = project.SampleRate;
-            
+
+            if (project.SampleRate != 44100)
+            {
+                logger.WriteLine($"ERROR: Unsupported samplerate: {project.SampleRate}");
+            }
+
             song.Tempo = (int)project.Tempo.BPM;
+            song.TimestampScaleLog2 = options.TimestampScaleLog2;
+            song.NoteDurationScaleLog2 = options.DurationScaleLog2;
 
             if (project.TempoEnvelope.Points.Count == 0 && project.TempoEnvelope.Visibility.IsVisible)
             {
@@ -463,8 +470,8 @@ namespace WaveSabreConvert
             {
                 if (a.TimeStamp > b.TimeStamp) return 1;
                 if (a.TimeStamp < b.TimeStamp) return -1;
-                if (a.Type == Song.EventType.NoteOn && b.Type == Song.EventType.NoteOff) return 1;
-                if (a.Type == Song.EventType.NoteOff && b.Type == Song.EventType.NoteOn) return -1;
+                //if (a.Type == Song.EventType.NoteOn && b.Type == Song.EventType.NoteOff) return 1;
+                //if (a.Type == Song.EventType.NoteOff && b.Type == Song.EventType.NoteOn) return -1;
                 return 0;
             });
 

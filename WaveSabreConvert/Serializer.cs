@@ -10,7 +10,7 @@ namespace WaveSabreConvert
 {
     public class Serializer
     {
-        public string Serialize(Song song)
+        public string Serialize(Song song, ILog logger)
         {
             var sb = new StringBuilder();
 
@@ -21,7 +21,7 @@ namespace WaveSabreConvert
             SerializeFactory(sb, song);
             sb.AppendLine();
 
-            SerializeBlob(sb, song);
+            SerializeBlob(sb, song, logger);
             sb.AppendLine();
 
             sb.AppendLine("SongRenderer::Song Song = {");
@@ -32,9 +32,9 @@ namespace WaveSabreConvert
             return sb.ToString();
         }
 
-        public BinaryOutput SerializeBinary(Song song)
+        public BinaryOutput SerializeBinary(Song song, ILog logger)
         {
-            return CreateBinary(song);
+            return CreateBinary(song, logger);
         }
 
         void SerializeFactory(StringBuilder sb, Song song)
@@ -99,6 +99,10 @@ namespace WaveSabreConvert
                     value >>= 7;
                     if (value != 0)
                     {
+                        // putting the "more" bit as the low bit seems to helps the compressor eeeeever so slightly. 18 bytes saved for revision 2024
+                        //n <<= 1;
+                        //n |= 1;
+                        
                         n |= 0x80;
                     }
                     this.writer.Write(n);
@@ -251,6 +255,14 @@ namespace WaveSabreConvert
                 this.AllMidiLanes.writer.Write(n);
                 MidiLaneData[iMidiLane].writer.Write(n);
             }
+            public void WriteMidiLane16(int iMidiLane, UInt16 n)
+            {
+                if (!MidiLaneData.ContainsKey(iMidiLane)) MidiLaneData[iMidiLane] = new BinaryStream();
+                this.CompleteSong.writer.Write(n);
+                this.AllMidiLanes.writer.Write(n);
+                MidiLaneData[iMidiLane].writer.Write(n);
+            }
+
             public void WriteMidiLane(int iMidiLane, double n)
             {
                 if (!MidiLaneData.ContainsKey(iMidiLane)) MidiLaneData[iMidiLane] = new BinaryStream();
@@ -281,19 +293,21 @@ namespace WaveSabreConvert
             }
         }
 
-        BinaryOutput CreateBinary(Song song)
+        BinaryOutput CreateBinary(Song song, ILog logger)
         {
             BinaryOutput writer = new BinaryOutput();
 
             // song header.
             // TODO: Organize header version numbers in some structured way. But currently it's not easy to predict what
             // would be the best way to do this so stay simple until the next change is required, and clean this up.
-            writer.Write(("WSBR0001".Select(ch => Convert.ToByte(ch)).ToArray()));
+            //writer.Write(("WSBR0001".Select(ch => Convert.ToByte(ch)).ToArray()));
 
             // song settings
             writer.Write(song.Tempo);
-            writer.Write(song.SampleRate);
+            //writer.Write(song.SampleRate);
             writer.Write(song.Length);
+            writer.Write((byte)song.TimestampScaleLog2);
+            writer.Write((byte)song.NoteDurationScaleLog2);
 
             // serialize all devices
             writer.Write(song.Devices.Count);
@@ -320,96 +334,132 @@ namespace WaveSabreConvert
                 // - all midi note values
                 // - all velocities for note ons, or CC values.
 
+                // populate note durations in samples.
+
                 // fixed velocity saves space by eliding all velocities which would otherwise be emitted for every note on.
                 bool fixedVel = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixedvelocity"));
 
-                // oneshot elides all note off events (huge)
-                bool oneShot = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#oneshot"));
+                // oneshot elides durations
+                //bool oneShot = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#oneshot"));
 
                 // fixednote elides note value for note on events.
                 bool fixedNote = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixednote"));
-                int flags = (fixedVel ? 1 : 0) + (fixedNote ? 2 : 0) + (oneShot ? 4 : 0);
+                int flags = (fixedVel ? 1 : 0) + (fixedNote ? 2 : 0);// + (oneShot ? 4 : 0);
                 writer.WriteMidiLane(iMidiLane, (byte)flags);
 
                 var midiEvents = midiLane.MidiEvents.Where(m => true);
-                if (oneShot)
-                {
-                    // oneshot track styles just don't emit noteoffs at all. but for each event we elide, we have to roll the time delta into the next emitted event.
-                    List<DeltaCodedEvent> l = new List<DeltaCodedEvent>();
-                    int remainderTime = 0;
-                    for (int i = 0; i < midiLane.MidiEvents.Count; ++ i)
-                    {
-                        var midiEvent = midiLane.MidiEvents[i];
-                        if (midiEvent.Type == EventType.NoteOff)
-                        {
-                            remainderTime += midiEvent.TimeFromLastEvent;
-                        } else
-                        {
-                            // emit.
-                            midiEvent.TimeFromLastEvent += remainderTime;
-                            remainderTime = 0;
-                            l.Add(midiEvent);
-                        }
-                    }
+                //if (oneShot)
+                //{
+                //    // oneshot track styles just don't emit noteoffs at all. but for each event we elide, we have to roll the time delta into the next emitted event.
+                //    List<DeltaCodedEvent> l = new List<DeltaCodedEvent>();
+                //    int remainderTime = 0;
+                //    for (int i = 0; i < midiLane.MidiEvents.Count; ++ i)
+                //    {
+                //        var midiEvent = midiLane.MidiEvents[i];
+                //        if (midiEvent.Type == EventType.NoteOff)
+                //        {
+                //            remainderTime += midiEvent.TimeFromLastEvent;
+                //        } else
+                //        {
+                //            // emit.
+                //            midiEvent.TimeFromLastEvent += remainderTime;
+                //            remainderTime = 0;
+                //            l.Add(midiEvent);
+                //        }
+                //    }
 
-                    midiEvents = l;
-                }
+                //    midiEvents = l;
+                //}
 
                 writer.WriteMidiLane(iMidiLane, midiEvents.Count());
+                
+                
+                // WRITE FIRST FIELD: timestamp
                 foreach (var e in midiEvents)
                 {
                     if (e.TimeFromLastEvent < 0)
                     {
                         Console.WriteLine($"Negative time deltas break things. wut?");
                     }
-                    int eventType = (int)e.Type;
-                    if (eventType < 0 || eventType > 3)
-                    {
-                        Console.WriteLine($"ERROR: unsupportable event type");
-                    }
+                    //int eventType = (int)e.Type;
+                    //if (eventType < 0 || eventType > 3)
+                    //{
+                    //    Console.WriteLine($"ERROR: unsupportable event type");
+                    //}
                     UInt32 t = (UInt32)e.TimeFromLastEvent;
-                    t <<= 2;
-                    t |= (UInt32)eventType;
-                    writer.WriteMidiLaneVarUint32(iMidiLane, t);
+                    //t <<= 2;
+                    //t |= (UInt32)eventType;
+                    writer.WriteMidiLaneVarUint32(iMidiLane, t >> song.TimestampScaleLog2);
                 }
-                foreach (var e in midiEvents)
+
+                // WRITE note value field 
+                if (!fixedNote)
                 {
-                    switch (e.Type)
+                    foreach (var e in midiEvents)
                     {
-                        case EventType.NoteOff:
-                        case EventType.NoteOn:
-                            if (fixedNote)
-                            {
-                                continue;
-                            }
-                            writer.WriteMidiLane(iMidiLane, (byte)e.Note);
-                            break;
-                        case EventType.CC: // always specify CC values
-                        default:
-                            writer.WriteMidiLane(iMidiLane, (byte)e.Note);
-                            break;
+                        //switch (e.Type)
+                        //{
+                        //    case EventType.NoteOff:
+                        //    case EventType.NoteOn:
+                        //        if (fixedNote)
+                        //        {
+                        //            continue;
+                        //        }
+                        //        writer.WriteMidiLane(iMidiLane, (byte)e.Note);
+                        //        break;
+                        //    case EventType.CC: // always specify CC values
+                        //    default:
+                        writer.WriteMidiLane(iMidiLane, (byte)e.Note);
+                        //        break;
+                        //}
                     }
                 }
-                foreach (var e in midiEvents)
+
+                // WRITE velocity
+                if (!fixedVel)
                 {
-                    switch (e.Type)
+                    foreach (var e in midiEvents)
                     {
-                        case EventType.NoteOff:
-                            continue;
-                        case EventType.NoteOn:
-                            if (fixedVel)
-                            {
-                                continue;
-                            }
-                            writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
-                            break;
-                        case EventType.CC:
-                        default:
-                            writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
-                            break;
+                        //switch (e.Type)
+                        //{
+                        //    case EventType.NoteOff:
+                        //        continue;
+                        //    case EventType.NoteOn:
+                        //        if (fixedVel)
+                        //        {
+                        //            continue;
+                        //        }
+                        //        writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
+                        //        break;
+                        //    case EventType.CC:
+                        //    default:
+                        writer.WriteMidiLane(iMidiLane, (byte)e.Velocity);
+                        //        break;
+                        //}
                     }
                 }
-            }
+
+                //if (!oneShot)
+                {
+                    foreach (var e in midiEvents)
+                    {
+                        UInt32 scale = 1U << song.NoteDurationScaleLog2;
+                        //UInt32 t = (UInt32)e.TimeFromLastEvent;
+
+                        if (e.DurationSamples < scale)
+                        {
+                            logger.WriteLine($"A short event had to be elongated; that's suspicious.");
+                            e.DurationSamples = (int)scale;
+                        }
+
+                        // eventually make sure upper range is also respected.
+
+                        writer.WriteMidiLaneVarUint32(iMidiLane, (UInt32)e.DurationSamples >> song.NoteDurationScaleLog2);
+                        //writer.WriteMidiLane16(iMidiLane, (UInt16)(e.DurationSamples / scale));
+                    }
+                }
+
+            } // for each midi lane
 
             // serialize each track
             writer.Write(song.Tracks.Count);
@@ -443,7 +493,12 @@ namespace WaveSabreConvert
                     writer.WriteToTrackVarUint32(trackID, (UInt32)automation.DeltaCodedPoints.Count);
                     foreach (var point in automation.DeltaCodedPoints)
                     {
-                        writer.WriteToTrackVarUint32(trackID, (UInt32)point.TimeFromLastPoint);
+                        writer.WriteToTrackVarUint32(trackID, (UInt32)point.TimeFromLastPoint >> song.TimestampScaleLog2);
+                        //writer.WriteToTrack(trackID, point.Value);
+                    }
+                    foreach (var point in automation.DeltaCodedPoints)
+                    {
+                        //writer.WriteToTrackVarUint32(trackID, (UInt32)point.TimeFromLastPoint);
                         writer.WriteToTrack(trackID, point.Value);
                     }
                 }
@@ -452,9 +507,9 @@ namespace WaveSabreConvert
             return writer;
         }
 
-        void SerializeBlob(StringBuilder sb, Song song)
+        void SerializeBlob(StringBuilder sb, Song song, ILog logger)
         {
-            var blob = CreateBinary(song).CompleteSong.GetByteArray();
+            var blob = CreateBinary(song, logger).CompleteSong.GetByteArray();
 
             sb.AppendLine("const unsigned char SongBlob[] =");
             sb.Append("{");

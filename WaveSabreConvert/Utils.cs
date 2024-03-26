@@ -11,6 +11,87 @@ namespace WaveSabreConvert
 {
     static class Utils
     {
+        public static string MidiEventToString(byte Note, byte Velocity)
+        {
+            // Dictionary for some common MIDI CC messages for demonstration purposes
+            var midiCCNames = new Dictionary<byte, string>
+    {
+        { 0, "Bank Select" },
+        { 1, "Modulation Wheel" },
+        { 2, "Breath Controller" },
+        { 4, "Foot Controller" },
+        { 5, "Portamento Time" },
+        { 6, "Data Entry MSB" },
+        { 7, "Channel Volume" },
+        { 8, "Balance" },
+        { 10, "Pan" },
+        { 11, "Expression Controller" },
+        { 12, "Effect Control 1" },
+        { 13, "Effect Control 2" },
+        { 16, "General Purpose Controller 1" },
+        { 17, "General Purpose Controller 2" },
+        { 18, "General Purpose Controller 3" },
+        { 19, "General Purpose Controller 4" },
+        { 64, "Sustain Pedal (Damper)" },
+        { 65, "Portamento On/Off" },
+        { 66, "Sostenuto On/Off" },
+        { 67, "Soft Pedal On/Off" },
+        { 68, "Legato Footswitch" },
+        { 69, "Hold 2" },
+        { 70, "Sound Controller 1 (default: Sound Variation)" },
+        { 71, "Sound Controller 2 (default: Timbre/Harmonic Intens.)" },
+        { 72, "Sound Controller 3 (default: Release Time)" },
+        { 73, "Sound Controller 4 (default: Attack Time)" },
+        { 74, "Sound Controller 5 (default: Brightness)" },
+        { 75, "Sound Controller 6" },
+        { 76, "Sound Controller 7" },
+        { 77, "Sound Controller 8" },
+        { 78, "Sound Controller 9" },
+        { 79, "Sound Controller 10" },
+        { 80, "General Purpose Controller 5" },
+        { 81, "General Purpose Controller 6" },
+        { 82, "General Purpose Controller 7" },
+        { 83, "General Purpose Controller 8" },
+        { 84, "Portamento Control" },
+        { 91, "Effects 1 Depth" },
+        { 92, "Effects 2 Depth" },
+        { 93, "Effects 3 Depth" },
+        { 94, "Effects 4 Depth" },
+        { 95, "Effects 5 Depth" },
+        { 96, "Data Increment" },
+        { 97, "Data Decrement" },
+        { 98, "Non-Registered Parameter Number (NRPN) - LSB" },
+        { 99, "Non-Registered Parameter Number (NRPN) - MSB" },
+        { 100, "Registered Parameter Number (RPN) - LSB" },
+        { 101, "Registered Parameter Number (RPN) - MSB" },
+        { 121, "Reset All Controllers" },
+        { 122, "Local Control On/Off" },
+        { 123, "All Notes Off" },
+        { 124, "Omni Mode Off" },
+        { 125, "Omni Mode On" },
+        { 126, "Mono Mode On (Poly Off)" },
+        { 127, "Poly Mode On (Mono Off)" },
+        // Note: Some values are reserved and others are specific to certain devices or software.
+    };
+
+            // Note names within an octave
+            var noteNames = new string[] { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
+
+            // Determine if it's a MIDI CC message based on the velocity (or other contextual information not provided)
+            // This part is arbitrary without more context; adjust as needed
+            if (Velocity >= 0 && Velocity <= 127)
+            {
+                // Assuming Note value might be used for MIDI CC number in this context
+                string ccName = midiCCNames.ContainsKey(Note) ? midiCCNames[Note] : $"CC #{Note}";
+                return $"MIDI CC: {ccName}, Value: {Velocity}";
+            }
+
+            // Otherwise, treat it as a Note On/Off message
+            int octave = (Note / 12) - 1; // MIDI note 0 is C-1
+            string noteName = noteNames[Note % 12];
+            return $"Note: {noteName}{octave}, Velocity: {Velocity}";
+        }
+
 
         const string encodingTable = ".ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+";
 

@@ -20,6 +20,9 @@ namespace ProjectManager
             cbxBoundsMode.DataSource = Enum.GetValues(typeof(BoundsMode));
             cbxBoundsMode.DisplayMember = "ToString";
             cbxBoundsMode.SelectedIndex = 0;
+
+            cbxDurationScale.SelectedIndex = 7;
+            cbxTimestampScale.SelectedIndex = 2;
         }
 
         private void buttonOpenProject_Click(object sender, EventArgs e)
@@ -40,7 +43,11 @@ namespace ProjectManager
                 logger = new EventLogger();
                 logger.OnLog += OnLogEvent;
 
-                song = new ProjectConverter().Convert(projectFile, logger, new ConvertOptions { mBoundsMode = (BoundsMode)cbxBoundsMode.SelectedItem });
+                song = new ProjectConverter().Convert(projectFile, logger, new ConvertOptions {
+                    mBoundsMode = (BoundsMode)cbxBoundsMode.SelectedItem,
+                    DurationScaleLog2 = cbxDurationScale.SelectedIndex,
+                    TimestampScaleLog2 = cbxTimestampScale.SelectedIndex,
+                });
             if (song == null)
             {
                 logger.WriteLine("Failed.");
@@ -63,6 +70,8 @@ namespace ProjectManager
         {
             var data = (LogEvent)e;
             textBoxOutput.AppendText(data.Output);
+            Console.WriteLine(data.Output);
+            Debug.WriteLine(data.Output);
         }
 
         private void Enable()
@@ -79,7 +88,7 @@ namespace ProjectManager
         {
             try
             {
-                var header = new Serializer().Serialize(song);
+                var header = new Serializer().Serialize(song, logger);
                 var sfd = new SaveFileDialog();
                 sfd.Filter = "C++ Header|*.h";
                 if (sfd.ShowDialog() == DialogResult.OK)
@@ -97,7 +106,7 @@ namespace ProjectManager
         {
             try
             {
-                var bin = new Serializer().SerializeBinary(song);
+                var bin = new Serializer().SerializeBinary(song, logger);
                 var sfd = new SaveFileDialog();
                 sfd.Filter = "Binary Song File|*.bin";
                 sfd.FileName = fileName;
@@ -116,7 +125,7 @@ namespace ProjectManager
         {
             try
             {
-                var bin = new Serializer().SerializeBinary(song);
+                var bin = new Serializer().SerializeBinary(song, logger);
                 var tempFile = Path.GetTempPath() + "WaveSabre.bin";
                 GetRid(tempFile);
                 File.WriteAllBytes(tempFile, bin.CompleteSong.GetByteArray());
@@ -148,7 +157,7 @@ namespace ProjectManager
                 sfd.FileName = fileName;
                 if (sfd.ShowDialog() == DialogResult.OK)
                 {
-                    var bin = new Serializer().SerializeBinary(song);
+                    var bin = new Serializer().SerializeBinary(song, logger);
                     var tempFile = Path.GetTempPath() + "WaveSabre.bin";
                     GetRid(tempFile);
                     File.WriteAllBytes(tempFile, bin.CompleteSong.GetByteArray());
@@ -195,7 +204,7 @@ namespace ProjectManager
         {
             try
             {
-                var header = new Serializer().Serialize(song);
+                var header = new Serializer().Serialize(song, logger);
                 Clipboard.SetText(header);
                 MessageBox.Show("Copied!");
             }

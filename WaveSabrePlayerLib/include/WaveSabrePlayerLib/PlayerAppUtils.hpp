@@ -10,7 +10,7 @@ namespace WSPlayerApp
 {
 
     // set this in order to use WSTime
-    static DWORD gSampleRate = 0;
+    static constexpr DWORD gSampleRate = HARD_CODED_SAMPLE_RATE;
 
     //#define WM_WRITEWAV (WM_APP + 1)
 #define WM_RENDERINGCOMPLETE (WM_APP + 2)

@@ -35,12 +35,15 @@
             this.buttonPlaySong = new System.Windows.Forms.Button();
             this.buttonExportWav = new System.Windows.Forms.Button();
             this.textBoxOutput = new System.Windows.Forms.TextBox();
-            this.label1 = new System.Windows.Forms.Label();
             this.buttonProjectDetails = new System.Windows.Forms.Button();
             this.buttonExportRenoise = new System.Windows.Forms.Button();
             this.btnCopyCPP = new System.Windows.Forms.Button();
             this.cbxBoundsMode = new System.Windows.Forms.ComboBox();
             this.label2 = new System.Windows.Forms.Label();
+            this.cbxTimestampScale = new System.Windows.Forms.ComboBox();
+            this.label3 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.cbxDurationScale = new System.Windows.Forms.ComboBox();
             this.SuspendLayout();
             // 
             // buttonOpenProject
@@ -102,21 +105,12 @@
             this.textBoxOutput.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.textBoxOutput.Location = new System.Drawing.Point(122, 28);
+            this.textBoxOutput.Location = new System.Drawing.Point(147, 12);
             this.textBoxOutput.Multiline = true;
             this.textBoxOutput.Name = "textBoxOutput";
             this.textBoxOutput.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBoxOutput.Size = new System.Drawing.Size(632, 367);
+            this.textBoxOutput.Size = new System.Drawing.Size(607, 425);
             this.textBoxOutput.TabIndex = 2;
-            // 
-            // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(122, 12);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(108, 13);
-            this.label1.TabIndex = 3;
-            this.label1.Text = "Conversion Warnings";
             // 
             // buttonProjectDetails
             // 
@@ -132,7 +126,7 @@
             // buttonExportRenoise
             // 
             this.buttonExportRenoise.Enabled = false;
-            this.buttonExportRenoise.Location = new System.Drawing.Point(11, 359);
+            this.buttonExportRenoise.Location = new System.Drawing.Point(11, 401);
             this.buttonExportRenoise.Name = "buttonExportRenoise";
             this.buttonExportRenoise.Size = new System.Drawing.Size(104, 36);
             this.buttonExportRenoise.TabIndex = 0;
@@ -168,17 +162,78 @@
             this.label2.TabIndex = 8;
             this.label2.Text = "Bounds mode";
             // 
+            // cbxTimestampScale
+            // 
+            this.cbxTimestampScale.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbxTimestampScale.FormattingEnabled = true;
+            this.cbxTimestampScale.Items.AddRange(new object[] {
+            "1",
+            "2",
+            "4",
+            "8",
+            "16",
+            "32",
+            "64",
+            "128",
+            "256",
+            "512"});
+            this.cbxTimestampScale.Location = new System.Drawing.Point(12, 325);
+            this.cbxTimestampScale.Name = "cbxTimestampScale";
+            this.cbxTimestampScale.Size = new System.Drawing.Size(104, 21);
+            this.cbxTimestampScale.TabIndex = 9;
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(12, 309);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(117, 13);
+            this.label3.TabIndex = 10;
+            this.label3.Text = "EventQuantizeSamples";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(12, 349);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(129, 13);
+            this.label4.TabIndex = 12;
+            this.label4.Text = "DurationQuantizeSamples";
+            // 
+            // cbxDurationScale
+            // 
+            this.cbxDurationScale.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+            this.cbxDurationScale.FormattingEnabled = true;
+            this.cbxDurationScale.Items.AddRange(new object[] {
+            "1",
+            "2",
+            "4",
+            "8",
+            "16",
+            "32",
+            "64",
+            "128",
+            "256",
+            "512"});
+            this.cbxDurationScale.Location = new System.Drawing.Point(12, 365);
+            this.cbxDurationScale.Name = "cbxDurationScale";
+            this.cbxDurationScale.Size = new System.Drawing.Size(104, 21);
+            this.cbxDurationScale.TabIndex = 11;
+            // 
             // ProjectManager
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(766, 407);
+            this.ClientSize = new System.Drawing.Size(766, 449);
+            this.Controls.Add(this.label4);
+            this.Controls.Add(this.cbxDurationScale);
+            this.Controls.Add(this.label3);
+            this.Controls.Add(this.cbxTimestampScale);
             this.Controls.Add(this.label2);
             this.Controls.Add(this.cbxBoundsMode);
             this.Controls.Add(this.btnCopyCPP);
             this.Controls.Add(this.buttonProjectDetails);
-            this.Controls.Add(this.label1);
             this.Controls.Add(this.textBoxOutput);
             this.Controls.Add(this.buttonExportRenoise);
             this.Controls.Add(this.buttonExportWav);
@@ -204,12 +259,15 @@
         private System.Windows.Forms.Button buttonPlaySong;
         private System.Windows.Forms.Button buttonExportWav;
         private System.Windows.Forms.TextBox textBoxOutput;
-        private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button buttonProjectDetails;
         private System.Windows.Forms.Button buttonExportRenoise;
         private System.Windows.Forms.Button btnCopyCPP;
         private System.Windows.Forms.ComboBox cbxBoundsMode;
         private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.ComboBox cbxTimestampScale;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.ComboBox cbxDurationScale;
     }
 }
 

@@ -34,7 +34,9 @@ namespace ProjectManager
             InitializeComponent();
             var trackNodes = new List<TreeNode>();
 
-            var bin = new Serializer().SerializeBinary(song);
+
+
+            var bin = new Serializer().SerializeBinary(song, new NullLogger());
             var deviceCount = 0;
 
             var t = 0;

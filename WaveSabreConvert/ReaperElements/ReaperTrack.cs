@@ -179,6 +179,13 @@ namespace ReaperParser.ReaperElements
                 {
                     if (c.ElementName.ToUpper() == "E")
                     {
+                        // E 240 90 3c 47
+                        // "E" = not selected event
+                        // "e" = selected
+                        // 240 = position delta (what unit??)
+                        // 90 = Note on event (+ chan info)
+                        // 3C = note value
+                        // 47 = velocity
                         var m = new ReaperMidiEvent();
                         m.Selected = c.Data[0] == "e" ? true : false;
                         m.PositionDelta = Convert.ToInt32(c.Data[0]);

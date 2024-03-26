@@ -41,7 +41,7 @@ namespace WaveSabreConvert
             {
                 song.DetectWarnings(logger);
 
-                song.DeltaEncode();
+                song.DeltaEncodeAndOther(logger);
 
                 song.Restructure(logger);
             }

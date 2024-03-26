@@ -7,11 +7,11 @@ namespace WaveSabrePlayerLib
 		SongRenderer songRenderer(song, numRenderThreads);
 
 		tempo = songRenderer.GetTempo();
-		sampleRate = songRenderer.GetSampleRate();
+		//sampleRate = songRenderer.GetSampleRate();
 		length = songRenderer.GetLength();
 
 		const int stepSize = 100 * SongRenderer::NumChannels;
-		renderBufferSize = (int)((double)(sampleRate * SongRenderer::NumChannels) * songRenderer.GetLength()) / stepSize * stepSize;
+		renderBufferSize = (int)((double)(HARD_CODED_SAMPLE_RATE * SongRenderer::NumChannels) * songRenderer.GetLength()) / stepSize * stepSize;
 		renderBuffer = new SongRenderer::Sample[renderBufferSize];
 
 		int stepCounter = 0;
