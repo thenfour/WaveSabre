@@ -17,6 +17,7 @@ using namespace WSPlayerApp;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define WS_EXEPLAYER_RELEASE_FEATURES
+#define FANCY_PAINT
 
 // Fancy paint has waveform view and more debug info displayed.
 #ifndef WS_EXEPLAYER_RELEASE_FEATURES
@@ -40,7 +41,7 @@ using namespace WSPlayerApp;
 
 
 #include "rendered.hpp"
-#define TEXT_INTRO "Bright Velvet\r\nby tenfour/RBBS for Revision 2023\r\n\r\n"
+#define TEXT_INTRO "\"Dinette\"\r\nby tenfour/RBBS for Revision 2024\r\n\r\n"
 
 
 char gFilename[MAX_PATH] = { 0 };
@@ -195,7 +196,7 @@ void RenderWaveform_Fancy(GdiDeviceContext& dc)
 {
     auto lock = gpRenderer->gCritsec.Enter(); // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
 
-    dc.HatchFill(gpWaveformGen->mRect, gTheme.WaveformBackground, gTheme.WaveformBackground);
+    dc.HatchFill(gpWaveformGen->mRect, gTheme.WaveformUnrenderedHatch1, gTheme.WaveformUnrenderedHatch2);
     const auto midY = gpWaveformGen->mRect.GetMidY();
     const auto left = gpWaveformGen->mRect.GetLeft();
     Point renderCursorP1{ gpWaveformGen->mRect.GetLeft() + gpWaveformGen->mProcessedWidth, gpWaveformGen->mRect.GetTop() };
@@ -203,32 +204,34 @@ void RenderWaveform_Fancy(GdiDeviceContext& dc)
     for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i) {
         auto h = gpWaveformGen->mHeights[i];
 
-        const Point p1{ left + i, midY - h };
-        const Point p2{ p1.GetX(), midY + h };
+        //const Point p1{ left + i, midY - h };
+        //const Point p2{ p1.GetX(), midY + h };
         // distance to render cursor
-        int distToRenderCursor = renderCursorP1.GetX() - p1.GetX();
-        float t = float(distToRenderCursor) / gWaveformGradientMaxDistancePixels;
-        t = WaveSabreCore::M7::math::clamp01(1.0f - t);
-        t = WaveSabreCore::M7::math::modCurve_xN11_kN11(t, -0.95f);
-        COLORREF g = RGB(
-            WaveSabreCore::M7::math::lerp(GetRValue(gTheme.WaveformForeground), GetRValue(gTheme.RenderCursorColor), t),
-            WaveSabreCore::M7::math::lerp(GetGValue(gTheme.WaveformForeground), GetGValue(gTheme.RenderCursorColor), t),
-            WaveSabreCore::M7::math::lerp(GetBValue(gTheme.WaveformForeground), GetBValue(gTheme.RenderCursorColor), t)
-            );
-        
-        dc.DrawLine(p1, p2, g);
+        //int distToRenderCursor = renderCursorP1.GetX() - p1.GetX();
+        //float t = float(distToRenderCursor) / gWaveformGradientMaxDistancePixels;
+        //t = WaveSabreCore::M7::math::clamp01(1.0f - t);
+        //t = WaveSabreCore::M7::math::modCurve_xN11_kN11(t, -0.95f);
+        //COLORREF g = RGB(
+        //    WaveSabreCore::M7::math::lerp(GetRValue(gTheme.WaveformForeground), GetRValue(gTheme.RenderCursorColor), t),
+        //    WaveSabreCore::M7::math::lerp(GetGValue(gTheme.WaveformForeground), GetGValue(gTheme.RenderCursorColor), t),
+        //    WaveSabreCore::M7::math::lerp(GetBValue(gTheme.WaveformForeground), GetBValue(gTheme.RenderCursorColor), t)
+        //    );
+        //
+        //dc.DrawLine(p1, p2, gTheme.WaveformForeground);
+        dc.HatchFill({left + i, midY - h, 1, h * 2}, gTheme.WaveformForeground, gTheme.WaveformForeground);
     }
-    dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gTheme.WaveformUnrenderedHatch1, gTheme.WaveformUnrenderedHatch2);
+    //dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gTheme.WaveformUnrenderedHatch1, gTheme.WaveformUnrenderedHatch2);
     
-    Point midLineP1{ left, midY };
-    Point midLineP2{ renderCursorP1.GetX(), midY };
-    dc.DrawLine(midLineP1, midLineP2, gTheme.WaveformZeroLine);
+    //Point midLineP1{ left, midY };
+    //Point midLineP2{ renderCursorP1.GetX(), midY };
+    //dc.DrawLine(midLineP1, midLineP2, gTheme.WaveformZeroLine);
 
-    dc.DrawLine(renderCursorP1, renderCursorP2, gTheme.RenderCursorColor);
+    //dc.DrawLine(renderCursorP1, renderCursorP2, gTheme.RenderCursorColor);
 
     if (gpPlayer->IsPlaying()) {
         auto playFrames = gpPlayer->gPlayTime.GetFrames();
-        auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gTheme.PlayCursorBad : gTheme.PlayCursorGood;
+        //auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gTheme.PlayCursorBad : gTheme.PlayCursorGood;
+        auto c = gTheme.PlayCursor;
 
         int playCursorX = MulDiv(playFrames, gpWaveformGen->mRect.GetWidth(), gpRenderer->gSongLength.GetFrames());
         static constexpr int gPlayCursorWidth = 4;
@@ -257,14 +260,14 @@ void handlePaint_Fancy()
     HFONT hOldFont = (HFONT)SelectObject(dc.mDC, hCustomFont);
     RenderWaveform_Fancy(dc);
 
-    dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor, gTheme.TextShadowColor);
+    dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor);
 
     if (gPrecalcProgressPercent < 100) {
         dc.HatchFill(gTheme.grcPrecalcProgress, gTheme.PrecalcProgressBackground, gTheme.PrecalcProgressBackground);
         dc.HatchFill(gTheme.grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gTheme.PrecalcProgressForeground, gTheme.PrecalcProgressForeground);
         char sz[100];
         sprintf(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
-        dc.DrawText_(sz, gTheme.grcPrecalcProgress, gTheme.PrecalcTextColor, gTheme.PrecalcTextShadowColor);
+        dc.DrawText_(sz, gTheme.grcPrecalcProgress, gTheme.PrecalcTextColor);
     }
 
     // present the back buffer

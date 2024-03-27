@@ -41,7 +41,8 @@ namespace WSPlayerApp
         int SampleToHeight(SongRenderer::Sample sample) const
         {
             static_assert(std::is_integral_v<SongRenderer::Sample>, "expects a fixed-point style sample format");
-            return abs(sample) * (mRect.GetHeight() / 2) / 32768; // 0-32768// the target height is the rect height / 2, because of bipolar
+            //return abs(sample) * (mRect.GetHeight() / 2) / 32768; // 0-32768// the target height is the rect height / 2, because of bipolar
+            return abs(sample) * mRect.GetHeight() / 92000; // divide by more to shrink it a bit; it's more comfortable to see the edges.
         }
 
         void ProcessFrame(int16_t s0, int16_t s1)

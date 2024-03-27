@@ -211,21 +211,38 @@ namespace WSPlayerApp
         {
         }
 
-        void DrawText_(const char* sz, const Rect& bounds, COLORREF fore, COLORREF shadow) const
+        //void DrawText_(const char* sz, const Rect& bounds, COLORREF fore, COLORREF shadow) const
+        //{
+        //    SetBkMode(mDC, TRANSPARENT);
+        //    SetTextColor(mDC, shadow);
+        //    auto rcText = bounds.GetRECT();
+        //    auto rcShadow1 = rcText;
+        //    rcShadow1.left--;
+        //    rcShadow1.top--;
+        //    rcShadow1.left += 2;
+        //    rcShadow1.top += 2;
+        //    ::DrawTextA(mDC, sz, -1, &rcShadow1, 0);
+        //    //::DrawTextA(mDC, sz, -1, &rcShadow2, 0);
+        //    SetTextColor(mDC, fore);
+        //    ::DrawTextA(mDC, sz, -1, &rcText, 0);
+        //}
+
+        void DrawText_(const char* sz, const Rect& bounds, COLORREF fore) const
         {
             SetBkMode(mDC, TRANSPARENT);
-            SetTextColor(mDC, shadow);
+            //SetTextColor(mDC, shadow);
             auto rcText = bounds.GetRECT();
-            auto rcShadow1 = rcText;
-            rcShadow1.left--;
-            rcShadow1.top--;
-            rcShadow1.left += 2;
-            rcShadow1.top += 2;
-            ::DrawTextA(mDC, sz, -1, &rcShadow1, 0);
+            //auto rcShadow1 = rcText;
+            //rcShadow1.left--;
+            //rcShadow1.top--;
+            //rcShadow1.left += 2;
+            //rcShadow1.top += 2;
+            //::DrawTextA(mDC, sz, -1, &rcShadow1, 0);
             //::DrawTextA(mDC, sz, -1, &rcShadow2, 0);
             SetTextColor(mDC, fore);
             ::DrawTextA(mDC, sz, -1, &rcText, 0);
         }
+
         void SetForeBackColor(COLORREF foreColor, COLORREF backColor) const
         {
             SetTextColor(mDC, foreColor);
@@ -241,16 +258,20 @@ namespace WSPlayerApp
             SelectObject(mDC, hOldBrush);
             DeleteObject(hBrush);
         }
-        void DrawLine(const Point& p1, const Point& p2, COLORREF color) const
-        {
-            // Draw a red line from (10, 10) to (100, 100)
-            HPEN hPen = CreatePen(PS_SOLID, 1, color);
-            HPEN hOldPen = (HPEN)SelectObject(mDC, hPen);
-            MoveToEx(mDC, p1.GetX(), p1.GetY(), NULL);
-            LineTo(mDC, p2.GetX(), p2.GetY());
-            SelectObject(mDC, hOldPen);
-            DeleteObject(hPen);
-        }
+        //void DrawLine(const Point& p1, const Point& p2, COLORREF color) const
+        //{
+        //    HatchFill({ p1.GetX(), p1.GetY(), p2.GetX() - p1.GetX() + 1, p2.GetY() - p1.GetY() + 1}, color, color);
+        //}
+
+        //void DrawLine(const Point& p1, const Point& p2, COLORREF color) const
+        //{
+        //    HPEN hPen = CreatePen(PS_SOLID, 1, color);
+        //    HPEN hOldPen = (HPEN)SelectObject(mDC, hPen);
+        //    MoveToEx(mDC, p1.GetX(), p1.GetY(), NULL);
+        //    LineTo(mDC, p2.GetX(), p2.GetY());
+        //    //SelectObject(mDC, hOldPen);
+        //    DeleteObject(hPen);
+        //}
 
     };
 
