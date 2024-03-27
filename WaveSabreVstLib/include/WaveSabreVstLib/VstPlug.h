@@ -25,7 +25,7 @@ inline void Copy16bitDefaults(float* dest, const int16_t(&src)[N])
 
 // accepts the VST chunk (JSON), optimizes & minifies and outputs the wavesabre optimized binary chunk.
 template<typename TVST>
-inline int WaveSabreDeviceVSTChunkToMinifiedChunk_Impl(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+inline int WaveSabreDeviceVSTChunkToMinifiedChunk_Impl(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData, int deltaFromDefaults)
 {
 	*outpSize = 0;
 	auto p = new TVST(nullptr); // assume too big for stack.
@@ -35,7 +35,7 @@ inline int WaveSabreDeviceVSTChunkToMinifiedChunk_Impl(const char* deviceName, i
 	//M7::Deserializer ds{ (const uint8_t*)inpData };
 	//pDevice->SetMaj7StyleChunk(ds);
 	p->OptimizeParams();
-	*outpSize = p->GetMinifiedChunk(outpData);
+	*outpSize = p->GetMinifiedChunk(outpData, !!deltaFromDefaults);
 	delete p;
 	return *outpSize;
 }
@@ -177,7 +177,7 @@ namespace WaveSabreVstLib
 		// and there's the opportunity to append other things; for example Maj7 Synth sampler devices.
 		//
 		// default implementation just does this for our param cache.
-		virtual int GetMinifiedChunk(void** data);
+		virtual int GetMinifiedChunk(void** data, bool deltaFromDefaults);
 
 		// looks at the current params and returns statistics related to size optimization.
 		virtual ChunkStats AnalyzeChunkMinification();

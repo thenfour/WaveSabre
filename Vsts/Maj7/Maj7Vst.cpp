@@ -43,10 +43,9 @@ M7::Maj7* Maj7Vst::GetMaj7() const
 	return (M7::Maj7*)getDevice();
 }
 
-// no conversion required
-int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName, int inpSize, void* inpData, int* outpSize, void** outpData, int deltaFromDefaults)
 {
-	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<Maj7Vst>(deviceName, inpSize, inpData, outpSize, outpData);
+	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<Maj7Vst>(deviceName, inpSize, inpData, outpSize, outpData, deltaFromDefaults);
 }
 
 void __cdecl WaveSabreFreeChunk(void* p)

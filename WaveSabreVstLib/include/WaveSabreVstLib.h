@@ -362,7 +362,7 @@ namespace WaveSabreVstLib
 					// get the wavesabre chunk
 					void* data;
 					pVst->OptimizeParams();
-					int n = pVst->GetMinifiedChunk(&data);
+					int n = pVst->GetMinifiedChunk(&data, true);
 
 					// apply it back (round trip)
 					M7::Deserializer ds{ (const uint8_t*)data };

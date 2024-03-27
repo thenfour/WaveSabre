@@ -222,7 +222,7 @@ namespace WaveSabreVstLib
 	// and there's the opportunity to append other things; for example Maj7 Synth sampler devices.
 	//
 	// default implementation just does this for our param cache.
-	int VstPlug::GetMinifiedChunk(void** data)
+	int VstPlug::GetMinifiedChunk(void** data, bool deltaFromDefaults)
 	{
 		M7::Serializer s;
 
@@ -230,14 +230,16 @@ namespace WaveSabreVstLib
 		CCASSERT(mDefaultParamCache.size());
 
 		for (int i = 0; i < numParams; ++i) {
-			double f = getParameter(i);
-			f -= mDefaultParamCache[i];
-			static constexpr double eps = 0.000001; // NB: 1/65536 = 0.0000152587890625
-			double af = f < 0 ? -f : f;
-			if (af < eps) {
-				f = 0;
+			float f = getParameter(i);
+			if (deltaFromDefaults) {
+				f -= mDefaultParamCache[i];
 			}
-			s.WriteInt16NormalizedFloat((float)f);
+			//static constexpr double eps = 0.000001; // NB: 1/65536 = 0.0000152587890625
+			//double af = f < 0 ? -f : f;
+			//if (af < eps) {
+			//	f = 0;
+			//}
+			s.WriteInt16NormalizedFloat(f);
 		}
 
 		auto ret = s.DetachBuffer();
@@ -250,7 +252,7 @@ namespace WaveSabreVstLib
 	{
 		ChunkStats ret;
 		void* data;
-		int size = GetMinifiedChunk(&data);
+		int size = GetMinifiedChunk(&data, true);
 		ret.uncompressedSize = size;
 
 		for (size_t i = 0; i < numParams; ++i) {

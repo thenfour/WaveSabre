@@ -4,11 +4,10 @@
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
-// no conversion required
-int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+
+int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData, int deltaFromDefaults)
 {
-	*outpSize = 0;
-	return 0;
+	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<ChamberVst>(deviceName, inpSize, inpData, outpSize, outpData, deltaFromDefaults);
 }
 
 void __cdecl WaveSabreFreeChunk(void* p)

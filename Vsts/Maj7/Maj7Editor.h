@@ -395,7 +395,7 @@ public:
 
 					void* data;
 					mpMaj7VST->OptimizeParams();
-					int n = mpMaj7VST->GetMinifiedChunk(&data);
+					int n = mpMaj7VST->GetMinifiedChunk(&data, true);
 					//auto defaultParamCache = GetDefaultParamCache();
 					//int n = pMaj7->GetChunk(&data);
 					//int n = mpMaj7VST->GetMinifiedChunk(&data);

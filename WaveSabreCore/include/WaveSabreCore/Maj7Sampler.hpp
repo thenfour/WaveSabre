@@ -63,7 +63,9 @@ namespace WaveSabreCore
 
 			void Deserialize(Deserializer& ds);
 
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
 			void Serialize(Serializer& s);
+#endif // MAJ7_INCLUDE_GSM_SUPPORT
 
 			//explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
 			//	ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID

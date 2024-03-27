@@ -198,7 +198,8 @@ namespace WaveSabreConvert
             int inputSize,
             IntPtr inputData,
             ref int outputSize,
-            out IntPtr outputData);
+            out IntPtr outputData,
+            int deltaFromDefaults);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         public delegate int WaveSabreFreeChunkDelegate(IntPtr p);
@@ -280,7 +281,7 @@ namespace WaveSabreConvert
                 }, leaf);
         }
 
-        public static byte[] ConvertDeviceChunk(Song.DeviceId deviceID, byte[] inputData)
+        public static byte[] ConvertDeviceChunk(Song.DeviceId deviceID, byte[] inputData, bool deltaFromDefaults)
         {
             string dll = FindDeviceDllFullPath(deviceID);
             IntPtr dllHandle = LoadLibrary(dll);
@@ -315,7 +316,7 @@ namespace WaveSabreConvert
 
             WaveSabreFreeChunkDelegate __imp_WaveSabreFreeChunk = Marshal.GetDelegateForFunctionPointer<WaveSabreFreeChunkDelegate>(pfnFree);
 
-            int result = __imp_WaveSabreDeviceVSTChunkToMinifiedChunk(deviceID.ToString(), inputData.Length, inputBuffer, ref outputSize, out outputBuffer);
+            int result = __imp_WaveSabreDeviceVSTChunkToMinifiedChunk(deviceID.ToString(), inputData.Length, inputBuffer, ref outputSize, out outputBuffer, deltaFromDefaults ? 1 : 0);
             if (result <= 0 || outputBuffer == IntPtr.Zero)
             {
                 Marshal.FreeHGlobal(inputBuffer);
@@ -334,5 +335,8 @@ namespace WaveSabreConvert
 
             return outputData;
         } // ConvertDeviceChunk
+
+
+
     } // class Utils
 }

@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
+using static WaveSabreConvert.Utils;
 
 namespace WaveSabreConvert
 {
@@ -31,6 +33,7 @@ namespace WaveSabreConvert
             public float Volume;
         }
 
+        // important that this is a class because its index is searched by reference
         public class Device
         {
             public DeviceId Id;
@@ -159,6 +162,605 @@ namespace WaveSabreConvert
             }
         }
 
+
+        private static int CalculateDifference(byte[] chunk1, byte[] chunk2)
+        {
+            int difference = 0;
+            for (int i = 0; i < chunk1.Length; i++)
+            {
+                difference += Math.Abs(chunk1[i] - chunk2[i]);
+            }
+            return difference;
+        }
+
+        //private static int CalculateDifferenceCount(byte[] chunk1, byte[] chunk2)
+        //{
+        //    int difference = 0;
+        //    for (int i = 0; i < chunk1.Length; i++)
+        //    {
+        //        if (chunk1[i] != chunk2[i]) difference++;
+        //    }
+        //    return difference;
+        //}
+
+
+        public static List<Device> FindOptimalDeviceOrderUsingDistance(DeviceId deviceType, int startingDeviceIndex, List<Device> devices)
+        {
+            int chunkSize = devices[0].Chunk.Length;
+            List<Device> orderedDevices = new List<Device>();
+            HashSet<int> usedIndices = new HashSet<int>();
+
+            // Add the starting device to the ordered list.
+            orderedDevices.Add(devices[startingDeviceIndex]);
+            usedIndices.Add(startingDeviceIndex);
+
+            while (orderedDevices.Count < devices.Count)
+            {
+                int lastIndex = orderedDevices.Count - 1;
+                Device lastDevice = orderedDevices[lastIndex];
+                int bestMatchIndex = -1;
+                int lowestDifference = int.MaxValue;
+
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    if (usedIndices.Contains(i))
+                        continue;
+
+                    int difference = CalculateDifference(lastDevice.Chunk, devices[i].Chunk);
+
+                    if (difference < lowestDifference)
+                    {
+                        lowestDifference = difference;
+                        bestMatchIndex = i;
+                    }
+                }
+
+                if (bestMatchIndex != -1)
+                {
+                    orderedDevices.Add(devices[bestMatchIndex]);
+                    usedIndices.Add(bestMatchIndex);
+                }
+            }
+
+            return orderedDevices;
+        }
+
+        public class CompressionTester : IDisposable
+        {
+            private IntPtr dllHandle = IntPtr.Zero;
+            private WaveSabreTestCompressionDelegate compressionFunction;
+
+            public CompressionTester()
+            {
+                string dll = FindDeviceDllFullPath(Song.DeviceId.Maj7);
+                dllHandle = LoadLibrary(dll);
+                if (dllHandle == IntPtr.Zero)
+                {
+                    Console.WriteLine($"Failed to load the VST DLL from {dll}. (does it exist? is it the right bitness?)");
+                    throw new Exception("DLL load failed.");
+                }
+
+                IntPtr functionHandle = GetProcAddress(dllHandle, "WaveSabreTestCompression");
+                if (functionHandle == IntPtr.Zero)
+                {
+                    FreeLibrary(dllHandle);
+                    throw new Exception("Function not found in DLL.");
+                }
+
+                compressionFunction = Marshal.GetDelegateForFunctionPointer<WaveSabreTestCompressionDelegate>(functionHandle);
+            }
+
+            public int GetCompressedSize(byte[] data)
+            {
+                if (data.Length == 0) return 0;
+
+                IntPtr inputBuffer = Marshal.AllocHGlobal(data.Length);
+                Marshal.Copy(data, 0, inputBuffer, data.Length);
+
+                int result = compressionFunction(data.Length, inputBuffer);
+
+                Marshal.FreeHGlobal(inputBuffer);
+
+                return result;
+            }
+
+            public void Dispose()
+            {
+                if (dllHandle != IntPtr.Zero)
+                {
+                    FreeLibrary(dllHandle);
+                    dllHandle = IntPtr.Zero;
+                }
+            }
+
+            // P/Invoke declarations
+            [DllImport("kernel32", SetLastError = true)]
+            private static extern IntPtr LoadLibrary(string lpFileName);
+
+            [DllImport("kernel32", SetLastError = true)]
+            private static extern bool FreeLibrary(IntPtr hModule);
+
+            [DllImport("kernel32", SetLastError = true)]
+            private static extern IntPtr GetProcAddress(IntPtr hModule, string procedureName);
+
+            private delegate int WaveSabreTestCompressionDelegate(int dataSize, IntPtr data);
+        }
+
+
+        public static List<Device> FindOptimalDeviceOrderUsingCompressedSize(int startingDeviceIndex, List<Device> devices, CompressionTester compressionTester)
+        {
+            List<Device> orderedDevices = new List<Device>();
+            HashSet<int> usedIndices = new HashSet<int>();
+
+            // Start with the specified device.
+            orderedDevices.Add(devices[startingDeviceIndex]);
+            usedIndices.Add(startingDeviceIndex);
+
+            while (orderedDevices.Count < devices.Count)
+            {
+                int bestNextIndex = -1;
+                int smallestCompressedSize = int.MaxValue;
+
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    if (usedIndices.Contains(i)) continue;
+
+                    // Create a temporary list to test adding this device.
+                    var testList = new List<Device>(orderedDevices) { devices[i] };
+                    byte[] testData = JoinDeviceChunksInterleavedAndDeltaEncodeS16(testList);
+
+                    int compressedSize = compressionTester.GetCompressedSize(testData);
+                    if (compressedSize < smallestCompressedSize)
+                    {
+                        smallestCompressedSize = compressedSize;
+                        bestNextIndex = i;
+                    }
+                }
+
+                if (bestNextIndex != -1)
+                {
+                    orderedDevices.Add(devices[bestNextIndex]);
+                    usedIndices.Add(bestNextIndex);
+                }
+            }
+
+            return orderedDevices;
+        }
+
+
+
+
+        //public static List<Device> FindWorstDeviceOrderUsingCompressedSize(int startingDeviceIndex, List<Device> devices, CompressionTester compressionTester)
+        //{
+        //    List<Device> orderedDevices = new List<Device>();
+        //    HashSet<int> usedIndices = new HashSet<int>();
+
+        //    // Start with the specified device.
+        //    orderedDevices.Add(devices[startingDeviceIndex]);
+        //    usedIndices.Add(startingDeviceIndex);
+
+        //    while (orderedDevices.Count < devices.Count)
+        //    {
+        //        int bestNextIndex = -1;
+        //        int biggestCompressedSize = -1;
+
+        //        for (int i = 0; i < devices.Count; i++)
+        //        {
+        //            if (usedIndices.Contains(i)) continue;
+
+        //            // Create a temporary list to test adding this device.
+        //            var testList = new List<Device>(orderedDevices) { devices[i] };
+        //            byte[] testData = JoinDeviceChunksAndDeltaEncodeS16(testList);
+
+        //            int compressedSize = compressionTester.GetCompressedSize(testData);
+        //            if (compressedSize > biggestCompressedSize)
+        //            {
+        //                biggestCompressedSize = compressedSize;
+        //                bestNextIndex = i;
+        //            }
+        //        }
+
+        //        if (bestNextIndex != -1)
+        //        {
+        //            orderedDevices.Add(devices[bestNextIndex]);
+        //            usedIndices.Add(bestNextIndex);
+        //        }
+        //    }
+
+        //    return orderedDevices;
+        //}
+
+
+
+        public static void DeltaEncodeDevicesBy16Bit(List<Device> devices)
+        {
+            for (int i = 1; i < devices.Count; i++)
+            {
+                byte[] previousChunk = devices[i - 1].Chunk;
+                byte[] currentChunk = devices[i].Chunk;
+
+                // Assuming chunk length is even and each device chunk represents an array of ushort.
+                for (int j = 0; j < currentChunk.Length; j += 2)
+                {
+                    // Convert bytes to ushort for both current and previous chunks.
+                    ushort previousValue = BitConverter.ToUInt16(previousChunk, j);
+                    ushort currentValue = BitConverter.ToUInt16(currentChunk, j);
+
+                    // Calculate the delta as ushort and store it back as bytes in the current chunk.
+                    ushort delta = (ushort)(currentValue - previousValue);
+                    byte[] deltaBytes = BitConverter.GetBytes(delta);
+
+                    // Store the delta bytes back in the current chunk.
+                    currentChunk[j] = deltaBytes[0];
+                    currentChunk[j + 1] = deltaBytes[1];
+                }
+            }
+        }
+
+        public static void DeltaEncodeDevicesBy16BitSigned(List<Device> devices)
+        {
+            for (int i = 1; i < devices.Count; i++)
+            {
+                byte[] previousChunk = devices[i - 1].Chunk;
+                byte[] currentChunk = devices[i].Chunk;
+
+                // Assuming chunk length is even and each device chunk represents an array of Int16 (signed).
+                for (int j = 0; j < currentChunk.Length; j += 2)
+                {
+                    // Convert bytes to Int16 for both current and previous chunks, preserving the sign.
+                    short previousValue = BitConverter.ToInt16(previousChunk, j);
+                    short currentValue = BitConverter.ToInt16(currentChunk, j);
+
+                    // Calculate the delta as Int16 and store it back as bytes in the current chunk.
+                    short delta = (short)(currentValue - previousValue);
+                    byte[] deltaBytes = BitConverter.GetBytes(delta);
+
+                    // Store the delta bytes back in the current chunk.
+                    currentChunk[j] = deltaBytes[0];
+                    currentChunk[j + 1] = deltaBytes[1];
+                }
+            }
+        }
+
+        //public static void DeltaEncodeDevicesByByte(List<Device> devices)
+        //{
+        //    for (int i = 1; i < devices.Count; i++)
+        //    {
+        //        byte[] previousChunk = devices[i - 1].Chunk;
+        //        byte[] currentChunk = devices[i].Chunk;
+
+        //        for (int j = 0; j < currentChunk.Length; j++)
+        //        {
+        //            // Calculate the delta and store it.
+        //            // Note: Depending on your requirements, you might need to handle overflow differently.
+        //            currentChunk[j] = (byte)(currentChunk[j] - previousChunk[j]);
+        //        }
+        //    }
+        //}
+        //public static void PerformDeltaEncoding16BitWithLowSignBit(List<Device> devices)
+        //{
+        //    for (int i = 1; i < devices.Count; i++)
+        //    {
+        //        byte[] previousChunk = devices[i - 1].Chunk;
+        //        byte[] currentChunk = devices[i].Chunk;
+
+        //        for (int j = 0; j < currentChunk.Length; j += 2)
+        //        {
+        //            // Convert bytes to ushort for both current and previous chunks.
+        //            ushort previousValue = BitConverter.ToUInt16(previousChunk, j);
+        //            ushort currentValue = BitConverter.ToUInt16(currentChunk, j);
+
+        //            // Calculate the signed delta using custom logic.
+        //            int rawDelta = currentValue - previousValue;
+        //            bool isNegative = rawDelta < 0;
+        //            ushort absDelta = (ushort)(Math.Abs(rawDelta));
+
+        //            // Encode the delta with the sign in the low bit.
+        //            ushort encodedDelta = Encode16BitDeltaWithSignBit(absDelta, isNegative);
+
+        //            // Store the encoded delta back as bytes in the current chunk.
+        //            byte[] deltaBytes = BitConverter.GetBytes(encodedDelta);
+        //            currentChunk[j] = deltaBytes[0];
+        //            currentChunk[j + 1] = deltaBytes[1];
+        //        }
+        //    }
+        //}
+
+        //private static ushort Encode16BitDeltaWithSignBit(ushort delta, bool isNegative)
+        //{
+        //    // Shift the delta left by 1 to make space for the sign bit
+        //    ushort encodedDelta = (ushort)(delta << 1);
+        //    if (isNegative)
+        //    {
+        //        // Set the low bit if negative
+        //        encodedDelta |= 1;
+        //    }
+        //    return encodedDelta;
+        //}
+
+
+
+        //public static void PerformByteDeltaEncodingWithLowSignBit(List<Device> devices)
+        //{
+        //    for (int i = 1; i < devices.Count; i++)
+        //    {
+        //        byte[] previousChunk = devices[i - 1].Chunk;
+        //        byte[] currentChunk = devices[i].Chunk;
+
+        //        for (int j = 0; j < currentChunk.Length; j++)
+        //        {
+        //            // Calculate the signed delta as an int to handle potential underflow/overflow.
+        //            int rawDelta = currentChunk[j] - previousChunk[j];
+        //            bool isNegative = rawDelta < 0;
+        //            // Ensure the delta fits in 7 bits by taking the absolute value and capping it at 127.
+        //            byte absDelta = (byte)Math.Min(Math.Abs(rawDelta), 127);
+
+        //            // Encode the delta with the sign in the low bit.
+        //            byte encodedDelta = EncodeByteDeltaWithSignBit(absDelta, isNegative);
+
+        //            // Store the encoded delta back in the current chunk.
+        //            currentChunk[j] = encodedDelta;
+        //        }
+        //    }
+        //}
+
+        //private static byte EncodeByteDeltaWithSignBit(byte delta, bool isNegative)
+        //{
+        //    // Shift the delta left by 1 to make space for the sign bit
+        //    byte encodedDelta = (byte)(delta << 1);
+        //    if (isNegative)
+        //    {
+        //        // Set the low bit if negative
+        //        encodedDelta |= 1;
+        //    }
+        //    return encodedDelta;
+        //}
+
+        public static byte[] JoinDeviceChunks(List<Device> devices)
+        {
+            // Calculate the total size of the combined byte array.
+            int totalSize = devices.Sum(device => device.Chunk.Length);
+
+            // Allocate the combined array.
+            byte[] combinedChunks = new byte[totalSize];
+
+            // Copy each Chunk into the combined array.
+            int currentPosition = 0;
+            foreach (var device in devices)
+            {
+                Array.Copy(device.Chunk, 0, combinedChunks, currentPosition, device.Chunk.Length);
+                currentPosition += device.Chunk.Length;
+            }
+
+            return combinedChunks;
+        }
+
+
+
+        public static byte[] JoinDeviceChunksInterleavedAndDeltaEncodeS16(List<Device> devices)
+        {
+            if (devices == null || devices.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Assuming all chunks are of the same length and contain an even number of bytes.
+            int chunkLength = devices[0].Chunk.Length; // Length in bytes
+            if (chunkLength % 2 != 0)
+            {
+                throw new InvalidOperationException("Chunk length must be even to represent an array of 16-bit integers.");
+            }
+            int numInt16sPerChunk = chunkLength / 2;
+
+            List<byte> resultBytes = new List<byte>();
+
+            // Process each 16-bit position across all devices.
+            for (int int16Index = 0; int16Index < numInt16sPerChunk; int16Index++)
+            {
+                short previousValue = 0; // Will be used to store the previous value for delta encoding.
+
+                for (int deviceIndex = 0; deviceIndex < devices.Count; deviceIndex++)
+                {
+                    byte[] currentChunk = devices[deviceIndex].Chunk;
+
+                    // Extract the current 16-bit value.
+                    short currentValue = BitConverter.ToInt16(currentChunk, int16Index * 2);
+
+                    if (deviceIndex == 0)
+                    {
+                        // For the first device, just encode the value directly.
+                        previousValue = currentValue;
+                    }
+                    else
+                    {
+                        // Calculate delta encoding with respect to the previous device.
+                        short delta = (short)(currentValue - previousValue);
+                        currentValue = delta; // Update current value to the delta for the next iteration.
+                        previousValue += delta; // Update previousValue for correct delta calculation in the next round.
+                    }
+
+                    // Convert back to bytes and add to the result.
+                    byte[] valueBytes = BitConverter.GetBytes(currentValue);
+                    resultBytes.AddRange(valueBytes);
+                }
+            }
+
+            return resultBytes.ToArray();
+        }
+
+        //public static byte[] JoinDeviceChunksAndDeltaEncodeS16(List<Device> devices)
+        //{
+        //    // Initialize a list to accumulate the delta-encoded bytes.
+        //    List<byte> encodedBytes = new List<byte>();
+
+        //    // Add the first device's chunk as-is since there's no previous chunk to delta encode against.
+        //    encodedBytes.AddRange(devices[0].Chunk);
+
+        //    // Iterate over the devices starting from the second one.
+        //    for (int i = 1; i < devices.Count; i++)
+        //    {
+        //        byte[] previousChunk = devices[i - 1].Chunk;
+        //        byte[] currentChunk = devices[i].Chunk;
+
+        //        // Check to ensure the current chunk and the previous chunk are of the same length.
+        //        if (currentChunk.Length != previousChunk.Length)
+        //        {
+        //            throw new InvalidOperationException("Chunks must be of equal length for delta encoding.");
+        //        }
+
+        //        for (int j = 0; j < currentChunk.Length; j += 2)
+        //        {
+        //            // Convert bytes to Int16, assuming little-endian.
+        //            short previousValue = BitConverter.ToInt16(previousChunk, j);
+        //            short currentValue = BitConverter.ToInt16(currentChunk, j);
+
+        //            // Calculate the delta and convert it back to bytes.
+        //            short delta = (short)(currentValue - previousValue);
+        //            byte[] deltaBytes = BitConverter.GetBytes(delta);
+
+        //            // Add the delta-encoded bytes to the accumulating list.
+        //            encodedBytes.AddRange(deltaBytes);
+        //        }
+        //    }
+
+        //    // Convert the list of bytes to an array and return it.
+        //    return encodedBytes.ToArray();
+        //}
+
+        //public static byte[] JoinDeviceChunksInterleaved(List<Device> devices)
+        //{
+        //    if (devices == null || devices.Count == 0 || devices[0].Chunk == null || devices[0].Chunk.Length == 0)
+        //    {
+        //        return Array.Empty<byte>();
+        //    }
+
+        //    // Assuming all chunks are of the same length and contain an even number of bytes (valid Int16 array).
+        //    int chunkLength = devices[0].Chunk.Length / 2; // Length in Int16 units
+        //    int totalDevices = devices.Count;
+        //    int totalSize = devices.Sum(device => device.Chunk.Length); // Total bytes in the interleaved array
+
+        //    byte[] interleavedChunks = new byte[totalSize];
+
+        //    for (int int16Index = 0; int16Index < chunkLength; int16Index++)
+        //    {
+        //        for (int deviceIndex = 0; deviceIndex < totalDevices; deviceIndex++)
+        //        {
+        //            // Calculate the position in the source and destination arrays.
+        //            int sourcePosition = int16Index * 2;
+        //            int destinationPosition = (int16Index * totalDevices + deviceIndex) * 2;
+
+        //            // Copy two bytes (one Int16) from each chunk in turn.
+        //            Array.Copy(devices[deviceIndex].Chunk, sourcePosition, interleavedChunks, destinationPosition, 2);
+        //        }
+        //    }
+
+        //    return interleavedChunks;
+        //}
+        //public static byte[] JoinDeviceChunksInterleavedByByte(List<Device> devices)
+        //{
+        //    if (devices == null || devices.Count == 0 || devices[0].Chunk == null || devices[0].Chunk.Length == 0)
+        //    {
+        //        return Array.Empty<byte>();
+        //    }
+
+        //    // Assuming all chunks are of the same length.
+        //    int chunkLength = devices[0].Chunk.Length; // Length in bytes
+        //    int totalDevices = devices.Count;
+        //    int totalSize = devices.Sum(device => device.Chunk.Length); // Total bytes in the interleaved array
+
+        //    byte[] interleavedChunks = new byte[totalSize];
+
+        //    for (int byteIndex = 0; byteIndex < chunkLength; byteIndex++)
+        //    {
+        //        for (int deviceIndex = 0; deviceIndex < totalDevices; deviceIndex++)
+        //        {
+        //            // Calculate the destination position in the interleaved array.
+        //            int destinationPosition = (byteIndex * totalDevices) + deviceIndex;
+
+        //            // Copy one byte from each chunk in turn.
+        //            interleavedChunks[destinationPosition] = devices[deviceIndex].Chunk[byteIndex];
+        //        }
+        //    }
+
+        //    return interleavedChunks;
+        //}
+
+
+        public static List<Device> FindOptimalDeviceOrder(List<Device> Devices, ILog logger)
+        {
+            using (var compressionTester = new CompressionTester())
+            {
+                // search for the best order to serialize devices.
+                // one device type at a time, the way we will serialize is that the first device chunk will be absolute values,
+                // then subsequent are delta-encoded from the previous device chunk. The idea is that devices are often copies of each other with tweaks.
+                // so to optimize this, pick a first device, then search for the most-similar next one, etc.
+                // picking the first one is a bit of a shot in the dark; we can also iterate to find which starting device results in the best compression.
+                var dd = new Dictionary<DeviceId, List<Device>>();
+
+                // separate devices by type
+                foreach (var d in Devices)
+                {
+                    if (!dd.ContainsKey(d.Id)) dd.Add(d.Id, new List<Device>());
+                    dd[d.Id].Add(d);
+                }
+
+                var keys = dd.Keys.ToList();
+                foreach (var deviceId in keys)
+                {
+                    var devices = dd[deviceId];
+                    //int bestDeviceStartId = 0;
+                    int worstCompressedSize = 0;
+                    int uncompressedSize = 0;
+                    int bestCompressedSize = 0;
+                    List<Device> bestDeviceList = null;
+                    for (int id = 0; id < devices.Count; ++id)
+                    {
+                        var c = FindOptimalDeviceOrderUsingDistance(deviceId, id, devices);
+                        //var c = FindOptimalDeviceOrderUsingCompressedSize(id, devices, compressionTester);
+                        //var c = FindWorstDeviceOrderUsingCompressedSize(id, devices, compressionTester);
+                        //DeltaEncodeDevicesBy16Bit(c);
+                        //DeltaEncodeDevicesByByte(c);
+                        //PerformDeltaEncoding16BitWithLowSignBit(c);
+                        //PerformByteDeltaEncodingWithLowSignBit(c);
+
+                        //var big = JoinDeviceChunksInterleaved(c);
+                        //var big = JoinDeviceChunksInterleavedAndDeltaEncodeS16(c);
+                        //var big = JoinDeviceChunksInterleavedByByte(c);
+                        var big = JoinDeviceChunks(c);
+                        uncompressedSize = big.Length;
+                        var compressedSize = compressionTester.GetCompressedSize(big);
+                        if (bestDeviceList == null)
+                        {
+                            bestDeviceList = c;
+                            bestCompressedSize = compressedSize;
+                            worstCompressedSize = compressedSize;
+                        }
+                        else
+                        {
+                            if (compressedSize > worstCompressedSize) worstCompressedSize = compressedSize;
+                            if (compressedSize < bestCompressedSize)
+                            {
+                                bestDeviceList = c;
+                                bestCompressedSize = compressedSize;
+                            }
+                        }
+                    }
+
+                    logger.WriteLine($"device {deviceId} uncompressed:{uncompressedSize} best size: {bestCompressedSize} worst size {worstCompressedSize}");
+
+                    dd[deviceId] = bestDeviceList;// FindOptimalDeviceOrder(deviceId, 0, devices);
+                }
+
+                // now bring back into unified list.
+                var ret = new List<Device>();
+                foreach (var d in dd.Values)
+                {
+                    ret.AddRange(d);
+                }
+                return ret;
+            }
+        }
+
         // restructures song elements int indexes lists
         public void Restructure(ILog logger)
         {
@@ -176,8 +778,12 @@ namespace WaveSabreConvert
 
             foreach (var d in Devices)
             {
-                d.Chunk = Utils.ConvertDeviceChunk(d.Id, d.Chunk);
+                var oldLen = d.Chunk;
+                d.Chunk = Utils.ConvertDeviceChunk(d.Id, d.Chunk, true);
+                //logger.WriteLine($"{d.Id} chunk size: {oldLen} -> {d.Chunk.Length}");
             }
+
+            Devices = FindOptimalDeviceOrder(Devices, logger);
 
             // link device id back to track
             foreach (var t in Tracks)
@@ -316,6 +922,8 @@ namespace WaveSabreConvert
 
                 // populate note on durations by finding each's corresponding note off.
                 int currentTimestamp = 0;
+                List<Event> pitchbendEvents = new List<Event>();
+                List<Event> ccEvents = new List<Event>();
                 for (int i = 0; i < t.Events.Count; ++ i)
                 {
                     var e = t.Events[i];
@@ -327,9 +935,12 @@ namespace WaveSabreConvert
                         case EventType.NoteOn: // we only care about processing note ons.
                             break;
                         case EventType.NoteOff: // ignore note offs
-                        case EventType.CC: // ignore.
+                            continue;
+                        case EventType.CC: // ignore. some CCs are to be expected so don't go crazy trying to report these.
+                            ccEvents.Add(e);
                             continue;
                         case EventType.PitchBend:
+                            pitchbendEvents.Add(e);
                             //logger.WriteLine($"! ERROR: Pitchbend data is not supported. track:{t.Name}, event:{i}, type:{e.Note}, value:{e.Velocity}: {Utils.MidiEventToString(e.Note, e.Velocity)}");
                             continue;
                     }
@@ -389,7 +1000,7 @@ namespace WaveSabreConvert
                         //}
 
                         break;
-                    }
+                    } // for each event
 
                     // was a duration calculated?
                     if (e.DurationSamples == null)
@@ -397,6 +1008,15 @@ namespace WaveSabreConvert
                         logger.WriteLine($"!ERROR: no duration was found. Maybe no corresponding note off event for a note on?; track {t.Name}");
                         continue;
                     }
+                } // for each event in this track.
+
+                if (pitchbendEvents.Count > 0)
+                {
+                    logger.WriteLine($"!Pitchbend data is not supported; track {t.Name}. {pitchbendEvents.Count} pitchbend events, starting at {pitchbendEvents.First().TimeStamp}");
+                }
+                if (ccEvents.Count > 0)
+                {
+                    logger.WriteLine($"CC events are not supported. track {t.Name}");
                 }
 
                 // populate delta encoded MIDI events ONLY for note ons.

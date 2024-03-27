@@ -303,7 +303,9 @@ public:
 		for (auto* sampler : GetMaj7()->mpSamplerDevices)
 		{
 			M7::Serializer samplerSerializer;
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
 			sampler->Serialize(samplerSerializer);
+#endif // MAJ7_INCLUDE_GSM_SUPPORT
 			auto b64 = clarinoid::base64_encode(samplerSerializer.mBuffer, (unsigned int)samplerSerializer.mSize);
 			samplersArray.Array_MakeValue().WriteStringValue(b64);
 		}
@@ -399,44 +401,46 @@ public:
 		*data = out;
 		return (VstInt32)size;
 	}
-
-	// assumes that p has had its default param cache filled.
-	// takes the current patch, returns a binary blob containing the WaveSabre chunk.
-	// this is where we serialize "diff" params, and there's the opportunity to append other things; in this case sampler devices.
-	virtual int GetMinifiedChunk(void** data) override
-	{
-		// the base chunk is our big param dump, with sampler data appended. each sampler will append its data; we won't think too much about that data here.
-		// the base chunk is a diff of default params, because that's way more compressible. the alternative would be to meticulously
-		// serialize some optimal fields based on whether an object is in use or not.
-		// if we just do diffs against defaults, then it's going to be almost all zeroes.
-		// the DAW can also attempt to optimize by finding unused elements and setting them to defaults.
-		//     0.20000000298023223877, // PortTm
-		//     0.40000000596046447754, // O1ScFq
-		//     0.0000001
-		M7::Serializer s;
-
-		//auto defaultParamCache = GetDefaultParamCache();// GenerateDefaultParamCache();
-
-		for (int i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
-			double f = getParameter((VstInt32)i);
-			f -= mDefaultParamCache[i];
-			static constexpr double eps = 0.000001;
-			double af = f < 0 ? -f : f;
-			if (af < eps) {
-				f = 0;
-			}
-			//s.WriteFloat((float)f);
-			s.WriteInt16NormalizedFloat((float)f);
-		}
-
-		for (auto* sd : GetMaj7()->mpSamplerDevices) {
-			sd->Serialize(s);
-		}
-
-		auto ret = s.DetachBuffer();
-		*data = ret.first;
-		return (int)ret.second;
-	}
+//
+//	// assumes that p has had its default param cache filled.
+//	// takes the current patch, returns a binary blob containing the WaveSabre chunk.
+//	// this is where we serialize "diff" params, and there's the opportunity to append other things; in this case sampler devices.
+//	virtual int GetMinifiedChunk(void** data) override
+//	{
+//		// the base chunk is our big param dump, with sampler data appended. each sampler will append its data; we won't think too much about that data here.
+//		// the base chunk is a diff of default params, because that's way more compressible. the alternative would be to meticulously
+//		// serialize some optimal fields based on whether an object is in use or not.
+//		// if we just do diffs against defaults, then it's going to be almost all zeroes.
+//		// the DAW can also attempt to optimize by finding unused elements and setting them to defaults.
+//		//     0.20000000298023223877, // PortTm
+//		//     0.40000000596046447754, // O1ScFq
+//		//     0.0000001
+//		M7::Serializer s;
+//
+//		//auto defaultParamCache = GetDefaultParamCache();// GenerateDefaultParamCache();
+//
+//		for (int i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
+//			float f = getParameter((VstInt32)i);
+//			f -= mDefaultParamCache[i];
+//			//static constexpr double eps = 0.000001;
+//			//double af = f < 0 ? -f : f;
+//			//if (af < eps) {
+//			//	f = 0;
+//			//}
+//			//s.WriteFloat((float)f);
+//			s.WriteInt16NormalizedFloat(f);
+//		}
+//
+//#ifdef MAJ7_INCLUDE_GSM_SUPPORT
+//		for (auto* sd : GetMaj7()->mpSamplerDevices) {
+//			sd->Serialize(s);
+//		}
+//#endif // MAJ7_INCLUDE_GSM_SUPPORT
+//
+//		auto ret = s.DetachBuffer();
+//		*data = ret.first;
+//		return (int)ret.second;
+//	}
 
 	virtual void OptimizeParams() override
 	{

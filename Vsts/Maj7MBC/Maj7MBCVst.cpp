@@ -3,11 +3,11 @@
 
 #include <WaveSabreCore.h>
 
-// accepts the VST chunk, optimizes & minifies and outputs the wavesabre optimized chunk.
-int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData)
+int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int inpSize, void* inpData, int* outpSize, void** outpData, int deltaFromDefaults)
 {
-	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<Maj7MBCVst>(deviceName, inpSize, inpData, outpSize, outpData);
+	return WaveSabreDeviceVSTChunkToMinifiedChunk_Impl<Maj7MBCVst>(deviceName, inpSize, inpData, outpSize, outpData, deltaFromDefaults);
 }
+
 
 void __cdecl WaveSabreFreeChunk(void* p)
 {

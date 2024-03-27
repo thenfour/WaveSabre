@@ -111,27 +111,33 @@ namespace ProjectManager
             }
 
             // midi lane data
-            var midiLaneChunkNode = new TreeNode($"Chunks: Midi Lanes: {bin.AllMidiLanes.GetSize()} bytes ({bin.AllMidiLanes.GetCompressedSize()} compressed)");
+            var allMidiEventCount = song.MidiLanes.Sum(l => l.MidiEvents.Count);
+            var midiLaneChunkNode = new TreeNode($"Chunks: Midi Lanes: {bin.AllMidiLanes.GetSize()} bytes ({bin.AllMidiLanes.GetCompressedSize()} compressed) ({allMidiEventCount} notes)");
             var midiLanesOrdered = bin.MidiLaneData.Select(kv => new { kv, compressedSize = kv.Value.GetCompressedSize() }).OrderByDescending(kv => kv.compressedSize);
             foreach (var kvt in midiLanesOrdered)
             {
                 int iMidiLane = kvt.kv.Key;
                 // find tracks which reference this midi lane
                 string trackRefs = string.Join(", ", song.Tracks.Where(st => st.MidiLaneId == iMidiLane).Select(st => st.Name));
-                midiLaneChunkNode.Nodes.Add(new TreeNode($"{kvt.kv.Key}: {kvt.kv.Value.GetSize()} bytes ({kvt.compressedSize} compressed) used by tracks {trackRefs}"));
+                var eventCount = song.MidiLanes[iMidiLane].MidiEvents.Count;
+                midiLaneChunkNode.Nodes.Add(new TreeNode($"{kvt.kv.Key}: {kvt.kv.Value.GetSize()} bytes ({kvt.compressedSize} compressed) used by tracks {trackRefs} ({eventCount} notes)"));
             }
 
 
             treeViewDetails.Nodes.Add(new TreeNode(string.Format("Tempo: {0}", song.Tempo)));
             treeViewDetails.Nodes.Add(new TreeNode(string.Format("Duration: {0} seconds", song.Length)));
+            treeViewDetails.Nodes.Add(new TreeNode($"Event scale: {1 << song.TimestampScaleLog2}"));
+            treeViewDetails.Nodes.Add(new TreeNode($"Duration scale: {1 << song.NoteDurationScaleLog2}"));
             treeViewDetails.Nodes.Add(new TreeNode(string.Format("Total Device Count: {0}", deviceCount)));
-            treeViewDetails.Nodes.Add(new TreeNode(string.Format("Total Data Size: {0} bytes ({1} bytes compressed)", bin.CompleteSong.GetSize(), bin.CompleteSong.GetCompressedSize())));
+
+            var compressRatio = ((double)bin.CompleteSong.GetCompressedSize()) * 100 / bin.CompleteSong.GetSize();
+            treeViewDetails.Nodes.Add(new TreeNode($"Total Data Size: {bin.CompleteSong.GetSize()} bytes ({bin.CompleteSong.GetCompressedSize()} bytes compressed, {compressRatio.ToString("0.00")}% of uncompressed)"));
 
             treeViewDetails.Nodes.Add(tracks);
             treeViewDetails.Nodes.Add(deviceChunkNode);
             treeViewDetails.Nodes.Add(midiLaneChunkNode);
             treeViewDetails.Nodes.Add(tracksChunkNode);
-            treeViewDetails.ExpandAll();
+            //treeViewDetails.ExpandAll();
             //treeViewDetails.Nodes[4].Expand();
         }
 
