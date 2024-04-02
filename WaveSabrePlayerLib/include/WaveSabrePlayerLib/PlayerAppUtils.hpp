@@ -248,10 +248,19 @@ namespace WSPlayerApp
             SetTextColor(mDC, foreColor);
             SetBkColor(mDC, backColor);
         }
-        void HatchFill(const Rect& bounds, COLORREF foreColor, COLORREF backColor) const
+        //void HatchFill(const Rect& bounds, COLORREF foreColor, COLORREF backColor) const
+        //{
+        //    SetBkColor(mDC, backColor);
+        //    HBRUSH hBrush = CreateHatchBrush(HS_BDIAGONAL, foreColor);
+        //    HBRUSH hOldBrush = (HBRUSH)SelectObject(mDC, hBrush);
+        //    RECT rc = bounds.GetRECT();
+        //    FillRect(mDC, &rc, hBrush);
+        //    SelectObject(mDC, hOldBrush);
+        //    DeleteObject(hBrush);
+        //}
+        void SolidFill(const Rect& bounds, COLORREF foreColor) const
         {
-            SetBkColor(mDC, backColor);
-            HBRUSH hBrush = CreateHatchBrush(HS_BDIAGONAL, foreColor);
+            HBRUSH hBrush = CreateSolidBrush(foreColor);
             HBRUSH hOldBrush = (HBRUSH)SelectObject(mDC, hBrush);
             RECT rc = bounds.GetRECT();
             FillRect(mDC, &rc, hBrush);

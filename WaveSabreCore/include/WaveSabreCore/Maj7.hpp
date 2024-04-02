@@ -199,7 +199,9 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			// BASE PARAMS & state
+#ifdef ENABLE_PITCHBEND
 			real_t mPitchBendN11 = 0;
+#endif // ENABLE_PITCHBEND
 
 			float mUnisonoDetuneAmts[gUnisonoVoiceMax];// = { 0 };
 
@@ -321,7 +323,9 @@ namespace WaveSabreCore
 
 			virtual void HandlePitchBend(float pbN11) override
 			{
+#ifdef ENABLE_PITCHBEND
 				mPitchBendN11 = pbN11;
+#endif // ENABLE_PITCHBEND
 			}
 
 			virtual void HandleMidiCC(int ccN, int val) override {
@@ -634,12 +638,20 @@ namespace WaveSabreCore
 						lfo->mPhase.SetModMatrix(&this->mModMatrix);
 					}
 
+#ifdef ENABLE_PITCHBEND
 					mMidiNote = mPortamento.GetCurrentMidiNote() + mpOwner->mParams.GetIntValue(ParamIndices::PitchBendRange, gPitchBendCfg) * mpOwner->mPitchBendN11;
+#else
+					mMidiNote = mPortamento.GetCurrentMidiNote();
+#endif // ENABLE_PITCHBEND
 
 					real_t noteHz = math::MIDINoteToFreq(mMidiNote);
 
 					mModMatrix.BeginBlock();
+#ifdef ENABLE_PITCHBEND
 					mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11);
+#else
+					mModMatrix.SetSourceValue(ModSource::PitchBend, 0);
+#endif // ENABLE_PITCHBEND
 					mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);
 					mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f);
 					mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01);

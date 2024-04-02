@@ -17,7 +17,7 @@ using namespace WSPlayerApp;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define WS_EXEPLAYER_RELEASE_FEATURES
-#define FANCY_PAINT
+//#define FANCY_PAINT
 
 // Fancy paint has waveform view and more debug info displayed.
 #ifndef WS_EXEPLAYER_RELEASE_FEATURES
@@ -76,7 +76,7 @@ void UpdateStatusText()
         "Press F7 to save.\r\n"
         "  %s\r\n"
         "\r\n"
-        "Status: %s %d\r\n\r\n"
+        "Status: %s %d%%\r\n\r\n"
         "%s\r\n" // instructions
         ;
 
@@ -194,13 +194,13 @@ void handleSave() {
 #ifdef FANCY_PAINT
 void RenderWaveform_Fancy(GdiDeviceContext& dc)
 {
+    static constexpr auto waveformRect = gThemeFancy.grcWaveform;
+    dc.SolidFill(waveformRect, gTheme.WaveformUnrenderedHatch1);
+    static constexpr  auto midY = waveformRect.GetMidY();
+    static constexpr  auto left = waveformRect.GetLeft();
+    //Point renderCursorP1{ waveformRect.GetLeft() + gpWaveformGen->mProcessedWidth, waveformRect.GetTop() };
+    //Point renderCursorP2{ renderCursorP1.GetX(), waveformRect.GetBottom() };
     auto lock = gpRenderer->gCritsec.Enter(); // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
-
-    dc.HatchFill(gpWaveformGen->mRect, gTheme.WaveformUnrenderedHatch1, gTheme.WaveformUnrenderedHatch2);
-    const auto midY = gpWaveformGen->mRect.GetMidY();
-    const auto left = gpWaveformGen->mRect.GetLeft();
-    Point renderCursorP1{ gpWaveformGen->mRect.GetLeft() + gpWaveformGen->mProcessedWidth, gpWaveformGen->mRect.GetTop() };
-    Point renderCursorP2{ renderCursorP1.GetX(), gpWaveformGen->mRect.GetBottom() };
     for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i) {
         auto h = gpWaveformGen->mHeights[i];
 
@@ -218,7 +218,7 @@ void RenderWaveform_Fancy(GdiDeviceContext& dc)
         //    );
         //
         //dc.DrawLine(p1, p2, gTheme.WaveformForeground);
-        dc.HatchFill({left + i, midY - h, 1, h * 2}, gTheme.WaveformForeground, gTheme.WaveformForeground);
+        dc.SolidFill({ left + i, midY - h, 1, h * 2 }, gTheme.WaveformForeground);
     }
     //dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gTheme.WaveformUnrenderedHatch1, gTheme.WaveformUnrenderedHatch2);
     
@@ -228,17 +228,17 @@ void RenderWaveform_Fancy(GdiDeviceContext& dc)
 
     //dc.DrawLine(renderCursorP1, renderCursorP2, gTheme.RenderCursorColor);
 
-    if (gpPlayer->IsPlaying()) {
-        auto playFrames = gpPlayer->gPlayTime.GetFrames();
-        //auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gTheme.PlayCursorBad : gTheme.PlayCursorGood;
-        auto c = gTheme.PlayCursor;
+    //if (gpPlayer->IsPlaying()) {
+    //    auto playFrames = gpPlayer->gPlayTime.GetFrames();
+    //    //auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gTheme.PlayCursorBad : gTheme.PlayCursorGood;
+    //    auto c = gTheme.PlayCursor;
 
-        int playCursorX = MulDiv(playFrames, gpWaveformGen->mRect.GetWidth(), gpRenderer->gSongLength.GetFrames());
-        static constexpr int gPlayCursorWidth = 4;
-        Rect rc{ gpWaveformGen->mRect.GetLeft() + playCursorX - gPlayCursorWidth / 2, renderCursorP1.GetY(), gPlayCursorWidth, gpWaveformGen->mRect.GetHeight() };
+    //    int playCursorX = MulDiv(playFrames, gpWaveformGen->mRect.GetWidth(), gpRenderer->gSongLength.GetFrames());
+    //    static constexpr int gPlayCursorWidth = 4;
+    //    Rect rc{ gpWaveformGen->mRect.GetLeft() + playCursorX - gPlayCursorWidth / 2, renderCursorP1.GetY(), gPlayCursorWidth, gpWaveformGen->mRect.GetHeight() };
 
-        dc.HatchFill(rc, c, c);
-    }
+    //    dc.SolidFill(rc, c);
+    //}
 }
 void handlePaint_Fancy()
 {
@@ -250,31 +250,31 @@ void handlePaint_Fancy()
     HBITMAP hBitmap = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
     HBITMAP hOldBitmap = (HBITMAP)SelectObject(dc.mDC, hBitmap);
 
-    HFONT hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
-    LOGFONT lf;
-    GetObject(hFont, sizeof(LOGFONT), &lf);
-    lf.lfHeight = MulDiv(lf.lfHeight, gTheme.gFontHeightMulPercent, 100); // change font height
-    lf.lfWeight = 1000;
-    HFONT hCustomFont = CreateFontIndirect(&lf); // create a new font based on the modified information
+    //HFONT hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
+    //LOGFONT lf;
+    //GetObject(hFont, sizeof(LOGFONT), &lf);
+    //lf.lfHeight = MulDiv(lf.lfHeight, gTheme.gFontHeightMulPercent, 100); // change font height
+    //lf.lfWeight = 1000;
+    //HFONT hCustomFont = CreateFontIndirect(&lf); // create a new font based on the modified information
 
-    HFONT hOldFont = (HFONT)SelectObject(dc.mDC, hCustomFont);
+    //HFONT hOldFont = (HFONT)SelectObject(dc.mDC, hCustomFont);
     RenderWaveform_Fancy(dc);
 
     dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor);
 
-    if (gPrecalcProgressPercent < 100) {
-        dc.HatchFill(gTheme.grcPrecalcProgress, gTheme.PrecalcProgressBackground, gTheme.PrecalcProgressBackground);
-        dc.HatchFill(gTheme.grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gTheme.PrecalcProgressForeground, gTheme.PrecalcProgressForeground);
-        char sz[100];
-        sprintf(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
-        dc.DrawText_(sz, gTheme.grcPrecalcProgress, gTheme.PrecalcTextColor);
-    }
+    //if (gPrecalcProgressPercent < 100) {
+    //    //dc.SolidFill(gTheme.grcPrecalcProgress, gTheme.PrecalcProgressBackground);
+    //    dc.SolidFill(gTheme.grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gTheme.PrecalcProgressForeground);
+    //    char sz[100];
+    //    sprintf(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
+    //    dc.DrawText_(sz, gTheme.grcPrecalcProgress, gTheme.PrecalcTextColor);
+    //}
 
     // present the back buffer
     BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, dc.mDC, 0, 0, SRCCOPY);
 
-    SelectObject(dc.mDC, hOldFont);
-    DeleteObject(hCustomFont);
+    //SelectObject(dc.mDC, hOldFont);
+    //DeleteObject(hCustomFont);
     SelectObject(dc.mDC, hOldBitmap);
     DeleteObject(hBitmap);
     DeleteDC(dc.mDC);
@@ -408,7 +408,7 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
     gpPlayer = new WaveOutPlayer(*gpRenderer);
 
 #ifdef FANCY_PAINT
-    gpWaveformGen = new WaveformGen(gTheme.grcWaveform, *gpRenderer);
+    gpWaveformGen = new WaveformGen(*gpRenderer);
     gpRenderer->Begin(gpWaveformGen);
 #else
     gpRenderer->Begin();

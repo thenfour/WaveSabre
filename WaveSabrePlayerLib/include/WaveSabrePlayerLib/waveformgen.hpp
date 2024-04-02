@@ -2,6 +2,7 @@
 
 #include "PlayerAppUtils.hpp"
 #include "PlayerAppRenderer.hpp"
+#include "PlayerAppConfig.hpp"
 
 
 namespace WSPlayerApp
@@ -15,7 +16,10 @@ namespace WSPlayerApp
         static_assert(std::is_pod_v<Heights>, "heights is memset so...");
 
         Renderer& mRenderer;
-        const Rect mRect;
+        //const Rect mRect;
+
+        static constexpr auto mRect = gThemeFancy.grcWaveform;
+
         const WSTime mSongLength;
         int mProcessedWidth = 0;
         int mUnprocessedWidth = mRect.GetWidth();
@@ -23,15 +27,15 @@ namespace WSPlayerApp
         const int mFramesPerXPixel = 0;
         int mFramesThisPixel = 0; // how many samples has been processed this pixel?
 
-        WaveformGen(const Rect& rect, Renderer& renderer) :
-            mRect(rect),
+        WaveformGen(Renderer& renderer) :
+            //mRect(rect),
             mRenderer(renderer),
             mSongLength(renderer.gSongLength),
-            mHeights(new Heights[rect.GetWidth()]),// don't bother freeing.
+            mHeights(new Heights[mRect.GetWidth()]),// don't bother freeing.
             mFramesPerXPixel(std::max(1, mSongLength.GetFrames() / mRect.GetWidth()))
         {
             auto w = mRect.GetWidth();
-            memset(mHeights, 0, sizeof(*mHeights) * rect.GetWidth());
+            memset(mHeights, 0, sizeof(*mHeights) * mRect.GetWidth());
         }
 
         Rect GetUnprocessedRect() const {

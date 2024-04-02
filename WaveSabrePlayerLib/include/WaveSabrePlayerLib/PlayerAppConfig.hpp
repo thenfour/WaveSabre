@@ -11,16 +11,16 @@ namespace WSPlayerApp
         static constexpr COLORREF WindowBackground = RGB(0, 0, 0);
         //COLORREF WaveformBackground = RGB(12, 16, 16);
         static constexpr COLORREF WaveformForeground = RGB(99, 40, 99);
-        static constexpr COLORREF WaveformZeroLine = RGB(48, 48, 48);
-        static constexpr COLORREF WaveformUnrenderedHatch1 = RGB(60, 60, 60);
-        static constexpr COLORREF WaveformUnrenderedHatch2 = RGB(30, 30, 30);
+        //static constexpr COLORREF WaveformZeroLine = RGB(48, 48, 48);
+        static constexpr COLORREF WaveformUnrenderedHatch1 = RGB(0, 0, 0);
+        //static constexpr COLORREF WaveformUnrenderedHatch2 = RGB(30, 30, 30);
         //static constexpr COLORREF RenderCursorColor = RGB(80, 0, 80);
         //COLORREF PlayCursorGood = RGB(0, 192, 0);
         //COLORREF PlayCursorBad = RGB(255, 0, 0);
         static constexpr COLORREF PlayCursor = RGB(0, 192, 0);
 
-        static constexpr COLORREF PrecalcProgressBackground = RGB(0, 24, 24);
-        static constexpr COLORREF PrecalcProgressForeground = RGB(0, 96, 96);
+        //static constexpr COLORREF PrecalcProgressBackground = RGB(0, 24, 24);
+        //static constexpr COLORREF PrecalcProgressForeground = RGB(0, 96, 96);
         static constexpr COLORREF PrecalcTextColor = RGB(0, 192, 192);
         //COLORREF PrecalcTextShadowColor = PrecalcProgressForeground;
         static constexpr Rect grcWindow{ 0, 0, 1100, 500 };

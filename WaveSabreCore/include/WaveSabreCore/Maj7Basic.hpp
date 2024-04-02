@@ -37,6 +37,8 @@ using std::max;
 #include <vector>
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+//#define ENABLE_PITCHBEND
+
 
 #ifdef _DEBUG
 #define WSASSERT(condition) \
