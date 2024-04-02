@@ -19,7 +19,6 @@ endif()
 
 set(BUILD_VST_PLUGINS ON CACHE BOOL "Opt out of building the VST plugins.")
 set(BUILD_WAVESABRE_CONVERT ON CACHE BOOL "Do not build WaveSabreConvert.")
-set(BUILD_WAVESABRE_CONVERT_TESTS ON CACHE BOOL "Do not build the WaveSabreConvert tests.")
 set(BUILD_CONVERT_THE_FUCK ON CACHE BOOL "Do not build ConvertTheFuck.")
 set(BUILD_PROJECT_MANAGER ON CACHE BOOL "Do not build the project manager.")
 set(VSTSDK3_DIR "${PROJECT_SOURCE_DIR}/Vst3.x/" CACHE PATH "VSTSDK location")
@@ -61,7 +60,6 @@ add_subdirectory(WaveSabreCore)
 add_subdirectory(WaveSabrePlayerLib)
 
 # binaries
-add_subdirectory(Tests/PlayerTest)
 add_subdirectory(WaveSabreStandAlonePlayer)
 add_subdirectory(WaveSabreExecutableMusicPlayer)
 
@@ -75,9 +73,6 @@ endif()
 # Project file conversions
 if(${BUILD_WAVESABRE_CONVERT})
 	add_subdirectory(WaveSabreConvert)
-endif()
-if(${BUILD_WAVESABRE_CONVERT_TESTS})
-	add_subdirectory(Tests/WaveSabreConvertTests)
 endif()
 if(${BUILD_CONVERT_THE_FUCK})
 	add_subdirectory(ConvertTheFuck)

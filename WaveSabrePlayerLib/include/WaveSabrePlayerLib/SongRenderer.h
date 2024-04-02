@@ -420,10 +420,7 @@ namespace WaveSabrePlayerLib
 		enum class DeviceId
 		{
 			Leveller,
-			Crusher,
 			Echo,
-			Chamber,
-			Twister,
 			Cathedral,
 			Maj7,
 			Maj7Width,

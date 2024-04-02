@@ -9,6 +9,9 @@ foreach(child ${children})
 		aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR}/${child} sources)
 		file(WRITE "${CMAKE_BINARY_DIR}/${child}.def"
 			"LIBRARY ${child}\nEXPORTS\nVSTPluginMain\nWaveSabreDeviceVSTChunkToMinifiedChunk\nWaveSabreFreeChunk\nWaveSabreTestCompression\nmain=VSTPluginMain")
+
+		source_group("Source Files" FILES ${sources})
+
 		add_library(${child} SHARED
 			${sources}
 			${CMAKE_BINARY_DIR}/${child}.def)

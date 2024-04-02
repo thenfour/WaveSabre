@@ -1,55 +1,39 @@
-![WaveSabre](Media/logo-black.png)
+## Intro
 
-[![build status](https://ci.appveyor.com/api/projects/status/4su4q028eywtr5gl?svg=true)](https://ci.appveyor.com/project/yupferris/wavesabre) [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/logicomacorp/WaveSabre#license) [![Slack](https://img.shields.io/badge/chat-Slack-orange.svg)](https://join.slack.com/t/wavesabre/shared_invite/zt-75g3dckn-8AeINw6OZIBc~qrWfqZkKA)
+Maj7 is a toolchain for writing size-optimized "executable music".
 
-## Description
+Maj7 is a fork of [WaveSabre](https://github.com/logicomacorp/WaveSabre/tree/master). It is a software synthesizer and effect library, with toolchain for size-optimized executable music.
 
-WaveSabre is a software synthesizer and toolchain for music for [64K intros](https://en.wikipedia.org/wiki/64K_intro).
+### Why use Maj7 over WaveSabre?
 
-See [our docs](https://github.com/logicomacorp/WaveSabre/tree/master/Docs) for more info.
+Maj7 has a slightly different intended use than WaveSabre. While WS is specifically for 64kb demos, Maj7 is intended to write 32kb Executable music. Here we care more about audio quality and musical expression in a standalone executable, with no intention of integrating into a 64kb demo. Therefore Maj7 fills more space than WS, but is intended to be just the right size for high quality music.
 
-## Getting started
+With Maj7 you can expect some advantages over WS:
 
-Please see [our docs](https://github.com/logicomacorp/WaveSabre/blob/master/Docs/Home.md#building) for prerequisites, building, etc (and let us know what we're missing!).
+- Higher quality audio effects. Everything from the anti-aliased oscillators, phase-coherent crossovers, meticulously crafted compression algorithms, have been improved from the WaveSabre stock devices.
+- More conventional workflow. Param curves and ranges, modulation options, visual feedback, have all been tweaked in the favor of usability familiar to musicians working with NI Massive, FabFilter effects, etc.
 
-## Status/contributing
+And disadvantages:
 
-As WaveSabre is hot and fresh right out of the oven, we've got some kinks to work out; particularly with documentation, support for more Visual Studio versions, and supporting various VST SDK versions. We'd appreciate any help we can get on any of these fronts, so please talk to us on Slack so we can guide you in the right direction and help you help us!
+- Consumes more space (though still comfortably fits in a 32kb EXE music entry)
 
-Contributions are very welcome, however as the public release is still in its infancy, we'd greatly appreciate it if we could discuss contributions on [Slack](https://join.slack.com/t/wavesabre/shared_invite/zt-75g3dckn-8AeINw6OZIBc~qrWfqZkKA), rather than just opening up for pull requests for the time being, in order to avoid duplicate work. This will change in the future when things mature/settle down a bit. :)
+## Usage
 
-## Productions
+In general, the workflow is like this:
 
-WaveSabre has been used in several intros, demos, and executable music productions, including (but not limited to):
+1. Write a song in your DAW of choice using only the `Maj7` VST plugins.
+2. Use `Project Manager` to convert to a `.hpp` file
+3. Drop in the `hpp` and build the executable music project.
 
-- [dope on wax](http://www.pouet.net/prod.php?which=81015) by [logicoma](http://www.pouet.net/groups.php?which=12638), 2019
-- [trashpanda](http://www.pouet.net/prod.php?which=78634) by [logicoma](http://www.pouet.net/groups.php?which=12638), 2018
-- [bros before foes](http://www.pouet.net/prod.php?which=77682) by [logicoma](http://www.pouet.net/groups.php?which=12638) and [poo-brain](http://www.pouet.net/groups.php?which=12000), 2018
-- [iota](http://www.pouet.net/prod.php?which=75718) by [logicoma](http://www.pouet.net/groups.php?which=12638), 2018
-- [soundproof motion](http://www.pouet.net/prod.php?which=70460) by [logicoma](http://www.pouet.net/groups.php?which=12638) and [fairlight](http://www.pouet.net/groups.php?which=44), 2017
-- [engage](http://www.pouet.net/prod.php?which=69658) by [logicoma](http://www.pouet.net/groups.php?which=12638), 2017
-- [elysian](http://www.pouet.net/prod.php?which=68375) by [logicoma](http://www.pouet.net/groups.php?which=12638), 2016
-- [backscatter](http://www.pouet.net/prod.php?which=65966) by [logicoma](http://www.pouet.net/groups.php?which=12638), 2015
 
-You can find a more exhaustive production list [here](https://demozoo.org/productions/tagged/wavesabre/).
+## Development
 
-## Team
+Please see [our docs](./Docs/Home.md#building) for prerequisites, building, etc
 
-WaveSabre is made by [ferris](https://github.com/yupferris) and [h0ffman](https://github.com/djh0ffman) of [logicoma](https://github.com/logicomacorp), with additional contributions by:
+## Questions?
 
-- [revival](https://github.com/revivalizer) (knob graphics, premake integration, helping with open-source prep, ...)
-- [kusma](https://www.kusma.xyz/) (sin/cos optimization, cmake integration, appveyor config, ...)
-- [cpdt](https://github.com/cpdt) ([FL Studio project parser](https://github.com/monadgroup/FLParser))
-- [Wertstahl](http://wertstahl.de) (logo)
+It's quite robust and usable, however because it's a 1-man show, there's no announcements of fixes / breaking changes or anything. Feel free to contact [tenfour](https://twitter.com/tenfour2) for questions / whatever:
 
-And several others! _(Please let us know if we forgot someone!)_
+  * [Discord](https://discord.gg/kkf9gQfKAd)
+  * [Twitter](https://twitter.com/tenfour2)
 
-## Talks/seminars
-
-- [Massive Sound, Tiny Data - WaveSabre 64k Synth](https://youtu.be/JjFyHI1b_Tw?t=7246) by ferris/h0ffman, [demobit](https://www.demobit.party/) 2019
-- [Ferris Makes Demos Ep.001 - WaveSabre](https://www.youtube.com/watch?v=V8JXraZPkh8) by ferris, 2017 stream
-- [WaveSabre - A Case Study in 64k Synthesis](https://www.youtube.com/watch?v=wLX156OVFTA) by ferris, [the gathering 2013](https://archive.gathering.org/tg13)
-
-## License
-
-WaveSabre is licensed under the MIT license (see [LICENSE](LICENSE) or http://opensource.org/licenses/MIT).

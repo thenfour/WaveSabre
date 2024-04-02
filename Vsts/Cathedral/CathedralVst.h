@@ -2,6 +2,7 @@
 #define __CATHEDRALVST_H__
 
 #include <WaveSabreVstLib.h>
+
 using namespace WaveSabreVstLib;
 
 class CathedralVst : public VstPlug

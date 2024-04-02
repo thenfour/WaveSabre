@@ -8,10 +8,10 @@
 #include "Maj7Sat.hpp"
 
 #include "Leveller.h"
-#include "Crusher.h"
+//#include "Crusher.h"
 #include "Echo.h"
-#include "Chamber.h"
-#include "Twister.h"
+//#include "Chamber.h"
+//#include "Twister.h"
 #include "Cathedral.h"
 
 #endif
