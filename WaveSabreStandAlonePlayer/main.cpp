@@ -28,10 +28,10 @@ WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)
 	switch (id)
 	{
 	case SongRenderer::DeviceId::Leveller: return new WaveSabreCore::Leveller();
-	case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
+	//case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
 	case SongRenderer::DeviceId::Echo: return new WaveSabreCore::Echo();
-	case SongRenderer::DeviceId::Chamber: return new WaveSabreCore::Chamber();
-	case SongRenderer::DeviceId::Twister: return new WaveSabreCore::Twister();
+	//case SongRenderer::DeviceId::Chamber: return new WaveSabreCore::Chamber();
+	//case SongRenderer::DeviceId::Twister: return new WaveSabreCore::Twister();
 	case SongRenderer::DeviceId::Cathedral: return new WaveSabreCore::Cathedral();
 	case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::M7::Maj7();
     case SongRenderer::DeviceId::Maj7Width: return new WaveSabreCore::Maj7Width();
@@ -153,50 +153,17 @@ void handleSave() {
 
 void RenderWaveform_Fancy(GdiDeviceContextFancy& dc)
 {
-    if (!gpWaveformGen) return;
+    static constexpr auto waveformRect = gThemeFancy.grcWaveform;
+    dc.SolidFill(waveformRect, gTheme.WaveformUnrenderedHatch1);
+    static constexpr  auto midY = waveformRect.GetMidY();
+    static constexpr  auto left = waveformRect.GetLeft();
     auto lock = gpRenderer->gCritsec.Enter(); // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
-
-    dc.HatchFill(gpWaveformGen->mRect, gTheme.WaveformBackground, gTheme.WaveformBackground);
-    const auto midY = gpWaveformGen->mRect.GetMidY();
-    const auto left = gpWaveformGen->mRect.GetLeft();
-    Point renderCursorP1{ gpWaveformGen->mRect.GetLeft() + gpWaveformGen->mProcessedWidth, gpWaveformGen->mRect.GetTop() };
-    Point renderCursorP2{ renderCursorP1.GetX(), gpWaveformGen->mRect.GetBottom() };
     for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i) {
         auto h = gpWaveformGen->mHeights[i];
 
-        const Point p1{ left + i, midY - h };
-        const Point p2{ p1.GetX(), midY + h };
-        // distance to render cursor
-        int distToRenderCursor = renderCursorP1.GetX() - p1.GetX();
-        float t = float(distToRenderCursor) / gWaveformGradientMaxDistancePixels;
-        t = WaveSabreCore::M7::math::clamp01(1.0f - t);
-        t = WaveSabreCore::M7::math::modCurve_xN11_kN11(t, -0.95f);
-        COLORREF g = RGB(
-            WaveSabreCore::M7::math::lerp(GetRValue(gTheme.WaveformForeground), GetRValue(gTheme.RenderCursorColor), t),
-            WaveSabreCore::M7::math::lerp(GetGValue(gTheme.WaveformForeground), GetGValue(gTheme.RenderCursorColor), t),
-            WaveSabreCore::M7::math::lerp(GetBValue(gTheme.WaveformForeground), GetBValue(gTheme.RenderCursorColor), t)
-        );
-
-        dc.DrawLine(p1, p2, g);
+        dc.SolidFill({ left + i, midY - h, 1, h * 2 }, gTheme.WaveformForeground);
     }
-    dc.HatchFill(gpWaveformGen->GetUnprocessedRect(), gTheme.WaveformUnrenderedHatch1, gTheme.WaveformUnrenderedHatch2);
 
-    Point midLineP1{ left, midY };
-    Point midLineP2{ renderCursorP1.GetX(), midY };
-    dc.DrawLine(midLineP1, midLineP2, gTheme.WaveformZeroLine);
-
-    dc.DrawLine(renderCursorP1, renderCursorP2, gTheme.RenderCursorColor);
-
-    if (gpPlayer->IsPlaying()) {
-        auto playFrames = gpPlayer->gPlayTime.GetFrames();
-        auto c = (playFrames >= gpRenderer->gSongRendered.GetFrames()) ? gTheme.PlayCursorBad : gTheme.PlayCursorGood;
-
-        int playCursorX = MulDiv(playFrames, gpWaveformGen->mRect.GetWidth(), gpRenderer->gSongLength.GetFrames());
-        static constexpr int gPlayCursorWidth = 4;
-        Rect rc{ gpWaveformGen->mRect.GetLeft() + playCursorX - gPlayCursorWidth / 2, renderCursorP1.GetY(), gPlayCursorWidth, gpWaveformGen->mRect.GetHeight() };
-
-        dc.HatchFill(rc, c, c);
-    }
 }
 void handlePaint_Fancy()
 {
@@ -208,38 +175,21 @@ void handlePaint_Fancy()
     HBITMAP hBitmap = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
     HBITMAP hOldBitmap = (HBITMAP)SelectObject(dc.mDC, hBitmap);
 
-    HFONT hFont = (HFONT)GetStockObject(ANSI_FIXED_FONT);
-    LOGFONT lf;
-    GetObject(hFont, sizeof(LOGFONT), &lf);
-    lf.lfHeight = MulDiv(lf.lfHeight, gTheme.gFontHeightMulPercent, 100); // change font height
-    lf.lfWeight = 1000;
-    HFONT hCustomFont = CreateFontIndirect(&lf); // create a new font based on the modified information
-
-    HFONT hOldFont = (HFONT)SelectObject(dc.mDC, hCustomFont);
     RenderWaveform_Fancy(dc);
 
-    dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor, gTheme.TextShadowColor);
-
-    if (gPrecalcProgressPercent < 100) {
-        dc.HatchFill(gTheme.grcPrecalcProgress, gTheme.PrecalcProgressBackground, gTheme.PrecalcProgressBackground);
-        dc.HatchFill(gTheme.grcPrecalcProgress.LeftAlignedShrink(gPrecalcProgressPercent), gTheme.PrecalcProgressForeground, gTheme.PrecalcProgressForeground);
-        char sz[100];
-        sprintf(sz, "Precalculating %d%%...", gPrecalcProgressPercent);
-        dc.DrawText_(sz, gTheme.grcPrecalcProgress, gTheme.PrecalcTextColor, gTheme.PrecalcTextShadowColor);
-    }
+    dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor);
 
     // present the back buffer
     BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, dc.mDC, 0, 0, SRCCOPY);
 
-    SelectObject(dc.mDC, hOldFont);
-    DeleteObject(hCustomFont);
+    //SelectObject(dc.mDC, hOldFont);
+    //DeleteObject(hCustomFont);
     SelectObject(dc.mDC, hOldBitmap);
     DeleteObject(hBitmap);
     DeleteDC(dc.mDC);
 
     EndPaint(hMain, &ps);
 }
-
 
 
 LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
@@ -367,7 +317,7 @@ int main(int argc, char **argv)
         gpRenderer = new Renderer(hMain, song);
         gpPlayer = new WaveOutPlayer(*gpRenderer);
 
-        gpWaveformGen = new WaveformGen(gTheme.grcWaveform, *gpRenderer);
+        gpWaveformGen = new WaveformGen(*gpRenderer);
         gpRenderer->Begin(gpWaveformGen);
     }
     SetTimer(hMain, 0, gGeneralSleepPeriodMS, 0);

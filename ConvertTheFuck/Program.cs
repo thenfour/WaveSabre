@@ -29,10 +29,10 @@ namespace ConvertTheFuck
                     switch (option)
                     {
                         case "-h":
-                            File.WriteAllText(outFile, new Serializer().Serialize(song));
+                            File.WriteAllText(outFile, new Serializer().Serialize(song, logger));
                             break;
                         case "-b":
-                            File.WriteAllBytes(outFile, new Serializer().SerializeBinary(song).CompleteSong.GetByteArray());
+                            File.WriteAllBytes(outFile, new Serializer().SerializeBinary(song, logger).CompleteSong.GetByteArray());
                             break;
                         default:
                             Console.WriteLine(string.Format("ERROR: unknown option {0}", args[1]));
