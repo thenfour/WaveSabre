@@ -29,7 +29,7 @@ target_link_libraries(ProjectManager WaveSabreConvert)
 set_property(TARGET ProjectManager PROPERTY VS_GLOBAL_ApplicationIcon "${CMAKE_CURRENT_SOURCE_DIR}/logicoma_basic_CoA_icon.ico")
 csharp_set_designer_cs_properties(${PROJECT_MANAGER_SOURCES})
 csharp_set_windows_forms_properties(${PROJECT_MANAGER_SOURCES})
-set_property(TARGET ProjectManager PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.6.1")
+# set_property(TARGET ProjectManager PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.6.1")
 set_property(TARGET ProjectManager PROPERTY VS_DOTNET_REFERENCES 
 	"System"
 	"System.Core"

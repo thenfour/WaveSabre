@@ -35,7 +35,7 @@ add_library(WaveSabreConvert SHARED ${WAVESABRE_CONVERT_SOURCES})
 csharp_set_designer_cs_properties(${WAVESABRE_CONVERT_SOURCES})
 csharp_set_windows_forms_properties(${WAVESABRE_CONVERT_SOURCES})
 set_property(TARGET WaveSabreConvert PROPERTY VS_DOTNET_REFERENCE_Monad.FLParser "${CMAKE_CURRENT_SOURCE_DIR}/FLParser/Monad.FLParser.dll")
-set_property(TARGET WaveSabreConvert PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.6.1")
+# set_property(TARGET WaveSabreConvert PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.7.2")
 set_property(TARGET WaveSabreConvert PROPERTY VS_DOTNET_REFERENCES 
 	"System"
 	"System.Core"

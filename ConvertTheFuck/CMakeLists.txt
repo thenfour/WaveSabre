@@ -14,7 +14,7 @@ target_link_libraries(ConvertTheFuck WaveSabreConvert)
 
 csharp_set_designer_cs_properties(${CONVERT_THE_FUCK_SOURCES})
 csharp_set_windows_forms_properties(${CONVERT_THE_FUCK_SOURCES})
-set_property(TARGET ConvertTheFuck PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.6.1")
+# set_property(TARGET ConvertTheFuck PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.6.1")
 set_property(TARGET ConvertTheFuck PROPERTY VS_DOTNET_REFERENCES 
 	"System"
 	"System.Core"

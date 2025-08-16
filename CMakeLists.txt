@@ -1,3 +1,4 @@
+cmake_minimum_required(VERSION 3.11)
 project("WaveSabre" LANGUAGES C CXX CSharp)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;MinSizeRel" CACHE STRING "" FORCE)
@@ -7,9 +8,10 @@ set(TOOLS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Tools CACHE STRING "" FORCE)
 # Enable C# Utilities also for the VS2013 AppVeyor stage.
 cmake_policy(SET CMP0057 NEW)
 include(CSharpUtilities)
-set(CMAKE_CSharp_FLAGS ${CMAKE_CSharp_FLAGS} "/langversion:6")
+set(CMAKE_CSharp_FLAGS "/langversion:7")
+set_property(GLOBAL PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.7.2")
 
-cmake_minimum_required(VERSION 3.11)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if(MSVC)
