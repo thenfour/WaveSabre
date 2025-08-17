@@ -41,7 +41,7 @@ struct FrequencyResponseRendererConfig {
 };
 
 template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
-          size_t TParamCount>
+          size_t TParamCount, bool TshowGridLabels>
 struct FrequencyResponseRenderer {
   struct ThumbRenderInfo {
     ImColor color;
@@ -55,7 +55,7 @@ struct FrequencyResponseRenderer {
   // - adjust amplitude
 
   static constexpr ImVec2 gSize = {Twidth, Theight};
-  static constexpr int gSegmentCount = TsegmentCount;
+  static constexpr int gSegmentCount = std::max(5,Twidth / 4);// TsegmentCount; -- just go for smooth 4-px per segment
 
   const float gMinDB = -12;
   const float gMaxDB = 12;
@@ -220,7 +220,7 @@ struct FrequencyResponseRenderer {
         float x = std::round(FreqToX(f, bb));
         if (x < bb.Min.x || x > bb.Max.x) return;
         dl->AddLine({x, bb.Min.y}, {x, bb.Max.y}, major ? gridMajor : gridMinor, 1.0f);
-        if (major) {
+        if (major && TshowGridLabels) {
           char txt[16] = {0};
           if (f >= 1000.0f)
             snprintf(txt, sizeof(txt), "%dk", (int)(f / 1000.0f));
@@ -249,19 +249,21 @@ struct FrequencyResponseRenderer {
           dl->AddLine({bb.Min.x, y}, {bb.Max.x, y},
                       major ? gridMajor : gridMinor, 1.0f);
           // label major ticks (including 0 dB)
-          char txt[16] = {0};
-          if (dB > 0.0f)
-            snprintf(txt, sizeof(txt), "+%gdB", dB);
-          else if (dB < 0.0f)
-            snprintf(txt, sizeof(txt), "%gdB", dB);
-          else
-            snprintf(txt, sizeof(txt), "0dB");
-          ImVec2 ts = ImGui::CalcTextSize(txt);
-          ImVec2 pos = { bb.Min.x + labelPad, y - ts.y - 0.5f * labelPad };
-          // keep inside rect
-          if (pos.y < bb.Min.y + labelPad) pos.y = bb.Min.y + labelPad;
-          if (pos.y + ts.y > bb.Max.y - labelPad) pos.y = bb.Max.y - labelPad - ts.y;
-          dl->AddText(pos, labelColor, txt);
+          if (TshowGridLabels) {
+              char txt[16] = { 0 };
+              if (dB > 0.0f)
+                  snprintf(txt, sizeof(txt), "+%gdB", dB);
+              else if (dB < 0.0f)
+                  snprintf(txt, sizeof(txt), "%gdB", dB);
+              else
+                  snprintf(txt, sizeof(txt), "0dB");
+              ImVec2 ts = ImGui::CalcTextSize(txt);
+              ImVec2 pos = { bb.Min.x + labelPad, y - ts.y - 0.5f * labelPad };
+              // keep inside rect
+              if (pos.y < bb.Min.y + labelPad) pos.y = bb.Min.y + labelPad;
+              if (pos.y + ts.y > bb.Max.y - labelPad) pos.y = bb.Max.y - labelPad - ts.y;
+              dl->AddText(pos, labelColor, txt);
+          }
         }
       }
     }

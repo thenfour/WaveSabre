@@ -17,7 +17,7 @@ class LevellerEditor : public VstEditor
 	ColorMod mEnabledColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
-	FrequencyResponseRenderer<680,200,100, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams> mResponseGraph;
+	FrequencyResponseRenderer<680,200,100, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams, true> mResponseGraph;
 
 public:
 	LevellerEditor(AudioEffect* audioEffect)
