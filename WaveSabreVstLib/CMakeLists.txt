@@ -6,6 +6,7 @@ add_library(WaveSabreVstLib STATIC
 	include/WaveSabreVstLib/Common.h
 	include/WaveSabreVstLib/Serialization.hpp
 	include/WaveSabreVstLib/VstEditor.h
+	include/WaveSabreVstLib/FrequencyResponseRenderer.hpp
 	include/WaveSabreVstLib/VstPlug.h
 	src/VstEditor.cpp
 	src/VstPlug.cpp
