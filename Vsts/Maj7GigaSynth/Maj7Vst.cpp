@@ -28,13 +28,13 @@ void Maj7Vst::getParameterName(VstInt32 index, char* text)
 
 bool Maj7Vst::getEffectName(char *name)
 {
-	vst_strncpy(name, "WaveSabre - Maj7", kVstMaxEffectNameLen);
+	vst_strncpy(name, "Maj7 - GigaSynth", kVstMaxEffectNameLen);
 	return true;
 }
 
 bool Maj7Vst::getProductString(char *text)
 {
-	vst_strncpy(text, "WaveSabre - Maj7", kVstMaxProductStrLen);
+	vst_strncpy(text, "Maj7 - GigaSynth", kVstMaxProductStrLen);
 	return true;
 }
 

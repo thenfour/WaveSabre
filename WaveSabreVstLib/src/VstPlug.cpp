@@ -175,7 +175,7 @@ namespace WaveSabreVstLib
 
 	bool VstPlug::getVendorString(char *text)
 	{
-		vst_strncpy(text, "Logicoma", kVstMaxVendorStrLen);
+		vst_strncpy(text, "tenfour", kVstMaxVendorStrLen);
 		return true;
 	}
 

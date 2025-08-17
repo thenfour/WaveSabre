@@ -44,12 +44,12 @@ void LevellerVst::getParameterName(VstInt32 index, char *text)
 
 bool LevellerVst::getEffectName(char *name)
 {
-	vst_strncpy(name, "WaveSabre - Leveller", kVstMaxEffectNameLen);
+	vst_strncpy(name, "Maj7 - EQ", kVstMaxEffectNameLen);
 	return true;
 }
 
 bool LevellerVst::getProductString(char *text)
 {
-	vst_strncpy(text, "WaveSabre - Leveller", kVstMaxProductStrLen);
+	vst_strncpy(text, "Maj7 - EQ", kVstMaxProductStrLen);
 	return true;
 }

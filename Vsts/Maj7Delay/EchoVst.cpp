@@ -54,12 +54,12 @@ void EchoVst::getParameterName(VstInt32 index, char *text)
 
 bool EchoVst::getEffectName(char *name)
 {
-	vst_strncpy(name, "WaveSabre - Echo", kVstMaxEffectNameLen);
+	vst_strncpy(name, "Maj7 - Delay", kVstMaxEffectNameLen);
 	return true;
 }
 
 bool EchoVst::getProductString(char *text)
 {
-	vst_strncpy(text, "WaveSabre - Echo", kVstMaxProductStrLen);
+	vst_strncpy(text, "Maj7 - Delay", kVstMaxProductStrLen);
 	return true;
 }

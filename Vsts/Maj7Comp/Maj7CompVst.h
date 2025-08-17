@@ -26,12 +26,12 @@ public:
 	}
 
 	virtual bool getEffectName(char* name) override {
-		vst_strncpy(name, "WaveSabre - Maj7 Comp", kVstMaxEffectNameLen);
+		vst_strncpy(name, "Maj7 - Comp", kVstMaxEffectNameLen);
 		return true;
 	}
 	
 	virtual bool getProductString(char* text) override {
-		vst_strncpy(text, "WaveSabre - Maj7 Comp", kVstMaxProductStrLen);
+		vst_strncpy(text, "Maj7 - Comp", kVstMaxProductStrLen);
 		return true;
 	}
 
