@@ -7,7 +7,6 @@
 #include <string>
 #include <vector>
 
-
 #define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "../imgui/imgui-knobs.h"
@@ -35,7 +34,8 @@ struct FrequencyResponseRendererConfig {
   const float thumbRadius;
   const std::array<FrequencyResponseRendererFilter, TFilterCount> filters;
   float mParamCacheCopy[TParamCount];
-  // Optional: explicit frequency grid configuration (in Hz). If empty, built-in defaults are used.
+  // Optional: explicit frequency grid configuration (in Hz). If empty, built-in
+  // defaults are used.
   std::vector<float> majorFreqTicks{}; // labeled and drawn with major style
   std::vector<float> minorFreqTicks{}; // unlabeled and drawn with minor style
 };
@@ -55,16 +55,28 @@ struct FrequencyResponseRenderer {
   // - adjust amplitude
 
   static constexpr ImVec2 gSize = {Twidth, Theight};
-  static constexpr int gSegmentCount = std::max(5,Twidth / 4);// TsegmentCount; -- just go for smooth 4-px per segment
+  static constexpr int gSegmentCount = std::max(
+      5, Twidth / 4); // TsegmentCount; -- just go for smooth 4-px per segment
 
-  const float gMinDB = -12;
-  const float gMaxDB = 12;
+  // dynamic display range (defaults to +-12 dB)
+  float mCurrentHalfRangeDB = 12.0f;
+  float mDisplayMinDB = -12.0f;
+  float mDisplayMaxDB = 12.0f;
+  int mShrinkCountdown = 0; // hysteresis for shrinking range
 
   // because params change as a result of this immediate gui, we need at least 1
   // full frame of lag to catch param changes correctly. so keep processing
   // multiple frames until things settle. in the meantime, force recalculating.
   int mAdditionalForceCalcFrames = 0;
-  ImVec2 mPoints[gSegmentCount]; // actual pixel values.
+
+  // cached per-segment values
+  float mMagdB[gSegmentCount] = {0};
+  float mX[gSegmentCount] = {0};
+
+  // computed visible window excluding deep stopband edges
+  int mVisibleLeftIndex = 0;
+  int mVisibleRightIndex = gSegmentCount - 1;
+
   std::vector<ThumbRenderInfo> mThumbs;
 
   // the param cache that points have been calculated on. this way we can only
@@ -100,44 +112,26 @@ struct FrequencyResponseRenderer {
 
   float FreqToX(float hz, ImRect &bb) {
     float underlyingValue = 0;
-    // float ktdummy = 0;
     M7::ParamAccessor p{&underlyingValue, 0};
     p.SetFrequencyAssumingNoKeytracking(0, M7::gFilterFreqConfig, hz);
     return M7::math::lerp(bb.Min.x, bb.Max.x, underlyingValue);
-    // M7::FrequencyParam param{ underlyingValue, ktdummy, M7::gFilterFreqConfig
-    // }; return 0;
   }
 
   float DBToY(float dB, ImRect &bb) {
-    float t01 = M7::math::lerp_rev(gMinDB, gMaxDB, dB);
+    float t01 = M7::math::lerp_rev(mDisplayMinDB, mDisplayMaxDB, dB);
     t01 = M7::math::clamp01(t01);
     return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
-    // return bb.Max.y - bb.GetHeight() * M7::math::clamp01(magLin);
   }
 
   void CalculatePoints(
       const FrequencyResponseRendererConfig<TFilterCount, TParamCount> &cfg,
       ImRect &bb) {
-    // float underlyingValue = 0;
-    float ktdummy = 0;
-    // M7::FrequencyParam param{ underlyingValue, ktdummy, M7::gFilterFreqConfig
-    // };
     M7::QuickParam param{0, M7::gFilterFreqConfig};
 
     renderSerial++;
 
+    // Don't compute thumbs here; do it after dynamic range is set
     mThumbs.clear();
-
-    for (auto &f : cfg.filters) {
-      if (!f.filter)
-        continue; // nullptr values are valid and used when a filter is
-                  // bypassed.
-      // if (f.filter->thru) continue;
-      float freq = f.filter->freq;
-      float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
-      float magdB = M7::math::LinearToDecibels(magLin);
-      mThumbs.push_back({f.thumbColor, {FreqToX(freq, bb), DBToY(magdB, bb)}});
-    }
 
     for (int iseg = 0; iseg < gSegmentCount; ++iseg) {
       param.SetRawValue(float(iseg) / gSegmentCount);
@@ -148,18 +142,12 @@ struct FrequencyResponseRenderer {
         if (!f.filter)
           continue; // nullptr values are valid and used when a filter is
                     // bypassed.
-        // if (f.filter->thru) continue;
         float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
         magdB += M7::math::LinearToDecibels(magLin);
       }
 
-      // float magLin = M7::math::DecibelsToLinear(magdB) / 4; // /4 to
-      // basically give a 12db range of display.
-
-      mPoints[iseg] = ImVec2(
-          FreqToX(freq,
-                  bb), // (bb.Min.x + iseg * bb.GetWidth() / gSegmentCount),
-          DBToY(magdB, bb));
+      mX[iseg] = FreqToX(freq, bb);
+      mMagdB[iseg] = magdB;
     }
   }
 
@@ -190,12 +178,76 @@ struct FrequencyResponseRenderer {
     auto *dl = ImGui::GetWindowDrawList();
 
     ImGui::RenderFrame(bb.Min, bb.Max, cfg.backgroundColor);
-    // ImGui::RenderFrame(bb.Min, bb.Max, (renderSerial & 1) ? 0 :
-    // cfg.backgroundColor);
 
     EnsurePointsPopulated(cfg, bb);
 
-    // draw background grid (frequency verticals and dB horizontals)
+    // Determine visible in-band window (exclude deep stopband)
+    const float cutThreshold = -24.0f;                  // dB
+    const int margin = std::max(1, gSegmentCount / 50); // ~2%
+
+    int left = 0;
+    for (int i = 0; i < gSegmentCount; ++i) {
+      if (mMagdB[i] > cutThreshold) {
+        left = std::max(0, i - margin);
+        break;
+      }
+      if (i == gSegmentCount - 1)
+        left = 0; // none found
+    }
+
+    int right = gSegmentCount - 1;
+    for (int i = gSegmentCount - 1; i >= 0; --i) {
+      if (mMagdB[i] > cutThreshold) {
+        right = std::min(gSegmentCount - 1, i + margin);
+        break;
+      }
+      if (i == 0)
+        right = gSegmentCount - 1;
+    }
+
+    if (right < left) {
+      left = 0;
+      right = gSegmentCount - 1;
+    }
+
+    mVisibleLeftIndex = left;
+    mVisibleRightIndex = right;
+
+    // Compute required scale using 6dB steps with hysteresis
+    float posPeak = -1e9f;
+    float negPeak = 1e9f;
+    for (int i = left; i <= right; ++i) {
+      posPeak = std::max(posPeak, mMagdB[i]);
+      negPeak = std::min(negPeak, mMagdB[i]);
+    }
+
+    auto stepUp6 = [](float v) { return 6.0f * std::ceil(v / 6.0f); };
+
+    const float baseHalf = 12.0f;
+    const float maxHalf = 48.0f;
+    float posNeed = stepUp6(std::max(baseHalf, std::max(0.0f, posPeak)));
+    float negNeed = stepUp6(std::max(baseHalf, std::max(0.0f, -negPeak)));
+    float suggestedHalf = std::min(maxHalf, std::max(posNeed, negNeed));
+
+    // hysteresis: expand immediately, shrink after N frames stable
+    const int shrinkFrames = 6;
+    if (suggestedHalf > mCurrentHalfRangeDB) {
+      mCurrentHalfRangeDB = suggestedHalf;
+      mShrinkCountdown = shrinkFrames;
+    } else if (suggestedHalf < mCurrentHalfRangeDB) {
+      if (mShrinkCountdown > 0) {
+        --mShrinkCountdown;
+      } else {
+        mCurrentHalfRangeDB = suggestedHalf;
+      }
+    } else {
+      mShrinkCountdown = shrinkFrames;
+    }
+
+    mDisplayMinDB = -mCurrentHalfRangeDB;
+    mDisplayMaxDB = +mCurrentHalfRangeDB;
+
+    // draw background grid (frequency verticals and dynamic dB horizontals)
     ImColor gridMinor = ColorFromHTML("333333", 0.5f);
     ImColor gridMajor = ColorFromHTML("555555", 0.8f);
     ImColor labelColor = ColorFromHTML("AAAAAA", 0.65f);
@@ -204,22 +256,27 @@ struct FrequencyResponseRenderer {
     // frequency grid (Hz)
     {
       // caller-provided ticks if any; else fallback defaults
-      const std::vector<float> &maj = cfg.majorFreqTicks.empty()
-                                          ? (const std::vector<float>&)std::vector<float>{100.0f, 1000.0f, 10000.0f, 20000}
-                                          : cfg.majorFreqTicks;
+      const std::vector<float> &maj =
+          cfg.majorFreqTicks.empty()
+              ? (const std::vector<float> &)std::vector<float>{100.0f, 1000.0f,
+                                                               10000.0f,
+                                                               20000.0f}
+              : cfg.majorFreqTicks;
       const std::vector<float> &min = cfg.minorFreqTicks.empty()
                                           ? (const std::vector<float>&)std::vector<float>{
           50.0f, 60, 70,80,90,
               200.0f, 300, 400, 500.0f, 600,700,800,900,
-              2e3, 3e3, 4e3, 5e3, 6e3, 7e3, 8e3, 9e3,
-			  11e3, 12e3, 13e3, 14e3, 15e3, 16e3, 17e3, 18e3, 19e3,
+              2000.0f, 3000.0f, 4000.0f, 5000.0f, 6000.0f, 7000.0f, 8000.0f, 9000.0f,
+              11000.0f, 12000.0f, 13000.0f, 14000.0f, 15000.0f, 16000.0f, 17000.0f, 18000.0f, 19000.0f,
           }
                                           : cfg.minorFreqTicks;
 
       auto drawTick = [&](float f, bool major) {
         float x = std::round(FreqToX(f, bb));
-        if (x < bb.Min.x || x > bb.Max.x) return;
-        dl->AddLine({x, bb.Min.y}, {x, bb.Max.y}, major ? gridMajor : gridMinor, 1.0f);
+        if (x < bb.Min.x || x > bb.Max.x)
+          return;
+        dl->AddLine({x, bb.Min.y}, {x, bb.Max.y}, major ? gridMajor : gridMinor,
+                    1.0f);
         if (major && TshowGridLabels) {
           char txt[16] = {0};
           if (f >= 1000.0f)
@@ -227,54 +284,92 @@ struct FrequencyResponseRenderer {
           else
             snprintf(txt, sizeof(txt), "%d", (int)f);
           ImVec2 ts = ImGui::CalcTextSize(txt);
-          ImVec2 pos = { x - ts.x * 0.5f, bb.Max.y - ts.y - labelPad };
-          if (pos.x < bb.Min.x + labelPad) pos.x = bb.Min.x + labelPad;
-          if (pos.x + ts.x > bb.Max.x - labelPad) pos.x = bb.Max.x - labelPad - ts.x;
+          ImVec2 pos = {x - ts.x * 0.5f, bb.Max.y - ts.y - labelPad};
+          if (pos.x < bb.Min.x + labelPad)
+            pos.x = bb.Min.x + labelPad;
+          if (pos.x + ts.x > bb.Max.x - labelPad)
+            pos.x = bb.Max.x - labelPad - ts.x;
           dl->AddText(pos, labelColor, txt);
         }
       };
 
-      for (float f : min) drawTick(f, false);
-      for (float f : maj) drawTick(f, true);
+      for (float f : min)
+        drawTick(f, false);
+      for (float f : maj)
+        drawTick(f, true);
     }
 
-    // dB grid (horizontal)
+    // dB grid (horizontal): multiples of 6 dB within [mDisplayMinDB,
+    // mDisplayMaxDB]
     {
-      const float dbTicks[] = {-12.0f, -6.0f, 0.0f, 6.0f, 12.0f};
-      for (float dB : dbTicks) {
+      int half = (int)std::ceil(mCurrentHalfRangeDB / 6.0f) * 6;
+      for (int v = -half; v <= half; v += 6) {
+        float dB = (float)v;
         float y = std::round(DBToY(dB, bb));
-        if (y >= bb.Min.y && y <= bb.Max.y) {
-          bool major = (dB == -12.0f) || (dB == -6.0f) || (dB == 6.0f) ||
-                       (dB == 12.0f) || (dB == 0.0f);
-          dl->AddLine({bb.Min.x, y}, {bb.Max.x, y},
-                      major ? gridMajor : gridMinor, 1.0f);
-          // label major ticks (including 0 dB)
-          if (TshowGridLabels) {
-              char txt[16] = { 0 };
-              if (dB > 0.0f)
-                  snprintf(txt, sizeof(txt), "+%gdB", dB);
-              else if (dB < 0.0f)
-                  snprintf(txt, sizeof(txt), "%gdB", dB);
-              else
-                  snprintf(txt, sizeof(txt), "0dB");
-              ImVec2 ts = ImGui::CalcTextSize(txt);
-              ImVec2 pos = { bb.Min.x + labelPad, y - ts.y - 0.5f * labelPad };
-              // keep inside rect
-              if (pos.y < bb.Min.y + labelPad) pos.y = bb.Min.y + labelPad;
-              if (pos.y + ts.y > bb.Max.y - labelPad) pos.y = bb.Max.y - labelPad - ts.y;
-              dl->AddText(pos, labelColor, txt);
-          }
+        if (y < bb.Min.y || y > bb.Max.y)
+          continue;
+        bool major = (v == 0) || (v % 12 == 0);
+        dl->AddLine({bb.Min.x, y}, {bb.Max.x, y}, major ? gridMajor : gridMinor,
+                    1.0f);
+        if (TshowGridLabels) {
+          char txt[16] = {0};
+          if (v > 0)
+            snprintf(txt, sizeof(txt), "+%ddB", v);
+          else if (v < 0)
+            snprintf(txt, sizeof(txt), "%ddB", v);
+          else
+            snprintf(txt, sizeof(txt), "0dB");
+          ImVec2 ts = ImGui::CalcTextSize(txt);
+          ImVec2 pos = {bb.Min.x + labelPad, y - ts.y - 0.5f * labelPad};
+          if (pos.y < bb.Min.y + labelPad)
+            pos.y = bb.Min.y + labelPad;
+          if (pos.y + ts.y > bb.Max.y - labelPad)
+            pos.y = bb.Max.y - labelPad - ts.y;
+          dl->AddText(pos, labelColor, txt);
         }
       }
     }
 
-    // unity line (0 dB)
+    // unity line (0 dB) over grid for visibility
     float unityY = std::round(DBToY(0, bb)); // round for crisp line.
     dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("444444"),
                 1.0f);
 
-    dl->AddPolyline(mPoints, gSegmentCount, cfg.lineColor, 0, 2.0f);
+    // Render response as visible segments only
+    std::vector<ImVec2> segment;
+    segment.reserve(gSegmentCount);
 
+    auto flushSegment = [&]() {
+      if (segment.size() >= 2) {
+        dl->AddPolyline(segment.data(), (int)segment.size(), cfg.lineColor, 0,
+                        2.0f);
+      }
+      segment.clear();
+    };
+
+    for (int i = mVisibleLeftIndex; i <= mVisibleRightIndex; ++i) {
+      float dB = mMagdB[i];
+      if (dB < mDisplayMinDB || dB > mDisplayMaxDB) {
+        flushSegment();
+        continue;
+      }
+      float y = DBToY(dB, bb);
+      segment.push_back({mX[i], y});
+    }
+    flushSegment();
+
+    // 5) Render thumbs at band center frequencies if within range
+    mThumbs.clear();
+    for (auto &f : cfg.filters) {
+      if (!f.filter)
+        continue;
+      float freq = f.filter->freq;
+      float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
+      float magdB = M7::math::LinearToDecibels(magLin);
+      if (magdB < mDisplayMinDB || magdB > mDisplayMaxDB)
+        continue;
+      mThumbs.push_back({f.thumbColor, {FreqToX(freq, bb), DBToY(magdB, bb)}});
+    }
     for (auto &th : mThumbs) {
       dl->AddCircleFilled(th.point, cfg.thumbRadius, th.color);
     }
