@@ -74,7 +74,7 @@ namespace WaveSabreCore
 		float damp;// , damp1;
 		float width;
 		float lowCutFreq, highCutFreq;
-		//float wet1, wet2;
+		float wet1, wet2; // stereo width cross-mix factors
 		//bool freeze;
 		float preDelayMS;
 

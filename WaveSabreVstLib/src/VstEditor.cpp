@@ -240,15 +240,15 @@ namespace WaveSabreVstLib
 
 		if (ImGui::BeginMenuBar()) {
 
-			if (ImGui::BeginMenu("Wavesabre")) {
-				if (ImGui::MenuItem("Toggle ImGui demo window", nullptr, showingDemo)) {
-					showingDemo = !showingDemo;
-				}
-				if (ImGui::MenuItem("Toggle param explorer", nullptr, showingParamExplorer)) {
-					showingParamExplorer = !showingParamExplorer;
-				}
-				ImGui::EndMenu();
-			}
+			//if (ImGui::BeginMenu("")) {
+			//	if (ImGui::MenuItem("Toggle ImGui demo window", nullptr, showingDemo)) {
+			//		showingDemo = !showingDemo;
+			//	}
+			//	if (ImGui::MenuItem("Toggle param explorer", nullptr, showingParamExplorer)) {
+			//		showingParamExplorer = !showingParamExplorer;
+			//	}
+			//	ImGui::EndMenu();
+			//}
 			PopulateMenuBar();
 
 			//char effectName[kVstMaxEffectNameLen * 2 + 50];

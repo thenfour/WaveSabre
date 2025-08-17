@@ -1,4 +1,3 @@
-
 #include <cstdint>
 #include <WaveSabreCore/Cathedral.h>
 #include <WaveSabreCore/Helpers.h>
@@ -50,8 +49,14 @@ namespace WaveSabreCore
 			mInputAnalysis[1].WriteSample(rightInput);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+			// mono feed into the reverb network
 			float input = (leftInput + rightInput) * 0.015f;
 
+			// Pre-EQ: apply LP/HP to the signal feeding the reverb network (more typical usage)
+			input = highCutFilter[0].SVFlow(input, highCutFreq, SVQ);   // low-pass
+			input = lowCutFilter[0].SVFhigh(input, lowCutFreq, SVQ);    // high-pass
+
+			// predelay is part of the reverb network; feed it the pre-filtered signal
 			if (preDelayMS > 0)
 			{
 				preDelayBuffer.WriteSample(input);
@@ -75,17 +80,22 @@ namespace WaveSabreCore
 				outR = allPassRight[i].Process(outR);
 			}
 
-			outL = highCutFilter[0].SVFlow(outL, highCutFreq, SVQ);
-			outL = lowCutFilter[0].SVFhigh(outL, lowCutFreq, SVQ);
+			// Post-EQ removed; shaping is now handled at the input (pre-EQ)
+			//outL = highCutFilter[0].SVFlow(outL, highCutFreq, SVQ);
+			//outL = lowCutFilter[0].SVFhigh(outL, lowCutFreq, SVQ);
 
-			outR = highCutFilter[1].SVFlow(outR, highCutFreq, SVQ);
-			outR = lowCutFilter[1].SVFhigh(outR, lowCutFreq, SVQ);
+			//outR = highCutFilter[1].SVFlow(outR, highCutFreq, SVQ);
+			//outR = lowCutFilter[1].SVFhigh(outR, lowCutFreq, SVQ);
 
 			//outL = outL*wet1 + outR*wet2;
 			//outR = outR*wet1 + outL*wet2;
 
-			outputs[0][s] = leftInput* dryMul + outL * wetMul;
-			outputs[1][s] = rightInput * dryMul + outR * wetMul;
+			// Width cross-mix for the wet signal (0=mono center, 1=full width)
+			float wetL = outL * wet1 + outR * wet2;
+			float wetR = outR * wet1 + outL * wet2;
+
+			outputs[0][s] = leftInput* dryMul + wetL * wetMul;
+			outputs[1][s] = rightInput * dryMul + wetR * wetMul;
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			mOutputAnalysis[0].WriteSample(outputs[0][s]);
 			mOutputAnalysis[1].WriteSample(outputs[1][s]);
@@ -99,7 +109,7 @@ namespace WaveSabreCore
 		roomSize = mParams.Get01Value(ParamIndices::RoomSize);
 		preDelayMS = mParams.Get01Value(ParamIndices::PreDelay) * 500.0f;
 		damp = mParams.Get01Value(ParamIndices::Damp);
-		//width = mParams.Get01Value(ParamIndices::Width);
+		width = mParams.Get01Value(ParamIndices::Width);
 		lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);
 		highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);
 
@@ -110,8 +120,9 @@ namespace WaveSabreCore
 		roomSize = 1.0f - t;
 		roomSize = M7::math::clamp01(roomSize);
 
-		//wet1 = (width / 2 + 0.5f);
-		//wet2 = ((1 - width) / 2);
+		// Width mapping: 0 -> mono center (wet1=0.5, wet2=0.5), 1 -> full width (wet1=1.0, wet2=0.0)
+		wet1 = (width * 0.5f) + 0.5f;
+		wet2 = (1.0f - width) * 0.5f;
 
 		//if (freeze)
 		//{
