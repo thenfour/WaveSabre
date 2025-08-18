@@ -139,9 +139,17 @@ public:
 
 		FrequencyResponseRendererConfig<Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams> cfg{
 			ColorFromHTML("222222", 1.0f), // background
-				ColorFromHTML("aaaaaa", 1.0f), // line
-				8.0f,
-				filters,
+			ColorFromHTML("aaaaaa", 1.0f), // line
+			8.0f, // thumbRadius
+			filters, // filters array
+			{}, // mParamCacheCopy (will be filled below)
+			{}, // majorFreqTicks (empty = defaults)
+			{}, // minorFreqTicks (empty = defaults)
+			&mpLeveller->mSpectrumSmoother, // frequencyAnalysis - Pro-Q3 style smoothing
+			ColorFromHTML("4488FF", 0.7f), // fftColor - more opaque line
+			ColorFromHTML("4488FF", 0.25f), // fftFillColor - translucent fill
+			false, // useRightChannel
+			true   // enableFftFill
 		};
 		for (size_t i = 0; i < (size_t)Leveller::ParamIndices::NumParams; ++i) {
 			cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);

@@ -26,13 +26,6 @@ using std::max;
 #endif
 
 
-// ideally we would distinguish between VST compilation and demoscene compilation.
-// but that's not possible atm because everything is shared. for the moment checking x64 is practical.
-#ifdef ENV64BIT
-#	define SELECTABLE_OUTPUT_STREAM_SUPPORT
-#endif
-
-
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 #include <vector>
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT

@@ -12,6 +12,12 @@ set(CMAKE_CSharp_FLAGS "/langversion:7")
 set_property(GLOBAL PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.7.2")
 
 
+add_compile_definitions(
+    $<$<NOT:$<CONFIG:MinSizeRel>>:SELECTABLE_OUTPUT_STREAM_SUPPORT>
+    $<$<NOT:$<CONFIG:MinSizeRel>>:FFT_ANALYSIS_SUPPORT>
+)
+
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if(MSVC)

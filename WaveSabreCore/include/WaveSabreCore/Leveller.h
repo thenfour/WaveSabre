@@ -7,6 +7,7 @@
 
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7ParamAccessor.hpp>
+#include <WaveSabreCore/FFTAnalysis.hpp>
 #include "Device.h"
 #include "BiquadFilter.h"
 #include "RMS.hpp"
@@ -155,9 +156,23 @@ namespace WaveSabreCore
 		AnalysisStream mOutputAnalysis[2];
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+		// FFT analysis for spectrum display
+		FFTAnalysis mFFTAnalysis;
+		SpectrumDisplaySmoother mSpectrumSmoother;
+
 		Leveller() :
-			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16)
+			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16),
+			mFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, 44100.0f)
 		{
+			// Configure FFT for clean technical analysis
+			mFFTAnalysis.SetSmoothingFactor(0.0f);  // Light technical smoothing only
+			mFFTAnalysis.SetDisplayBoost(30.0f);    // +20dB boost for commercial-like levels
+			mFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
+			
+			// Configure display smoother for Pro-Q3 style behavior
+			mSpectrumSmoother.SetPeakHoldTime(0, 44100.0f);  // 80ms peak hold (reduced from 300ms)
+			mSpectrumSmoother.SetFalloffRate(200.0f, 44100.0f);  // 200ms for -60dB falloff (faster than 1.2s)
+			
 			LoadDefaults();
 		}
 
@@ -168,6 +183,16 @@ namespace WaveSabreCore
 			//auto recalcMask = M7::GetModulationRecalcSampleMask();
 			float masterGain = mParams.GetLinearVolume(ParamIndices::OutputVolume, M7::gVolumeCfg12db);
 			bool enableDC = mParams.GetBoolValue(ParamIndices::EnableDCFilter);
+			
+			// Update FFT analysis sample rate if needed
+			if (mFFTAnalysis.GetNyquistFrequency() * 2.0f != static_cast<float>(Helpers::CurrentSampleRate))
+			{
+				mFFTAnalysis.SetSampleRate(static_cast<float>(Helpers::CurrentSampleRate));
+				// Update smoother sample rate dependent settings
+				mSpectrumSmoother.SetPeakHoldTime(0, static_cast<float>(Helpers::CurrentSampleRate));
+				mSpectrumSmoother.SetFalloffRate(200, static_cast<float>(Helpers::CurrentSampleRate));
+			}
+			
 			for (int iSample = 0; iSample < numSamples; iSample++)
 			{
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -177,10 +202,21 @@ namespace WaveSabreCore
 
 				float s1 = inputs[0][iSample];
 				float s2 = inputs[1][iSample];
+				
+				// Process input samples for FFT analysis (before filtering)
+				mFFTAnalysis.ProcessSamples(s1, s2);
+				
+				// Process FFT data through display smoother when new data is available
+				if (mFFTAnalysis.HasNewSpectrum())
+				{
+					mSpectrumSmoother.ProcessSpectrum(mFFTAnalysis.GetSpectrumLeft(), false);
+					mSpectrumSmoother.ProcessSpectrum(mFFTAnalysis.GetSpectrumRight(), true);
+					mFFTAnalysis.ConsumeSpectrum(); // Mark as processed
+				}
 
 				if (enableDC) {
-					s1 = mDCFilters->ProcessSample(s1);
-					s2 = mDCFilters->ProcessSample(s2);
+					s1 = mDCFilters[0].ProcessSample(s1);
+					s2 = mDCFilters[1].ProcessSample(s2);
 				}
 
 				for (int iBand = 0; iBand < gBandCount; ++iBand)

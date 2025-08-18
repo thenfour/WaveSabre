@@ -6,6 +6,8 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <algorithm>  // for std::sort
+
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
@@ -15,6 +17,7 @@
 #include "VstPlug.h"
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/FFTAnalysis.hpp>
 
 using real_t = WaveSabreCore::M7::real_t;
 
@@ -34,10 +37,16 @@ struct FrequencyResponseRendererConfig {
   const float thumbRadius;
   const std::array<FrequencyResponseRendererFilter, TFilterCount> filters;
   float mParamCacheCopy[TParamCount];
-  // Optional: explicit frequency grid configuration (in Hz). If empty, built-in
-  // defaults are used.
+  // Optional: explicit frequency grid configuration (in Hz). If empty, built-in defaults are used.
   std::vector<float> majorFreqTicks{}; // labeled and drawn with major style
   std::vector<float> minorFreqTicks{}; // unlabeled and drawn with minor style
+  
+  // Optional: FFT spectrum overlay
+  const IFrequencyAnalysis* frequencyAnalysis = nullptr;  // unified interface for spectrum data
+  ImColor fftColor = ColorFromHTML("4488FF", 0.6f);  // spectrum overlay color
+  ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);  // spectrum fill color
+  bool useRightChannel = false;  // which channel to display from FFT
+  bool enableFftFill = true;  // enable filled area under spectrum curve
 };
 
 template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
@@ -221,6 +230,18 @@ struct FrequencyResponseRenderer {
       negPeak = std::min(negPeak, mMagdB[i]);
     }
 
+    //// If FFT is provided, also consider its range for scaling
+    //if (cfg.fftAnalysis) {
+    //  const auto& spectrum = cfg.useRightChannel ? 
+    //    cfg.fftAnalysis->GetSpectrumRight() : cfg.fftAnalysis->GetSpectrumLeft();
+    //  
+    //  for (const auto& bin : spectrum) {
+    //    if (bin.frequency >= 20.0f && bin.frequency <= 20000.0f) // audible range
+    //      posPeak = std::max(posPeak, bin.magnitudeDB);
+    //      negPeak = std::min(negPeak, bin.magnitudeDB);
+    //  }
+    //}
+
     auto stepUp6 = [](float v) { return 6.0f * std::ceil(v / 6.0f); };
 
     const float baseHalf = 12.0f;
@@ -334,6 +355,60 @@ struct FrequencyResponseRenderer {
     float unityY = std::round(DBToY(0, bb)); // round for crisp line.
     dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("444444"),
                 1.0f);
+
+    // Render FFT spectrum overlay if provided
+    if (cfg.frequencyAnalysis) {
+      const auto& spectrum = cfg.useRightChannel ? 
+        cfg.frequencyAnalysis->GetSpectrumRight() : cfg.frequencyAnalysis->GetSpectrumLeft();
+      
+      std::vector<ImVec2> fftPoints;
+      fftPoints.reserve(spectrum.size());
+      
+      for (const auto& bin : spectrum) {
+        if (bin.frequency < 20.0f || bin.frequency > 20000.0f)
+          continue; // skip out of audible range
+        
+        if (bin.magnitudeDB < mDisplayMinDB || bin.magnitudeDB > mDisplayMaxDB)
+          continue; // skip out of display range
+          
+        float x = FreqToX(bin.frequency, bb);
+        float y = DBToY(bin.magnitudeDB, bb);
+        
+        if (x >= bb.Min.x && x <= bb.Max.x)
+          fftPoints.push_back({x, y});
+      }
+      
+      if (fftPoints.size() >= 2) {
+        // Sort points by X coordinate to avoid crossings
+        std::sort(fftPoints.begin(), fftPoints.end(), [](const ImVec2& a, const ImVec2& b) {
+          return a.x < b.x;
+        });
+        
+        // Render filled area under curve first (behind line)
+        if (cfg.enableFftFill) {
+          // Use triangle strip approach for better polygon handling
+          const float baseline = bb.Max.y;
+          
+          for (size_t i = 0; i < fftPoints.size() - 1; ++i) {
+            const ImVec2& p1 = fftPoints[i];
+            const ImVec2& p2 = fftPoints[i + 1];
+            
+            // Create quad (two triangles) for each segment
+            ImVec2 quad[4] = {
+              {p1.x, baseline},  // bottom-left
+              {p1.x, p1.y},      // top-left  
+              {p2.x, p2.y},      // top-right
+              {p2.x, baseline}   // bottom-right
+            };
+            
+            dl->AddConvexPolyFilled(quad, 4, cfg.fftFillColor);
+          }
+        }
+        
+        // Render spectrum line on top of fill
+        dl->AddPolyline(fftPoints.data(), (int)fftPoints.size(), cfg.fftColor, 0, 1.5f);
+      }
+    }
 
     // Render response as visible segments only
     std::vector<ImVec2> segment;
