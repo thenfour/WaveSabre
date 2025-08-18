@@ -298,7 +298,7 @@ namespace WaveSabreCore
 			M7::FloatPair ProcessSample(M7::FloatPair input)
 			{
 				// apply stereo linking
-				float monoDetector = input.x[0] + input.x[1];
+				float monoDetector = (input.x[0] + input.x[1]) * 0.5f; // apparently averaging yields slightly more consistent sweeping between mono->stereo link
 				float channelLink01 = mParams.Get01Value(BandParam::ChannelLink);
 				M7::FloatPair output{ input };
 
