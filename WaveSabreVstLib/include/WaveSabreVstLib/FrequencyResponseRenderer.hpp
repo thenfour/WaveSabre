@@ -310,18 +310,6 @@ struct FrequencyResponseRenderer {
       negPeak = std::min(negPeak, mMagdB[i]);
     }
 
-    //// If FFT is provided, also consider its range for scaling
-    //if (cfg.fftAnalysis) {
-    //  const auto& spectrum = cfg.useRightChannel ? 
-    //    cfg.fftAnalysis->GetSpectrumRight() : cfg.fftAnalysis->GetSpectrumLeft();
-    //  
-    //  for (const auto& bin : spectrum) {
-    //    if (bin.frequency >= 20.0f && bin.frequency <= 20000.0f) // audible range
-    //      posPeak = std::max(posPeak, bin.magnitudeDB);
-    //      negPeak = std::min(negPeak, bin.magnitudeDB);
-    //  }
-    //}
-
     auto stepUp6 = [](float v) { return 6.0f * std::ceil(v / 6.0f); };
 
     const float baseHalf = 12.0f;
@@ -447,8 +435,9 @@ struct FrequencyResponseRenderer {
       std::vector<ImVec2> fftPoints;
       fftPoints.reserve(gSegmentCount);
       
-      // Apply same visibility window as filter response for consistency
-      for (int i = mVisibleLeftIndex; i <= mVisibleRightIndex; ++i) {
+      // FFT should show full spectrum regardless of filter response visibility
+      // (FFT represents actual audio signal, not filter response)
+      for (int i = 0; i < gSegmentCount; ++i) {
         const auto& cache = fftCache[i];
         if (!cache.valid) continue;
         
@@ -496,7 +485,8 @@ struct FrequencyResponseRenderer {
       std::vector<ImVec2> legacyPoints;
       legacyPoints.reserve(gSegmentCount);
       
-      for (int i = mVisibleLeftIndex; i <= mVisibleRightIndex; ++i) {
+      // FFT should show full spectrum regardless of filter response visibility
+      for (int i = 0; i < gSegmentCount; ++i) {
         M7::QuickParam param{0, M7::gFilterFreqConfig};
         param.SetRawValue(float(i) / gSegmentCount);
         float freq = param.GetFrequency();

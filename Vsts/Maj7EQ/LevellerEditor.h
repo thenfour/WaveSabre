@@ -80,7 +80,7 @@ public:
 
 		ImGui::SameLine(); WSImGuiParamCheckbox((int)paramOffset + (int)Leveller::BandParamOffsets::Enable, "Enable?");
 
-		float gainParam = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Gain);
+		//float gainParam = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Gain);
 
 		M7::QuickParam fp{ M7::gFilterFreqConfig };
 		//float f1 = 0, f2 = 0;
