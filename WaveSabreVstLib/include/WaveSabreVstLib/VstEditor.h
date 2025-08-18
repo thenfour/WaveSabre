@@ -519,7 +519,7 @@ public:
   };
 
   // the point of this is that you can have a different set of buttons than enum
-  // options. the idea is that when "none" are selected, you can do something
+  // options. the idea is that you can do something
   // different.
   template <typename Tenum, typename TparamID, size_t Tcount>
   void Maj7ImGuiParamEnumMutexButtonArray(
@@ -886,11 +886,11 @@ public:
       pa.SetN11Value(0, v_defaultScaled);
       float defaultParamVal = tempVal;
       pa.SetN11Value(0, centerValN11);
-      float centerVal01 = tempVal;
+      float centerParamVal = tempVal;
       tempVal = GetEffectX()->getParameter((VstInt32)paramID);
 
       FloatN11Converter conv{};
-      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerVal01,
+      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerParamVal,
           modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
           ImGuiKnobVariant_WiperOnly, size,
           ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
@@ -1106,8 +1106,91 @@ public:
   virtual bool onWheel(float distance) { return false; }
   virtual bool setKnobMode(VstInt32 val) { return false; }
 
-  virtual bool onKeyDown(VstKeyCode &keyCode) override { return false; }
-  virtual bool onKeyUp(VstKeyCode &keyCode) override { return false; }
+  // Inject ImGui inputs from VST effEditKeyDown path (for hosts that don't send WM_*)
+  virtual bool onKeyDown(VstKeyCode &keyCode) override {
+    auto ctx = PushMyImGuiContext("onKeyDown");
+    ImGuiIO &io = ImGui::GetIO();
+
+    io.AddKeyEvent(ImGuiMod_Shift, (keyCode.modifier & MODIFIER_SHIFT) != 0);
+    io.AddKeyEvent(ImGuiMod_Alt, (keyCode.modifier & MODIFIER_ALTERNATE) != 0);
+#if defined(_WIN32)
+    io.AddKeyEvent(ImGuiMod_Ctrl, (keyCode.modifier & MODIFIER_CONTROL) != 0);
+#else
+    io.AddKeyEvent(ImGuiMod_Super, (keyCode.modifier & MODIFIER_COMMAND) != 0);
+#endif
+
+    ImGuiKey ik = mapVk(keyCode.virt);
+    if (ik != ImGuiKey_None)
+      io.AddKeyEvent(ik, true);
+
+    if (keyCode.character > 0 && keyCode.character < 0x10000) {
+      io.AddInputCharacterUTF16((unsigned short)keyCode.character);
+    }
+
+    mLastKeyDown = keyCode;
+    return true;
+  }
+  virtual bool onKeyUp(VstKeyCode &keyCode) override {
+    auto ctx = PushMyImGuiContext("onKeyUp");
+    ImGuiIO &io = ImGui::GetIO();
+
+    ImGuiKey ik = mapVk(keyCode.virt);
+    if (ik != ImGuiKey_None)
+      io.AddKeyEvent(ik, false);
+
+    mLastKeyUp = keyCode;
+    return true;
+  }
+
+
+  static ImGuiKey mapVk(unsigned char vk) {
+      switch (vk) {
+      case VKEY_TAB: return ImGuiKey_Tab;
+      case VKEY_LEFT: return ImGuiKey_LeftArrow;
+      case VKEY_RIGHT: return ImGuiKey_RightArrow;
+      case VKEY_UP: return ImGuiKey_UpArrow;
+      case VKEY_DOWN: return ImGuiKey_DownArrow;
+      case VKEY_PAGEUP: return ImGuiKey_PageUp;
+      case VKEY_PAGEDOWN: return ImGuiKey_PageDown;
+      case VKEY_HOME: return ImGuiKey_Home;
+      case VKEY_END: return ImGuiKey_End;
+      case VKEY_INSERT: return ImGuiKey_Insert;
+      case VKEY_DELETE: return ImGuiKey_Delete;
+      case VKEY_BACK: return ImGuiKey_Backspace;
+      case VKEY_SPACE: return ImGuiKey_Space;
+      case VKEY_RETURN: return ImGuiKey_Enter;
+      case VKEY_ESCAPE: return ImGuiKey_Escape;
+      case VKEY_NUMPAD0: return ImGuiKey_Keypad0;
+      case VKEY_NUMPAD1: return ImGuiKey_Keypad1;
+      case VKEY_NUMPAD2: return ImGuiKey_Keypad2;
+      case VKEY_NUMPAD3: return ImGuiKey_Keypad3;
+      case VKEY_NUMPAD4: return ImGuiKey_Keypad4;
+      case VKEY_NUMPAD5: return ImGuiKey_Keypad5;
+      case VKEY_NUMPAD6: return ImGuiKey_Keypad6;
+      case VKEY_NUMPAD7: return ImGuiKey_Keypad7;
+      case VKEY_NUMPAD8: return ImGuiKey_Keypad8;
+      case VKEY_NUMPAD9: return ImGuiKey_Keypad9;
+      case VKEY_DECIMAL: return ImGuiKey_KeypadDecimal;
+      case VKEY_DIVIDE: return ImGuiKey_KeypadDivide;
+      case VKEY_MULTIPLY: return ImGuiKey_KeypadMultiply;
+      case VKEY_SUBTRACT: return ImGuiKey_KeypadSubtract;
+      case VKEY_ADD: return ImGuiKey_KeypadAdd;
+      case VKEY_F1: return ImGuiKey_F1;
+      case VKEY_F2: return ImGuiKey_F2;
+      case VKEY_F3: return ImGuiKey_F3;
+      case VKEY_F4: return ImGuiKey_F4;
+      case VKEY_F5: return ImGuiKey_F5;
+      case VKEY_F6: return ImGuiKey_F6;
+      case VKEY_F7: return ImGuiKey_F7;
+      case VKEY_F8: return ImGuiKey_F8;
+      case VKEY_F9: return ImGuiKey_F9;
+      case VKEY_F10: return ImGuiKey_F10;
+      case VKEY_F11: return ImGuiKey_F11;
+      case VKEY_F12: return ImGuiKey_F12;
+      default: return ImGuiKey_None;
+      }
+      };
+
 
 protected:
   VstKeyCode mLastKeyDown = {0};

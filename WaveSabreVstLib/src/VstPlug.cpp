@@ -201,6 +201,12 @@ namespace WaveSabreVstLib
 		return synth ? 1 : 0;
 	}
 
+	// Indicate to the host that this editor requires keys (enables routing in some DAWs)
+	bool VstPlug::DECLARE_VST_DEPRECATED (keysRequired) ()
+	{
+		return true;
+	}
+
 	void VstPlug::setEditor(VstEditor *editor)
 	{
 		this->editor = editor;

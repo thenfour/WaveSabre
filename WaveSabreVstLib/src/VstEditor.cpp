@@ -74,7 +74,7 @@ namespace WaveSabreVstLib
 
 			ImGuiIO& io = ImGui::GetIO();
 			(void)io;
-			io.WantCaptureKeyboard = true;// ();
+			// Do not force io.WantCaptureKeyboard: it is an output from Dear ImGui
 
 			ImGui::StyleColorsDark();
 
@@ -205,25 +205,6 @@ namespace WaveSabreVstLib
 	{
 		auto contextToken = PushMyImGuiContext("PushMyImGuiContext: ImguiPresent()");
 
-		// make sure our child window is the same size as the one given to us.
-		// i guess this would be necessary to support when the user resizes the plugin window to expand to fill it.
-		// however on Renoise, it means covering up host controls like "Enable keyboard" checkbox etc. don't clobber things the host is not expecting.
-		//RECT rcParent, rcWnd;
-		//GetWindowRect(mParentWindow, &rcParent);
-		//GetWindowRect(mCurrentWindow, &rcWnd);
-
-		//auto parentX = (rcParent.right - rcParent.left);
-		//auto childX = (rcWnd.right - rcWnd.left);
-		//auto parentY = (rcParent.bottom - rcParent.top);
-		//auto childY = (rcWnd.bottom - rcWnd.top);
-
-		//if ((parentX != childX) || (parentY != childY))
-		//{
-		//	SetWindowPos(mCurrentWindow, 0, 0, 0, parentX, parentY, 0);
-		//	// skip this frame now that window pos has changed it's just safer to not have to consider this case.
-		//	return;
-		//}
-
 		ImGui_ImplDX9_NewFrame();
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
@@ -239,24 +220,8 @@ namespace WaveSabreVstLib
 		ImGui::Begin("##main", 0, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
 
 		if (ImGui::BeginMenuBar()) {
-
-			//if (ImGui::BeginMenu("")) {
-			//	if (ImGui::MenuItem("Toggle ImGui demo window", nullptr, showingDemo)) {
-			//		showingDemo = !showingDemo;
-			//	}
-			//	if (ImGui::MenuItem("Toggle param explorer", nullptr, showingParamExplorer)) {
-			//		showingParamExplorer = !showingParamExplorer;
-			//	}
-			//	ImGui::EndMenu();
-			//}
 			PopulateMenuBar();
-
-			//char effectName[kVstMaxEffectNameLen * 2 + 50];
-			//GetEffectX()->getEffectName(effectName);
-			//char title[200];
-			// i don't really know if it's kosher to do this in a menu bar.
 			ImGui::TextColored(ImColor{ .5f, .5f, .5f }, "%.1f FPS, CPU: %.2f %s", ImGui::GetIO().Framerate, GetEffectX()->GetCPUUsage01() * 100, this->GetMenuBarStatusText().c_str());
-
 			ImGui::EndMenuBar();
 		}
 

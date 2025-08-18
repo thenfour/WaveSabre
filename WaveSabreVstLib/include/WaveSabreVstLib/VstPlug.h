@@ -168,6 +168,9 @@ namespace WaveSabreVstLib
 		virtual VstInt32 canDo(char* text);
 		virtual VstInt32 getNumMidiInputChannels();
 
+		// Tell hosts we require keyboard focus (enables effKeysRequired path in some DAWs)
+		virtual bool DECLARE_VST_DEPRECATED (keysRequired) () override;
+
 		double GetCPUUsage01() const {
 			return mCPUUsage.GetValue();
 		}
