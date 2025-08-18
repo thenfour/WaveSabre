@@ -23,13 +23,14 @@ struct Maj7MBCEditor : public VstEditor
 	ColorMod mBandDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
 	FrequencyResponseRendererLayered<160, 75, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
-	FrequencyResponseRendererLayered<900, 175, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mMainFFTGraph;
+	//FrequencyResponseRendererLayered<900, 175, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mMainFFTGraph;
+	FrequencyResponseRendererLayered<900, 200, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mCrossoverGraph;
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
 		mpMaj7MBCVst((Maj7MBCVst*)audioEffect)
 	{
-		mpMaj7MBC = ((Maj7MBCVst *)audioEffect)->GetMaj7MBC();
+		mpMaj7MBC = ((Maj7MBCVst*)audioEffect)->GetMaj7MBC();
 	}
 
 	virtual void PopulateMenuBar() override
@@ -54,7 +55,7 @@ struct Maj7MBCEditor : public VstEditor
 				using BandParam = Maj7MBC::FreqBand::BandParam;
 				auto param = [&](Maj7MBC::FreqBand::BandParam bp) {
 					return (VstInt32)enabledParam + (VstInt32)bp;
-				};
+					};
 
 				//bool effectEnabled = band.mEnableEffect;// && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
 				ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
@@ -174,42 +175,11 @@ struct Maj7MBCEditor : public VstEditor
 					}
 					ImGui::SameLine();
 
-					// Update crossover visualization using direct band magnitude providers.
-					// This avoids interpreting params here; we forward magnitude directly from the DSP filters.
+					// Update crossover visualization: show this band's individual HP/LP filter response
+					// The crossover network (FrequencySplitter) is handled separately in a main crossover view
 					{
-						std::vector<std::function<float(float)>> bandMagFns;
-						std::vector<ImColor> colors = {
-							ColorFromHTML("ff4444", 0.8f), // lows
-							ColorFromHTML("44ff44", 0.8f), // mids
-							ColorFromHTML("4444ff", 0.8f)  // highs
-						};
-						std::vector<const char*> labels = {"Low", "Mid", "High"};
-
-						// Build per-band magnitude from HP/LP filters in each band's compressor
-						// Note: magnitude functions return linear gain; the renderer converts to dB.
-						for (int b = 0; b < (int)Maj7MBC::gBandCount; ++b) {
-							Maj7MBC::FreqBand &fb = mpMaj7MBC->mBands[b];
-							bandMagFns.emplace_back([&fb](float freqHz) -> float {
-								float mag = 1.0f;
-								mag *= fb.mComp[0].mLowpassFilter.GetMagnitudeAtFrequency(freqHz);
-								mag *= fb.mComp[0].mHighpassFilter.GetMagnitudeAtFrequency(freqHz);
-								return mag;
-							});
-						}
-
-						// Provide crossover marker lines from current parameters
-						auto getLines = [this](std::vector<float>& out){
-							float xAraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverAFrequency);
-							float xBraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverBFrequency);
-							M7::ParamAccessor paA{ &xAraw, 0 };
-							M7::ParamAccessor paB{ &xBraw, 0 };
-							float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-							float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
-							if (fA > 0) out.push_back(fA);
-							if (fB > 0) out.push_back(fB);
-						};
-
-						mResponseGraphs[iBand].SetCrossoverBands(bandMagFns, colors, labels, getLines);
+						// This individual graph only shows this band's HP/LP filters, not the full crossover
+						// The SetCrossoverBands call is removed - individual band graphs show their own filters via the EQ layer
 					}
 
 					mResponseGraphs[iBand].OnRender(cfg);
@@ -262,10 +232,10 @@ struct Maj7MBCEditor : public VstEditor
 			default:
 				return "unknown";
 			}
-		};
+			};
 		auto bandToParamOffset = [&](int i) {
 			return mpMaj7MBC->mBands[i].mParams.mBaseParamID;
-		};
+			};
 		const char* fromstr = bandToStr(ifrom);
 		const char* tostr = bandToStr(ito);
 		char s[200];
@@ -293,7 +263,7 @@ struct Maj7MBCEditor : public VstEditor
 		mBandDisabledColors.EnsureInitialized();
 
 		bool muteSoloEnabled[Maj7MBC::gBandCount] = { false, false, false };
-		bool mutes[Maj7MBC::gBandCount] = { mpMaj7MBC->mBands[0].mVSTConfig.mMute, mpMaj7MBC->mBands[1].mVSTConfig.mMute , mpMaj7MBC->mBands[2].mVSTConfig.mMute};
+		bool mutes[Maj7MBC::gBandCount] = { mpMaj7MBC->mBands[0].mVSTConfig.mMute, mpMaj7MBC->mBands[1].mVSTConfig.mMute , mpMaj7MBC->mBands[2].mVSTConfig.mMute };
 		bool solos[Maj7MBC::gBandCount] = { mpMaj7MBC->mBands[0].mVSTConfig.mSolo, mpMaj7MBC->mBands[1].mVSTConfig.mSolo , mpMaj7MBC->mBands[2].mVSTConfig.mSolo };
 		M7::CalculateMuteSolo(mutes, solos, muteSoloEnabled);
 
@@ -307,32 +277,76 @@ struct Maj7MBCEditor : public VstEditor
 
 			if (WSBeginTabItem("IO"))
 			{
-				{
-					FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
+				// Show crossover visualization if multiband is enabled
+				//if (mbEnabled) {
+					FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> crossoverCfg{
 						ColorFromHTML("222222", 1.0f), // background
-							ColorFromHTML("ff8800", 1.0f), // line
-							4.0f,
-						{},
+						ColorFromHTML("ff8800", 1.0f), // line (unused for crossover)
+						4.0f,
+						{}, // no EQ filters for crossover view
 					};
 					for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i) {
-						cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+						crossoverCfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
 					}
 
-
-					// Configure FFT overlays for input/output comparison
-					cfg.fftOverlays = {
-						{
-							&mpMaj7MBC->mInputSpectrum,  // Input signal (before EQ)
-							ColorFromHTML("888888", 0.8f),        // Orange - Input signal
-							ColorFromHTML("444444", 0.3f),        // Orange fill (more transparent)
-							true,                                  // Enable fill
-							"Input"                                // Label for legend
-						}
+					crossoverCfg.fftOverlays = {
+							{
+								&mpMaj7MBC->mInputSpectrum,  // Input signal (before EQ)
+								ColorFromHTML("888888", 0.8f),        // Orange - Input signal
+								ColorFromHTML("444444", 0.3f),        // Orange fill (more transparent)
+								true,                                  // Enable fill
+								"Input"                                // Label for legend
+							}
 					};
 
-					mMainFFTGraph.OnRender(cfg);
-				}
-				//LR_SLOPE_CAPTIONS(slopeNames);
+					// Configure crossover bands using the actual frequency splitter logic
+					{
+						std::vector<std::function<float(float)>> bandMagFns;
+						std::vector<ImColor> colors = {
+							ColorFromHTML("ff4444", 0.8f), // lows
+							ColorFromHTML("44ff44", 0.8f), // mids  
+							ColorFromHTML("4444ff", 0.8f)  // highs
+						};
+						std::vector<const char*> labels = { "Low", "Mid", "High" };
+
+						// Get current crossover frequencies
+						float xAraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverAFrequency);
+						float xBraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverBFrequency);
+						M7::ParamAccessor paA{ &xAraw, 0 };
+						M7::ParamAccessor paB{ &xBraw, 0 };
+						float crossoverFreqA = paA.GetFrequency(0, M7::gFilterFreqConfig);
+						float crossoverFreqB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+
+						// Build magnitude functions that match FrequencySplitter::frequency_splitter logic
+						// Band 0 (lows): LPF at crossoverA then LPF at crossoverB  
+						bandMagFns.emplace_back([crossoverFreqA, crossoverFreqB](float freqHz) -> float {
+							float mag = M7::LinkwitzRileyFilter::MagnitudeLPF(freqHz, crossoverFreqA);
+							return mag * M7::LinkwitzRileyFilter::MagnitudeLPF(freqHz, crossoverFreqB);
+							});
+
+						// Band 1 (mids): HPF at crossoverA then LPF at crossoverB
+						bandMagFns.emplace_back([crossoverFreqA, crossoverFreqB](float freqHz) -> float {
+							float mag = M7::LinkwitzRileyFilter::MagnitudeHPF(freqHz, crossoverFreqA);
+							return mag * M7::LinkwitzRileyFilter::MagnitudeLPF(freqHz, crossoverFreqB);
+							});
+
+						// Band 2 (highs): APF at crossoverA then HPF at crossoverB  
+						bandMagFns.emplace_back([crossoverFreqA, crossoverFreqB](float freqHz) -> float {
+							// APF has magnitude of 1, so just HPF at crossoverB
+							return M7::LinkwitzRileyFilter::MagnitudeHPF(freqHz, crossoverFreqB);
+							});
+
+						// Provide crossover marker lines
+						auto getLines = [crossoverFreqA, crossoverFreqB](std::vector<float>& out) {
+							if (crossoverFreqA > 0) out.push_back(crossoverFreqA);
+							if (crossoverFreqB > 0) out.push_back(crossoverFreqB);
+							};
+
+						mCrossoverGraph.SetCrossoverBands(bandMagFns, colors, labels, getLines);
+					}
+
+					mCrossoverGraph.OnRender(crossoverCfg);
+				//}
 
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
@@ -368,12 +382,12 @@ struct Maj7MBCEditor : public VstEditor
 				ImGui::SameLine(0, 80); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
-				ImGui::SameLine(); VUMeter("inputVU", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[1], {15,120 });
-				ImGui::SameLine(); VUMeter("outputVU", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[1], {15,120 });
+				ImGui::SameLine(); VUMeter("inputVU", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[1], { 15,120 });
+				ImGui::SameLine(); VUMeter("outputVU", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[1], { 15,120 });
 
 
 				ImGui::SameLine(); Maj7ImGuiBoolParamToggleButton(ParamIndices::SoftClipEnable, "Softclip");
-				M7::QuickParam qp{mpMaj7MBCVst->getParameter((VstInt32)ParamIndices::SoftClipEnable)};
+				M7::QuickParam qp{ mpMaj7MBCVst->getParameter((VstInt32)ParamIndices::SoftClipEnable) };
 				if (qp.GetBoolValue()) {
 					//ImGui::BeginDisabled(!qp.GetBoolValue());
 					ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::SoftClipThresh, "Thresh", M7::gUnityVolumeCfg, -6, {});
@@ -393,7 +407,7 @@ struct Maj7MBCEditor : public VstEditor
 						});
 
 
-					ImGui::SameLine(); VUMeterAtten("scclip", mpMaj7MBC->mClippingAnalysis[0], mpMaj7MBC->mClippingAnalysis[1], {30,120});
+					ImGui::SameLine(); VUMeterAtten("scclip", mpMaj7MBC->mClippingAnalysis[0], mpMaj7MBC->mClippingAnalysis[1], { 30,120 });
 				}
 
 

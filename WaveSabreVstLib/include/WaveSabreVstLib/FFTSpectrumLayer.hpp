@@ -23,7 +23,7 @@ private:
   std::vector<float> mScreenX;
   
   // Independent FFT Y-axis scaling
-  float mFFTDisplayMinDB = -60.0f;
+  float mFFTDisplayMinDB = -90.0f;
   float mFFTDisplayMaxDB = 0.0f;
   bool mUseIndependentScale = true;
   
@@ -31,7 +31,7 @@ private:
   float FFTDBToY(float dB, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
     if (mUseIndependentScale) {
       float t01 = M7::math::lerp_rev(mFFTDisplayMinDB, mFFTDisplayMaxDB, dB);
-      t01 = M7::math::clamp01(t01);
+      //t01 = M7::math::clamp01(t01);
       return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
     } else {
       return coords.DBToY(dB, bb);
@@ -40,7 +40,7 @@ private:
   
 public:
   FFTSpectrumLayer(const std::vector<FFTAnalysisOverlay>& overlays, 
-                   float minDB = -60.0f, float maxDB = 0.0f, bool independentScale = true)
+                   float minDB = -90.0f, float maxDB = 0.0f, bool independentScale = true)
     : mOverlays(overlays), mFFTDisplayMinDB(minDB), mFFTDisplayMaxDB(maxDB), mUseIndependentScale(independentScale) {
     mFFTCache.resize(mOverlays.size());
     mFrequencies.reserve(TSegmentCount);
@@ -85,7 +85,16 @@ public:
         auto& cache = overlayCache[iseg];
         
         if (overlay.frequencyAnalysis) {
-          cache.magnitudeDB = overlay.frequencyAnalysis->GetMagnitudeAtFrequency(mFrequencies[iseg]);
+          float freq = mFrequencies[iseg];
+
+          // Clamp to strictly below Nyquist to avoid pinned/unchanging last-bin artifacts
+          const float nyquist = overlay.frequencyAnalysis->GetNyquistFrequency();
+          const float binRes = overlay.frequencyAnalysis->GetFrequencyResolution();
+          if (nyquist > 0.0f && binRes > 0.0f && freq >= nyquist) {
+            freq = std::max(0.0f, nyquist - 0.5f * binRes);
+          }
+
+          cache.magnitudeDB = overlay.frequencyAnalysis->GetMagnitudeAtFrequency(freq);
           cache.valid = true;
         } else {
           cache.magnitudeDB = -100.0f; // Silence

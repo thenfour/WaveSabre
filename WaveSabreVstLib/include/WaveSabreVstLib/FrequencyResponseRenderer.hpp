@@ -55,7 +55,7 @@ struct FrequencyResponseRendererConfig {
   std::vector<FFTAnalysisOverlay> fftOverlays{};            // Multiple FFT overlays
   
   // Independent FFT Y-axis scaling (shared by all overlays)
-  float fftDisplayMinDB = -60.0f;  // Noise floor (iZotope style: -60dB to 0dB)
+  float fftDisplayMinDB = -90.0f;
   float fftDisplayMaxDB = 0.0f;    // Digital maximum (0dB)
   bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
 };
