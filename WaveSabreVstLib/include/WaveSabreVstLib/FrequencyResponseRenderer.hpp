@@ -413,8 +413,8 @@ struct FrequencyResponseRenderer {
 
     // unity line (0 dB) over grid for visibility
     float unityY = std::round(DBToY(0, bb)); // round for crisp line.
-    dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("444444"),
-                1.0f);
+    dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("DDDDDD"),
+                2.5f);
 
     // Render FFT spectrum overlays using unified screen-space sampling
     for (size_t overlayIndex = 0; overlayIndex < cfg.fftOverlays.size(); ++overlayIndex) {
@@ -540,6 +540,40 @@ struct FrequencyResponseRenderer {
         dl->AddCircle(th.point, cfg.thumbRadius + 2, ColorFromHTML(th.color), 0, 1);
     }
 
+    // Hover tooltip: show filter response magnitude at hovered frequency
+    if (ImGui::IsMouseHoveringRect(bb.Min, bb.Max)) {
+      ImVec2 mouse = ImGui::GetIO().MousePos;
+      // Clamp mouse to bounds
+      ImVec2 clampedMouse = { M7::math::clamp(mouse.x, bb.Min.x, bb.Max.x), M7::math::clamp(mouse.y, bb.Min.y, bb.Max.y) };
+
+      // Crosshair: vertical and horizontal lines
+      ImU32 crossCol = ColorFromHTML("FFFFFF", 0.25f);
+      dl->AddLine({clampedMouse.x, bb.Min.y}, {clampedMouse.x, bb.Max.y}, crossCol, 1.0f);
+      dl->AddLine({bb.Min.x, clampedMouse.y}, {bb.Max.x, clampedMouse.y}, crossCol, 1.0f);
+
+      // Convert mouse X to segment index (screen-space sampling uses linear t)
+      float t01 = M7::math::lerp_rev(bb.Min.x, bb.Max.x, clampedMouse.x);
+      t01 = M7::math::clamp01(t01);
+      int idx = (int)std::round(t01 * (gSegmentCount - 1));
+      idx = std::max(0, std::min(gSegmentCount - 1, idx));
+
+      float hoverFreq = XToFreq(clampedMouse.x, bb);
+      float hoverMagDB = mMagdB[idx];
+
+      // Build tooltip text
+      char freqText[32];
+      if (hoverFreq >= 1000.0f) {
+        snprintf(freqText, sizeof(freqText), "%.2fkHz", hoverFreq / 1000.0f);
+      } else {
+        snprintf(freqText, sizeof(freqText), "%.0fHz", hoverFreq);
+      }
+
+      ImGui::BeginTooltip();
+      ImGui::Text("%s", freqText);
+      ImGui::Text("%.2f dB", hoverMagDB);
+      ImGui::EndTooltip();
+    }
+
     ImGui::Dummy(gSize);
   }
   
@@ -551,7 +585,7 @@ struct FrequencyResponseRenderer {
     // Use the same frequency mapping as FreqToX but in reverse
     float underlyingValue = t01;
     M7::ParamAccessor p{&underlyingValue, 0};
-    return p.GetFrequency(M7::gFilterFreqConfig);
+    return p.GetFrequency(0, M7::gFilterFreqConfig);
   }
 };
 } // namespace WaveSabreVstLib
