@@ -119,6 +119,31 @@ namespace WaveSabreVstLib {
 		}
 
 		void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
+			// Determine hovered band region using mouse position and crossover frequencies
+			int hoveredBand = -1;
+			float fA = 0.0f, fB = 0.0f;
+			if (mDevice) {
+				float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
+				float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
+				M7::ParamAccessor paA{ &rawA, 0 };
+				M7::ParamAccessor paB{ &rawB, 0 };
+				fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
+				fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+				if (fA > 0.0f && fB > 0.0f && fA > fB) std::swap(fA, fB);
+			}
+			bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
+			if (mouseInBounds && (fA > 0.0f || fB > 0.0f)) {
+				float mouseX = ImGui::GetIO().MousePos.x;
+				float freq = coords.XToFreq(mouseX, bb);
+				if (fA > 0.0f && fB > 0.0f) {
+					hoveredBand = (freq < fA) ? 0 : ((freq < fB) ? 1 : 2);
+				} else if (fA > 0.0f) {
+					hoveredBand = (freq < fA) ? 0 : 1;
+				} else if (fB > 0.0f) {
+					hoveredBand = (freq < fB) ? 0 : 1;
+				}
+			}
+
 			// Render each crossover band response
 			for (size_t bandIdx = 0; bandIdx < mBandResponses.size(); ++bandIdx) {
 				const auto& bandResponse = mBandResponses[bandIdx];
@@ -128,7 +153,10 @@ namespace WaveSabreVstLib {
 				ImColor bandColor = (bandIdx < mBandColors.size()) ? mBandColors[bandIdx] : ColorFromHTML("888888", 0.7f);
 
 				// Fill area under curve by drawing trapezoids between successive samples
-				ImColor fillColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, 0.20f);
+				const float faintAlpha = 0.05f;        // very faint by default
+				const float highlightAlpha = 0.20f;    // current/previous opacity for highlight
+				float chosenAlpha = (int(bandIdx) == hoveredBand) ? highlightAlpha : faintAlpha;
+				ImColor fillColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, chosenAlpha);
 				float yBottom = bb.Max.y; // bottom of plot area
 				float displayMin = mUseIndependentScale ? mXODisplayMinDB : coords.mDisplayMinDB;
 				float displayMax = mUseIndependentScale ? mXODisplayMaxDB : coords.mDisplayMaxDB;
@@ -168,12 +196,12 @@ namespace WaveSabreVstLib {
 				float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
 				M7::ParamAccessor paA{ &rawA, 0 };
 				M7::ParamAccessor paB{ &rawB, 0 };
-				float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-				float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+				float fA2 = paA.GetFrequency(0, M7::gFilterFreqConfig);
+				float fB2 = paB.GetFrequency(0, M7::gFilterFreqConfig);
 
 				std::vector<float> lines;
-				if (fA > 0) lines.push_back(fA);
-				if (fB > 0) lines.push_back(fB);
+				if (fA2 > 0) lines.push_back(fA2);
+				if (fB2 > 0) lines.push_back(fB2);
 
 				for (size_t i = 0; i < lines.size(); ++i) {
 					float x = coords.FreqToX(lines[i], bb);
@@ -184,16 +212,12 @@ namespace WaveSabreVstLib {
 
 					char frequencyLabel[30];
 					snprintf(frequencyLabel, sizeof(frequencyLabel), "%.0f Hz", lines[i]);
-					//const char* label = (i < mBandLabels.size()) ? mBandLabels[i] : nullptr;
-
-					//if (label) {
 					ImVec2 textSize = ImGui::CalcTextSize(frequencyLabel);
 					ImVec2 textPos = { x - textSize.x * 0.5f, bb.Min.y + 5 };
-					// make a black frame around the text with a 1px wide white outline.
+					// backdrop and outline
 					dl->AddRectFilled({ textPos.x - 2, textPos.y - 2 }, { textPos.x + textSize.x + 2, textPos.y + textSize.y + 2 }, ColorFromHTML("000000", 0.7f));
 					dl->AddRect({ textPos.x - 2, textPos.y - 2 }, { textPos.x + textSize.x + 2, textPos.y + textSize.y + 2 }, ColorFromHTML("666666", 0.9f), 0, ImDrawFlags_RoundCornersAll, 1.0f);
 					dl->AddText(textPos, ColorFromHTML("cccccc"), frequencyLabel);
-					//}
 				}
 			}
 
