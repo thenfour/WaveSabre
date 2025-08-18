@@ -7,6 +7,8 @@ using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
 
 #include "LevellerVst.h"
+#include <WaveSabreVstLib/FrequencyResponseRendererLayered.hpp>
+
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 class LevellerEditor : public VstEditor
@@ -19,7 +21,7 @@ class LevellerEditor : public VstEditor
 	ColorMod mEnabledColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
-	FrequencyResponseRenderer<780, 400, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams, true> mResponseGraph;
+	FrequencyResponseRendererLayered<780, 400, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams, true> mResponseGraph;
 
 	// FFT Analysis controls (not VST parameters, just UI state)
 	float mFFTSmoothingFactor;// = 0.0f;      // 0.0-0.9

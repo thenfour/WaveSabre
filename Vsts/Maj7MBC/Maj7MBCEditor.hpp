@@ -7,6 +7,7 @@ using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
 
 #include "Maj7MBCVst.hpp"
+#include <WaveSabreVstLib/FrequencyResponseRendererLayered.hpp>
 
 struct Maj7MBCEditor : public VstEditor
 {
@@ -21,8 +22,8 @@ struct Maj7MBCEditor : public VstEditor
 	ColorMod mBandColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mBandDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
-	FrequencyResponseRenderer<160, 75, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
-	FrequencyResponseRenderer<900, 75, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mMainFFTGraph;
+	FrequencyResponseRendererLayered<160, 75, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
+	FrequencyResponseRendererLayered<900, 75, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mMainFFTGraph;
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
