@@ -446,7 +446,7 @@ namespace WaveSabreVstLib
 			ImGui::SameLine(); mHistoryView.Render({
 				// input
 				HistoryViewSeriesConfig{ColorFromHTML("666666", mShowLeft && mShowInputHistory ? 0.6f : 0), lineWidth},
-				HistoryViewSeriesConfig{ColorFromHTML("444444", mShowRight && mShowInputHistory ? 0.6f : 0), lineWidth},
+				HistoryViewSeriesConfig{ColorFromHTML("505050", mShowRight && mShowInputHistory ? 0.6f : 0), lineWidth},
 
 				HistoryViewSeriesConfig{ColorFromHTML("ffcc00", mShowLeft && mShowDetectorHistory ? 0.8f : 0), lineWidth},
 				HistoryViewSeriesConfig{ColorFromHTML("aa8800", mShowRight && mShowDetectorHistory ? 0.8f : 0), lineWidth},
@@ -454,10 +454,10 @@ namespace WaveSabreVstLib
 				HistoryViewSeriesConfig{ColorFromHTML("cc3333", mShowLeft && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
 				HistoryViewSeriesConfig{ColorFromHTML("881111", mShowRight && mShowAttenuationHistory ? 0.8f : 0), lineWidth},
 
-				HistoryViewSeriesConfig{ColorFromHTML("4444ff", mShowLeft && mShowOutputHistory ? 0.9f : 0), lineWidth},
-				HistoryViewSeriesConfig{ColorFromHTML("0000ff", mShowRight && mShowOutputHistory ? 0.9f : 0), lineWidth},
+				HistoryViewSeriesConfig{ColorFromHTML("00cccc", mShowLeft && mShowOutputHistory ? 0.9f : 0), lineWidth},
+				HistoryViewSeriesConfig{ColorFromHTML("009999", mShowRight && mShowOutputHistory ? 0.9f : 0), lineWidth},
 
-				HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.2f : 0), 1.0f},
+				HistoryViewSeriesConfig{ColorFromHTML("ffff00", mShowThresh ? 0.6f : 0), 1.0f},
 				}, {
 				float(inputAnalysis[0].mCurrentPeak),
 				float(inputAnalysis[1].mCurrentPeak),

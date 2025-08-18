@@ -26,6 +26,14 @@ using std::max;
 #endif
 
 
+// use to enable/disable
+// - parallel processing (dry-wet)
+// - lowpass filter (it's rarely needed)
+// - compensation gain (just use output gain if no parallel processing there's no point)
+#define MAJ7COMP_FULL
+
+
+
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 #include <vector>
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT

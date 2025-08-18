@@ -21,7 +21,7 @@ inline void CompressorTransferCurve(const MonoCompressor &c, ImVec2 size,
   bb.Max = bb.Min + size;
 
   ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
-  ImColor curveColor = ColorFromHTML("999999", 1.0f);
+  ImColor curveColor = ColorFromHTML("ffff00", 1.0f);
   ImColor gridColor = ColorFromHTML("444444", 1.0f);
   ImColor detectorColorAtt = ColorFromHTML("ed4d4d", 0.9f);
   ImColor detectorColor = ColorFromHTML("eeeeee", 0.9f);

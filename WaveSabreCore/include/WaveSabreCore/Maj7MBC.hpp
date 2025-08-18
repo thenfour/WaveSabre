@@ -53,6 +53,8 @@ namespace WaveSabreCore
 			AEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
 			AHighPassFrequency, // biquad freq; default lo
 			AHighPassQ, // default 0.2
+			ALowPassFrequency, // biquad freq
+			ALowPassQ, // default 0.2
 			ADrive,
 
 			BInputGain,
@@ -66,6 +68,8 @@ namespace WaveSabreCore
 			BEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
 			BHighPassFrequency, // biquad freq; default lo
 			BHighPassQ, // default 0.2
+			BLowPassFrequency, // biquad freq
+			BLowPassQ, // default 0.2
 			BDrive,
 
 			CInputGain,
@@ -79,6 +83,8 @@ namespace WaveSabreCore
 			CEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
 			CHighPassFrequency, // biquad freq; default lo
 			CHighPassQ, // default 0.2
+			CLowPassFrequency, // biquad freq
+			CLowPassQ, // default 0.2
 			CDrive,
 
 			NumParams,
@@ -105,6 +111,8 @@ namespace WaveSabreCore
 			{"AEnable"},\
 			{"AHPF"},\
 			{"AHPQ"},\
+			{"ALPF"},\
+			{"ALPQ"},\
 			{"ADrive"},\
 			{"BInVol"},\
 			{"BOutVol"},\
@@ -117,6 +125,8 @@ namespace WaveSabreCore
 			{"BEnable"},\
 			{"BHPF"},\
 			{"BHPQ"},\
+			{"BLPF"},\
+			{"BLPQ"},\
 			{"BDrive"},\
 			{"CInVol"},\
 			{"COutVol"},\
@@ -129,10 +139,12 @@ namespace WaveSabreCore
 			{"CEnable"},\
 			{"CHPF"},\
 			{"CHPQ"},\
+			{"CLPF"},\
+			{"CLPQ"},\
 			{"CDrive"},\
 }
 
-		static_assert((int)ParamIndices::NumParams == 44, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 50, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InGain = 0.25118863582611083984
 		  0, // MBEnable = 0
@@ -153,6 +165,8 @@ namespace WaveSabreCore
 		  0, // AEnable = 0
 		  0, // AHPF = 0
 		  14563, // AHPQ = 0.44444444775581359863
+		  0, // AHPF = 0
+		  14563, // AHPQ = 0.44444444775581359863
 		  4125, // ADrive = 0.12589254975318908691
 		  8230, // BInVol = 0.25118863582611083984
 		  8230, // BOutVol = 0.25118863582611083984
@@ -165,6 +179,8 @@ namespace WaveSabreCore
 		  32767, // BEnable = 1
 		  0, // BHPF = 0
 		  14563, // BHPQ = 0.44444444775581359863
+		  0, // AHPF = 0
+		  14563, // AHPQ = 0.44444444775581359863
 		  4125, // BDrive = 0.12589254975318908691
 		  8230, // CInVol = 0.25118863582611083984
 		  8230, // COutVol = 0.25118863582611083984
@@ -177,6 +193,8 @@ namespace WaveSabreCore
 		  0, // CEnable = 0
 		  0, // CHPF = 0
 		  14563, // CHPQ = 0.44444444775581359863
+		  0, // AHPF = 0
+		  14563, // AHPQ = 0.44444444775581359863
 		  4125, // CDrive = 0.12589254975318908691
 		};
 
@@ -195,6 +213,8 @@ namespace WaveSabreCore
 				Enable,
 				HighPassFrequency,
 				HighPassQ,
+				LowPassFrequency,
+				LowPassQ,
 				Drive,
 				Count__,
 			};
@@ -251,7 +271,9 @@ namespace WaveSabreCore
 						mParams.GetPowCurvedValue(BandParam::Attack, MonoCompressor::gAttackCfg, 0),
 						mParams.GetPowCurvedValue(BandParam::Release, MonoCompressor::gReleaseCfg, 0),
 						mParams.GetFrequency(BandParam::HighPassFrequency, M7::gFilterFreqConfig),
-						mParams.GetDivCurvedValue(BandParam::HighPassQ, M7::gBiquadFilterQCfg)
+						mParams.GetDivCurvedValue(BandParam::HighPassQ, M7::gBiquadFilterQCfg),
+						mParams.GetFrequency(BandParam::LowPassFrequency, M7::gFilterFreqConfig),
+						mParams.GetDivCurvedValue(BandParam::LowPassQ, M7::gBiquadFilterQCfg)
 					);
 				}
 			}

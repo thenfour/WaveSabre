@@ -9,13 +9,6 @@ using namespace WaveSabreCore;
 #include "Maj7CompVst.h"
 
 
-// use to enable/disable
-// - rms detection
-// - parallel processing (dry-wet)
-// - lowpass filter (it's rarely needed)
-// - compensation gain (just use output gain if no parallel processing there's no point)
-//#define MAJ7COMP_FULL
-
 
 struct Maj7CompEditor : public VstEditor
 {
@@ -69,23 +62,13 @@ struct Maj7CompEditor : public VstEditor
 				//ImGui::SameLine();
 				Maj7ImGuiParamFloat01((VstInt32)ParamIndices::ChannelLink, "Stereo", 0.8f, 0);
 
-#ifdef MAJ7COMP_FULL
-				M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)ParamIndices::RMSWindow);
-				M7::ParamAccessor p{ &tempVal, 0 };
-				float windowMS = p.GetPowCurvedValue(0, Maj7Comp::gRMSWindowSizeCfg, 0);
-				const char* windowCaption = "RMS (ms)###rmswindow";
-				if (windowMS < Maj7Comp::gMinRMSWindowMS) {
-					windowCaption = "Peak###rmswindow";
-				}
-				ImGui::SameLine(0, 80); Maj7ImGuiPowCurvedParam(ParamIndices::RMSWindow, windowCaption, Maj7Comp::gRMSWindowSizeCfg, 0, {});
-#else
-				ImGui::SameLine(0, 80); ImGui::Text("Peak-RMS\r\nDisabled");
-#endif // MAJ7COMP_FULL
 
-				ImGui::SameLine(0, 80); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
+				//ImGui::SameLine(0, 80); ImGui::Text("Peak Detection\r\n(RMS removed)");
+
+				ImGui::SameLine(0, 80); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP(Hz)", M7::gFilterFreqConfig, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);
 #ifdef MAJ7COMP_FULL
-				ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP Freq(Hz)", M7::gFilterFreqConfig, 22000, {});
+				ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
 				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::LowPassQ, "LP Q", 0.2f, 0.2f);
 #else
 				ImGui::SameLine(); ImGui::Text("Lowpass\r\nDisabled");
@@ -98,7 +81,7 @@ struct Maj7CompEditor : public VstEditor
 				//};
 				const std::array<FrequencyResponseRendererFilter, 2> filters{
 #ifdef MAJ7COMP_FULL
-					FrequencyResponseRendererFilter{ColorFromHTML("cc4444", 0.8f), &mpMaj7Comp->mComp[0].mLowpassFilter},
+					FrequencyResponseRendererFilter{"cc4444", &mpMaj7Comp->mComp[0].mLowpassFilter},
 #endif // MAJ7COMP_FULL
 					FrequencyResponseRendererFilter{"4444cc", &mpMaj7Comp->mComp[0].mHighpassFilter}
 				};
