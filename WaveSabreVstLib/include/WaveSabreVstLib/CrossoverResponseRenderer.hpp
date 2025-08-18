@@ -44,6 +44,20 @@ private:
   std::vector<ImColor> mBandColors { ColorFromHTML(bandColors[0], 0.8f), ColorFromHTML(bandColors[1], 0.8f), ColorFromHTML(bandColors[2], 0.8f)};
   std::vector<const char*> mBandLabels { "Low", "Mid", "High" };
 
+  // Independent Y-axis scaling (like FFTSpectrumLayer)
+  float mXODisplayMinDB = -40.0f;
+  float mXODisplayMaxDB = 6.0f;
+  bool mUseIndependentScale = true;
+
+  // Convert dB to Y using independent scale if enabled
+  float XODBToY(float dB, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
+    if (mUseIndependentScale) {
+      float t01 = M7::math::lerp_rev(mXODisplayMinDB, mXODisplayMaxDB, dB);
+      return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
+    }
+    return coords.DBToY(dB, bb);
+  }
+
 public:
   CrossoverResponseLayer() {
     mBandResponses.resize(3); // Low, Mid, High
@@ -69,8 +83,6 @@ public:
       for (auto &br : mBandResponses) br.assign(TSegmentCount, -100.0f);
       return;
     }
-
-    // todo: get magnitudes for bands from mDevice->splitter0.
 
     // Read crossover frequencies from device params
     float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
@@ -115,15 +127,33 @@ public:
       // Determine band color
       ImColor bandColor = (bandIdx < mBandColors.size()) ? mBandColors[bandIdx] : ColorFromHTML("888888", 0.7f);
       
+      // Fill area under curve by drawing trapezoids between successive samples
+      ImColor fillColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, 0.20f);
+      float yBottom = bb.Max.y; // bottom of plot area
+      float displayMin = mUseIndependentScale ? mXODisplayMinDB : coords.mDisplayMinDB;
+      float displayMax = mUseIndependentScale ? mXODisplayMaxDB : coords.mDisplayMaxDB;
+      for (int i = 0; i < TSegmentCount - 1; ++i) {
+        float dB0 = bandResponse[i];
+        float dB1 = bandResponse[i + 1];
+        dB0 = M7::math::clamp(dB0, displayMin, displayMax);
+        dB1 = M7::math::clamp(dB1, displayMin, displayMax);
+        float x0 = mScreenX[i];
+        float x1 = mScreenX[i + 1];
+        float y0 = XODBToY(dB0, coords, bb);
+        float y1 = XODBToY(dB1, coords, bb);
+        ImVec2 quad[4] = { {x0, y0}, {x1, y1}, {x1, yBottom}, {x0, yBottom} };
+        dl->AddConvexPolyFilled(quad, 4, fillColor);
+      }
+      
       // Build polyline points
       std::vector<ImVec2> points;
       points.reserve(TSegmentCount);
       
       for (int i = 0; i < TSegmentCount; ++i) {
         float dB = bandResponse[i];
-        if (dB < coords.mDisplayMinDB || dB > coords.mDisplayMaxDB) continue;
+        if (dB < displayMin || dB > displayMax) continue;
         
-        float y = coords.DBToY(dB, bb);
+        float y = XODBToY(dB, coords, bb);
         points.push_back({mScreenX[i], y});
       }
       
@@ -161,6 +191,21 @@ public:
         }
       }
     }
+
+    // Show scale indicator when using independent scale
+    if (mUseIndependentScale) {
+      char scaleText[32];
+      snprintf(scaleText, sizeof(scaleText), "XO: %.0f to %.0fdB", mXODisplayMinDB, mXODisplayMaxDB);
+      ImVec2 textSize = ImGui::CalcTextSize(scaleText);
+      ImVec2 textPos = {bb.Max.x - textSize.x - 4, bb.Min.y + 2};
+      dl->AddText(textPos, ColorFromHTML("888888", 0.7f), scaleText);
+    }
+  }
+  
+  void SetDisplayRange(float minDB, float maxDB) { mXODisplayMinDB = minDB; mXODisplayMaxDB = maxDB; }
+  void SetUseIndependentScale(bool use) { mUseIndependentScale = use; }
+  void SetScaling(float minDB, float maxDB, bool independent = true) {
+    mXODisplayMinDB = minDB; mXODisplayMaxDB = maxDB; mUseIndependentScale = independent;
   }
 };
 
