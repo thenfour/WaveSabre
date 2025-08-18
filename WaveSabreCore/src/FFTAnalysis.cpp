@@ -239,6 +239,12 @@ namespace WaveSabreCore
         , mCurrentHoldTimeMs(0.0f)  // Default hold time
         , mCurrentFalloffTimeMs(200.0f) // Default falloff time
     {
+        SetFFTSmoothing(0.7f);
+        SetOverlapFactor(2);
+        SetPeakHoldTime(60);
+        SetFalloffRate(1200);
+        SetFFTUpdateRate(1024, 2);
+
     }
 
     void SmoothedStereoFFT::SetPeakHoldTime(float holdTimeMs)

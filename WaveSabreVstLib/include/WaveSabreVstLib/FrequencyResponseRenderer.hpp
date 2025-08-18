@@ -62,7 +62,7 @@ struct FrequencyResponseRendererConfig {
   bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
 };
 
-template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
+template <int Twidth, int Theight, size_t TFilterCount,
           size_t TParamCount, bool TshowGridLabels>
 struct FrequencyResponseRenderer {
   

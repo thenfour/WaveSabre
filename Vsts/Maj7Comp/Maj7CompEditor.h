@@ -17,7 +17,7 @@ struct Maj7CompEditor : public VstEditor
 
 	using ParamIndices = WaveSabreCore::Maj7Comp::ParamIndices;
 
-	FrequencyResponseRenderer<160, 75, 50, 2, (size_t)Maj7Comp::ParamIndices::NumParams, false> mResponseGraph;
+	FrequencyResponseRenderer<160, 75, 2, (size_t)Maj7Comp::ParamIndices::NumParams, false> mResponseGraph;
 
 	CompressorVis<480, 180> mCompressorVis[Maj7MBC::gBandCount];
 

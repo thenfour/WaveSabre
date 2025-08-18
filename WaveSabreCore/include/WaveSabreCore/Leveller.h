@@ -164,17 +164,17 @@ namespace WaveSabreCore
 			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16)
 		{
 			// Configure input/output FFT/smoothers
-			mInputSpectrumSmoother.SetFFTSmoothing(0.7f);
-			mInputSpectrumSmoother.SetOverlapFactor(2);
-			mInputSpectrumSmoother.SetPeakHoldTime(60);
-			mInputSpectrumSmoother.SetFalloffRate(1200);
-			mInputSpectrumSmoother.SetFFTUpdateRate(1024, 2);
+			//mInputSpectrumSmoother.SetFFTSmoothing(0.7f);
+			//mInputSpectrumSmoother.SetOverlapFactor(2);
+			//mInputSpectrumSmoother.SetPeakHoldTime(60);
+			//mInputSpectrumSmoother.SetFalloffRate(1200);
+			//mInputSpectrumSmoother.SetFFTUpdateRate(1024, 2);
 
-			mOutputSpectrumSmoother.SetFFTSmoothing(0.7f);
-			mOutputSpectrumSmoother.SetOverlapFactor(2);
-			mOutputSpectrumSmoother.SetPeakHoldTime(60);
-			mOutputSpectrumSmoother.SetFalloffRate(1200);
-			mOutputSpectrumSmoother.SetFFTUpdateRate(1024, 2);
+			//mOutputSpectrumSmoother.SetFFTSmoothing(0.7f);
+			//mOutputSpectrumSmoother.SetOverlapFactor(2);
+			//mOutputSpectrumSmoother.SetPeakHoldTime(60);
+			//mOutputSpectrumSmoother.SetFalloffRate(1200);
+			//mOutputSpectrumSmoother.SetFFTUpdateRate(1024, 2);
 			
 			LoadDefaults();
 		}

@@ -9,6 +9,7 @@
 #include "Device.h"
 #include "Maj7Basic.hpp"
 #include "Maj7Comp.hpp"
+#include <WaveSabreCore/FFTAnalysis.hpp>
 
 namespace WaveSabreCore
 {
@@ -268,7 +269,6 @@ namespace WaveSabreCore
 			bool mMuteSoloEnable;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-
 			void Slider() {
 
 				mEnable = mParams.GetBoolValue(BandParam::Enable);
@@ -378,6 +378,7 @@ namespace WaveSabreCore
 		AnalysisStream mInputAnalysis[2];
 		AnalysisStream mOutputAnalysis[2];
 		AttenuationAnalysisStream mClippingAnalysis[2];
+		SmoothedStereoFFT mInputSpectrum;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7MBC() :
@@ -471,6 +472,8 @@ namespace WaveSabreCore
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{
+				mInputSpectrum.ProcessSamples(inputs[0][i], inputs[1][i]);
+
 				float s0 = inputs[0][i] * inputGainLin;
 				float s1 = inputs[1][i] * inputGainLin;
 

@@ -21,7 +21,8 @@ struct Maj7MBCEditor : public VstEditor
 	ColorMod mBandColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mBandDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
-	FrequencyResponseRenderer<160, 75, 50, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
+	FrequencyResponseRenderer<160, 75, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
+	FrequencyResponseRenderer<900, 75, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mMainFFTGraph;
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
@@ -265,8 +266,34 @@ struct Maj7MBCEditor : public VstEditor
 
 		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
+
 			if (WSBeginTabItem("IO"))
 			{
+				{
+					FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
+						ColorFromHTML("222222", 1.0f), // background
+							ColorFromHTML("ff8800", 1.0f), // line
+							4.0f,
+						{},
+					};
+					for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i) {
+						cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+					}
+
+
+					// Configure FFT overlays for input/output comparison
+					cfg.fftOverlays = {
+						{
+							&mpMaj7MBC->mInputSpectrum,  // Input signal (before EQ)
+							ColorFromHTML("888888", 0.8f),        // Orange - Input signal
+							ColorFromHTML("444444", 0.3f),        // Orange fill (more transparent)
+							true,                                  // Enable fill
+							"Input"                                // Label for legend
+						}
+					};
+
+					mMainFFTGraph.OnRender(cfg);
+				}
 				//LR_SLOPE_CAPTIONS(slopeNames);
 
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
