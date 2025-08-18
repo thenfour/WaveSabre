@@ -298,6 +298,114 @@ namespace WaveSabreCore
         }
     };
 
+    // Professional frequency-dependent peak detector for spectrum display
+    // Uses different falloff rates per frequency band (like Pro-Q3, Ozone)
+    struct FrequencyDependentPeakDetector
+    {
+        int mClipHoldSamples;
+        int mPeakHoldSamples;
+        double mBaseFalloffMultiplierPerSample; // Base exponential falloff multiplier
+        float mFrequency; // The frequency this detector represents
+        
+        // Frequency-dependent falloff model parameters
+        static constexpr float kLowFreqThreshold = 200.0f;   // Below this = slow falloff
+        static constexpr float kHighFreqThreshold = 2000.0f; // Above this = fast falloff
+        static constexpr float kLowFreqFactor = 0.3f;        // Low freq falloff multiplier (slower)
+        static constexpr float kMidFreqFactor = 1.0f;        // Mid freq falloff multiplier (baseline)
+        static constexpr float kHighFreqFactor = 2.5f;       // High freq falloff multiplier (faster)
+
+        // state
+        int mClipHoldCounter = 0;
+        int mPeakHoldCounter = 0;
+
+        // running values
+        bool mClipIndicator = 0;
+        double mCurrentPeak = 0;
+
+        void SetParams(double clipHoldMS, double peakHoldMS, double peakFalloffMaxMS, float frequency) {
+            mClipHoldSamples = int(clipHoldMS * Helpers::CurrentSampleRateF / 1000);
+            mPeakHoldSamples = int(peakHoldMS * Helpers::CurrentSampleRateF / 1000);
+            mFrequency = frequency;
+            
+            // Calculate base falloff multiplier (60dB falloff)
+            double falloffSamples = peakFalloffMaxMS * Helpers::CurrentSampleRateF / 1000.0;
+            const double dBFalloffRange = 60.0;
+            double linearFalloffRatio = std::pow(10.0, -dBFalloffRange / 20.0); // 10^(-60/20) = 0.001
+            
+            // Apply frequency-dependent scaling
+            float frequencyFactor = CalculateFrequencyFactor(frequency);
+            double adjustedFalloffSamples = falloffSamples / frequencyFactor; // Faster = fewer samples
+            
+            mBaseFalloffMultiplierPerSample = std::pow(linearFalloffRatio, 1.0 / adjustedFalloffSamples);
+            
+            Reset();
+        }
+
+        void Reset() {
+            mClipHoldCounter = 0;
+            mPeakHoldCounter = 0;
+            mClipIndicator = 0;
+            mCurrentPeak = 0;
+        }
+
+        void ProcessSample(double s) {
+            double rectifiedSample = fabs(s);
+
+            // Clip detection
+            if (rectifiedSample >= 1) {
+                mClipIndicator = true;
+                mClipHoldCounter = mClipHoldSamples;
+            }
+            else if (mClipHoldCounter > 0) {
+                --mClipHoldCounter;
+            }
+            else {
+                mClipIndicator = false;
+            }
+
+            // Peak detection and hold
+            if (rectifiedSample >= mCurrentPeak) {
+                mCurrentPeak = rectifiedSample;
+                mPeakHoldCounter = mPeakHoldSamples;
+            }
+            else if (mPeakHoldCounter > 0) {
+                --mPeakHoldCounter;
+            }
+            else if (mCurrentPeak > 0) {
+                // Frequency-dependent exponential falloff
+                mCurrentPeak *= mBaseFalloffMultiplierPerSample;
+                
+                if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
+            }
+        }
+
+    private:
+        // Professional frequency-dependent falloff model
+        static float CalculateFrequencyFactor(float frequency) {
+            // Clamp frequency to reasonable range
+            frequency = std::max(20.0f, std::min(20000.0f, frequency));
+            
+            if (frequency < kLowFreqThreshold) {
+                // Low frequencies: Slow falloff (bass persistence)
+                // Linear interpolation from 20Hz to 200Hz
+                float t = (frequency - 20.0f) / (kLowFreqThreshold - 20.0f);
+                return kLowFreqFactor * (1.0f - t) + kMidFreqFactor * t;
+            }
+            else if (frequency < kHighFreqThreshold) {
+                // Mid frequencies: Baseline falloff 
+                // Linear interpolation from 200Hz to 2000Hz
+                float t = (frequency - kLowFreqThreshold) / (kHighFreqThreshold - kLowFreqThreshold);
+                return kMidFreqFactor * (1.0f - t) + kMidFreqFactor * t; // Flat in mid range
+            }
+            else {
+                // High frequencies: Fast falloff (transient detail)
+                // Exponential curve from 2000Hz to 20000Hz for realistic high-freq behavior
+                float t = (frequency - kHighFreqThreshold) / (20000.0f - kHighFreqThreshold);
+                float exponentialT = 1.0f - std::exp(-3.0f * t); // Smooth exponential rise
+                return kMidFreqFactor * (1.0f - exponentialT) + kHighFreqFactor * exponentialT;
+            }
+        }
+    };
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 

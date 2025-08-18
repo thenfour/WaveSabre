@@ -153,8 +153,8 @@ namespace WaveSabreCore
     class MonoSpectrumDisplaySmoother
     {
     private:
-        // Use logarithmic peak detector for professional linear-dB falloff
-        std::vector<LogarithmicPeakDetector> mPeakDetectors;
+        // Use frequency-dependent peak detectors for professional behavior
+        std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
         std::vector<MonoFFTAnalysis::SpectrumBin> mOutput;
         
         float mSampleRate;

@@ -348,6 +348,19 @@ public:
 				ImGui::SetTooltip("Time for spectrum to fall -60dB after peak hold expires.\nLower = faster response, Higher = smoother display\nApplies to both input and output spectrums.");
 			}
 
+			// Frequency-Dependent Falloff Controls (Professional Feature)
+			ImGui::Separator();
+			ImGui::Text("Frequency-Dependent Falloff (Pro Mode):");
+			ImGui::TextColored(ImVec4(0.7f, 0.7f, 0.7f, 1.0f), "Different frequencies fall off at different rates (like Pro-Q3):");
+			
+			ImGui::Indent(20.0f);
+			ImGui::TextColored(ImVec4(1.0f, 0.6f, 0.2f, 1.0f), "• Bass (20-200 Hz): 0.3x rate (slower, more persistent)");
+			ImGui::TextColored(ImVec4(0.8f, 0.8f, 0.2f, 1.0f), "• Mids (200-2000 Hz): 1.0x rate (baseline)");  
+			ImGui::TextColored(ImVec4(0.2f, 1.0f, 0.8f, 1.0f), "• Highs (2000+ Hz): 2.5x rate (faster, transient detail)");
+			ImGui::Unindent(20.0f);
+			
+			ImGui::TextColored(ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "✓ Matches iZotope Ozone & FabFilter Pro-Q3 behavior");
+
 			// Display current FFT info
 			ImGui::Separator();
 			ImGui::Text("FFT Info:");

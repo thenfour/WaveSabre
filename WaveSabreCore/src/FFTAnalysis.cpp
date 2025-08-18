@@ -246,10 +246,11 @@ namespace WaveSabreCore
         mSampleRate = sampleRate;
         mCurrentHoldTimeMs = holdTimeMs; // Store the new hold time
         
-        // Update all existing peak detectors with BOTH current settings
-        for (auto& detector : mPeakDetectors)
+        // Update all existing peak detectors with BOTH current settings + their frequencies
+        for (size_t i = 0; i < mPeakDetectors.size(); ++i)
         {
-            detector.SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : (i * (sampleRate / 2.0f) / mPeakDetectors.size());
+            mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
         }
     }
 
@@ -258,10 +259,11 @@ namespace WaveSabreCore
         mSampleRate = sampleRate;
         mCurrentFalloffTimeMs = falloffTimeMs; // Store the new falloff time
         
-        // Update all existing peak detectors with BOTH current settings
-        for (auto& detector : mPeakDetectors)
+        // Update all existing peak detectors with BOTH current settings + their frequencies
+        for (size_t i = 0; i < mPeakDetectors.size(); ++i)
         {
-            detector.SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : (i * (sampleRate / 2.0f) / mPeakDetectors.size());
+            mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
         }
     }
 
@@ -280,10 +282,11 @@ namespace WaveSabreCore
             mPeakDetectors.resize(rawSpectrum.size());
             mOutput.resize(rawSpectrum.size());
             
-            // Initialize new peak detectors with CURRENT settings (not hardcoded!)
-            for (auto& detector : mPeakDetectors)
+            // Initialize new peak detectors with CURRENT settings and their frequencies
+            for (size_t i = 0; i < mPeakDetectors.size(); ++i)
             {
-                detector.SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+                float frequency = (i < rawSpectrum.size()) ? rawSpectrum[i].frequency : (i * (mSampleRate / 2.0f) / mPeakDetectors.size());
+                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
             }
         }
         
