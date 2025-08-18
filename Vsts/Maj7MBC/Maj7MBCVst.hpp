@@ -54,9 +54,6 @@ public:
 			else if (elem.mKeyName == "BandAOutputStream") {
 				p->mBands[0].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
 			}
-			else if (elem.mKeyName == "BandADisplayMode") {
-				p->mBands[0].mVSTConfig.mDisplayStyle = ToEnum(elem, Maj7MBC::DisplayStyle::Count__);
-			}
 
 			else if (elem.mKeyName == "BandBSolo") {
 				p->mBands[1].mVSTConfig.mSolo = elem.mBooleanValue;
@@ -67,9 +64,6 @@ public:
 			else if (elem.mKeyName == "BandBOutputStream") {
 				p->mBands[1].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
 			}
-			else if (elem.mKeyName == "BandBDisplayMode") {
-				p->mBands[1].mVSTConfig.mDisplayStyle = ToEnum(elem, Maj7MBC::DisplayStyle::Count__);
-			}
 
 			else if (elem.mKeyName == "BandCSolo") {
 				p->mBands[2].mVSTConfig.mSolo = elem.mBooleanValue;
@@ -79,9 +73,6 @@ public:
 			}
 			else if (elem.mKeyName == "BandCOutputStream") {
 				p->mBands[2].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
-			}
-			else if (elem.mKeyName == "BandCDisplayMode") {
-				p->mBands[2].mVSTConfig.mDisplayStyle = ToEnum(elem, Maj7MBC::DisplayStyle::Count__);
 			}
 			});
 	}
@@ -95,17 +86,17 @@ public:
 				elem.Object_MakeKey("BandASolo").WriteBoolean(p->mBands[0].mVSTConfig.mSolo);
 				elem.Object_MakeKey("BandAMute").WriteBoolean(p->mBands[0].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandAOutputStream").WriteNumberValue(int(p->mBands[0].mVSTConfig.mOutputStream));
-				elem.Object_MakeKey("BandADisplayMode").WriteNumberValue(int(p->mBands[0].mVSTConfig.mDisplayStyle));
+				//elem.Object_MakeKey("BandADisplayMode").WriteNumberValue(int(p->mBands[0].mVSTConfig.mDisplayStyle));
 
 				elem.Object_MakeKey("BandBSolo").WriteBoolean(p->mBands[1].mVSTConfig.mSolo);
 				elem.Object_MakeKey("BandBMute").WriteBoolean(p->mBands[1].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandBOutputStream").WriteNumberValue(int(p->mBands[1].mVSTConfig.mOutputStream));
-				elem.Object_MakeKey("BandBDisplayMode").WriteNumberValue(int(p->mBands[1].mVSTConfig.mDisplayStyle));
+				//elem.Object_MakeKey("BandBDisplayMode").WriteNumberValue(int(p->mBands[1].mVSTConfig.mDisplayStyle));
 
 				elem.Object_MakeKey("BandCSolo").WriteBoolean(p->mBands[2].mVSTConfig.mSolo);
 				elem.Object_MakeKey("BandCMute").WriteBoolean(p->mBands[2].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandCOutputStream").WriteNumberValue(int(p->mBands[2].mVSTConfig.mOutputStream));
-				elem.Object_MakeKey("BandCDisplayMode").WriteNumberValue(int(p->mBands[2].mVSTConfig.mDisplayStyle));
+				//elem.Object_MakeKey("BandCDisplayMode").WriteNumberValue(int(p->mBands[2].mVSTConfig.mDisplayStyle));
 			}
 		);
 	}

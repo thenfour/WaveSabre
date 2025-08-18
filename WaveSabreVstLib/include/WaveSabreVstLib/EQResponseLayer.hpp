@@ -9,11 +9,16 @@ namespace WaveSabreVstLib {
 // Forward declare the filter structure from existing code
 struct FrequencyResponseRendererFilter;
 
+struct IEQResponseLayer
+{
+	virtual bool HasCurve() const = 0; // Check if the layer has any active filters
+};
+
 //=============================================================================
 // EQ/Filter response layer - handles biquad filter chains
 //=============================================================================
 template <int TSegmentCount, size_t TFilterCount, size_t TParamCount>
-class EQResponseLayer : public IFrequencyGraphLayer {
+class EQResponseLayer : public IFrequencyGraphLayer, public IEQResponseLayer {
 private:
   std::array<FrequencyResponseRendererFilter, TFilterCount> mFilters;
   float mParamCacheCopy[TParamCount];
@@ -53,6 +58,10 @@ public:
   
   bool InfluencesAutoScale() const override { return true; }
   
+  virtual bool HasCurve() const override {
+      return mFilters.size() > 0;
+  }
+
   void GetDataBounds(float& minDB, float& maxDB) const override {
     minDB = 1e9f;
     maxDB = -1e9f;

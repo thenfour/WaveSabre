@@ -141,12 +141,6 @@ public:
 
 		ImGui::EndGroup();
 
-		auto handleThumbDragParamChange = [](float freqHz, float gainDb, void* userData) {
-			// Get the editor instance and band index from userData
-			LevellerEditor* editor = reinterpret_cast<LevellerEditor*>(userData);
-			uintptr_t bandIndex = 0; // We'll need to encode this differently
-		};
-
 		// Capture bandIndex in individual lambdas for each band
 		auto makeBandHandler = [this](uintptr_t bandIndex) {
 			return [this, bandIndex](float freqHz, float gainDb, uintptr_t userData) {

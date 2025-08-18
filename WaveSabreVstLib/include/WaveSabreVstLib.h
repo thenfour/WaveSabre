@@ -508,7 +508,7 @@ namespace WaveSabreVstLib
 			};
 
 			VUMeterConfig mainCfg = {
-				{20, historyViewHeight},
+				{13, historyViewHeight},
 				VUMeterLevelMode::Audio,
 				VUMeterUnits::Linear,
 				-50, 6,

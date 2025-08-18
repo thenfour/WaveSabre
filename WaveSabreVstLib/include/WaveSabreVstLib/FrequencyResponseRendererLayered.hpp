@@ -97,6 +97,11 @@ public:
     if (mCrossoverLayer) mCrossoverLayer->SetCrossoverDevice(device);
   }
   
+  // Set up parameter change handler for crossover frequency dragging
+  void SetFrequencyChangeHandler(std::function<void(float freqHz, int crossoverIndex)> handler) {
+    if (mCrossoverLayer) mCrossoverLayer->SetFrequencyChangeHandler(handler);
+  }
+  
   // Expose coordinate conversion functions for compatibility
   float FreqToX(float hz, ImRect &bb) {
     return mGraph.mCoords.FreqToX(hz, bb);

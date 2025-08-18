@@ -49,6 +49,24 @@ namespace WaveSabreVstLib {
 		float mXODisplayMaxDB = 6.0f;
 		bool mUseIndependentScale = true;
 
+		// Parameter setter functions (similar to ThumbInteractionLayer pattern)
+		std::function<void(float freqHz, int crossoverIndex)> mFrequencyChangeHandler;
+
+		// Interaction state for crossover frequency dragging
+		struct CrossoverDragState {
+			int activeCrossoverIndex = -1;     // Which crossover is being dragged (-1 = none)
+			bool isDragging = false;           // Currently in drag operation
+			ImVec2 dragStartMousePos;          // Mouse position when drag started
+			float originalFreq = 0.0f;         // Original frequency when drag started
+		} mDragState;
+
+		// Helper to check if mouse is near a frequency label
+		struct FrequencyLabelHitTest {
+			int crossoverIndex = -1;           // -1 = no hit, 0 = crossover A, 1 = crossover B
+			ImRect labelRect;                  // Bounding box for hit testing
+			float frequency = 0.0f;            // The frequency value
+		};
+
 		// Convert dB to Y using independent scale if enabled
 		float XODBToY(float dB, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
 			if (mUseIndependentScale) {
@@ -56,6 +74,65 @@ namespace WaveSabreVstLib {
 				return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
 			}
 			return coords.DBToY(dB, bb);
+		}
+
+		// Hit test against frequency labels and vertical crossover lines
+		// This allows dragging by clicking either on the frequency labels or near the vertical lines
+		FrequencyLabelHitTest HitTestFrequencyLabelsAndLines(ImVec2 mousePos, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) {
+			FrequencyLabelHitTest result;
+
+			if (!mDevice) return result;
+
+			float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
+			float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
+			M7::ParamAccessor paA{ &rawA, 0 };
+			M7::ParamAccessor paB{ &rawB, 0 };
+			float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
+			float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+
+			std::vector<std::pair<float, int>> crossovers;
+			if (fA > 0) crossovers.push_back({ fA, 0 });
+			if (fB > 0) crossovers.push_back({ fB, 1 });
+
+			for (const auto& crossover : crossovers) {
+				float x = coords.FreqToX(crossover.first, bb);
+				
+				// First check the frequency label area
+				char frequencyLabel[30];
+				snprintf(frequencyLabel, sizeof(frequencyLabel), "%.0f Hz", crossover.first);
+				ImVec2 textSize = ImGui::CalcTextSize(frequencyLabel);
+				ImVec2 textPos = { x - textSize.x * 0.5f, bb.Min.y + 5 };
+
+				// Create hit test area slightly larger than the label
+				ImRect labelRect = {
+					{ textPos.x - 4, textPos.y - 4 },
+					{ textPos.x + textSize.x + 4, textPos.y + textSize.y + 4 }
+				};
+
+				if (labelRect.Contains(mousePos)) {
+					result.crossoverIndex = crossover.second;
+					result.labelRect = labelRect;
+					result.frequency = crossover.first;
+					return result; // Return early if we hit the label
+				}
+
+				// If not in label area, check if we're near the vertical line
+				const float lineHitDistance = 8.0f; // Pixels on either side of the line
+				if (mousePos.y >= bb.Min.y && mousePos.y <= bb.Max.y && // Within vertical bounds
+					std::abs(mousePos.x - x) <= lineHitDistance) { // Near the vertical line
+					
+					result.crossoverIndex = crossover.second;
+					// Create a hit rect around the line for consistency
+					result.labelRect = ImRect(
+						{ x - lineHitDistance, bb.Min.y },
+						{ x + lineHitDistance, bb.Max.y }
+					);
+					result.frequency = crossover.first;
+					return result;
+				}
+			}
+
+			return result;
 		}
 
 	public:
@@ -67,11 +144,62 @@ namespace WaveSabreVstLib {
 			mDevice = device;
 		}
 
+		// Set parameter change handler for frequency dragging
+		void SetFrequencyChangeHandler(std::function<void(float freqHz, int crossoverIndex)> handler) {
+			mFrequencyChangeHandler = handler;
+		}
+
 		bool InfluencesAutoScale() const override { return true; }
 
 		void GetDataBounds(float& minDB, float& maxDB) const override {
 			minDB = -40.0f; // Crossovers typically don't go below -40dB
 			maxDB = 6.0f;   // Allow some headroom for summing
+		}
+
+		bool HandleMouse(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
+			if (!mFrequencyChangeHandler) return false;
+
+			ImVec2 mousePos = ImGui::GetIO().MousePos;
+			bool mouseClicked = ImGui::IsMouseClicked(0);
+			bool mouseDown = ImGui::IsMouseDown(0);
+			bool mouseReleased = ImGui::IsMouseReleased(0);
+			bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
+
+			// Handle drag end
+			if (mDragState.isDragging && (mouseReleased || !mouseDown)) {
+				mDragState.isDragging = false;
+				mDragState.activeCrossoverIndex = -1;
+				return true;
+			}
+
+			// Handle drag start
+			if (mouseClicked && mouseInBounds && !mDragState.isDragging) {
+				auto hitTest = HitTestFrequencyLabelsAndLines(mousePos, coords, bb);
+				if (hitTest.crossoverIndex >= 0) {
+					mDragState.activeCrossoverIndex = hitTest.crossoverIndex;
+					mDragState.isDragging = true;
+					mDragState.dragStartMousePos = mousePos;
+					mDragState.originalFreq = hitTest.frequency;
+					return true;
+				}
+			}
+
+			// Handle active drag
+			if (mDragState.isDragging && mDragState.activeCrossoverIndex >= 0) {
+				// Calculate new frequency from mouse X position
+				float clampedMouseX = M7::math::clamp(mousePos.x, bb.Min.x, bb.Max.x);
+				float newFreq = coords.XToFreq(clampedMouseX, bb);
+
+				// Apply reasonable limits for crossover frequencies
+				newFreq = M7::math::clamp(newFreq, 30.0f, 18000.0f);
+
+				// Call the parameter change handler
+				mFrequencyChangeHandler(newFreq, mDragState.activeCrossoverIndex);
+
+				return true;
+			}
+
+			return false; // Didn't consume any mouse events
 		}
 
 		void UpdateData(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
@@ -199,25 +327,59 @@ namespace WaveSabreVstLib {
 				float fA2 = paA.GetFrequency(0, M7::gFilterFreqConfig);
 				float fB2 = paB.GetFrequency(0, M7::gFilterFreqConfig);
 
-				std::vector<float> lines;
-				if (fA2 > 0) lines.push_back(fA2);
-				if (fB2 > 0) lines.push_back(fB2);
+				std::vector<std::pair<float, int>> lines;
+				if (fA2 > 0) lines.push_back({ fA2, 0 });
+				if (fB2 > 0) lines.push_back({ fB2, 1 });
+
+				ImVec2 mousePos = ImGui::GetIO().MousePos;
+				bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
 
 				for (size_t i = 0; i < lines.size(); ++i) {
-					float x = coords.FreqToX(lines[i], bb);
+					float x = coords.FreqToX(lines[i].first, bb);
 					ImColor c = (i < mBandColors.size()) ? ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.5f) : ColorFromHTML("cccccc", 0.5f);
 
-					// vertical line at crossover frequency
-					dl->AddLine({ x, bb.Min.y }, { x, bb.Max.y }, c, 2.0f);
-
+					// Render frequency label with drag interaction feedback
 					char frequencyLabel[30];
-					snprintf(frequencyLabel, sizeof(frequencyLabel), "%.0f Hz", lines[i]);
+					snprintf(frequencyLabel, sizeof(frequencyLabel), "%.0f Hz", lines[i].first);
 					ImVec2 textSize = ImGui::CalcTextSize(frequencyLabel);
 					ImVec2 textPos = { x - textSize.x * 0.5f, bb.Min.y + 5 };
-					// backdrop and outline
-					dl->AddRectFilled({ textPos.x - 2, textPos.y - 2 }, { textPos.x + textSize.x + 2, textPos.y + textSize.y + 2 }, ColorFromHTML("000000", 0.7f));
-					dl->AddRect({ textPos.x - 2, textPos.y - 2 }, { textPos.x + textSize.x + 2, textPos.y + textSize.y + 2 }, ColorFromHTML("666666", 0.9f), 0, ImDrawFlags_RoundCornersAll, 1.0f);
-					dl->AddText(textPos, ColorFromHTML("cccccc"), frequencyLabel);
+
+					// Determine interaction state for visual feedback
+					bool isActive = (mDragState.isDragging && mDragState.activeCrossoverIndex == lines[i].second);
+					bool isHovered = false;
+					if (!mDragState.isDragging && mouseInBounds && mFrequencyChangeHandler) {
+						auto hitTest = HitTestFrequencyLabelsAndLines(mousePos, coords, bb);
+						isHovered = (hitTest.crossoverIndex == lines[i].second);
+					}
+
+					// Choose colors and styling based on interaction state
+					ImColor bgColor = ColorFromHTML("000000", isActive ? 0.9f : (isHovered ? 0.8f : 0.7f));
+					ImColor borderColor = ColorFromHTML(isActive ? "ffffff" : (isHovered ? "aaaaaa" : "666666"), isActive ? 1.0f : 0.9f);
+					ImColor textColor = ColorFromHTML(isActive ? "ffffff" : (isHovered ? "ffffff" : "cccccc"));
+					ImColor lineColor = c;
+
+					// Enhanced visual feedback for the vertical line based on interaction state
+					if (isActive) {
+						lineColor = ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.9f);
+					} else if (isHovered) {
+						lineColor = ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.7f);
+					}
+
+					// Draw vertical line with interaction feedback
+					float lineThickness = isActive ? 3.0f : (isHovered ? 2.5f : 2.0f);
+					dl->AddLine({ x, bb.Min.y }, { x, bb.Max.y }, lineColor, lineThickness);
+
+					// backdrop and outline with interaction feedback
+					ImRect labelRect = { {textPos.x - 2, textPos.y - 2}, {textPos.x + textSize.x + 2, textPos.y + textSize.y + 2} };
+					dl->AddRectFilled(labelRect.Min, labelRect.Max, bgColor);
+					dl->AddRect(labelRect.Min, labelRect.Max, borderColor, 0, ImDrawFlags_RoundCornersAll, isActive ? 2.0f : 1.0f);
+					
+					// Add cursor indication for draggable elements (labels and lines)
+					if (isHovered && mFrequencyChangeHandler) {
+						ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+					}
+
+					dl->AddText(textPos, textColor, frequencyLabel);
 				}
 			}
 
@@ -245,21 +407,26 @@ namespace WaveSabreVstLib {
 	class CrossoverVisualization {
 	private:
 		FrequencyMagnitudeGraph<TWidth, THeight, true> mGraph;
-		std::unique_ptr<CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, true>::gSegmentCount>> mCrossoverLayer;
+		CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, true>::gSegmentCount>* mCrossoverLayer;
 
 	public:
 		CrossoverVisualization() {
 			// Create layers
 			auto gridLayer = std::make_unique<GridLayer<true>>();
-			mCrossoverLayer = std::make_unique<CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, true>::gSegmentCount>>();
+			auto crossoverLayer = std::make_unique<CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, true>::gSegmentCount>>();
+			mCrossoverLayer = crossoverLayer.get(); // Keep raw pointer for access
 
 			// Add layers to graph
 			mGraph.AddLayer(std::move(gridLayer));
-			mGraph.AddLayer(std::unique_ptr<IFrequencyGraphLayer>(mCrossoverLayer.release()));
+			mGraph.AddLayer(std::move(crossoverLayer));
 		}
 
 		void SetCrossoverDevice(const WaveSabreCore::Maj7MBC* device) {
 			if (mCrossoverLayer) mCrossoverLayer->SetCrossoverDevice(device);
+		}
+
+		void SetFrequencyChangeHandler(std::function<void(float freqHz, int crossoverIndex)> handler) {
+			if (mCrossoverLayer) mCrossoverLayer->SetFrequencyChangeHandler(handler);
 		}
 
 		void Render() {

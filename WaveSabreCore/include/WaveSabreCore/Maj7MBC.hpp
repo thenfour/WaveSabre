@@ -22,18 +22,18 @@ namespace WaveSabreCore
 			Count__,
 		};
 
-		enum class DisplayStyle : uint8_t {
-			Compact,
-			Normal,
-			Big,
-			Count__,
-		};
+		//enum class DisplayStyle : uint8_t {
+		//	Compact,
+		//	//Normal,
+		//	Big,
+		//	Count__,
+		//};
 
 		struct BandConfig {
 			// let's just assume bool is atomic.
 			bool mMute = false;
 			bool mSolo = false;
-			DisplayStyle mDisplayStyle = DisplayStyle::Normal;
+			//DisplayStyle mDisplayStyle = DisplayStyle::Normal;
 			OutputStream mOutputStream = OutputStream::Normal;
 		};
 
