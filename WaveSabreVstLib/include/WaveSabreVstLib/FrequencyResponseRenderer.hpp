@@ -18,6 +18,7 @@
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/FFTAnalysis.hpp>
+#include "FrequencyMagnitudeGraphUtils.hpp"
 
 using real_t = WaveSabreCore::M7::real_t;
 
