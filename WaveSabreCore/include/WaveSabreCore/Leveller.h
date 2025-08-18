@@ -141,7 +141,7 @@ namespace WaveSabreCore
 						mParams.GetEnumValue<BiquadFilterType>(BandParamOffsets::Type),
 						mParams.GetFrequency(BandParamOffsets::Freq, M7::gFilterFreqConfig),
 						mParams.GetDivCurvedValue(BandParamOffsets::Q, M7::gBiquadFilterQCfg),
-						mParams.GetDecibels(BandParamOffsets::Gain, M7::gVolumeCfg12db)
+						mParams.GetScaledRealValue(BandParamOffsets::Gain, M7::gEqBandGainMin, M7::gEqBandGainMax, 0)
 					);
 				}
 			}

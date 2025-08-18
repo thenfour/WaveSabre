@@ -25,49 +25,12 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib {
 
-//  FrequencyResponseRenderer - Interactive EQ GUI Component
-//  
-//  NEW FEATURE: Thumb Drag Interaction
-//  ===================================
-//  
-//  Thumbs (the circular markers on filter center frequencies) now support click & drag interaction
-//  when a HandleChangeParam callback is provided in FrequencyResponseRendererFilter.
-//  
-//  Usage Example:
-//  --------------
-//  
-//  // Define a callback to handle parameter changes
-//  void MyFilterParamHandler(float freqHz, float gainDb, void* userData) {
-//      MyFilterData* filterData = static_cast<MyFilterData*>(userData);
-//      
-//      // Update your filter parameters
-//      filterData->frequency = freqHz;
-//      filterData->gain = gainDb;
-//      
-//      // Update VST parameters, DSP, etc.
-//      UpdateMyFilter(filterData);
-//  }
-//  
-//  // Create interactive filters
-//  FrequencyResponseRendererFilter filters[] = {
-//      {"ff0000", &myFilter1, "LP",  MyFilterParamHandler, &myFilterData1}, // Interactive
-//      {"00ff00", &myFilter2, "HP",  MyFilterParamHandler, &myFilterData2}, // Interactive  
-//      {"0000ff", &myFilter3, "BP",  nullptr,              nullptr},        // Visual only
-//  };
-//  
-//  Visual Feedback:
-//  ----------------
-//  - Interactive thumbs show hover glow and resize slightly when hovered
-//  - During drag, thumbs get bright white outline and scale up 10%
-//  - Tooltips show "Click & drag to adjust" for interactive thumbs
-//  - Non-interactive thumbs (HandleChangeParam == nullptr) remain visual-only
-//
-///////////////////////////////////////////////////////////////////////////////////////////////////
 struct FrequencyResponseRendererFilter {
   const char *thumbColor;
   const BiquadFilter *filter;
   const char* label = nullptr;
   std::function<void(float freqHz, float gainDb, uintptr_t userData)> HandleChangeParam;
+  std::function<void(float qValue, uintptr_t userData)> HandleChangeQ;
   uintptr_t userData = 0; // Optional user data for custom handling
 };
 
@@ -259,6 +222,40 @@ struct FrequencyResponseRenderer {
     bool mouseDown = ImGui::IsMouseDown(0);
     bool mouseReleased = ImGui::IsMouseReleased(0);
     bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
+    
+    // Check for mouse wheel events
+    float mouseWheel = ImGui::GetIO().MouseWheel;
+    
+    // Handle mouse wheel scroll for Q parameter when hovering over a thumb
+    if (mouseInBounds && mouseWheel != 0.0f) {
+      int thumbIndex = FindThumbUnderMouse(mousePos, cfg.thumbRadius);
+      if (thumbIndex >= 0) {
+        const auto& thumb = mThumbs[thumbIndex];
+        const auto& filter = cfg.filters[thumb.filterIndex];
+        
+        if (filter.HandleChangeQ) {
+          // Get current Q value from the filter
+          float currentQ = filter.filter ? filter.filter->q : 1.0f;
+          
+          // Apply wheel delta to Q with reasonable scaling and limits
+          // Use exponential scaling since Q is typically logarithmic
+          float qDelta = mouseWheel * 0.1f; // Fine control
+          float newQ = currentQ * (1.0f + qDelta);
+          
+          // Clamp Q to reasonable limits (typical range for audio filters)
+          newQ = M7::math::clamp(newQ, 0.1f, 20.0f);
+          
+          // Call the Q parameter change handler
+          filter.HandleChangeQ(newQ, filter.userData);
+          
+          // Force recalculation since parameters changed
+          mAdditionalForceCalcFrames = 2;
+          
+          // Consume the wheel event to prevent scrolling
+          return;
+        }
+      }
+    }
 
     // Handle drag end
     if (mThumbInteraction.isDragging && (mouseReleased || !mouseDown)) {
@@ -673,8 +670,6 @@ struct FrequencyResponseRenderer {
       float freq = f.filter->freq;
       float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
       float magdB = M7::math::LinearToDecibels(magLin);
-      if (magdB < mDisplayMinDB || magdB > mDisplayMaxDB)
-        continue;
 
       ThumbRenderInfo thumbInfo;
       thumbInfo.color = f.thumbColor;
@@ -750,8 +745,14 @@ struct FrequencyResponseRenderer {
         }
         ImGui::Text("%.0f Hz", freq);
         ImGui::Text("%.1f dB", gain);
+        if (filter.filter) {
+          ImGui::Text("Q: %.2f", filter.filter->q);
+        }
         if (thumb.isInteractive) {
-          ImGui::TextDisabled("Click & drag to adjust");
+          ImGui::TextDisabled("Click & drag to adjust freq/gain");
+          if (filter.HandleChangeQ) {
+            ImGui::TextDisabled("Mouse wheel to adjust Q");
+          }
         }
         ImGui::EndTooltip();
       } else {

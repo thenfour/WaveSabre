@@ -86,6 +86,8 @@ namespace WaveSabreCore
 		};
 
 		static constexpr M7::DivCurvedParamCfg gBiquadFilterQCfg{ 0.2f, 12.0f, 1.1f };
+		static constexpr float gEqBandGainMin = -30;
+		static constexpr float gEqBandGainMax = 30;
 
 		struct ParamAccessor
 		{
