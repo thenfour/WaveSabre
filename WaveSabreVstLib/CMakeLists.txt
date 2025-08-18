@@ -1,15 +1,23 @@
+file(GLOB WAVE_SABRE_VSTLIB_HEADERS
+    "include/WaveSabreVstLib/*.h"
+    "include/WaveSabreVstLib/*.hpp"
+)
+file(GLOB WAVE_SABRE_VSTLIB_SOURCES
+    "src/*.cpp"
+    "src/*.c"
+)
+file(GLOB WAVE_SABRE_VSTLIB_7Z
+    "7z/*.h"
+    "7z/*.c"
+)
+
 add_library(WaveSabreVstLib STATIC
 	${VSTSDK3_DIR}/public.sdk/source/vst2.x/audioeffect.cpp
 	${VSTSDK3_DIR}/public.sdk/source/vst2.x/audioeffectx.cpp
 	${VSTSDK3_DIR}/public.sdk/source/vst2.x/vstplugmain.cpp
-	include/WaveSabreVstLib.h
-	include/WaveSabreVstLib/Common.h
-	include/WaveSabreVstLib/Serialization.hpp
-	include/WaveSabreVstLib/VstEditor.h
-	include/WaveSabreVstLib/FrequencyResponseRenderer.hpp
-	include/WaveSabreVstLib/VstPlug.h
-	src/VstEditor.cpp
-	src/VstPlug.cpp
+    ${WAVE_SABRE_VSTLIB_HEADERS}
+    ${WAVE_SABRE_VSTLIB_SOURCES}
+    ${WAVE_SABRE_VSTLIB_7Z}
 	imgui/imconfig.h
 	imgui/imgui-knobs.cpp
 	imgui/imgui-knobs.h
@@ -27,21 +35,6 @@ add_library(WaveSabreVstLib STATIC
 	imgui/imstb_rectpack.h
 	imgui/imstb_textedit.h
 	imgui/imstb_truetype.h
-	7z/7zTypes.h
-	7z/Compiler.h
-	7z/CpuArch.c
-	7z/CpuArch.h
-	7z/LzFind.c
-	7z/LzFind.h
-	7z/LzFindMt.c
-	7z/LzFindMt.h
-	7z/LzFindOpt.c
-	7z/LzHash.h
-	7z/LzmaEnc.c
-	7z/LzmaEnc.h
-	7z/Precomp.h
-	7z/Threads.c
-	7z/Threads.h
 )
 
 target_include_directories(WaveSabreVstLib PUBLIC

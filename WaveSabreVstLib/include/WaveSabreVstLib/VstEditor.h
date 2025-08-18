@@ -19,1067 +19,21 @@
 
 #include "./FrequencyResponseRenderer.hpp"
 
+// Include the split header files
+#include "CompressorTransferCurve.hpp"
+#include "HistoryVisualization.hpp"
+#include "Maj7EditorComponents.hpp"
+#include "Maj7ParamConverters.hpp"
+#include "Maj7VstUtils.hpp"
+#include "VUMeter.hpp"
+#include "VstEditorTabs.hpp"
+
+
 using real_t = WaveSabreCore::M7::real_t;
 
 using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib {
-static constexpr double gNormalKnobSpeed = 0.0015;
-static constexpr double gSlowKnobSpeed = 0.000003;
-
-inline std::vector<std::pair<std::string, int>>
-autocomplete(std::string input,
-             const std::vector<std::pair<std::string, int>> &entries) {
-  std::vector<std::pair<std::string, int>> suggestions;
-  std::transform(input.begin(), input.end(), input.begin(),
-                 ::tolower); // convert input to lowercase
-  for (auto entry : entries) {
-    std::string lowercaseEntry = entry.first;
-    std::transform(lowercaseEntry.begin(), lowercaseEntry.end(),
-                   lowercaseEntry.begin(),
-                   ::tolower); // convert entry to lowercase
-    int inputIndex = 0, entryIndex = 0;
-    while ((size_t)inputIndex < input.size() &&
-           (size_t)entryIndex < lowercaseEntry.size()) {
-      if (input[inputIndex] == lowercaseEntry[entryIndex]) {
-        inputIndex++;
-      }
-      entryIndex++;
-    }
-    if (inputIndex == input.size()) {
-      suggestions.push_back(entry);
-    }
-  }
-  return suggestions;
-}
-
-// stolen from ImGui::ColorEdit4
-static ImColor ColorFromHTML(const char *buf, float alpha = 1.0f) {
-  int i[3] = {0};
-  const char *p = buf;
-  while (*p == '#' || ImCharIsBlankA(*p))
-    p++;
-  i[0] = i[1] = i[2] = 0;
-  int r = sscanf(p, "%02X%02X%02X", (unsigned int *)&i[0],
-                 (unsigned int *)&i[1], (unsigned int *)&i[2]);
-  float f[3] = {0};
-  for (int n = 0; n < 3; n++)
-    f[n] = i[n] / 255.0f;
-  return ImColor{f[0], f[1], f[2], alpha};
-}
-
-struct ButtonColorSpec {
-private:
-  ImU32 mActive = 0;
-  ImU32 mNormal = 0;
-  ImU32 mHovered = 0;
-
-public:
-  ButtonColorSpec() {
-    mActive = ImGui::GetColorU32(ImGuiCol_FrameBgActive);
-    mNormal = ImGui::GetColorU32(ImGuiCol_FrameBg);
-    mHovered = ImGui::GetColorU32(ImGuiCol_FrameBgHovered);
-  }
-  ButtonColorSpec(const char *selColor, const char *notSelColor,
-                  const char *hoverColor) {
-    mActive = ColorFromHTML(selColor);
-    mNormal = ColorFromHTML(notSelColor);
-    mHovered = ColorFromHTML(hoverColor);
-  }
-  ImU32 ActiveU32() const { return mActive; }
-  ImU32 NormalU32() const { return mNormal; }
-  ImU32 HoveredU32() const { return mHovered; }
-};
-
-inline bool ToggleButton(bool *value, const char *label, ImVec2 size = {},
-                         const ButtonColorSpec &cfg = {}) {
-  bool ret = false;
-  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, cfg.HoveredU32());
-  if (*value) {
-    ImGui::PushStyleColor(ImGuiCol_Button, cfg.ActiveU32());
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, cfg.ActiveU32());
-  } else {
-    ImGui::PushStyleColor(ImGuiCol_Button, cfg.NormalU32());
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, cfg.NormalU32());
-  }
-
-  if (ImGui::Button(label, size)) {
-    *value = !(*value);
-    ret = true;
-  }
-
-  ImGui::PopStyleColor(3);
-  return ret;
-}
-
-inline std::string FloatToString(float x, const char *suffix = nullptr) {
-  if (!suffix)
-    suffix = "";
-  char s[100] = {0};
-  if (x >= 1000) {
-    sprintf_s(s, "%0.0f%s", x, suffix); // 3333
-  } else if (x >= 100) {
-    sprintf_s(s, "%0.1f%s", x, suffix); // 333.2
-  } else if (x >= 10) {
-    sprintf_s(s, "%0.2f%s", x, suffix); // 12.34
-  } else {
-    sprintf_s(s, "%0.3f%s", x, suffix); // 12.34
-  }
-  return s;
-}
-
-struct PowCurvedConverter : ImGuiKnobs::IValueConverter {
-  float mBacking;
-  M7::ParamAccessor mParam{&mBacking, 0};
-  const M7::PowCurvedParamCfg &mConfig;
-
-  PowCurvedConverter(const M7::PowCurvedParamCfg &cfg) : mConfig(cfg) {}
-
-  virtual std::string ParamToDisplayString(double param, void *capture,
-                                           bool inputContinuity) override {
-    mBacking = (float)param;
-    char s[100] = {0};
-    M7::real_t ms = mParam.GetPowCurvedValue(0, mConfig, 0);
-    return FloatToString(ms);
-  }
-
-  virtual std::pair<ImGuiKnobs::variant, bool>
-  DisplayValueToParam(const std::string &s, void *capture) override {
-    try {
-      double d = std::stod(s);
-      M7::QuickParam p;
-      p.SetPowCurvedValue(mConfig, float(d));
-      return {p.GetRawValue(), true};
-    } catch (const std::invalid_argument &) {
-      return {0, false};
-    } catch (const std::out_of_range &) {
-      return {0, false};
-    }
-  }
-};
-
-struct BipolarPowCurvedConverter : ImGuiKnobs::IValueConverter {
-  float mBacking;
-  M7::ParamAccessor mParam{&mBacking, 0};
-  const M7::PowCurvedParamCfg &mConfig;
-
-  BipolarPowCurvedConverter(const M7::PowCurvedParamCfg &cfg) : mConfig(cfg) {}
-
-  virtual std::string ParamToDisplayString(double param, void *capture,
-                                           bool inputContinuity) override {
-    mBacking = (float)param;
-    char s[100] = {0};
-    M7::real_t ms = mParam.GetBipolarPowCurvedValue(0, mConfig, 0);
-    return FloatToString(ms);
-  }
-
-  virtual std::pair<ImGuiKnobs::variant, bool>
-  DisplayValueToParam(const std::string &s, void *capture) override {
-    try {
-      double d = std::stod(s);
-      M7::QuickParam p;
-      p.SetBipolarPowCurvedValue(mConfig, float(d));
-      return {p.GetRawValue(), true};
-    } catch (const std::invalid_argument &) {
-      return {0, false};
-    } catch (const std::out_of_range &) {
-      return {0, false};
-    }
-  }
-};
-
-struct DivCurvedConverter : ImGuiKnobs::IValueConverter {
-  float mBacking;
-  M7::ParamAccessor mParam{&mBacking, 0};
-  const M7::DivCurvedParamCfg &mConfig;
-
-  DivCurvedConverter(const M7::DivCurvedParamCfg &cfg) : mConfig(cfg) {}
-
-  virtual std::string ParamToDisplayString(double param, void *capture,
-                                           bool inputContinuity) override {
-    mBacking = (float)param;
-    char s[100] = {0};
-    M7::real_t v = mParam.GetDivCurvedValue(0, mConfig, 0);
-    return FloatToString(v);
-  }
-
-  virtual std::pair<ImGuiKnobs::variant, bool>
-  DisplayValueToParam(const std::string &s, void *capture) override {
-    try {
-      double d = std::stod(s);
-      M7::QuickParam p;
-      p.SetDivCurvedValue(mConfig, float(d));
-      return {p.GetRawValue(), true};
-    } catch (const std::invalid_argument &) {
-      return {0, false};
-    } catch (const std::out_of_range &) {
-      return {0, false};
-    }
-  }
-};
-
-struct M7VolumeConverter : ImGuiKnobs::IValueConverter {
-  float mBacking;
-  M7::ParamAccessor mParam{&mBacking, 0};
-  M7::VolumeParamConfig mCfg;
-  // WaveSabreCore::M7::VolumeParam mParam;
-
-  M7VolumeConverter(const M7::VolumeParamConfig &cfg) : mCfg(cfg) {}
-
-  virtual std::string ParamToDisplayString(double param, void *capture,
-                                           bool inputContinuity) override {
-    mBacking = (float)param;
-    // mParam.SetParamValue((float)param);
-    char s[100] = {0};
-
-    if (mParam.IsSilentVolume(0, mCfg)) {
-      return "-inf";
-    }
-    float db = mParam.GetDecibels(0, mCfg);
-    if (inputContinuity) {
-      sprintf_s(s, "%0.2f", db);
-    } else {
-      sprintf_s(s, "%c%0.2fdB", db < 0 ? '-' : '+', ::fabsf(db));
-    }
-    return s;
-  }
-
-  virtual std::pair<ImGuiKnobs::variant, bool>
-  DisplayValueToParam(const std::string &s, void *capture) override {
-    try {
-      double d = std::stod(s);
-      M7::QuickParam p;
-      p.SetVolumeDB(mCfg, float(d));
-      return {p.GetRawValue(), true};
-    } catch (const std::invalid_argument &) {
-      return {0, false};
-    } catch (const std::out_of_range &) {
-      return {0, false};
-    }
-  }
-};
-
-struct ParamExplorer {
-
-  float mPowKnobMin = 0;
-  float mPowKnobMax = 100;
-  float mPowKnobK = 1;
-  float mPowKnobValue = 0;
-
-  float mDivKnobMin = 0;
-  float mDivKnobMax = 100;
-  float mDivKnobK = 1;
-  float mDivKnobValue = 0;
-
-  float mEnvTimeValue = 0;
-
-  float mVolumeMaxDB = 6;
-  float mVolumeParamValue = 0;
-
-  struct TransferSeries {
-    std::function<float(float x)> mTransferFn;
-    ImColor mForegroundColor;
-    float mThickness;
-  };
-
-  void RenderTransferCurve(ImVec2 size,
-                           const std::vector<TransferSeries> &serieses) {
-    auto *dl = ImGui::GetWindowDrawList();
-    ImRect bb;
-    bb.Min = ImGui::GetCursorScreenPos();
-    bb.Max = bb.Min + size;
-    ImGui::RenderFrame(bb.Min, bb.Max, ColorFromHTML("222222"));
-
-    auto LinToY = [&](float lin) {
-      float t = M7::math::clamp01(lin);
-      return M7::math::lerp(bb.Max.y, bb.Min.y, t);
-    };
-
-    auto LinToX = [&](float lin) {
-      float t = M7::math::clamp01(lin);
-      return M7::math::lerp(bb.Min.x, bb.Max.x, t);
-    };
-
-    static constexpr int segmentCount = 40;
-    for (auto &series : serieses) {
-      std::vector<ImVec2> points;
-      for (int i = 0; i < segmentCount; ++i) {
-        float tLin = float(i) / (segmentCount - 1); // touch 0 and 1
-        float yLin = series.mTransferFn(tLin);
-        points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
-      }
-      dl->AddPolyline(points.data(), (int)points.size(),
-                      series.mForegroundColor, 0, series.mThickness);
-    }
-
-    ImGui::Dummy(size);
-  } // void RenderTransferCurve()
-
-  void Render() {
-    ImGui::SetNextItemWidth(160);
-    ImGui::InputFloat("min", &mPowKnobMin, 0.01f, 1.0f);
-    ImGui::SetNextItemWidth(160);
-    ImGui::SameLine();
-    ImGui::InputFloat("max", &mPowKnobMax, 0.01f, 1.0f, "%.3f");
-    ImGui::SetNextItemWidth(160);
-    ImGui::SameLine();
-    ImGui::SliderFloat("k", &mPowKnobK, 0.001f, 20);
-    M7::PowCurvedParamCfg powCurvedCfg{mPowKnobMin, mPowKnobMax, mPowKnobK};
-    PowCurvedConverter powConv{powCurvedCfg};
-    ImGuiKnobs::Knob("Pow curved", &mPowKnobValue, 0, 1, 0, 0, {},
-                     gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                     ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput,
-                     10, &powConv, this);
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-    ImGui::Text("@ .25 : %f", powCurvedCfg.Param01ToValue(0.25f));
-    ImGui::Text("@ .50 : %f", powCurvedCfg.Param01ToValue(0.5f));
-    ImGui::Text("@ .75 : %f", powCurvedCfg.Param01ToValue(0.75f));
-    ImGui::EndGroup();
-    ImColor powColor = ColorFromHTML("ffff00", 0.7f);
-
-    auto transferPow01 = [&](float x01) {
-      float bigval = powCurvedCfg.Param01ToValue(x01);
-      return M7::math::lerp_rev(mPowKnobMin, mPowKnobMax, bigval);
-    };
-
-    ImGui::SetNextItemWidth(160);
-    ImGui::InputFloat("min##div", &mDivKnobMin, 0.01f, 1.0f);
-    ImGui::SetNextItemWidth(160);
-    ImGui::SameLine();
-    ImGui::InputFloat("max##div", &mDivKnobMax, 0.01f, 1.0f, "%.3f");
-    ImGui::SetNextItemWidth(160);
-    ImGui::SameLine();
-    ImGui::SliderFloat("k##div", &mDivKnobK, 1.001f, 2);
-    M7::DivCurvedParamCfg divCurvedCfg{mDivKnobMin, mDivKnobMax, mDivKnobK};
-    DivCurvedConverter divConv{divCurvedCfg};
-    ImGuiKnobs::Knob("Div curved##div", &mDivKnobValue, 0, 1, 0, 0, {},
-                     gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                     ImGuiKnobVariant_WiperOnly, 0, ImGuiKnobFlags_CustomInput,
-                     10, &divConv, this);
-    ImGui::SameLine();
-    ImGui::BeginGroup();
-    ImGui::Text("@ .25 : %f", divCurvedCfg.Param01ToValue(0.25f));
-    ImGui::Text("@ .50 : %f", divCurvedCfg.Param01ToValue(0.5f));
-    ImGui::Text("@ .75 : %f", divCurvedCfg.Param01ToValue(0.75f));
-    ImGui::EndGroup();
-    ImColor divColor = ColorFromHTML("ff8800", 0.7f);
-
-    auto transferDiv01 = [&](float x01) {
-      float bigval = divCurvedCfg.Param01ToValue(x01);
-      return M7::math::lerp_rev(mDivKnobMin, mDivKnobMax, bigval);
-    };
-
-    // env time
-    // EnvTimeConverter envConv{ };
-    // ImGuiKnobs::Knob("Env time", &mEnvTimeValue, 0, 1, 0, 0, {},
-    // gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0,
-    // ImGuiKnobFlags_CustomInput, 10, &envConv, this); ImGui::SameLine();
-    // ImGui::BeginGroup(); float envT = 0.25f; M7::ParamAccessor envPA{ &envT ,
-    // 0 }; ImGui::Text("@ .25 : %f", envPA.GetEnvTimeMilliseconds(0, 0)); envT
-    // = 0.5f; ImGui::Text("@ .50 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
-    // envT = 0.75f;
-    // ImGui::Text("@ .75 : %f", envPA.GetEnvTimeMilliseconds(0, 0));
-    // ImGui::EndGroup();
-    // ImColor envTimeColor = ColorFromHTML("00ff00", 0.7f);
-
-    // auto transferEnvTime = [&](float x01) {
-    //	envT = x01;
-    //	float bigval = envPA.GetEnvTimeMilliseconds(0, 0);
-    //	return M7::math::lerp_rev(M7::EnvTimeParam::gMinRealVal,
-    // M7::EnvTimeParam::gMaxRealVal, bigval);
-    // };
-
-    // Maj7ImGuiParamVolume
-    {
-      ImGui::SetNextItemWidth(160);
-      // ImGui::InputFloat("max dB##div", &mVolumeMaxDB, 0.01f, 1.0f, "%.3f");
-      ImGui::SliderFloat("max dB##vol", &mVolumeMaxDB, 0, 36);
-
-      M7::VolumeParamConfig cfg{
-          M7::math::DecibelsToLinear(mVolumeMaxDB),
-          mVolumeMaxDB,
-      };
-
-      M7VolumeConverter conv{cfg};
-      ImGuiKnobs::Knob("M7Volume", &mVolumeParamValue, 0, 1, 0, 0, {},
-                       gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                       ImGuiKnobVariant_WiperOnly, 0,
-                       ImGuiKnobFlags_CustomInput, 10, &conv, this);
-    }
-    ImColor volumeColor = ColorFromHTML("9900ff", 0.7f);
-
-    auto transferVolume = [&](float x01) {
-      M7::VolumeParamConfig cfg{
-          M7::math::DecibelsToLinear(mVolumeMaxDB),
-          mVolumeMaxDB,
-      };
-      float t = x01;
-      M7::ParamAccessor p{&t, 0};
-      float bigval = p.GetLinearVolume(0, cfg, 0);
-      return M7::math::lerp_rev(M7::gMinGainLinear, mVolumeMaxDB, bigval);
-    };
-
-    RenderTransferCurve(
-        {300, 300},
-        {
-            {[&](float x01) { return x01; }, ColorFromHTML("444444", 0.5f),
-             1.0f},
-            {[&](float x01) { return transferPow01(x01); }, powColor, 2.0f},
-            {[&](float x01) { return transferDiv01(x01); }, divColor, 2.0f},
-            //{ [&](float x01) { return transferEnvTime(x01); },
-            // envTimeColor, 2.0f},
-            {[&](float x01) { return transferVolume(x01); }, volumeColor, 2.0f},
-        });
-  }
-};
-
-struct HistoryViewSeriesConfig {
-  ImColor mLineColor; // = ColorFromHTML("ff8080", 0.7f);
-  float mLineThickness;
-};
-
-struct HistoryViewSeries {
-  // HistoryEnvFollower mFollower; // actual sample values are not helpful; we
-  // need a peak env follower to look nice.
-  std::deque<float> mHistDecibels;
-
-  HistoryViewSeries() {
-    // mFollower.SetParams(0, 100);
-  }
-};
-
-static constexpr float gHistoryViewMinDB = -50;
-
-template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
-  static constexpr ImVec2 gHistViewSize = {Twidth, Theight};
-  static constexpr float gPixelsPerSample = 4;
-  static constexpr int gSamplesInHist =
-      (int)(gHistViewSize.x / gPixelsPerSample);
-
-  HistoryViewSeries mSeries[TSeriesCount];
-
-  void Render(const std::array<HistoryViewSeriesConfig, TSeriesCount> &cfg,
-              const std::array<float, TSeriesCount> &linValues) {
-    ImRect bb;
-    bb.Min = ImGui::GetCursorScreenPos();
-    bb.Max = bb.Min + gHistViewSize;
-
-    for (size_t i = 0; i < TSeriesCount; ++i) {
-
-      // float lin =
-      // mSeries[i].mFollower.ProcessSample(M7::math::DecibelsToLinear(dbValues[i]));
-      float lin = linValues[i];
-
-      mSeries[i].mHistDecibels.push_back(M7::math::LinearToDecibels(lin));
-      if (mSeries[i].mHistDecibels.size() > gSamplesInHist) {
-        mSeries[i].mHistDecibels.pop_front();
-      }
-    }
-
-    ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
-
-    auto DbToY = [&](float db) {
-      // let's show a range of -x to 0 db.
-      float x = (db - gHistoryViewMinDB) / -gHistoryViewMinDB;
-      x = M7::math::clamp01(x);
-      return M7::math::lerp(bb.Max.y, bb.Min.y, x);
-    };
-    auto SampleToX = [&](int sample) {
-      float sx = (float)sample;
-      sx /= gSamplesInHist; // 0,1
-      return M7::math::lerp(bb.Min.x, bb.Max.x, sx);
-    };
-
-    auto *dl = ImGui::GetWindowDrawList();
-
-    ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
-
-    for (size_t iSeries = 0; iSeries < TSeriesCount; ++iSeries) {
-      std::vector<ImVec2> points;
-      for (int isample = 0;
-           isample < ((signed)mSeries[iSeries].mHistDecibels.size());
-           ++isample) {
-        points.push_back({SampleToX(isample),
-                          DbToY(mSeries[iSeries].mHistDecibels[isample])});
-      }
-      dl->AddPolyline(points.data(), (int)points.size(),
-                      cfg[iSeries].mLineColor, 0, cfg[iSeries].mLineThickness);
-    }
-
-    ImGui::Dummy(gHistViewSize);
-  }
-};
-
-static inline std::string midiNoteToString(int midiNote) {
-  static constexpr char *const noteNames[] = {
-      "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-  int note = midiNote % 12;
-  int octave = midiNote / 12 - 1;
-  return std::string(noteNames[note]) + std::to_string(octave) + " (" +
-         std::to_string(midiNote) + ")";
-}
-
-static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions() {
-  std::vector<std::pair<std::string, int>> mOptions;
-  mOptions.push_back({"(no sample)", -1});
-  // optionNames.insert(pair<int, string>(noSampleOption.second,
-  // noSampleOption.first));
-
-  // Read gm.dls file
-  auto gmDls = GmDls::Load();
-
-  // Seek to wave pool chunk's data
-  auto ptr = gmDls + GmDls::WaveListOffset;
-
-  // Walk wave pool entries
-  for (int i = 0; i < M7::gGmDlsSampleCount; i++) {
-    // Walk wave list
-    auto waveListTag = *((unsigned int *)ptr); // Should be 'LIST'
-    ptr += 4;
-    auto waveListSize = *((unsigned int *)ptr);
-    ptr += 4;
-
-    // Walk wave entry
-    auto wave = ptr;
-    auto waveTag = *((unsigned int *)wave); // Should be 'wave'
-    wave += 4;
-
-    // Skip fmt chunk
-    auto fmtChunkTag = *((unsigned int *)wave); // Should be 'fmt '
-    wave += 4;
-    auto fmtChunkSize = *((unsigned int *)wave);
-    wave += 4;
-    wave += fmtChunkSize;
-
-    // Skip wsmp chunk
-    auto wsmpChunkTag = *((unsigned int *)wave); // Should be 'wsmp'
-    wave += 4;
-    auto wsmpChunkSize = *((unsigned int *)wave);
-    wave += 4;
-    wave += wsmpChunkSize;
-
-    // Skip data chunk
-    auto dataChunkTag = *((unsigned int *)wave); // Should be 'data'
-    wave += 4;
-    auto dataChunkSize = *((unsigned int *)wave);
-    wave += 4;
-    wave += dataChunkSize;
-
-    // Walk info list
-    auto infoList = wave;
-    auto infoListTag = *((unsigned int *)infoList); // Should be 'LIST'
-    infoList += 4;
-    auto infoListSize = *((unsigned int *)infoList);
-    infoList += 4;
-
-    // Walk info entry
-    auto info = infoList;
-    auto infoTag = *((unsigned int *)info); // Should be 'INFO'
-    info += 4;
-
-    // Skip copyright chunk
-    auto icopChunkTag = *((unsigned int *)info); // Should be 'ICOP'
-    info += 4;
-    auto icopChunkSize = *((unsigned int *)info);
-    info += 4;
-    // This size appears to be the size minus null terminator, yet each entry
-    // has a null terminator
-    //  anyways, so they all seem to end in 00 00. Not sure why.
-    info += icopChunkSize + 1;
-
-    // Read name (finally :D)
-    auto nameChunkTag = *((unsigned int *)info); // Should be 'INAM'
-    info += 4;
-    auto nameChunkSize = *((unsigned int *)info);
-    info += 4;
-
-    // Insert name into appropriate group
-    auto name = std::string((char *)info);
-    // OutputDebugStringA(name.c_str());
-    // auto groupKey = string(1, name[0]);
-
-    mOptions.push_back({name, i});
-
-    // options[groupKey].push_back(pair<string, int>(name, i));
-    // optionNames.insert(pair<int, string>(i, name));
-
-    ptr += waveListSize;
-  }
-
-  delete[] gmDls;
-  return mOptions;
-}
-
-// making this an enum keeps the core from getting bloated. if we for example
-// have some kind of behavior class passed in from the core, then those details
-// will pollute core.
-enum class ParamBehavior {
-  Default01,
-  // Unisono,
-  // VibratoFreq,
-  // Frequency,
-  // FilterQ,
-  // Db,
-};
-
-inline void CompressorTransferCurve(const MonoCompressor &c, ImVec2 size,
-                                    AnalysisStream (&detectorAnalysis)[2]) {
-  ImRect bb;
-  bb.Min = ImGui::GetCursorScreenPos();
-  bb.Max = bb.Min + size;
-
-  ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
-  ImColor curveColor = ColorFromHTML("999999", 1.0f);
-  ImColor gridColor = ColorFromHTML("444444", 1.0f);
-  ImColor detectorColorAtt = ColorFromHTML("ed4d4d", 0.9f);
-  ImColor detectorColor = ColorFromHTML("eeeeee", 0.9f);
-
-  ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
-
-  static constexpr int segmentCount = 33;
-  std::vector<ImVec2> points;
-
-  auto dbToY = [&](float dB) {
-    float lin = dB / gHistoryViewMinDB;
-    float t01 = M7::math::clamp01(1.0f - lin);
-    return bb.Max.y - t01 * size.y;
-  };
-
-  auto dbToX = [&](float dB) {
-    float lin = dB / gHistoryViewMinDB;
-    float t01 = M7::math::clamp01(1.0f - lin);
-    return bb.Min.x + t01 * size.y;
-  };
-
-  for (int iSeg = 0; iSeg < segmentCount; ++iSeg) {
-    float inLin = float(iSeg) / (segmentCount - 1); // touch 0 and 1
-    float dbIn =
-        (1.0f - inLin) * gHistoryViewMinDB; // db from gHistoryViewMinDB to 0.
-    // float dbAttenOut = mpMaj7Comp->mComp[0].TransferDecibels(dbIn);// / 5;
-    float dbAttenOut = c.TransferDecibels(dbIn); // / 5;
-    float outDB = dbIn - dbAttenOut;
-    points.push_back(ImVec2{bb.Min.x + inLin * size.x, dbToY(outDB)});
-  }
-
-  auto *dl = ImGui::GetWindowDrawList();
-
-  // linear guideline
-  dl->AddLine({bb.Min.x, bb.Max.y}, {bb.Max.x, bb.Min.y}, gridColor, 1.0f);
-
-  // threshold guideline
-  float threshY = dbToY(c.mThreshold);
-  dl->AddLine({bb.Min.x, threshY}, {bb.Max.x, threshY}, gridColor, 1.0f);
-
-  dl->AddPolyline(points.data(), (int)points.size(), curveColor, 0, 2.0f);
-
-  // detector indicator dot
-  double detectorLevel = std::max(
-      detectorAnalysis[0].mCurrentPeak,
-      detectorAnalysis[1]
-          .mCurrentPeak); // std::max(mpMaj7Comp->mComp[0].mPostDetector,
-                          // mpMaj7Comp->mComp[1].mPostDetector);
-  float detectorDB = M7::math::LinearToDecibels(float(detectorLevel));
-
-  float detAtten = c.TransferDecibels(detectorDB);
-  float detOutDB = detectorDB - detAtten;
-
-  if (detAtten > 0.00001) {
-    dl->AddCircleFilled({dbToX(detectorDB), dbToY(detOutDB)}, 6.0f,
-                        detectorColorAtt);
-  } else {
-    dl->AddCircleFilled({dbToX(detectorDB), dbToY(detOutDB)}, 3.0f,
-                        detectorColor);
-  }
-
-  ImGui::Dummy(size);
-}
-
-struct TransferCurveColors {
-  ImColor background;
-  ImColor line;
-  ImColor lineClip;
-  ImColor tick;
-};
-
-inline void RenderTransferCurve(ImVec2 size, const TransferCurveColors &colors,
-                                std::function<float(float)> transferFn) {
-  auto *dl = ImGui::GetWindowDrawList();
-  ImRect bb;
-  bb.Min = ImGui::GetCursorScreenPos();
-  bb.Max = bb.Min + size;
-  ImGui::RenderFrame(bb.Min, bb.Max, colors.background);
-
-  static constexpr float gMinLin = -1.5f;
-  static constexpr float gMaxLin = 1.5f;
-
-  auto LinToY = [&](float lin) {
-    return M7::math::map(lin, gMinLin, gMaxLin, bb.Max.y, bb.Min.y);
-    // float t = M7::math::lerp_rev(0, gMaxLin, lin);
-    // t = M7::math::clamp01(t);
-    // return M7::math::lerp(bb.Max.y, bb.Min.y, t);
-  };
-
-  auto LinToX = [&](float lin) {
-    return M7::math::map(lin, gMinLin, gMaxLin, bb.Min.x, bb.Max.x);
-    // float t = M7::math::lerp_rev(0, gMaxLin, lin);
-    // t = M7::math::clamp01(t);
-    // return M7::math::lerp(bb.Min.x, bb.Max.x, t);
-  };
-
-  static constexpr int segmentCount = 16;
-  std::vector<ImVec2> points;
-  std::vector<ImVec2> clipPoints;
-
-  for (int i = 0; i < segmentCount; ++i) {
-    float t01 = float(i) / (segmentCount - 1); // touch 0 and 1
-    float tLin = M7::math::lerp(gMinLin, gMaxLin, t01);
-    float yLin = transferFn(tLin);
-    if (tLin >= 1) {
-      if (clipPoints.empty()) {
-        points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
-      }
-      clipPoints.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
-    } else {
-      points.push_back(ImVec2(LinToX(tLin), LinToY(yLin)));
-    }
-  }
-
-  dl->AddLine({bb.Min.x, bb.Max.y}, {bb.Max.x, bb.Min.y}, colors.tick,
-              1); // diag linear tick
-  dl->AddLine({bb.Min.x, LinToY(1)}, {bb.Max.x, LinToY(1)}, colors.tick, 1);
-  dl->AddLine({bb.Min.x, LinToY(0)}, {bb.Max.x, LinToY(0)}, colors.tick, 1);
-  dl->AddLine({bb.Min.x, LinToY(-1)}, {bb.Max.x, LinToY(-1)}, colors.tick, 1);
-  dl->AddLine({LinToX(1), bb.Min.y}, {LinToX(1), bb.Max.y}, colors.tick, 1);
-  dl->AddLine({LinToX(0), bb.Min.y}, {LinToX(0), bb.Max.y}, colors.tick, 1);
-  dl->AddLine({LinToX(-1), bb.Min.y}, {LinToX(-1), bb.Max.y}, colors.tick, 1);
-
-  dl->AddPolyline(points.data(), (int)points.size(), colors.line, 0, 3);
-  dl->AddPolyline(clipPoints.data(), (int)clipPoints.size(), colors.lineClip, 0,
-                  3);
-
-  ImGui::Dummy(size);
-
-} // void RenderTransferCurve()
-
-struct VUMeterColors {
-  ImColor background;
-  ImColor foregroundRMS;
-  ImColor foregroundPeak;
-  ImColor backgroundOverUnity;
-  ImColor foregroundOverUnity;
-  ImColor text;
-  ImColor tick;
-  ImColor clipTick;
-  ImColor peak;
-};
-
-struct VUMeterTick {
-  float dBvalue;
-  const char *caption; // may be nullptr to not display text.
-};
-
-enum VUMeterLevelMode {
-  Audio,
-  Attenuation,
-  Disabled,
-};
-
-enum VUMeterUnits {
-  dB,
-  Linear,
-};
-
-struct VUMeterConfig {
-  ImVec2 size;
-  VUMeterLevelMode levelMode;
-  VUMeterUnits units;
-  float minDB;
-  float maxDB;
-  std::vector<VUMeterTick> ticks;
-};
-
-// rms level may be nullptr to not graph it.
-// peak level may be nullptr to not graph it.
-// clipindicator same.
-// return true if clicked.
-inline bool VUMeter(const char *id, const double *rmsLevel,
-                    const double *peakLevel, const double *heldPeakLevel,
-                    const bool *clipIndicator, bool allowTickText,
-                    const VUMeterConfig &cfg) {
-  VUMeterColors colors;
-  switch (cfg.levelMode) {
-  case VUMeterLevelMode::Audio: {
-    colors.background = ColorFromHTML("2b321c");
-    colors.foregroundRMS = ColorFromHTML("6c9b0a");
-    colors.foregroundPeak = ColorFromHTML("4a6332");
-
-    colors.backgroundOverUnity = ColorFromHTML("440000");
-    colors.foregroundOverUnity = ColorFromHTML("cccc00");
-
-    colors.text = ColorFromHTML("ffffff");
-    colors.tick = ColorFromHTML("00ffff");
-    colors.clipTick = ColorFromHTML("ff0000");
-    colors.peak = ColorFromHTML("6c9b0a", 0.8f);
-    break;
-  }
-  case VUMeterLevelMode::Attenuation: {
-    colors.background = ColorFromHTML("402e2e");
-    colors.foregroundRMS = ColorFromHTML("900000");
-    colors.foregroundPeak = ColorFromHTML("600000");
-
-    colors.backgroundOverUnity = ColorFromHTML("440000");
-    colors.foregroundOverUnity = ColorFromHTML("cccc00");
-
-    colors.text = ColorFromHTML("ffffff");
-    colors.tick = ColorFromHTML("00ffff");
-    colors.clipTick = ColorFromHTML("ff0000");
-    colors.peak = ColorFromHTML("6c9b0a", 0.8f);
-    break;
-  }
-  default:
-  case VUMeterLevelMode::Disabled: {
-    colors.background = ColorFromHTML("222222");
-    colors.foregroundRMS = ColorFromHTML("eeeeee", 0);
-    colors.foregroundPeak = ColorFromHTML("666666", 0);
-
-    colors.backgroundOverUnity = ColorFromHTML("666666", 0);
-    colors.foregroundOverUnity = ColorFromHTML("777777", 0);
-
-    colors.text = ColorFromHTML("555555", .5);
-    colors.tick = ColorFromHTML("666666", 0);
-    colors.clipTick =
-        colors.foregroundRMS; // don't bother with clipping for attenuation
-                              // ColorFromHTML("ff0000");
-    colors.peak = ColorFromHTML("cccccc", 0);
-    break;
-  }
-  }
-
-  colors.text.Value.w = 0.33f;
-  colors.tick.Value.w = 0.33f;
-
-  float rmsDB = 0;
-  if (rmsLevel) {
-    if (cfg.units == VUMeterUnits::Linear) {
-      rmsDB = M7::math::LinearToDecibels(::fabsf(float(*rmsLevel)));
-    } else {
-      rmsDB = float(*rmsLevel);
-    }
-  }
-
-  float peakDb = 0;
-  if (peakLevel) {
-    if (cfg.units == VUMeterUnits::Linear) {
-      peakDb = M7::math::LinearToDecibels(::fabsf(float(*peakLevel)));
-    } else {
-      peakDb = float(*peakLevel);
-    }
-  }
-
-  float heldPeakDb = 0;
-  if (heldPeakLevel) {
-    if (cfg.units == VUMeterUnits::Linear) {
-      heldPeakDb = M7::math::LinearToDecibels(::fabsf(float(*heldPeakLevel)));
-    } else {
-      heldPeakDb = float(*heldPeakLevel);
-    }
-  }
-
-  ImRect bb;
-  bb.Min = ImGui::GetCursorScreenPos();
-  bb.Max = bb.Min + cfg.size;
-
-  auto DbToY = [&](float db) {
-    // let's show a range of -60 to 0 db.
-    // float x = (db + 60) / 60;
-    float x = M7::math::lerp_rev(cfg.minDB, cfg.maxDB, db);
-    x = M7::math::clamp01(x);
-    return M7::math::lerp(bb.Max.y, bb.Min.y, x);
-  };
-
-  auto *dl = ImGui::GetWindowDrawList();
-
-  assert(cfg.minDB < cfg.maxDB); // simplifies logic.
-
-  auto RenderDBRegion = [&](float dB1, float dB2, ImColor bgUnderUnity,
-                            ImColor bgOverUnity) {
-    if (dB1 > dB2)
-      std::swap(dB1, dB2); // make sure in order to simplify logic
-
-    // find the intersection of the desired region and the renderable region.
-    float cmin = std::max(dB1, cfg.minDB);
-    float cmax = std::min(dB2, cfg.maxDB);
-    if (cmin >= cmax) {
-      return; // nothing to render.
-    }
-
-    // break render rgn into positive & negative dB regions.
-    if (cmax <=
-        0) { // Entire range is negative; render cmin,cmax in under-unity style
-      dl->AddRectFilled({bb.Min.x, DbToY(cmin)}, {bb.Max.x, DbToY(cmax)},
-                        bgUnderUnity);
-    } else if (cmin >= 0) { // Entire range is non-negative, render cmin,cmax in
-                            // over-unity style
-      dl->AddRectFilled({bb.Min.x, DbToY(cmin)}, {bb.Max.x, DbToY(cmax)},
-                        bgOverUnity);
-    } else {
-      // Range spans across 0, split into two regions
-      dl->AddRectFilled({bb.Min.x, DbToY(cmin)}, {bb.Max.x, DbToY(0)},
-                        bgUnderUnity);
-      dl->AddRectFilled({bb.Min.x, DbToY(0)}, {bb.Max.x, DbToY(cmax)},
-                        bgOverUnity);
-    }
-  };
-
-  RenderDBRegion(cfg.minDB, cfg.maxDB, colors.background,
-                 colors.backgroundOverUnity);
-
-  float levelY = DbToY(rmsDB);
-
-  // draw the peak bar
-  if (peakLevel) {
-    float fgBaseDB = cfg.minDB;
-    if (cfg.levelMode == VUMeterLevelMode::Attenuation)
-      fgBaseDB = 0;
-    RenderDBRegion(peakDb, fgBaseDB, colors.foregroundPeak,
-                   colors.foregroundOverUnity);
-  }
-
-  // draw the RMS bar
-  if (rmsLevel) {
-    float fgBaseDB = cfg.minDB;
-    if (cfg.levelMode == VUMeterLevelMode::Attenuation)
-      fgBaseDB = 0;
-    RenderDBRegion(rmsDB, fgBaseDB, colors.foregroundRMS,
-                   colors.foregroundOverUnity);
-  }
-
-  //// draw thumb (a little line separating foreground from background)
-  // ImRect threshbb = bb;
-  // threshbb.Min.y = threshbb.Max.y = levelY;
-  // float tickHeight = 3.0f;
-  // threshbb.Max.y += tickHeight;
-  // dl->AddRectFilled(threshbb.Min, threshbb.Max, colors.tick);
-
-  // draw clip
-  bool allowClipIndicator =
-      true; // (cfg.levelMode != VUMeterLevelMode::Attenuation);
-  if (clipIndicator && *clipIndicator && allowClipIndicator) {
-    dl->AddRectFilled(bb.Min, {bb.Max.x, bb.Min.y + 8}, colors.clipTick);
-  }
-
-  // draw held peak
-  if (heldPeakLevel != nullptr) {
-    float peakY = DbToY(heldPeakDb);
-    ImRect threshbb = bb;
-    threshbb.Min.y = threshbb.Max.y = peakY;
-    float tickHeight = 2.0f;
-    threshbb.Max.y += tickHeight;
-    dl->AddRectFilled(threshbb.Min, threshbb.Max, colors.peak);
-  }
-
-  // draw plot lines
-  auto drawTick = [&](float tickdb, const char *txt) {
-    ImRect tickbb = bb;
-    tickbb.Min.y = std::round(DbToY(tickdb)); // make crisp lines plz.
-    tickbb.Max.y = tickbb.Min.y;
-    dl->AddLine(tickbb.Min, tickbb.Max, colors.text);
-    if (txt && allowTickText) {
-      dl->AddText({tickbb.Min.x, tickbb.Min.y}, colors.text, txt);
-    }
-  };
-
-  for (auto &t : cfg.ticks) {
-    drawTick(t.dBvalue, t.caption);
-  }
-
-  return ImGui::InvisibleButton(id, cfg.size);
-}
-
-inline void VUMeter(const char *id, AnalysisStream &a0, AnalysisStream &a1,
-                    ImVec2 size = {30, 300}) {
-  static const std::vector<VUMeterTick> standardTickSet = {
-      {-3.0f, "3db"},   {-6.0f, "6db"},   {-12.0f, "12db"},  {-18.0f, "18db"},
-      {-24.0f, "24db"}, {-30.0f, "30db"}, {-40.0f, nullptr},
-      //{-50.0f, "50db"},
-  };
-
-  static const std::vector<VUMeterTick> smallTickSet = {
-      {-10.0f, "10db"}, {-20.0f, nullptr}, {-30.0f, "30db"}, {-40.0f, nullptr},
-      //{-50.0f, "50db"},
-  };
-
-  const VUMeterConfig cfg = {
-      size,        VUMeterLevelMode::Audio, VUMeterUnits::Linear, -50, 6,
-      smallTickSet};
-
-  ImGui::PushID(id);
-  if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak,
-              &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg)) {
-    a0.Reset();
-    a1.Reset();
-  }
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
-  ImGui::SameLine();
-  if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak,
-              &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg)) {
-    a0.Reset();
-    a1.Reset();
-  }
-  ImGui::PopID();
-  ImGui::PopStyleVar();
-}
-
-inline void VUMeter(const char *id, IAnalysisStream &a0, IAnalysisStream &a1,
-                    const VUMeterConfig &cfg) {
-  ImGui::PushID(id);
-  if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak,
-              &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg)) {
-    a0.Reset();
-    a1.Reset();
-  }
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
-  ImGui::SameLine();
-  if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak,
-              &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg)) {
-    a0.Reset();
-    a1.Reset();
-  }
-  ImGui::PopID();
-  ImGui::PopStyleVar();
-}
-
-inline void VUMeterAtten(const char *id, IAnalysisStream &a0,
-                         IAnalysisStream &a1, ImVec2 size = {30, 300}) {
-  static const std::vector<VUMeterTick> smallTickSet = {
-      {-1, nullptr}, {-2, nullptr}, {-3, "-3"},
-      {-6, "-6"},    {-9, "-9"},    {-12, "-12"},
-  };
-
-  const VUMeterConfig cfg = {size,
-                             VUMeterLevelMode::Attenuation,
-                             VUMeterUnits::Linear,
-                             -12.0f,
-                             0.3f,
-                             smallTickSet};
-
-  ImGui::PushID(id);
-  if (VUMeter("VU L", nullptr, &a0.mCurrentPeak, &a0.mCurrentHeldPeak,
-              &a0.mClipIndicator, true, cfg)) {
-    a0.Reset();
-    a1.Reset();
-  }
-  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
-  ImGui::SameLine();
-  if (VUMeter("VU R", nullptr, &a1.mCurrentPeak, &a1.mCurrentHeldPeak,
-              &a1.mClipIndicator, false, cfg)) {
-    a0.Reset();
-    a1.Reset();
-  }
-  ImGui::PopID();
-  ImGui::PopStyleVar();
-}
 
 class VstEditor : public AEffEditor {
 public:
@@ -1089,50 +43,15 @@ public:
 
   bool BeginTabBar2(const char *str_id, ImGuiTabBarFlags flags,
                     float width = 0) {
-    tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
-    ImGuiContext &g = *GImGui;
-    ImGuiWindow *window = g.CurrentWindow;
-    ImGuiID id = window->GetID(str_id);
-    ImGuiTabBar *tab_bar = g.TabBars.GetOrAddByKey(id);
-    // Copied from imgui with changes:
-    // 1. shrinking workrect max for column support
-    // 2. adding X cursor pos for side-by-side positioning
-    // 3. pushing empty separator color so BeginTabBarEx doesn't display a
-    // separator line (we'll do it later).
-    if (width == 0) {
-      tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y,
-                        window->DC.CursorPos.x + (window->WorkRect.Max.x),
-                        window->DC.CursorPos.y + g.FontSize +
-                            g.Style.FramePadding.y * 2);
-    } else {
-      tabBarBB = ImRect(window->DC.CursorPos.x, window->DC.CursorPos.y,
-                        window->DC.CursorPos.x + width,
-                        window->DC.CursorPos.y + g.FontSize +
-                            g.Style.FramePadding.y * 2);
-    }
-    tab_bar->ID = id;
-    ImGui::PushStyleColor(ImGuiCol_TabActive,
-                          {}); // : ImGuiCol_TabUnfocusedActive
-    bool ret = ImGui::BeginTabBarEx(tab_bar, tabBarBB,
-                                    flags | ImGuiTabBarFlags_IsFocused);
-    ImGui::PopStyleColor(1);
-    return ret;
+    return WaveSabreVstLib::BeginTabBar2(str_id, flags, tabBarBB,
+                                         tabBarStoredSeparatorColor, width);
   }
 
   bool WSBeginTabItem(const char *label, bool *p_open = 0,
                       ImGuiTabItemFlags flags = 0) {
-    if (ImGui::BeginTabItem(label, p_open, flags)) {
-      tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
-      return true;
-    }
-    return false;
+    return WaveSabreVstLib::WSBeginTabItem(label, tabBarStoredSeparatorColor,
+                                           p_open, flags);
   }
-
-  struct ImGuiTabSelectionHelper {
-    int *mpSelectedTabIndex = nullptr; // pointer to the setting to read and
-                                       // store the current tab index
-    int mImGuiSelection = 0; // which ID does ImGui currently have selected
-  };
 
   // I HATE THIS LOGIC.
   // there's a lot of plumbing in the ImGuiTabBar stuff, so i don't want to mess
@@ -1145,89 +64,16 @@ public:
   // selected tab.
   bool WSBeginTabItemWithSel(const char *label, int thisTabIndex,
                              ImGuiTabSelectionHelper &helper) {
-    // when losing and regaining focus, ImGui will reset its selection to 0, but
-    // we may think it's something else. so have to specially check for that
-    // situation.
-    if (GImGui->CurrentTabBar->SelectedTabId == 0) {
-      helper.mImGuiSelection = 0;
-    }
-
-    // between BeginTabBar() and EndTabBar(), need to know when BeginTabItem()
-    // returns true whether that means the user selected a new tab, or ImGui is
-    // just rendering the incorrect tab because we haven't reached the selected
-    // one yet. latter case make sure we don't misinterpret the result of
-    // BeginTabItem().
-    bool waitingForCorrectTab = false;
-    int flags = 0;
-    if (helper.mImGuiSelection != *helper.mpSelectedTabIndex) {
-      waitingForCorrectTab = true;
-      if (thisTabIndex == *helper.mpSelectedTabIndex) {
-        flags |= ImGuiTabItemFlags_SetSelected;
-      }
-    }
-
-    if (ImGui::BeginTabItem(label, 0, flags)) {
-      tabBarStoredSeparatorColor = ImGui::GetColorU32(ImGuiCol_TabActive);
-
-      helper.mImGuiSelection = thisTabIndex;
-
-      if (GImGui->CurrentTabBar->SelectedTabId != 0 &&
-          (*helper.mpSelectedTabIndex != thisTabIndex)) {
-        if (!waitingForCorrectTab) {
-          *helper.mpSelectedTabIndex = thisTabIndex;
-        }
-      }
-
-      return true;
-    }
-    return false;
+    return WaveSabreVstLib::WSBeginTabItemWithSel(label, thisTabIndex, helper,
+                                                  tabBarStoredSeparatorColor);
   }
 
   void EndTabBarWithColoredSeparator() {
-    ImGuiContext &g = *GImGui;
-    ImGuiWindow *window = g.CurrentWindow;
-    ImGuiTabBar *tab_bar = g.CurrentTabBar;
-    const ImU32 col = tabBarStoredSeparatorColor;
-    const float y = tab_bar->BarRect.Max.y - 1.0f;
-
-    // account for the popup indicator arrow thingy.
-    float separator_min_x = std::min(tab_bar->BarRect.Min.x, tabBarBB.Min.x) -
-                            M7::math::floor(window->WindowPadding.x * 0.5f);
-
-    // this value is too big; there's some huge space at the right of all tabs.
-    float separator_max_x = tab_bar->BarRect.Max.x +
-                            M7::math::floor(window->WindowPadding.x * 0.5f);
-
-    // auto cursor = ImGui::GetCursorScreenPos();
-    // float separator_max_x = cursor.x;//
-    // +M7::math::floor(window->WindowPadding.x * 0.5f);
-
-    ImRect body_bb;
-    body_bb.Min = {separator_min_x, y};
-    body_bb.Max = {separator_max_x, window->DC.CursorPos.y};
-
-    ImColor c2 = {col};
-    float h, s, v;
-    ImGui::ColorConvertRGBtoHSV(c2.Value.x, c2.Value.y, c2.Value.z, h, s, v);
-    auto halfAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.45f);
-    auto lowAlpha = ImColor::HSV(h, s, v, c2.Value.w * 0.15f);
-
-    // window->DrawList->AddLine(ImVec2(separator_min_x, y),
-    // ImVec2(separator_max_x, y), col, 1.0f);
-
-    ImGui::GetBackgroundDrawList()->AddRectFilled(
-        body_bb.Min, body_bb.Max, lowAlpha, 2, ImDrawFlags_RoundCornersAll);
-    ImGui::GetBackgroundDrawList()->AddRect(body_bb.Min, body_bb.Max, halfAlpha,
-                                            2, ImDrawFlags_RoundCornersAll);
-
-    ImGui::EndTabBar();
-
-    // add some bottom margin.
-    ImGui::Dummy({0, 6});
+    WaveSabreVstLib::EndTabBarWithColoredSeparator(tabBarBB,
+                                                   tabBarStoredSeparatorColor);
   }
 
   void IndicatorDot(const char *colorHTML, const char *caption = nullptr) {
-
     auto c = ImGui::GetCursorScreenPos();
     ImRect bb = {c, c + ImVec2{20, 20}};
     auto *dl = ImGui::GetWindowDrawList();
@@ -1263,219 +109,12 @@ public:
     AEffEditor::close();
   }
 
-  struct ScaledFloatConverter : ImGuiKnobs::IValueConverter {
-    float mBacking;
-    M7::ParamAccessor mParams{&mBacking, 0};
-    float mMin;
-    float mMax;
-    // WaveSabreCore::M7::ScaledRealParam mParam;
-
-    ScaledFloatConverter(float v_min, float v_max) : mMin(v_min), mMax(v_max) {}
-
-    virtual std::string ParamToDisplayString(double param, void *capture,
-                                             bool inputContinuity) override {
-      // mParam.SetParamValue((float)param);
-      mBacking = (float)param;
-      char s[100] = {0};
-      sprintf_s(s, "%0.2f", mParams.GetScaledRealValue(0, mMin, mMax, 0));
-      return s;
-    }
-
-    virtual std::pair<ImGuiKnobs::variant, bool>
-    DisplayValueToParam(const std::string &s, void *capture) override {
-      try {
-        double d = std::stod(s);
-        M7::QuickParam p;
-        p.SetScaledValue(mMin, mMax, float(d));
-        return {p.GetRawValue(), true};
-      } catch (const std::invalid_argument &) {
-        return {0, false};
-      } catch (const std::out_of_range &) {
-        return {0, false};
-      }
-    }
-  };
-
-  struct Maj7IntConverter : ImGuiKnobs::IValueConverter {
-    float mBacking;
-    M7::ParamAccessor mParams{&mBacking, 0};
-    const M7::IntParamConfig mCfg;
-    // WaveSabreCore::M7::IntParam mParam;
-
-    Maj7IntConverter(const M7::IntParamConfig &cfg) : mCfg(cfg) {}
-
-    virtual std::string ParamToDisplayString(double param, void *capture,
-                                             bool inputContinuity) override {
-      // mParams.SetParamValue((float)param);
-      mBacking = (float)param;
-      int val = mParams.GetIntValue(0, mCfg);
-      char s[100] = {0};
-      sprintf_s(s, "%d", val);
-      return s;
-    }
-
-    virtual std::pair<ImGuiKnobs::variant, bool>
-    DisplayValueToParam(const std::string &s, void *capture) override {
-      try {
-        int d = std::stoi(s);
-        M7::QuickParam p;
-        p.SetIntValue(mCfg, d);
-        return {p.GetRawValue(), true};
-      } catch (const std::invalid_argument &) {
-        return {0, false};
-      } catch (const std::out_of_range &) {
-        return {0, false};
-      }
-    }
-  };
-
-  struct Maj7MidiNoteConverter : ImGuiKnobs::IValueConverter {
-    float mBacking;
-    M7::ParamAccessor mParams{&mBacking, 0};
-
-    virtual std::string ParamToDisplayString(double param, void *capture,
-                                             bool inputContinuity) override {
-      mBacking = (float)param;
-      return midiNoteToString(mParams.GetIntValue(0, M7::gKeyRangeCfg));
-    }
-  };
-
-  struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter {
-    float mBacking[2]{0, 0}; // freq, kt
-    VstInt32 mKTParamID;
-    M7::ParamAccessor mParams{mBacking, 0};
-    const M7::FreqParamConfig mCfg;
-
-    Maj7FrequencyConverter(M7::FreqParamConfig cfg,
-                           VstInt32 ktParamID /*pass -1 if no KT*/)
-        : mCfg(cfg), mKTParamID(ktParamID) {}
-
-    // returns whether keytracking is on
-    bool TouchKeytracking(void *capture) {
-      mBacking[1] = 0;
-      if (mKTParamID < 0) {
-        return false;
-      }
-      VstEditor *pThis = (VstEditor *)capture;
-      M7::QuickParam qp{pThis->GetEffectX()->getParameter(mKTParamID)};
-      return qp.GetRawValue() > 0.0001f;
-    }
-
-    virtual std::string ParamToDisplayString(double param, void *capture,
-                                             bool inputContinuity) override {
-      char s[100] = {0};
-      mBacking[0] = (float)param;
-
-      if (inputContinuity) {
-        if (!TouchKeytracking(capture)) {
-          float hz = mParams.GetFrequency(0, 1, mCfg, 0, 0);
-          return FloatToString(hz);
-        }
-        // with KT applied, the frequency doesn't really matter.
-        return FloatToString(mBacking[0] * 100);
-      }
-
-      if (!TouchKeytracking(capture)) {
-        float hz = mParams.GetFrequency(0, 1, mCfg, 0, 0);
-        return FloatToString(hz, "Hz");
-      }
-      // with KT applied, the frequency doesn't really matter.
-      return FloatToString(mBacking[0] * 100, "%");
-    }
-
-    // when KT is off, the value is in hz
-    // when KT is on, the value is in 0-1
-    virtual std::pair<ImGuiKnobs::variant, bool>
-    DisplayValueToParam(const std::string &s, void *capture) override {
-      try {
-        if (TouchKeytracking(capture)) {
-          return {std::stod(s) / 100, true}; // Hz directly.
-        }
-        float hz = float(std::stod(s)); // percent scaled by 100
-        M7::QuickParam p;
-        p.SetFrequencyAssumingNoKeytracking(mCfg, hz);
-        return {p.GetRawValue(), true};
-      } catch (const std::invalid_argument &) {
-        return {0, false};
-      } catch (const std::out_of_range &) {
-        return {0, false};
-      }
-    }
-  };
-
-  struct FloatN11Converter : ImGuiKnobs::IValueConverter {
-    float mBacking;
-    M7::ParamAccessor mParams{&mBacking, 0};
-
-    virtual std::string ParamToDisplayString(double param, void *capture,
-                                             bool inputContinuity) override {
-      mBacking = (float)param;
-      float n11 = mParams.GetN11Value(0, 0);
-      char s[100] = {0};
-      sprintf_s(s, "%0.3f", n11);
-      return s;
-    }
-
-    virtual std::pair<ImGuiKnobs::variant, bool>
-    DisplayValueToParam(const std::string &s, void *capture) override {
-      try {
-        double d = std::stod(s);
-        M7::QuickParam p;
-        p.SetN11Value(float(d));
-        return {p.GetRawValue(), true};
-      } catch (const std::invalid_argument &) {
-        return {0, false};
-      } catch (const std::out_of_range &) {
-        return {0, false};
-      }
-    }
-  };
-
-  struct Float01Converter : ImGuiKnobs::IValueConverter {
-    float mBacking;
-    M7::ParamAccessor mParams{&mBacking, 0};
-
-    virtual std::string ParamToDisplayString(double param, void *capture,
-                                             bool inputContinuity) override {
-      mBacking = (float)param;
-      char s[100] = {0};
-      sprintf_s(s, "%0.3f", mParams.Get01Value(0));
-      return s;
-    }
-  };
-
-  struct FMValueConverter : ImGuiKnobs::IValueConverter {
-    float mBacking;
-    M7::ParamAccessor mParams{&mBacking, 0};
-
-    virtual std::string ParamToDisplayString(double param, void *capture,
-                                             bool inputContinuity) override {
-      mBacking = (float)param;
-      char s[100] = {0};
-      sprintf_s(s, "%d", int(mParams.Get01Value(0) * 100));
-      return s;
-    }
-  };
-
   bool WSImGuiParamKnob(VstInt32 id, const char *name,
                         ParamBehavior behavior = ParamBehavior::Default01,
                         const char *fmt = "%.3f") {
     float paramValue = GetEffectX()->getParameter((VstInt32)id);
     bool r = false;
     switch (behavior) {
-      // case ParamBehavior::Unisono:
-      //{
-      //	int iparam =
-      //::WaveSabreCore::Helpers::ParamToUnisono(paramValue); 	r =
-      // ImGuiKnobs::KnobInt(name, &iparam, 1, 16, 1, 0, .1f, .001f, NULL,
-      // ImGuiKnobVariant_WiperOnly); 	if (r) { 		paramValue =
-      //::WaveSabreCore::Helpers::UnisonoToParam(iparam);
-      //		GetEffectX()->setParameterAutomated(id,
-      // M7::math::clamp01(paramValue));
-      //	}
-      //	break;
-      // }
-
     case ParamBehavior::Default01:
     default: {
       r = ImGuiKnobs::Knob(name, &paramValue, 0, 1, 0.5f, 0,
@@ -1518,7 +157,6 @@ public:
                                       ImVec2 size = {},
                                       const ButtonColorSpec &cfg = {}) {
     bool ret = false;
-    // int colorsPushed = 0;
     float backing = GetEffectX()->getParameter((VstInt32)paramID);
     M7::ParamAccessor p{&backing, 0};
     bool value = p.GetBoolValue(0);
@@ -1531,8 +169,7 @@ public:
       GetEffectX()->setParameterAutomated((VstInt32)paramID, backing);
     }
 
-    ImGui::PopStyleVar(
-        2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+    ImGui::PopStyleVar(2);
   }
 
   template <typename TparamID>
@@ -1543,17 +180,9 @@ public:
     Maj7ImGuiBoolParamToggleButton(paramID, label, {}, cfg);
   }
 
-  ImVec2 CalcListBoxSize(float items) {
-    return {0.0f, ImGui::GetTextLineHeightWithSpacing() * items +
-                      ImGui::GetStyle().FramePadding.y * 2.0f};
-  }
-
-  // template<typename Tenum>
   void WSImGuiParamEnumList(VstInt32 paramID, const char *ctrlLabel,
                             int elementCount,
                             const char *const *const captions) {
-    // const char* captions[] = { "LP", "HP", "BP","Notch" };
-
     float paramValue = GetEffectX()->getParameter((VstInt32)paramID);
     M7::ParamAccessor pa{&paramValue, 0};
     enum AnyEnum {};
@@ -1561,9 +190,6 @@ public:
         0); // ParamToEnum(paramValue, elementCount);
             // //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
     int enumIndex = (int)friendlyVal;
-
-    const char *elem_name = "ERROR";
-    // int elementCount = (int)std::size(captions);
 
     ImGui::PushID(ctrlLabel);
     ImGui::PushItemWidth(70);
@@ -1581,13 +207,9 @@ public:
         if (ImGui::Selectable(captions[n], is_selected)) {
           enumIndex = n;
           pa.SetEnumIntValue(0, n);
-          // paramValue = EnumToParam(n, elementCount);//
-          // ::WaveSabreCore::Helpers::StateVariableFilterTypeToParam((::WaveSabreCore::StateVariableFilterType)enumIndex);
           GetEffectX()->setParameterAutomated(paramID, (paramValue));
         }
 
-        // Set the initial focus when opening the combo (scrolling + keyboard
-        // navigation focus)
         if (is_selected)
           ImGui::SetItemDefaultFocus();
       }
@@ -1614,16 +236,11 @@ public:
   void Maj7ImGuiParamEnumList(TparamID paramID, const char *ctrlLabel,
                               Tcount elementCount, Tenum defaultVal,
                               const char *const *const captions) {
-    // M7::real_t tempVal;
-    // M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount));
     M7::QuickParam p{GetEffectX()->getParameter((VstInt32)paramID)};
-    // p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
     auto friendlyVal = p.GetEnumValue<
         Tenum>(); // ParamToEnum(paramValue, elementCount);
                   // //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
     int enumIndex = (int)friendlyVal;
-
-    const char *elem_name = "ERROR";
 
     ImGui::PushID(ctrlLabel);
     ImGui::PushItemWidth(70);
@@ -1644,8 +261,6 @@ public:
                                               p.GetRawValue());
         }
 
-        // Set the initial focus when opening the combo (scrolling + keyboard
-        // navigation focus)
         if (is_selected)
           ImGui::SetItemDefaultFocus();
       }
@@ -1729,8 +344,6 @@ public:
     if (!popup_open)
       return false;
 
-    // g.NextWindowData.Flags = backup_next_window_data_flags;
-    // return ImGui::BeginComboPopup(popup_id, bb, flags);
     return pressed;
   }
 
@@ -1739,9 +352,6 @@ public:
                                Tcount elementCount, Tenum defaultVal,
                                const char *const *const captions,
                                float width = 120) {
-    // M7::real_t tempVal;
-    // M7::EnumParam<Tenum> p(tempVal, Tenum(elementCount));
-    // p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
     M7::QuickParam p{GetEffectX()->getParameter((VstInt32)paramID)};
     auto friendlyVal = p.GetEnumValue<
         Tenum>(); // ParamToEnum(paramValue, elementCount);
@@ -2077,9 +687,7 @@ public:
                                  ImGuiKnobs::ModInfo modInfo) {
     WaveSabreCore::M7::real_t tempVal;
     M7::ParamAccessor pa{&tempVal, 0};
-    // M7::ScaledRealParam p{ tempVal , v_min, v_max };
     pa.SetRangedValue(0, v_min, v_max, v_defaultScaled);
-    // p.SetRangedValue(v_defaultScaled);
     float defaultParamVal = tempVal;
     pa.SetRangedValue(0, v_min, v_max, v_centerScaled);
     float centerParamVal = tempVal;
@@ -2137,13 +745,6 @@ public:
                                M7::real_t defaultParamValue,
                                ImGuiKnobs::ModInfo modInfo) {
     M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-    // M7::real_t tempValKT = 0;
-    // M7::ParamAccessor pa{ &tempVal, 0 };
-    // M7::FrequencyParam p{ tempVal, tempValKT, cfg };
-
-    // tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-    // pa.GetFrequency
-
     Maj7FrequencyConverter conv{cfg, ktParamID};
     if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, 0, modInfo,
                          gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
@@ -2182,13 +783,10 @@ public:
 
   void Maj7ImGuiParamMidiNote(VstInt32 paramID, const char *label,
                               int defaultVal, int centerVal) {
-    M7::real_t tempVal = 0;
+    M7::real_t tempVal;
     M7::ParamAccessor pa{&tempVal, 0};
-    // M7::IntParam p{ tempVal, M7::gKeyRangeCfg };
     pa.SetIntValue(0, M7::gKeyRangeCfg, defaultVal);
-    // p.SetIntValue(defaultVal);
     float defaultParamVal = tempVal;
-    // p.SetIntValue(centerVal);
     pa.SetIntValue(0, M7::gKeyRangeCfg, centerVal);
     float centerParamVal = tempVal;
     tempVal = GetEffectX()->getParameter((VstInt32)paramID);
@@ -2203,140 +801,125 @@ public:
   }
 
   template <typename Tparam>
-  void Maj7ImGuiPowCurvedParam(Tparam paramID, const char *label,
-                               const M7::PowCurvedParamCfg &cfg,
-                               M7::real_t defaultMS,
-                               ImGuiKnobs::ModInfo modInfo) {
-    M7::real_t tempVal;
-    M7::ParamAccessor p{&tempVal, 0};
-    p.SetPowCurvedValue(0, cfg, defaultMS);
-    float defaultParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-    // float ms = p.GetTimeMilliseconds(0, cfg, 0);
+  void Maj7ImGuiDivCurvedParam(Tparam paramID, const char* label,
+      const M7::DivCurvedParamCfg& cfg,
+      M7::real_t defaultValue,
+      ImGuiKnobs::ModInfo modInfo) {
+      M7::real_t tempVal;
+      M7::ParamAccessor p{ &tempVal, 0 };
+      p.SetDivCurvedValue(0, cfg, defaultValue);
+      float defaultParamVal = tempVal;
+      tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+      // float val = p.GetDivCurvedValue(0, cfg, 0);
 
-    PowCurvedConverter conv{cfg};
-    if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo,
-                         gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                         ImGuiKnobVariant_WiperOnly, 0,
-                         ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
-      GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
-    }
+      DivCurvedConverter conv{ cfg };
+      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo,
+          gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
+          ImGuiKnobVariant_WiperOnly, 0,
+          ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
+          GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
+      }
+  }
+
+  void Maj7ImGuiParamFloat01(VstInt32 paramID, const char* label,
+      M7::real_t v_default01, float centerVal01,
+      float size = 0.0f,
+      ImGuiKnobs::ModInfo modInfo = {}) {
+      WaveSabreCore::M7::real_t tempVal = v_default01;
+      M7::ParamAccessor pa{ &tempVal, 0 };
+      float defaultParamVal = pa.Get01Value(0);
+      tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+
+      Float01Converter conv{};
+      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerVal01,
+          modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
+          ImGuiKnobVariant_WiperOnly, size,
+          ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
+          GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
+      }
+  }
+
+  template <typename Tparam>
+  void Maj7ImGuiPowCurvedParam(Tparam paramID, const char* label,
+      const M7::PowCurvedParamCfg& cfg,
+      M7::real_t defaultMS,
+      ImGuiKnobs::ModInfo modInfo) {
+      M7::real_t tempVal;
+      M7::ParamAccessor p{ &tempVal, 0 };
+      p.SetPowCurvedValue(0, cfg, defaultMS);
+      float defaultParamVal = tempVal;
+      tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+      // float ms = p.GetTimeMilliseconds(0, cfg, 0);
+
+      PowCurvedConverter conv{ cfg };
+      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo,
+          gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
+          ImGuiKnobVariant_WiperOnly, 0,
+          ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
+          GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
+      }
+  }
+  void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char* label,
+      M7::real_t v_defaultScaled, float size /*=0*/,
+      ImGuiKnobs::ModInfo modInfo) {
+      WaveSabreCore::M7::real_t tempVal;
+      M7::ParamAccessor pa{ &tempVal, 0 };
+      pa.SetN11Value(0, v_defaultScaled);
+      float defaultParamVal = tempVal;
+      tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+
+      FloatN11Converter conv{};
+      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, modInfo,
+          gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
+          ImGuiKnobVariant_WiperOnly, size,
+          ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
+          GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
+      }
+  }
+
+  void Maj7ImGuiParamFloatN11WithCenter(VstInt32 paramID, const char* label,
+      M7::real_t v_defaultScaled,
+      float centerValN11, float size /*=0*/,
+      ImGuiKnobs::ModInfo modInfo) {
+      WaveSabreCore::M7::real_t tempVal;
+      M7::ParamAccessor pa{ &tempVal, 0 };
+      pa.SetN11Value(0, v_defaultScaled);
+      float defaultParamVal = tempVal;
+      pa.SetN11Value(0, centerValN11);
+      float centerVal01 = tempVal;
+      tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+
+      FloatN11Converter conv{};
+      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerVal01,
+          modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
+          ImGuiKnobVariant_WiperOnly, size,
+          ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
+          GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
+      }
   }
 
   // reflects the pow curve to negative range
   template <typename Tparam>
-  void Maj7ImGuiBipolarPowCurvedParam(Tparam paramID, const char *label,
-                                      const M7::PowCurvedParamCfg &cfg,
-                                      M7::real_t defaultMS,
-                                      ImGuiKnobs::ModInfo modInfo) {
-    M7::real_t tempVal;
-    M7::ParamAccessor p{&tempVal, 0};
-    p.SetBipolarPowCurvedValue(0, cfg, defaultMS);
-    float defaultParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-    // float ms = p.GetTimeMilliseconds(0, cfg, 0);
+  void Maj7ImGuiBipolarPowCurvedParam(Tparam paramID, const char* label,
+      const M7::PowCurvedParamCfg& cfg,
+      M7::real_t defaultMS,
+      ImGuiKnobs::ModInfo modInfo) {
+      M7::real_t tempVal;
+      M7::ParamAccessor p{ &tempVal, 0 };
+      p.SetBipolarPowCurvedValue(0, cfg, defaultMS);
+      float defaultParamVal = tempVal;
+      tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+      // float ms = p.GetTimeMilliseconds(0, cfg, 0);
 
-    BipolarPowCurvedConverter conv{cfg};
-    if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, modInfo,
-                         gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                         ImGuiKnobVariant_WiperOnly, 0,
-                         ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
-      GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
-    }
+      BipolarPowCurvedConverter conv{ cfg };
+      if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, modInfo,
+          gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
+          ImGuiKnobVariant_WiperOnly, 0,
+          ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
+          GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
+      }
   }
 
-  template <typename Tparam>
-  void Maj7ImGuiDivCurvedParam(Tparam paramID, const char *label,
-                               const M7::DivCurvedParamCfg &cfg,
-                               M7::real_t defaultValue,
-                               ImGuiKnobs::ModInfo modInfo) {
-    M7::real_t tempVal;
-    M7::ParamAccessor p{&tempVal, 0};
-    p.SetDivCurvedValue(0, cfg, defaultValue);
-    float defaultParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-    // float val = p.GetDivCurvedValue(0, cfg, 0);
-
-    DivCurvedConverter conv{cfg};
-    if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo,
-                         gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                         ImGuiKnobVariant_WiperOnly, 0,
-                         ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
-      GetEffectX()->setParameterAutomated((VstInt32)paramID, (tempVal));
-    }
-  }
-
-  // void Maj7ImGuiParamEnvTime(VstInt32 paramID, const char* label, M7::real_t
-  // v_defaultScaled, ImGuiKnobs::ModInfo modInfo) { WaveSabreCore::M7::real_t
-  // tempVal; 	M7::EnvTimeParam p{ tempVal , v_defaultScaled }; 	float
-  // defaultParamVal = p.GetRawParamValue();
-  //	p.SetParamValue(GetEffectX()->getParameter((VstInt32)paramID));
-
-  //	EnvTimeConverter conv{ };
-  //	if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0, modInfo,
-  // gNormalKnobSpeed, gSlowKnobSpeed, nullptr, ImGuiKnobVariant_WiperOnly, 0,
-  // ImGuiKnobFlags_CustomInput, 10, &conv, this))
-  //	{
-  //		GetEffectX()->setParameterAutomated(paramID, Clamp01(tempVal));
-  //	}
-  //}
-
-  void Maj7ImGuiParamFloatN11(VstInt32 paramID, const char *label,
-                              M7::real_t v_defaultScaled, float size /*=0*/,
-                              ImGuiKnobs::ModInfo modInfo) {
-    WaveSabreCore::M7::real_t tempVal;
-    M7::ParamAccessor pa{&tempVal, 0};
-    pa.SetN11Value(0, v_defaultScaled);
-    float defaultParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-
-    FloatN11Converter conv{};
-    if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, 0.5f, modInfo,
-                         gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                         ImGuiKnobVariant_WiperOnly, size,
-                         ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
-    }
-  }
-
-  void Maj7ImGuiParamFloatN11WithCenter(VstInt32 paramID, const char *label,
-                                        M7::real_t v_defaultScaled,
-                                        float centerValN11, float size /*=0*/,
-                                        ImGuiKnobs::ModInfo modInfo) {
-    WaveSabreCore::M7::real_t tempVal;
-    M7::ParamAccessor pa{&tempVal, 0};
-    pa.SetN11Value(0, v_defaultScaled);
-    float defaultParamVal = tempVal;
-    pa.SetN11Value(0, centerValN11);
-    float centerVal01 = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-
-    FloatN11Converter conv{};
-    if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerVal01,
-                         modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                         ImGuiKnobVariant_WiperOnly, size,
-                         ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
-    }
-  }
-
-  void Maj7ImGuiParamFloat01(VstInt32 paramID, const char *label,
-                             M7::real_t v_default01, float centerVal01,
-                             float size = 0.0f,
-                             ImGuiKnobs::ModInfo modInfo = {}) {
-    WaveSabreCore::M7::real_t tempVal = v_default01;
-    M7::ParamAccessor pa{&tempVal, 0};
-    float defaultParamVal = pa.Get01Value(0);
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-
-    Float01Converter conv{};
-    if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamVal, centerVal01,
-                         modInfo, gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
-                         ImGuiKnobVariant_WiperOnly, size,
-                         ImGuiKnobFlags_CustomInput, 10, &conv, this)) {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
-    }
-  }
 
   enum class M7CurveRenderStyle {
     Rising,
@@ -2348,7 +931,6 @@ public:
                            ImGuiKnobs::ModInfo modInfo) {
     WaveSabreCore::M7::real_t tempVal;
     M7::ParamAccessor pa{&tempVal, 0};
-    // M7::CurveParam p{ tempVal };
     pa.SetN11Value(0, v_defaultN11);
     float defaultParamVal = tempVal;
     tempVal = GetEffectX()->getParameter((VstInt32)paramID);
@@ -2373,11 +955,8 @@ public:
                             ImGuiKnobs::ModInfo modInfo) {
     WaveSabreCore::M7::real_t tempVal;
     M7::ParamAccessor pa{&tempVal, 0};
-    // M7::VolumeParam p{ tempVal, cfg };
     pa.SetDecibels(0, cfg, v_defaultDB);
-    // p.SetDecibels(v_defaultDB);
-    float defaultParamVal = tempVal; // p.GetRawParamValue();
-    // p.SetDecibels(0);
+    float defaultParamVal = tempVal;
     pa.SetDecibels(0, cfg, 0);
     float centerParamVal = tempVal;
     tempVal = GetEffectX()->getParameter((VstInt32)paramID);
@@ -2402,6 +981,7 @@ public:
     static constexpr float handleRadius = 3;
     static constexpr int circleSegments = 7;
 
+    // Get envelope parameters
     float delayWidth =
         M7::math::clamp(GetEffectX()->getParameter(
                             (VstInt32)delayTimeParamID +
@@ -2443,32 +1023,17 @@ public:
     M7::QuickParam attackCurve{
         GetEffectX()->getParameter((VstInt32)delayTimeParamID +
                                    (int)M7::EnvParamIndexOffsets::AttackCurve)};
-    // float attackCurveRaw;
-    // M7::CurveParam attackCurve{ attackCurveRaw };
-    // attackCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID
-    // + (int)M7::EnvParamIndexOffsets::AttackCurve));
-
     M7::QuickParam decayCurve{
         GetEffectX()->getParameter((VstInt32)delayTimeParamID +
                                    (int)M7::EnvParamIndexOffsets::DecayCurve)};
-    // float decayCurveRaw;
-    // M7::CurveParam decayCurve{ decayCurveRaw };
-    // decayCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID
-    // + (int)M7::EnvParamIndexOffsets::DecayCurve));
-
     M7::QuickParam releaseCurve{GetEffectX()->getParameter(
         (VstInt32)delayTimeParamID +
         (int)M7::EnvParamIndexOffsets::ReleaseCurve)};
-    // float releaseCurveRaw;
-    // M7::CurveParam releaseCurve{ releaseCurveRaw };
-    // releaseCurve.SetParamValue(GetEffectX()->getParameter((VstInt32)delayTimeParamID
-    // + (int)M7::EnvParamIndexOffsets::ReleaseCurve));
 
     ImVec2 originalPos = ImGui::GetCursorScreenPos();
     ImVec2 p = originalPos;
     p.x += padding;
     p.y += padding;
-    // D A H D S R
     ImDrawList *dl = ImGui::GetWindowDrawList();
 
     // background
@@ -2480,21 +1045,14 @@ public:
     ImVec2 innerBottomLeft = {innerTL.x, innerTL.y + innerHeight};
     ImVec2 innerBottomRight = {innerBottomLeft.x + gMaxWidth,
                                innerBottomLeft.y};
-    // dl->AddRectFilled(outerTL, outerBottomRight,
-    // ImGui::GetColorU32(ImGuiCol_FrameBg)); dl->AddRect(outerTL,
-    // outerBottomRight, ImGui::GetColorU32(ImGuiCol_Frame));
+
     ImGui::RenderFrame(outerTL, outerBottomRight,
                        ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f);
-    // dl->AddRectFilled(innerTL, innerBottomRight,
-    // ImGui::GetColorU32(ImGuiCol_FrameBg));
 
-    // ImVec2 startPos = innerBottomLeft;// { innerTL.x, innerTL.y + innerHeight
-    // };
+    // Draw envelope segments
     ImVec2 delayStart = innerBottomLeft;
     ImVec2 delayEnd = {delayStart.x + delayWidth, delayStart.y};
     dl->AddLine(delayStart, delayEnd, lineColor, gLineThickness);
-    // dl->PathLineTo(delayStart);
-    // dl->PathLineTo(delayEnd); // delay flat line
 
     ImVec2 attackEnd = {delayEnd.x + attackWidth, innerTL.y};
     AddCurveToPath(dl, delayEnd,
@@ -2502,7 +1060,6 @@ public:
                    false, attackCurve.GetRawValue(), lineColor, gLineThickness);
 
     ImVec2 holdEnd = {attackEnd.x + holdWidth, attackEnd.y};
-    // dl->PathLineTo(holdEnd);
     dl->AddLine(attackEnd, holdEnd, lineColor, gLineThickness);
 
     ImVec2 decayEnd = {holdEnd.x + decayWidth, innerTL.y + sustainYOffset};
@@ -2511,7 +1068,6 @@ public:
                    decayCurve.GetRawValue(), lineColor, gLineThickness);
 
     ImVec2 sustainEnd = {decayEnd.x + sustainWidth, decayEnd.y};
-    // dl->PathLineTo(sustainEnd); // sustain flat line
     dl->AddLine(decayEnd, sustainEnd, lineColor, gLineThickness);
 
     ImVec2 releaseEnd = {sustainEnd.x + releaseWidth, innerBottomLeft.y};
@@ -2520,6 +1076,7 @@ public:
                    true, true, releaseCurve.GetRawValue(), lineColor,
                    gLineThickness);
 
+    // Draw control points
     dl->AddCircleFilled(delayStart, handleRadius,
                         ImGui::GetColorU32(ImGuiCol_PlotLinesHovered),
                         circleSegments);
@@ -2542,14 +1099,6 @@ public:
                         ImGui::GetColorU32(ImGuiCol_PlotLinesHovered),
                         circleSegments);
 
-    // auto pathCopy = dl->_Path;
-    // dl->PathLineTo(delayStart);
-    // dl->PathFillConvex(ImGui::GetColorU32(ImGuiCol_Button));
-
-    // dl->_Path = pathCopy;
-    // dl->PathStroke(ImGui::GetColorU32(ImGuiCol_PlotHistogram),
-    // ImDrawFlags_None, gThickness);
-
     ImGui::Dummy({outerBottomRight.x - originalPos.x,
                   outerBottomRight.y - originalPos.y});
   }
@@ -2557,21 +1106,8 @@ public:
   virtual bool onWheel(float distance) { return false; }
   virtual bool setKnobMode(VstInt32 val) { return false; }
 
-  // these are called in response to effEditKeyDown/Up, and according to some
-  // online sources they are not well/consistently supported, maybe even
-  // mac-specific, and shouldn't be used. we will instead use native processing.
-  virtual bool onKeyDown(VstKeyCode &keyCode) override {
-    return false; // important to return false, so the host doesn't swallow the
-                  // message.
-  }
-  virtual bool onKeyUp(VstKeyCode &keyCode) override {
-    //	if (keyCode.character > 0) {
-    //		ImGui::GetIO().AddInputCharacterUTF16((unsigned
-    // short)keyCode.character); 		return true;
-    //	}
-    return false; // important to return false, so the host doesn't swallow the
-                  // message.
-  }
+  virtual bool onKeyDown(VstKeyCode &keyCode) override { return false; }
+  virtual bool onKeyUp(VstKeyCode &keyCode) override { return false; }
 
 protected:
   VstKeyCode mLastKeyDown = {0};
@@ -2584,9 +1120,7 @@ protected:
   D3DPRESENT_PARAMETERS g_d3dpp = {};
 
   bool CreateDeviceD3D(HWND hWnd);
-
   void CleanupDeviceD3D();
-
   void ResetDevice();
 
   HWND mParentWindow = nullptr;
@@ -2595,16 +1129,12 @@ protected:
   ImGuiContext *mImGuiContext = nullptr;
 
   struct GuiContextRestorer {
-    // cc::LogScope mls;
     ImGuiContext *mPrevContext = nullptr;
     bool pushed = false;
     const char *mWhy;
-    GuiContextRestorer(ImGuiContext *newContext, const char *why)
-        : mWhy(why) /*, mls(why)*/ {
+    GuiContextRestorer(ImGuiContext *newContext, const char *why) : mWhy(why) {
       mPrevContext = ImGui::GetCurrentContext();
-      // cc::log("pushing context; %p  ==>  %p", mPrevContext);
       if (mPrevContext == newContext) {
-        // cc::log("  -> no change needed");
         return; // no change needed.
       }
       pushed = true;
@@ -2613,18 +1143,11 @@ protected:
     ~GuiContextRestorer() {
       auto current = ImGui::GetCurrentContext();
       if (!pushed) {
-        // cc::log("popping context; ignoring because it was not pushed.
-        // mPrevContext=%p, currentcontext=%p", mPrevContext, current);
         return;
       }
       if (current == mPrevContext) {
-        // cc::log("popping context; no need to change context because it's
-        // already correct. mPrevContext=%p, currentcontext=%p", mPrevContext,
-        // current);
         return;
       }
-      // cc::log("popping context; currentcontext=%p  ==>  mPrevContext=%p",
-      // current, mPrevContext);
       ImGui::SetCurrentContext(mPrevContext);
     }
   };

@@ -163,8 +163,6 @@ enum ImGuiKnobVariant_ {
 	ImGuiKnobVariant_ProgressBarWithValue = 1 << 9,
 };
 
-
-//inline static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertX, bool invertY, const WaveSabreCore::M7::CurveParam& param, ImU32 color, float thickness, int segments = 16)
 inline static void AddCurveToPath(ImDrawList* dl, ImVec2 pos, ImVec2 size, bool invertX, bool invertY, float paramValue01, ImU32 color, float thickness, int segments = 16)
 {
     ImVec2 p = pos;
