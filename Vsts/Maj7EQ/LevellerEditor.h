@@ -181,16 +181,16 @@ public:
 		cfg.fftOverlays = {
 			{
 				&mpLeveller->mInputSpectrumSmoother,  // Input signal (before EQ)
-				ColorFromHTML("FF6600", 0.8f),        // Orange - Input signal
-				ColorFromHTML("FF6600", 0.3f),        // Orange fill (more transparent)
+				ColorFromHTML("888888", 0.8f),        // Orange - Input signal
+				ColorFromHTML("444444", 0.3f),        // Orange fill (more transparent)
 				false,                                 // Use left channel
 				true,                                  // Enable fill
 				"Input"                                // Label for legend
 			},
 			{
 				&mpLeveller->mOutputSpectrumSmoother, // Output signal (after EQ)
-				ColorFromHTML("00AA44", 0.8f),        // Green - Output signal  
-				ColorFromHTML("00AA44", 0.3f),        // Green fill (more transparent)
+				ColorFromHTML("007777", 0.8f),        // Green - Output signal  
+				ColorFromHTML("005555", 0.3f),        // Green fill (more transparent)
 				false,                                 // Use left channel
 				true,                                  // Enable fill
 				"Output"                               // Label for legend
