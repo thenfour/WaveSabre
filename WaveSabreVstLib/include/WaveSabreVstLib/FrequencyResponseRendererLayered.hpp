@@ -92,40 +92,9 @@ public:
     mGraph.Render();
   }
 
-  // Configure crossover visualization via direct magnitude providers (preferred)
-  void SetCrossoverBands(const std::vector<std::function<float(float)>>& bandMagnitudeFns,
-                         const std::vector<ImColor>& colors = {},
-                         const std::vector<const char*>& labels = {},
-                         std::function<void(std::vector<float>&)> getCrossoverFrequencies = nullptr)
-  {
-    if (!mCrossoverLayer) return;
-    mCrossoverLayer->SetBands(bandMagnitudeFns, colors, labels, std::move(getCrossoverFrequencies));
-  }
-
-  // Configure crossover visualization frequencies (legacy)
-  void SetCrossoverFrequencies(const std::vector<float>& frequencies,
-                               const std::vector<ImColor>& colors = {},
-                               const std::vector<const char*>& labels = {})
-  {
-    if (!mCrossoverLayer) return;
-
-    // If no colors provided, choose defaults up to 4 bands
-    std::vector<ImColor> useColors = colors;
-    if (useColors.empty()) {
-      useColors = {
-        ColorFromHTML("ff4444", 0.8f),
-        ColorFromHTML("44ff44", 0.8f),
-        ColorFromHTML("4444ff", 0.8f),
-        ColorFromHTML("ffff44", 0.8f)
-      };
-    }
-
-    std::vector<const char*> useLabels = labels;
-    if (useLabels.empty()) {
-      useLabels = { "Low", "Mid", "High", "Ultra" };
-    }
-
-    mCrossoverLayer->SetCrossoverFrequencies(frequencies, useColors, useLabels);
+  // Connect the crossover visualization directly to the device
+  void SetCrossoverFilter(const WaveSabreCore::Maj7MBC* device) {
+    if (mCrossoverLayer) mCrossoverLayer->SetCrossoverDevice(device);
   }
   
   // Expose coordinate conversion functions for compatibility

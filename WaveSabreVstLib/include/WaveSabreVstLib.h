@@ -14,6 +14,15 @@
 
 namespace WaveSabreVstLib
 {
+	using HtmlColorString = char[7];
+	const HtmlColorString bandColors[Leveller::gBandCount] = {
+"ff98f5", // vibrant magenta
+"00d88e", // punchy teal-green
+"ffa49c", // lively coral
+"91bfff", // bright azure
+"ffaa33", // vivid amber
+	};
+
 	// converts a value to enum, via its integral value. todo: structured with a string value.
 	template<typename Tenum>
 	Tenum ToEnum(clarinoid::JsonVariantReader& value, Tenum count)

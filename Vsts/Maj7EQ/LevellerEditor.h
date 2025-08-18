@@ -120,14 +120,6 @@ public:
 
 		ImGui::BeginGroup();
 
-		using HtmlColorString = char[7];
-		const HtmlColorString bandColors[Leveller::gBandCount] = {
-  "ff98f5", // vibrant magenta
-  "00d88e", // punchy teal-green
-  "ffa49c", // lively coral
-  "91bfff", // bright azure
-  "ffaa33", // vivid amber
-		};
 		RenderBand(0, "A", Leveller::ParamIndices::Band1Type, 90, bandColors[0]);
 		RenderBand(1, "B", Leveller::ParamIndices::Band2Type, 250, bandColors[1]);
 		RenderBand(2, "C", Leveller::ParamIndices::Band3Type, 1100, bandColors[2]);

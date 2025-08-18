@@ -8,6 +8,7 @@
 //#include "Filters/FilterK35.hpp"
 #include "Filters/FilterMoog.hpp"
 #include "Filters/FilterOnePole.hpp"
+#include <array>
 //#include "Filters/FilterSEM12.hpp"
 
 // disabling these filters saves ~60 bytes of final code
@@ -109,10 +110,16 @@ namespace WaveSabreCore
 			float c, i; // Additional state variables for SVFOPapf_temp
 		}; // SVFilter
 
+		static constexpr int gMBBands = 3;
+
 		struct LinkwitzRileyFilter {
 			using real = float;
 
+			// Q values to realize Linkwitz-Riley responses via cascaded 2nd-order SVFs
+			// q24 = 1/sqrt(2) (?0.7071) gives a Butterworth 2nd-order section; two in cascade -> LR4 (24 dB/oct)
 			static constexpr real q24 = 0.707106781187f;// sqrt(0.5);
+			// The following are Q values for constructing an LR8 (48 dB/oct) via four 2nd-order sections.
+			// They are kept for reference but not used in the current build.
 			static constexpr real q48_1 = 0.541196100146f;// 0.5 / cos($pi / 8 * 1);
 			static constexpr real q48_2 = 1.30656296488f;// 0.5 / cos($pi / 8 * 3);
 
@@ -202,29 +209,33 @@ namespace WaveSabreCore
 //			}
 			}
 
-			// New: static helpers to query magnitude (linear) of LR24 filters
 			static inline float MagnitudeLPF(float freqHz, float crossoverHz)
 			{
 				if (crossoverHz <= 0.0f) return 0.0f;
-				const float ratio = freqHz / crossoverHz;
-				const float r2 = ratio * ratio;
+
+				const float r = freqHz / crossoverHz;
+				const float r2 = r * r;
 				const float r4 = r2 * r2;
-				const float denom = std::sqrt((1.0f - 2.0f*r2 + r4) * (1.0f - 2.0f*r2 + r4)
-								 + (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2)
-								 * (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2));
+
+				// LR4 low-pass amplitude: 1 / (1 + r^4)
+				const float denom = 1.0f + r4;
 				return 1.0f / denom;
 			}
+
 			static inline float MagnitudeHPF(float freqHz, float crossoverHz)
 			{
 				if (crossoverHz <= 0.0f) return 1.0f;
-				const float ratio = freqHz / crossoverHz;
-				const float r2 = ratio * ratio;
+
+				const float r = freqHz / crossoverHz;
+				const float r2 = r * r;
 				const float r4 = r2 * r2;
-				const float denom = std::sqrt((1.0f - 2.0f*r2 + r4) * (1.0f - 2.0f*r2 + r4)
-								 + (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2)
-								 * (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2));
+
+				// LR4 high-pass amplitude: r^4 / (1 + r^4)
+				const float denom = 1.0f + r4;
 				return r4 / denom;
 			}
+
+
 		};
 
 		//struct SVFilterNode : IFilter {
@@ -553,9 +564,9 @@ namespace WaveSabreCore
 #endif // DISABLE_6db_oct_crossover
 
 			// low, med, high bands.
-			float s[3];
+			float s[gMBBands];
 
-			void frequency_splitter(float x, float crossoverFreqA, /*, LinkwitzRileyFilter::Slope crossoverSlope,*/ float crossoverFreqB)
+			void frequency_splitter(float x, float crossoverFreqA, /*LinkwitzRileyFilter::Slope crossoverSlope, */ float crossoverFreqB)
 			{
 				// do some fixing of crossover frequencies.
 				float a = math::clamp(crossoverFreqA, 30, 18000);
@@ -583,6 +594,23 @@ namespace WaveSabreCore
 					s[2] = mLR[5].LR_HPF(s[2], crossoverFreqB/*, crossoverSlope*/);
 				}
 			}
+
+			std::array<float, gMBBands> GetMagnitudesAtFrequency(float freqHz, float crossoverFreqA, float crossoverFreqB) const
+			{
+				// Return low/mid/high magnitudes at the given frequency using LR4 responses.
+				// Keep the same clamping and ordering as the processing path.
+				float a = math::clamp(crossoverFreqA, 30.0f, 18000.0f);
+				float b = math::clamp(crossoverFreqB, 30.0f, 18000.0f);
+
+				float low  = LinkwitzRileyFilter::MagnitudeLPF(freqHz, a) * LinkwitzRileyFilter::MagnitudeLPF(freqHz, b);
+				float mid  = LinkwitzRileyFilter::MagnitudeHPF(freqHz, a) * LinkwitzRileyFilter::MagnitudeLPF(freqHz, b);
+				// High band includes an APF at A which has unity magnitude; only HPF at B shapes magnitude.
+				float high = LinkwitzRileyFilter::MagnitudeHPF(freqHz, b);
+
+				return { low, mid, high };
+				//std::array<float, gMBBands> ret;
+				//return ret;
+			}
 		};
 
 
@@ -590,6 +618,60 @@ namespace WaveSabreCore
 
 
 } // namespace WaveSabreCore
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

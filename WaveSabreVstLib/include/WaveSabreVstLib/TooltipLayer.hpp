@@ -90,8 +90,6 @@ public:
       float magDBLerp;
       bool hasCurve = false;
       if (mEQLayer) {
-        // We don't know TSegmentCount here; attempt calling via known instantiations is not possible.
-        // As a minimal improvement, keep fallback when we cannot query.
         // Future: introduce an interface for querying the response.
       }
 

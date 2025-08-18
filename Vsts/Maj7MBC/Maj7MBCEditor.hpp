@@ -278,7 +278,7 @@ struct Maj7MBCEditor : public VstEditor
 			if (WSBeginTabItem("IO"))
 			{
 				// Show crossover visualization if multiband is enabled
-				//if (mbEnabled) {
+					// Build renderer config
 					FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> crossoverCfg{
 						ColorFromHTML("222222", 1.0f), // background
 						ColorFromHTML("ff8800", 1.0f), // line (unused for crossover)
@@ -289,63 +289,22 @@ struct Maj7MBCEditor : public VstEditor
 						crossoverCfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
 					}
 
+					// Optional FFT overlay for input signal
 					crossoverCfg.fftOverlays = {
-							{
-								&mpMaj7MBC->mInputSpectrum,  // Input signal (before EQ)
-								ColorFromHTML("888888", 0.8f),        // Orange - Input signal
-								ColorFromHTML("444444", 0.3f),        // Orange fill (more transparent)
-								true,                                  // Enable fill
-								"Input"                                // Label for legend
-							}
+						{
+							&mpMaj7MBC->mInputSpectrum,  // Input signal (before processing)
+							ColorFromHTML("888888", 0.8f),
+							ColorFromHTML("444444", 0.3f),
+							true,
+							"Input"
+						}
 					};
 
-					// Configure crossover bands using the actual frequency splitter logic
-					{
-						std::vector<std::function<float(float)>> bandMagFns;
-						std::vector<ImColor> colors = {
-							ColorFromHTML("ff4444", 0.8f), // lows
-							ColorFromHTML("44ff44", 0.8f), // mids  
-							ColorFromHTML("4444ff", 0.8f)  // highs
-						};
-						std::vector<const char*> labels = { "Low", "Mid", "High" };
-
-						// Get current crossover frequencies
-						float xAraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverAFrequency);
-						float xBraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverBFrequency);
-						M7::ParamAccessor paA{ &xAraw, 0 };
-						M7::ParamAccessor paB{ &xBraw, 0 };
-						float crossoverFreqA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-						float crossoverFreqB = paB.GetFrequency(0, M7::gFilterFreqConfig);
-
-						// Build magnitude functions that match FrequencySplitter::frequency_splitter logic
-						// Band 0 (lows): LPF at crossoverA then LPF at crossoverB  
-						bandMagFns.emplace_back([crossoverFreqA, crossoverFreqB](float freqHz) -> float {
-							float mag = M7::LinkwitzRileyFilter::MagnitudeLPF(freqHz, crossoverFreqA);
-							return mag * M7::LinkwitzRileyFilter::MagnitudeLPF(freqHz, crossoverFreqB);
-							});
-
-						// Band 1 (mids): HPF at crossoverA then LPF at crossoverB
-						bandMagFns.emplace_back([crossoverFreqA, crossoverFreqB](float freqHz) -> float {
-							float mag = M7::LinkwitzRileyFilter::MagnitudeHPF(freqHz, crossoverFreqA);
-							return mag * M7::LinkwitzRileyFilter::MagnitudeLPF(freqHz, crossoverFreqB);
-							});
-
-						// Band 2 (highs): APF at crossoverA then HPF at crossoverB  
-						bandMagFns.emplace_back([crossoverFreqA, crossoverFreqB](float freqHz) -> float {
-							// APF has magnitude of 1, so just HPF at crossoverB
-							return M7::LinkwitzRileyFilter::MagnitudeHPF(freqHz, crossoverFreqB);
-							});
-
-						// Provide crossover marker lines
-						auto getLines = [crossoverFreqA, crossoverFreqB](std::vector<float>& out) {
-							if (crossoverFreqA > 0) out.push_back(crossoverFreqA);
-							if (crossoverFreqB > 0) out.push_back(crossoverFreqB);
-							};
-
-						mCrossoverGraph.SetCrossoverBands(bandMagFns, colors, labels, getLines);
-					}
-
+					// Connect the crossover renderer directly to device; it will read params itself
+						mCrossoverGraph.SetCrossoverFilter(mbEnabled ? mpMaj7MBC : nullptr);
 					mCrossoverGraph.OnRender(crossoverCfg);
+
+					//ImGui::EndTabItem();
 				//}
 
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });

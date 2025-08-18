@@ -157,6 +157,10 @@ public:
   
   void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
     // Render response as visible segments only
+      if (mFilters.size() == 0) {
+          return;
+      }
+
     std::vector<ImVec2> segment;
     segment.reserve(TSegmentCount);
 

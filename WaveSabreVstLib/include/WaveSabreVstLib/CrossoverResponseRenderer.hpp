@@ -17,6 +17,7 @@
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/FFTAnalysis.hpp>
+#include <WaveSabreCore/Maj7MBC.hpp>
 #include "FrequencyMagnitudeGraphUtils.hpp"
 
 using real_t = WaveSabreCore::M7::real_t;
@@ -31,73 +32,25 @@ namespace WaveSabreVstLib {
 template <int TSegmentCount>
 class CrossoverResponseLayer : public IFrequencyGraphLayer {
 private:
-  struct CrossoverBandLegacy {
-    float frequencyHz;
-    ImColor color;
-    const char* label;
-    std::function<void(float newFreqHz)> onFrequencyChanged;
-    bool isActive = true;
-  };
-  
-  // Legacy param-driven bands (for backward compatibility)
-  std::vector<CrossoverBandLegacy> mBands;
-
-  // New: direct magnitude providers per band
-  std::vector<std::function<float(float /*freqHz*/)>> mBandMagnitudeFns;
-  std::vector<ImColor> mBandColors;
-  std::vector<const char*> mBandLabels;
-
-  // Optional: provider to retrieve crossover line frequencies (for drawing vertical markers)
-  std::function<void(std::vector<float>&)> mGetCrossoverFrequencies;
+  // Connected device for param access
+  const WaveSabreCore::Maj7MBC* mDevice = nullptr;
 
   std::vector<float> mFrequencies;
   std::vector<float> mScreenX;
   std::vector<std::vector<float>> mBandResponses; // Per-band magnitude responses
   
+  // Visuals
+  // Default colors (lows/mids/highs). If a global theme is available, substitute here.
+  std::vector<ImColor> mBandColors { ColorFromHTML("ff4444", 0.8f), ColorFromHTML("44ff44", 0.8f), ColorFromHTML("4444ff", 0.8f)};
+  std::vector<const char*> mBandLabels { "Low", "Mid", "High" };
+
 public:
   CrossoverResponseLayer() {
-    mBandResponses.resize(4); // Support up to 4 bands initially
-  }
-  
-  // New API: operate directly with underlying filters by supplying per-band magnitude functions.
-  // - bandMagnitudeFns: one function per band returning linear magnitude for a given frequency in Hz.
-  // - colors/labels: optional visual configuration per band (size should match bandMagnitudeFns or be empty).
-  // - getCrossoverFrequencies: optional callback to provide current crossover frequencies for vertical lines.
-  void SetBands(const std::vector<std::function<float(float)>>& bandMagnitudeFns,
-                const std::vector<ImColor>& colors = {},
-                const std::vector<const char*>& labels = {},
-                std::function<void(std::vector<float>&)> getCrossoverFrequencies = nullptr)
-  {
-    mBandMagnitudeFns = bandMagnitudeFns;
-    mBandColors = colors;
-    mBandLabels = labels;
-    mGetCrossoverFrequencies = std::move(getCrossoverFrequencies);
-
-    // Ensure band responses storage large enough
-    if (mBandResponses.size() < mBandMagnitudeFns.size()) {
-      mBandResponses.resize(mBandMagnitudeFns.size());
-    }
+    mBandResponses.resize(3); // Low, Mid, High
   }
 
-  // Legacy API: frequency-param driven LR crossover
-  void SetCrossoverFrequencies(const std::vector<float>& frequencies, 
-                              const std::vector<ImColor>& colors,
-                              const std::vector<const char*>& labels) {
-    mBands.clear();
-    
-    for (size_t i = 0; i < frequencies.size() && i < colors.size(); ++i) {
-      CrossoverBandLegacy band;
-      band.frequencyHz = frequencies[i];
-      band.color = colors[i];
-      band.label = (i < labels.size()) ? labels[i] : nullptr;
-      mBands.push_back(band);
-    }
-
-    // Reset new-API storage
-    mBandMagnitudeFns.clear();
-    mBandColors.clear();
-    mBandLabels.clear();
-    mGetCrossoverFrequencies = nullptr;
+  void SetCrossoverDevice(const WaveSabreCore::Maj7MBC* device) {
+    mDevice = device;
   }
   
   bool InfluencesAutoScale() const override { return true; }
@@ -110,67 +63,57 @@ public:
   void UpdateData(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
     // Generate screen-space frequency sampling
     ScreenSpaceFrequencySampler::GenerateFrequencyPoints(TSegmentCount, mFrequencies, mScreenX, coords, bb);
-    
-    // Determine number of bands via new API or legacy fallback
-    size_t bandCount = !mBandMagnitudeFns.empty() ? mBandMagnitudeFns.size() : (mBands.size() + 1);
 
-    if (mBandResponses.size() < bandCount) {
-      mBandResponses.resize(bandCount);
+    // Default: empty responses if no device
+    if (!mDevice) {
+      for (auto &br : mBandResponses) br.assign(TSegmentCount, -100.0f);
+      return;
     }
 
-    // Calculate responses per band
-    for (size_t bandIdx = 0; bandIdx < bandCount; ++bandIdx) {
-      auto& bandResponse = mBandResponses[bandIdx];
-      bandResponse.resize(TSegmentCount);
-      
-      for (int i = 0; i < TSegmentCount; ++i) {
-        float freq = mFrequencies[i];
-        float magLin = 1.0f;
+    // todo: get magnitudes for bands from mDevice->splitter0.
 
-        if (!mBandMagnitudeFns.empty()) {
-          // New path: call provided magnitude function
-          magLin = mBandMagnitudeFns[bandIdx](freq);
-        } else {
-          // Legacy path: derive from LR crossovers list (bands = crossovers + 1)
-          if (bandIdx == 0) {
-            // Lowest band: product of LPFs at each active crossover
-            for (const auto& xover : mBands) {
-              if (xover.isActive) {
-                magLin *= M7::LinkwitzRileyFilter::MagnitudeLPF(freq, xover.frequencyHz);
-              }
-            }
-          } else {
-            for (size_t xoverIdx = 0; xoverIdx < mBands.size(); ++xoverIdx) {
-              const auto& xover = mBands[xoverIdx];
-              if (!xover.isActive) continue;
-              if (xoverIdx < bandIdx) {
-                magLin *= M7::LinkwitzRileyFilter::MagnitudeHPF(freq, xover.frequencyHz);
-              } else {
-                magLin *= M7::LinkwitzRileyFilter::MagnitudeLPF(freq, xover.frequencyHz);
-              }
-            }
-          }
-        }
-        bandResponse[i] = M7::math::LinearToDecibels(magLin);
+    // Read crossover frequencies from device params
+    float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
+    float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
+    M7::ParamAccessor paA{ &rawA, 0 };
+    M7::ParamAccessor paB{ &rawB, 0 };
+    float crossoverA = paA.GetFrequency(0, M7::gFilterFreqConfig);
+    float crossoverB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+
+    // Use splitter magnitudes from the device
+    auto* pSplitter = &mDevice->splitter0;
+
+    // Calculate responses for each band
+    for (int i = 0; i < TSegmentCount; ++i) {
+      float f = mFrequencies[i];
+
+      // Low/Mid/High band magnitudes from device splitter (LR topology)
+      auto mags = pSplitter->GetMagnitudesAtFrequency(f, crossoverA, crossoverB);
+      float lowLin = mags[0];
+      float midLin = mags[1];
+      float highLin = mags[2];
+
+      if (mBandResponses.size() < 3) mBandResponses.resize(3);
+      if ((int)mBandResponses[0].size() != TSegmentCount) {
+        mBandResponses[0].resize(TSegmentCount);
+        mBandResponses[1].resize(TSegmentCount);
+        mBandResponses[2].resize(TSegmentCount);
       }
+
+      mBandResponses[0][i] = M7::math::LinearToDecibels(lowLin);
+      mBandResponses[1][i] = M7::math::LinearToDecibels(midLin);
+      mBandResponses[2][i] = M7::math::LinearToDecibels(highLin);
     }
   }
   
   void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
-    const size_t bandCount = mBandResponses.size();
-
     // Render each crossover band response
-    for (size_t bandIdx = 0; bandIdx < bandCount; ++bandIdx) {
+    for (size_t bandIdx = 0; bandIdx < mBandResponses.size(); ++bandIdx) {
       const auto& bandResponse = mBandResponses[bandIdx];
       if (bandResponse.empty()) continue;
       
       // Determine band color
-      ImColor bandColor = ColorFromHTML("888888", 0.7f);
-      if (!mBandMagnitudeFns.empty()) {
-        if (bandIdx < mBandColors.size()) bandColor = mBandColors[bandIdx];
-      } else {
-        if (bandIdx < mBands.size()) bandColor = mBands[bandIdx].color;
-      }
+      ImColor bandColor = (bandIdx < mBandColors.size()) ? mBandColors[bandIdx] : ColorFromHTML("888888", 0.7f);
       
       // Build polyline points
       std::vector<ImVec2> points;
@@ -188,33 +131,29 @@ public:
         dl->AddPolyline(points.data(), static_cast<int>(points.size()), bandColor, 0, 2.0f);
       }
     }
-    
-    // Draw crossover frequency lines
-    std::vector<float> lines;
-    if (mGetCrossoverFrequencies) {
-      mGetCrossoverFrequencies(lines);
-    } else if (!mBands.empty()) {
-      for (const auto& band : mBands) if (band.isActive) lines.push_back(band.frequencyHz);
-    }
 
-    for (size_t i = 0; i < lines.size(); ++i) {
-      float x = coords.FreqToX(lines[i], bb);
-      if (x >= bb.Min.x && x <= bb.Max.x) {
-        // Pick a color: try band color at same index, else default
-        ImColor c = ColorFromHTML("cccccc", 0.5f);
-        if (!mBandMagnitudeFns.empty()) {
-          if (i < mBandColors.size()) c = ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.5f);
-        } else if (i < mBands.size()) {
-          c = ImColor(mBands[i].color.Value.x, mBands[i].color.Value.y, mBands[i].color.Value.z, 0.5f);
-        }
+    // Draw crossover marker lines (if device present)
+    if (mDevice) {
+      float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
+      float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
+      M7::ParamAccessor paA{ &rawA, 0 };
+      M7::ParamAccessor paB{ &rawB, 0 };
+      float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
+      float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+
+      std::vector<float> lines;
+      if (fA > 0) lines.push_back(fA);
+      if (fB > 0) lines.push_back(fB);
+
+      for (size_t i = 0; i < lines.size(); ++i) {
+        float x = coords.FreqToX(lines[i], bb);
+        ImColor c = (i < mBandColors.size()) ? ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.5f) : ColorFromHTML("cccccc", 0.5f);
+        
+
+		// vertical line at crossover frequency
         dl->AddLine({x, bb.Min.y}, {x, bb.Max.y}, c, 2.0f);
 
-        const char* label = nullptr;
-        if (!mBandMagnitudeFns.empty()) {
-          if (i < mBandLabels.size()) label = mBandLabels[i];
-        } else if (i < mBands.size()) {
-          label = mBands[i].label;
-        }
+        const char* label = (i < mBandLabels.size()) ? mBandLabels[i] : nullptr;
         if (label) {
           ImVec2 textSize = ImGui::CalcTextSize(label);
           ImVec2 textPos = {x - textSize.x * 0.5f, bb.Min.y + 5};
@@ -245,28 +184,8 @@ public:
     mGraph.AddLayer(std::unique_ptr<IFrequencyGraphLayer>(mCrossoverLayer.release()));
   }
   
-  // New helper: configure from magnitude functions directly
-  void SetBands(const std::vector<std::function<float(float)>>& bandMagnitudeFns,
-                const std::vector<ImColor>& colors = {},
-                const std::vector<const char*>& labels = {},
-                std::function<void(std::vector<float>&)> getCrossoverFrequencies = nullptr) {
-    if (mCrossoverLayer) mCrossoverLayer->SetBands(bandMagnitudeFns, colors, labels, std::move(getCrossoverFrequencies));
-  }
-
-  // Legacy helper kept for compatibility
-  void SetCrossoverFrequencies(const std::vector<float>& frequencies) {
-    if (mCrossoverLayer) {
-      std::vector<ImColor> colors = {
-        ColorFromHTML("ff4444", 0.8f), // Red for low band
-        ColorFromHTML("44ff44", 0.8f), // Green for mid band  
-        ColorFromHTML("4444ff", 0.8f), // Blue for high band
-        ColorFromHTML("ffff44", 0.8f)  // Yellow for ultra-high band
-      };
-      
-      std::vector<const char*> labels = {"Low", "Mid", "High", "Ultra"};
-      
-      mCrossoverLayer->SetCrossoverFrequencies(frequencies, colors, labels);
-    }
+  void SetCrossoverDevice(const WaveSabreCore::Maj7MBC* device) {
+    if (mCrossoverLayer) mCrossoverLayer->SetCrossoverDevice(device);
   }
   
   void Render() {
