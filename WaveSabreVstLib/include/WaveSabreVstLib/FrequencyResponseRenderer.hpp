@@ -28,6 +28,7 @@ namespace WaveSabreVstLib {
 struct FrequencyResponseRendererFilter {
   const char *thumbColor;
   const BiquadFilter *filter;
+  const char* label = nullptr;
 };
 
 template <size_t TFilterCount, size_t TParamCount>
@@ -64,6 +65,7 @@ struct FrequencyResponseRenderer {
   struct ThumbRenderInfo {
     const char * color;
     ImVec2 point;
+    const char* label;
   };
   // the response graph is extremely crude; todo:
   // - add the user-selected points to the points list explicitly, to give
@@ -329,8 +331,8 @@ struct FrequencyResponseRenderer {
     mDisplayMaxDB = +mCurrentHalfRangeDB;
 
     // draw background grid (frequency verticals and dynamic dB horizontals)
-    ImColor gridMinor = ColorFromHTML("333333", 0.5f);
-    ImColor gridMajor = ColorFromHTML("555555", 0.8f);
+    ImColor gridMinor = ColorFromHTML("333333", 0.4f);
+    ImColor gridMajor = ColorFromHTML("555555", 0.7f);
     ImColor labelColor = ColorFromHTML("AAAAAA", 0.65f);
     const float labelPad = 2.0f;
 
@@ -413,8 +415,7 @@ struct FrequencyResponseRenderer {
 
     // unity line (0 dB) over grid for visibility
     float unityY = std::round(DBToY(0, bb)); // round for crisp line.
-    dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("DDDDDD"),
-                1.5f);
+    dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("cccccc", 0.4f));
 
     // Render FFT spectrum overlays using unified screen-space sampling
     for (size_t overlayIndex = 0; overlayIndex < cfg.fftOverlays.size(); ++overlayIndex) {
@@ -521,7 +522,7 @@ struct FrequencyResponseRenderer {
     }
     flushSegment();
 
-    // 5) Render thumbs at band center frequencies if within range
+    // Render thumbs at band center frequencies if within range
     mThumbs.clear();
     for (auto &f : cfg.filters) {
       if (!f.filter)
@@ -532,12 +533,23 @@ struct FrequencyResponseRenderer {
       if (magdB < mDisplayMinDB || magdB > mDisplayMaxDB)
         continue;
 
-      mThumbs.push_back({f.thumbColor, {FreqToX(freq, bb), DBToY(magdB, bb)}});
+      mThumbs.push_back({
+          f.thumbColor,
+          {FreqToX(freq, bb), DBToY(magdB, bb)},
+          f.label
+          });
     }
     for (auto &th : mThumbs) {
         dl->AddCircleFilled(th.point, cfg.thumbRadius, ColorFromHTML(th.color, 0.8f));
-        dl->AddCircle(th.point, cfg.thumbRadius + 1, ColorFromHTML("000000"), 0, 2);
-        dl->AddCircle(th.point, cfg.thumbRadius + 2, ColorFromHTML(th.color), 0, 1);
+        dl->AddCircle(th.point, cfg.thumbRadius + 1, ColorFromHTML("000000"), 0, 1.5f);
+        //dl->AddCircle(th.point, cfg.thumbRadius + 2, ColorFromHTML(th.color), 0, 1);
+		// Draw label if available
+        if (th.label) {
+          ImVec2 textSize = ImGui::CalcTextSize(th.label);
+		  // center label on the thumb.
+		  ImVec2 textPos = { th.point.x - textSize.x * 0.5f, th.point.y - textSize.y * 0.5f };
+          dl->AddText(textPos, ColorFromHTML("000000"), th.label);
+		}
     }
 
     // Hover tooltip: show filter response magnitude at hovered frequency

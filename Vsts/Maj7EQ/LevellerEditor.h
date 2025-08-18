@@ -19,7 +19,7 @@ class LevellerEditor : public VstEditor
 	ColorMod mEnabledColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
-	FrequencyResponseRenderer<680,200,100, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams, true> mResponseGraph;
+	FrequencyResponseRenderer<780, 400, 100, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams, true> mResponseGraph;
 
 	// FFT Analysis controls (not VST parameters, just UI state)
 	float mFFTSmoothingFactor;// = 0.0f;      // 0.0-0.9
@@ -28,18 +28,18 @@ class LevellerEditor : public VstEditor
 	float mSpectrumFalloffTime;//= 2000.0f;   // 50-5000 ms
 	//FFTSize mFFTSizeSelection;// = 1;             // 0=512, 1=1024, 2=2048, 3=4096
 	//WindowType mFFTWindowType;// = 1;                // 0=Rectangular, 1=Hanning, 2=Hamming, 3=Blackman
-	
+
 	// Professional FFT scaling controls (separate from EQ response)
 	float mFFTDisplayMinDB = -80.0f;       // Noise floor
 	float mFFTDisplayMaxDB = 0.0f;         // Digital maximum  
 
 public:
 	LevellerEditor(AudioEffect* audioEffect)
-		: VstEditor(audioEffect, 700, 800),
+		: VstEditor(audioEffect, 800, 900),
 		mpLevellerVST((LevellerVst*)audioEffect)//,
 	{
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
-		
+
 		// Initialize FFT control values to match current Leveller settings
 		mFFTSmoothingFactor = mpLeveller->mInputSpectrumSmoother.GetFFTSmoothing();
 		mFFTOverlapFactor = mpLeveller->mInputSpectrumSmoother.GetOverlapFactor();
@@ -71,7 +71,14 @@ public:
 		bb.Min = ImGui::GetCursorScreenPos();
 		bb.Max = bb.Min + gSize;
 		auto* dl = ImGui::GetWindowDrawList();
+
 		dl->AddRectFilled(bb.Min, bb.Max, color);
+		// black label centered in bb
+		ImVec2 textSize = ImGui::CalcTextSize(label);
+		ImVec2 bbCenter = { bb.Min.x + (bb.Max.x - bb.Min.x) * 0.5f, bb.Min.y + (bb.Max.y - bb.Min.y) * 0.5f };
+		ImVec2 textPos = { bbCenter.x - textSize.x * 0.5f, bbCenter.y - textSize.y * 0.5f };
+		dl->AddText(textPos, ColorFromHTML("000000"), label);
+
 		ImGui::Dummy(gSize);
 
 		ImGui::SameLine(); WSImGuiParamCheckbox((int)paramOffset + (int)Leveller::BandParamOffsets::Enable, "Enable?");
@@ -113,44 +120,52 @@ public:
 
 		ImGui::BeginGroup();
 
-		Maj7ImGuiParamVolume((VstInt32)Leveller::ParamIndices::OutputVolume, "Output volume", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
-
-		ImGui::SameLine();
-
-		Maj7ImGuiBoolParamToggleButton(Leveller::ParamIndices::EnableDCFilter, "DC Filter");
-
 		using HtmlColorString = char[7];
 		const HtmlColorString bandColors[Leveller::gBandCount] = {
-			"cc44cc",
-			"44cc44",
-			"cc4444",
-			"4444ff",
-			"ff8822",
+  "ff98f5", // vibrant magenta
+  "00d88e", // punchy teal-green
+  "ffa49c", // lively coral
+  "91bfff", // bright azure
+  "ffaa33", // vivid amber
 		};
-
-		RenderBand(0, "band1", Leveller::ParamIndices::Band1Type, 90, bandColors[0]);
-		RenderBand(1, "band2", Leveller::ParamIndices::Band2Type, 250, bandColors[1]);
-		RenderBand(2, "band3", Leveller::ParamIndices::Band3Type, 1100, bandColors[2]);
-		RenderBand(3, "band4", Leveller::ParamIndices::Band4Type, 3000, bandColors[3]);
-		RenderBand(4, "band5", Leveller::ParamIndices::Band5Type, 8500, bandColors[4]);
+		RenderBand(0, "A", Leveller::ParamIndices::Band1Type, 90, bandColors[0]);
+		RenderBand(1, "B", Leveller::ParamIndices::Band2Type, 250, bandColors[1]);
+		RenderBand(2, "C", Leveller::ParamIndices::Band3Type, 1100, bandColors[2]);
+		RenderBand(3, "D", Leveller::ParamIndices::Band4Type, 3000, bandColors[3]);
+		RenderBand(4, "E", Leveller::ParamIndices::Band5Type, 8500, bandColors[4]);
 
 		ImGui::EndGroup();
 
-		ImGui::SameLine(); VUMeter("vu_inp", mpLeveller->mInputAnalysis[0], mpLeveller->mInputAnalysis[1]);
+		ImGui::SameLine();
+
+		ImGui::BeginGroup();
+
+		VUMeter("vu_inp", mpLeveller->mInputAnalysis[0], mpLeveller->mInputAnalysis[1]);
 		ImGui::SameLine(); VUMeter("vu_outp", mpLeveller->mOutputAnalysis[0], mpLeveller->mOutputAnalysis[1]);
 
+		Maj7ImGuiParamVolume((VstInt32)Leveller::ParamIndices::OutputVolume, "Output", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
+		ImGui::SameLine();
+		Maj7ImGuiBoolParamToggleButton(Leveller::ParamIndices::EnableDCFilter, "DC Filt");
+
+		ImGui::EndGroup();
+
 		const std::array<FrequencyResponseRendererFilter, Leveller::gBandCount> filters = {
-			FrequencyResponseRendererFilter{bandColors[0], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band1Enable) > 0.5f) ? &mpLeveller->mBands[0].mFilters[0] : nullptr},
-			FrequencyResponseRendererFilter{bandColors[1], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) > 0.5f) ? &mpLeveller->mBands[1].mFilters[0] : nullptr},
-			FrequencyResponseRendererFilter{bandColors[2], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band3Enable) > 0.5f) ? &mpLeveller->mBands[2].mFilters[0] : nullptr},
-			FrequencyResponseRendererFilter{bandColors[3], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band4Enable) > 0.5f) ? &mpLeveller->mBands[3].mFilters[0] : nullptr},
-			FrequencyResponseRendererFilter{bandColors[4], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band5Enable) > 0.5f) ? &mpLeveller->mBands[4].mFilters[0] : nullptr},
+			FrequencyResponseRendererFilter{
+				bandColors[0],
+				(GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band1Enable) > 0.5f) ? &mpLeveller->mBands[0].mFilters[0] : nullptr,
+				"A",
+		},
+			FrequencyResponseRendererFilter{
+				bandColors[1], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) > 0.5f) ? &mpLeveller->mBands[1].mFilters[0] : nullptr, "B"},
+			FrequencyResponseRendererFilter{bandColors[2], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band3Enable) > 0.5f) ? &mpLeveller->mBands[2].mFilters[0] : nullptr, "C"},
+			FrequencyResponseRendererFilter{bandColors[3], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band4Enable) > 0.5f) ? &mpLeveller->mBands[3].mFilters[0] : nullptr, "D"},
+			FrequencyResponseRendererFilter{bandColors[4], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band5Enable) > 0.5f) ? &mpLeveller->mBands[4].mFilters[0] : nullptr, "E"},
 		};
 
 		FrequencyResponseRendererConfig<Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams> cfg{
 			ColorFromHTML("222222", 1.0f), // background
-			ColorFromHTML("aaaaaa", 1.0f), // line
-			6.0f, // thumbRadius
+			ColorFromHTML("aaaa00", 1.0f), // line
+			9.0f, // thumbRadius
 			filters, // filters array
 			{}, // mParamCacheCopy (will be filled below)
 			{}, // majorFreqTicks (empty = defaults)
@@ -160,7 +175,7 @@ public:
 			0.0f,   // fftDisplayMaxDB - Digital maximum  
 			true    // useIndependentFFTScale - Separate from EQ response scale
 		};
-		
+
 		// Configure FFT overlays for input/output comparison
 		cfg.fftOverlays = {
 			{
@@ -180,114 +195,114 @@ public:
 		};
 
 
-		// FFT Analysis Controls Section
-		if (ImGui::CollapsingHeader("FFT Analysis Controls (Testing)", ImGuiTreeNodeFlags_DefaultOpen))
-		{
-			ImGui::BeginGroup();
+		//// FFT Analysis Controls Section
+		//if (ImGui::CollapsingHeader("FFT Analysis Controls (Testing)", ImGuiTreeNodeFlags_DefaultOpen))
+		//{
+		//	ImGui::BeginGroup();
 
-			// FFT Size selection
-			//const char* fftSizeNames[] = { "512", "1024", "2048", "4096" };
-			//if (ImGui::Combo("FFT Size", (int*)&mFFTSizeSelection, fftSizeNames, 4))
-			//{
-			//	// Reconstruct FFT with new size - not supported yet
-			//}
+		//	// FFT Size selection
+		//	//const char* fftSizeNames[] = { "512", "1024", "2048", "4096" };
+		//	//if (ImGui::Combo("FFT Size", (int*)&mFFTSizeSelection, fftSizeNames, 4))
+		//	//{
+		//	//	// Reconstruct FFT with new size - not supported yet
+		//	//}
 
-			// Window Type selection
-			//const char* windowTypeNames[] = { "Rectangular", "Hanning", "Hamming", "Blackman" };
-			//if (ImGui::Combo("Window Function", (int*)&mFFTWindowType, windowTypeNames, 4))
-			//{
-			//	mpLeveller->mInputSpectrumSmoother.SetWindowType(mFFTWindowType);
-			//	mpLeveller->mOutputSpectrumSmoother.SetWindowType(mFFTWindowType);
-			//}
-			//ImGui::SameLine(); ImGui::TextDisabled("(?)");
-			//if (ImGui::IsItemHovered())
-			//{
-			//	ImGui::SetTooltip("Window function applied to FFT data:\n"
-			//		"Rectangular: No windowing (sharp but prone to spectral leakage)\n"
-			//		"Hanning: Good general purpose (smooth, low leakage)\n"
-			//		"Hamming: Similar to Hanning with slightly different characteristics\n"
-			//		"Blackman: Excellent side-lobe suppression (smoothest)\n"
-			//	);
-			//}
+		//	// Window Type selection
+		//	//const char* windowTypeNames[] = { "Rectangular", "Hanning", "Hamming", "Blackman" };
+		//	//if (ImGui::Combo("Window Function", (int*)&mFFTWindowType, windowTypeNames, 4))
+		//	//{
+		//	//	mpLeveller->mInputSpectrumSmoother.SetWindowType(mFFTWindowType);
+		//	//	mpLeveller->mOutputSpectrumSmoother.SetWindowType(mFFTWindowType);
+		//	//}
+		//	//ImGui::SameLine(); ImGui::TextDisabled("(?)");
+		//	//if (ImGui::IsItemHovered())
+		//	//{
+		//	//	ImGui::SetTooltip("Window function applied to FFT data:\n"
+		//	//		"Rectangular: No windowing (sharp but prone to spectral leakage)\n"
+		//	//		"Hanning: Good general purpose (smooth, low leakage)\n"
+		//	//		"Hamming: Similar to Hanning with slightly different characteristics\n"
+		//	//		"Blackman: Excellent side-lobe suppression (smoothest)\n"
+		//	//	);
+		//	//}
 
-			// FFT Technical Smoothing
-			if (ImGui::SliderFloat("FFT Smoothing", &mFFTSmoothingFactor, 0.0f, 0.9f, "%.2f"))
-			{
-				mpLeveller->mInputSpectrumSmoother.SetFFTSmoothing(mFFTSmoothingFactor);
-				mpLeveller->mOutputSpectrumSmoother.SetFFTSmoothing(mFFTSmoothingFactor);
-			}
-			ImGui::SameLine(); ImGui::TextDisabled("(?)");
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip("Technical smoothing applied to raw FFT data.\n0.0 = No smoothing\n0.9 = Heavy smoothing\nApplies to both input and output analyzers.");
-			}
+		//	// FFT Technical Smoothing
+		//	if (ImGui::SliderFloat("FFT Smoothing", &mFFTSmoothingFactor, 0.0f, 0.9f, "%.2f"))
+		//	{
+		//		mpLeveller->mInputSpectrumSmoother.SetFFTSmoothing(mFFTSmoothingFactor);
+		//		mpLeveller->mOutputSpectrumSmoother.SetFFTSmoothing(mFFTSmoothingFactor);
+		//	}
+		//	ImGui::SameLine(); ImGui::TextDisabled("(?)");
+		//	if (ImGui::IsItemHovered())
+		//	{
+		//		ImGui::SetTooltip("Technical smoothing applied to raw FFT data.\n0.0 = No smoothing\n0.9 = Heavy smoothing\nApplies to both input and output analyzers.");
+		//	}
 
-			// Professional FFT Y-Axis Scaling (Independent from EQ response)
-			ImGui::Text("FFT Display Scale (Independent from EQ):");
+		//	// Professional FFT Y-Axis Scaling (Independent from EQ response)
+		//	ImGui::Text("FFT Display Scale (Independent from EQ):");
 
-			bool fftScaleChanged = false;
+		//	bool fftScaleChanged = false;
 
-			if (ImGui::SliderFloat("FFT Min dB", &mFFTDisplayMinDB, -180.0f, -20.0f, "%.0f dB"))
-			{
-				fftScaleChanged = true;
-			}
+		//	if (ImGui::SliderFloat("FFT Min dB", &mFFTDisplayMinDB, -180.0f, -20.0f, "%.0f dB"))
+		//	{
+		//		fftScaleChanged = true;
+		//	}
 
-			if (ImGui::SliderFloat("FFT Max dB", &mFFTDisplayMaxDB, -10.0f, +10.0f, "%.0f dB"))
-			{
-				fftScaleChanged = true;
-			}
+		//	if (ImGui::SliderFloat("FFT Max dB", &mFFTDisplayMaxDB, -10.0f, +10.0f, "%.0f dB"))
+		//	{
+		//		fftScaleChanged = true;
+		//	}
 
-			// FFT Overlap Factor - Extended options for testing (including 1x)
-			const char* overlapNames[] = { "1x (No overlap)", "2x (50% overlap)", "4x (75% overlap)", "8x (87.5% overlap)", "16x (93.75% overlap)" };
-			int overlapIndex = (mFFTOverlapFactor == 1) ? 0 : (mFFTOverlapFactor == 2) ? 1 : (mFFTOverlapFactor == 4) ? 2 : (mFFTOverlapFactor == 8) ? 3 : 4;
-			if (ImGui::Combo("Overlap Factor", &overlapIndex, overlapNames, 5))
-			{
-				mFFTOverlapFactor = (overlapIndex == 0) ? 1 : (overlapIndex == 1) ? 2 : (overlapIndex == 2) ? 4 : (overlapIndex == 3) ? 8 : 16;
-				mpLeveller->mInputSpectrumSmoother.SetOverlapFactor(mFFTOverlapFactor);
-				mpLeveller->mOutputSpectrumSmoother.SetOverlapFactor(mFFTOverlapFactor);
-				mpLeveller->mInputSpectrumSmoother.SetFFTUpdateRate(mpLeveller->mInputSpectrumSmoother.GetFFTSizeInt(), mFFTOverlapFactor);
-				mpLeveller->mOutputSpectrumSmoother.SetFFTUpdateRate(mpLeveller->mOutputSpectrumSmoother.GetFFTSizeInt(), mFFTOverlapFactor);
-			}
-			ImGui::SameLine(); ImGui::TextDisabled("(?)");
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip("Higher overlap = smoother spectrum updates but more CPU usage.\n"
-					"1x: No overlap (choppiest, lowest CPU)\n"
-					"2x: Basic (most efficient for smooth updates)\n"
-					"4x: Recommended for music\n"
-					"8x: Very smooth for mastering\n"
-					"16x: Ultra-smooth for analysis (CPU intensive)");
-			}
+		//	// FFT Overlap Factor - Extended options for testing (including 1x)
+		//	const char* overlapNames[] = { "1x (No overlap)", "2x (50% overlap)", "4x (75% overlap)", "8x (87.5% overlap)", "16x (93.75% overlap)" };
+		//	int overlapIndex = (mFFTOverlapFactor == 1) ? 0 : (mFFTOverlapFactor == 2) ? 1 : (mFFTOverlapFactor == 4) ? 2 : (mFFTOverlapFactor == 8) ? 3 : 4;
+		//	if (ImGui::Combo("Overlap Factor", &overlapIndex, overlapNames, 5))
+		//	{
+		//		mFFTOverlapFactor = (overlapIndex == 0) ? 1 : (overlapIndex == 1) ? 2 : (overlapIndex == 2) ? 4 : (overlapIndex == 3) ? 8 : 16;
+		//		mpLeveller->mInputSpectrumSmoother.SetOverlapFactor(mFFTOverlapFactor);
+		//		mpLeveller->mOutputSpectrumSmoother.SetOverlapFactor(mFFTOverlapFactor);
+		//		mpLeveller->mInputSpectrumSmoother.SetFFTUpdateRate(mpLeveller->mInputSpectrumSmoother.GetFFTSizeInt(), mFFTOverlapFactor);
+		//		mpLeveller->mOutputSpectrumSmoother.SetFFTUpdateRate(mpLeveller->mOutputSpectrumSmoother.GetFFTSizeInt(), mFFTOverlapFactor);
+		//	}
+		//	ImGui::SameLine(); ImGui::TextDisabled("(?)");
+		//	if (ImGui::IsItemHovered())
+		//	{
+		//		ImGui::SetTooltip("Higher overlap = smoother spectrum updates but more CPU usage.\n"
+		//			"1x: No overlap (choppiest, lowest CPU)\n"
+		//			"2x: Basic (most efficient for smooth updates)\n"
+		//			"4x: Recommended for music\n"
+		//			"8x: Very smooth for mastering\n"
+		//			"16x: Ultra-smooth for analysis (CPU intensive)");
+		//	}
 
-			ImGui::Separator();
-			ImGui::Text("Spectrum Display Smoothing:");
+		//	ImGui::Separator();
+		//	ImGui::Text("Spectrum Display Smoothing:");
 
-			// Peak Hold Time
-			if (ImGui::SliderFloat("Peak Hold Time", &mSpectrumPeakHoldTime, 0.0f, 1000.0f, "%.0f ms"))
-			{
-				mpLeveller->mInputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime);
-				mpLeveller->mOutputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime);
-			}
-			ImGui::SameLine(); ImGui::TextDisabled("(?)");
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip("How long peaks are held before starting to fall.\n0ms = No peak hold (immediate falloff)\n300ms = Pro-Q3 style behavior\nApplies to both input and output spectrums.");
-			}
+		//	// Peak Hold Time
+		//	if (ImGui::SliderFloat("Peak Hold Time", &mSpectrumPeakHoldTime, 0.0f, 1000.0f, "%.0f ms"))
+		//	{
+		//		mpLeveller->mInputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime);
+		//		mpLeveller->mOutputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime);
+		//	}
+		//	ImGui::SameLine(); ImGui::TextDisabled("(?)");
+		//	if (ImGui::IsItemHovered())
+		//	{
+		//		ImGui::SetTooltip("How long peaks are held before starting to fall.\n0ms = No peak hold (immediate falloff)\n300ms = Pro-Q3 style behavior\nApplies to both input and output spectrums.");
+		//	}
 
-			// Falloff Rate
-			if (ImGui::SliderFloat("Falloff Time", &mSpectrumFalloffTime, 50.0f, 5000.0f, "%.0f ms"))
-			{
-				mpLeveller->mInputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime);
-				mpLeveller->mOutputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime);
-			}
-			ImGui::SameLine(); ImGui::TextDisabled("(?)");
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip("Time for spectrum to fall -60dB after peak hold expires.\nLower = faster response, Higher = smoother display\nApplies to both input and output spectrums.");
-			}
+		//	// Falloff Rate
+		//	if (ImGui::SliderFloat("Falloff Time", &mSpectrumFalloffTime, 50.0f, 5000.0f, "%.0f ms"))
+		//	{
+		//		mpLeveller->mInputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime);
+		//		mpLeveller->mOutputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime);
+		//	}
+		//	ImGui::SameLine(); ImGui::TextDisabled("(?)");
+		//	if (ImGui::IsItemHovered())
+		//	{
+		//		ImGui::SetTooltip("Time for spectrum to fall -60dB after peak hold expires.\nLower = faster response, Higher = smoother display\nApplies to both input and output spectrums.");
+		//	}
 
-			ImGui::EndGroup();
-		}
+		//	ImGui::EndGroup();
+		//}
 
 		for (size_t i = 0; i < (size_t)Leveller::ParamIndices::NumParams; ++i) {
 			cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
