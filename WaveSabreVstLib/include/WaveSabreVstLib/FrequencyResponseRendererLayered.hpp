@@ -102,6 +102,16 @@ public:
     if (mCrossoverLayer) mCrossoverLayer->SetFrequencyChangeHandler(handler);
   }
   
+  // Set up band selection handler for clicking on band regions
+  void SetBandChangeHandler(std::function<void(int bandIndex)> handler) {
+    if (mCrossoverLayer) mCrossoverLayer->SetBandChangeHandler(handler);
+  }
+  
+  // Set the currently selected/editing band for highlighting
+  void SetCurrentEditingBand(int bandIndex) {
+    if (mCrossoverLayer) mCrossoverLayer->SetCurrentEditingBand(bandIndex);
+  }
+  
   // Expose coordinate conversion functions for compatibility
   float FreqToX(float hz, ImRect &bb) {
     return mGraph.mCoords.FreqToX(hz, bb);

@@ -318,6 +318,9 @@ struct Maj7MBCEditor : public VstEditor
 				// Connect the crossover renderer directly to device; it will read params itself
 				mCrossoverGraph.SetCrossoverFilter(mbEnabled ? mpMaj7MBC : nullptr);
 
+				// Set the current editing band for highlighting
+				mCrossoverGraph.SetCurrentEditingBand(mEditingBand);
+
 				// Set up parameter change handler for crossover frequency dragging
 				if (mbEnabled) {
 					auto crossoverFreqHandler = [this](float freqHz, int crossoverIndex) {
@@ -343,9 +346,20 @@ struct Maj7MBCEditor : public VstEditor
 						};
 
 					mCrossoverGraph.SetFrequencyChangeHandler(crossoverFreqHandler);
+
+					// Set up band selection handler for clicking on band regions
+					auto bandChangeHandler = [this](int bandIndex) {
+						// Validate band index
+						if (bandIndex >= 0 && bandIndex < Maj7MBC::gBandCount) {
+							mEditingBand = bandIndex;
+						}
+						};
+
+					mCrossoverGraph.SetBandChangeHandler(bandChangeHandler);
 				}
 				else {
 					mCrossoverGraph.SetFrequencyChangeHandler(nullptr);
+					mCrossoverGraph.SetBandChangeHandler(nullptr);
 				}
 
 				ImGui::SameLine();

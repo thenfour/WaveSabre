@@ -41,7 +41,7 @@ namespace WaveSabreVstLib {
 
 		// Visuals
 		// Default colors (lows/mids/highs). If a global theme is available, substitute here.
-		std::vector<ImColor> mBandColors{ ColorFromHTML(bandColors[0], 0.8f), ColorFromHTML(bandColors[1], 0.8f), ColorFromHTML(bandColors[2], 0.8f) };
+		std::vector<ImColor> mBandColors{ ColorFromHTML("cc4444", 0.8f), ColorFromHTML("44cc44", 0.8f), ColorFromHTML("4444cc", 0.8f) };
 		std::vector<const char*> mBandLabels{ "Low", "Mid", "High" };
 
 		// Independent Y-axis scaling (like FFTSpectrumLayer)
@@ -51,6 +51,12 @@ namespace WaveSabreVstLib {
 
 		// Parameter setter functions (similar to ThumbInteractionLayer pattern)
 		std::function<void(float freqHz, int crossoverIndex)> mFrequencyChangeHandler;
+		
+		// Band selection handler
+		std::function<void(int bandIndex)> mBandChangeHandler;
+
+		// Currently selected band index (for highlighting) - NEW
+		int mCurrentEditingBand = 0;
 
 		// Interaction state for crossover frequency dragging
 		struct CrossoverDragState {
@@ -135,6 +141,38 @@ namespace WaveSabreVstLib {
 			return result;
 		}
 
+		// Helper to determine which band the mouse is in based on crossover frequencies
+		int GetBandIndexAtMousePosition(ImVec2 mousePos, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) {
+			if (!mDevice || !ImGui::IsMouseHoveringRect(bb.Min, bb.Max)) {
+				return -1;
+			}
+
+			float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
+			float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
+			M7::ParamAccessor paA{ &rawA, 0 };
+			M7::ParamAccessor paB{ &rawB, 0 };
+			float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
+			float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+
+			// Ensure crossovers are in correct order (A < B)
+			if (fA > 0.0f && fB > 0.0f && fA > fB) std::swap(fA, fB);
+
+			float mouseFreq = coords.XToFreq(mousePos.x, bb);
+
+			// Determine which band based on crossover frequencies
+			if (fA > 0.0f && fB > 0.0f) {
+				// Both crossovers active: 3 bands
+				return (mouseFreq < fA) ? 0 : ((mouseFreq < fB) ? 1 : 2);
+			} else if (fA > 0.0f || fB > 0.0f) {
+				// Only one crossover active: 2 bands
+				float crossoverFreq = (fA > 0.0f) ? fA : fB;
+				return (mouseFreq < crossoverFreq) ? 0 : 1;
+			} else {
+				// No crossovers: 1 band (or default to band 1 for single-band operation)
+				return 1;
+			}
+		}
+
 	public:
 		CrossoverResponseLayer() {
 			mBandResponses.resize(3); // Low, Mid, High
@@ -149,6 +187,16 @@ namespace WaveSabreVstLib {
 			mFrequencyChangeHandler = handler;
 		}
 
+		// Set band selection handler for clicking on band regions - NEW
+		void SetBandChangeHandler(std::function<void(int bandIndex)> handler) {
+			mBandChangeHandler = handler;
+		}
+
+		// Set the currently selected/editing band for highlighting - NEW
+		void SetCurrentEditingBand(int bandIndex) {
+			mCurrentEditingBand = bandIndex;
+		}
+
 		bool InfluencesAutoScale() const override { return true; }
 
 		void GetDataBounds(float& minDB, float& maxDB) const override {
@@ -157,8 +205,6 @@ namespace WaveSabreVstLib {
 		}
 
 		bool HandleMouse(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
-			if (!mFrequencyChangeHandler) return false;
-
 			ImVec2 mousePos = ImGui::GetIO().MousePos;
 			bool mouseClicked = ImGui::IsMouseClicked(0);
 			bool mouseDown = ImGui::IsMouseDown(0);
@@ -176,16 +222,28 @@ namespace WaveSabreVstLib {
 			if (mouseClicked && mouseInBounds && !mDragState.isDragging) {
 				auto hitTest = HitTestFrequencyLabelsAndLines(mousePos, coords, bb);
 				if (hitTest.crossoverIndex >= 0) {
-					mDragState.activeCrossoverIndex = hitTest.crossoverIndex;
-					mDragState.isDragging = true;
-					mDragState.dragStartMousePos = mousePos;
-					mDragState.originalFreq = hitTest.frequency;
-					return true;
+					// Only start drag if we have a frequency change handler
+					if (mFrequencyChangeHandler) {
+						mDragState.activeCrossoverIndex = hitTest.crossoverIndex;
+						mDragState.isDragging = true;
+						mDragState.dragStartMousePos = mousePos;
+						mDragState.originalFreq = hitTest.frequency;
+						return true;
+					}
+				} else {
+					// No crossover hit - check for band selection
+					if (mBandChangeHandler) {
+						int bandIndex = GetBandIndexAtMousePosition(mousePos, coords, bb);
+						if (bandIndex >= 0) {
+							mBandChangeHandler(bandIndex);
+							return true;
+						}
+					}
 				}
 			}
 
 			// Handle active drag
-			if (mDragState.isDragging && mDragState.activeCrossoverIndex >= 0) {
+			if (mDragState.isDragging && mDragState.activeCrossoverIndex >= 0 && mFrequencyChangeHandler) {
 				// Calculate new frequency from mouse X position
 				float clampedMouseX = M7::math::clamp(mousePos.x, bb.Min.x, bb.Max.x);
 				float newFreq = coords.XToFreq(clampedMouseX, bb);
@@ -282,8 +340,23 @@ namespace WaveSabreVstLib {
 
 				// Fill area under curve by drawing trapezoids between successive samples
 				const float faintAlpha = 0.05f;        // very faint by default
-				const float highlightAlpha = 0.20f;    // current/previous opacity for highlight
-				float chosenAlpha = (int(bandIdx) == hoveredBand) ? highlightAlpha : faintAlpha;
+				const float hoverAlpha = 0.20f;        // hover opacity
+				const float selectedAlpha = 0.30f;     // selected band opacity
+				const float selectedHoverAlpha = 0.35f; // selected + hover opacity
+				
+				// Determine highlight state
+				bool isHovered = (int(bandIdx) == hoveredBand);
+				bool isSelected = (int(bandIdx) == mCurrentEditingBand);
+				
+				float chosenAlpha = faintAlpha;
+				if (isSelected && isHovered) {
+					chosenAlpha = selectedHoverAlpha;
+				} else if (isSelected) {
+					chosenAlpha = selectedAlpha;
+				} else if (isHovered) {
+					chosenAlpha = hoverAlpha;
+				}
+				
 				ImColor fillColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, chosenAlpha);
 				float yBottom = bb.Max.y; // bottom of plot area
 				float displayMin = mUseIndependentScale ? mXODisplayMinDB : coords.mDisplayMinDB;
@@ -301,7 +374,7 @@ namespace WaveSabreVstLib {
 					dl->AddConvexPolyFilled(quad, 4, fillColor);
 				}
 
-				// Build polyline points
+				// Build polyline points - enhance line visibility for selected band
 				std::vector<ImVec2> points;
 				points.reserve(TSegmentCount);
 
@@ -314,7 +387,11 @@ namespace WaveSabreVstLib {
 				}
 
 				if (points.size() >= 2) {
-					dl->AddPolyline(points.data(), static_cast<int>(points.size()), bandColor, 0, 2.0f);
+					// Enhanced line thickness and opacity for selected band
+					float lineThickness = isSelected ? 3.0f : 2.0f;
+					float lineAlpha = isSelected ? 0.9f : 0.8f;
+					ImColor lineColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, lineAlpha);
+					dl->AddPolyline(points.data(), static_cast<int>(points.size()), lineColor, 0, lineThickness);
 				}
 			}
 
@@ -427,6 +504,14 @@ namespace WaveSabreVstLib {
 
 		void SetFrequencyChangeHandler(std::function<void(float freqHz, int crossoverIndex)> handler) {
 			if (mCrossoverLayer) mCrossoverLayer->SetFrequencyChangeHandler(handler);
+		}
+
+		void SetBandChangeHandler(std::function<void(int bandIndex)> handler) {
+			if (mCrossoverLayer) mCrossoverLayer->SetBandChangeHandler(handler);
+		}
+
+		void SetCurrentEditingBand(int bandIndex) {
+			if (mCrossoverLayer) mCrossoverLayer->SetCurrentEditingBand(bandIndex);
 		}
 
 		void Render() {
