@@ -26,12 +26,12 @@ class LevellerEditor : public VstEditor
 	int mFFTOverlapFactor;// = 2;             // 2, 4, 8, or 16 (more options for testing)
 	float mSpectrumPeakHoldTime;// = 300.0f;    // 0-1000 ms
 	float mSpectrumFalloffTime;//= 2000.0f;   // 50-5000 ms
-	FFTSize mFFTSizeSelection;// = 1;             // 0=512, 1=1024, 2=2048, 3=4096
-	WindowType mFFTWindowType;// = 1;                // 0=Rectangular, 1=Hanning, 2=Hamming, 3=Blackman
+	//FFTSize mFFTSizeSelection;// = 1;             // 0=512, 1=1024, 2=2048, 3=4096
+	//WindowType mFFTWindowType;// = 1;                // 0=Rectangular, 1=Hanning, 2=Hamming, 3=Blackman
 	
 	// Professional FFT scaling controls (separate from EQ response)
 	float mFFTDisplayMinDB = -80.0f;       // Noise floor
-	float mFFTDisplayMaxDB = 10.0f;         // Digital maximum  
+	float mFFTDisplayMaxDB = 0.0f;         // Digital maximum  
 
 public:
 	LevellerEditor(AudioEffect* audioEffect)
@@ -39,18 +39,14 @@ public:
 		mpLevellerVST((LevellerVst*)audioEffect)//,
 	{
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
-		auto& fft = mpLeveller->mInputFFTAnalysis;
-		auto& smoother = mpLeveller->mInputSpectrumSmoother;
-
+		
 		// Initialize FFT control values to match current Leveller settings
-		mFFTSmoothingFactor = fft.GetSmoothingFactor();// 0.0f;      // Matches Leveller constructor
-		mFFTOverlapFactor = fft.GetOverlapFactor();// 2;           // Matches Leveller constructor
-		mSpectrumPeakHoldTime = smoother.GetPeakHoldTime();// 0.0f;    // Matches Leveller constructor  
-		mSpectrumFalloffTime = smoother.GetFalloffTime();   // Matches Leveller constructor
-		mFFTSizeSelection = fft.GetFFTSize();// 1;           // 1024 FFT size used in Leveller constructor
-		mFFTWindowType = fft.GetWindowType();              // Hanning window used in Leveller constructor
-		//mFFTDisplayMinDB = -60.0f;       // Professional noise floor
-		//mFFTDisplayMaxDB = 0.0f;         // Digital maximum
+		mFFTSmoothingFactor = mpLeveller->mInputSpectrumSmoother.GetFFTSmoothing();
+		mFFTOverlapFactor = mpLeveller->mInputSpectrumSmoother.GetOverlapFactor();
+		mSpectrumPeakHoldTime = mpLeveller->mInputSpectrumSmoother.GetPeakHoldTime();
+		mSpectrumFalloffTime = mpLeveller->mInputSpectrumSmoother.GetFalloffTime();
+		//mFFTSizeSelection = mpLeveller->mInputSpectrumSmoother.GetFFTSize();
+		//mFFTWindowType = mpLeveller->mInputSpectrumSmoother.GetWindowType();
 	}
 
 	virtual void PopulateMenuBar() override
@@ -80,11 +76,7 @@ public:
 
 		ImGui::SameLine(); WSImGuiParamCheckbox((int)paramOffset + (int)Leveller::BandParamOffsets::Enable, "Enable?");
 
-		//float gainParam = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Gain);
-
 		M7::QuickParam fp{ M7::gFilterFreqConfig };
-		//float f1 = 0, f2 = 0;
-		//M7::FrequencyParam fp{ f1, f2, M7::gFilterFreqConfig };// :gFilterCenterFrequency, M7::gFilterFrequencyScale};
 		fp.SetFrequencyAssumingNoKeytracking(defaultFreqParamHz);
 
 		ImGui::SameLine();  Maj7ImGuiParamFrequency((int)paramOffset + (int)Leveller::BandParamOffsets::Freq, -1, "Freq", M7::gFilterFreqConfig, fp.GetRawValue(), {});
@@ -95,8 +87,6 @@ public:
 		ImGui::BeginDisabled(type == BiquadFilterType::Highpass || type == BiquadFilterType::Lowpass);
 		ImGui::SameLine(); Maj7ImGuiParamVolume((int)paramOffset + (int)Leveller::BandParamOffsets::Gain, "Gain", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
 		ImGui::EndDisabled();
-		//WSImGuiParamKnob((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q");
-		//ImGui::SameLine(); Maj7ImGuiParamFloat01((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", 0.2f, 0);
 		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", M7::gBiquadFilterQCfg, 1.00f, {});
 
 		const char* selectedColor = "4400aa";
@@ -112,12 +102,6 @@ public:
 			{ "\\LP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Lowpass, },
 			});
 
-
-		//ImGui::EndTabItem();
-	//}
-
-	//EndTabBarWithColoredSeparator();
-//}
 		ImGui::PopID();
 	}
 
@@ -133,7 +117,6 @@ public:
 
 		ImGui::SameLine();
 
-		//WSImGuiParamCheckbox((VstInt32)Leveller::ParamIndices::EnableDCFilter, "Enable DC Filter?");
 		Maj7ImGuiBoolParamToggleButton(Leveller::ParamIndices::EnableDCFilter, "DC Filter");
 
 		using HtmlColorString = char[7];
@@ -156,8 +139,6 @@ public:
 		ImGui::SameLine(); VUMeter("vu_inp", mpLeveller->mInputAnalysis[0], mpLeveller->mInputAnalysis[1]);
 		ImGui::SameLine(); VUMeter("vu_outp", mpLeveller->mOutputAnalysis[0], mpLeveller->mOutputAnalysis[1]);
 
-		//ImGui::EndTable();
-		//
 		const std::array<FrequencyResponseRendererFilter, Leveller::gBandCount> filters = {
 			FrequencyResponseRendererFilter{bandColors[0], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band1Enable) > 0.5f) ? &mpLeveller->mBands[0].mFilters[0] : nullptr},
 			FrequencyResponseRendererFilter{bandColors[1], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) > 0.5f) ? &mpLeveller->mBands[1].mFilters[0] : nullptr},
@@ -186,7 +167,6 @@ public:
 				&mpLeveller->mInputSpectrumSmoother,  // Input signal (before EQ)
 				ColorFromHTML("888888", 0.8f),        // Orange - Input signal
 				ColorFromHTML("444444", 0.3f),        // Orange fill (more transparent)
-				false,                                 // Use left channel
 				true,                                  // Enable fill
 				"Input"                                // Label for legend
 			},
@@ -194,7 +174,6 @@ public:
 				&mpLeveller->mOutputSpectrumSmoother, // Output signal (after EQ)
 				ColorFromHTML("007777", 0.8f),        // Green - Output signal  
 				ColorFromHTML("005555", 0.3f),        // Green fill (more transparent)
-				false,                                 // Use left channel
 				true,                                  // Enable fill
 				"Output"                               // Label for legend
 			}
@@ -207,40 +186,35 @@ public:
 			ImGui::BeginGroup();
 
 			// FFT Size selection
-			const char* fftSizeNames[] = { "512", "1024", "2048", "4096" };
-			if (ImGui::Combo("FFT Size", (int*)&mFFTSizeSelection, fftSizeNames, 4))
-			{
-				// Reconstruct FFT with new size - this is expensive but for testing it's fine
-
-				// Note: Can't easily change FFT size at runtime without reconstruction
-				// For now, just display current selection
-			}
+			//const char* fftSizeNames[] = { "512", "1024", "2048", "4096" };
+			//if (ImGui::Combo("FFT Size", (int*)&mFFTSizeSelection, fftSizeNames, 4))
+			//{
+			//	// Reconstruct FFT with new size - not supported yet
+			//}
 
 			// Window Type selection
-			const char* windowTypeNames[] = { "Rectangular", "Hanning", "Hamming", "Blackman" };
-			if (ImGui::Combo("Window Function", (int*)&mFFTWindowType, windowTypeNames, 4))
-			{
-				// Window type can now be changed at runtime!
-				// Apply the window type change immediately!
-				mpLeveller->mInputFFTAnalysis.SetWindowType(mFFTWindowType);
-				mpLeveller->mOutputFFTAnalysis.SetWindowType(mFFTWindowType);
-			}
-			ImGui::SameLine(); ImGui::TextDisabled("(?)");
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip("Window function applied to FFT data:\n"
-					"Rectangular: No windowing (sharp but prone to spectral leakage)\n"
-					"Hanning: Good general purpose (smooth, low leakage)\n"
-					"Hamming: Similar to Hanning with slightly different characteristics\n"
-					"Blackman: Excellent side-lobe suppression (smoothest)\n"
-				);
-			}
+			//const char* windowTypeNames[] = { "Rectangular", "Hanning", "Hamming", "Blackman" };
+			//if (ImGui::Combo("Window Function", (int*)&mFFTWindowType, windowTypeNames, 4))
+			//{
+			//	mpLeveller->mInputSpectrumSmoother.SetWindowType(mFFTWindowType);
+			//	mpLeveller->mOutputSpectrumSmoother.SetWindowType(mFFTWindowType);
+			//}
+			//ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			//if (ImGui::IsItemHovered())
+			//{
+			//	ImGui::SetTooltip("Window function applied to FFT data:\n"
+			//		"Rectangular: No windowing (sharp but prone to spectral leakage)\n"
+			//		"Hanning: Good general purpose (smooth, low leakage)\n"
+			//		"Hamming: Similar to Hanning with slightly different characteristics\n"
+			//		"Blackman: Excellent side-lobe suppression (smoothest)\n"
+			//	);
+			//}
 
 			// FFT Technical Smoothing
 			if (ImGui::SliderFloat("FFT Smoothing", &mFFTSmoothingFactor, 0.0f, 0.9f, "%.2f"))
 			{
-				mpLeveller->mInputFFTAnalysis.SetSmoothingFactor(mFFTSmoothingFactor);
-				mpLeveller->mOutputFFTAnalysis.SetSmoothingFactor(mFFTSmoothingFactor);
+				mpLeveller->mInputSpectrumSmoother.SetFFTSmoothing(mFFTSmoothingFactor);
+				mpLeveller->mOutputSpectrumSmoother.SetFFTSmoothing(mFFTSmoothingFactor);
 			}
 			ImGui::SameLine(); ImGui::TextDisabled("(?)");
 			if (ImGui::IsItemHovered())
@@ -249,12 +223,11 @@ public:
 			}
 
 			// Professional FFT Y-Axis Scaling (Independent from EQ response)
-			ImGui::Separator();
 			ImGui::Text("FFT Display Scale (Independent from EQ):");
 
 			bool fftScaleChanged = false;
 
-			if (ImGui::SliderFloat("FFT Min dB", &mFFTDisplayMinDB, -90.0f, -20.0f, "%.0f dB"))
+			if (ImGui::SliderFloat("FFT Min dB", &mFFTDisplayMinDB, -180.0f, -20.0f, "%.0f dB"))
 			{
 				fftScaleChanged = true;
 			}
@@ -270,12 +243,10 @@ public:
 			if (ImGui::Combo("Overlap Factor", &overlapIndex, overlapNames, 5))
 			{
 				mFFTOverlapFactor = (overlapIndex == 0) ? 1 : (overlapIndex == 1) ? 2 : (overlapIndex == 2) ? 4 : (overlapIndex == 3) ? 8 : 16;
-				mpLeveller->mInputFFTAnalysis.SetOverlapFactor(mFFTOverlapFactor);
-				mpLeveller->mOutputFFTAnalysis.SetOverlapFactor(mFFTOverlapFactor);
-
-				// CRITICAL: Update spectrum smoother timing to match new overlap factor
-				mpLeveller->mInputSpectrumSmoother.SetFFTUpdateRate(1024, mFFTOverlapFactor); // Assuming 1024 FFT
-				mpLeveller->mOutputSpectrumSmoother.SetFFTUpdateRate(1024, mFFTOverlapFactor);
+				mpLeveller->mInputSpectrumSmoother.SetOverlapFactor(mFFTOverlapFactor);
+				mpLeveller->mOutputSpectrumSmoother.SetOverlapFactor(mFFTOverlapFactor);
+				mpLeveller->mInputSpectrumSmoother.SetFFTUpdateRate(mpLeveller->mInputSpectrumSmoother.GetFFTSizeInt(), mFFTOverlapFactor);
+				mpLeveller->mOutputSpectrumSmoother.SetFFTUpdateRate(mpLeveller->mOutputSpectrumSmoother.GetFFTSizeInt(), mFFTOverlapFactor);
 			}
 			ImGui::SameLine(); ImGui::TextDisabled("(?)");
 			if (ImGui::IsItemHovered())
@@ -294,8 +265,8 @@ public:
 			// Peak Hold Time
 			if (ImGui::SliderFloat("Peak Hold Time", &mSpectrumPeakHoldTime, 0.0f, 1000.0f, "%.0f ms"))
 			{
-				mpLeveller->mInputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime, Helpers::CurrentSampleRateF);
-				mpLeveller->mOutputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime, Helpers::CurrentSampleRateF);
+				mpLeveller->mInputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime);
+				mpLeveller->mOutputSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime);
 			}
 			ImGui::SameLine(); ImGui::TextDisabled("(?)");
 			if (ImGui::IsItemHovered())
@@ -306,8 +277,8 @@ public:
 			// Falloff Rate
 			if (ImGui::SliderFloat("Falloff Time", &mSpectrumFalloffTime, 50.0f, 5000.0f, "%.0f ms"))
 			{
-				mpLeveller->mInputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime, Helpers::CurrentSampleRateF);
-				mpLeveller->mOutputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime, Helpers::CurrentSampleRateF);
+				mpLeveller->mInputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime);
+				mpLeveller->mOutputSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime);
 			}
 			ImGui::SameLine(); ImGui::TextDisabled("(?)");
 			if (ImGui::IsItemHovered())
@@ -318,21 +289,15 @@ public:
 			ImGui::EndGroup();
 		}
 
-
-
-
 		for (size_t i = 0; i < (size_t)Leveller::ParamIndices::NumParams; ++i) {
 			cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
 		}
-
 
 		// Apply current FFT scaling settings to renderer config
 		cfg.fftDisplayMinDB = mFFTDisplayMinDB;
 		cfg.fftDisplayMaxDB = mFFTDisplayMaxDB;
 
 		mResponseGraph.OnRender(cfg);
-
-		// ImGui::EndChild();
 	}
 
 };

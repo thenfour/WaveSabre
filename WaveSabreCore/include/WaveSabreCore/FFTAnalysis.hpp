@@ -11,25 +11,24 @@
 
 namespace WaveSabreCore
 {
+    struct SpectrumBin
+    {
+        float frequency;    // Hz
+        float magnitudeDB;  // dB
+        float phase;        // radians (if needed)
+    };
     // Common interface for frequency analysis data providers
     class IFrequencyAnalysis
     {
     public:
-        struct SpectrumBin
-        {
-            float frequency;    // Hz
-            float magnitudeDB;  // dB
-            float phase;        // radians (if needed)
-        };
         
         virtual ~IFrequencyAnalysis() = default;
         
         // Get spectrum data for rendering
-        virtual const std::vector<SpectrumBin>& GetSpectrumLeft() const = 0;
-        virtual const std::vector<SpectrumBin>& GetSpectrumRight() const = 0;
+        virtual const std::vector<SpectrumBin>& GetSpectrum() const = 0;
         
         // Get magnitude at specific frequency (interpolated if necessary)
-        virtual float GetMagnitudeAtFrequency(float frequency, bool useRightChannel = false) const = 0;
+        virtual float GetMagnitudeAtFrequency(float frequency) const = 0;
         
         // Get the frequency resolution (Hz per bin)
         virtual float GetFrequencyResolution() const = 0;
@@ -58,13 +57,6 @@ namespace WaveSabreCore
             Hanning,
             Hamming,
             Blackman
-        };
-
-        struct SpectrumBin
-        {
-            float frequency;    // Hz
-            float magnitudeDB;  // dB
-            float phase;        // radians (if needed)
         };
 
     private:
@@ -149,45 +141,7 @@ namespace WaveSabreCore
         //float mDisplayBoostDB; // artificial boost for better visual display
     };
 
-    // Single-channel spectrum display smoother - now uses existing PeakDetector!
-    class MonoSpectrumDisplaySmoother
-    {
-    private:
-        // Use frequency-dependent peak detectors for professional behavior
-        std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
-        std::vector<MonoFFTAnalysis::SpectrumBin> mOutput;
-        
-        float mSampleRate;
-        int mSamplesPerFFTUpdate; // How many samples between FFT updates (e.g., 512)
-        
-        // Track current settings to avoid overwriting each other
-        float mCurrentHoldTimeMs;
-        float mCurrentFalloffTimeMs;
-
-    public:
-        MonoSpectrumDisplaySmoother();
-        
-        // Configure display behavior
-        void SetPeakHoldTime(float holdTimeMs, float sampleRate);
-        void SetFalloffRate(float falloffTimeMs, float sampleRate);  // Time for -60dB falloff
-        void SetFFTUpdateRate(int fftSize, int overlapFactor); // Update timing parameters
-
-		float GetPeakHoldTime() const { return mCurrentHoldTimeMs; }
-		float GetFalloffTime() const { return mCurrentFalloffTimeMs; }
-
-        // Process new FFT data for display
-        void ProcessSpectrum(const std::vector<MonoFFTAnalysis::SpectrumBin>& rawSpectrum);
-        
-        // Get display-ready smoothed spectrum
-        const std::vector<MonoFFTAnalysis::SpectrumBin>& GetSpectrum() const { return mOutput; }
-        
-        // Get magnitude at specific frequency (interpolated if necessary)
-        float GetMagnitudeAtFrequency(float frequency, float sampleRate) const;
-        
-        void Reset();
-    };
-
-    // Stereo FFT analyzer wrapper - implements IFrequencyAnalysis interface
+	// Stereo FFT analyzer wrapper; wraps 2 mono fft analyzers and provides a single spectrum
     class FFTAnalysis : public IFrequencyAnalysis
     {
     private:
@@ -210,7 +164,7 @@ namespace WaveSabreCore
         
 		WindowType GetWindowType() const { return mAnalyzers[0].GetWindowType(); }
 		FFTSize GetFFTSize() const { return mAnalyzers[0].GetFFTSize(); }
-		//int GetFFTSizeInt() const { return mAnalyzers[0].GetFFTSizeInt(); }
+		int GetFFTSizeInt() const { return mAnalyzers[0].GetFFTSizeInt(); }
 		float GetSampleRate() const { return mAnalyzers[0].GetSampleRate(); }
         int GetOverlapFactor() const { return mAnalyzers[0].GetOverlapFactor(); }
 		float GetSmoothingFactor() const { return mAnalyzers[0].GetSmoothingFactor(); }
@@ -225,9 +179,8 @@ namespace WaveSabreCore
         void ConsumeSpectrum();
         
         // IFrequencyAnalysis implementation
-        virtual const std::vector<SpectrumBin>& GetSpectrumLeft() const override;
-        virtual const std::vector<SpectrumBin>& GetSpectrumRight() const override;
-        virtual float GetMagnitudeAtFrequency(float frequency, bool useRightChannel = false) const override;
+        virtual const std::vector<SpectrumBin>& GetSpectrum() const override;
+        virtual float GetMagnitudeAtFrequency(float frequency) const override;
         virtual float GetFrequencyResolution() const override;
         virtual float GetNyquistFrequency() const override;
         
@@ -235,35 +188,55 @@ namespace WaveSabreCore
         void Reset();
     };
 
-    // Stereo spectrum display smoother wrapper - implements IFrequencyAnalysis interface
-    class SpectrumDisplaySmoother : public IFrequencyAnalysis
+	// wraps FFTAnalysis and provides smoothing.
+    class SmoothedStereoFFT : public IFrequencyAnalysis
     {
     private:
-        MonoSpectrumDisplaySmoother mSmoothers[2]; // Left and right channel smoothers
-        float mSampleRate;
-        
-    public:
-        SpectrumDisplaySmoother();
-        
-        // Configure display behavior
-        void SetPeakHoldTime(float holdTimeMs, float sampleRate);
-        void SetFalloffRate(float falloffTimeMs, float sampleRate);
-        void SetFFTUpdateRate(int fftSize, int overlapFactor); // Update timing parameters
-        
-        // get peak hold time.
-		float GetPeakHoldTime() const { return mSmoothers[0].GetPeakHoldTime(); }
-		float GetFalloffTime() const { return mSmoothers[0].GetFalloffTime(); }
+		FFTAnalysis mFFTAnalysis; // Underlying FFT analysis
+        std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
+        std::vector<SpectrumBin> mOutput;
 
-        // Process new FFT data for display
-        void ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum, bool isRightChannel);
+        int mSamplesPerFFTUpdate; // How many samples between FFT updates (e.g., 512)
+
+        // Track current settings to avoid overwriting each other
+        float mCurrentHoldTimeMs;
+        float mCurrentFalloffTimeMs;
+
+    public:
+        SmoothedStereoFFT();
+
+        // Configure FFT/analyzer behavior
+        void SetSampleRate(float sampleRate) { mFFTAnalysis.SetSampleRate(sampleRate); }
+        void SetWindowType(MonoFFTAnalysis::WindowType windowType) { mFFTAnalysis.SetWindowType(windowType); }
+        void SetFFTSmoothing(float smoothing) { mFFTAnalysis.SetSmoothingFactor(smoothing); }
+        void SetOverlapFactor(int factor) { mFFTAnalysis.SetOverlapFactor(factor); SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), factor); }
+        // Proxy getters for UI
+        MonoFFTAnalysis::WindowType GetWindowType() const { return mFFTAnalysis.GetWindowType(); }
+        MonoFFTAnalysis::FFTSize GetFFTSize() const { return mFFTAnalysis.GetFFTSize(); }
+        int GetFFTSizeInt() const { return mFFTAnalysis.GetFFTSizeInt(); }
+        float GetFFTSmoothing() const { return mFFTAnalysis.GetSmoothingFactor(); }
+        int GetOverlapFactor() const { return mFFTAnalysis.GetOverlapFactor(); }
+
+        // Configure display behavior
+        void SetPeakHoldTime(float holdTimeMs);
+        void SetFalloffRate(float falloffTimeMs);  // Time for -60dB falloff
+        void SetFFTUpdateRate(int fftSize, int overlapFactor); // Update timing parameters
+
+        float GetPeakHoldTime() const { return mCurrentHoldTimeMs; }
+        float GetFalloffTime() const { return mCurrentFalloffTimeMs; }
+
+        // Feed samples and update smoothing when new spectrum is available
+        void ProcessSamples(float leftSample, float rightSample);
         
-        // IFrequencyAnalysis implementation
-        virtual const std::vector<SpectrumBin>& GetSpectrumLeft() const override;
-        virtual const std::vector<SpectrumBin>& GetSpectrumRight() const override;
-        virtual float GetMagnitudeAtFrequency(float frequency, bool useRightChannel = false) const override;
-        virtual float GetFrequencyResolution() const override;
-        virtual float GetNyquistFrequency() const override;
-        
+        // Process new FFT data for display (optional external use)
+        void ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum);
+
+        // IFrequencyAnalysis implementation (display-ready smoothed spectrum)
+        const std::vector<SpectrumBin>& GetSpectrum() const { return mOutput; }
+        float GetMagnitudeAtFrequency(float frequency) const override;
+        float GetFrequencyResolution() const override { return mFFTAnalysis.GetFrequencyResolution(); }
+        float GetNyquistFrequency() const override { return mFFTAnalysis.GetNyquistFrequency(); }
+
         void Reset();
     };
 }

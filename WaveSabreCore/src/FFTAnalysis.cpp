@@ -230,51 +230,49 @@ namespace WaveSabreCore
     }
 
     ///////////////////////////////////////////////////////////////////////////
-    // MonoSpectrumDisplaySmoother Implementation - Using proven PeakDetector!
+    // SmoothedStereoFFT Implementation - uses FrequencyDependentPeakDetector
     ///////////////////////////////////////////////////////////////////////////
     
-    MonoSpectrumDisplaySmoother::MonoSpectrumDisplaySmoother()
-        : mSampleRate(Helpers::CurrentSampleRate)
+    SmoothedStereoFFT::SmoothedStereoFFT()
+        : mFFTAnalysis()
         , mSamplesPerFFTUpdate(512) // Default: 2048 FFT with 75% overlap = 512 samples between updates
         , mCurrentHoldTimeMs(0.0f)  // Default hold time
         , mCurrentFalloffTimeMs(200.0f) // Default falloff time
     {
     }
 
-    void MonoSpectrumDisplaySmoother::SetPeakHoldTime(float holdTimeMs, float sampleRate)
+    void SmoothedStereoFFT::SetPeakHoldTime(float holdTimeMs)
     {
-        mSampleRate = sampleRate;
         mCurrentHoldTimeMs = holdTimeMs; // Store the new hold time
         
         // Update all existing peak detectors with BOTH current settings + their frequencies
         for (size_t i = 0; i < mPeakDetectors.size(); ++i)
         {
-            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : (i * (sampleRate / 2.0f) / mPeakDetectors.size());
+            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : 0.0f;
             mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
         }
     }
 
-    void MonoSpectrumDisplaySmoother::SetFalloffRate(float falloffTimeMs, float sampleRate)
+    void SmoothedStereoFFT::SetFalloffRate(float falloffTimeMs)
     {
-        mSampleRate = sampleRate;
         mCurrentFalloffTimeMs = falloffTimeMs; // Store the new falloff time
         
         // Update all existing peak detectors with BOTH current settings + their frequencies
         for (size_t i = 0; i < mPeakDetectors.size(); ++i)
         {
-            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : (i * (sampleRate / 2.0f) / mPeakDetectors.size());
+            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : 0.0f;
             mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
         }
     }
 
-    void MonoSpectrumDisplaySmoother::SetFFTUpdateRate(int fftSize, int overlapFactor)
+    void SmoothedStereoFFT::SetFFTUpdateRate(int fftSize, int overlapFactor)
     {
         // Calculate how many samples occur between FFT updates
         // This is critical for correct timing compensation
-        mSamplesPerFFTUpdate = fftSize / overlapFactor;
+        mSamplesPerFFTUpdate = (overlapFactor > 0) ? (fftSize / overlapFactor) : fftSize;
     }
 
-    void MonoSpectrumDisplaySmoother::ProcessSpectrum(const std::vector<MonoFFTAnalysis::SpectrumBin>& rawSpectrum)
+    void SmoothedStereoFFT::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum)
     {
         // Resize if needed
         if (mPeakDetectors.size() != rawSpectrum.size())
@@ -285,7 +283,7 @@ namespace WaveSabreCore
             // Initialize new peak detectors with CURRENT settings and their frequencies
             for (size_t i = 0; i < mPeakDetectors.size(); ++i)
             {
-                float frequency = (i < rawSpectrum.size()) ? rawSpectrum[i].frequency : (i * (mSampleRate / 2.0f) / mPeakDetectors.size());
+                float frequency = (i < rawSpectrum.size()) ? rawSpectrum[i].frequency : 0.0f;
                 mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
             }
         }
@@ -295,7 +293,6 @@ namespace WaveSabreCore
         for (size_t i = 0; i < rawSpectrum.size(); ++i)
         {
             // Convert dB to linear for PeakDetector (which expects linear values 0-1+)
-            // Add offset to handle negative dB values properly
             float magnitudeLinear = std::pow(10.0f, rawSpectrum[i].magnitudeDB / 20.0f);
             
             // Since PeakDetector expects to be called every sample, we need to simulate
@@ -315,14 +312,26 @@ namespace WaveSabreCore
         }
     }
 
-    float MonoSpectrumDisplaySmoother::GetMagnitudeAtFrequency(float frequency, float sampleRate) const
+    void SmoothedStereoFFT::ProcessSamples(float leftSample, float rightSample)
     {
-        if (mOutput.empty() || frequency <= 0.0f || frequency >= sampleRate * 0.5f)
+        // Feed samples to the owned FFTAnalysis
+        mFFTAnalysis.ProcessSamples(leftSample, rightSample);
+        
+        if (mFFTAnalysis.HasNewSpectrum())
+        {
+            const auto& raw = mFFTAnalysis.GetSpectrum();
+            ProcessSpectrum(raw);
+            mFFTAnalysis.ConsumeSpectrum();
+        }
+    }
+
+    float SmoothedStereoFFT::GetMagnitudeAtFrequency(float frequency) const
+    {
+        if (mOutput.empty() || frequency <= 0.0f || frequency >= mFFTAnalysis.GetNyquistFrequency())
             return -80.0f;
         
         // Find the appropriate bin (assuming uniform frequency spacing)
-        const float frequencyResolution = mOutput.size() > 1 ? 
-            (mOutput[1].frequency - mOutput[0].frequency) : (sampleRate / 2048.0f);
+        const float frequencyResolution = GetFrequencyResolution();
         const float binIndex = frequency / frequencyResolution;
         const int lowerBin = static_cast<int>(std::floor(binIndex));
         const int upperBin = std::min(lowerBin + 1, static_cast<int>(mOutput.size()) - 1);
@@ -339,12 +348,13 @@ namespace WaveSabreCore
                mOutput[upperBin].magnitudeDB * fraction;
     }
 
-    void MonoSpectrumDisplaySmoother::Reset()
+    void SmoothedStereoFFT::Reset()
     {
         for (auto& detector : mPeakDetectors)
         {
             detector.Reset(); // Use the built-in Reset() method
         }
+        mFFTAnalysis.Reset();
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -375,12 +385,6 @@ namespace WaveSabreCore
             analyzer.SetOverlapFactor(factor);
     }
 
-    //void FFTAnalysis::SetDisplayBoost(float boostDB)
-    //{
-    //    for (auto& analyzer : mAnalyzers)
-    //        analyzer.SetDisplayBoost(boostDB);
-    //}
-
     void FFTAnalysis::SetWindowType(WindowType windowType)
     {
         for (auto& analyzer : mAnalyzers)
@@ -404,19 +408,40 @@ namespace WaveSabreCore
         mAnalyzers[1].ConsumeSpectrum();
     }
 
-    const std::vector<IFrequencyAnalysis::SpectrumBin>& FFTAnalysis::GetSpectrumLeft() const
+    const std::vector<SpectrumBin>& FFTAnalysis::GetSpectrum() const
     {
-        return reinterpret_cast<const std::vector<IFrequencyAnalysis::SpectrumBin>&>(mAnalyzers[0].GetSpectrum());
+		// Return a combined spectrum for both channels
+        static std::vector<SpectrumBin> combinedSpectrum;
+        combinedSpectrum.clear();
+        
+        const auto& leftSpectrum = mAnalyzers[0].GetSpectrum();
+        const auto& rightSpectrum = mAnalyzers[1].GetSpectrum();
+        
+        size_t maxSize = std::max(leftSpectrum.size(), rightSpectrum.size());
+        combinedSpectrum.resize(maxSize);
+        
+        for (size_t i = 0; i < maxSize; ++i)
+        {
+            if (i < leftSpectrum.size())
+                combinedSpectrum[i].frequency = leftSpectrum[i].frequency;
+            else
+                combinedSpectrum[i].frequency = rightSpectrum[i].frequency;
+            combinedSpectrum[i].magnitudeDB = std::max(
+                i < leftSpectrum.size() ? leftSpectrum[i].magnitudeDB : -80.0f,
+                i < rightSpectrum.size() ? rightSpectrum[i].magnitudeDB : -80.0f);
+            combinedSpectrum[i].phase = 0.0f; // Phase is not used in this context
+        }
+        
+		return combinedSpectrum;
     }
 
-    const std::vector<IFrequencyAnalysis::SpectrumBin>& FFTAnalysis::GetSpectrumRight() const
+    float FFTAnalysis::GetMagnitudeAtFrequency(float frequency) const
     {
-        return reinterpret_cast<const std::vector<IFrequencyAnalysis::SpectrumBin>&>(mAnalyzers[1].GetSpectrum());
-    }
-
-    float FFTAnalysis::GetMagnitudeAtFrequency(float frequency, bool useRightChannel) const
-    {
-        return mAnalyzers[useRightChannel ? 1 : 0].GetMagnitudeAtFrequency(frequency);
+        float leftMagnitude = mAnalyzers[0].GetMagnitudeAtFrequency(frequency);
+        float rightMagnitude = mAnalyzers[1].GetMagnitudeAtFrequency(frequency);
+        
+        // Return the maximum magnitude from both channels
+		return std::max(leftMagnitude, rightMagnitude);
     }
 
     float FFTAnalysis::GetFrequencyResolution() const
@@ -434,82 +459,7 @@ namespace WaveSabreCore
         for (auto& analyzer : mAnalyzers)
             analyzer.Reset();
     }
-
-    ///////////////////////////////////////////////////////////////////////////
-    // SpectrumDisplaySmoother Implementation - Stereo wrapper
-    ///////////////////////////////////////////////////////////////////////////
-    
-    SpectrumDisplaySmoother::SpectrumDisplaySmoother()
-        : mSampleRate(Helpers::CurrentSampleRate)
-    {
-    }
-
-    void SpectrumDisplaySmoother::SetPeakHoldTime(float holdTimeMs, float sampleRate)
-    {
-        mSampleRate = sampleRate;
-        for (auto& smoother : mSmoothers)
-            smoother.SetPeakHoldTime(holdTimeMs, sampleRate);
-    }
-
-    void SpectrumDisplaySmoother::SetFalloffRate(float falloffTimeMs, float sampleRate)
-    {
-        mSampleRate = sampleRate;
-        for (auto& smoother : mSmoothers)
-            smoother.SetFalloffRate(falloffTimeMs, sampleRate);
-    }
-
-    void SpectrumDisplaySmoother::SetFFTUpdateRate(int fftSize, int overlapFactor)
-    {
-        for (auto& smoother : mSmoothers)
-            smoother.SetFFTUpdateRate(fftSize, overlapFactor);
-    }
-
-    void SpectrumDisplaySmoother::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum, bool isRightChannel)
-    {
-        // Convert from interface SpectrumBin to MonoFFTAnalysis::SpectrumBin (they're identical)
-        const auto& monoSpectrum = reinterpret_cast<const std::vector<MonoFFTAnalysis::SpectrumBin>&>(rawSpectrum);
-        mSmoothers[isRightChannel ? 1 : 0].ProcessSpectrum(monoSpectrum);
-    }
-
-    const std::vector<IFrequencyAnalysis::SpectrumBin>& SpectrumDisplaySmoother::GetSpectrumLeft() const
-    {
-        return reinterpret_cast<const std::vector<IFrequencyAnalysis::SpectrumBin>&>(mSmoothers[0].GetSpectrum());
-    }
-
-    const std::vector<IFrequencyAnalysis::SpectrumBin>& SpectrumDisplaySmoother::GetSpectrumRight() const
-    {
-        return reinterpret_cast<const std::vector<IFrequencyAnalysis::SpectrumBin>&>(mSmoothers[1].GetSpectrum());
-    }
-
-    float SpectrumDisplaySmoother::GetMagnitudeAtFrequency(float frequency, bool useRightChannel) const
-    {
-        return mSmoothers[useRightChannel ? 1 : 0].GetMagnitudeAtFrequency(frequency, mSampleRate);
-    }
-
-    float SpectrumDisplaySmoother::GetFrequencyResolution() const
-    {
-        const auto& spectrum = mSmoothers[0].GetSpectrum();
-        if (spectrum.empty())
-            return 0.0f;
-        
-        // Assume uniform frequency spacing - calculate from first two bins
-        if (spectrum.size() > 1)
-            return spectrum[1].frequency - spectrum[0].frequency;
-        else
-            return mSampleRate / 2048.0f; // fallback default
-    }
-
-    float SpectrumDisplaySmoother::GetNyquistFrequency() const
-    {
-        return mSampleRate * 0.5f;
-    }
-
-    void SpectrumDisplaySmoother::Reset()
-    {
-        for (auto& smoother : mSmoothers)
-            smoother.Reset();
-    }
-}
+} // namespace WaveSabreCore
 
 
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT

@@ -46,7 +46,6 @@ struct FrequencyResponseRendererConfig {
     const IFrequencyAnalysis* frequencyAnalysis = nullptr;  // FFT data source
     ImColor fftColor = ColorFromHTML("4488FF", 0.6f);       // spectrum line color
     ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);   // spectrum fill color
-    bool useRightChannel = false;                           // which channel to display
     bool enableFftFill = true;                              // enable filled area under curve
     const char* label = nullptr;                            // optional label for legend/display
   };
@@ -57,13 +56,6 @@ struct FrequencyResponseRendererConfig {
   float fftDisplayMinDB = -60.0f;  // Noise floor (iZotope style: -60dB to 0dB)
   float fftDisplayMaxDB = 0.0f;    // Digital maximum (0dB)
   bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
-  
-  // Legacy single FFT support (for backward compatibility)
-  const IFrequencyAnalysis* frequencyAnalysis = nullptr;
-  ImColor fftColor = ColorFromHTML("4488FF", 0.6f);
-  ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);
-  bool useRightChannel = false;
-  bool enableFftFill = true;
 };
 
 template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
@@ -226,7 +218,7 @@ struct FrequencyResponseRenderer {
         
         if (overlay.frequencyAnalysis) {
           // Screen-space sampling: get magnitude at exact frequency
-          cache.magnitudeDB = overlay.frequencyAnalysis->GetMagnitudeAtFrequency(freq, overlay.useRightChannel);
+          cache.magnitudeDB = overlay.frequencyAnalysis->GetMagnitudeAtFrequency(freq);
           cache.valid = true;
         } else {
           cache.magnitudeDB = -100.0f; // Silence
@@ -479,48 +471,8 @@ struct FrequencyResponseRenderer {
       }
     }
     
-    // Legacy single FFT support (backward compatibility) - use same unified approach
-    if (cfg.frequencyAnalysis && cfg.fftOverlays.empty()) {
-      // Calculate legacy FFT data using unified screen-space sampling
-      std::vector<ImVec2> legacyPoints;
-      legacyPoints.reserve(gSegmentCount);
-      
-      // FFT should show full spectrum regardless of filter response visibility
-      for (int i = 0; i < gSegmentCount; ++i) {
-        M7::QuickParam param{0, M7::gFilterFreqConfig};
-        param.SetRawValue(float(i) / gSegmentCount);
-        float freq = param.GetFrequency();
-        
-        float magnitudeDB = cfg.frequencyAnalysis->GetMagnitudeAtFrequency(freq, cfg.useRightChannel);
-        
-        // Apply independent FFT scaling
-        float displayMin = cfg.useIndependentFFTScale ? cfg.fftDisplayMinDB : mDisplayMinDB;
-        float displayMax = cfg.useIndependentFFTScale ? cfg.fftDisplayMaxDB : mDisplayMaxDB;
-        
-        if (magnitudeDB >= displayMin && magnitudeDB <= displayMax) {
-          float y = FFTDBToY(magnitudeDB, bb, cfg);
-          legacyPoints.push_back({mX[i], y});
-        }
-      }
-      
-      // Render legacy FFT with same approach
-      if (legacyPoints.size() >= 2) {
-        if (cfg.enableFftFill) {
-          const float baseline = bb.Max.y;
-          for (size_t i = 0; i < legacyPoints.size() - 1; ++i) {
-            const ImVec2& p1 = legacyPoints[i];
-            const ImVec2& p2 = legacyPoints[i + 1];
-            ImVec2 quad[4] = {{p1.x, baseline}, {p1.x, p1.y}, {p2.x, p2.y}, {p2.x, baseline}};
-            dl->AddConvexPolyFilled(quad, 4, cfg.fftFillColor);
-          }
-        }
-        dl->AddPolyline(legacyPoints.data(), static_cast<int>(legacyPoints.size()), 
-                       cfg.fftColor, 0, 1.5f);
-      }
-    }
-    
     // Draw FFT scale indicator and legend
-    if (cfg.useIndependentFFTScale && TshowGridLabels && (!cfg.fftOverlays.empty() || cfg.frequencyAnalysis)) {
+    if (cfg.useIndependentFFTScale && TshowGridLabels && (!cfg.fftOverlays.empty())) {
       // Draw scale indicator in top-right corner
       char scaleText[32];
       snprintf(scaleText, sizeof(scaleText), "FFT: %.0f to %.0fdB", cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB);
