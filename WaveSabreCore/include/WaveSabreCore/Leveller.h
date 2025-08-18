@@ -164,11 +164,11 @@ namespace WaveSabreCore
 
 		Leveller() :
 			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16),
-			mInputFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, 44100.0f),
-			mOutputFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, 44100.0f)
+			mInputFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, Helpers::CurrentSampleRateF),
+			mOutputFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, Helpers::CurrentSampleRateF)
 		{
 			// Configure input FFT for clean technical analysis (no artificial boost needed)
-			mInputFFTAnalysis.SetSmoothingFactor(0.0f);  // Light technical smoothing only
+			mInputFFTAnalysis.SetSmoothingFactor(0.7f);  // Light technical smoothing only
 			mInputFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
 			
 			// Configure output FFT with same settings for direct comparison
@@ -176,13 +176,13 @@ namespace WaveSabreCore
 			mOutputFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
 			
 			// Configure input display smoother for Pro-Q3 style behavior
-			mInputSpectrumSmoother.SetPeakHoldTime(100, 44100.0f);     // 0ms peak hold
-			mInputSpectrumSmoother.SetFalloffRate(2000, 44100.0f); // 200ms for -60dB falloff
+			mInputSpectrumSmoother.SetPeakHoldTime(100, Helpers::CurrentSampleRateF);     // 0ms peak hold
+			mInputSpectrumSmoother.SetFalloffRate(2000, Helpers::CurrentSampleRateF); // 200ms for -60dB falloff
 			mInputSpectrumSmoother.SetFFTUpdateRate(1024, 2); // 1024 FFT, 2x overlap = 512 samples between updates
 			
 			// Configure output display smoother with same settings
-			mOutputSpectrumSmoother.SetPeakHoldTime(100, 44100.0f);     // 0ms peak hold  
-			mOutputSpectrumSmoother.SetFalloffRate(2000, 44100.0f); // 200ms for -60dB falloff
+			mOutputSpectrumSmoother.SetPeakHoldTime(100, Helpers::CurrentSampleRateF);     // 0ms peak hold  
+			mOutputSpectrumSmoother.SetFalloffRate(2000, Helpers::CurrentSampleRateF); // 200ms for -60dB falloff
 			mOutputSpectrumSmoother.SetFFTUpdateRate(1024, 2); // 1024 FFT, 2x overlap = 512 samples between updates
 			
 			LoadDefaults();
@@ -197,9 +197,9 @@ namespace WaveSabreCore
 			bool enableDC = mParams.GetBoolValue(ParamIndices::EnableDCFilter);
 			
 			// Update FFT analyzers sample rate if needed
-			if (mInputFFTAnalysis.GetNyquistFrequency() * 2.0f != static_cast<float>(Helpers::CurrentSampleRate))
+			if (mInputFFTAnalysis.GetNyquistFrequency() * 2.0f != Helpers::CurrentSampleRateF)
 			{
-				float sampleRate = static_cast<float>(Helpers::CurrentSampleRate);
+				float sampleRate = Helpers::CurrentSampleRateF;
 				mInputFFTAnalysis.SetSampleRate(sampleRate);
 				mOutputFFTAnalysis.SetSampleRate(sampleRate);
 				

@@ -57,7 +57,6 @@ struct FrequencyResponseRendererConfig {
   float fftDisplayMinDB = -60.0f;  // Noise floor (iZotope style: -60dB to 0dB)
   float fftDisplayMaxDB = 0.0f;    // Digital maximum (0dB)
   bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
-  float fftCurveSmoothing = 0.3f;  // Bézier curve smoothing factor (0.0 = sharp, 0.5 = very smooth)
   
   // Legacy single FFT support (for backward compatibility)
   const IFrequencyAnalysis* frequencyAnalysis = nullptr;
@@ -227,12 +226,7 @@ struct FrequencyResponseRenderer {
         
         if (overlay.frequencyAnalysis) {
           // Screen-space sampling: get magnitude at exact frequency
-          cache.magnitudeDB = GetFFTMagnitudeAtFrequency(
-            overlay.frequencyAnalysis, 
-            freq, 
-            overlay.useRightChannel, 
-            cfg.fftCurveSmoothing
-          );
+          cache.magnitudeDB = overlay.frequencyAnalysis->GetMagnitudeAtFrequency(freq, overlay.useRightChannel);
           cache.valid = true;
         } else {
           cache.magnitudeDB = -100.0f; // Silence
@@ -498,14 +492,6 @@ struct FrequencyResponseRenderer {
     
     // Legacy single FFT support (backward compatibility) - use same unified approach
     if (cfg.frequencyAnalysis && cfg.fftOverlays.empty()) {
-      // Create temporary overlay for legacy support
-      FrequencyResponseRendererConfig<TFilterCount, TParamCount>::FFTAnalysisOverlay legacyOverlay;
-      legacyOverlay.frequencyAnalysis = cfg.frequencyAnalysis;
-      legacyOverlay.fftColor = cfg.fftColor;
-      legacyOverlay.fftFillColor = cfg.fftFillColor;
-      legacyOverlay.useRightChannel = cfg.useRightChannel;
-      legacyOverlay.enableFftFill = cfg.enableFftFill;
-      
       // Calculate legacy FFT data using unified screen-space sampling
       std::vector<ImVec2> legacyPoints;
       legacyPoints.reserve(gSegmentCount);
@@ -515,8 +501,7 @@ struct FrequencyResponseRenderer {
         param.SetRawValue(float(i) / gSegmentCount);
         float freq = param.GetFrequency();
         
-        float magnitudeDB = GetFFTMagnitudeAtFrequency(
-          cfg.frequencyAnalysis, freq, cfg.useRightChannel, cfg.fftCurveSmoothing);
+        float magnitudeDB = cfg.frequencyAnalysis->GetMagnitudeAtFrequency(freq, cfg.useRightChannel);
         
         // Apply independent FFT scaling
         float displayMin = cfg.useIndependentFFTScale ? cfg.fftDisplayMinDB : mDisplayMinDB;
@@ -616,19 +601,6 @@ struct FrequencyResponseRenderer {
     ImGui::Dummy(gSize);
   }
   
-  // Get interpolated FFT magnitude at specific frequency (unified screen-space sampling)
-  static float GetFFTMagnitudeAtFrequency(const IFrequencyAnalysis* analysis, float frequency, 
-                                         bool useRightChannel, float smoothing) {
-    if (!analysis) return -100.0f; // Silence
-    
-    // Use the interface's built-in interpolation method
-    return analysis->GetMagnitudeAtFrequency(frequency, useRightChannel);
-    
-    // Note: The 'smoothing' parameter could be used here for frequency-domain smoothing
-    // if we wanted to implement Gaussian smoothing or other advanced techniques.
-    // For now, we rely on the existing technical smoothing in the FFT analyzer itself.
-  }
-
   // Convert screen X coordinate back to frequency (inverse of FreqToX)
   float XToFreq(float x, ImRect &bb) {
     float t01 = M7::math::lerp_rev(bb.Min.x, bb.Max.x, x);

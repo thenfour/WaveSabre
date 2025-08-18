@@ -234,7 +234,7 @@ namespace WaveSabreCore
     ///////////////////////////////////////////////////////////////////////////
     
     MonoSpectrumDisplaySmoother::MonoSpectrumDisplaySmoother()
-        : mSampleRate(44100.0f)
+        : mSampleRate(Helpers::CurrentSampleRate)
         , mSamplesPerFFTUpdate(512) // Default: 2048 FFT with 75% overlap = 512 samples between updates
         , mCurrentHoldTimeMs(0.0f)  // Default hold time
         , mCurrentFalloffTimeMs(200.0f) // Default falloff time
@@ -440,7 +440,7 @@ namespace WaveSabreCore
     ///////////////////////////////////////////////////////////////////////////
     
     SpectrumDisplaySmoother::SpectrumDisplaySmoother()
-        : mSampleRate(44100.0f)
+        : mSampleRate(Helpers::CurrentSampleRate)
     {
     }
 

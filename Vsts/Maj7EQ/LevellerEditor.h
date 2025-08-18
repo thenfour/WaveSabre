@@ -32,7 +32,6 @@ class LevellerEditor : public VstEditor
 	// Professional FFT scaling controls (separate from EQ response)
 	float mFFTDisplayMinDB = -80.0f;       // Noise floor
 	float mFFTDisplayMaxDB = 10.0f;         // Digital maximum  
-	float mFFTCurveSmoothing = 0.3f;        // Bézier curve smoothing factor (0.0 = sharp, 0.5 = very smooth)
 
 public:
 	LevellerEditor(AudioEffect* audioEffect)
@@ -316,23 +315,6 @@ public:
 				ImGui::SetTooltip("Time for spectrum to fall -60dB after peak hold expires.\nLower = faster response, Higher = smoother display\nApplies to both input and output spectrums.");
 			}
 
-			// Curve Smoothing Control (NEW!)
-			ImGui::Separator();
-			ImGui::Text("Visual Smoothing:");
-			if (ImGui::SliderFloat("Curve Smoothing", &mFFTCurveSmoothing, 0.0f, 0.5f, "%.2f"))
-			{
-				// This affects rendering only, no need to update analyzers
-			}
-			ImGui::SameLine(); ImGui::TextDisabled("(?)");
-			if (ImGui::IsItemHovered())
-			{
-				ImGui::SetTooltip("Visual curve smoothing for prettier display:\n"
-					"0.0 = Sharp lines (raw FFT bins)\n"
-					"0.3 = Smooth curves (recommended)\n"
-					"0.5 = Very smooth (may hide detail)");
-			}
-
-
 			ImGui::EndGroup();
 		}
 
@@ -347,7 +329,6 @@ public:
 		// Apply current FFT scaling settings to renderer config
 		cfg.fftDisplayMinDB = mFFTDisplayMinDB;
 		cfg.fftDisplayMaxDB = mFFTDisplayMaxDB;
-		cfg.fftCurveSmoothing = mFFTCurveSmoothing;
 
 		mResponseGraph.OnRender(cfg);
 

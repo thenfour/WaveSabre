@@ -102,7 +102,7 @@ namespace WaveSabreCore
     public:
         MonoFFTAnalysis(FFTSize fftSize = FFTSize::FFT2048, 
                        WindowType windowType = WindowType::Hanning,
-                       float sampleRate = 44100.0f);
+                       float sampleRate = Helpers::CurrentSampleRate);
         
         ~MonoFFTAnalysis();
         
@@ -199,7 +199,7 @@ namespace WaveSabreCore
         
         FFTAnalysis(FFTSize fftSize = FFTSize::FFT2048, 
                    WindowType windowType = WindowType::Hanning,
-                   float sampleRate = 44100.0f);
+                   float sampleRate = Helpers::CurrentSampleRate);
         
         // Configuration
         void SetSampleRate(float sampleRate);
