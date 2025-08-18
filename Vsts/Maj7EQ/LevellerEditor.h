@@ -28,8 +28,6 @@ class LevellerEditor : public VstEditor
 	float mSpectrumFalloffTime;//= 2000.0f;   // 50-5000 ms
 	//FFTSize mFFTSizeSelection;// = 1;             // 0=512, 1=1024, 2=2048, 3=4096
 	//WindowType mFFTWindowType;// = 1;                // 0=Rectangular, 1=Hanning, 2=Hamming, 3=Blackman
-
-	// Professional FFT scaling controls (separate from EQ response)
 	float mFFTDisplayMinDB = -80.0f;       // Noise floor
 	float mFFTDisplayMaxDB = 0.0f;         // Digital maximum  
 
@@ -92,7 +90,7 @@ public:
 		M7::ParamAccessor typePA{ &typeB, 0 };
 		BiquadFilterType type = typePA.GetEnumValue< BiquadFilterType>(0);
 		ImGui::BeginDisabled(type == BiquadFilterType::Highpass || type == BiquadFilterType::Lowpass);
-		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)paramOffset + (int)Leveller::BandParamOffsets::Gain, "Gain", -30.0f, 30.0f, 0, 0, 0, {});
+		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)paramOffset + (int)Leveller::BandParamOffsets::Gain, "Gain(db)", -30.0f, 30.0f, 0, 0, 0, {});
 		ImGui::EndDisabled();
 		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", M7::gBiquadFilterQCfg, 1.00f, {});
 

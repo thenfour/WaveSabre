@@ -435,7 +435,7 @@ struct FrequencyResponseRenderer {
     mVisibleLeftIndex = left;
     mVisibleRightIndex = right;
 
-    // Compute required scale using 6dB steps with hysteresis
+    // Compute required scale using 6dB steps with hysteresis and drag-aware behavior
     float posPeak = -1e9f;
     float negPeak = 1e9f;
     for (int i = left; i <= right; ++i) {
@@ -447,22 +447,33 @@ struct FrequencyResponseRenderer {
 
     const float baseHalf = 12.0f;
     const float maxHalf = 48.0f;
-    float posNeed = stepUp6(std::max(baseHalf, std::max(0.0f, posPeak)));
-    float negNeed = stepUp6(std::max(baseHalf, std::max(0.0f, -negPeak)));
+    
+    // Add margin before scaling up - start expanding at 10dB instead of 12dB for better UX
+    const float scalingMargin = 2.0f; // 2dB margin means scale up at 10dB instead of 12dB
+    float adjustedPosThreshold = std::max(0.0f, posPeak + scalingMargin);
+    float adjustedNegThreshold = std::max(0.0f, -negPeak + scalingMargin);
+    
+    float posNeed = stepUp6(std::max(baseHalf, adjustedPosThreshold));
+    float negNeed = stepUp6(std::max(baseHalf, adjustedNegThreshold));
     float suggestedHalf = std::min(maxHalf, std::max(posNeed, negNeed));
 
-    // hysteresis: expand immediately, shrink after N frames stable
+    // Enhanced hysteresis: while dragging, only allow scale increases (never shrink)
     const int shrinkFrames = 6;
+    bool isDragging = mThumbInteraction.isDragging;
+    
     if (suggestedHalf > mCurrentHalfRangeDB) {
+      // Always allow scale increases (both when dragging and not dragging)
       mCurrentHalfRangeDB = suggestedHalf;
       mShrinkCountdown = shrinkFrames;
-    } else if (suggestedHalf < mCurrentHalfRangeDB) {
+    } else if (suggestedHalf < mCurrentHalfRangeDB && !isDragging) {
+      // Only allow scale decreases when NOT dragging
       if (mShrinkCountdown > 0) {
         --mShrinkCountdown;
       } else {
         mCurrentHalfRangeDB = suggestedHalf;
       }
     } else {
+      // Reset shrink countdown if we're at the same scale or if dragging
       mShrinkCountdown = shrinkFrames;
     }
 
@@ -567,7 +578,7 @@ struct FrequencyResponseRenderer {
       std::vector<ImVec2> fftPoints;
       fftPoints.reserve(gSegmentCount);
       
-      // FFT should show full spectrum regardless of filter response visibility
+      // FFT should show full spectrum regardless of filter response
       // (FFT represents actual audio signal, not filter response)
       for (int i = 0; i < gSegmentCount; ++i) {
         const auto& cache = fftCache[i];
