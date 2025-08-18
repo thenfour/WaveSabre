@@ -414,7 +414,7 @@ struct FrequencyResponseRenderer {
     // unity line (0 dB) over grid for visibility
     float unityY = std::round(DBToY(0, bb)); // round for crisp line.
     dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("DDDDDD"),
-                2.5f);
+                1.5f);
 
     // Render FFT spectrum overlays using unified screen-space sampling
     for (size_t overlayIndex = 0; overlayIndex < cfg.fftOverlays.size(); ++overlayIndex) {
@@ -547,18 +547,42 @@ struct FrequencyResponseRenderer {
       ImVec2 clampedMouse = { M7::math::clamp(mouse.x, bb.Min.x, bb.Max.x), M7::math::clamp(mouse.y, bb.Min.y, bb.Max.y) };
 
       // Crosshair: vertical and horizontal lines
-      ImU32 crossCol = ColorFromHTML("FFFFFF", 0.25f);
-      dl->AddLine({clampedMouse.x, bb.Min.y}, {clampedMouse.x, bb.Max.y}, crossCol, 1.0f);
-      dl->AddLine({bb.Min.x, clampedMouse.y}, {bb.Max.x, clampedMouse.y}, crossCol, 1.0f);
+      ImU32 crossColH = ColorFromHTML("ff8800", 0.25f);
+      ImU32 crossColV = ColorFromHTML("00dddd", 0.25f);
+      dl->AddLine({clampedMouse.x, bb.Min.y}, {clampedMouse.x, bb.Max.y}, crossColV, 1.0f);
+      dl->AddLine({bb.Min.x, clampedMouse.y}, {bb.Max.x, clampedMouse.y}, crossColH, 1.0f);
 
-      // Convert mouse X to segment index (screen-space sampling uses linear t)
-      float t01 = M7::math::lerp_rev(bb.Min.x, bb.Max.x, clampedMouse.x);
-      t01 = M7::math::clamp01(t01);
-      int idx = (int)std::round(t01 * (gSegmentCount - 1));
-      idx = std::max(0, std::min(gSegmentCount - 1, idx));
+      // Find corresponding response curve point at this X using screen-space bracketing
+      const float mx = clampedMouse.x;
+      int i1;
+      {
+        auto begin = mX + mVisibleLeftIndex;
+        auto end   = mX + mVisibleRightIndex + 1;
+        auto it = std::lower_bound(begin, end, mx);
+        i1 = (int)(it - mX);
+        if (i1 <= mVisibleLeftIndex) i1 = mVisibleLeftIndex + 1;
+        if (i1 >  mVisibleRightIndex) i1 = mVisibleRightIndex;
+      }
+      int i0 = i1 - 1;
+      float x0 = mX[i0];
+      float x1 = mX[i1];
+      float t = (x1 > x0) ? M7::math::clamp01((mx - x0) / (x1 - x0)) : 0.0f;
+      float magDBLerp = M7::math::lerp(mMagdB[i0], mMagdB[i1], t);
+      float curveY = DBToY(magDBLerp, bb); // DBToY clamps to visible range
+      ImVec2 curvePt = { mx, curveY };
 
-      float hoverFreq = XToFreq(clampedMouse.x, bb);
-      float hoverMagDB = mMagdB[idx];
+      // Indicator on the response curve
+      ImU32 indicatorFill = ColorFromHTML("00dddd", 0.95f);
+      ImU32 indicatorOutline = ColorFromHTML("000000", 0.9f);
+
+      ImU32 ptCrossCol = ColorFromHTML("00dddd", 0.25f);
+      // draw a horizontal line through the curvePt
+	  dl->AddLine({ bb.Min.x, curvePt.y }, { bb.Max.x, curvePt.y }, ptCrossCol, 1.0f);
+
+      dl->AddCircleFilled(curvePt, 4.0f, indicatorFill);
+      dl->AddCircle(curvePt, 4.5f, indicatorOutline, 0, 1.5f);
+
+      float hoverFreq = XToFreq(mx, bb);
 
       // Build tooltip text
       char freqText[32];
@@ -568,9 +592,13 @@ struct FrequencyResponseRenderer {
         snprintf(freqText, sizeof(freqText), "%.0fHz", hoverFreq);
       }
 
+      // Place tooltip relative to the curve point (slightly above-right)
+      ImVec2 tipOffset = { 8.0f, -8.0f };
+      ImVec2 tipAnchor = { curvePt.x + tipOffset.x, curvePt.y + tipOffset.y };
+      ImGui::SetNextWindowPos(tipAnchor, ImGuiCond_Always, ImVec2(0.0f, 1.0f));
       ImGui::BeginTooltip();
       ImGui::Text("%s", freqText);
-      ImGui::Text("%.2f dB", hoverMagDB);
+      ImGui::Text("%.2f dB", magDBLerp);
       ImGui::EndTooltip();
     }
 
