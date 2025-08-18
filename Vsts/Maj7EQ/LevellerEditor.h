@@ -149,17 +149,47 @@ public:
 
 		ImGui::EndGroup();
 
+		auto handleThumbDragParamChange = [](float freqHz, float gainDb, void* userData) {
+			// Get the editor instance and band index from userData
+			LevellerEditor* editor = reinterpret_cast<LevellerEditor*>(userData);
+			uintptr_t bandIndex = 0; // We'll need to encode this differently
+		};
+
+		// Capture bandIndex in individual lambdas for each band
+		auto makeBandHandler = [this](uintptr_t bandIndex) {
+			return [this, bandIndex](float freqHz, float gainDb, uintptr_t userData) {
+				// Convert freqHz to the param value
+				M7::QuickParam freqParam;
+				freqParam.SetFrequencyAssumingNoKeytracking(M7::gFilterFreqConfig, freqHz);
+				float freqParamValue = freqParam.GetRawValue();
+				
+				// Convert gainDb to the param value
+				M7::QuickParam gainParam;
+				gainParam.SetVolumeDB(M7::gVolumeCfg12db, gainDb);
+				float gainParamValue = gainParam.GetRawValue();
+				
+				// Calculate the parameter indices based on band index
+				// Each band has 5 parameters: Type, Freq, Gain, Q, Enable
+				VstInt32 freqParamIndex = (VstInt32)Leveller::ParamIndices::Band1Freq + (bandIndex * (int)Leveller::BandParamOffsets::Count__);
+				VstInt32 gainParamIndex = (VstInt32)Leveller::ParamIndices::Band1Gain + (bandIndex * (int)Leveller::BandParamOffsets::Count__);
+				
+				// Set the parameters using VST automation
+				GetEffectX()->setParameterAutomated(freqParamIndex, M7::math::clamp01(freqParamValue));
+				GetEffectX()->setParameterAutomated(gainParamIndex, M7::math::clamp01(gainParamValue));
+			};
+		};
+
 		const std::array<FrequencyResponseRendererFilter, Leveller::gBandCount> filters = {
 			FrequencyResponseRendererFilter{
 				bandColors[0],
 				(GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band1Enable) > 0.5f) ? &mpLeveller->mBands[0].mFilters[0] : nullptr,
-				"A",
+				"A", makeBandHandler(0), 0
 		},
 			FrequencyResponseRendererFilter{
-				bandColors[1], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) > 0.5f) ? &mpLeveller->mBands[1].mFilters[0] : nullptr, "B"},
-			FrequencyResponseRendererFilter{bandColors[2], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band3Enable) > 0.5f) ? &mpLeveller->mBands[2].mFilters[0] : nullptr, "C"},
-			FrequencyResponseRendererFilter{bandColors[3], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band4Enable) > 0.5f) ? &mpLeveller->mBands[3].mFilters[0] : nullptr, "D"},
-			FrequencyResponseRendererFilter{bandColors[4], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band5Enable) > 0.5f) ? &mpLeveller->mBands[4].mFilters[0] : nullptr, "E"},
+				bandColors[1], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) > 0.5f) ? &mpLeveller->mBands[1].mFilters[0] : nullptr, "B", makeBandHandler(1), 1},
+			FrequencyResponseRendererFilter{bandColors[2], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band3Enable) > 0.5f) ? &mpLeveller->mBands[2].mFilters[0] : nullptr, "C", makeBandHandler(2), 2},
+			FrequencyResponseRendererFilter{bandColors[3], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band4Enable) > 0.5f) ? &mpLeveller->mBands[3].mFilters[0] : nullptr, "D", makeBandHandler(3), 3},
+			FrequencyResponseRendererFilter{bandColors[4], (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band5Enable) > 0.5f) ? &mpLeveller->mBands[4].mFilters[0] : nullptr, "E", makeBandHandler(4), 4},
 		};
 
 		FrequencyResponseRendererConfig<Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams> cfg{

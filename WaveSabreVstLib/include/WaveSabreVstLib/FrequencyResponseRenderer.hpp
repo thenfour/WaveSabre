@@ -24,11 +24,51 @@ using real_t = WaveSabreCore::M7::real_t;
 using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib {
+
+//  FrequencyResponseRenderer - Interactive EQ GUI Component
+//  
+//  NEW FEATURE: Thumb Drag Interaction
+//  ===================================
+//  
+//  Thumbs (the circular markers on filter center frequencies) now support click & drag interaction
+//  when a HandleChangeParam callback is provided in FrequencyResponseRendererFilter.
+//  
+//  Usage Example:
+//  --------------
+//  
+//  // Define a callback to handle parameter changes
+//  void MyFilterParamHandler(float freqHz, float gainDb, void* userData) {
+//      MyFilterData* filterData = static_cast<MyFilterData*>(userData);
+//      
+//      // Update your filter parameters
+//      filterData->frequency = freqHz;
+//      filterData->gain = gainDb;
+//      
+//      // Update VST parameters, DSP, etc.
+//      UpdateMyFilter(filterData);
+//  }
+//  
+//  // Create interactive filters
+//  FrequencyResponseRendererFilter filters[] = {
+//      {"ff0000", &myFilter1, "LP",  MyFilterParamHandler, &myFilterData1}, // Interactive
+//      {"00ff00", &myFilter2, "HP",  MyFilterParamHandler, &myFilterData2}, // Interactive  
+//      {"0000ff", &myFilter3, "BP",  nullptr,              nullptr},        // Visual only
+//  };
+//  
+//  Visual Feedback:
+//  ----------------
+//  - Interactive thumbs show hover glow and resize slightly when hovered
+//  - During drag, thumbs get bright white outline and scale up 10%
+//  - Tooltips show "Click & drag to adjust" for interactive thumbs
+//  - Non-interactive thumbs (HandleChangeParam == nullptr) remain visual-only
+//
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct FrequencyResponseRendererFilter {
   const char *thumbColor;
   const BiquadFilter *filter;
   const char* label = nullptr;
+  std::function<void(float freqHz, float gainDb, uintptr_t userData)> HandleChangeParam;
+  uintptr_t userData = 0; // Optional user data for custom handling
 };
 
 template <size_t TFilterCount, size_t TParamCount>
@@ -62,11 +102,28 @@ struct FrequencyResponseRendererConfig {
 template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
           size_t TParamCount, bool TshowGridLabels>
 struct FrequencyResponseRenderer {
+  
+  // Extended thumb rendering info with interaction data
   struct ThumbRenderInfo {
-    const char * color;
+    const char* color;
     ImVec2 point;
     const char* label;
+    int filterIndex = -1;           // Index into the filters array
+    bool isInteractive = false;     // Whether this thumb supports dragging
+    ImRect hitTestRect;             // Screen-space hit test area (slightly larger than visual)
   };
+
+  // Thumb interaction state management
+  struct ThumbInteractionState {
+    int activeThumbIndex = -1;      // Which thumb is being dragged (-1 = none)
+    ImVec2 dragStartMousePos;       // Mouse position when drag started
+    ImVec2 dragStartThumbPos;       // Thumb position when drag started
+    float originalFreq = 0.0f;      // Original frequency when drag started
+    float originalGain = 0.0f;      // Original gain when drag started (derived from response)
+    bool isDragging = false;        // Currently in drag operation
+    bool wasHovered = false;        // Was hovered last frame (for hover state tracking)
+  };
+
   // the response graph is extremely crude; todo:
   // - add the user-selected points to the points list explicitly, to give
   // better looking peaks. then you could reduce # of points.
@@ -116,6 +173,9 @@ struct FrequencyResponseRenderer {
 
   int renderSerial = 0;
 
+  // NEW: Thumb interaction state
+  ThumbInteractionState mThumbInteraction;
+
   // https://forum.juce.com/t/draw-frequency-response-of-filter-from-transfer-function/20669
   // https://www.musicdsp.org/en/latest/Analysis/186-frequency-response-from-biquad-coefficients.html
   // https://dsp.stackexchange.com/questions/3091/plotting-the-magnitude-response-of-a-biquad-filter
@@ -164,6 +224,88 @@ struct FrequencyResponseRenderer {
     } else {
       // Fallback to shared scale with EQ response
       return DBToY(dB, bb);
+    }
+  }
+
+  // Helper function: Convert screen Y coordinate back to dB (inverse of DBToY)
+  float YToDB(float y, ImRect &bb) {
+    float t01 = M7::math::lerp_rev(bb.Max.y, bb.Min.y, y); // Note: inverted Y axis
+    t01 = M7::math::clamp01(t01);
+    return M7::math::lerp(mDisplayMinDB, mDisplayMaxDB, t01);
+  }
+
+  // Helper function: Check if a point is inside a circle
+  bool IsPointInCircle(ImVec2 point, ImVec2 center, float radius) {
+    float dx = point.x - center.x;
+    float dy = point.y - center.y;
+    return (dx * dx + dy * dy) <= (radius * radius);
+  }
+
+  // Helper function: Find which thumb is under the mouse cursor
+  int FindThumbUnderMouse(ImVec2 mousePos, float thumbRadius) {
+    for (int i = 0; i < (int)mThumbs.size(); ++i) {
+      const auto& thumb = mThumbs[i];
+      if (thumb.isInteractive && IsPointInCircle(mousePos, thumb.point, thumbRadius + 3.0f)) { // Slightly larger hit area
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  // Helper function: Handle thumb drag interaction
+  void HandleThumbInteraction(const FrequencyResponseRendererConfig<TFilterCount, TParamCount> &cfg, ImRect &bb) {
+    ImVec2 mousePos = ImGui::GetIO().MousePos;
+    bool mouseClicked = ImGui::IsMouseClicked(0);
+    bool mouseDown = ImGui::IsMouseDown(0);
+    bool mouseReleased = ImGui::IsMouseReleased(0);
+    bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
+
+    // Handle drag end
+    if (mThumbInteraction.isDragging && (mouseReleased || !mouseDown)) {
+      mThumbInteraction.isDragging = false;
+      mThumbInteraction.activeThumbIndex = -1;
+      return;
+    }
+
+    // Handle drag start
+    if (mouseClicked && mouseInBounds && !mThumbInteraction.isDragging) {
+      int thumbIndex = FindThumbUnderMouse(mousePos, cfg.thumbRadius);
+      if (thumbIndex >= 0) {
+        const auto& thumb = mThumbs[thumbIndex];
+        mThumbInteraction.activeThumbIndex = thumbIndex;
+        mThumbInteraction.isDragging = true;
+        mThumbInteraction.dragStartMousePos = mousePos;
+        mThumbInteraction.dragStartThumbPos = thumb.point;
+        mThumbInteraction.originalFreq = XToFreq(thumb.point.x, bb);
+        mThumbInteraction.originalGain = YToDB(thumb.point.y, bb);
+      }
+    }
+
+    // Handle active drag
+    if (mThumbInteraction.isDragging && mThumbInteraction.activeThumbIndex >= 0) {
+      auto& activeThumb = mThumbs[mThumbInteraction.activeThumbIndex];
+      const auto& filter = cfg.filters[activeThumb.filterIndex];
+      
+      if (filter.HandleChangeParam) {
+        // Calculate new frequency and gain from mouse position
+        ImVec2 clampedMouse = {
+          M7::math::clamp(mousePos.x, bb.Min.x, bb.Max.x),
+          M7::math::clamp(mousePos.y, bb.Min.y, bb.Max.y)
+        };
+        
+        float newFreq = XToFreq(clampedMouse.x, bb);
+        float newGain = YToDB(clampedMouse.y, bb);
+        
+        // Apply reasonable limits
+        newFreq = M7::math::clamp(newFreq, 20.0f, 20000.0f);
+        newGain = M7::math::clamp(newGain, mDisplayMinDB, mDisplayMaxDB);
+        
+        // Call the parameter change handler
+        filter.HandleChangeParam(newFreq, newGain, filter.userData);
+        
+        // Force recalculation since parameters changed
+        mAdditionalForceCalcFrames = 2;
+      }
     }
   }
 
@@ -524,7 +666,8 @@ struct FrequencyResponseRenderer {
 
     // Render thumbs at band center frequencies if within range
     mThumbs.clear();
-    for (auto &f : cfg.filters) {
+    for (size_t filterIdx = 0; filterIdx < cfg.filters.size(); ++filterIdx) {
+      const auto &f = cfg.filters[filterIdx];
       if (!f.filter)
         continue;
       float freq = f.filter->freq;
@@ -533,85 +676,140 @@ struct FrequencyResponseRenderer {
       if (magdB < mDisplayMinDB || magdB > mDisplayMaxDB)
         continue;
 
-      mThumbs.push_back({
-          f.thumbColor,
-          {FreqToX(freq, bb), DBToY(magdB, bb)},
-          f.label
-          });
-    }
-    for (auto &th : mThumbs) {
-        dl->AddCircleFilled(th.point, cfg.thumbRadius, ColorFromHTML(th.color, 0.8f));
-        dl->AddCircle(th.point, cfg.thumbRadius + 1, ColorFromHTML("000000"), 0, 1.5f);
-        //dl->AddCircle(th.point, cfg.thumbRadius + 2, ColorFromHTML(th.color), 0, 1);
-		// Draw label if available
-        if (th.label) {
-          ImVec2 textSize = ImGui::CalcTextSize(th.label);
-		  // center label on the thumb.
-		  ImVec2 textPos = { th.point.x - textSize.x * 0.5f, th.point.y - textSize.y * 0.5f };
-          dl->AddText(textPos, ColorFromHTML("000000"), th.label);
-		}
+      ThumbRenderInfo thumbInfo;
+      thumbInfo.color = f.thumbColor;
+      thumbInfo.point = {FreqToX(freq, bb), DBToY(magdB, bb)};
+      thumbInfo.label = f.label;
+      thumbInfo.filterIndex = (int)filterIdx;
+      thumbInfo.isInteractive = (f.HandleChangeParam != nullptr);
+      
+      // Create hit test area (slightly larger than visual thumb)
+      float hitRadius = cfg.thumbRadius + 3.0f;
+      thumbInfo.hitTestRect = ImRect(
+        thumbInfo.point.x - hitRadius, thumbInfo.point.y - hitRadius,
+        thumbInfo.point.x + hitRadius, thumbInfo.point.y + hitRadius
+      );
+      
+      mThumbs.push_back(thumbInfo);
     }
 
-    // Hover tooltip: show filter response magnitude at hovered frequency
-    if (ImGui::IsMouseHoveringRect(bb.Min, bb.Max)) {
-      ImVec2 mouse = ImGui::GetIO().MousePos;
-      // Clamp mouse to bounds
-      ImVec2 clampedMouse = { M7::math::clamp(mouse.x, bb.Min.x, bb.Max.x), M7::math::clamp(mouse.y, bb.Min.y, bb.Max.y) };
+    // Handle thumb interaction before rendering
+    HandleThumbInteraction(cfg, bb);
 
-      // Crosshair: vertical and horizontal lines
-      ImU32 crossColH = ColorFromHTML("ff8800", 0.25f);
-      ImU32 crossColV = ColorFromHTML("00dddd", 0.25f);
-      dl->AddLine({clampedMouse.x, bb.Min.y}, {clampedMouse.x, bb.Max.y}, crossColV, 1.0f);
-      dl->AddLine({bb.Min.x, clampedMouse.y}, {bb.Max.x, clampedMouse.y}, crossColH, 1.0f);
-
-      // Find corresponding response curve point at this X using screen-space bracketing
-      const float mx = clampedMouse.x;
-      int i1;
-      {
-        auto begin = mX + mVisibleLeftIndex;
-        auto end   = mX + mVisibleRightIndex + 1;
-        auto it = std::lower_bound(begin, end, mx);
-        i1 = (int)(it - mX);
-        if (i1 <= mVisibleLeftIndex) i1 = mVisibleLeftIndex + 1;
-        if (i1 >  mVisibleRightIndex) i1 = mVisibleRightIndex;
+    // Render thumbs with interaction feedback
+    ImVec2 mousePos = ImGui::GetIO().MousePos;
+    for (int i = 0; i < (int)mThumbs.size(); ++i) {
+      const auto &th = mThumbs[i];
+      
+      // Determine thumb visual state
+      bool isActive = (mThumbInteraction.isDragging && mThumbInteraction.activeThumbIndex == i);
+      bool isHovered = th.isInteractive && IsPointInCircle(mousePos, th.point, cfg.thumbRadius + 3.0f) && 
+                      ImGui::IsMouseHoveringRect(bb.Min, bb.Max) && !mThumbInteraction.isDragging;
+      
+      // Draw thumb with state-based appearance
+      ImU32 thumbColor = ColorFromHTML(th.color, isActive ? 1.0f : 0.8f);
+      float thumbRadius = cfg.thumbRadius * (isActive ? 1.1f : (isHovered ? 1.05f : 1.0f));
+      
+      dl->AddCircleFilled(th.point, thumbRadius, thumbColor);
+      dl->AddCircle(th.point, thumbRadius + 1, ColorFromHTML("000000"), 0, 1.5f);
+      
+      // Additional visual feedback for interactive thumbs
+      if (th.isInteractive) {
+        if (isHovered && !isActive) {
+          // Subtle glow for hover
+          dl->AddCircle(th.point, thumbRadius + 2, ColorFromHTML(th.color, 0.3f), 0, 1.0f);
+        } else if (isActive) {
+          // Bright outline for active drag
+          dl->AddCircle(th.point, thumbRadius + 2, ColorFromHTML("ffffff", 0.8f), 0, 2.0f);
+        }
       }
-      int i0 = i1 - 1;
-      float x0 = mX[i0];
-      float x1 = mX[i1];
-      float t = (x1 > x0) ? M7::math::clamp01((mx - x0) / (x1 - x0)) : 0.0f;
-      float magDBLerp = M7::math::lerp(mMagdB[i0], mMagdB[i1], t);
-      float curveY = DBToY(magDBLerp, bb); // DBToY clamps to visible range
-      ImVec2 curvePt = { mx, curveY };
+      
+      // Draw label if available
+      if (th.label) {
+        ImVec2 textSize = ImGui::CalcTextSize(th.label);
+        ImVec2 textPos = { th.point.x - textSize.x * 0.5f, th.point.y - textSize.y * 0.5f };
+        dl->AddText(textPos, ColorFromHTML("000000"), th.label);
+      }
+    }
 
-      // Indicator on the response curve
-      ImU32 indicatorFill = ColorFromHTML("00dddd", 0.95f);
-      ImU32 indicatorOutline = ColorFromHTML("000000", 0.9f);
-
-      ImU32 ptCrossCol = ColorFromHTML("00dddd", 0.25f);
-      // draw a horizontal line through the curvePt
-	  dl->AddLine({ bb.Min.x, curvePt.y }, { bb.Max.x, curvePt.y }, ptCrossCol, 1.0f);
-
-      dl->AddCircleFilled(curvePt, 4.0f, indicatorFill);
-      dl->AddCircle(curvePt, 4.5f, indicatorOutline, 0, 1.5f);
-
-      float hoverFreq = XToFreq(mx, bb);
-
-      // Build tooltip text
-      char freqText[32];
-      if (hoverFreq >= 1000.0f) {
-        snprintf(freqText, sizeof(freqText), "%.2fkHz", hoverFreq / 1000.0f);
+    // Show hover tooltip only when not dragging and not hovering a thumb
+    if (ImGui::IsMouseHoveringRect(bb.Min, bb.Max) && !mThumbInteraction.isDragging) {
+      int hoveredThumb = FindThumbUnderMouse(mousePos, cfg.thumbRadius);
+      
+      if (hoveredThumb >= 0) {
+        // Show thumb-specific tooltip
+        const auto& thumb = mThumbs[hoveredThumb];
+        const auto& filter = cfg.filters[thumb.filterIndex];
+        
+        float freq = XToFreq(thumb.point.x, bb);
+        float gain = YToDB(thumb.point.y, bb);
+        
+        ImGui::BeginTooltip();
+        if (thumb.label) {
+          ImGui::Text("%s", thumb.label);
+        }
+        ImGui::Text("%.0f Hz", freq);
+        ImGui::Text("%.1f dB", gain);
+        if (thumb.isInteractive) {
+          ImGui::TextDisabled("Click & drag to adjust");
+        }
+        ImGui::EndTooltip();
       } else {
-        snprintf(freqText, sizeof(freqText), "%.0fHz", hoverFreq);
-      }
+        // Show existing frequency response tooltip
+        ImVec2 clampedMouse = { M7::math::clamp(mousePos.x, bb.Min.x, bb.Max.x), M7::math::clamp(mousePos.y, bb.Min.y, bb.Max.y) };
 
-      // Place tooltip relative to the curve point (slightly above-right)
-      ImVec2 tipOffset = { 8.0f, -8.0f };
-      ImVec2 tipAnchor = { curvePt.x + tipOffset.x, curvePt.y + tipOffset.y };
-      ImGui::SetNextWindowPos(tipAnchor, ImGuiCond_Always, ImVec2(0.0f, 1.0f));
-      ImGui::BeginTooltip();
-      ImGui::Text("%s", freqText);
-      ImGui::Text("%.2f dB", magDBLerp);
-      ImGui::EndTooltip();
+        // Crosshair: vertical and horizontal lines
+        ImU32 crossColH = ColorFromHTML("ff8800", 0.25f);
+        ImU32 crossColV = ColorFromHTML("00dddd", 0.25f);
+        dl->AddLine({clampedMouse.x, bb.Min.y}, {clampedMouse.x, bb.Max.y}, crossColV, 1.0f);
+        dl->AddLine({bb.Min.x, clampedMouse.y}, {bb.Max.x, clampedMouse.y}, crossColH, 1.0f);
+
+        // Find corresponding response curve point
+        const float mx = clampedMouse.x;
+        int i1;
+        {
+          auto begin = mX + mVisibleLeftIndex;
+          auto end   = mX + mVisibleRightIndex + 1;
+          auto it = std::lower_bound(begin, end, mx);
+          i1 = (int)(it - mX);
+          if (i1 <= mVisibleLeftIndex) i1 = mVisibleLeftIndex + 1;
+          if (i1 >  mVisibleRightIndex) i1 = mVisibleRightIndex;
+        }
+        int i0 = i1 - 1;
+        float x0 = mX[i0];
+        float x1 = mX[i1];
+        float t = (x1 > x0) ? M7::math::clamp01((mx - x0) / (x1 - x0)) : 0.0f;
+        float magDBLerp = M7::math::lerp(mMagdB[i0], mMagdB[i1], t);
+        float curveY = DBToY(magDBLerp, bb);
+        ImVec2 curvePt = { mx, curveY };
+
+        // Indicator on the response curve
+        ImU32 indicatorFill = ColorFromHTML("00dddd", 0.95f);
+        ImU32 indicatorOutline = ColorFromHTML("000000", 0.9f);
+        ImU32 ptCrossCol = ColorFromHTML("00dddd", 0.25f);
+        
+        dl->AddLine({ bb.Min.x, curvePt.y }, { bb.Max.x, curvePt.y }, ptCrossCol, 1.0f);
+        dl->AddCircleFilled(curvePt, 4.0f, indicatorFill);
+        dl->AddCircle(curvePt, 4.5f, indicatorOutline, 0, 1.5f);
+
+        float hoverFreq = XToFreq(mx, bb);
+
+        // Build tooltip text
+        char freqText[32];
+        if (hoverFreq >= 1000.0f) {
+          snprintf(freqText, sizeof(freqText), "%.2fkHz", hoverFreq / 1000.0f);
+        } else {
+          snprintf(freqText, sizeof(freqText), "%.0fHz", hoverFreq);
+        }
+
+        ImVec2 tipOffset = { 8.0f, -8.0f };
+        ImVec2 tipAnchor = { curvePt.x + tipOffset.x, curvePt.y + tipOffset.y };
+        ImGui::SetNextWindowPos(tipAnchor, ImGuiCond_Always, ImVec2(0.0f, 1.0f));
+        ImGui::BeginTooltip();
+        ImGui::Text("%s", freqText);
+        ImGui::Text("%.2f dB", magDBLerp);
+        ImGui::EndTooltip();
+      }
     }
 
     ImGui::Dummy(gSize);
