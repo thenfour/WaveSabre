@@ -41,12 +41,17 @@ struct FrequencyResponseRendererConfig {
   std::vector<float> majorFreqTicks{}; // labeled and drawn with major style
   std::vector<float> minorFreqTicks{}; // unlabeled and drawn with minor style
   
-  // Optional: FFT spectrum overlay
+  // Optional: FFT spectrum overlay with independent scaling
   const IFrequencyAnalysis* frequencyAnalysis = nullptr;  // unified interface for spectrum data
   ImColor fftColor = ColorFromHTML("4488FF", 0.6f);  // spectrum overlay color
   ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);  // spectrum fill color
   bool useRightChannel = false;  // which channel to display from FFT
   bool enableFftFill = true;  // enable filled area under spectrum curve
+  
+  // Independent FFT Y-axis scaling (Professional approach - separate from EQ response)
+  float fftDisplayMinDB = -60.0f;  // Noise floor (iZotope style: -60dB to 0dB)
+  float fftDisplayMaxDB = 0.0f;    // Digital maximum (0dB)
+  bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
 };
 
 template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
@@ -130,6 +135,19 @@ struct FrequencyResponseRenderer {
     float t01 = M7::math::lerp_rev(mDisplayMinDB, mDisplayMaxDB, dB);
     t01 = M7::math::clamp01(t01);
     return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
+  }
+
+  // Separate scaling function for FFT spectrum (Professional approach)
+  float FFTDBToY(float dB, ImRect &bb, const FrequencyResponseRendererConfig<TFilterCount, TParamCount> &cfg) {
+    if (cfg.useIndependentFFTScale) {
+      // Use independent FFT scale (noise floor to 0dB)
+      float t01 = M7::math::lerp_rev(cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB, dB);
+      t01 = M7::math::clamp01(t01);
+      return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
+    } else {
+      // Fallback to shared scale with EQ response
+      return DBToY(dB, bb);
+    }
   }
 
   void CalculatePoints(
@@ -368,14 +386,18 @@ struct FrequencyResponseRenderer {
         if (bin.frequency < 20.0f || bin.frequency > 20000.0f)
           continue; // skip out of audible range
         
-        if (bin.magnitudeDB < mDisplayMinDB || bin.magnitudeDB > mDisplayMaxDB)
-          continue; // skip out of display range
-          
         float x = FreqToX(bin.frequency, bb);
-        float y = DBToY(bin.magnitudeDB, bb);
+        if (x < bb.Min.x || x > bb.Max.x)
+          continue; // skip out of display frequency range
         
-        if (x >= bb.Min.x && x <= bb.Max.x)
-          fftPoints.push_back({x, y});
+        // CLAMP magnitudes to visible range instead of skipping them
+        // This ensures peaks outside the range are still shown at the edges
+        float displayMin = cfg.useIndependentFFTScale ? cfg.fftDisplayMinDB : mDisplayMinDB;
+        float displayMax = cfg.useIndependentFFTScale ? cfg.fftDisplayMaxDB : mDisplayMaxDB;
+        float clampedMagnitudeDB = std::max(displayMin, std::min(displayMax, bin.magnitudeDB));
+        
+        float y = FFTDBToY(clampedMagnitudeDB, bb, cfg);  // Use professional FFT scaling with clamped values
+        fftPoints.push_back({x, y});
       }
       
       if (fftPoints.size() >= 2) {
@@ -407,6 +429,16 @@ struct FrequencyResponseRenderer {
         
         // Render spectrum line on top of fill
         dl->AddPolyline(fftPoints.data(), (int)fftPoints.size(), cfg.fftColor, 0, 1.5f);
+      }
+      
+      // Optional: Draw FFT scale indicators if using independent scaling
+      if (cfg.useIndependentFFTScale && TshowGridLabels) {
+        // Draw a subtle scale indicator in top-right corner
+        char scaleText[32];
+        snprintf(scaleText, sizeof(scaleText), "FFT: %.0f to %.0fdB", cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB);
+        ImVec2 textSize = ImGui::CalcTextSize(scaleText);
+        ImVec2 textPos = {bb.Max.x - textSize.x - 4, bb.Min.y + 2};
+        dl->AddText(textPos, ColorFromHTML("888888", 0.7f), scaleText);
       }
     }
 

@@ -19,12 +19,34 @@ class LevellerEditor : public VstEditor
 
 	FrequencyResponseRenderer<680,200,100, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams, true> mResponseGraph;
 
+	// FFT Analysis controls (not VST parameters, just UI state)
+	float mFFTSmoothingFactor = 0.0f;      // 0.0-0.9
+	int mFFTOverlapFactor = 2;             // 2, 4, 8, or 16 (more options for testing)
+	float mSpectrumPeakHoldTime = 0.0f;    // 0-1000 ms
+	float mSpectrumFalloffTime = 200.0f;   // 50-5000 ms
+	int mFFTSizeSelection = 1;             // 0=512, 1=1024, 2=2048, 3=4096
+	int mFFTWindowType = 1;                // 0=Rectangular, 1=Hanning, 2=Hamming, 3=Blackman
+	
+	// Professional FFT scaling controls (separate from EQ response)
+	float mFFTDisplayMinDB = -60.0f;       // Noise floor
+	float mFFTDisplayMaxDB = 0.0f;         // Digital maximum  
+
 public:
 	LevellerEditor(AudioEffect* audioEffect)
 		: VstEditor(audioEffect, 700, 800),
 		mpLevellerVST((LevellerVst*)audioEffect)//,
 	{
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
+		
+		// Initialize FFT control values to match current Leveller settings
+		mFFTSmoothingFactor = 0.0f;      // Matches Leveller constructor
+		mFFTOverlapFactor = 2;           // Matches Leveller constructor
+		mSpectrumPeakHoldTime = 0.0f;    // Matches Leveller constructor  
+		mSpectrumFalloffTime = 200.0f;   // Matches Leveller constructor
+		mFFTSizeSelection = 1;           // 1024 FFT size used in Leveller constructor
+		mFFTWindowType = 1;              // Hanning window used in Leveller constructor
+		mFFTDisplayMinDB = -60.0f;       // Professional noise floor
+		mFFTDisplayMaxDB = 0.0f;         // Digital maximum
 	}
 
 	virtual void PopulateMenuBar() override
@@ -149,11 +171,211 @@ public:
 			ColorFromHTML("4488FF", 0.7f), // fftColor - more opaque line
 			ColorFromHTML("4488FF", 0.25f), // fftFillColor - translucent fill
 			false, // useRightChannel
-			true   // enableFftFill
+			true,  // enableFftFill
+			-60.0f, // fftDisplayMinDB - Professional noise floor
+			0.0f,   // fftDisplayMaxDB - Digital maximum  
+			true    // useIndependentFFTScale - Separate from EQ response scale
 		};
+
+
+
+		// FFT Analysis Controls Section
+		if (ImGui::CollapsingHeader("FFT Analysis Controls (Testing)", ImGuiTreeNodeFlags_DefaultOpen))
+		{
+			ImGui::TextColored(ImVec4(0.7f, 0.9f, 1.0f, 1.0f), "Real-time FFT spectrum analysis controls for testing & tuning");
+
+			ImGui::BeginGroup();
+
+			// FFT Size selection
+			const char* fftSizeNames[] = {"512", "1024", "2048", "4096"};
+			if (ImGui::Combo("FFT Size", &mFFTSizeSelection, fftSizeNames, 4))
+			{
+				// Reconstruct FFT with new size - this is expensive but for testing it's fine
+				FFTAnalysis::FFTSize newSize;
+				switch(mFFTSizeSelection)
+				{
+					case 0: newSize = FFTAnalysis::FFTSize::FFT512; break;
+					case 1: newSize = FFTAnalysis::FFTSize::FFT1024; break;
+					case 2: newSize = FFTAnalysis::FFTSize::FFT2048; break;
+					case 3: newSize = FFTAnalysis::FFTSize::FFT4096; break;
+					default: newSize = FFTAnalysis::FFTSize::FFT1024; break;
+				}
+				// Note: Can't easily change FFT size at runtime without reconstruction
+				// For now, just display current selection
+			}
+			
+			// Window Type selection
+			const char* windowTypeNames[] = {"Rectangular", "Hanning", "Hamming", "Blackman"};
+			if (ImGui::Combo("Window Function", &mFFTWindowType, windowTypeNames, 4))
+			{
+				// Window type can now be changed at runtime!
+				FFTAnalysis::WindowType newWindowType;
+				switch(mFFTWindowType)
+				{
+					case 0: newWindowType = FFTAnalysis::WindowType::Rectangular; break;
+					case 1: newWindowType = FFTAnalysis::WindowType::Hanning; break;
+					case 2: newWindowType = FFTAnalysis::WindowType::Hamming; break;
+					case 3: newWindowType = FFTAnalysis::WindowType::Blackman; break;
+					default: newWindowType = FFTAnalysis::WindowType::Hanning; break;
+				}
+				// Apply the window type change immediately!
+				mpLeveller->mFFTAnalysis.SetWindowType(newWindowType);
+			}
+			ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Window function applied to FFT data:\n"
+					"Rectangular: No windowing (sharp but prone to spectral leakage)\n"
+					"Hanning: Good general purpose (smooth, low leakage)\n"
+					"Hamming: Similar to Hanning with slightly different characteristics\n"
+					"Blackman: Excellent side-lobe suppression (smoothest)\n"
+					"? Changes apply immediately!");
+			}
+
+			// FFT Technical Smoothing
+			if (ImGui::SliderFloat("FFT Smoothing", &mFFTSmoothingFactor, 0.0f, 0.9f, "%.2f"))
+			{
+				mpLeveller->mFFTAnalysis.SetSmoothingFactor(mFFTSmoothingFactor);
+			}
+			ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Technical smoothing applied to raw FFT data.\n0.0 = No smoothing\n0.9 = Heavy smoothing");
+			}
+
+			// Professional FFT Y-Axis Scaling (Independent from EQ response)
+			ImGui::Separator();
+			ImGui::Text("FFT Display Scale (Independent from EQ):");
+			
+			bool fftScaleChanged = false;
+			
+			if (ImGui::SliderFloat("FFT Min dB", &mFFTDisplayMinDB, -90.0f, -20.0f, "%.0f dB"))
+			{
+				fftScaleChanged = true;
+			}
+			ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("FFT spectrum noise floor.\nProfessional range: -60dB to -90dB\niZotope style: -60dB");
+			}
+			
+			if (ImGui::SliderFloat("FFT Max dB", &mFFTDisplayMaxDB, -10.0f, +10.0f, "%.0f dB"))
+			{
+				fftScaleChanged = true;
+			}
+			ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("FFT spectrum ceiling.\nProfessional: 0dB (digital max)\nHeadroom: -6dB to -10dB");
+			}
+			
+			// Quick presets
+			ImGui::Text("Quick Presets:");
+			if (ImGui::Button("iZotope (-60 to 0dB)"))
+			{
+				mFFTDisplayMinDB = -60.0f;
+				mFFTDisplayMaxDB = 0.0f;
+				fftScaleChanged = true;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Extended (-80 to 0dB)"))
+			{
+				mFFTDisplayMinDB = -80.0f;
+				mFFTDisplayMaxDB = 0.0f;
+				fftScaleChanged = true;
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Headroom (-60 to -6dB)"))
+			{
+				mFFTDisplayMinDB = -60.0f;
+				mFFTDisplayMaxDB = -6.0f;
+				fftScaleChanged = true;
+			}
+
+			// FFT Overlap Factor - Extended options for testing (including 1x)
+			const char* overlapNames[] = {"1x (No overlap)", "2x (50% overlap)", "4x (75% overlap)", "8x (87.5% overlap)", "16x (93.75% overlap)"};
+			int overlapIndex = (mFFTOverlapFactor == 1) ? 0 : (mFFTOverlapFactor == 2) ? 1 : (mFFTOverlapFactor == 4) ? 2 : (mFFTOverlapFactor == 8) ? 3 : 4;
+			if (ImGui::Combo("Overlap Factor", &overlapIndex, overlapNames, 5))
+			{
+				mFFTOverlapFactor = (overlapIndex == 0) ? 1 : (overlapIndex == 1) ? 2 : (overlapIndex == 2) ? 4 : (overlapIndex == 3) ? 8 : 16;
+				mpLeveller->mFFTAnalysis.SetOverlapFactor(mFFTOverlapFactor);
+			}
+			ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Higher overlap = smoother spectrum updates but more CPU usage.\n"
+					"1x: No overlap (choppiest, lowest CPU)\n"
+					"2x: Basic (most efficient for smooth updates)\n"
+					"4x: Recommended for music\n" 
+					"8x: Very smooth for mastering\n"
+					"16x: Ultra-smooth for analysis (CPU intensive)");
+			}
+			
+			ImGui::Separator();
+			ImGui::Text("Spectrum Display Smoothing:");
+
+			// Peak Hold Time
+			if (ImGui::SliderFloat("Peak Hold Time", &mSpectrumPeakHoldTime, 0.0f, 1000.0f, "%.0f ms"))
+			{
+				mpLeveller->mSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime, Helpers::CurrentSampleRateF);
+			}
+			ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("How long peaks are held before starting to fall.\n0ms = No peak hold (immediate falloff)\n300ms = Pro-Q3 style behavior");
+			}
+
+			// Falloff Rate
+			if (ImGui::SliderFloat("Falloff Time", &mSpectrumFalloffTime, 50.0f, 5000.0f, "%.0f ms"))
+			{
+				mpLeveller->mSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime, Helpers::CurrentSampleRateF);
+			}
+			ImGui::SameLine(); ImGui::TextDisabled("(?)");
+			if (ImGui::IsItemHovered())
+			{
+				ImGui::SetTooltip("Time for spectrum to fall -60dB after peak hold expires.\nLower = faster response, Higher = smoother display");
+			}
+
+			// Display current FFT info
+			ImGui::Separator();
+			ImGui::Text("FFT Info:");
+			ImGui::Text("Resolution: %.1f Hz/bin", mpLeveller->mFFTAnalysis.GetFrequencyResolution());
+			ImGui::Text("Nyquist: %.0f Hz", mpLeveller->mFFTAnalysis.GetNyquistFrequency());
+
+			// Reset button
+			ImGui::Separator();
+			if (ImGui::Button("Reset to Defaults"))
+			{
+				mFFTSmoothingFactor = 0.0f;
+				mFFTOverlapFactor = 2;
+				mSpectrumPeakHoldTime = 0.0f;
+				mSpectrumFalloffTime = 200.0f;
+				mFFTSizeSelection = 1;
+				mFFTWindowType = 1;  // Reset to Hanning
+				mFFTDisplayMinDB = -60.0f;  // Professional noise floor
+				mFFTDisplayMaxDB = 0.0f;    // Digital maximum
+				
+				// Apply the reset values (no more display boost!)
+				mpLeveller->mFFTAnalysis.SetSmoothingFactor(mFFTSmoothingFactor);
+				mpLeveller->mFFTAnalysis.SetOverlapFactor(mFFTOverlapFactor);
+				mpLeveller->mFFTAnalysis.SetWindowType(FFTAnalysis::WindowType::Hanning); // Reset to Hanning
+				mpLeveller->mSpectrumSmoother.SetPeakHoldTime(mSpectrumPeakHoldTime, Helpers::CurrentSampleRateF);
+				mpLeveller->mSpectrumSmoother.SetFalloffRate(mSpectrumFalloffTime, Helpers::CurrentSampleRateF);
+			}
+
+			ImGui::EndGroup();
+		}
+
+
+
+
 		for (size_t i = 0; i < (size_t)Leveller::ParamIndices::NumParams; ++i) {
 			cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
 		}
+
+		// Apply current FFT scaling settings to renderer config
+		cfg.fftDisplayMinDB = mFFTDisplayMinDB;
+		cfg.fftDisplayMaxDB = mFFTDisplayMaxDB;
 
 		mResponseGraph.OnRender(cfg);
 

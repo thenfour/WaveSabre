@@ -109,8 +109,9 @@ namespace WaveSabreCore
         // Configuration
         void SetSampleRate(float sampleRate);
         void SetSmoothingFactor(float smoothing); // 0.0 = no smoothing, 0.9 = heavy smoothing
-        void SetOverlapFactor(int factor); // 2, 4, or 8
+        void SetOverlapFactor(int factor); // 1, 2, 4, 8, or 16
         void SetDisplayBoost(float boostDB); // artificial boost for display purposes (default +18dB)
+        void SetWindowType(WindowType windowType); // Change window function at runtime
         
         // Input processing (call once per sample)
         void ProcessSample(float sample);
@@ -189,6 +190,7 @@ namespace WaveSabreCore
         void SetSmoothingFactor(float smoothing);
         void SetOverlapFactor(int factor);
         void SetDisplayBoost(float boostDB);
+        void SetWindowType(WindowType windowType); // Change window function at runtime
         
         // Input processing (call once per sample)
         void ProcessSamples(float leftSample, float rightSample);

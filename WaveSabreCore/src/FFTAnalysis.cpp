@@ -1,4 +1,3 @@
-
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 #include <WaveSabreCore/FFTAnalysis.hpp>
@@ -52,13 +51,23 @@ namespace WaveSabreCore
 
     void MonoFFTAnalysis::SetOverlapFactor(int factor)
     {
-        mOverlapFactor = std::max(2, std::min(8, factor));
+        mOverlapFactor = std::max(1, std::min(16, factor)); // Allow 1x overlap for completeness
         mSamplesUntilProcess = mFFTSizeInt / mOverlapFactor;
     }
 
     void MonoFFTAnalysis::SetDisplayBoost(float boostDB)
     {
         mDisplayBoostDB = boostDB;
+    }
+
+    void MonoFFTAnalysis::SetWindowType(WindowType windowType)
+    {
+        if (mWindowType != windowType)
+        {
+            mWindowType = windowType;
+            GenerateWindow(); // Regenerate window coefficients
+            // Note: This takes effect immediately on next FFT frame
+        }
     }
 
     void MonoFFTAnalysis::GenerateWindow()
@@ -361,6 +370,12 @@ namespace WaveSabreCore
             analyzer.SetDisplayBoost(boostDB);
     }
 
+    void FFTAnalysis::SetWindowType(WindowType windowType)
+    {
+        for (auto& analyzer : mAnalyzers)
+            analyzer.SetWindowType(windowType);
+    }
+
     void FFTAnalysis::ProcessSamples(float leftSample, float rightSample)
     {
         mAnalyzers[0].ProcessSample(leftSample);
@@ -480,4 +495,4 @@ namespace WaveSabreCore
 }
 
 
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT

@@ -164,9 +164,8 @@ namespace WaveSabreCore
 			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16),
 			mFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, 44100.0f)
 		{
-			// Configure FFT for clean technical analysis
+			// Configure FFT for clean technical analysis (no artificial boost needed)
 			mFFTAnalysis.SetSmoothingFactor(0.0f);  // Light technical smoothing only
-			mFFTAnalysis.SetDisplayBoost(30.0f);    // +20dB boost for commercial-like levels
 			mFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
 			
 			// Configure display smoother for Pro-Q3 style behavior
