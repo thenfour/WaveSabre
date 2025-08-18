@@ -21,6 +21,8 @@ struct Maj7MBCEditor : public VstEditor
 	ColorMod mBandColors{ 0, 1, 1, 0.9f, 0.0f };
 	ColorMod mBandDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
+	FrequencyResponseRenderer<160, 75, 50, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
+
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
 		mpMaj7MBCVst((Maj7MBCVst*)audioEffect)
@@ -146,15 +148,40 @@ struct Maj7MBCEditor : public VstEditor
 						ImGui::EndGroup(); // lows mids highs group
 					}
 
-					Maj7ImGuiParamFrequency(param(BandParam::HighPassFrequency), -1, "HP Freq(Hz)", M7::gFilterFreqConfig, 0, {});
+					ImGui::SameLine(); Maj7ImGuiParamFrequency(param(BandParam::HighPassFrequency), -1, "HP(Hz)", M7::gFilterFreqConfig, 0, {});
 					ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::HighPassQ), "HP Q", M7::gBiquadFilterQCfg, 1.0f, {});
+					ImGui::SameLine(); Maj7ImGuiParamFrequency(param(BandParam::LowPassFrequency), -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
+					ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::LowPassQ), "LP Q", M7::gBiquadFilterQCfg, 1.0f, {});
 					//ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::HighPassQ), "HP Q", 0.2f, 0.2f);
 
-					ImGui::SameLine(0, 40); Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "ChanLink", 0.8f, 0);
+
+
+					const std::array<FrequencyResponseRendererFilter, 2> filters{
+						FrequencyResponseRendererFilter{"cc4444", &band.mComp[0].mLowpassFilter},
+						FrequencyResponseRendererFilter{"4444cc", &band.mComp[0].mHighpassFilter}
+					};
+
+					FrequencyResponseRendererConfig<2, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
+						ColorFromHTML("222222", 1.0f), // background
+							ColorFromHTML("ff8800", 1.0f), // line
+							4.0f,
+							filters,
+					};
+					for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i) {
+						cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+					}
+					ImGui::SameLine();
+					mResponseGraphs[iBand].OnRender(cfg);
+
+
+
+					//ImGui::SameLine(0, 40); 
+					Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "StereoLink", 0.8f, 0);
 					ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
 					ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
 
-					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Output", M7::gVolumeCfg24db, 0, {});
+					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Makeup", M7::gVolumeCfg24db, 0, {});
+					ImGui::SameLine(0, 40); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "Dry-Wet", 1.0f, 0);
 				} // band enabled
 
 				ImGui::EndGroup();

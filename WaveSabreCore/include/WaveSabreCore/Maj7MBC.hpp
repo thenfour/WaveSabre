@@ -1,3 +1,8 @@
+// Q: Why no parallel compression?
+// Per-band parallel is a lot of parameters to use, for something that's pretty rare
+// a general parallel feature would cause comb filtering due to the crossovers.
+// so it can be achieved by using a global control, but performing the parallel processing per-band while the bands are split.
+// but it's rarely used, and it would take a bit of experimenting to get the makeup gain right. later maybe.
 
 #pragma once
 
@@ -56,6 +61,7 @@ namespace WaveSabreCore
 			ALowPassFrequency, // biquad freq
 			ALowPassQ, // default 0.2
 			ADrive,
+			ADryWet,
 
 			BInputGain,
 			BOutputGain,
@@ -71,6 +77,7 @@ namespace WaveSabreCore
 			BLowPassFrequency, // biquad freq
 			BLowPassQ, // default 0.2
 			BDrive,
+			BDryWet,
 
 			CInputGain,
 			COutputGain,
@@ -86,6 +93,7 @@ namespace WaveSabreCore
 			CLowPassFrequency, // biquad freq
 			CLowPassQ, // default 0.2
 			CDrive,
+			CDryWet,
 
 			NumParams,
 		};
@@ -114,6 +122,7 @@ namespace WaveSabreCore
 			{"ALPF"},\
 			{"ALPQ"},\
 			{"ADrive"},\
+			{"ADryWet"},\
 			{"BInVol"},\
 			{"BOutVol"},\
 			{"BThresh"},\
@@ -128,6 +137,7 @@ namespace WaveSabreCore
 			{"BLPF"},\
 			{"BLPQ"},\
 			{"BDrive"},\
+			{"BDryWet"},\
 			{"CInVol"},\
 			{"COutVol"},\
 			{"CThresh"},\
@@ -142,9 +152,10 @@ namespace WaveSabreCore
 			{"CLPF"},\
 			{"CLPQ"},\
 			{"CDrive"},\
+			{"CDryWet"},\
 }
 
-		static_assert((int)ParamIndices::NumParams == 50, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 53, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InGain = 0.25118863582611083984
 		  0, // MBEnable = 0
@@ -168,6 +179,7 @@ namespace WaveSabreCore
 		  0, // AHPF = 0
 		  14563, // AHPQ = 0.44444444775581359863
 		  4125, // ADrive = 0.12589254975318908691
+		  32767, // ADryWet = 1 (100% wet by default)
 		  8230, // BInVol = 0.25118863582611083984
 		  8230, // BOutVol = 0.25118863582611083984
 		  21845, // BThresh = 0.6666666865348815918
@@ -182,6 +194,7 @@ namespace WaveSabreCore
 		  0, // AHPF = 0
 		  14563, // AHPQ = 0.44444444775581359863
 		  4125, // BDrive = 0.12589254975318908691
+		  32767, // BDryWet = 1 (100% wet by default)
 		  8230, // CInVol = 0.25118863582611083984
 		  8230, // COutVol = 0.25118863582611083984
 		  21845, // CThresh = 0.6666666865348815918
@@ -196,6 +209,7 @@ namespace WaveSabreCore
 		  0, // AHPF = 0
 		  14563, // AHPQ = 0.44444444775581359863
 		  4125, // CDrive = 0.12589254975318908691
+		  32767, // CDryWet = 1 (100% wet by default)
 		};
 
 
@@ -216,6 +230,7 @@ namespace WaveSabreCore
 				LowPassFrequency,
 				LowPassQ,
 				Drive,
+				DryWet,
 				Count__,
 			};
 
@@ -228,6 +243,7 @@ namespace WaveSabreCore
 			float mDriveGainCompensationFact;
 			float mInputGainLin;
 			float mOutputGainLin;
+			float mDryWetMix;
 
 			FreqBand(float* paramCache, ParamIndices baseParamID) : //
 				mParams(paramCache, baseParamID)
@@ -259,6 +275,7 @@ namespace WaveSabreCore
 				mDriveLin = mParams.GetLinearVolume(BandParam::Drive, M7::gVolumeCfg36db);
 				mInputGainLin = mParams.GetLinearVolume(BandParam::InputGain, M7::gVolumeCfg24db);
 				mOutputGainLin = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg24db);
+				mDryWetMix = mParams.Get01Value(BandParam::DryWet);
 
 				// tanh gain compensation is not perfect, but experimentally this works quite well.
 				mDriveGainCompensationFact = M7::math::CalcTanhGainCompensation(mDriveLin);
@@ -289,18 +306,21 @@ namespace WaveSabreCore
 					for (size_t ich = 0; ich < 2; ++ich) {
 						float inpAudio = input.x[ich] * mInputGainLin;
 						float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
-						float sout = mComp[ich].ProcessSample(inpAudio, detector);
+						float wetSignal = mComp[ich].ProcessSample(inpAudio, detector);
 						if (mDriveLin > 1) {
-							sout = M7::math::tanh(mDriveLin * sout);
+							wetSignal = M7::math::tanh(mDriveLin * wetSignal);
 						}
-						sout *= mOutputGainLin * mDriveGainCompensationFact;
-						output.x[ich] = sout;
+						wetSignal *= mOutputGainLin * mDriveGainCompensationFact;
+						
+						// Apply dry/wet mix
+						float finalSignal = M7::math::lerp(inpAudio, wetSignal, mDryWetMix);
+						output.x[ich] = finalSignal;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-mInputAnalysis[ich].WriteSample(inpAudio);
-mOutputAnalysis[ich].WriteSample(sout);
-mDetectorAnalysis[ich].WriteSample(detector);
-mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
+						mInputAnalysis[ich].WriteSample(inpAudio);
+						mOutputAnalysis[ich].WriteSample(finalSignal);
+						mDetectorAnalysis[ich].WriteSample(detector);
+						mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					}
 				} // ENABLE

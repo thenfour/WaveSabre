@@ -75,10 +75,6 @@ struct Maj7CompEditor : public VstEditor
 #endif // MAJ7COMP_FULL
 
 
-				//const BiquadFilter* filters[2] = {
-				//	&mpMaj7Comp->mComp[0].mLowpassFilter,
-				//	& mpMaj7Comp->mComp[0].mHighpassFilter,
-				//};
 				const std::array<FrequencyResponseRendererFilter, 2> filters{
 #ifdef MAJ7COMP_FULL
 					FrequencyResponseRendererFilter{"cc4444", &mpMaj7Comp->mComp[0].mLowpassFilter},
