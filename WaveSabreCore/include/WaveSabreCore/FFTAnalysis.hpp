@@ -110,9 +110,17 @@ namespace WaveSabreCore
         void SetSampleRate(float sampleRate);
         void SetSmoothingFactor(float smoothing); // 0.0 = no smoothing, 0.9 = heavy smoothing
         void SetOverlapFactor(int factor); // 1, 2, 4, 8, or 16
-        void SetDisplayBoost(float boostDB); // artificial boost for display purposes (default +18dB)
+        //void SetDisplayBoost(float boostDB); // artificial boost for display purposes (default +18dB)
         void SetWindowType(WindowType windowType); // Change window function at runtime
         
+		WindowType GetWindowType() const { return mWindowType; }
+		FFTSize GetFFTSize() const { return mFFTSize; }
+		int GetFFTSizeInt() const { return mFFTSizeInt; }
+		float GetSampleRate() const { return mSampleRate; }
+		int GetOverlapFactor() const { return mOverlapFactor; }
+		float GetSmoothingFactor() const { return mSmoothingFactor; }
+		//float GetDisplayBoost() const { return mDisplayBoostDB; }
+
         // Input processing (call once per sample)
         void ProcessSample(float sample);
         
@@ -137,20 +145,24 @@ namespace WaveSabreCore
         // Clear/reset state
         void Reset();
 
-    private:
-        float mDisplayBoostDB; // artificial boost for better visual display
+    //private:
+        //float mDisplayBoostDB; // artificial boost for better visual display
     };
 
     // Single-channel spectrum display smoother - now uses existing PeakDetector!
     class MonoSpectrumDisplaySmoother
     {
     private:
-        // Reuse existing proven PeakDetector per frequency bin
-        std::vector<PeakDetector> mPeakDetectors;
+        // Use logarithmic peak detector for professional linear-dB falloff
+        std::vector<LogarithmicPeakDetector> mPeakDetectors;
         std::vector<MonoFFTAnalysis::SpectrumBin> mOutput;
         
         float mSampleRate;
         int mSamplesPerFFTUpdate; // How many samples between FFT updates (e.g., 512)
+        
+        // Track current settings to avoid overwriting each other
+        float mCurrentHoldTimeMs;
+        float mCurrentFalloffTimeMs;
 
     public:
         MonoSpectrumDisplaySmoother();
@@ -158,7 +170,11 @@ namespace WaveSabreCore
         // Configure display behavior
         void SetPeakHoldTime(float holdTimeMs, float sampleRate);
         void SetFalloffRate(float falloffTimeMs, float sampleRate);  // Time for -60dB falloff
-        
+        void SetFFTUpdateRate(int fftSize, int overlapFactor); // Update timing parameters
+
+		float GetPeakHoldTime() const { return mCurrentHoldTimeMs; }
+		float GetFalloffTime() const { return mCurrentFalloffTimeMs; }
+
         // Process new FFT data for display
         void ProcessSpectrum(const std::vector<MonoFFTAnalysis::SpectrumBin>& rawSpectrum);
         
@@ -189,9 +205,16 @@ namespace WaveSabreCore
         void SetSampleRate(float sampleRate);
         void SetSmoothingFactor(float smoothing);
         void SetOverlapFactor(int factor);
-        void SetDisplayBoost(float boostDB);
+        //void SetDisplayBoost(float boostDB);
         void SetWindowType(WindowType windowType); // Change window function at runtime
         
+		WindowType GetWindowType() const { return mAnalyzers[0].GetWindowType(); }
+		FFTSize GetFFTSize() const { return mAnalyzers[0].GetFFTSize(); }
+		//int GetFFTSizeInt() const { return mAnalyzers[0].GetFFTSizeInt(); }
+		float GetSampleRate() const { return mAnalyzers[0].GetSampleRate(); }
+        int GetOverlapFactor() const { return mAnalyzers[0].GetOverlapFactor(); }
+		float GetSmoothingFactor() const { return mAnalyzers[0].GetSmoothingFactor(); }
+
         // Input processing (call once per sample)
         void ProcessSamples(float leftSample, float rightSample);
         
@@ -225,7 +248,12 @@ namespace WaveSabreCore
         // Configure display behavior
         void SetPeakHoldTime(float holdTimeMs, float sampleRate);
         void SetFalloffRate(float falloffTimeMs, float sampleRate);
+        void SetFFTUpdateRate(int fftSize, int overlapFactor); // Update timing parameters
         
+        // get peak hold time.
+		float GetPeakHoldTime() const { return mSmoothers[0].GetPeakHoldTime(); }
+		float GetFalloffTime() const { return mSmoothers[0].GetFalloffTime(); }
+
         // Process new FFT data for display
         void ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum, bool isRightChannel);
         

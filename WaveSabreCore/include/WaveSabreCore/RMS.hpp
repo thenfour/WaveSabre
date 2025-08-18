@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "Maj7Basic.hpp"
@@ -223,6 +222,79 @@ namespace WaveSabreCore
             mClipIndicator = 0;
             mCurrentPeak = 0;
             mCurrentHeldPeak = 0;
+        }
+    };
+
+    // Professional logarithmic peak detector for spectrum display
+    // Uses exponential falloff in linear domain to achieve linear falloff in dB domain
+    struct LogarithmicPeakDetector
+    {
+        int mClipHoldSamples;
+        int mPeakHoldSamples;
+        double mPeakFalloffMultiplierPerSample; // Exponential falloff multiplier for linear dB falloff
+
+        // state
+        int mClipHoldCounter = 0;
+        int mPeakHoldCounter = 0;
+
+        // running values
+        bool mClipIndicator = 0;
+        double mCurrentPeak = 0; // the current peak rectified value, accounting for hold & falloff
+
+        void SetParams(double clipHoldMS, double peakHoldMS, double peakFalloffMaxMS) {
+            mClipHoldSamples = int(clipHoldMS * Helpers::CurrentSampleRateF / 1000);
+            mPeakHoldSamples = int(peakHoldMS * Helpers::CurrentSampleRateF / 1000);
+            
+            // Calculate exponential falloff multiplier for linear dB falloff
+            // Goal: Fall 60dB in peakFalloffMaxMS milliseconds
+            // 60dB = 20 * log10(ratio) ? ratio = 10^(60/20) = 1000
+            // So we need: linearValue * multiplier^samples = linearValue / 1000
+            // multiplier^samples = 1/1000 ? multiplier = (1/1000)^(1/samples)
+            double falloffSamples = peakFalloffMaxMS * Helpers::CurrentSampleRateF / 1000.0;
+            const double dBFalloffRange = 60.0; // Fall 60dB
+            double linearFalloffRatio = std::pow(10.0, -dBFalloffRange / 20.0); // 10^(-60/20) = 0.001
+            mPeakFalloffMultiplierPerSample = std::pow(linearFalloffRatio, 1.0 / falloffSamples);
+            
+            Reset();
+        }
+
+        void Reset() {
+            mClipHoldCounter = 0;
+            mPeakHoldCounter = 0;
+            mClipIndicator = 0;
+            mCurrentPeak = 0;
+        }
+
+        void ProcessSample(double s) {
+            double rectifiedSample = fabs(s);
+
+            // Clip detection
+            if (rectifiedSample >= 1) {
+                mClipIndicator = true;
+                mClipHoldCounter = mClipHoldSamples;
+            }
+            else if (mClipHoldCounter > 0) {
+                --mClipHoldCounter;
+            }
+            else {
+                mClipIndicator = false;
+            }
+
+            // Peak detection and hold
+            if (rectifiedSample >= mCurrentPeak) {
+                mCurrentPeak = rectifiedSample; // new peak; reset hold & falloff
+                mPeakHoldCounter = mPeakHoldSamples;
+            }
+            else if (mPeakHoldCounter > 0) {
+                --mPeakHoldCounter; // holding phase
+            }
+            else if (mCurrentPeak > 0) {
+                // EXPONENTIAL falloff in linear domain = LINEAR falloff in dB domain
+                mCurrentPeak *= mPeakFalloffMultiplierPerSample;
+                
+                // Prevent underflow
+                if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
+            }
         }
     };
 

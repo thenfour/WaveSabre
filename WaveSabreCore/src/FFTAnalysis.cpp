@@ -22,7 +22,7 @@ namespace WaveSabreCore
         , mInputIndex(0)
         , mSamplesUntilProcess(mFFTSizeInt / mOverlapFactor)
         , mHasNewData(false)
-        , mDisplayBoostDB(18.0f) // Default +18dB boost for visual appeal
+        //, mDisplayBoostDB(18.0f) // Default +18dB boost for visual appeal
     {
         // Initialize buffers
         mInputBuffer.resize(mFFTSizeInt, 0.0f);
@@ -55,10 +55,10 @@ namespace WaveSabreCore
         mSamplesUntilProcess = mFFTSizeInt / mOverlapFactor;
     }
 
-    void MonoFFTAnalysis::SetDisplayBoost(float boostDB)
-    {
-        mDisplayBoostDB = boostDB;
-    }
+    //void MonoFFTAnalysis::SetDisplayBoost(float boostDB)
+    //{
+    //    mDisplayBoostDB = boostDB;
+    //}
 
     void MonoFFTAnalysis::SetWindowType(WindowType windowType)
     {
@@ -156,7 +156,7 @@ namespace WaveSabreCore
             
             // Convert to dB with floor to prevent log(0), and apply display boost
             const float magnitudeDB = magnitude > 1e-10f ? 
-                (20.0f * std::log10(magnitude / (mFFTSizeInt * 0.5f)) + mDisplayBoostDB) : (-200.0f + mDisplayBoostDB);
+                (20.0f * std::log10(magnitude / (mFFTSizeInt * 0.5f))) : (-200.0f);
             
             // Light technical smoothing only (no peak-hold here)
             mMagnitudeHistory[i] = mMagnitudeHistory[i] * mSmoothingFactor + magnitudeDB * (1.0f - mSmoothingFactor);
@@ -236,31 +236,40 @@ namespace WaveSabreCore
     MonoSpectrumDisplaySmoother::MonoSpectrumDisplaySmoother()
         : mSampleRate(44100.0f)
         , mSamplesPerFFTUpdate(512) // Default: 2048 FFT with 75% overlap = 512 samples between updates
+        , mCurrentHoldTimeMs(0.0f)  // Default hold time
+        , mCurrentFalloffTimeMs(200.0f) // Default falloff time
     {
     }
 
     void MonoSpectrumDisplaySmoother::SetPeakHoldTime(float holdTimeMs, float sampleRate)
     {
         mSampleRate = sampleRate;
+        mCurrentHoldTimeMs = holdTimeMs; // Store the new hold time
         
-        // Update all existing peak detectors
+        // Update all existing peak detectors with BOTH current settings
         for (auto& detector : mPeakDetectors)
         {
-            float falloffTimeMs = 1200.0f; // Keep existing falloff time
-            detector.SetParams(0, holdTimeMs, falloffTimeMs);
+            detector.SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
         }
     }
 
     void MonoSpectrumDisplaySmoother::SetFalloffRate(float falloffTimeMs, float sampleRate)
     {
         mSampleRate = sampleRate;
+        mCurrentFalloffTimeMs = falloffTimeMs; // Store the new falloff time
         
-        // Update all existing peak detectors  
+        // Update all existing peak detectors with BOTH current settings
         for (auto& detector : mPeakDetectors)
         {
-            float holdTimeMs = 300.0f; // Keep existing hold time
-            detector.SetParams(0, holdTimeMs, falloffTimeMs);
+            detector.SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
         }
+    }
+
+    void MonoSpectrumDisplaySmoother::SetFFTUpdateRate(int fftSize, int overlapFactor)
+    {
+        // Calculate how many samples occur between FFT updates
+        // This is critical for correct timing compensation
+        mSamplesPerFFTUpdate = fftSize / overlapFactor;
     }
 
     void MonoSpectrumDisplaySmoother::ProcessSpectrum(const std::vector<MonoFFTAnalysis::SpectrumBin>& rawSpectrum)
@@ -271,11 +280,10 @@ namespace WaveSabreCore
             mPeakDetectors.resize(rawSpectrum.size());
             mOutput.resize(rawSpectrum.size());
             
-            // Initialize new peak detectors with current settings
-            // Default: 300ms hold, 1200ms falloff
+            // Initialize new peak detectors with CURRENT settings (not hardcoded!)
             for (auto& detector : mPeakDetectors)
             {
-                detector.SetParams(0, 300.0, 1200.0);
+                detector.SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
             }
         }
         
@@ -364,11 +372,11 @@ namespace WaveSabreCore
             analyzer.SetOverlapFactor(factor);
     }
 
-    void FFTAnalysis::SetDisplayBoost(float boostDB)
-    {
-        for (auto& analyzer : mAnalyzers)
-            analyzer.SetDisplayBoost(boostDB);
-    }
+    //void FFTAnalysis::SetDisplayBoost(float boostDB)
+    //{
+    //    for (auto& analyzer : mAnalyzers)
+    //        analyzer.SetDisplayBoost(boostDB);
+    //}
 
     void FFTAnalysis::SetWindowType(WindowType windowType)
     {
@@ -445,6 +453,12 @@ namespace WaveSabreCore
         mSampleRate = sampleRate;
         for (auto& smoother : mSmoothers)
             smoother.SetFalloffRate(falloffTimeMs, sampleRate);
+    }
+
+    void SpectrumDisplaySmoother::SetFFTUpdateRate(int fftSize, int overlapFactor)
+    {
+        for (auto& smoother : mSmoothers)
+            smoother.SetFFTUpdateRate(fftSize, overlapFactor);
     }
 
     void SpectrumDisplaySmoother::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum, bool isRightChannel)

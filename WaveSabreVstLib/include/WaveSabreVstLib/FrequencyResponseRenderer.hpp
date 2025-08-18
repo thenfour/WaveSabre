@@ -41,17 +41,29 @@ struct FrequencyResponseRendererConfig {
   std::vector<float> majorFreqTicks{}; // labeled and drawn with major style
   std::vector<float> minorFreqTicks{}; // unlabeled and drawn with minor style
   
-  // Optional: FFT spectrum overlay with independent scaling
-  const IFrequencyAnalysis* frequencyAnalysis = nullptr;  // unified interface for spectrum data
-  ImColor fftColor = ColorFromHTML("4488FF", 0.6f);  // spectrum overlay color
-  ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);  // spectrum fill color
-  bool useRightChannel = false;  // which channel to display from FFT
-  bool enableFftFill = true;  // enable filled area under spectrum curve
+  // Multiple FFT spectrum overlays with independent scaling (Professional approach)
+  struct FFTAnalysisOverlay {
+    const IFrequencyAnalysis* frequencyAnalysis = nullptr;  // FFT data source
+    ImColor fftColor = ColorFromHTML("4488FF", 0.6f);       // spectrum line color
+    ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);   // spectrum fill color
+    bool useRightChannel = false;                           // which channel to display
+    bool enableFftFill = true;                              // enable filled area under curve
+    const char* label = nullptr;                            // optional label for legend/display
+  };
   
-  // Independent FFT Y-axis scaling (Professional approach - separate from EQ response)
+  std::vector<FFTAnalysisOverlay> fftOverlays{};            // Multiple FFT overlays
+  
+  // Independent FFT Y-axis scaling (shared by all overlays)
   float fftDisplayMinDB = -60.0f;  // Noise floor (iZotope style: -60dB to 0dB)
   float fftDisplayMaxDB = 0.0f;    // Digital maximum (0dB)
   bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
+  
+  // Legacy single FFT support (for backward compatibility)
+  const IFrequencyAnalysis* frequencyAnalysis = nullptr;
+  ImColor fftColor = ColorFromHTML("4488FF", 0.6f);
+  ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);
+  bool useRightChannel = false;
+  bool enableFftFill = true;
 };
 
 template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
@@ -374,10 +386,12 @@ struct FrequencyResponseRenderer {
     dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("444444"),
                 1.0f);
 
-    // Render FFT spectrum overlay if provided
-    if (cfg.frequencyAnalysis) {
-      const auto& spectrum = cfg.useRightChannel ? 
-        cfg.frequencyAnalysis->GetSpectrumRight() : cfg.frequencyAnalysis->GetSpectrumLeft();
+    // Render FFT spectrum overlays if provided
+    auto renderFFTOverlay = [&](const FrequencyResponseRendererConfig<TFilterCount, TParamCount>::FFTAnalysisOverlay& overlay) {
+      if (!overlay.frequencyAnalysis) return;
+      
+      const auto& spectrum = overlay.useRightChannel ? 
+        overlay.frequencyAnalysis->GetSpectrumRight() : overlay.frequencyAnalysis->GetSpectrumLeft();
       
       std::vector<ImVec2> fftPoints;
       fftPoints.reserve(spectrum.size());
@@ -391,12 +405,11 @@ struct FrequencyResponseRenderer {
           continue; // skip out of display frequency range
         
         // CLAMP magnitudes to visible range instead of skipping them
-        // This ensures peaks outside the range are still shown at the edges
         float displayMin = cfg.useIndependentFFTScale ? cfg.fftDisplayMinDB : mDisplayMinDB;
         float displayMax = cfg.useIndependentFFTScale ? cfg.fftDisplayMaxDB : mDisplayMaxDB;
         float clampedMagnitudeDB = std::max(displayMin, std::min(displayMax, bin.magnitudeDB));
         
-        float y = FFTDBToY(clampedMagnitudeDB, bb, cfg);  // Use professional FFT scaling with clamped values
+        float y = FFTDBToY(clampedMagnitudeDB, bb, cfg);
         fftPoints.push_back({x, y});
       }
       
@@ -407,8 +420,7 @@ struct FrequencyResponseRenderer {
         });
         
         // Render filled area under curve first (behind line)
-        if (cfg.enableFftFill) {
-          // Use triangle strip approach for better polygon handling
+        if (overlay.enableFftFill) {
           const float baseline = bb.Max.y;
           
           for (size_t i = 0; i < fftPoints.size() - 1; ++i) {
@@ -423,22 +435,55 @@ struct FrequencyResponseRenderer {
               {p2.x, baseline}   // bottom-right
             };
             
-            dl->AddConvexPolyFilled(quad, 4, cfg.fftFillColor);
+            dl->AddConvexPolyFilled(quad, 4, overlay.fftFillColor);
           }
         }
         
         // Render spectrum line on top of fill
-        dl->AddPolyline(fftPoints.data(), (int)fftPoints.size(), cfg.fftColor, 0, 1.5f);
+        dl->AddPolyline(fftPoints.data(), (int)fftPoints.size(), overlay.fftColor, 0, 1.5f);
       }
+    };
+    
+    // Render all FFT overlays (new multi-overlay system)
+    for (const auto& overlay : cfg.fftOverlays) {
+      renderFFTOverlay(overlay);
+    }
+    
+    // Legacy single FFT support (backward compatibility)
+    if (cfg.frequencyAnalysis && cfg.fftOverlays.empty()) {
+      FrequencyResponseRendererConfig<TFilterCount, TParamCount>::FFTAnalysisOverlay legacyOverlay;
+      legacyOverlay.frequencyAnalysis = cfg.frequencyAnalysis;
+      legacyOverlay.fftColor = cfg.fftColor;
+      legacyOverlay.fftFillColor = cfg.fftFillColor;
+      legacyOverlay.useRightChannel = cfg.useRightChannel;
+      legacyOverlay.enableFftFill = cfg.enableFftFill;
+      renderFFTOverlay(legacyOverlay);
+    }
+    
+    // Draw FFT scale indicator and legend
+    if (cfg.useIndependentFFTScale && TshowGridLabels && (!cfg.fftOverlays.empty() || cfg.frequencyAnalysis)) {
+      // Draw scale indicator in top-right corner
+      char scaleText[32];
+      snprintf(scaleText, sizeof(scaleText), "FFT: %.0f to %.0fdB", cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB);
+      ImVec2 textSize = ImGui::CalcTextSize(scaleText);
+      ImVec2 textPos = {bb.Max.x - textSize.x - 4, bb.Min.y + 2};
+      dl->AddText(textPos, ColorFromHTML("888888", 0.7f), scaleText);
       
-      // Optional: Draw FFT scale indicators if using independent scaling
-      if (cfg.useIndependentFFTScale && TshowGridLabels) {
-        // Draw a subtle scale indicator in top-right corner
-        char scaleText[32];
-        snprintf(scaleText, sizeof(scaleText), "FFT: %.0f to %.0fdB", cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB);
-        ImVec2 textSize = ImGui::CalcTextSize(scaleText);
-        ImVec2 textPos = {bb.Max.x - textSize.x - 4, bb.Min.y + 2};
-        dl->AddText(textPos, ColorFromHTML("888888", 0.7f), scaleText);
+      // Draw legend for multiple overlays
+      if (cfg.fftOverlays.size() > 1) {
+        float legendY = bb.Min.y + 20;
+        for (size_t i = 0; i < cfg.fftOverlays.size(); ++i) {
+          const auto& overlay = cfg.fftOverlays[i];
+          if (!overlay.frequencyAnalysis || !overlay.label) continue;
+          
+          float legendX = bb.Max.x - 80;
+          // Draw color swatch
+          dl->AddRectFilled({legendX, legendY}, {legendX + 12, legendY + 8}, overlay.fftColor);
+          // Draw label
+          ImVec2 labelPos = {legendX + 16, legendY - 2};
+          dl->AddText(labelPos, ColorFromHTML("CCCCCC", 0.8f), overlay.label);
+          legendY += 14;
+        }
       }
     }
 

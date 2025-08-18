@@ -157,20 +157,33 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		// FFT analysis for spectrum display
-		FFTAnalysis mFFTAnalysis;
-		SpectrumDisplaySmoother mSpectrumSmoother;
+		FFTAnalysis mInputFFTAnalysis;   // Input signal analysis
+		FFTAnalysis mOutputFFTAnalysis;  // Output signal analysis (after filtering)
+		SpectrumDisplaySmoother mInputSpectrumSmoother;   // Input display smoother
+		SpectrumDisplaySmoother mOutputSpectrumSmoother;  // Output display smoother
 
 		Leveller() :
 			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16),
-			mFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, 44100.0f)
+			mInputFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, 44100.0f),
+			mOutputFFTAnalysis(FFTAnalysis::FFTSize::FFT1024, FFTAnalysis::WindowType::Hanning, 44100.0f)
 		{
-			// Configure FFT for clean technical analysis (no artificial boost needed)
-			mFFTAnalysis.SetSmoothingFactor(0.0f);  // Light technical smoothing only
-			mFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
+			// Configure input FFT for clean technical analysis (no artificial boost needed)
+			mInputFFTAnalysis.SetSmoothingFactor(0.0f);  // Light technical smoothing only
+			mInputFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
 			
-			// Configure display smoother for Pro-Q3 style behavior
-			mSpectrumSmoother.SetPeakHoldTime(0, 44100.0f);  // 80ms peak hold (reduced from 300ms)
-			mSpectrumSmoother.SetFalloffRate(200.0f, 44100.0f);  // 200ms for -60dB falloff (faster than 1.2s)
+			// Configure output FFT with same settings for direct comparison
+			mOutputFFTAnalysis.SetSmoothingFactor(0.0f);  // Light technical smoothing only
+			mOutputFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
+			
+			// Configure input display smoother for Pro-Q3 style behavior
+			mInputSpectrumSmoother.SetPeakHoldTime(180, 44100.0f);     // 0ms peak hold
+			mInputSpectrumSmoother.SetFalloffRate(2500, 44100.0f); // 200ms for -60dB falloff
+			mInputSpectrumSmoother.SetFFTUpdateRate(1024, 2); // 1024 FFT, 2x overlap = 512 samples between updates
+			
+			// Configure output display smoother with same settings
+			mOutputSpectrumSmoother.SetPeakHoldTime(130, 44100.0f);     // 0ms peak hold  
+			mOutputSpectrumSmoother.SetFalloffRate(2000, 44100.0f); // 200ms for -60dB falloff
+			mOutputSpectrumSmoother.SetFFTUpdateRate(1024, 2); // 1024 FFT, 2x overlap = 512 samples between updates
 			
 			LoadDefaults();
 		}
@@ -183,13 +196,18 @@ namespace WaveSabreCore
 			float masterGain = mParams.GetLinearVolume(ParamIndices::OutputVolume, M7::gVolumeCfg12db);
 			bool enableDC = mParams.GetBoolValue(ParamIndices::EnableDCFilter);
 			
-			// Update FFT analysis sample rate if needed
-			if (mFFTAnalysis.GetNyquistFrequency() * 2.0f != static_cast<float>(Helpers::CurrentSampleRate))
+			// Update FFT analyzers sample rate if needed
+			if (mInputFFTAnalysis.GetNyquistFrequency() * 2.0f != static_cast<float>(Helpers::CurrentSampleRate))
 			{
-				mFFTAnalysis.SetSampleRate(static_cast<float>(Helpers::CurrentSampleRate));
-				// Update smoother sample rate dependent settings
-				mSpectrumSmoother.SetPeakHoldTime(0, static_cast<float>(Helpers::CurrentSampleRate));
-				mSpectrumSmoother.SetFalloffRate(200, static_cast<float>(Helpers::CurrentSampleRate));
+				float sampleRate = static_cast<float>(Helpers::CurrentSampleRate);
+				mInputFFTAnalysis.SetSampleRate(sampleRate);
+				mOutputFFTAnalysis.SetSampleRate(sampleRate);
+				
+				// Update smoothers sample rate dependent settings
+				mInputSpectrumSmoother.SetPeakHoldTime(130, sampleRate);
+				mInputSpectrumSmoother.SetFalloffRate(2000, sampleRate);
+				mOutputSpectrumSmoother.SetPeakHoldTime(130, sampleRate);
+				mOutputSpectrumSmoother.SetFalloffRate(2000, sampleRate);
 			}
 			
 			for (int iSample = 0; iSample < numSamples; iSample++)
@@ -203,14 +221,14 @@ namespace WaveSabreCore
 				float s2 = inputs[1][iSample];
 				
 				// Process input samples for FFT analysis (before filtering)
-				mFFTAnalysis.ProcessSamples(s1, s2);
+				mInputFFTAnalysis.ProcessSamples(s1, s2);
 				
-				// Process FFT data through display smoother when new data is available
-				if (mFFTAnalysis.HasNewSpectrum())
+				// Process input FFT data through display smoother when new data is available
+				if (mInputFFTAnalysis.HasNewSpectrum())
 				{
-					mSpectrumSmoother.ProcessSpectrum(mFFTAnalysis.GetSpectrumLeft(), false);
-					mSpectrumSmoother.ProcessSpectrum(mFFTAnalysis.GetSpectrumRight(), true);
-					mFFTAnalysis.ConsumeSpectrum(); // Mark as processed
+					mInputSpectrumSmoother.ProcessSpectrum(mInputFFTAnalysis.GetSpectrumLeft(), false);
+					mInputSpectrumSmoother.ProcessSpectrum(mInputFFTAnalysis.GetSpectrumRight(), true);
+					mInputFFTAnalysis.ConsumeSpectrum(); // Mark as processed
 				}
 
 				if (enableDC) {
@@ -232,6 +250,17 @@ namespace WaveSabreCore
 
 				outputs[0][iSample] = masterGain * s1;
 				outputs[1][iSample] = masterGain * s2;
+				
+				// Process output samples for FFT analysis (after filtering)
+				mOutputFFTAnalysis.ProcessSamples(outputs[0][iSample], outputs[1][iSample]);
+				
+				// Process output FFT data through display smoother when new data is available
+				if (mOutputFFTAnalysis.HasNewSpectrum())
+				{
+					mOutputSpectrumSmoother.ProcessSpectrum(mOutputFFTAnalysis.GetSpectrumLeft(), false);
+					mOutputSpectrumSmoother.ProcessSpectrum(mOutputFFTAnalysis.GetSpectrumRight(), true);
+					mOutputFFTAnalysis.ConsumeSpectrum(); // Mark as processed
+				}
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				mOutputAnalysis[0].WriteSample(outputs[0][iSample]);
@@ -239,6 +268,7 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			}
+
 		}
 
 		virtual void OnParamsChanged() override
