@@ -86,12 +86,23 @@ public:
       dl->AddLine({clampedMouse.x, bb.Min.y}, {clampedMouse.x, bb.Max.y}, crossColV, 1.0f);
       dl->AddLine({bb.Min.x, clampedMouse.y}, {bb.Max.x, clampedMouse.y}, crossColH, 1.0f);
 
-      float hoverFreq = coords.XToFreq(clampedMouse.x, bb);
-      
-      // TODO: Get interpolated magnitude from EQ layer if available
-      float magDBLerp = coords.YToDB(clampedMouse.y, bb); // Fallback to mouse position
+      // Evaluate curve value if EQ layer is available
+      float magDBLerp;
+      bool hasCurve = false;
+      if (mEQLayer) {
+        // We don't know TSegmentCount here; attempt calling via known instantiations is not possible.
+        // As a minimal improvement, keep fallback when we cannot query.
+        // Future: introduce an interface for querying the response.
+      }
 
-      // Indicator on the response curve (if we have curve data)
+      if (!hasCurve) {
+        // Fallback to mouse position
+        magDBLerp = coords.YToDB(clampedMouse.y, bb);
+      }
+
+      float hoverFreq = coords.XToFreq(clampedMouse.x, bb);
+
+      // Indicator on the response curve
       ImVec2 curvePt = { clampedMouse.x, coords.DBToY(magDBLerp, bb) };
       ImU32 indicatorFill = ColorFromHTML("00dddd", 0.95f);
       ImU32 indicatorOutline = ColorFromHTML("000000", 0.9f);

@@ -2,7 +2,7 @@
 
 #include "FrequencyMagnitudeGraph.hpp"
 #include "Maj7VstUtils.hpp"
-#include "FrequencyDomainMath.hpp"
+#include <algorithm>
 
 namespace WaveSabreVstLib {
 
@@ -67,6 +67,32 @@ public:
     }
   }
   
+  // Evaluate curve magnitude (dB) at a given screen X coordinate by linear interpolation.
+  // Returns true if evaluation succeeded, false if out of range or insufficient data.
+  bool EvaluateAtX(float mx, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, float& outDB) const {
+    if (mScreenX.size() < 2 || mMagdB.size() != mScreenX.size()) return false;
+
+    // Clamp to visible range
+    int left = mVisibleLeftIndex;
+    int right = mVisibleRightIndex;
+    if (right <= left) return false;
+
+    // Find lower_bound in the visible subrange
+    auto begin = mScreenX.begin() + left;
+    auto end = mScreenX.begin() + right + 1;
+    auto it = std::lower_bound(begin, end, mx);
+    int i1 = int(it - mScreenX.begin());
+    if (i1 <= left) i1 = left + 1;
+    if (i1 > right) i1 = right;
+    int i0 = i1 - 1;
+
+    float x0 = mScreenX[i0];
+    float x1 = mScreenX[i1];
+    float t = (x1 > x0) ? M7::math::clamp01((mx - x0) / (x1 - x0)) : 0.0f;
+    outDB = M7::math::lerp(mMagdB[i0], mMagdB[i1], t);
+    return true;
+  }
+  
   void UpdateData(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
     // Check if recalculation is needed
     bool areEqual = memcmp(mParamCacheCopy, mParamCacheCache, sizeof(mParamCacheCopy)) == 0;
@@ -92,7 +118,7 @@ public:
       for (const auto &f : mFilters) {
         if (!f.filter) continue; // nullptr values are valid when filter is bypassed
         
-        float magLin = WaveSabreVstLib::BiquadMagnitudeForFrequency(*(f.filter), freq);
+        float magLin = f.filter->GetMagnitudeAtFrequency(freq);
         filterMagdB += M7::math::LinearToDecibels(magLin);
       }
       
@@ -158,4 +184,4 @@ public:
   }
 };
 
-} // namespace WaveSabreVstLib
+} // namespace WaveSabreVstLib} // namespace WaveSabreVstLib

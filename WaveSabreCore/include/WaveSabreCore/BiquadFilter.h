@@ -74,6 +74,9 @@ namespace WaveSabreCore
 			lastOutput = lastLastOutput = 0.0f;
 		}
 
+		// Returns linear magnitude at a frequency in Hz using current normalized coefficients
+		float GetMagnitudeAtFrequency(float freqHz) const;
+
 	};
 }
 

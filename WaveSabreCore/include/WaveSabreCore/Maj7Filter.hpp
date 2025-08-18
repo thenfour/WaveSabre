@@ -138,24 +138,24 @@ namespace WaveSabreCore
 				//switch (slope) {
 				//default:
 				//case Slope::Slope_12dB:
-//					return svf.SVFlow(x, freq, 0.5f);
-//				case Slope::Slope_24dB:
-					x = svf[0].SVFlow(x, freq, q24);
-					return svf[1].SVFlow(x, freq, q24);
+//				return svf.SVFlow(x, freq, 0.5f);
+//			case Slope::Slope_24dB:
+				x = svf[0].SVFlow(x, freq, q24);
+				return svf[1].SVFlow(x, freq, q24);
 //#ifndef DISABLE_6db_oct_crossover
-//				case Slope::Slope_36dB:
-//					x = svf[0].SVFlow(x, freq, 1);
-//					x = svf[1].SVFlow(x, freq, 1);
-//					return svf[2].SVFlow(x, freq, 0.5f);
+//			case Slope::Slope_36dB:
+//				x = svf[0].SVFlow(x, freq, 1);
+//				x = svf[1].SVFlow(x, freq, 1);
+//				return svf[2].SVFlow(x, freq, 0.5f);
 //#endif // DISABLE_6db_oct_crossover
 //#ifndef DISABLE_48db_oct_crossover
-//				case Slope::Slope_48dB:
-//					x = svf[0].SVFlow(x, freq, q48_1);
-//					x = svf[1].SVFlow(x, freq, q48_2);
-//					x = svf[2].SVFlow(x, freq, q48_1);
-//					return svf[3].SVFlow(x, freq, q48_2);
+//			case Slope::Slope_48dB:
+//				x = svf[0].SVFlow(x, freq, q48_1);
+//				x = svf[1].SVFlow(x, freq, q48_2);
+//				x = svf[2].SVFlow(x, freq, q48_1);
+//				return svf[3].SVFlow(x, freq, q48_2);
 //#endif // DISABLE_48db_oct_crossover
-//				}
+//			}
 			}
 
 			real LR_HPF(real x, real freq/*, Slope slope*/) {
@@ -163,23 +163,23 @@ namespace WaveSabreCore
 				//default:
 				//case Slope::Slope_12dB:
 					//return svf.SVFhigh(-x, freq, 0.5f);
-//				case Slope::Slope_24dB:
-					x = svf[0].SVFhigh(x, freq, q24);
-					return svf[1].SVFhigh(x, freq, q24);
+//			case Slope::Slope_24dB:
+				x = svf[0].SVFhigh(x, freq, q24);
+				return svf[1].SVFhigh(x, freq, q24);
 //#ifndef DISABLE_6db_oct_crossover
-//				case Slope::Slope_36dB:
-//					x = svf[0].SVFhigh(-x, freq, 1);
-//					x = svf[1].SVFhigh(x, freq, 1);
-//					return svf[2].SVFhigh(x, freq, 0.5f);
+//			case Slope::Slope_36dB:
+//				x = svf[0].SVFhigh(-x, freq, 1);
+//				x = svf[1].SVFhigh(x, freq, 1);
+//				return svf[2].SVFhigh(x, freq, 0.5f);
 //#endif // DISABLE_6db_oct_crossover	
 //#ifndef DISABLE_48db_oct_crossover
-//				case Slope::Slope_48dB:
-//					x = svf[0].SVFhigh(x, freq, q48_1);
-//					x = svf[1].SVFhigh(x, freq, q48_2);
-//					x = svf[2].SVFhigh(x, freq, q48_1);
-//					return svf[3].SVFhigh(x, freq, q48_2);
+//			case Slope::Slope_48dB:
+//				x = svf[0].SVFhigh(x, freq, q48_1);
+//				x = svf[1].SVFhigh(x, freq, q48_2);
+//				x = svf[2].SVFhigh(x, freq, q48_1);
+//				return svf[3].SVFhigh(x, freq, q48_2);
 //#endif // DISABLE_48db_oct_crossover
-//				}
+//			}
 			}
 
 			real APF(real x, real freq/*, Slope slope*/) {
@@ -187,19 +187,43 @@ namespace WaveSabreCore
 				//default:
 				//case Slope::Slope_12dB:
 					//return svf.SVFOPapf_temp(-x, freq);
-//				case Slope::Slope_24dB:
-					return svf[0].SVFall(x, freq, q24);
+//			case Slope::Slope_24dB:
+				return svf[0].SVFall(x, freq, q24);
 //#ifndef DISABLE_6db_oct_crossover
-//				case Slope::Slope_36dB:
-//					x = svf[0].SVFall(-x, freq, 1);
-//					return svf[1].SVFOPapf_temp(x, freq);
+//			case Slope::Slope_36dB:
+//				x = svf[0].SVFall(-x, freq, 1);
+//				return svf[1].SVFOPapf_temp(x, freq);
 //#endif // DISABLE_6db_oct_crossover
 //#ifndef DISABLE_48db_oct_crossover
-//				case Slope::Slope_48dB:
-//					x = svf[0].SVFall(x, freq, q48_1);
-//					return svf[1].SVFall(x, freq, q48_2);
+//			case Slope::Slope_48dB:
+//				x = svf[0].SVFall(x, freq, q48_1);
+//				return svf[1].SVFall(x, freq, q48_2);
 //#endif // DISABLE_48db_oct_crossover
-//				}
+//			}
+			}
+
+			// New: static helpers to query magnitude (linear) of LR24 filters
+			static inline float MagnitudeLPF(float freqHz, float crossoverHz)
+			{
+				if (crossoverHz <= 0.0f) return 0.0f;
+				const float ratio = freqHz / crossoverHz;
+				const float r2 = ratio * ratio;
+				const float r4 = r2 * r2;
+				const float denom = std::sqrt((1.0f - 2.0f*r2 + r4) * (1.0f - 2.0f*r2 + r4)
+								 + (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2)
+								 * (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2));
+				return 1.0f / denom;
+			}
+			static inline float MagnitudeHPF(float freqHz, float crossoverHz)
+			{
+				if (crossoverHz <= 0.0f) return 1.0f;
+				const float ratio = freqHz / crossoverHz;
+				const float r2 = ratio * ratio;
+				const float r4 = r2 * r2;
+				const float denom = std::sqrt((1.0f - 2.0f*r2 + r4) * (1.0f - 2.0f*r2 + r4)
+								 + (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2)
+								 * (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*r2));
+				return r4 / denom;
 			}
 		};
 
@@ -566,6 +590,12 @@ namespace WaveSabreCore
 
 
 } // namespace WaveSabreCore
+
+
+
+
+
+
 
 
 

@@ -23,7 +23,7 @@ struct Maj7MBCEditor : public VstEditor
 	ColorMod mBandDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
 	FrequencyResponseRendererLayered<160, 75, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
-	FrequencyResponseRendererLayered<900, 75, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mMainFFTGraph;
+	FrequencyResponseRendererLayered<900, 175, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mMainFFTGraph;
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
@@ -173,11 +173,48 @@ struct Maj7MBCEditor : public VstEditor
 						cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
 					}
 					ImGui::SameLine();
+
+					// Update crossover visualization using direct band magnitude providers.
+					// This avoids interpreting params here; we forward magnitude directly from the DSP filters.
+					{
+						std::vector<std::function<float(float)>> bandMagFns;
+						std::vector<ImColor> colors = {
+							ColorFromHTML("ff4444", 0.8f), // lows
+							ColorFromHTML("44ff44", 0.8f), // mids
+							ColorFromHTML("4444ff", 0.8f)  // highs
+						};
+						std::vector<const char*> labels = {"Low", "Mid", "High"};
+
+						// Build per-band magnitude from HP/LP filters in each band's compressor
+						// Note: magnitude functions return linear gain; the renderer converts to dB.
+						for (int b = 0; b < (int)Maj7MBC::gBandCount; ++b) {
+							Maj7MBC::FreqBand &fb = mpMaj7MBC->mBands[b];
+							bandMagFns.emplace_back([&fb](float freqHz) -> float {
+								float mag = 1.0f;
+								mag *= fb.mComp[0].mLowpassFilter.GetMagnitudeAtFrequency(freqHz);
+								mag *= fb.mComp[0].mHighpassFilter.GetMagnitudeAtFrequency(freqHz);
+								return mag;
+							});
+						}
+
+						// Provide crossover marker lines from current parameters
+						auto getLines = [this](std::vector<float>& out){
+							float xAraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverAFrequency);
+							float xBraw = mpMaj7MBCVst->getParameter((int)ParamIndices::CrossoverBFrequency);
+							M7::ParamAccessor paA{ &xAraw, 0 };
+							M7::ParamAccessor paB{ &xBraw, 0 };
+							float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
+							float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+							if (fA > 0) out.push_back(fA);
+							if (fB > 0) out.push_back(fB);
+						};
+
+						mResponseGraphs[iBand].SetCrossoverBands(bandMagFns, colors, labels, getLines);
+					}
+
 					mResponseGraphs[iBand].OnRender(cfg);
 
 
-
-					//ImGui::SameLine(0, 40); 
 					Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "StereoLink", 0.8f, 0);
 					ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
 					ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});

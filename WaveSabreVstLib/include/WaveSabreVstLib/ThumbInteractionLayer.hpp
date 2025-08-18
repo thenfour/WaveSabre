@@ -38,11 +38,6 @@ private:
   ThumbInteractionState mThumbInteraction;
   float mThumbRadius = 6.0f;
   
-  // Biquad magnitude calculation (copied from existing code)
-  static float BiquadMagnitudeForFrequency(const WaveSabreCore::BiquadFilter &bq, double freq) {
-    return WaveSabreVstLib::BiquadMagnitudeForFrequency(bq, freq);
-  }
-  
 public:
   ThumbInteractionLayer(const std::array<FrequencyResponseRendererFilter, TFilterCount>& filters, float thumbRadius = 6.0f)
     : mFilters(filters), mThumbRadius(thumbRadius) {
@@ -66,7 +61,7 @@ public:
       if (!f.filter) continue;
       
       float freq = f.filter->freq;
-      float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
+      float magLin = f.filter->GetMagnitudeAtFrequency(freq);
       float magdB = M7::math::LinearToDecibels(magLin);
 
       ThumbRenderInfo thumbInfo;

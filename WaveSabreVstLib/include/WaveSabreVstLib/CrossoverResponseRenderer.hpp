@@ -31,7 +31,7 @@ namespace WaveSabreVstLib {
 template <int TSegmentCount>
 class CrossoverResponseLayer : public IFrequencyGraphLayer {
 private:
-  struct CrossoverBand {
+  struct CrossoverBandLegacy {
     float frequencyHz;
     ImColor color;
     const char* label;
@@ -39,49 +39,65 @@ private:
     bool isActive = true;
   };
   
-  std::vector<CrossoverBand> mBands;
+  // Legacy param-driven bands (for backward compatibility)
+  std::vector<CrossoverBandLegacy> mBands;
+
+  // New: direct magnitude providers per band
+  std::vector<std::function<float(float /*freqHz*/)>> mBandMagnitudeFns;
+  std::vector<ImColor> mBandColors;
+  std::vector<const char*> mBandLabels;
+
+  // Optional: provider to retrieve crossover line frequencies (for drawing vertical markers)
+  std::function<void(std::vector<float>&)> mGetCrossoverFrequencies;
+
   std::vector<float> mFrequencies;
   std::vector<float> mScreenX;
   std::vector<std::vector<float>> mBandResponses; // Per-band magnitude responses
-  
-  // Calculate Linkwitz-Riley 4th order response
-  float CalculateLinkwitzRileyResponse(float freq, float crossoverFreq, bool isHighpass) const {
-    if (crossoverFreq <= 0) return isHighpass ? 1.0f : 0.0f;
-    
-    float ratio = freq / crossoverFreq;
-    float ratio2 = ratio * ratio;
-    float ratio4 = ratio2 * ratio2;
-    
-    if (isHighpass) {
-      // Linkwitz-Riley 4th order highpass: H(s) = s^4 / (s^4 + 2*sqrt(2)*s^3*wc + 2*s^2*wc^2 + 2*sqrt(2)*s*wc^3 + wc^4)
-      return ratio4 / std::sqrt((1.0f - 2.0f*ratio2 + ratio4) * (1.0f - 2.0f*ratio2 + ratio4) + 
-                               (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*ratio2) * 
-                               (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*ratio2));
-    } else {
-      // Linkwitz-Riley 4th order lowpass
-      return 1.0f / std::sqrt((1.0f - 2.0f*ratio2 + ratio4) * (1.0f - 2.0f*ratio2 + ratio4) + 
-                             (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*ratio2) * 
-                             (2.0f*1.414213562f*ratio - 2.0f*1.414213562f*ratio*ratio2));
-    }
-  }
   
 public:
   CrossoverResponseLayer() {
     mBandResponses.resize(4); // Support up to 4 bands initially
   }
   
+  // New API: operate directly with underlying filters by supplying per-band magnitude functions.
+  // - bandMagnitudeFns: one function per band returning linear magnitude for a given frequency in Hz.
+  // - colors/labels: optional visual configuration per band (size should match bandMagnitudeFns or be empty).
+  // - getCrossoverFrequencies: optional callback to provide current crossover frequencies for vertical lines.
+  void SetBands(const std::vector<std::function<float(float)>>& bandMagnitudeFns,
+                const std::vector<ImColor>& colors = {},
+                const std::vector<const char*>& labels = {},
+                std::function<void(std::vector<float>&)> getCrossoverFrequencies = nullptr)
+  {
+    mBandMagnitudeFns = bandMagnitudeFns;
+    mBandColors = colors;
+    mBandLabels = labels;
+    mGetCrossoverFrequencies = std::move(getCrossoverFrequencies);
+
+    // Ensure band responses storage large enough
+    if (mBandResponses.size() < mBandMagnitudeFns.size()) {
+      mBandResponses.resize(mBandMagnitudeFns.size());
+    }
+  }
+
+  // Legacy API: frequency-param driven LR crossover
   void SetCrossoverFrequencies(const std::vector<float>& frequencies, 
                               const std::vector<ImColor>& colors,
                               const std::vector<const char*>& labels) {
     mBands.clear();
     
     for (size_t i = 0; i < frequencies.size() && i < colors.size(); ++i) {
-      CrossoverBand band;
+      CrossoverBandLegacy band;
       band.frequencyHz = frequencies[i];
       band.color = colors[i];
       band.label = (i < labels.size()) ? labels[i] : nullptr;
       mBands.push_back(band);
     }
+
+    // Reset new-API storage
+    mBandMagnitudeFns.clear();
+    mBandColors.clear();
+    mBandLabels.clear();
+    mGetCrossoverFrequencies = nullptr;
   }
   
   bool InfluencesAutoScale() const override { return true; }
@@ -95,57 +111,66 @@ public:
     // Generate screen-space frequency sampling
     ScreenSpaceFrequencySampler::GenerateFrequencyPoints(TSegmentCount, mFrequencies, mScreenX, coords, bb);
     
-    // Ensure we have enough band response arrays
-    if (mBandResponses.size() < mBands.size() + 1) {
-      mBandResponses.resize(mBands.size() + 1);
+    // Determine number of bands via new API or legacy fallback
+    size_t bandCount = !mBandMagnitudeFns.empty() ? mBandMagnitudeFns.size() : (mBands.size() + 1);
+
+    if (mBandResponses.size() < bandCount) {
+      mBandResponses.resize(bandCount);
     }
-    
-    // Calculate crossover responses for each band
-    for (size_t bandIdx = 0; bandIdx <= mBands.size(); ++bandIdx) {
+
+    // Calculate responses per band
+    for (size_t bandIdx = 0; bandIdx < bandCount; ++bandIdx) {
       auto& bandResponse = mBandResponses[bandIdx];
       bandResponse.resize(TSegmentCount);
       
       for (int i = 0; i < TSegmentCount; ++i) {
         float freq = mFrequencies[i];
-        float magnitude = 1.0f; // Start with unity gain
-        
-        // Apply crossover filtering for this band
-        if (bandIdx == 0) {
-          // First band (lowest) - apply lowpass filters from all crossover points above
-          for (const auto& xover : mBands) {
-            if (xover.isActive) {
-              magnitude *= CalculateLinkwitzRileyResponse(freq, xover.frequencyHz, false);
+        float magLin = 1.0f;
+
+        if (!mBandMagnitudeFns.empty()) {
+          // New path: call provided magnitude function
+          magLin = mBandMagnitudeFns[bandIdx](freq);
+        } else {
+          // Legacy path: derive from LR crossovers list (bands = crossovers + 1)
+          if (bandIdx == 0) {
+            // Lowest band: product of LPFs at each active crossover
+            for (const auto& xover : mBands) {
+              if (xover.isActive) {
+                magLin *= M7::LinkwitzRileyFilter::MagnitudeLPF(freq, xover.frequencyHz);
+              }
             }
-          }
-        } else if (bandIdx <= mBands.size()) {
-          // Middle/high bands
-          for (size_t xoverIdx = 0; xoverIdx < mBands.size(); ++xoverIdx) {
-            const auto& xover = mBands[xoverIdx];
-            if (!xover.isActive) continue;
-            
-            if (xoverIdx < bandIdx) {
-              // Apply highpass for crossovers below this band
-              magnitude *= CalculateLinkwitzRileyResponse(freq, xover.frequencyHz, true);
-            } else if (xoverIdx >= bandIdx) {
-              // Apply lowpass for crossovers at/above this band
-              magnitude *= CalculateLinkwitzRileyResponse(freq, xover.frequencyHz, false);
+          } else {
+            for (size_t xoverIdx = 0; xoverIdx < mBands.size(); ++xoverIdx) {
+              const auto& xover = mBands[xoverIdx];
+              if (!xover.isActive) continue;
+              if (xoverIdx < bandIdx) {
+                magLin *= M7::LinkwitzRileyFilter::MagnitudeHPF(freq, xover.frequencyHz);
+              } else {
+                magLin *= M7::LinkwitzRileyFilter::MagnitudeLPF(freq, xover.frequencyHz);
+              }
             }
           }
         }
-        
-        bandResponse[i] = M7::math::LinearToDecibels(magnitude);
+        bandResponse[i] = M7::math::LinearToDecibels(magLin);
       }
     }
   }
   
   void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
+    const size_t bandCount = mBandResponses.size();
+
     // Render each crossover band response
-    for (size_t bandIdx = 0; bandIdx < mBandResponses.size() && bandIdx <= mBands.size(); ++bandIdx) {
+    for (size_t bandIdx = 0; bandIdx < bandCount; ++bandIdx) {
       const auto& bandResponse = mBandResponses[bandIdx];
       if (bandResponse.empty()) continue;
       
       // Determine band color
-      ImColor bandColor = (bandIdx < mBands.size()) ? mBands[bandIdx].color : ColorFromHTML("888888", 0.7f);
+      ImColor bandColor = ColorFromHTML("888888", 0.7f);
+      if (!mBandMagnitudeFns.empty()) {
+        if (bandIdx < mBandColors.size()) bandColor = mBandColors[bandIdx];
+      } else {
+        if (bandIdx < mBands.size()) bandColor = mBands[bandIdx].color;
+      }
       
       // Build polyline points
       std::vector<ImVec2> points;
@@ -165,19 +190,35 @@ public:
     }
     
     // Draw crossover frequency lines
-    for (const auto& band : mBands) {
-      if (!band.isActive) continue;
-      
-      float x = coords.FreqToX(band.frequencyHz, bb);
+    std::vector<float> lines;
+    if (mGetCrossoverFrequencies) {
+      mGetCrossoverFrequencies(lines);
+    } else if (!mBands.empty()) {
+      for (const auto& band : mBands) if (band.isActive) lines.push_back(band.frequencyHz);
+    }
+
+    for (size_t i = 0; i < lines.size(); ++i) {
+      float x = coords.FreqToX(lines[i], bb);
       if (x >= bb.Min.x && x <= bb.Max.x) {
-        dl->AddLine({x, bb.Min.y}, {x, bb.Max.y}, 
-                   ImColor(band.color.Value.x, band.color.Value.y, band.color.Value.z, 0.5f), 2.0f);
-        
-        // Add frequency label
-        if (band.label) {
-          ImVec2 textSize = ImGui::CalcTextSize(bband.label);
+        // Pick a color: try band color at same index, else default
+        ImColor c = ColorFromHTML("cccccc", 0.5f);
+        if (!mBandMagnitudeFns.empty()) {
+          if (i < mBandColors.size()) c = ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.5f);
+        } else if (i < mBands.size()) {
+          c = ImColor(mBands[i].color.Value.x, mBands[i].color.Value.y, mBands[i].color.Value.z, 0.5f);
+        }
+        dl->AddLine({x, bb.Min.y}, {x, bb.Max.y}, c, 2.0f);
+
+        const char* label = nullptr;
+        if (!mBandMagnitudeFns.empty()) {
+          if (i < mBandLabels.size()) label = mBandLabels[i];
+        } else if (i < mBands.size()) {
+          label = mBands[i].label;
+        }
+        if (label) {
+          ImVec2 textSize = ImGui::CalcTextSize(label);
           ImVec2 textPos = {x - textSize.x * 0.5f, bb.Min.y + 5};
-          dl->AddText(textPos, band.color, band.label);
+          dl->AddText(textPos, ColorFromHTML("ffffff"), label);
         }
       }
     }
@@ -204,6 +245,15 @@ public:
     mGraph.AddLayer(std::unique_ptr<IFrequencyGraphLayer>(mCrossoverLayer.release()));
   }
   
+  // New helper: configure from magnitude functions directly
+  void SetBands(const std::vector<std::function<float(float)>>& bandMagnitudeFns,
+                const std::vector<ImColor>& colors = {},
+                const std::vector<const char*>& labels = {},
+                std::function<void(std::vector<float>&)> getCrossoverFrequencies = nullptr) {
+    if (mCrossoverLayer) mCrossoverLayer->SetBands(bandMagnitudeFns, colors, labels, std::move(getCrossoverFrequencies));
+  }
+
+  // Legacy helper kept for compatibility
   void SetCrossoverFrequencies(const std::vector<float>& frequencies) {
     if (mCrossoverLayer) {
       std::vector<ImColor> colors = {

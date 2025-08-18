@@ -119,4 +119,27 @@ namespace WaveSabreCore
 			normCoeffs[i] = this->coeffs[i] / a0;
 		}
 	}
+
+	float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
+	{
+		// Use normalized coefficients (a0 == 1)
+		const double w = 2.0 * 3.14159265358979323846 * double(freqHz) / double(Helpers::CurrentSampleRate);
+		const double a1 = double(normCoeffs[1]);
+		const double a2 = double(normCoeffs[2]);
+		const double b0 = double(normCoeffs[3]);
+		const double b1 = double(normCoeffs[4]);
+		const double b2 = double(normCoeffs[5]);
+
+		const double cw = ::cos(w);
+		const double c2w = ::cos(2.0 * w);
+
+		const double num = b0*b0 + b1*b1 + b2*b2
+			+ 2.0 * (b0*b1 + b1*b2) * cw
+			+ 2.0 * b0*b2 * c2w;
+		const double den = 1.0 + a1*a1 + a2*a2
+			+ 2.0 * (a1 + a1*a2) * cw
+			+ 2.0 * a2 * c2w;
+
+		return float(::sqrt(num / den));
+	}
 }
