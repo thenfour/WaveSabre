@@ -295,7 +295,7 @@ namespace WaveSabreCore
 				// apply stereo linking
 				float s0 = inputs[0][iSample] * mInputGainLin;
 				float s1 = inputs[1][iSample] * mInputGainLin;
-				float monoDetector = s0 + s1;
+				float monoDetector = (s0 + s1) * 0.5f;
 
 				for (size_t ich = 0; ich < 2; ++ich) {
 					float inpAudio = inputs[ich][iSample] * mInputGainLin;
