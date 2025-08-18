@@ -41,7 +41,7 @@ private:
   
   // Visuals
   // Default colors (lows/mids/highs). If a global theme is available, substitute here.
-  std::vector<ImColor> mBandColors { ColorFromHTML("ff4444", 0.8f), ColorFromHTML("44ff44", 0.8f), ColorFromHTML("4444ff", 0.8f)};
+  std::vector<ImColor> mBandColors { ColorFromHTML(bandColors[0], 0.8f), ColorFromHTML(bandColors[1], 0.8f), ColorFromHTML(bandColors[2], 0.8f)};
   std::vector<const char*> mBandLabels { "Low", "Mid", "High" };
 
 public:
