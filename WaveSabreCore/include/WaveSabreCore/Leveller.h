@@ -176,12 +176,12 @@ namespace WaveSabreCore
 			mOutputFFTAnalysis.SetOverlapFactor(2);       // Good balance of smoothness vs CPU
 			
 			// Configure input display smoother for Pro-Q3 style behavior
-			mInputSpectrumSmoother.SetPeakHoldTime(180, 44100.0f);     // 0ms peak hold
-			mInputSpectrumSmoother.SetFalloffRate(2500, 44100.0f); // 200ms for -60dB falloff
+			mInputSpectrumSmoother.SetPeakHoldTime(100, 44100.0f);     // 0ms peak hold
+			mInputSpectrumSmoother.SetFalloffRate(2000, 44100.0f); // 200ms for -60dB falloff
 			mInputSpectrumSmoother.SetFFTUpdateRate(1024, 2); // 1024 FFT, 2x overlap = 512 samples between updates
 			
 			// Configure output display smoother with same settings
-			mOutputSpectrumSmoother.SetPeakHoldTime(130, 44100.0f);     // 0ms peak hold  
+			mOutputSpectrumSmoother.SetPeakHoldTime(100, 44100.0f);     // 0ms peak hold  
 			mOutputSpectrumSmoother.SetFalloffRate(2000, 44100.0f); // 200ms for -60dB falloff
 			mOutputSpectrumSmoother.SetFFTUpdateRate(1024, 2); // 1024 FFT, 2x overlap = 512 samples between updates
 			
@@ -204,9 +204,9 @@ namespace WaveSabreCore
 				mOutputFFTAnalysis.SetSampleRate(sampleRate);
 				
 				// Update smoothers sample rate dependent settings
-				mInputSpectrumSmoother.SetPeakHoldTime(130, sampleRate);
+				mInputSpectrumSmoother.SetPeakHoldTime(100, sampleRate);
 				mInputSpectrumSmoother.SetFalloffRate(2000, sampleRate);
-				mOutputSpectrumSmoother.SetPeakHoldTime(130, sampleRate);
+				mOutputSpectrumSmoother.SetPeakHoldTime(100, sampleRate);
 				mOutputSpectrumSmoother.SetFalloffRate(2000, sampleRate);
 			}
 			

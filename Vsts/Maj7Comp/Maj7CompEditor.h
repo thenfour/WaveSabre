@@ -100,7 +100,7 @@ struct Maj7CompEditor : public VstEditor
 #ifdef MAJ7COMP_FULL
 					FrequencyResponseRendererFilter{ColorFromHTML("cc4444", 0.8f), &mpMaj7Comp->mComp[0].mLowpassFilter},
 #endif // MAJ7COMP_FULL
-					FrequencyResponseRendererFilter{ColorFromHTML("4444cc", 0.8f), &mpMaj7Comp->mComp[0].mHighpassFilter}
+					FrequencyResponseRendererFilter{"4444cc", &mpMaj7Comp->mComp[0].mHighpassFilter}
 				};
 
 				FrequencyResponseRendererConfig<2, (size_t)Maj7Comp::ParamIndices::NumParams> cfg{

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Common.h"
 #include <d3d9.h>
@@ -26,7 +26,7 @@ using namespace WaveSabreCore;
 namespace WaveSabreVstLib {
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 struct FrequencyResponseRendererFilter {
-  const ImColor thumbColor;
+  const char *thumbColor;
   const BiquadFilter *filter;
 };
 
@@ -57,6 +57,7 @@ struct FrequencyResponseRendererConfig {
   float fftDisplayMinDB = -60.0f;  // Noise floor (iZotope style: -60dB to 0dB)
   float fftDisplayMaxDB = 0.0f;    // Digital maximum (0dB)
   bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
+  float fftCurveSmoothing = 0.3f;  // Bézier curve smoothing factor (0.0 = sharp, 0.5 = very smooth)
   
   // Legacy single FFT support (for backward compatibility)
   const IFrequencyAnalysis* frequencyAnalysis = nullptr;
@@ -70,7 +71,7 @@ template <int Twidth, int Theight, int TsegmentCount, size_t TFilterCount,
           size_t TParamCount, bool TshowGridLabels>
 struct FrequencyResponseRenderer {
   struct ThumbRenderInfo {
-    ImColor color;
+    const char * color;
     ImVec2 point;
   };
   // the response graph is extremely crude; todo:
@@ -81,8 +82,9 @@ struct FrequencyResponseRenderer {
   // - adjust amplitude
 
   static constexpr ImVec2 gSize = {Twidth, Theight};
+  static constexpr int gPixelsPerSegment = 2;
   static constexpr int gSegmentCount = std::max(
-      5, Twidth / 4); // TsegmentCount; -- just go for smooth 4-px per segment
+      5, Twidth / gPixelsPerSegment); // TsegmentCount; -- just go for smooth 4-px per segment
 
   // dynamic display range (defaults to +-12 dB)
   float mCurrentHalfRangeDB = 12.0f;
@@ -96,8 +98,18 @@ struct FrequencyResponseRenderer {
   int mAdditionalForceCalcFrames = 0;
 
   // cached per-segment values
-  float mMagdB[gSegmentCount] = {0};
-  float mX[gSegmentCount] = {0};
+  float mMagdB[gSegmentCount] = {0};      // Filter magnitude response
+  float mX[gSegmentCount] = {0};          // Screen X coordinates
+  
+  // Screen-space FFT response cache (unified approach)
+  struct FFTSegmentCache {
+    float magnitudeDB;
+    bool valid;
+    FFTSegmentCache() : magnitudeDB(-100.0f), valid(false) {}
+  };
+  
+  // Cache for each FFT overlay at screen resolution
+  std::vector<std::array<FFTSegmentCache, gSegmentCount>> mFFTCache;
 
   // computed visible window excluding deep stopband edges
   int mVisibleLeftIndex = 0;
@@ -172,21 +184,61 @@ struct FrequencyResponseRenderer {
     // Don't compute thumbs here; do it after dynamic range is set
     mThumbs.clear();
 
+    // Calculate filter response at screen resolution (parameter-dependent only)
     for (int iseg = 0; iseg < gSegmentCount; ++iseg) {
       param.SetRawValue(float(iseg) / gSegmentCount);
       float freq = param.GetFrequency();
-      float magdB = 0;
-
+      
+      // Calculate filter magnitude response (existing logic)
+      float filterMagdB = 0;
       for (auto &f : cfg.filters) {
         if (!f.filter)
-          continue; // nullptr values are valid and used when a filter is
-                    // bypassed.
+          continue; // nullptr values are valid and used when a filter is bypassed.
         float magLin = BiquadMagnitudeForFrequency(*(f.filter), freq);
-        magdB += M7::math::LinearToDecibels(magLin);
+        filterMagdB += M7::math::LinearToDecibels(magLin);
       }
 
       mX[iseg] = FreqToX(freq, bb);
-      mMagdB[iseg] = magdB;
+      mMagdB[iseg] = filterMagdB;
+    }
+  }
+
+  // Separate function: Always calculate FFT data (independent of parameters)
+  void CalculateFFTPoints(
+      const FrequencyResponseRendererConfig<TFilterCount, TParamCount> &cfg,
+      ImRect &bb) {
+    M7::QuickParam param{0, M7::gFilterFreqConfig};
+
+    // Ensure FFT cache is properly sized for all overlays
+    if (mFFTCache.size() != cfg.fftOverlays.size()) {
+      mFFTCache.resize(cfg.fftOverlays.size());
+    }
+
+    // Always recalculate FFT data every frame (dynamic data)
+    for (size_t overlayIndex = 0; overlayIndex < cfg.fftOverlays.size(); ++overlayIndex) {
+      const auto& overlay = cfg.fftOverlays[overlayIndex];
+      auto& overlayCache = mFFTCache[overlayIndex];
+      
+      for (int iseg = 0; iseg < gSegmentCount; ++iseg) {
+        param.SetRawValue(float(iseg) / gSegmentCount);
+        float freq = param.GetFrequency();
+        
+        auto& cache = overlayCache[iseg];
+        
+        if (overlay.frequencyAnalysis) {
+          // Screen-space sampling: get magnitude at exact frequency
+          cache.magnitudeDB = GetFFTMagnitudeAtFrequency(
+            overlay.frequencyAnalysis, 
+            freq, 
+            overlay.useRightChannel, 
+            cfg.fftCurveSmoothing
+          );
+          cache.valid = true;
+        } else {
+          cache.magnitudeDB = -100.0f; // Silence
+          cache.valid = false;
+        }
+      }
     }
   }
 
@@ -218,7 +270,11 @@ struct FrequencyResponseRenderer {
 
     ImGui::RenderFrame(bb.Min, bb.Max, cfg.backgroundColor);
 
+    // Calculate filter response (parameter-dependent, cached)
     EnsurePointsPopulated(cfg, bb);
+    
+    // Calculate FFT response (always updated, independent of parameters)
+    CalculateFFTPoints(cfg, bb);
 
     // Determine visible in-band window (exclude deep stopband)
     const float cutThreshold = -24.0f;                  // dB
@@ -386,39 +442,34 @@ struct FrequencyResponseRenderer {
     dl->AddLine({bb.Min.x, unityY}, {bb.Max.x, unityY}, ColorFromHTML("444444"),
                 1.0f);
 
-    // Render FFT spectrum overlays if provided
-    auto renderFFTOverlay = [&](const FrequencyResponseRendererConfig<TFilterCount, TParamCount>::FFTAnalysisOverlay& overlay) {
-      if (!overlay.frequencyAnalysis) return;
+    // Render FFT spectrum overlays using unified screen-space sampling
+    for (size_t overlayIndex = 0; overlayIndex < cfg.fftOverlays.size(); ++overlayIndex) {
+      const auto& overlay = cfg.fftOverlays[overlayIndex];
+      if (!overlay.frequencyAnalysis || overlayIndex >= mFFTCache.size()) continue;
       
-      const auto& spectrum = overlay.useRightChannel ? 
-        overlay.frequencyAnalysis->GetSpectrumRight() : overlay.frequencyAnalysis->GetSpectrumLeft();
+      const auto& fftCache = mFFTCache[overlayIndex];
       
+      // Build screen-space points from cache (same approach as filter response)
       std::vector<ImVec2> fftPoints;
-      fftPoints.reserve(spectrum.size());
+      fftPoints.reserve(gSegmentCount);
       
-      for (const auto& bin : spectrum) {
-        if (bin.frequency < 20.0f || bin.frequency > 20000.0f)
-          continue; // skip out of audible range
+      // Apply same visibility window as filter response for consistency
+      for (int i = mVisibleLeftIndex; i <= mVisibleRightIndex; ++i) {
+        const auto& cache = fftCache[i];
+        if (!cache.valid) continue;
         
-        float x = FreqToX(bin.frequency, bb);
-        if (x < bb.Min.x || x > bb.Max.x)
-          continue; // skip out of display frequency range
-        
-        // CLAMP magnitudes to visible range instead of skipping them
+        // Apply independent FFT scaling
         float displayMin = cfg.useIndependentFFTScale ? cfg.fftDisplayMinDB : mDisplayMinDB;
         float displayMax = cfg.useIndependentFFTScale ? cfg.fftDisplayMaxDB : mDisplayMaxDB;
-        float clampedMagnitudeDB = std::max(displayMin, std::min(displayMax, bin.magnitudeDB));
         
-        float y = FFTDBToY(clampedMagnitudeDB, bb, cfg);
-        fftPoints.push_back({x, y});
+        // Skip points outside display range (same logic as filter response)
+        if (cache.magnitudeDB < displayMin || cache.magnitudeDB > displayMax) continue;
+        
+        float y = FFTDBToY(cache.magnitudeDB, bb, cfg);
+        fftPoints.push_back({mX[i], y});
       }
       
       if (fftPoints.size() >= 2) {
-        // Sort points by X coordinate to avoid crossings
-        std::sort(fftPoints.begin(), fftPoints.end(), [](const ImVec2& a, const ImVec2& b) {
-          return a.x < b.x;
-        });
-        
         // Render filled area under curve first (behind line)
         if (overlay.enableFftFill) {
           const float baseline = bb.Max.y;
@@ -427,7 +478,7 @@ struct FrequencyResponseRenderer {
             const ImVec2& p1 = fftPoints[i];
             const ImVec2& p2 = fftPoints[i + 1];
             
-            // Create quad (two triangles) for each segment
+            // Create quad for each segment
             ImVec2 quad[4] = {
               {p1.x, baseline},  // bottom-left
               {p1.x, p1.y},      // top-left  
@@ -439,25 +490,58 @@ struct FrequencyResponseRenderer {
           }
         }
         
-        // Render spectrum line on top of fill
-        dl->AddPolyline(fftPoints.data(), (int)fftPoints.size(), overlay.fftColor, 0, 1.5f);
+        // Render spectrum line (same simple approach as filter response)
+        dl->AddPolyline(fftPoints.data(), static_cast<int>(fftPoints.size()), 
+                       overlay.fftColor, 0, 1.5f);
       }
-    };
-    
-    // Render all FFT overlays (new multi-overlay system)
-    for (const auto& overlay : cfg.fftOverlays) {
-      renderFFTOverlay(overlay);
     }
     
-    // Legacy single FFT support (backward compatibility)
+    // Legacy single FFT support (backward compatibility) - use same unified approach
     if (cfg.frequencyAnalysis && cfg.fftOverlays.empty()) {
+      // Create temporary overlay for legacy support
       FrequencyResponseRendererConfig<TFilterCount, TParamCount>::FFTAnalysisOverlay legacyOverlay;
       legacyOverlay.frequencyAnalysis = cfg.frequencyAnalysis;
       legacyOverlay.fftColor = cfg.fftColor;
       legacyOverlay.fftFillColor = cfg.fftFillColor;
       legacyOverlay.useRightChannel = cfg.useRightChannel;
       legacyOverlay.enableFftFill = cfg.enableFftFill;
-      renderFFTOverlay(legacyOverlay);
+      
+      // Calculate legacy FFT data using unified screen-space sampling
+      std::vector<ImVec2> legacyPoints;
+      legacyPoints.reserve(gSegmentCount);
+      
+      for (int i = mVisibleLeftIndex; i <= mVisibleRightIndex; ++i) {
+        M7::QuickParam param{0, M7::gFilterFreqConfig};
+        param.SetRawValue(float(i) / gSegmentCount);
+        float freq = param.GetFrequency();
+        
+        float magnitudeDB = GetFFTMagnitudeAtFrequency(
+          cfg.frequencyAnalysis, freq, cfg.useRightChannel, cfg.fftCurveSmoothing);
+        
+        // Apply independent FFT scaling
+        float displayMin = cfg.useIndependentFFTScale ? cfg.fftDisplayMinDB : mDisplayMinDB;
+        float displayMax = cfg.useIndependentFFTScale ? cfg.fftDisplayMaxDB : mDisplayMaxDB;
+        
+        if (magnitudeDB >= displayMin && magnitudeDB <= displayMax) {
+          float y = FFTDBToY(magnitudeDB, bb, cfg);
+          legacyPoints.push_back({mX[i], y});
+        }
+      }
+      
+      // Render legacy FFT with same approach
+      if (legacyPoints.size() >= 2) {
+        if (cfg.enableFftFill) {
+          const float baseline = bb.Max.y;
+          for (size_t i = 0; i < legacyPoints.size() - 1; ++i) {
+            const ImVec2& p1 = legacyPoints[i];
+            const ImVec2& p2 = legacyPoints[i + 1];
+            ImVec2 quad[4] = {{p1.x, baseline}, {p1.x, p1.y}, {p2.x, p2.y}, {p2.x, baseline}};
+            dl->AddConvexPolyFilled(quad, 4, cfg.fftFillColor);
+          }
+        }
+        dl->AddPolyline(legacyPoints.data(), static_cast<int>(legacyPoints.size()), 
+                       cfg.fftColor, 0, 1.5f);
+      }
     }
     
     // Draw FFT scale indicator and legend
@@ -520,13 +604,40 @@ struct FrequencyResponseRenderer {
       float magdB = M7::math::LinearToDecibels(magLin);
       if (magdB < mDisplayMinDB || magdB > mDisplayMaxDB)
         continue;
+
       mThumbs.push_back({f.thumbColor, {FreqToX(freq, bb), DBToY(magdB, bb)}});
     }
     for (auto &th : mThumbs) {
-      dl->AddCircleFilled(th.point, cfg.thumbRadius, th.color);
+        dl->AddCircleFilled(th.point, cfg.thumbRadius, ColorFromHTML(th.color, 0.8f));
+        dl->AddCircle(th.point, cfg.thumbRadius + 1, ColorFromHTML("000000"), 0, 2);
+        dl->AddCircle(th.point, cfg.thumbRadius + 2, ColorFromHTML(th.color), 0, 1);
     }
 
     ImGui::Dummy(gSize);
+  }
+  
+  // Get interpolated FFT magnitude at specific frequency (unified screen-space sampling)
+  static float GetFFTMagnitudeAtFrequency(const IFrequencyAnalysis* analysis, float frequency, 
+                                         bool useRightChannel, float smoothing) {
+    if (!analysis) return -100.0f; // Silence
+    
+    // Use the interface's built-in interpolation method
+    return analysis->GetMagnitudeAtFrequency(frequency, useRightChannel);
+    
+    // Note: The 'smoothing' parameter could be used here for frequency-domain smoothing
+    // if we wanted to implement Gaussian smoothing or other advanced techniques.
+    // For now, we rely on the existing technical smoothing in the FFT analyzer itself.
+  }
+
+  // Convert screen X coordinate back to frequency (inverse of FreqToX)
+  float XToFreq(float x, ImRect &bb) {
+    float t01 = M7::math::lerp_rev(bb.Min.x, bb.Max.x, x);
+    t01 = M7::math::clamp01(t01);
+    
+    // Use the same frequency mapping as FreqToX but in reverse
+    float underlyingValue = t01;
+    M7::ParamAccessor p{&underlyingValue, 0};
+    return p.GetFrequency(M7::gFilterFreqConfig);
   }
 };
 } // namespace WaveSabreVstLib
