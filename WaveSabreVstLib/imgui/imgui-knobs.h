@@ -12,6 +12,7 @@
 #include <variant>
 
 #include <WaveSabreCore/Maj7.hpp>
+#include <WaveSabreVstLib/Maj7VstUtils.hpp>
 
 #define IMGUI_DEFINE_MATH_OPERATORS
 
@@ -27,6 +28,56 @@
 using std::min;
 using std::max;
 
+// like ColorMod, but specifically for knobs
+// the knobs use various colors:
+// - ImGuiCol_ButtonActive  - active track color
+// - ImGuiCol_ButtonHovered - active track color, hover
+// - ImGuiCol_FrameBg        - inactive track color
+// - ImGuiCol_FrameBgHovered - inactive track color, hover
+// - ImGuiCol_PlotHistogram        - thumb color
+// - ImGuiCol_PlotHistogramHovered - thumb color, hover
+// - ImGuiCol_Text - text color
+struct KnobColorMod {
+	struct Token {
+		Token(const KnobColorMod& parent) {
+			//PushStyleColor(ImGuiCol_ButtonActive, parent.mActiveTrackColor);
+			ImGui::PushStyleColor(ImGuiCol_ButtonActive, parent.mActiveTrackColor.operator ImVec4());
+			ImGui::PushStyleColor(ImGuiCol_ButtonHovered, parent.mActiveTrackHoverColor.operator ImVec4());
+			ImGui::PushStyleColor(ImGuiCol_FrameBg, parent.mInactiveTrackColor.operator ImVec4());
+			ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, parent.mInactiveTrackHoverColor.operator ImVec4());
+			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, parent.mThumbColor.operator ImVec4());
+			ImGui::PushStyleColor(ImGuiCol_PlotHistogramHovered, parent.mThumbHoverColor.operator ImVec4());
+			ImGui::PushStyleColor(ImGuiCol_Text, parent.mTextColor.operator ImVec4());
+		}
+		~Token() {
+			ImGui::PopStyleColor(7);
+		}
+	};
+
+	Token Push() {
+		return {*this};
+	}
+
+	ImColor mActiveTrackColor;
+	ImColor mActiveTrackHoverColor;
+	ImColor mInactiveTrackColor;
+	ImColor mInactiveTrackHoverColor;
+	ImColor mThumbColor;
+	ImColor mThumbHoverColor;
+	ImColor mTextColor;
+
+	KnobColorMod(const char* inactiveTrackColor, const char* activeTrackColor, const char* thumbColor, const char* textColor) {
+		mActiveTrackColor = WaveSabreVstLib::ColorFromHTML(activeTrackColor, 0.3f);
+		mActiveTrackHoverColor = WaveSabreVstLib::ColorFromHTML(activeTrackColor, 0.5f);
+		mInactiveTrackColor = WaveSabreVstLib::ColorFromHTML(inactiveTrackColor, 0.8f);
+		mInactiveTrackHoverColor = WaveSabreVstLib::ColorFromHTML(inactiveTrackColor, 0.5f);
+		mThumbColor = WaveSabreVstLib::ColorFromHTML(thumbColor, 1.f);
+		mThumbHoverColor = WaveSabreVstLib::ColorFromHTML(thumbColor, 1.f);
+		mTextColor = WaveSabreVstLib::ColorFromHTML(textColor);
+	}
+};
+
+// performs a transformation on the whole color set, uses scoped token to push/pop.
 struct ColorMod
 {
 	float mHueAdd;

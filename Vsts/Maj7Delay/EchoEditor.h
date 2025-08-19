@@ -151,8 +151,8 @@ public:
 		float panR = 1;
 		int i = 0;
 		while (leftBeat < endBeat) {
-			dl->AddLine({ beatsToX(leftBeat), bb.Min.y }, { beatsToX(leftBeat), bb.Max.y }, ColorFromHTML("5555ff", 0.4f), 1);
-			dl->AddCircleFilled({ beatsToX(leftBeat), panToY(panL) }, leftRadius, ColorFromHTML("5555ff", 0.8f));
+			dl->AddLine({ beatsToX(leftBeat), bb.Min.y }, { beatsToX(leftBeat), bb.Max.y }, ColorFromHTML(bandColors[0], 0.4f), 1);
+			dl->AddCircleFilled({ beatsToX(leftBeat), panToY(panL) }, leftRadius, ColorFromHTML(bandColors[0], 0.8f));
 
 			leftBeat += leftPeriodBeats;
 			leftRadius *= 0.8f;
@@ -170,8 +170,8 @@ public:
 		panR = 1;
 		i = 0;
 		while (rightBeat < endBeat) {
-			dl->AddLine({ beatsToX(rightBeat), bb.Min.y }, { beatsToX(rightBeat), bb.Max.y }, ColorFromHTML("ff3333", 0.2f), 1);
-			dl->AddCircleFilled({ beatsToX(rightBeat), panToY(panR) }, rightRadius, ColorFromHTML("ff3333", 0.8f));
+			dl->AddLine({ beatsToX(rightBeat), bb.Min.y }, { beatsToX(rightBeat), bb.Max.y }, ColorFromHTML(bandColors[1], 0.2f), 1);
+			dl->AddCircleFilled({ beatsToX(rightBeat), panToY(panR) }, rightRadius, ColorFromHTML(bandColors[1], 0.8f));
 
 			rightBeat += rightPeriodBeats;
 			rightRadius *= 0.8f;

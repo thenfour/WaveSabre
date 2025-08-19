@@ -64,9 +64,17 @@ public:
 		//ImColor color = ColorFromHTML(colorRaw, 0.8f);
 
 		M7::QuickParam enabledParam{ GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Enable) };
-		ColorMod& cm = enabledParam.GetBoolValue() ? mEnabledColors : mDisabledColors;
+		KnobColorMod colorMod{
+	enabledParam.GetBoolValue() ? "222222": "111111",// inactiveTrackColor
+	enabledParam.GetBoolValue() ? bandColors[id] : "444444",// activeTrackColor
+	enabledParam.GetBoolValue() ? bandColors[id] : "666666",// thumbColor
+	enabledParam.GetBoolValue() ? "ffffff" : "666666"// textColor
+		};
 
-		auto token = cm.Push();
+		auto knobToken = colorMod.Push();
+
+		//ColorMod& cm = enabledParam.GetBoolValue() ? mEnabledColors : mDisabledColors;
+		//auto token = cm.Push();
 
 		{
 			ImGui::PushStyleColor(ImGuiCol_Text, ColorFromHTML("000000").operator ImVec4());

@@ -2,6 +2,8 @@
 #define __WAVESABREVSTLIB_MAJ7VSTUTILS_H__
 
 #include "Common.h"
+#define IMGUI_DEFINE_MATH_OPERATORS
+
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_internal.h"
 #include <WaveSabreCore/Helpers.h>

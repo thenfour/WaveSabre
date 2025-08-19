@@ -15,7 +15,7 @@ struct Maj7MBCEditor : public VstEditor
 	Maj7MBCVst* mpMaj7MBCVst;
 	using ParamIndices = Maj7MBC::ParamIndices;
 
-	CompressorVis<650, 320> mCompressorVisBig[Maj7MBC::gBandCount];
+	CompressorVis<650, 220> mCompressorVisBig[Maj7MBC::gBandCount];
 	CompressorVis<180, 50> mCompressorVisSmall[Maj7MBC::gBandCount];
 
 	ColorMod mBandColors{ 0, 1, 1, 0.9f, 0.0f };
@@ -23,7 +23,7 @@ struct Maj7MBCEditor : public VstEditor
 
 	int mEditingBand = 0;
 
-	FrequencyResponseRendererLayered<270, 80, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
+	FrequencyResponseRendererLayered<270, 78, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
 	FrequencyResponseRendererLayered<1000, 180, 0, (size_t)Maj7MBC::ParamIndices::NumParams, false> mCrossoverGraph;
 	const ImVec2 kMainVuMeterSize{ 20, 180 };
 
@@ -78,8 +78,17 @@ struct Maj7MBCEditor : public VstEditor
 		auto& bandConfig = band.mVSTConfig;// mpMaj7MBCVst->mBandConfig[iBand];
 		bool bandEnabled = band.mEnable;
 
-		ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
-		auto token = cm.Push();
+		KnobColorMod colorMod{
+	bandEnabled ? "222222" : "111111",// inactiveTrackColor
+	bandEnabled ? bandColors[iBand] : "444444",// activeTrackColor
+	bandEnabled ? bandColors[iBand] : "666666",// thumbColor
+	bandEnabled ? "ffffff" : "666666"// textColor
+		};
+
+		auto knobToken = colorMod.Push();
+
+		//ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
+		//auto token = cm.Push();
 
 		//if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
@@ -96,7 +105,7 @@ struct Maj7MBCEditor : public VstEditor
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
-				Maj7ImGuiBoolParamToggleButton(param(BandParam::Enable), "Enable", { 0,0 }, { "22aa22", "294a7a", "999999", });
+				Maj7ImGuiBoolParamToggleButton(param(BandParam::Enable), "Enable", { 0,0 }, { bandColors[iBand], "294a7a", "999999", });
 
 				ImGui::SameLine(0, 40);
 				if (mbEnabled)
@@ -171,7 +180,7 @@ struct Maj7MBCEditor : public VstEditor
 					//ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::LowPassQ), "LP Q", M7::gBiquadFilterQCfg, 1.0f, {});
 
 					bool sidechain = bandConfig.mOutputStream == Maj7MBC::OutputStream::Sidechain;
-					if (ToggleButton(&sidechain, "hear detector", { 0,0 }, { "cc22cc", "294a7a", "999999", })) {
+					if (ToggleButton(&sidechain, "Detector", { 0,0 }, { "cc22cc", "294a7a", "999999", })) {
 						// NB: ToggleButton() has flipped the value.
 						bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
 					}
@@ -511,7 +520,6 @@ private:
 public:
 	virtual void renderImgui() override
 	{
-
 		mBandColors.EnsureInitialized();
 		mBandDisabledColors.EnsureInitialized();
 
@@ -540,14 +548,14 @@ public:
 
 				bool mbdisabled = !mbEnabled;
 				//ImGui::BeginGroup();
-				if (ToggleButton(&mbdisabled, "Single-band", { 70,20 })) {
+				if (ToggleButton(&mbdisabled, "Single-band", { 90,20 })) {
 
 					// NB: ToggleButton() has flipped the value.
 					pa.SetBoolValue(0, false);
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
 				}
 				ImGui::SameLine();
-				if (ToggleButton(&mbEnabled, "Mult-band", { 70,20 })) {
+				if (ToggleButton(&mbEnabled, "Mult-band", { 90,20 })) {
 					// NB: ToggleButton() has flipped the value.
 					pa.SetBoolValue(0, true);
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
@@ -789,6 +797,46 @@ public:
 		}
 		}
 
+		{
+			// global controls.
+			//OutputGain,
+			//	SoftClipEnable,
+			//	SoftClipThresh,
+			//	SoftClipOutput,
+			ImGui::Spacing();
+
+
+			ImGui::SameLine(0, 80); Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
+			ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
+
+
+			ImGui::SameLine(); Maj7ImGuiBoolParamToggleButton(ParamIndices::SoftClipEnable, "Softclip");
+			M7::QuickParam qp{ mpMaj7MBCVst->getParameter((VstInt32)ParamIndices::SoftClipEnable) };
+			if (qp.GetBoolValue()) {
+				//ImGui::BeginDisabled(!qp.GetBoolValue());
+				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::SoftClipThresh, "Thresh", M7::gUnityVolumeCfg, -6, {});
+				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::SoftClipOutput, "Output", M7::gUnityVolumeCfg, -0.3f, {});
+				//ImGui::EndDisabled();
+
+				M7::QuickParam qp{ mpMaj7MBCVst->getParameter((VstInt32)ParamIndices::SoftClipThresh) };
+				float softClipThreshLin = qp.GetVolumeLin(M7::gUnityVolumeCfg);
+
+				ImGui::SameLine(); RenderTransferCurve({ 120, 120 }, {
+					ColorFromHTML("222222"), // bg
+					ColorFromHTML("8888cc"), // line
+					 ColorFromHTML("ffff00"), // line clipped
+					 ColorFromHTML("444444"), // tick
+					}, [&](float x) {
+						return Maj7MBC::Softclip(x, softClipThreshLin, 1)[0];
+					});
+
+
+				ImGui::SameLine(); VUMeterAtten("scclip", mpMaj7MBC->mClippingAnalysis[0], mpMaj7MBC->mClippingAnalysis[1], { 30,120 });
+			}
+
+
+
+		}
 		//if (mbEnabled) {
 		//}
 

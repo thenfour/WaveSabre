@@ -35,9 +35,9 @@ namespace WaveSabreVstLib
 	const HtmlColorString bandColors[Leveller::gBandCount] = {
 "ff98f5", // vibrant magenta
 "00d88e", // punchy teal-green
+"ffaa33", // vivid amber
 "ffa49c", // lively coral
 "91bfff", // bright azure
-"ffaa33", // vivid amber
 	};
 
 	// converts a value to enum, via its integral value. todo: structured with a string value.
@@ -308,6 +308,11 @@ namespace WaveSabreVstLib
 	template<size_t paramCount, typename TDevice>
 	inline void PopulateStandardMenuBar(HWND hWnd, const std::string& vstName, TDevice* pDevice, VstPlug* pVst, const std::string& defaultsArrayName, const std::string& paramCountExpr, float const (&paramCache)[paramCount], char const* const (&paramNames)[paramCount])
 	{
+		static bool sShowDemoWindow = false;
+		if (sShowDemoWindow) {
+			ImGui::ShowDemoWindow(&sShowDemoWindow);
+		}
+
 		if (ImGui::BeginMenu(vstName.c_str())) 
 		{
 			bool b = false;
@@ -315,6 +320,11 @@ namespace WaveSabreVstLib
 			ImGui::Separator();
 			if (ImGui::MenuItem("Init patch")) {
 				pDevice->LoadDefaults();
+			}
+
+			ImGui::Separator();
+			if (ImGui::MenuItem("Show demo window", nullptr, &sShowDemoWindow)) {
+				//mShowDemoWindow = !mShowDemoWindow;
 			}
 
 			ImGui::Separator();
