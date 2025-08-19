@@ -64,36 +64,45 @@ struct Maj7CompEditor : public VstEditor
 
 
 				//ImGui::SameLine(0, 80); ImGui::Text("Peak Detection\r\n(RMS removed)");
+				ImGui::SameLine(0, 80); WSImGuiParamCheckbox((VstInt32)ParamIndices::EnableSidechainFilter, "Sidechain Filter");
 
-				ImGui::SameLine(0, 80); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP(Hz)", M7::gFilterFreqConfig, 0, {});
-				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);
+				M7::QuickParam scfEnabledParam{ GetEffectX()->getParameter((int)ParamIndices::EnableSidechainFilter) };
+				bool scfEnabled = scfEnabledParam.GetBoolValue();
+
+				if (scfEnabled) {
+
+					ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP(Hz)", M7::gFilterFreqConfig, 0, {});
+					ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);
 #ifdef MAJ7COMP_FULL
-				ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
-				ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::LowPassQ, "LP Q", 0.2f, 0.2f);
+					ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
+					ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::LowPassQ, "LP Q", 0.2f, 0.2f);
 #else
-				ImGui::SameLine(); ImGui::Text("Lowpass\r\nDisabled");
+					ImGui::SameLine(); ImGui::Text("Lowpass\r\nDisabled");
 #endif // MAJ7COMP_FULL
 
 
-				const std::array<FrequencyResponseRendererFilter, 2> filters{
-#ifdef MAJ7COMP_FULL
-					FrequencyResponseRendererFilter{"cc4444", &mpMaj7Comp->mComp[0].mLowpassFilter},
-#endif // MAJ7COMP_FULL
-					FrequencyResponseRendererFilter{"4444cc", &mpMaj7Comp->mComp[0].mHighpassFilter}
-				};
 
-				FrequencyResponseRendererConfig<2, (size_t)Maj7Comp::ParamIndices::NumParams> cfg{
-					ColorFromHTML("222222", 1.0f), // background
-						ColorFromHTML("ff8800", 1.0f), // line
-						4.0f,
-						filters,
-				};
-				for (size_t i = 0; i < (size_t)Maj7Comp::ParamIndices::NumParams; ++i) {
-					cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+					const std::array<FrequencyResponseRendererFilter, 2> filters{
+	#ifdef MAJ7COMP_FULL
+						FrequencyResponseRendererFilter{"cc4444", &mpMaj7Comp->mComp[0].mLowpassFilter},
+	#endif // MAJ7COMP_FULL
+						FrequencyResponseRendererFilter{"4444cc", &mpMaj7Comp->mComp[0].mHighpassFilter}
+					};
+
+					FrequencyResponseRendererConfig<2, (size_t)Maj7Comp::ParamIndices::NumParams> cfg{
+						ColorFromHTML("222222", 1.0f), // background
+							ColorFromHTML("ff8800", 1.0f), // line
+							4.0f,
+							filters,
+					};
+					for (size_t i = 0; i < (size_t)Maj7Comp::ParamIndices::NumParams; ++i) {
+						cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+					}
+
+					ImGui::SameLine();
+					mResponseGraph.OnRender(cfg);
+
 				}
-
-				ImGui::SameLine();
-				mResponseGraph.OnRender(cfg);
 
 				ImGui::EndTabItem();
 			}

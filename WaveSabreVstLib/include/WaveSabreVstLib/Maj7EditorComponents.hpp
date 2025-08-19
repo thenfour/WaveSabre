@@ -25,11 +25,16 @@ public:
     mNormal = ImGui::GetColorU32(ImGuiCol_FrameBg);
     mHovered = ImGui::GetColorU32(ImGuiCol_FrameBgHovered);
   }
-  ButtonColorSpec(const char *selColor, const char *notSelColor,
-                  const char *hoverColor) {
-    mActive = ColorFromHTML(selColor);
-    mNormal = ColorFromHTML(notSelColor);
-    mHovered = ColorFromHTML(hoverColor);
+  ButtonColorSpec(const char* selColor, const char* notSelColor,
+      const char* hoverColor) {
+      mActive = ColorFromHTML(selColor);
+      mNormal = ColorFromHTML(notSelColor);
+      mHovered = ColorFromHTML(hoverColor);
+  }
+  ButtonColorSpec(ImColor selColor, ImColor normal, ImColor hovered) {
+      mActive = selColor;
+      mNormal = normal;
+      mHovered = hovered;
   }
   ImU32 ActiveU32() const { return mActive; }
   ImU32 NormalU32() const { return mNormal; }

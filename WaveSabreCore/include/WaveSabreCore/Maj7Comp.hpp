@@ -70,6 +70,7 @@ namespace WaveSabreCore
 		float mRatioCoef;
 		float mKnee;
 		float mThreshold;
+		bool mEnableFilter;
 
 		// outputs
 		float mSidechain;
@@ -89,6 +90,7 @@ namespace WaveSabreCore
 			float thresholdDB,
 			float attackMS,
 			float releaseMS,
+			bool enableFilter,
 			float highPassFreq, // hz
 			float highPassQ, // biquad q ~0.2 - ~12.0f
 			float lowPassFreq, // hz
@@ -100,6 +102,7 @@ namespace WaveSabreCore
 			mRatioCoef = (1.0f - (1.0f / ratio));
 			mKnee = kneeDB;
 			mThreshold = thresholdDB;
+			mEnableFilter = enableFilter;
 
 			mFollower.SetParams(attackMS, releaseMS);
 
@@ -123,8 +126,15 @@ namespace WaveSabreCore
 		float ProcessSample(float inputAudio, float detectorInput) {
 			//inputAudio *= mInputGainLin;
 			//mDry = inputAudio;
-			mSidechain = mHighpassFilter.ProcessSample(detectorInput);
-			mSidechain = mLowpassFilter.ProcessSample(mSidechain);
+
+			if (!mEnableFilter) {
+				mSidechain = detectorInput;
+			}
+			else {
+				// apply highpass and lowpass
+				mSidechain = mHighpassFilter.ProcessSample(detectorInput);
+				mSidechain = mLowpassFilter.ProcessSample(mSidechain);
+			}
 			mDetector = std::abs(mSidechain);
 			//float attFactor = CompressorPeakSlow(mDetector);
 
@@ -163,6 +173,7 @@ namespace WaveSabreCore
 			CompensationGain, // -inf to +24db, default 0
 			DryWet,// mix 0-100%, default 100%
 			//PeakRMSMix, // 0-100%, default 0 (peak)
+			EnableSidechainFilter,
 			HighPassFrequency, // biquad freq; default lo
 			HighPassQ, // default 0.2
 			LowPassFrequency, // biquad freq; default hi
@@ -183,6 +194,7 @@ namespace WaveSabreCore
 	{"ChanLink"},\
 	{"CompGain"},\
 	{"DryWet"},\
+	{"SCFEn"},\
 	{"HPF"},\
 	{"HPQ"},\
 	{"LPF"},\
@@ -191,25 +203,25 @@ namespace WaveSabreCore
 	{"OutGain"},\
 }
 
-		static_assert((int)ParamIndices::NumParams == 15, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gParamDefaults[15] = {
-		  8230, // InpGain = 0.25118863582611083984
-		  21845, // Thresh = 0.6666666865348815918
-		  15269, // Attack = 0.46597486734390258789
-		  15909, // Release = 0.48552104830741882324
-		  18939, // Ratio = 0.57798200845718383789
-		  4369, // Knee = 0.13333334028720855713
-		  26214, // ChanLink = 0.80000001192092895508
-		  8230, // CompGain = 0.25118863582611083984
-		  32767, // DryWet = 1
+		static_assert((int)ParamIndices::NumParams == 16, "param count probably changed and this needs to be regenerated.");
+		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
+		  8230, // InpGain = 0.25115966796875
+		  21845, // Thresh = 0.666656494140625
+		  15269, // Attack = 0.465972900390625
+		  15909, // Release = 0.485504150390625
+		  18939, // Ratio = 0.577972412109375
+		  4369, // Knee = 0.133331298828125
+		  26214, // ChanLink = 0.79998779296875
+		  8230, // CompGain = 0.25115966796875
+		  32767, // DryWet = 0.999969482421875
+		  0, // SCFEn = 0
 		  0, // HPF = 0
-		  6553, // HPQ = 0.20000000298023223877
+		  6553, // HPQ = 0.199981689453125
 		  32767, // LPF = 1
-		  6553, // LPQ = 0.20000000298023223877
-		  8, // OutSig = 0.0002470355830155313015
-		  8230, // OutGain = 0.25118863582611083984
+		  6553, // LPQ = 0.199981689453125
+		  8, // OutSig = 0.000244140625
+		  8230, // OutGain = 0.25115966796875
 		};
-
 
 		float mParamCache[(int)ParamIndices::NumParams];
 
@@ -278,6 +290,7 @@ namespace WaveSabreCore
 					mParams.GetScaledRealValue(ParamIndices::Threshold, -60, 0, 0),
 					mParams.GetPowCurvedValue(ParamIndices::Attack, MonoCompressor::gAttackCfg, 0),
 					mParams.GetPowCurvedValue(ParamIndices::Release, MonoCompressor::gReleaseCfg, 0),
+					mParams.GetBoolValue(ParamIndices::EnableSidechainFilter),
 					mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig),
 					mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg),
 					mParams.GetFrequency(ParamIndices::LowPassFrequency, M7::gFilterFreqConfig),

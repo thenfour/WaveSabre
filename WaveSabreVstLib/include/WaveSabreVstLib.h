@@ -14,6 +14,23 @@
 
 namespace WaveSabreVstLib
 {
+	struct ImGuiGroupScope {
+		bool mIdSet = false;
+		explicit ImGuiGroupScope(int pushId) : mIdSet(true) {
+			ImGui::BeginGroup();
+			ImGui::PushID(pushId);
+		}
+		ImGuiGroupScope() {
+			ImGui::BeginGroup();
+		}
+		~ImGuiGroupScope() {
+			if (mIdSet) {
+				ImGui::PopID();
+			}
+			ImGui::EndGroup();
+		}
+	};
+
 	using HtmlColorString = char[7];
 	const HtmlColorString bandColors[Leveller::gBandCount] = {
 "ff98f5", // vibrant magenta

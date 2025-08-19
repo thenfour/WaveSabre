@@ -22,6 +22,7 @@ class LevellerEditor : public VstEditor
 	ColorMod mDisabledColors{ 0, .15f, .6f, 0.5f, 0.2f };
 
 	FrequencyResponseRendererLayered<780, 400, Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams, true> mResponseGraph;
+	const ImVec2 kvuMeterSize{20, 400};
 
 	// FFT Analysis controls (not VST parameters, just UI state)
 	float mFFTSmoothingFactor;// = 0.0f;      // 0.0-0.9
@@ -35,7 +36,7 @@ class LevellerEditor : public VstEditor
 
 public:
 	LevellerEditor(AudioEffect* audioEffect)
-		: VstEditor(audioEffect, 800, 900),
+		: VstEditor(audioEffect, 900, 700),
 		mpLevellerVST((LevellerVst*)audioEffect)//,
 	{
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
@@ -52,41 +53,78 @@ public:
 	virtual void PopulateMenuBar() override
 	{
 		LEVELLER_PARAM_VST_NAMES(paramNames);
-		PopulateStandardMenuBar(mCurrentWindow, "Leveller", mpLeveller, mpLevellerVST, "gLevellerDefaults16", "ParamIndices::NumParams", mpLeveller->mParamCache, paramNames);
+		PopulateStandardMenuBar(mCurrentWindow, "Maj7 EQ", mpLeveller, mpLevellerVST, "gLevellerDefaults16", "ParamIndices::NumParams", mpLeveller->mParamCache, paramNames);
 	}
 
 	void RenderBand(int id, const char* label, Leveller::ParamIndices paramOffset, float defaultFreqParamHz, const char* colorRaw)
 	{
-		ImGui::PushID(id);
+		ImGuiGroupScope __group{id};
+		//ImGui::PushID(id);
 
-		ImColor color = ColorFromHTML(colorRaw, 0.8f);
+		//ImColor color = ColorFromHTML(colorRaw, 0.8f);
 
 		M7::QuickParam enabledParam{ GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Enable) };
 		ColorMod& cm = enabledParam.GetBoolValue() ? mEnabledColors : mDisabledColors;
 
 		auto token = cm.Push();
 
-		ImRect bb;
-		ImVec2 gSize{ 20,80 };
-		bb.Min = ImGui::GetCursorScreenPos();
-		bb.Max = bb.Min + gSize;
-		auto* dl = ImGui::GetWindowDrawList();
+		{
+			ImGui::PushStyleColor(ImGuiCol_Text, ColorFromHTML("000000").operator ImVec4());
+			bool boolTemp = enabledParam.GetBoolValue();
+			if (ToggleButton(&boolTemp, label, {150, 20}, ButtonColorSpec {
+				ColorFromHTML(colorRaw, 0.8f),// sel
+				ColorFromHTML(colorRaw, 0.1f),// not selected
+				ColorFromHTML(colorRaw, 0.5f),// hover
+				}))
+			{
+				enabledParam.SetBoolValue(boolTemp);
+				GetEffectX()->setParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Enable, enabledParam.GetRawValue());
+			}
+			ImGui::PopStyleColor();
 
-		dl->AddRectFilled(bb.Min, bb.Max, color);
-		// black label centered in bb
-		ImVec2 textSize = ImGui::CalcTextSize(label);
-		ImVec2 bbCenter = { bb.Min.x + (bb.Max.x - bb.Min.x) * 0.5f, bb.Min.y + (bb.Max.y - bb.Min.y) * 0.5f };
-		ImVec2 textPos = { bbCenter.x - textSize.x * 0.5f, bbCenter.y - textSize.y * 0.5f };
-		dl->AddText(textPos, ColorFromHTML("000000"), label);
+			//ImRect bb;
+			//ImVec2 gSize{ 80,20 };
+			//bb.Min = ImGui::GetCursorScreenPos();
+			//bb.Max = bb.Min + gSize;
+			//auto* dl = ImGui::GetWindowDrawList();
 
-		ImGui::Dummy(gSize);
+			//dl->AddRectFilled(bb.Min, bb.Max, color);
+			//// black label centered in bb
+			//ImVec2 textSize = ImGui::CalcTextSize(label);
+			//ImVec2 bbCenter = { bb.Min.x + (bb.Max.x - bb.Min.x) * 0.5f, bb.Min.y + (bb.Max.y - bb.Min.y) * 0.5f };
+			//ImVec2 textPos = { bbCenter.x - textSize.x * 0.5f, bbCenter.y - textSize.y * 0.5f };
+			//dl->AddText(textPos, ColorFromHTML("000000"), label);
 
-		ImGui::SameLine(); WSImGuiParamCheckbox((int)paramOffset + (int)Leveller::BandParamOffsets::Enable, "Enable?");
+			//if (enabledParam.GetBoolValue()) {
+			//	ImGui::RenderCheckMark(dl, bb.Min + ImVec2{ 5, 5 }, ColorFromHTML("000000"), 8);
+			//}
+
+			//ImGui::Dummy(gSize);
+		}
+		{
+			//WSImGuiParamCheckbox((int)paramOffset + (int)Leveller::BandParamOffsets::Enable, "On");
+
+			const char* selectedColor = "4400aa";
+			const char* notSelectedColor = "222222";
+			const char* selectedHoveredColor = "8800ff";
+			const char* notSelectedHoveredColor = "222299";
+
+			Maj7ImGuiParamEnumMutexButtonArray<BiquadFilterType>((int)paramOffset + (int)Leveller::BandParamOffsets::Type, "type", 30, true, {
+				{ "HP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Highpass, },
+				{ "LS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::LowShelf, },
+				{ "PK", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Peak, },
+				{ "HS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::HighShelf, },
+				{ "LP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Lowpass, },
+				});
+		}
+
+		ImGui::Spacing();
 
 		M7::QuickParam fp{ M7::gFilterFreqConfig };
 		fp.SetFrequencyAssumingNoKeytracking(defaultFreqParamHz);
 
-		ImGui::SameLine();  Maj7ImGuiParamFrequency((int)paramOffset + (int)Leveller::BandParamOffsets::Freq, -1, "Freq", M7::gFilterFreqConfig, fp.GetRawValue(), {});
+
+		Maj7ImGuiParamFrequency((int)paramOffset + (int)Leveller::BandParamOffsets::Freq, -1, "Freq", M7::gFilterFreqConfig, fp.GetRawValue(), {});
 
 		float typeB = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Type);
 		M7::ParamAccessor typePA{ &typeB, 0 };
@@ -96,20 +134,7 @@ public:
 		ImGui::EndDisabled();
 		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", M7::gBiquadFilterQCfg, 1.00f, {});
 
-		const char* selectedColor = "4400aa";
-		const char* notSelectedColor = "222222";
-		const char* selectedHoveredColor = "8800ff";
-		const char* notSelectedHoveredColor = "222299";
-
-		ImGui::SameLine(); Maj7ImGuiParamEnumMutexButtonArray<BiquadFilterType>((int)paramOffset + (int)Leveller::BandParamOffsets::Type, "type", 40, true, {
-			{ "/HP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Highpass, },
-			{ "/LS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::LowShelf, },
-			{ "^Peak", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Peak, },
-			{ "\\HS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::HighShelf, },
-			{ "\\LP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Lowpass, },
-			});
-
-		ImGui::PopID();
+		//ImGui::PopID();
 	}
 
 
@@ -117,29 +142,6 @@ public:
 	{
 		mEnabledColors.EnsureInitialized();
 		mDisabledColors.EnsureInitialized();
-
-		ImGui::BeginGroup();
-
-		RenderBand(0, "A", Leveller::ParamIndices::Band1Type, 90, bandColors[0]);
-		RenderBand(1, "B", Leveller::ParamIndices::Band2Type, 250, bandColors[1]);
-		RenderBand(2, "C", Leveller::ParamIndices::Band3Type, 1100, bandColors[2]);
-		RenderBand(3, "D", Leveller::ParamIndices::Band4Type, 3000, bandColors[3]);
-		RenderBand(4, "E", Leveller::ParamIndices::Band5Type, 8500, bandColors[4]);
-
-		ImGui::EndGroup();
-
-		ImGui::SameLine();
-
-		ImGui::BeginGroup();
-
-		VUMeter("vu_inp", mpLeveller->mInputAnalysis[0], mpLeveller->mInputAnalysis[1]);
-		ImGui::SameLine(); VUMeter("vu_outp", mpLeveller->mOutputAnalysis[0], mpLeveller->mOutputAnalysis[1]);
-
-		Maj7ImGuiParamVolume((VstInt32)Leveller::ParamIndices::OutputVolume, "Output", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
-		ImGui::SameLine();
-		Maj7ImGuiBoolParamToggleButton(Leveller::ParamIndices::EnableDCFilter, "DC Filt");
-
-		ImGui::EndGroup();
 
 		// Capture bandIndex in individual lambdas for each band
 		auto makeBandHandler = [this](uintptr_t bandIndex) {
@@ -197,7 +199,7 @@ public:
 		FrequencyResponseRendererConfig<Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams> cfg{
 			ColorFromHTML("222222", 1.0f), // background
 			ColorFromHTML("aaaa00", 1.0f), // line
-			9.0f, // thumbRadius
+			11.0f, // thumbRadius
 			filters, // filters array
 			{}, // mParamCacheCopy (will be filled below)
 			{}, // majorFreqTicks (empty = defaults)
@@ -345,6 +347,31 @@ public:
 		cfg.fftDisplayMaxDB = mFFTDisplayMaxDB;
 
 		mResponseGraph.OnRender(cfg);
+
+		ImGui::SameLine();
+
+		VUMeter("vu_inp", mpLeveller->mInputAnalysis[0], mpLeveller->mInputAnalysis[1], kvuMeterSize);
+		ImGui::SameLine(); VUMeter("vu_outp", mpLeveller->mOutputAnalysis[0], mpLeveller->mOutputAnalysis[1], kvuMeterSize);
+
+		ImGui::Spacing();
+
+		//ImGui::BeginGroup();
+
+		RenderBand(0, "A", Leveller::ParamIndices::Band1Type, 90, bandColors[0]);
+		ImGui::SameLine(); RenderBand(1, "B", Leveller::ParamIndices::Band2Type, 250, bandColors[1]);
+		ImGui::SameLine(); RenderBand(2, "C", Leveller::ParamIndices::Band3Type, 1100, bandColors[2]);
+		ImGui::SameLine(); RenderBand(3, "D", Leveller::ParamIndices::Band4Type, 3000, bandColors[3]);
+		ImGui::SameLine(); RenderBand(4, "E", Leveller::ParamIndices::Band5Type, 8500, bandColors[4]);
+
+		ImGui::Spacing();
+
+		Maj7ImGuiParamVolume((VstInt32)Leveller::ParamIndices::OutputVolume, "Output", WaveSabreCore::M7::gVolumeCfg12db, 0, {});
+		ImGui::SameLine();
+		Maj7ImGuiBoolParamToggleButton(Leveller::ParamIndices::EnableDCFilter, "DC Filter");
+
+		//ImGui::EndGroup();
+
+
 	}
 
 };

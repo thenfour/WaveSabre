@@ -19,7 +19,8 @@ private:
     const char* label;
     int filterIndex = -1;           // Index into the filters array
     bool isInteractive = false;     // Whether this thumb supports dragging
-    ImRect hitTestRect;             // Screen-space hit test area (slightly larger than visual)
+    ImRect primaryHitTestRect;             // Screen-space hit test area (slightly larger than visual thumb)
+    ImRect secondaryHitTestRect;             // Screen-space hit test area -- if no primaries are hit, then go to secondary. allows precise selection among large hit test rects
   };
 
   // Thumb interaction state management
@@ -73,10 +74,18 @@ public:
       
       // Create hit test area (slightly larger than visual thumb)
       float hitRadius = mThumbRadius + 3.0f;
-      thumbInfo.hitTestRect = ImRect(
+      thumbInfo.primaryHitTestRect = ImRect(
         thumbInfo.point.x - hitRadius, thumbInfo.point.y - hitRadius,
         thumbInfo.point.x + hitRadius, thumbInfo.point.y + hitRadius
       );
+
+      // a hit test rect which is the "column" containing the thumb
+      ImRect thumbColumnRect = ImRect(
+        thumbInfo.point.x - mThumbRadius, bb.Min.y,
+        thumbInfo.point.x + mThumbRadius, bb.Max.y
+	  );
+
+      thumbInfo.secondaryHitTestRect = thumbColumnRect;
       
       mThumbs.push_back(thumbInfo);
     }
@@ -174,13 +183,16 @@ public:
     ImVec2 mousePos = ImGui::GetIO().MousePos;
     bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
     
+	auto hoveredThumb = FindThumbUnderMouse(mousePos);
+
     for (int i = 0; i < (int)mThumbs.size(); ++i) {
       const auto &th = mThumbs[i];
       
       // Determine thumb visual state
       bool isActive = (mThumbInteraction.isDragging && mThumbInteraction.activeThumbIndex == i);
-      bool isHovered = th.isInteractive && HitTestCircle(mousePos, th.point, mThumbRadius + 3.0f) && 
-                      mouseInBounds && !mThumbInteraction.isDragging;
+      //bool isHovered = th.isInteractive && HitTestCircle(mousePos, th.point, mThumbRadius + 3.0f) && 
+      //                mouseInBounds && !mThumbInteraction.isDragging;
+	  bool isHovered = (hoveredThumb == i) && th.isInteractive && mouseInBounds && !mThumbInteraction.isDragging;
       
       // Draw thumb with state-based appearance
       ImU32 thumbColor = ColorFromHTML(th.color, isActive ? 1.0f : 0.8f);
@@ -215,13 +227,21 @@ public:
   
   // Public accessor for finding thumb under mouse
   int FindThumbUnderMouse(ImVec2 mousePos) const { 
-    for (int i = 0; i < (int)mThumbs.size(); ++i) {
-      const auto& thumb = mThumbs[i];
-      if (thumb.isInteractive && HitTestCircle(mousePos, thumb.point, mThumbRadius + 3.0f)) {
-        return i;
+      for (int i = 0; i < (int)mThumbs.size(); ++i) {
+          const auto& thumb = mThumbs[i];
+          if (!thumb.isInteractive) continue;
+          if (thumb.primaryHitTestRect.Contains(mousePos)) {
+              return i;
+          }
       }
-    }
-    return -1;
+      for (int i = 0; i < (int)mThumbs.size(); ++i) {
+          const auto& thumb = mThumbs[i];
+          if (!thumb.isInteractive) continue;
+          if (thumb.secondaryHitTestRect.Contains(mousePos)) {
+              return i;
+          }
+      }
+      return -1;
   }
 };
 

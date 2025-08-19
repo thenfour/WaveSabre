@@ -15,7 +15,6 @@ struct Maj7MBCEditor : public VstEditor
 	Maj7MBCVst* mpMaj7MBCVst;
 	using ParamIndices = Maj7MBC::ParamIndices;
 
-	//CompressorVis<330, 120> mCompressorVis[Maj7MBC::gBandCount];
 	CompressorVis<650, 320> mCompressorVisBig[Maj7MBC::gBandCount];
 	CompressorVis<180, 50> mCompressorVisSmall[Maj7MBC::gBandCount];
 
@@ -24,8 +23,9 @@ struct Maj7MBCEditor : public VstEditor
 
 	int mEditingBand = 0;
 
-	FrequencyResponseRendererLayered<270, 100, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
-	FrequencyResponseRendererLayered<1000, 180, 0, (size_t)Maj7MBC::ParamIndices::NumParams, true> mCrossoverGraph;
+	FrequencyResponseRendererLayered<270, 80, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false> mResponseGraphs[Maj7MBC::gBandCount];
+	FrequencyResponseRendererLayered<1000, 180, 0, (size_t)Maj7MBC::ParamIndices::NumParams, false> mCrossoverGraph;
+	const ImVec2 kMainVuMeterSize{ 20, 180 };
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
@@ -49,16 +49,16 @@ struct Maj7MBCEditor : public VstEditor
 		ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
 		auto token = cm.Push();
 
-		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
+		//if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
-			if (WSBeginTabItem(caption))
+			//if (WSBeginTabItem(caption))
 			{
 				using BandParam = Maj7MBC::FreqBand::BandParam;
 				auto param = [&](Maj7MBC::FreqBand::BandParam bp) {
 					return (VstInt32)enabledParam + (VstInt32)bp;
 					};
 
-				ImGui::BeginGroup();
+				//ImGui::BeginGroup();
 
 				// MUTE | SOLO
 				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
@@ -75,17 +75,10 @@ struct Maj7MBCEditor : public VstEditor
 
 				if (bandEnabled) {
 					bool delta = bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta;
-					bool sidechain = bandConfig.mOutputStream == Maj7MBC::OutputStream::Sidechain;
 					ImGui::SameLine(0, 60);
 					if (ToggleButton(&delta, "DELTA", { 0,0 }, { "22cc22", "294a7a", "999999", })) {
 						// NB: ToggleButton() has flipped the value.
 						bandConfig.mOutputStream = !delta ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Delta;
-					}
-
-					ImGui::SameLine();
-					if (ToggleButton(&sidechain, "SIDECHAIN", { 0,0 }, { "cc22cc", "294a7a", "999999", })) {
-						// NB: ToggleButton() has flipped the value.
-						bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
 					}
 				}
 
@@ -100,6 +93,13 @@ struct Maj7MBCEditor : public VstEditor
 					ImGui::SameLine(); Maj7ImGuiParamScaledFloat(param(BandParam::Knee), "Knee(dB)", 0, 30, 4, 0, 0, {});
 					ImGui::SameLine(0, 80); Maj7ImGuiPowCurvedParam(param(BandParam::Attack), "Attack(ms)", MonoCompressor::gAttackCfg, 50, {});
 					ImGui::SameLine(); Maj7ImGuiPowCurvedParam(param(BandParam::Release), "Release(ms)", MonoCompressor::gReleaseCfg, 80, {});
+
+
+					ImGui::SameLine(0, 120); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
+					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
+
+					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Makeup", M7::gVolumeCfg24db, 0, {});
+					ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "Dry-Wet", 1.0f, 0);
 
 					// turns out these aren't so useful.
 					//if (mbEnabled)
@@ -137,63 +137,76 @@ struct Maj7MBCEditor : public VstEditor
 					//ImGui::SameLine(); Maj7ImGuiParamFrequency(param(BandParam::LowPassFrequency), -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
 					//ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::LowPassQ), "LP Q", M7::gBiquadFilterQCfg, 1.0f, {});
 
-		// Capture bandIndex in individual lambdas for each band
-					auto makeBandHandler = [this](VstInt32 freqParamIndex) {
-						return [this, freqParamIndex](float freqHz, float gainDb, uintptr_t userData) {
-							M7::QuickParam freqParam;
-							freqParam.SetFrequencyAssumingNoKeytracking(M7::gFilterFreqConfig, freqHz);
-							float freqParamValue = freqParam.GetRawValue();
-							GetEffectX()->setParameterAutomated(freqParamIndex, M7::math::clamp01(freqParamValue));
-							};
-						};
-
-					// Create Q parameter change handlers for each band
-					auto makeBandQHandler = [this](VstInt32 qParamIndex) {
-						return [this, qParamIndex](float qValue, uintptr_t userData) {
-							M7::QuickParam qParam;
-							qParam.SetDivCurvedValue(M7::gBiquadFilterQCfg, qValue);
-							float qParamValue = qParam.GetRawValue();
-							GetEffectX()->setParameterAutomated(qParamIndex, M7::math::clamp01(qParamValue));
-							};
-						};
-
-
-					const std::array<FrequencyResponseRendererFilter, 2> filters{
-						FrequencyResponseRendererFilter{"cc4444", &band.mComp[0].mLowpassFilter, "LP", makeBandHandler(param(BandParam::LowPassFrequency)), makeBandQHandler(param(BandParam::LowPassQ))},
-						FrequencyResponseRendererFilter{"4444cc", &band.mComp[0].mHighpassFilter, "HP", makeBandHandler(param(BandParam::HighPassFrequency)), makeBandQHandler(param(BandParam::HighPassQ))}
-					};
-
-					FrequencyResponseRendererConfig<2, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
-						ColorFromHTML("222222", 1.0f), // background
-							ColorFromHTML("ff8800", 1.0f), // line
-							7.0f,
-							filters,
-					};
-					for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i) {
-						cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+					bool sidechain = bandConfig.mOutputStream == Maj7MBC::OutputStream::Sidechain;
+					if (ToggleButton(&sidechain, "hear detector", { 0,0 }, { "cc22cc", "294a7a", "999999", })) {
+						// NB: ToggleButton() has flipped the value.
+						bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
 					}
+
 					ImGui::SameLine();
-
-					mResponseGraphs[iBand].OnRender(cfg);
-
 					Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "StereoLink", 0.8f, 0);
-					ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
-					ImGui::SameLine(0, 40); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
 
-					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Makeup", M7::gVolumeCfg24db, 0, {});
-					ImGui::SameLine(0, 40); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "Dry-Wet", 1.0f, 0);
+					ImGui::SameLine();
+					WSImGuiParamCheckbox(param(BandParam::SidechainFilterEnable), "SC Filter");
+
+					M7::QuickParam scfEnabledParam{ GetEffectX()->getParameter(param(BandParam::SidechainFilterEnable)) };
+					bool scfEnabled = scfEnabledParam.GetBoolValue();
+
+					if (scfEnabled) {
+
+						// Capture bandIndex in individual lambdas for each band
+						auto makeBandHandler = [this](VstInt32 freqParamIndex) {
+							return [this, freqParamIndex](float freqHz, float gainDb, uintptr_t userData) {
+								M7::QuickParam freqParam;
+								freqParam.SetFrequencyAssumingNoKeytracking(M7::gFilterFreqConfig, freqHz);
+								float freqParamValue = freqParam.GetRawValue();
+								GetEffectX()->setParameterAutomated(freqParamIndex, M7::math::clamp01(freqParamValue));
+								};
+							};
+
+						// Create Q parameter change handlers for each band
+						auto makeBandQHandler = [this](VstInt32 qParamIndex) {
+							return [this, qParamIndex](float qValue, uintptr_t userData) {
+								M7::QuickParam qParam;
+								qParam.SetDivCurvedValue(M7::gBiquadFilterQCfg, qValue);
+								float qParamValue = qParam.GetRawValue();
+								GetEffectX()->setParameterAutomated(qParamIndex, M7::math::clamp01(qParamValue));
+								};
+							};
+
+
+						const std::array<FrequencyResponseRendererFilter, 2> filters{
+							FrequencyResponseRendererFilter{"cc4444", &band.mComp[0].mLowpassFilter, "LP", makeBandHandler(param(BandParam::LowPassFrequency)), makeBandQHandler(param(BandParam::LowPassQ))},
+							FrequencyResponseRendererFilter{"4444cc", &band.mComp[0].mHighpassFilter, "HP", makeBandHandler(param(BandParam::HighPassFrequency)), makeBandQHandler(param(BandParam::HighPassQ))}
+						};
+
+						FrequencyResponseRendererConfig<2, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
+							ColorFromHTML("222222", 1.0f), // background
+								ColorFromHTML("ff8800", 1.0f), // line
+								7.0f,
+								filters,
+						};
+						for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i) {
+							cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+						}
+						ImGui::SameLine();
+
+						mResponseGraphs[iBand].OnRender(cfg);
+
+					}
+
 				} // band enabled
 
-				ImGui::EndGroup();
+				//ImGui::EndGroup();
 
 				if (bandEnabled) {
 					mCompressorVisBig[iBand].Render(band.mEnable, true, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
 				}
 
-				ImGui::EndTabItem();
+				//ImGui::EndTabItem();
 			}
 
-			EndTabBarWithColoredSeparator();
+			//EndTabBarWithColoredSeparator();
 		}
 	}
 
@@ -207,48 +220,48 @@ struct Maj7MBCEditor : public VstEditor
 		ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
 		auto token = cm.Push();
 
-		if (bandEnabled) {
-			ImGui::SameLine();
-			mCompressorVisSmall[iBand].Render(band.mEnable, false, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
-		}
+		//if (bandEnabled) {
+			//ImGui::SameLine();
+		mCompressorVisSmall[iBand].Render(band.mEnable, false, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
+		//}
 	}
 
-	void CopyBand(int ifrom, int ito)
-	{
-		auto bandToStr = [&](int i) {
-			switch (i) {
-			case 0:
-				return "lows";
-			case 1:
-				return "mids";
-			case 2:
-				return "highs";
-			default:
-				return "unknown";
-			}
-			};
-		auto bandToParamOffset = [&](int i) {
-			return mpMaj7MBC->mBands[i].mParams.mBaseParamID;
-			};
-		const char* fromstr = bandToStr(ifrom);
-		const char* tostr = bandToStr(ito);
-		char s[200];
-		const int fromParamOffset = bandToParamOffset(ifrom);
-		const int toParamOffset = bandToParamOffset(ito);
-		std::sprintf(s, "click OK to copy settings from band %s to %s", fromstr, tostr);
-		if (::MessageBox(mCurrentWindow, s, "Maj7", MB_ICONQUESTION | MB_OKCANCEL) == IDOK) {
+	//void CopyBand(int ifrom, int ito)
+	//{
+	//	auto bandToStr = [&](int i) {
+	//		switch (i) {
+	//		case 0:
+	//			return "lows";
+	//		case 1:
+	//			return "mids";
+	//		case 2:
+	//			return "highs";
+	//		default:
+	//			return "unknown";
+	//		}
+	//		};
+	//	auto bandToParamOffset = [&](int i) {
+	//		return mpMaj7MBC->mBands[i].mParams.mBaseParamID;
+	//		};
+	//	const char* fromstr = bandToStr(ifrom);
+	//	const char* tostr = bandToStr(ito);
+	//	char s[200];
+	//	const int fromParamOffset = bandToParamOffset(ifrom);
+	//	const int toParamOffset = bandToParamOffset(ito);
+	//	std::sprintf(s, "click OK to copy settings from band %s to %s", fromstr, tostr);
+	//	if (::MessageBox(mCurrentWindow, s, "Maj7", MB_ICONQUESTION | MB_OKCANCEL) == IDOK) {
 
-			int bandParamCount = (int)ParamIndices::BAttack - (int)ParamIndices::AAttack;
-			for (int i = 0; i < bandParamCount; ++i) {
-				float val = mpMaj7MBCVst->getParameter(fromParamOffset + i);
-				mpMaj7MBCVst->setParameter(toParamOffset + i, val);
-			}
-			::MessageBoxA(mCurrentWindow, "Done.", "Maj7", MB_ICONINFORMATION | MB_OK);
-		}
-	}
+	//		int bandParamCount = (int)ParamIndices::BAttack - (int)ParamIndices::AAttack;
+	//		for (int i = 0; i < bandParamCount; ++i) {
+	//			float val = mpMaj7MBCVst->getParameter(fromParamOffset + i);
+	//			mpMaj7MBCVst->setParameter(toParamOffset + i, val);
+	//		}
+	//		::MessageBoxA(mCurrentWindow, "Done.", "Maj7", MB_ICONINFORMATION | MB_OK);
+	//	}
+	//}
 
 private:
-	// Helper to get the button area for band overlays - REFACTORED
+	// Helper to get the button area for band overlays
 	ImRect GetBandButtonArea(const ImRect& bandRect) const {
 		// Place buttons in the upper portion of the band rectangle
 		const float buttonHeight = 20.0f;
@@ -451,6 +464,7 @@ private:
 public:
 	virtual void renderImgui() override
 	{
+
 		mBandColors.EnsureInitialized();
 		mBandDisabledColors.EnsureInitialized();
 
@@ -463,32 +477,39 @@ public:
 		M7::ParamAccessor pa{ &backing, 0 };
 		bool mbEnabled = pa.GetBoolValue(0);
 
+		if (!mbEnabled) {
+			// "single" band = mids
+			mEditingBand = 1;
+		}
 
-		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
+		//if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
 
-			if (WSBeginTabItem("IO"))
+			//if (WSBeginTabItem("IO"))
 			{
 
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
-				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+				//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+				//ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
 				bool mbdisabled = !mbEnabled;
-				ImGui::BeginGroup();
-				if (ToggleButton(&mbdisabled, "SINGLE BAND", { 90,40 })) {
+				//ImGui::BeginGroup();
+				if (ToggleButton(&mbdisabled, "SINGLE", { 70,20 })) {
 
 					// NB: ToggleButton() has flipped the value.
 					pa.SetBoolValue(0, false);
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
 				}
-				if (ToggleButton(&mbEnabled, "MULTIBAND", { 90,40 })) {
+				ImGui::SameLine();
+				if (ToggleButton(&mbEnabled, "MULTI", { 70,20 })) {
 					// NB: ToggleButton() has flipped the value.
 					pa.SetBoolValue(0, true);
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
 				}
-				ImGui::EndGroup();
+				//ImGui::EndGroup();
 
-				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+				ImGui::Spacing();
+
+				//ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
 
 				// Show crossover visualization if multiband is enabled
 				// Build renderer config
@@ -586,10 +607,45 @@ public:
 				}
 
 				ImGui::SameLine();
-				ImGui::BeginGroup();
+
 				mCrossoverGraph.OnRender(crossoverCfg);
 
-				ImGui::NewLine();
+
+
+				{
+
+					static const std::vector<VUMeterTick> tickSet = {
+							{-3.0f, "3db"},
+							{-6.0f, "6"},
+							{-12.0f, "12"},
+							{-20.0f, "20"},
+							{-30.0f, "30"},
+							{-40.0f, "40"},
+					};
+
+					VUMeterConfig mainCfg = {
+						kMainVuMeterSize,
+						VUMeterLevelMode::Audio,
+						VUMeterUnits::Linear,
+						-50, 6,
+						tickSet,
+					};
+
+					VUMeterConfig disabledCfg = mainCfg;
+					disabledCfg.levelMode = VUMeterLevelMode::Disabled;
+
+					ImGui::SameLine(); VUMeter("vu_inp", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[1], mainCfg);
+
+					ImGui::SameLine(); VUMeter("vu_outp", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[1], mainCfg);
+				}
+
+
+
+
+
+
+
+				ImGui::Spacing();
 
 				if (mbEnabled) {
 					ImGui::PushID("band0small");
@@ -597,20 +653,22 @@ public:
 					ImGui::PopID();
 
 					ImGui::PushID("band1small");
+					ImGui::SameLine();
 					RenderBandSmall(1, ParamIndices::BInputGain, mbEnabled ? "Mids" : "All frequencies", muteSoloEnabled[1], true, mbEnabled);
 					ImGui::PopID();
 
 					ImGui::PushID("band2small");
+					ImGui::SameLine();
 					RenderBandSmall(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2], mbEnabled, mbEnabled);
 					ImGui::PopID();
 				}
 
-				ImGui::EndGroup();
-
-				ImGui::EndTabItem();
+				//ImGui::EndTabItem();
 			}
-			EndTabBarWithColoredSeparator();
+			//EndTabBarWithColoredSeparator();
 		}
+
+		ImGui::Spacing();
 
 		switch (mEditingBand)
 		{

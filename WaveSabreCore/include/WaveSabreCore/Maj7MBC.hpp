@@ -1,8 +1,3 @@
-// Q: Why no parallel compression?
-// Per-band parallel is a lot of parameters to use, for something that's pretty rare
-// a general parallel feature would cause comb filtering due to the crossovers.
-// so it can be achieved by using a global control, but performing the parallel processing per-band while the bands are split.
-// but it's rarely used, and it would take a bit of experimenting to get the makeup gain right. later maybe.
 
 #pragma once
 
@@ -57,6 +52,7 @@ namespace WaveSabreCore
 			AKnee,
 			AChannelLink,
 			AEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
+			ASidechainFilterEnable,
 			AHighPassFrequency, // biquad freq; default lo
 			AHighPassQ, // default 0.2
 			ALowPassFrequency, // biquad freq
@@ -73,6 +69,7 @@ namespace WaveSabreCore
 			BKnee,
 			BChannelLink,
 			BEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
+			BSidechainFilterEnable,
 			BHighPassFrequency, // biquad freq; default lo
 			BHighPassQ, // default 0.2
 			BLowPassFrequency, // biquad freq
@@ -89,6 +86,7 @@ namespace WaveSabreCore
 			CKnee,
 			CChannelLink,
 			CEnable, // tempting to remove this because you can set ratio=1. however, this enables parameter optimization much easier.
+			CSidechainFilterEnable,
 			CHighPassFrequency, // biquad freq; default lo
 			CHighPassQ, // default 0.2
 			CLowPassFrequency, // biquad freq
@@ -118,6 +116,7 @@ namespace WaveSabreCore
 			{"AKnee"},\
 			{"AChanLnk"},\
 			{"AEnable"},\
+			{"ASCFEn"},\
 			{"AHPF"},\
 			{"AHPQ"},\
 			{"ALPF"},\
@@ -133,6 +132,7 @@ namespace WaveSabreCore
 			{"BKnee"},\
 			{"BChanLnk"},\
 			{"BEnable"},\
+			{"BSCFEn"},\
 			{"BHPF"},\
 			{"BHPQ"},\
 			{"BLPF"},\
@@ -148,6 +148,7 @@ namespace WaveSabreCore
 			{"CKnee"},\
 			{"CChanLnk"},\
 			{"CEnable"},\
+			{"CSCFEn"},\
 			{"CHPF"},\
 			{"CHPQ"},\
 			{"CLPF"},\
@@ -156,7 +157,7 @@ namespace WaveSabreCore
 			{"CDryWet"},\
 }
 
-		static_assert((int)ParamIndices::NumParams == 53, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 56, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InGain = 0.25118863582611083984
 		  0, // MBEnable = 0
@@ -175,6 +176,7 @@ namespace WaveSabreCore
 		  4369, // AKnee = 0.13333334028720855713
 		  26214, // AChanLnk = 0.80000001192092895508
 		  0, // AEnable = 0
+		  0,
 		  0, // AHPF = 0
 		  14563, // AHPQ = 0.44444444775581359863
 		  0, // AHPF = 0
@@ -190,6 +192,7 @@ namespace WaveSabreCore
 		  4369, // BKnee = 0.13333334028720855713
 		  26214, // BChanLnk = 0.80000001192092895508
 		  32767, // BEnable = 1
+		  0,
 		  0, // BHPF = 0
 		  14563, // BHPQ = 0.44444444775581359863
 		  0, // AHPF = 0
@@ -205,6 +208,7 @@ namespace WaveSabreCore
 		  4369, // CKnee = 0.13333334028720855713
 		  26214, // CChanLnk = 0.80000001192092895508
 		  0, // CEnable = 0
+		  0,
 		  0, // CHPF = 0
 		  14563, // CHPQ = 0.44444444775581359863
 		  0, // AHPF = 0
@@ -226,6 +230,7 @@ namespace WaveSabreCore
 				Knee,
 				ChannelLink,
 				Enable,
+				SidechainFilterEnable,
 				HighPassFrequency,
 				HighPassQ,
 				LowPassFrequency,
@@ -287,6 +292,7 @@ namespace WaveSabreCore
 						mParams.GetScaledRealValue(BandParam::Threshold, -60, 0, 0),
 						mParams.GetPowCurvedValue(BandParam::Attack, MonoCompressor::gAttackCfg, 0),
 						mParams.GetPowCurvedValue(BandParam::Release, MonoCompressor::gReleaseCfg, 0),
+						mParams.GetBoolValue(BandParam::SidechainFilterEnable),
 						mParams.GetFrequency(BandParam::HighPassFrequency, M7::gFilterFreqConfig),
 						mParams.GetDivCurvedValue(BandParam::HighPassQ, M7::gBiquadFilterQCfg),
 						mParams.GetFrequency(BandParam::LowPassFrequency, M7::gFilterFreqConfig),

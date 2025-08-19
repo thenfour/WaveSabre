@@ -416,6 +416,9 @@ namespace WaveSabreVstLib {
 		}
 
 		void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
+			if (!mDevice || mBandResponses.empty()) {
+				return; // No device or no responses to render
+			}
 			// Determine hovered band region using mouse position and crossover frequencies
 			int hoveredBand = -1;
 			float fA = 0.0f, fB = 0.0f;
@@ -580,7 +583,7 @@ namespace WaveSabreVstLib {
 				dl->AddText(textPos, ColorFromHTML("888888", 0.7f), scaleText);
 			}
 
-			// Render band overlays for all bands - REFACTORED
+			// Render band overlays for all bands
 			if (mBandRenderer || true) { // Always calculate band rects
 				// Clear previous band rects
 				mActiveBandRects.clear();

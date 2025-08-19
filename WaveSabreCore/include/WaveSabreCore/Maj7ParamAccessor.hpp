@@ -539,6 +539,10 @@ namespace WaveSabreCore
 				CCASSERT(!!mHasValue);
 				return mAccessor.GetBoolValue(0);
 			}
+			void SetBoolValue(bool val) {
+				mHasValue = true;
+				mAccessor.SetBoolValue(0, val);
+			}
 
 			// N11 (-1 to 1 range) -------------------------------------------------------------------------------
 			float GetN11Value() const {
