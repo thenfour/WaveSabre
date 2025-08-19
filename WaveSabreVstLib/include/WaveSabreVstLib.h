@@ -447,6 +447,8 @@ namespace WaveSabreVstLib
 	template<int historyViewWidth, int historyViewHeight>
 	struct CompressorVis
 	{
+		bool mShowTransferCurve = true;
+
 		bool mShowInputHistory = true;
 		bool mShowDetectorHistory = false;
 		bool mShowOutputHistory = true;
@@ -454,6 +456,15 @@ namespace WaveSabreVstLib
 		bool mShowThresh = true;
 		bool mShowLeft = true;
 		bool mShowRight = false;
+
+		std::vector<VUMeterTick> mTickSet {
+				{-3.0f, "3db"},
+				{-6.0f, "6"},
+				{-12.0f, "12"},
+				{-20.0f, "20"},
+				{-30.0f, "30"},
+				{-40.0f, "40"},
+		};
 
 		//static constexpr int historyViewHeight = 110;
 		static constexpr float historyViewMinDB = -60;
@@ -467,7 +478,9 @@ namespace WaveSabreVstLib
 			static constexpr float lineWidth = 2.0f;
 
 			// ... transfer curve.
-			CompressorTransferCurve(comp, { historyViewHeight , historyViewHeight }, detectorAnalysis);
+			if (mShowTransferCurve) {
+				CompressorTransferCurve(comp, { historyViewHeight , historyViewHeight }, detectorAnalysis);
+			}
 
 			ImGui::SameLine(); mHistoryView.Render({
 				// input
@@ -514,22 +527,12 @@ namespace WaveSabreVstLib
 
 			ImGui::SameLine();
 
-			static const std::vector<VUMeterTick> tickSet = {
-					{-3.0f, "3db"},
-					{-6.0f, "6"},
-					{-12.0f, "12"},
-					{-20.0f, "20"},
-					{-30.0f, "30"},
-					{-40.0f, "40"},
-					//{-50.0f, "50"},
-			};
-
 			VUMeterConfig mainCfg = {
 				{13, historyViewHeight},
 				VUMeterLevelMode::Audio,
 				VUMeterUnits::Linear,
 				-50, 6,
-				tickSet,
+				mTickSet,
 			};
 
 			VUMeterConfig attenCfg = mainCfg;

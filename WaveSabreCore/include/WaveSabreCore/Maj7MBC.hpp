@@ -176,11 +176,11 @@ namespace WaveSabreCore
 		  26214, // AChanLnk = 0.79998779296875
 		  0, // AEnable = 0
 		  0, // ASCFEn = 0
-		  0, // AHPF = 0
+		  32767, // AHPF = 0
 		  14563, // AHPQ = 0.444427490234375
 		  0, // ALPF = 0
 		  14563, // ALPQ = 0.444427490234375
-		  4125, // ADrive = 0.125885009765625
+		  0, // ADrive = 0.125885009765625
 		  32767, // ADryWet = 0.999969482421875
 		  8230, // BInVol = 0.25115966796875
 		  8230, // BOutVol = 0.25115966796875
@@ -192,11 +192,11 @@ namespace WaveSabreCore
 		  26214, // BChanLnk = 0.79998779296875
 		  32767, // BEnable = 0.999969482421875
 		  0, // BSCFEn = 0
-		  0, // BHPF = 0
+		  32767, // BHPF = 0
 		  14563, // BHPQ = 0.444427490234375
 		  0, // BLPF = 0
 		  14563, // BLPQ = 0.444427490234375
-		  4125, // BDrive = 0.125885009765625
+		  0, // BDrive = 0.125885009765625
 		  32767, // BDryWet = 0.999969482421875
 		  8230, // CInVol = 0.25115966796875
 		  8230, // COutVol = 0.25115966796875
@@ -208,11 +208,11 @@ namespace WaveSabreCore
 		  26214, // CChanLnk = 0.79998779296875
 		  0, // CEnable = 0
 		  0, // CSCFEn = 0
-		  0, // CHPF = 0
+		  32767, // CHPF = 0
 		  14563, // CHPQ = 0.444427490234375
 		  0, // CLPF = 0
 		  14563, // CLPQ = 0.444427490234375
-		  4125, // CDrive = 0.125885009765625
+		  0, // CDrive = 0.125885009765625
 		  32767, // CDryWet = 0.999969482421875
 		};
 
@@ -277,7 +277,7 @@ namespace WaveSabreCore
 			void Slider() {
 
 				mEnable = mParams.GetBoolValue(BandParam::Enable);
-				mDriveLin = mParams.GetLinearVolume(BandParam::Drive, M7::gVolumeCfg36db);
+				mDriveLin = M7::math::DecibelsToLinear(mParams.GetScaledRealValue(BandParam::Drive, 0, 30, 0));
 				mInputGainLin = mParams.GetLinearVolume(BandParam::InputGain, M7::gVolumeCfg24db);
 				mOutputGainLin = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg24db);
 				mDryWetMix = mParams.Get01Value(BandParam::DryWet);

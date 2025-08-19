@@ -327,6 +327,24 @@ namespace WaveSabreCore
         extern QualitySetting GetQualitySetting();
         extern void SetQualitySetting(QualitySetting);
 
+
+        enum class Oversampling : uint8_t {
+        	Off = 0,
+        	x2 = 1, // value can be seen as the # of stages
+        	x4 = 2, 
+        	x8 = 3,
+        	Count = 4,
+        };
+
+#define OVERSAMPLING_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::Oversampling::Count]{ \
+                "Off", \
+                "x2", \
+                "x4", \
+                "x8", \
+        };
+
+
+
         namespace math
         {
             //static constexpr real_t gPI = 3.14159265358979323846264338327950288f;

@@ -35,6 +35,51 @@ using namespace WaveSabreCore;
 
 namespace WaveSabreVstLib {
 
+
+    struct IVstSerializableParam
+    {
+        virtual void Serialize(clarinoid::JsonVariantWriter& out) = 0;
+        virtual bool TryDeserialize(clarinoid::JsonVariantReader& inp) = 0;
+    };
+
+    struct VstSerializableBoolParamRef : public IVstSerializableParam
+    {
+        const char* mKey;
+        bool& mValue;
+        VstSerializableBoolParamRef(const char* key, bool& value) : mKey(key), mValue(value) {}
+        void Serialize(clarinoid::JsonVariantWriter& elem) override {
+            elem.Object_MakeKey(mKey)
+                .WriteBoolean(mValue);
+        }
+        bool TryDeserialize(clarinoid::JsonVariantReader& elem) override {
+            if (elem.mKeyName == mKey) {
+                mValue = elem.mBooleanValue;
+                return true;
+            }
+            return false;
+        }
+    };
+
+    template<typename T>
+    struct VstSerializableIntParamRef : public IVstSerializableParam
+    {
+        const char* mKey;
+        T& mValue;
+        VstSerializableIntParamRef(const char* key, T& value) : mKey(key), mValue(value) {}
+        void Serialize(clarinoid::JsonVariantWriter& elem) override {
+            elem.Object_MakeKey(mKey)
+                .WriteNumberValue(mValue);
+        }
+        bool TryDeserialize(clarinoid::JsonVariantReader& elem) override {
+            if (elem.mKeyName == mKey) {
+                mValue = static_cast<T>(elem.mNumericValue.mIntValue);
+                return true;
+            }
+            return false;
+        }
+    };
+
+
 class VstEditor : public AEffEditor {
 public:
   char mFilterInputText[200] = {0};
@@ -85,6 +130,11 @@ public:
 
   VstEditor(AudioEffect *audioEffect, int width, int height);
   virtual ~VstEditor();
+
+  // parameters to be serialized by the VST, but not by the device (display settings etc)
+  virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() {
+      return {};
+  }
 
   virtual void Window_Open(HWND parent);
   virtual void Window_Close();

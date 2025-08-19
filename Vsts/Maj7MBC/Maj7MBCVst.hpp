@@ -74,6 +74,13 @@ public:
 			else if (elem.mKeyName == "BandCOutputStream") {
 				p->mBands[2].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
 			}
+
+			auto& editor = *static_cast<WaveSabreVstLib::VstEditor*>(getEditor());
+			auto map = editor.GetVstOnlyParams();
+			for (auto& p : map) {
+				p->TryDeserialize(elem);
+			}
+
 			});
 	}
 
@@ -97,6 +104,12 @@ public:
 				elem.Object_MakeKey("BandCMute").WriteBoolean(p->mBands[2].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandCOutputStream").WriteNumberValue(int(p->mBands[2].mVSTConfig.mOutputStream));
 				//elem.Object_MakeKey("BandCDisplayMode").WriteNumberValue(int(p->mBands[2].mVSTConfig.mDisplayStyle));
+
+				auto& editor = *static_cast<WaveSabreVstLib::VstEditor*>(getEditor());
+				auto map = editor.GetVstOnlyParams();
+				for (auto& p : map) {
+					p->Serialize(elem);
+				}
 			}
 		);
 	}

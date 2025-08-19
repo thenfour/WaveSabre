@@ -27,11 +27,43 @@ struct Maj7MBCEditor : public VstEditor
 	FrequencyResponseRendererLayered<1000, 180, 0, (size_t)Maj7MBC::ParamIndices::NumParams, false> mCrossoverGraph;
 	const ImVec2 kMainVuMeterSize{ 20, 180 };
 
+	// for small compressor vis
+	bool mShowInputHistory = true;
+	bool mShowDetectorHistory = false;
+	bool mShowOutputHistory = false;
+	bool mShowAttenuationHistory = true;
+	bool mShowThresh = false;
+	bool mShowLeft = true;
+	bool mShowRight = false;
+
+	VstSerializableIntParamRef<int> mEditingBandParam{ "EditingBand", mEditingBand };
+	VstSerializableBoolParamRef mShowInputHistoryParam{ "ShowInputHistory", mShowInputHistory };
+	VstSerializableBoolParamRef mShowDetectorHistoryParam{ "ShowDetectorHistory", mShowDetectorHistory };
+	VstSerializableBoolParamRef mShowOutputHistoryParam{ "ShowOutputHistory", mShowOutputHistory };
+	VstSerializableBoolParamRef mShowAttenuationHistoryParam{ "ShowAttenuationHistory", mShowAttenuationHistory };
+	VstSerializableBoolParamRef mShowThreshParam{ "ShowThresh", mShowThresh };
+	VstSerializableBoolParamRef mShowLeftParam{ "ShowLeft", mShowLeft };
+	VstSerializableBoolParamRef mShowRightParam{ "ShowRight", mShowRight };
+
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
 		mpMaj7MBCVst((Maj7MBCVst*)audioEffect)
 	{
 		mpMaj7MBC = ((Maj7MBCVst*)audioEffect)->GetMaj7MBC();
+	}
+
+	virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() override
+	{
+		return {
+			&mEditingBandParam,
+			&mShowInputHistoryParam,
+			&mShowDetectorHistoryParam,
+			&mShowOutputHistoryParam,
+			&mShowAttenuationHistoryParam,
+			&mShowThreshParam,
+			&mShowLeftParam,
+			&mShowRightParam,
+		};
 	}
 
 	virtual void PopulateMenuBar() override
@@ -96,7 +128,8 @@ struct Maj7MBCEditor : public VstEditor
 
 
 					ImGui::SameLine(0, 120); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
-					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
+					//ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
+					ImGui::SameLine(); Maj7ImGuiParamScaledFloat(param(BandParam::Drive), "Drive(dB)", 0, 30, 0, 0, 0, {});
 
 					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Makeup", M7::gVolumeCfg24db, 0, {});
 					ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "Dry-Wet", 1.0f, 0);
@@ -219,6 +252,20 @@ struct Maj7MBCEditor : public VstEditor
 
 		ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
 		auto token = cm.Push();
+
+		auto& vis = mCompressorVisSmall[iBand];
+
+		vis.mShowInputHistory = mShowInputHistory;
+		vis.mShowDetectorHistory = mShowDetectorHistory;
+		vis.mShowOutputHistory = mShowOutputHistory;
+		vis.mShowAttenuationHistory = mShowAttenuationHistory;
+		vis.mShowThresh = mShowThresh;
+		vis.mShowLeft = mShowLeft;
+		vis.mShowRight = mShowRight;
+
+		vis.mShowTransferCurve = false;
+		vis.mTickSet = {
+		};
 
 		//if (bandEnabled) {
 			//ImGui::SameLine();
@@ -691,6 +738,22 @@ public:
 					ImGui::SameLine();
 					RenderBandSmall(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2], mbEnabled, mbEnabled);
 					ImGui::PopID();
+
+					{
+						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+						ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+						ToggleButton(&mShowInputHistory, "Input");
+						ImGui::SameLine(); ToggleButton(&mShowDetectorHistory, "Detector");
+						ImGui::SameLine(); ToggleButton(&mShowAttenuationHistory, "Attenuation");
+						ImGui::SameLine(); ToggleButton(&mShowOutputHistory, "Output");
+
+						ImGui::SameLine(0, 40); ToggleButton(&mShowLeft, "L");
+						ImGui::SameLine(); ToggleButton(&mShowRight, "R");
+
+						ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+					}
+
 				}
 
 				//ImGui::EndTabItem();

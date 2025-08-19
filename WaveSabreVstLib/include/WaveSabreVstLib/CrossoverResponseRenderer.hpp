@@ -285,7 +285,7 @@ namespace WaveSabreVstLib {
 		}
 
 	public:
-		bool InfluencesAutoScale() const override { return true; }
+		bool InfluencesAutoScale() const override { return false; }
 
 		void GetDataBounds(float& minDB, float& maxDB) const override {
 			minDB = -40.0f; // Crossovers typically don't go below -40dB

@@ -39,14 +39,6 @@ namespace WaveSabreCore
 			Count__,
 		};
 
-		//enum class Oversampling : uint8_t {
-		//	Off,
-		//	x2,
-		//	x4,
-		//	x8,
-		//	Count__,
-		//};
-
 #ifdef MAJ7SAT_ENABLE_RARE_MODELS
 		enum class Model : uint8_t {
 			Thru,
