@@ -493,14 +493,14 @@ public:
 
 				bool mbdisabled = !mbEnabled;
 				//ImGui::BeginGroup();
-				if (ToggleButton(&mbdisabled, "SINGLE", { 70,20 })) {
+				if (ToggleButton(&mbdisabled, "Single-band", { 70,20 })) {
 
 					// NB: ToggleButton() has flipped the value.
 					pa.SetBoolValue(0, false);
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
 				}
 				ImGui::SameLine();
-				if (ToggleButton(&mbEnabled, "MULTI", { 70,20 })) {
+				if (ToggleButton(&mbEnabled, "Mult-band", { 70,20 })) {
 					// NB: ToggleButton() has flipped the value.
 					pa.SetBoolValue(0, true);
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
@@ -514,8 +514,8 @@ public:
 				// Show crossover visualization if multiband is enabled
 				// Build renderer config
 				FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> crossoverCfg{
-					ColorFromHTML("222222", 1.0f), // background
-					ColorFromHTML("ff8800", 1.0f), // line (unused for crossover)
+					ColorFromHTML("222222"), // background
+					ColorFromHTML("ff00ff"), // line (unused for crossover)
 					4.0f,
 					{}, // no EQ filters for crossover view
 				};
@@ -534,13 +534,43 @@ public:
 					}
 				};
 
-				// Connect the crossover renderer directly to device; it will read params itself
-				mCrossoverGraph.SetCrossoverFilter(mbEnabled ? mpMaj7MBC : nullptr);
+				mCrossoverGraph.mCrossoverLayer->mGetBandColor = [this](size_t bandIndex, bool hovered) -> ImColor {
+					auto disabledColor = ColorFromHTML("444444", hovered ? 0.8f : 0.6f);
+					// determine if this band is enabled
+					switch (bandIndex) {
+					case 0:
+					{
+						M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::AEnable) };
+						if (!aEnableParam.GetBoolValue()) {
+							return disabledColor;
+						}
+						break;
+					}
+					case 1:
+					{
+						M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::BEnable) };
+						if (!aEnableParam.GetBoolValue()) {
+							return disabledColor;
+						}
+						break;
+					}
+					case 2:
+					{
+						M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::CEnable) };
+						if (!aEnableParam.GetBoolValue()) {
+							return disabledColor;
+						}
+						break;
+					}
+					default:
+						return ColorFromHTML("ff00ff");
+					}
 
-				// Set the current editing band for highlighting
+					return ColorFromHTML(bandColors[bandIndex]);
+				};
+				mCrossoverGraph.SetCrossoverFilter(mbEnabled ? mpMaj7MBC : nullptr);
 				mCrossoverGraph.SetCurrentEditingBand(mEditingBand);
 
-				// Set up band renderer - REFACTORED
 				auto bandRenderer = [this, mbEnabled, &muteSoloEnabled](int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl) -> bool {
 					// Only process valid bands in multiband mode
 					if (!mbEnabled || bandIndex < 0 || bandIndex >= Maj7MBC::gBandCount) {

@@ -15,7 +15,7 @@ namespace WaveSabreCore
     {
         float frequency;    // Hz
         float magnitudeDB;  // dB
-        float phase;        // radians (if needed)
+        //float phase;        // radians (if needed)
     };
     // Common interface for frequency analysis data providers
     class IFrequencyAnalysis

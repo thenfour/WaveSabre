@@ -121,6 +121,13 @@ public:
 		M7::ParamAccessor p{ GetMaj7MBC()->mParamCache, baseParam };
 		using Param = Maj7MBC::FreqBand::BandParam;
 		OptimizeBoolParam(p, Param::Enable);
+		OptimizeBoolParam(p, Param::SidechainFilterEnable);
+		if (!p.GetBoolValue(Param::SidechainFilterEnable)) {
+			p.SetRawVal(Param::HighPassFrequency, defaults.GetRawVal(Param::HighPassFrequency));
+			p.SetRawVal(Param::HighPassQ, defaults.GetRawVal(Param::HighPassQ));
+			p.SetRawVal(Param::LowPassFrequency, defaults.GetRawVal(Param::LowPassFrequency));
+			p.SetRawVal(Param::LowPassQ, defaults.GetRawVal(Param::LowPassQ));
+		}
 		if (!p.GetBoolValue(Param::Enable)) {
 			// effect not enabled; set defaults to params.
 			p.SetRawVal(Param::InputGain, defaults.GetRawVal(Param::InputGain));
@@ -133,6 +140,7 @@ public:
 			p.SetRawVal(Param::ChannelLink, defaults.GetRawVal(Param::ChannelLink));
 			p.SetRawVal(Param::HighPassFrequency, defaults.GetRawVal(Param::HighPassFrequency));
 			p.SetRawVal(Param::HighPassQ, defaults.GetRawVal(Param::HighPassQ));
+			p.SetRawVal(Param::SidechainFilterEnable, defaults.GetRawVal(Param::SidechainFilterEnable));
 		}
 	}
 };

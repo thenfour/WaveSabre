@@ -20,13 +20,14 @@ private:
   // Store raw pointers to layers for configuration (graph owns the layers)
   GridLayer<TShowGridLabels>* mGridLayer = nullptr;
   FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTLayer = nullptr;
-  CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mCrossoverLayer = nullptr;
   EQResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount, TFilterCount, TParamCount>* mEQLayer = nullptr;
   ThumbInteractionLayer<TFilterCount, TParamCount>* mThumbLayer = nullptr;
   TooltipLayer<TFilterCount, TParamCount>* mTooltipLayer = nullptr;
   
 public:
-  FrequencyResponseRendererLayered() {
+    CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mCrossoverLayer = nullptr;
+    
+    FrequencyResponseRendererLayered() {
     // Create layers and add them to graph (graph takes ownership)
     auto gridLayer = std::make_unique<GridLayer<TShowGridLabels>>();
     mGridLayer = gridLayer.get();

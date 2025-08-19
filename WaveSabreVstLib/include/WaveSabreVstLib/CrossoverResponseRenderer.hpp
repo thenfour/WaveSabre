@@ -41,8 +41,8 @@ namespace WaveSabreVstLib {
 
 		// Visuals
 		// Default colors (lows/mids/highs). If a global theme is available, substitute here.
-		std::vector<ImColor> mBandColors{ ColorFromHTML("cc4444", 0.8f), ColorFromHTML("44cc44", 0.8f), ColorFromHTML("4444cc", 0.8f) };
-		std::vector<const char*> mBandLabels{ "Low", "Mid", "High" };
+		//std::vector<ImColor> mBandColors{ ColorFromHTML(bandColors[0], 0.8f), ColorFromHTML(bandColors[1], 0.8f), ColorFromHTML(bandColors[2], 0.8f)};
+		//std::vector<const char*> mBandLabels{ "Low", "Mid", "High" };
 
 		// Independent Y-axis scaling (like FFTSpectrumLayer)
 		float mXODisplayMinDB = -40.0f;
@@ -215,6 +215,8 @@ namespace WaveSabreVstLib {
 		const std::vector<std::pair<int, ImRect>>& GetActiveBandRects() const {
 			return mActiveBandRects;
 		}
+
+		std::function<ImColor(size_t bandIndex, bool hovered)> mGetBandColor;
 
 	private:
 		// Helper to calculate the bounding rectangle for a specific band region - NEW
@@ -450,7 +452,8 @@ namespace WaveSabreVstLib {
 				if (bandResponse.empty()) continue;
 
 				// Determine band color
-				ImColor bandColor = (bandIdx < mBandColors.size()) ? mBandColors[bandIdx] : ColorFromHTML("888888", 0.7f);
+				//ImColor bandColor = (bandIdx < mBandColors.size()) ? mBandColors[bandIdx] : ColorFromHTML("888888", 0.7f);
+				ImColor bandColor = (mGetBandColor) ? mGetBandColor(bandIdx, hoveredBand == bandIdx) : ColorFromHTML("888888", 0.7f);
 
 				// Fill area under curve by drawing trapezoids between successive samples
 				const float faintAlpha = 0.05f;        // very faint by default
@@ -527,7 +530,6 @@ namespace WaveSabreVstLib {
 
 				for (size_t i = 0; i < lines.size(); ++i) {
 					float x = coords.FreqToX(lines[i].first, bb);
-					ImColor c = (i < mBandColors.size()) ? ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.5f) : ColorFromHTML("cccccc", 0.5f);
 
 					// Render frequency label with drag interaction feedback
 					char frequencyLabel[30];
@@ -547,14 +549,8 @@ namespace WaveSabreVstLib {
 					ImColor bgColor = ColorFromHTML("000000", isActive ? 0.9f : (isHovered ? 0.8f : 0.7f));
 					ImColor borderColor = ColorFromHTML(isActive ? "ffffff" : (isHovered ? "aaaaaa" : "666666"), isActive ? 1.0f : 0.9f);
 					ImColor textColor = ColorFromHTML(isActive ? "ffffff" : (isHovered ? "ffffff" : "cccccc"));
-					ImColor lineColor = c;
 
-					// Enhanced visual feedback for the vertical line based on interaction state
-					if (isActive) {
-						lineColor = ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.9f);
-					} else if (isHovered) {
-						lineColor = ImColor(mBandColors[i].Value.x, mBandColors[i].Value.y, mBandColors[i].Value.z, 0.7f);
-					}
+					ImColor lineColor =  ColorFromHTML("cccccc", isActive ? 0.9f : 0.5f);
 
 					// Draw vertical line with interaction feedback
 					float lineThickness = isActive ? 3.0f : (isHovered ? 2.5f : 2.0f);

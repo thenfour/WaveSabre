@@ -164,7 +164,7 @@ namespace WaveSabreCore
             // Store in spectrum bin
             mSpectrum[i].frequency = i * frequencyResolution;
             mSpectrum[i].magnitudeDB = mMagnitudeHistory[i];
-            mSpectrum[i].phase = std::atan2(imag, real);
+            //mSpectrum[i].phase = std::atan2(imag, real);
         }
     }
 
@@ -299,7 +299,7 @@ namespace WaveSabreCore
         for (size_t i = 0; i < rawSpectrum.size(); ++i)
         {
             // Convert dB to linear for PeakDetector (which expects linear values 0-1+)
-            float magnitudeLinear = std::pow(10.0f, rawSpectrum[i].magnitudeDB / 20.0f);
+            float magnitudeLinear = M7::math::DecibelsToLinear(rawSpectrum[i].magnitudeDB);
             
             // Since PeakDetector expects to be called every sample, we need to simulate
             // the missing samples by calling it multiple times with the same value
@@ -310,11 +310,12 @@ namespace WaveSabreCore
             }
             
             // Convert back to dB for output
-            float smoothedMagnitudeDB = 20.0f * std::log10(std::max(1e-10f, (float)mPeakDetectors[i].mCurrentPeak));
+            //float smoothedMagnitudeDB = 20.0f * std::log10(std::max(1e-10f, (float)mPeakDetectors[i].mCurrentPeak));
+			float smoothedMagnitudeDB = M7::math::LinearToDecibels((float)mPeakDetectors[i].mCurrentPeak);
             
             mOutput[i].frequency = rawSpectrum[i].frequency;
             mOutput[i].magnitudeDB = smoothedMagnitudeDB;
-            mOutput[i].phase = rawSpectrum[i].phase;
+            //mOutput[i].phase = rawSpectrum[i].phase;
         }
     }
 
@@ -435,7 +436,7 @@ namespace WaveSabreCore
             combinedSpectrum[i].magnitudeDB = std::max(
                 i < leftSpectrum.size() ? leftSpectrum[i].magnitudeDB : -80.0f,
                 i < rightSpectrum.size() ? rightSpectrum[i].magnitudeDB : -80.0f);
-            combinedSpectrum[i].phase = 0.0f; // Phase is not used in this context
+            //combinedSpectrum[i].phase = 0.0f; // Phase is not used in this context
         }
         
 		return combinedSpectrum;

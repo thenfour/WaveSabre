@@ -52,4 +52,20 @@ public:
 	Maj7Comp* GetMaj7Comp() const {
 		return (Maj7Comp*)getDevice();
 	}
+
+
+	virtual void OptimizeParams() override
+	{
+		using Params = Maj7Comp::ParamIndices;
+		M7::ParamAccessor defaults{ mDefaultParamCache.data(), 0 };
+		M7::ParamAccessor p{ GetMaj7Comp()->mParamCache, 0 };
+		if (!p.GetBoolValue(Params::EnableSidechainFilter)) {
+			p.SetRawVal(Params::HighPassFrequency, defaults.GetRawVal(Params::HighPassFrequency));
+			p.SetRawVal(Params::HighPassQ, defaults.GetRawVal(Params::HighPassQ));
+			p.SetRawVal(Params::LowPassFrequency, defaults.GetRawVal(Params::LowPassFrequency));
+			p.SetRawVal(Params::LowPassQ, defaults.GetRawVal(Params::LowPassQ));
+		}
+	}
+
+
 };
