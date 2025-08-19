@@ -426,7 +426,10 @@ namespace WaveSabreCore
 				}
 
 				// very inefficient to calculate all in the loops like that but it's for size-optimization
-				float masterGain = mParams.GetLinearVolume(ParamIndices::MasterVolume, gMasterVolumeCfg, 0);// mMasterVolume.GetLinearGain();
+				float masterGain = mParams.GetLinearVolume(ParamIndices::MasterVolume, gMasterVolumeCfg, 0);
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				bool isGuiVisible = IsGuiVisible();
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				for (size_t iSample = 0; iSample < (size_t)numSamples; ++iSample)
 				{
 					float s[2] = { 0 };
@@ -441,7 +444,9 @@ namespace WaveSabreCore
 						o *= masterGain;
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 						outputs[ioutput][iSample] = SelectStreamValue(mOutputStreams[ioutput], o);
-						mOutputAnalysis[ioutput].WriteSample(o);
+						if (isGuiVisible) {
+							mOutputAnalysis[ioutput].WriteSample(o);
+						}
 #else
 						outputs[ioutput][iSample] = o;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT

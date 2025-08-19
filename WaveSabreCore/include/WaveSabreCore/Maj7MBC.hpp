@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "Device.h"
@@ -302,7 +301,11 @@ namespace WaveSabreCore
 				}
 			}
 
-			M7::FloatPair ProcessSample(M7::FloatPair input)
+			M7::FloatPair ProcessSample(M7::FloatPair input
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				, bool isGuiVisible
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+			)
 			{
 				// apply stereo linking
 				float monoDetector = (input.x[0] + input.x[1]) * 0.5f; // apparently averaging yields slightly more consistent sweeping between mono->stereo link
@@ -324,21 +327,25 @@ namespace WaveSabreCore
 						output.x[ich] = finalSignal;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-						mInputAnalysis[ich].WriteSample(inpAudio);
-						mOutputAnalysis[ich].WriteSample(finalSignal);
-						mDetectorAnalysis[ich].WriteSample(detector);
-						mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
+						if (isGuiVisible) {
+							mInputAnalysis[ich].WriteSample(inpAudio);
+							mOutputAnalysis[ich].WriteSample(finalSignal);
+							mDetectorAnalysis[ich].WriteSample(detector);
+							mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
+						}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					}
 				} // ENABLE
 				else {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				for (size_t ich = 0; ich < 2; ++ich) {
-					mInputAnalysis[ich].WriteSample(0);
-					mOutputAnalysis[ich].WriteSample(0);
-					mDetectorAnalysis[ich].WriteSample(0);
-					mAttenuationAnalysis[ich].WriteSample(0);
-				}
+					if (isGuiVisible) {
+						for (size_t ich = 0; ich < 2; ++ich) {
+							mInputAnalysis[ich].WriteSample(0);
+							mOutputAnalysis[ich].WriteSample(0);
+							mDetectorAnalysis[ich].WriteSample(0);
+							mAttenuationAnalysis[ich].WriteSample(0);
+						}
+					}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				}
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -403,6 +410,17 @@ namespace WaveSabreCore
 		{
 			LoadDefaults();
 		}
+
+//#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+//		// Called by VST editor when GUI is opened/closed to optimize CPU usage
+//		void SetGuiVisible(bool visible) {
+//			mGuiVisible.store(visible, std::memory_order_relaxed);
+//		}
+//		
+//		bool IsGuiVisible() const {
+//			return mGuiVisible.load(std::memory_order_relaxed);
+//		}
+//#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		virtual void OnParamsChanged() override
 		{
@@ -475,18 +493,22 @@ namespace WaveSabreCore
 			mBands[0].mMuteSoloEnable = muteSoloEnabled[0];
 			mBands[1].mMuteSoloEnable = muteSoloEnabled[1];
 			mBands[2].mMuteSoloEnable = muteSoloEnabled[2];
+			
+			// CPU optimization: only process FFT for visualization when GUI is visible
+			const bool isGuiVisible = IsGuiVisible();
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)
 			{
-				mInputSpectrum.ProcessSamples(inputs[0][i], inputs[1][i]);
-
 				float s0 = inputs[0][i] * inputGainLin;
 				float s1 = inputs[1][i] * inputGainLin;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mInputAnalysis[0].WriteSample(s0);
-				mInputAnalysis[1].WriteSample(s1);
+				if (isGuiVisible) {
+					mInputSpectrum.ProcessSamples(inputs[0][i], inputs[1][i]);
+					mInputAnalysis[0].WriteSample(s0);
+					mInputAnalysis[1].WriteSample(s1);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				if (mbEnable) {
@@ -498,14 +520,14 @@ namespace WaveSabreCore
 					s1 = 0;
 					for (int iBand = 0; iBand < gBandCount; ++iBand) {
 						auto& band = mBands[iBand];
-						auto r = band.ProcessSample({ splitter0.s[iBand], splitter1.s[iBand] });
+						auto r = band.ProcessSample({ splitter0.s[iBand], splitter1.s[iBand] }, isGuiVisible);
 						s0 += r.x[0] * outputGainLin;
 						s1 += r.x[1] * outputGainLin;
 					}
 				}
 				else {
 					auto& band = mBands[1];
-					auto r = band.ProcessSample({ s0, s1 });
+					auto r = band.ProcessSample({ s0, s1 }, isGuiVisible);
 					s0 = r[0] * outputGainLin;
 					s1 = r[1] * outputGainLin;
 				}
@@ -525,8 +547,10 @@ namespace WaveSabreCore
 				}
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mOutputAnalysis[0].WriteSample(s0);
-				mOutputAnalysis[1].WriteSample(s1);
+				if (isGuiVisible) {
+					mOutputAnalysis[0].WriteSample(s0);
+					mOutputAnalysis[1].WriteSample(s1);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				outputs[0][i] = s0;

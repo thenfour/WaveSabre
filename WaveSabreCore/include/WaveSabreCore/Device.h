@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 #include <stdint.h>
+#include <atomic>
 
 namespace WaveSabreCore
 {
@@ -38,6 +39,13 @@ namespace WaveSabreCore
 		// support for maj7 style chunks, which are 16-bit and differential from default values
 		virtual void LoadDefaults();
 		virtual void SetBinary16DiffChunk(M7::Deserializer& ds);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		std::atomic<bool> mGuiVisible{ false };
+		bool IsGuiVisible() const {
+			return mGuiVisible.load(std::memory_order_relaxed);
+		}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 	protected:
 		void clearOutputs(float **outputs, int numSamples);

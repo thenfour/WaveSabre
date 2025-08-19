@@ -109,8 +109,11 @@ namespace WaveSabreCore
 			for (int i = 0; i < numSamples; i++)
 			{
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mInputAnalysis[0].WriteSample(inputs[0][i]);
-				mInputAnalysis[1].WriteSample(inputs[1][i]);
+				if (IsGuiVisible())
+				{
+					mInputAnalysis[0].WriteSample(inputs[0][i]);
+					mInputAnalysis[1].WriteSample(inputs[1][i]);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// read buffer, apply processing (filtering, cross mix, drive)
@@ -141,8 +144,11 @@ namespace WaveSabreCore
 				outputs[1][i] = dry[1] * mDryLin + delayBufferSignal[1] * mWetLin;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mOutputAnalysis[0].WriteSample(outputs[0][i]);
-				mOutputAnalysis[1].WriteSample(outputs[1][i]);
+				if (IsGuiVisible())
+				{
+					mOutputAnalysis[0].WriteSample(outputs[0][i]);
+					mOutputAnalysis[1].WriteSample(outputs[1][i]);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 			}
 		}

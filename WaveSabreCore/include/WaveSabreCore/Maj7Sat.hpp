@@ -510,17 +510,19 @@ namespace WaveSabreCore
 				return s;
 			}
 
-			M7::FloatPair ProcessSample(float s0, float s1, float masterDryWet)
+			M7::FloatPair ProcessSample(float s0, float s1, float masterDryWet, bool isGuiVisible)
 			{
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				if (mEnableEffect && mMuteSoloEnabled) {
-					mInputAnalysis0.WriteSample(s0);
-					mInputAnalysis1.WriteSample(s1);
-				}
-				else {
-					// analysis halts when not processing. it's better visually.
-					mInputAnalysis0.WriteSample(0);
-					mInputAnalysis1.WriteSample(0);
+				if (isGuiVisible) {
+					if (mEnableEffect && mMuteSoloEnabled) {
+						mInputAnalysis0.WriteSample(s0);
+						mInputAnalysis1.WriteSample(s1);
+					}
+					else {
+						// analysis halts when not processing. it's better visually.
+						mInputAnalysis0.WriteSample(0);
+						mInputAnalysis1.WriteSample(0);
+					}
 				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
@@ -585,14 +587,16 @@ namespace WaveSabreCore
 					output1 = 0;
 				}
 
-				if (mEnableEffect && mMuteSoloEnabled) {
-					mOutputAnalysis0.WriteSample(output0);
-					mOutputAnalysis1.WriteSample(output1);
-				}
-				else {
-					// analysis halts when not processing. it's better visually.
-					mOutputAnalysis0.WriteSample(0);
-					mOutputAnalysis1.WriteSample(0);
+				if (isGuiVisible) {
+					if (mEnableEffect && mMuteSoloEnabled) {
+						mOutputAnalysis0.WriteSample(output0);
+						mOutputAnalysis1.WriteSample(output1);
+					}
+					else {
+						// analysis halts when not processing. it's better visually.
+						mOutputAnalysis0.WriteSample(0);
+						mOutputAnalysis1.WriteSample(0);
+					}
 				}
 				return {output0, output1};
 #else
@@ -668,6 +672,7 @@ namespace WaveSabreCore
 			float masterDryWet = mParams.GetRawVal(ParamIndices::OverallDryWet);
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			bool isGuiVisible = IsGuiVisible();
 			bool muteSoloEnabled[Maj7MBC::gBandCount] = { false, false, false };
 			bool mutes[Maj7MBC::gBandCount] = { mBands[0].mVSTConfig.mMute, mBands[1].mVSTConfig.mMute , mBands[2].mVSTConfig.mMute };
 			bool solos[Maj7MBC::gBandCount] = { mBands[0].mVSTConfig.mSolo, mBands[1].mVSTConfig.mSolo , mBands[2].mVSTConfig.mSolo };
@@ -683,8 +688,11 @@ namespace WaveSabreCore
 				float s1 = inputs[1][i] * mInputGainLin;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mInputAnalysis0.WriteSample(s0);
-				mInputAnalysis1.WriteSample(s1);
+				if (isGuiVisible)
+				{
+					mInputAnalysis0.WriteSample(s0);
+					mInputAnalysis1.WriteSample(s1);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// split into 3 bands
@@ -695,7 +703,7 @@ namespace WaveSabreCore
 				s1 = 0;
 				for (int iBand = 0; iBand < gBandCount; ++iBand) {
 					auto& band = mBands[iBand];
-					auto r = band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet);
+					auto r = band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet, isGuiVisible);
 					s0 += r.x[0] * mOutputGainLin;
 					s1 += r.x[1] * mOutputGainLin;
 				}
@@ -707,8 +715,11 @@ namespace WaveSabreCore
 				//s1 *= mOutputGainLin;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mOutputAnalysis0.WriteSample(s0);
-				mOutputAnalysis1.WriteSample(s1);
+				if (isGuiVisible)
+				{
+					mOutputAnalysis0.WriteSample(s0);
+					mOutputAnalysis1.WriteSample(s1);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// for sanity; avoid user error or filter madness causing crazy spikes.

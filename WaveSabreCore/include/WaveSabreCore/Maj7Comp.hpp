@@ -325,15 +325,17 @@ namespace WaveSabreCore
 					outputs[ich][iSample] = finalSignal * mOutputGainLin;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-					mInputAnalysis[ich].WriteSample(inpAudio);
-					mOutputAnalysis[ich].WriteSample(outputs[ich][iSample]);
+					if (IsGuiVisible())
+					{
+						mInputAnalysis[ich].WriteSample(inpAudio);
+						mOutputAnalysis[ich].WriteSample(outputs[ich][iSample]);
 
-					mInputAnalysisSlow[ich].WriteSample(inpAudio);
-					mOutputAnalysisSlow[ich].WriteSample(outputs[ich][iSample]);
+						mInputAnalysisSlow[ich].WriteSample(inpAudio);
+						mOutputAnalysisSlow[ich].WriteSample(outputs[ich][iSample]);
 
-					mDetectorAnalysis[ich].WriteSample(mComp[ich].mDetector);
-					mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
-
+						mDetectorAnalysis[ich].WriteSample(mComp[ich].mDetector);
+						mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
+					}
 					switch (mOutputSignal) {
 					case OutputSignal::Normal:
 						break;

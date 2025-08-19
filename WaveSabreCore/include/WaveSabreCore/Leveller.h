@@ -186,16 +186,17 @@ namespace WaveSabreCore
 			
 			for (int iSample = 0; iSample < numSamples; iSample++)
 			{
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mInputAnalysis[0].WriteSample(inputs[0][iSample]);
-				mInputAnalysis[1].WriteSample(inputs[1][iSample]);
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				float s1 = inputs[0][iSample];
 				float s2 = inputs[1][iSample];
-				
-				// Process input samples for FFT analysis (before filtering)
-				mInputSpectrumSmoother.ProcessSamples(s1, s2);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				if (IsGuiVisible()) {
+					mInputAnalysis[0].WriteSample(inputs[0][iSample]);
+					mInputAnalysis[1].WriteSample(inputs[1][iSample]);
+					mInputSpectrumSmoother.ProcessSamples(s1, s2);
+				}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				if (enableDC) {
 					s1 = mDCFilters[0].ProcessSample(s1);
@@ -214,12 +215,13 @@ namespace WaveSabreCore
 				outputs[0][iSample] = masterGain * s1;
 				outputs[1][iSample] = masterGain * s2;
 				
-				// Process output samples for FFT analysis (after filtering)
-				mOutputSpectrumSmoother.ProcessSamples(outputs[0][iSample], outputs[1][iSample]);
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-				mOutputAnalysis[0].WriteSample(outputs[0][iSample]);
-				mOutputAnalysis[1].WriteSample(outputs[1][iSample]);
+				if (IsGuiVisible()) {
+					mOutputSpectrumSmoother.ProcessSamples(outputs[0][iSample], outputs[1][iSample]);
+					mOutputAnalysis[0].WriteSample(outputs[0][iSample]);
+					mOutputAnalysis[1].WriteSample(outputs[1][iSample]);
+				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			}

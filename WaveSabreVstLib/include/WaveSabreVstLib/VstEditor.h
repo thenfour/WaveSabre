@@ -101,11 +101,15 @@ public:
   bool open(void *ptr) override {
     AEffEditor::open(ptr);
     Window_Open((HWND)ptr);
+
+	GetEffectX()->getDevice()->mGuiVisible.store(true, std::memory_order_relaxed);
+
     return true;
   }
 
   void close() override {
-    Window_Close();
+      GetEffectX()->getDevice()->mGuiVisible.store(false, std::memory_order_relaxed);
+      Window_Close();
     AEffEditor::close();
   }
 

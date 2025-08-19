@@ -45,8 +45,11 @@ namespace WaveSabreCore
 			float leftInput = inputs[0][s];
 			float rightInput = inputs[1][s];
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-			mInputAnalysis[0].WriteSample(leftInput);
-			mInputAnalysis[1].WriteSample(rightInput);
+			if (IsGuiVisible())
+			{
+				mInputAnalysis[0].WriteSample(leftInput);
+				mInputAnalysis[1].WriteSample(rightInput);
+			}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 			// mono feed into the reverb network
@@ -97,8 +100,11 @@ namespace WaveSabreCore
 			outputs[0][s] = leftInput* dryMul + wetL * wetMul;
 			outputs[1][s] = rightInput * dryMul + wetR * wetMul;
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-			mOutputAnalysis[0].WriteSample(outputs[0][s]);
-			mOutputAnalysis[1].WriteSample(outputs[1][s]);
+			if (IsGuiVisible())
+			{
+				mOutputAnalysis[0].WriteSample(outputs[0][s]);
+				mOutputAnalysis[1].WriteSample(outputs[1][s]);
+			}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		}
 	}
