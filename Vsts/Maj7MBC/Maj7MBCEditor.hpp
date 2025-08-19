@@ -247,10 +247,146 @@ struct Maj7MBCEditor : public VstEditor
 		}
 	}
 
+private:
+	// Helper to get the button area for band overlays - REFACTORED
+	ImRect GetBandButtonArea(const ImRect& bandRect) const {
+		// Place buttons in the upper portion of the band rectangle
+		const float buttonHeight = 20.0f;
+		const float buttonWidth = 60.0f;
+		const float padding = 4.0f;
+		
+		// Center buttons horizontally in the band, place them near the top
+		float centerX = (bandRect.Min.x + bandRect.Max.x) * 0.5f;
+		float totalWidth = buttonWidth * 2 + padding; // Two buttons with padding
+		float startX = centerX - totalWidth * 0.5f;
+		
+		return ImRect(
+			startX, 
+			bandRect.Min.y + padding,
+			startX + totalWidth,
+			bandRect.Min.y + padding + buttonHeight
+		);
+	}
 
+	// Handle clicks on band overlay buttons
+	bool HandleBandClick(int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, bool mbEnabled) {
+		if (!mbEnabled || bandIndex < 0 || bandIndex >= Maj7MBC::gBandCount) {
+			return false;
+		}
 
+		auto& band = mpMaj7MBC->mBands[bandIndex];
+		auto& bandConfig = band.mVSTConfig;
+		
+		// Get button area and individual button rects
+		ImRect buttonArea = GetBandButtonArea(bandRect);
+		if (bandRect.GetWidth() < 80.0f) {
+			return false;
+		}
 
+		const float buttonWidth = 28.0f;
+		const float buttonHeight = 16.0f;
+		const float padding = 2.0f;
+		
+		ImVec2 mutePos = { buttonArea.Min.x + padding, buttonArea.Min.y + padding };
+		ImVec2 soloPos = { mutePos.x + buttonWidth + padding, mutePos.y };
+		
+		ImRect muteRect(mutePos, { mutePos.x + buttonWidth, mutePos.y + buttonHeight });
+		ImRect soloRect(soloPos, { soloPos.x + buttonWidth, soloPos.y + buttonHeight });
 
+		ImVec2 mousePos = ImGui::GetIO().MousePos;
+		
+		if (muteRect.Contains(mousePos)) {
+			bandConfig.mMute = !bandConfig.mMute;
+			return true;
+		} else if (soloRect.Contains(mousePos)) {
+			bandConfig.mSolo = !bandConfig.mSolo;
+			return true;
+		}
+		
+		return false;
+	}
+
+	// Render band overlay with state-dependent styling - REFACTORED
+	bool RenderBandOverlay(int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl, bool muteSoloEnabled, bool mbEnabled) {
+		if (!mbEnabled || bandIndex < 0 || bandIndex >= Maj7MBC::gBandCount) {
+			return false;
+		}
+
+		auto& band = mpMaj7MBC->mBands[bandIndex];
+		auto& bandConfig = band.mVSTConfig;
+		
+		// Get button area
+		ImRect buttonArea = GetBandButtonArea(bandRect);
+
+		// Draw semi-transparent background for buttons
+		//ImColor bgColor = ColorFromHTML("000000", 0.8f);
+		//dl->AddRectFilled(buttonArea.Min, buttonArea.Max, bgColor, 4.0f);
+		//dl->AddRect(buttonArea.Min, buttonArea.Max, ColorFromHTML("666666", 0.9f), 4.0f, 0, 1.0f);
+
+		// Button dimensions
+		const float buttonWidth = 28.0f;
+		const float buttonHeight = 16.0f;
+		const float padding = 2.0f;
+		
+		ImVec2 mutePos = { buttonArea.Min.x + padding, buttonArea.Min.y + padding };
+		ImVec2 soloPos = { mutePos.x + buttonWidth + padding, mutePos.y };
+		
+		ImRect muteRect(mutePos, { mutePos.x + buttonWidth, mutePos.y + buttonHeight });
+		ImRect soloRect(soloPos, { soloPos.x + buttonWidth, soloPos.y + buttonHeight });
+
+		// Check for mouse hover on individual buttons
+		ImVec2 mousePos = ImGui::GetIO().MousePos;
+		bool muteHovered = muteRect.Contains(mousePos);
+		bool soloHovered = soloRect.Contains(mousePos);
+		bool anyButtonHovered = muteHovered || soloHovered;
+
+		// Render MUTE button
+		ImColor muteColor = bandConfig.mMute ? 
+			ColorFromHTML("cc4444", 0.9f) : 
+			ColorFromHTML("444444", muteHovered ? 0.8f : 0.6f);
+		ImColor muteTextColor = bandConfig.mMute ? 
+			ColorFromHTML("ffffff") : 
+			ColorFromHTML(muteHovered ? "ffffff" : "cccccc");
+			
+		dl->AddRectFilled(muteRect.Min, muteRect.Max, muteColor, 2.0f);
+		dl->AddRect(muteRect.Min, muteRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
+		
+		// Center text in button
+		ImVec2 muteTextSize = ImGui::CalcTextSize("M");
+		ImVec2 muteTextPos = { 
+			muteRect.Min.x + (muteRect.GetWidth() - muteTextSize.x) * 0.5f,
+			muteRect.Min.y + (muteRect.GetHeight() - muteTextSize.y) * 0.5f
+		};
+		dl->AddText(muteTextPos, muteTextColor, "M");
+
+		// Render SOLO button  
+		ImColor soloColor = bandConfig.mSolo ? 
+			ColorFromHTML("cccc44", 0.9f) : 
+			ColorFromHTML("444444", soloHovered ? 0.8f : 0.6f);
+		ImColor soloTextColor = bandConfig.mSolo ? 
+			ColorFromHTML("000000") : 
+			ColorFromHTML(soloHovered ? "ffffff" : "cccccc");
+			
+		dl->AddRectFilled(soloRect.Min, soloRect.Max, soloColor, 2.0f);
+		dl->AddRect(soloRect.Min, soloRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
+		
+		// Center text in button
+		ImVec2 soloTextSize = ImGui::CalcTextSize("S");
+		ImVec2 soloTextPos = { 
+			soloRect.Min.x + (soloRect.GetWidth() - soloTextSize.x) * 0.5f,
+			soloRect.Min.y + (soloRect.GetHeight() - soloTextSize.y) * 0.5f
+		};
+		dl->AddText(soloTextPos, soloTextColor, "S");
+
+		// Set cursor for hoverable buttons
+		if (anyButtonHovered) {
+			ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+		}
+
+		return anyButtonHovered; // Return true if we're showing interactive elements
+	}
+
+public:
 	virtual void renderImgui() override
 	{
 		mBandColors.EnsureInitialized();
@@ -320,6 +456,31 @@ struct Maj7MBCEditor : public VstEditor
 
 				// Set the current editing band for highlighting
 				mCrossoverGraph.SetCurrentEditingBand(mEditingBand);
+
+				// Set up band renderer - REFACTORED
+				auto bandRenderer = [this, mbEnabled, &muteSoloEnabled](int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl) -> bool {
+					// Only process valid bands in multiband mode
+					if (!mbEnabled || bandIndex < 0 || bandIndex >= Maj7MBC::gBandCount) {
+						return false;
+					}
+
+					// If dl is nullptr, this is a mouse click area test
+					if (dl == nullptr) {
+						ImVec2 mousePos = ImGui::GetIO().MousePos;
+						ImRect buttonArea = GetBandButtonArea(bandRect);
+						return buttonArea.Contains(mousePos);
+					}
+
+					// If dl is special marker (1), this is click handling
+					if (dl == reinterpret_cast<ImDrawList*>(1)) {
+						return HandleBandClick(bandIndex, bandRect, isHovered, isSelected, mbEnabled);
+					}
+
+					// Otherwise, this is normal rendering
+					return RenderBandOverlay(bandIndex, bandRect, isHovered, isSelected, dl, muteSoloEnabled[bandIndex], mbEnabled);
+					};
+
+				mCrossoverGraph.SetBandRenderer(bandRenderer);
 
 				// Set up parameter change handler for crossover frequency dragging
 				if (mbEnabled) {

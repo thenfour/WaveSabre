@@ -112,6 +112,11 @@ public:
     if (mCrossoverLayer) mCrossoverLayer->SetCurrentEditingBand(bandIndex);
   }
   
+  // Set band renderer callback - REFACTORED
+  void SetBandRenderer(std::function<bool(int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl)> renderer) {
+    if (mCrossoverLayer) mCrossoverLayer->SetBandRenderer(renderer);
+  }
+  
   // Expose coordinate conversion functions for compatibility
   float FreqToX(float hz, ImRect &bb) {
     return mGraph.mCoords.FreqToX(hz, bb);
