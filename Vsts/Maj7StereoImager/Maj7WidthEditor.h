@@ -416,13 +416,13 @@ private:
 
 
 		// for debugging, controls to change sector count, smoothness K, kernel size...
-		ImGui::BeginGroup();
-		ImGui::Text("Polar L Settings");
-		ImGui::SliderInt("Sector Count", (int*)&kSectorCount, 3, kMaxSectorCount, "%d");
-		ImGui::SliderFloat("Smoothness K", &kSmoothnessK, 0.0f, 1.0f, "%.2f");
-		ImGui::SliderInt("Smoothing Kernel Size", &kSmoothingKernelSize, 1, 32, "%d");
-		ImGui::SliderFloat("Visual Boost", &kVisualBoost, 0.5f, 4.0f, "%.2f");
-		ImGui::EndGroup();
+		//ImGui::BeginGroup();
+		//ImGui::Text("Polar L Settings");
+		//ImGui::SliderInt("Sector Count", (int*)&kSectorCount, 3, kMaxSectorCount, "%d");
+		//ImGui::SliderFloat("Smoothness K", &kSmoothnessK, 0.0f, 1.0f, "%.2f");
+		//ImGui::SliderInt("Smoothing Kernel Size", &kSmoothingKernelSize, 1, 32, "%d");
+		//ImGui::SliderFloat("Visual Boost", &kVisualBoost, 0.5f, 4.0f, "%.2f");
+		//ImGui::EndGroup();
 
 
 		auto* dl = ImGui::GetWindowDrawList();
@@ -434,7 +434,7 @@ private:
 		dl->AddRect(bb.Min, bb.Max, IM_COL32(100, 100, 100, 255));
 		
 		ImVec2 center = {bb.Min.x + size.x * 0.5f, bb.Min.y + size.y * 0.5f};
-		float radius = std::min(size.x, size.y) * 0.45f;
+		const float radius = std::min(size.x, size.y) * 0.45f;
 		
 		// Draw concentric circles for magnitude reference
 		for (int i = 1; i <= 4; ++i) {
@@ -633,17 +633,20 @@ private:
 		if (envelopePoints.size() >= 3) {
 			// Color based on phase correlation
 			float correlation = static_cast<float>(analysis.mPhaseCorrelation);
-			ImU32 envelopeFillColor, envelopeLineColor;
+			ImU32 envelopeFillColor, envelopeLineColor, phaseLineColor;
 			
 			if (correlation > 0.5f) {
-				envelopeFillColor = IM_COL32(100, 255, 100, 60);  // Green fill
-				envelopeLineColor = IM_COL32(100, 255, 100, 255); // Green outline
+				envelopeFillColor = ColorFromHTML("66FF66", 0.1f); // Light green fill
+				envelopeLineColor = ColorFromHTML("66FF66", 0.3f); // Light green outline
+				phaseLineColor = ColorFromHTML("66FF66", 0.8f); // Light green phase line
 			} else if (correlation < -0.5f) {
-				envelopeFillColor = IM_COL32(255, 100, 100, 60);  // Red fill  
-				envelopeLineColor = IM_COL32(255, 100, 100, 255); // Red outline
+				envelopeFillColor = ColorFromHTML("FF6666", 0.1f);
+				envelopeLineColor = ColorFromHTML("FF6666", 0.3f);
+				phaseLineColor = ColorFromHTML("FF6666", 0.8f);
 			} else {
-				envelopeFillColor = IM_COL32(255, 255, 100, 60);  // Yellow fill
-				envelopeLineColor = IM_COL32(255, 255, 100, 255); // Yellow outline
+				envelopeFillColor = ColorFromHTML("ffff55", 0.1f); 
+				envelopeLineColor = ColorFromHTML("ffff55", 0.3f);
+				phaseLineColor = ColorFromHTML("ffff55", 0.8f); 
 			}
 			
 			// Draw filled envelope
@@ -652,9 +655,44 @@ private:
 			// Draw smooth envelope outline
 			for (size_t i = 0; i < envelopePoints.size(); i++) {
 				size_t nextIdx = (i + 1) % envelopePoints.size();
-				dl->AddLine(envelopePoints[i], envelopePoints[nextIdx], envelopeLineColor, 2.0f);
+				dl->AddLine(envelopePoints[i], envelopePoints[nextIdx], envelopeLineColor, 1.3f);
 			}
+			
+			// *** ADD BI-POLAR CORRELATION LINE OVERLAY (X-SHAPED) ***
+			float correlationAngle = acosf(std::max(-1.0f, std::min(1.0f, correlation*.5f + .5f))); // Map +1→0°, -1→90°
+			correlationAngle -= 3.14159f * 0.5f; // Rotate -90° so +1.0 (mono) points up (0°)
+			
+			// Calculate the line extent (use max envelope radius for proper scaling)
+			float lineLength = std::max(maxRadius, radius * 0.8f); // Use envelope extent or minimum 80% of display radius
+			
+			// *** ORIGINAL CORRELATION LINE ***
+			ImVec2 lineStart = {
+				center.x - cosf(correlationAngle) * lineLength,
+				center.y + sinf(correlationAngle) * lineLength  
+			};
+			ImVec2 lineEnd = {
+				center.x + cosf(correlationAngle) * lineLength,
+				center.y - sinf(correlationAngle) * lineLength   
+			};
+			
+			// *** REFLECTED CORRELATION LINE (mirror around Y-axis to complete the X) ***
+			ImVec2 reflectedLineStart = {
+				center.x + cosf(correlationAngle) * lineLength,  // Flip X coordinate
+				center.y + sinf(correlationAngle) * lineLength   // Keep Y coordinate same
+			};
+			ImVec2 reflectedLineEnd = {
+				center.x - cosf(correlationAngle) * lineLength,  // Flip X coordinate  
+				center.y - sinf(correlationAngle) * lineLength   // Keep Y coordinate same
+			};
+			
+			// Draw both lines to form complete X/cross
+			dl->AddLine(lineStart, lineEnd, phaseLineColor, 3.0f);                    // Original line "/"
+			dl->AddLine(reflectedLineStart, reflectedLineEnd, phaseLineColor, 3.0f);  // Reflected line "\"
+			
+			// Add center dot to show the correlation X origin
+			//dl->AddCircleFilled(center, 3.0f, envelopeLineColor, 8);
 		}
+		
 		
 		// Labels and info
 		dl->AddText({bb.Min.x + 2, bb.Min.y + 2}, IM_COL32(255, 255, 255, 150), "Polar L");
