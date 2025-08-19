@@ -112,9 +112,15 @@ public:
     if (mCrossoverLayer) mCrossoverLayer->SetCurrentEditingBand(bandIndex);
   }
   
-  // Set band renderer callback - REFACTORED
+  // Set band renderer callback
   void SetBandRenderer(std::function<bool(int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl)> renderer) {
     if (mCrossoverLayer) mCrossoverLayer->SetBandRenderer(renderer);
+  }
+
+  // Get the current active band rectangles
+  const std::vector<std::pair<int, ImRect>>& GetActiveBandRects() const {
+    static const std::vector<std::pair<int, ImRect>> empty;
+    return mCrossoverLayer ? mCrossoverLayer->GetActiveBandRects() : empty;
   }
   
   // Expose coordinate conversion functions for compatibility

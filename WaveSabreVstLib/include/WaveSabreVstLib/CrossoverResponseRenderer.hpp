@@ -58,12 +58,14 @@ namespace WaveSabreVstLib {
 		// Currently selected band index (for highlighting)
 		int mCurrentEditingBand = 0;
 
-		// Band renderer callback with state information - REFACTORED
-		// Callback signature: (bandIndex, bandRect, isHovered, isSelected, drawList) -> bool (true if handled mouse events)
+		// Band renderer callback with state information
 		std::function<bool(int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl)> mBandRenderer;
 
 		// Current hovered band for state tracking
 		int mCurrentHoveredBand = -1;
+
+		// Stored band rectangles for external access - NEW
+		std::vector<std::pair<int, ImRect>> mActiveBandRects;
 
 		// Interaction state for crossover frequency dragging
 		struct CrossoverDragState {
@@ -207,6 +209,11 @@ namespace WaveSabreVstLib {
 		// Set band renderer callback - REFACTORED
 		void SetBandRenderer(std::function<bool(int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl)> renderer) {
 			mBandRenderer = renderer;
+		}
+
+		// Get the current active band rectangles - NEW
+		const std::vector<std::pair<int, ImRect>>& GetActiveBandRects() const {
+			return mActiveBandRects;
 		}
 
 	private:
@@ -574,7 +581,10 @@ namespace WaveSabreVstLib {
 			}
 
 			// Render band overlays for all bands - REFACTORED
-			if (mBandRenderer) {
+			if (mBandRenderer || true) { // Always calculate band rects
+				// Clear previous band rects
+				mActiveBandRects.clear();
+				
 				// Determine which bands exist based on crossover configuration
 				std::vector<int> activeBands;
 				if (mDevice) {
@@ -582,13 +592,13 @@ namespace WaveSabreVstLib {
 					float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
 					M7::ParamAccessor paA{ &rawA, 0 };
 					M7::ParamAccessor paB{ &rawB, 0 };
-					float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-					float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+					float fA3 = paA.GetFrequency(0, M7::gFilterFreqConfig);
+					float fB3 = paB.GetFrequency(0, M7::gFilterFreqConfig);
 
-					if (fA > 0.0f && fB > 0.0f) {
+					if (fA3 > 0.0f && fB3 > 0.0f) {
 						// Both crossovers active: 3 bands
 						activeBands = {0, 1, 2};
-					} else if (fA > 0.0f || fB > 0.0f) {
+					} else if (fA3 > 0.0f || fB3 > 0.0f) {
 						// Only one crossover active: 2 bands  
 						activeBands = {0, 1};
 					} else {
@@ -596,13 +606,19 @@ namespace WaveSabreVstLib {
 						activeBands = {1};
 					}
 
-					// Render overlays for all active bands
+					// Store and render overlays for all active bands
 					for (int bandIndex : activeBands) {
 						ImRect bandRect = GetBandRect(bandIndex, coords, bb);
 						if (bandRect.GetWidth() > 0 && bandRect.GetHeight() > 0) {
-							bool isHovered = (bandIndex == mCurrentHoveredBand);
-							bool isSelected = (bandIndex == mCurrentEditingBand);
-							mBandRenderer(bandIndex, bandRect, isHovered, isSelected, dl);
+							// Store the band rect for external access
+							mActiveBandRects.emplace_back(bandIndex, bandRect);
+							
+							// Render overlay if renderer is provided
+							if (mBandRenderer) {
+								bool isHovered = (bandIndex == mCurrentHoveredBand);
+								bool isSelected = (bandIndex == mCurrentEditingBand);
+								mBandRenderer(bandIndex, bandRect, isHovered, isSelected, dl);
+							}
 						}
 					}
 				}
@@ -655,6 +671,12 @@ namespace WaveSabreVstLib {
 
 		void SetBandRenderer(std::function<bool(int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl)> renderer) {
 			if (mCrossoverLayer) mCrossoverLayer->SetBandRenderer(renderer);
+		}
+
+		// Get the current active band rectangles
+		const std::vector<std::pair<int, ImRect>>& GetActiveBandRects() const {
+			static const std::vector<std::pair<int, ImRect>> empty;
+			return mCrossoverLayer ? mCrossoverLayer->GetActiveBandRects() : empty;
 		}
 		
 		void Render() {

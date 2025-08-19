@@ -252,12 +252,15 @@ private:
 	ImRect GetBandButtonArea(const ImRect& bandRect) const {
 		// Place buttons in the upper portion of the band rectangle
 		const float buttonHeight = 20.0f;
-		const float buttonWidth = 60.0f;
 		const float padding = 4.0f;
+		
+		// Calculate width for 4 buttons: Mute, Solo, Enable, Delta
+		const float buttonWidth = 22.0f;
+		const float buttonPadding = 1.5f;
+		const float totalWidth = buttonWidth * 4 + buttonPadding * 3 + padding * 2;
 		
 		// Center buttons horizontally in the band, place them near the top
 		float centerX = (bandRect.Min.x + bandRect.Max.x) * 0.5f;
-		float totalWidth = buttonWidth * 2 + padding; // Two buttons with padding
 		float startX = centerX - totalWidth * 0.5f;
 		
 		return ImRect(
@@ -279,19 +282,23 @@ private:
 		
 		// Get button area and individual button rects
 		ImRect buttonArea = GetBandButtonArea(bandRect);
-		if (bandRect.GetWidth() < 80.0f) {
+		if (bandRect.GetWidth() < 120.0f) { // Increased width requirement
 			return false;
 		}
 
-		const float buttonWidth = 28.0f;
+		const float buttonWidth = 22.0f;
 		const float buttonHeight = 16.0f;
-		const float padding = 2.0f;
+		const float padding = 1.5f;
 		
-		ImVec2 mutePos = { buttonArea.Min.x + padding, buttonArea.Min.y + padding };
+		ImVec2 mutePos = { buttonArea.Min.x + 4.0f, buttonArea.Min.y + 4.0f };
 		ImVec2 soloPos = { mutePos.x + buttonWidth + padding, mutePos.y };
+		ImVec2 enablePos = { soloPos.x + buttonWidth + padding, soloPos.y };
+		ImVec2 deltaPos = { enablePos.x + buttonWidth + padding, enablePos.y };
 		
 		ImRect muteRect(mutePos, { mutePos.x + buttonWidth, mutePos.y + buttonHeight });
 		ImRect soloRect(soloPos, { soloPos.x + buttonWidth, soloPos.y + buttonHeight });
+		ImRect enableRect(enablePos, { enablePos.x + buttonWidth, enablePos.y + buttonHeight });
+		ImRect deltaRect(deltaPos, { deltaPos.x + buttonWidth, deltaPos.y + buttonHeight });
 
 		ImVec2 mousePos = ImGui::GetIO().MousePos;
 		
@@ -300,6 +307,21 @@ private:
 			return true;
 		} else if (soloRect.Contains(mousePos)) {
 			bandConfig.mSolo = !bandConfig.mSolo;
+			return true;
+		} else if (enableRect.Contains(mousePos)) {
+			// Toggle band enable via parameter system
+			using BandParam = Maj7MBC::FreqBand::BandParam;
+			VstInt32 paramIndex = band.mParams.mBaseParamID + (VstInt32)BandParam::Enable;
+			float currentValue = GetEffectX()->getParameter(paramIndex);
+			GetEffectX()->setParameterAutomated(paramIndex, currentValue > 0.5f ? 0.0f : 1.0f);
+			return true;
+		} else if (deltaRect.Contains(mousePos)) {
+			// Toggle delta output mode
+			if (bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta) {
+				bandConfig.mOutputStream = Maj7MBC::OutputStream::Normal;
+			} else {
+				bandConfig.mOutputStream = Maj7MBC::OutputStream::Delta;
+			}
 			return true;
 		}
 		
@@ -315,30 +337,31 @@ private:
 		auto& band = mpMaj7MBC->mBands[bandIndex];
 		auto& bandConfig = band.mVSTConfig;
 		
-		// Get button area
+		// Get button area for 4 buttons (Mute, Solo, Enable, Delta)
 		ImRect buttonArea = GetBandButtonArea(bandRect);
 
-		// Draw semi-transparent background for buttons
-		//ImColor bgColor = ColorFromHTML("000000", 0.8f);
-		//dl->AddRectFilled(buttonArea.Min, buttonArea.Max, bgColor, 4.0f);
-		//dl->AddRect(buttonArea.Min, buttonArea.Max, ColorFromHTML("666666", 0.9f), 4.0f, 0, 1.0f);
-
-		// Button dimensions
-		const float buttonWidth = 28.0f;
+		// Button dimensions for 4 buttons
+		const float buttonWidth = 22.0f;  // Smaller buttons to fit 4
 		const float buttonHeight = 16.0f;
-		const float padding = 2.0f;
+		const float padding = 1.5f;       // Smaller padding
 		
 		ImVec2 mutePos = { buttonArea.Min.x + padding, buttonArea.Min.y + padding };
 		ImVec2 soloPos = { mutePos.x + buttonWidth + padding, mutePos.y };
+		ImVec2 enablePos = { soloPos.x + buttonWidth + padding, soloPos.y };
+		ImVec2 deltaPos = { enablePos.x + buttonWidth + padding, enablePos.y };
 		
 		ImRect muteRect(mutePos, { mutePos.x + buttonWidth, mutePos.y + buttonHeight });
 		ImRect soloRect(soloPos, { soloPos.x + buttonWidth, soloPos.y + buttonHeight });
+		ImRect enableRect(enablePos, { enablePos.x + buttonWidth, enablePos.y + buttonHeight });
+		ImRect deltaRect(deltaPos, { deltaPos.x + buttonWidth, deltaPos.y + buttonHeight });
 
 		// Check for mouse hover on individual buttons
 		ImVec2 mousePos = ImGui::GetIO().MousePos;
 		bool muteHovered = muteRect.Contains(mousePos);
 		bool soloHovered = soloRect.Contains(mousePos);
-		bool anyButtonHovered = muteHovered || soloHovered;
+		bool enableHovered = enableRect.Contains(mousePos);
+		bool deltaHovered = deltaRect.Contains(mousePos);
+		bool anyButtonHovered = muteHovered || soloHovered || enableHovered || deltaHovered;
 
 		// Render MUTE button
 		ImColor muteColor = bandConfig.mMute ? 
@@ -377,6 +400,45 @@ private:
 			soloRect.Min.y + (soloRect.GetHeight() - soloTextSize.y) * 0.5f
 		};
 		dl->AddText(soloTextPos, soloTextColor, "S");
+
+		// Render ENABLE button
+		ImColor enableColor = band.mEnable ? 
+			ColorFromHTML("44cc44", 0.9f) : 
+			ColorFromHTML("444444", enableHovered ? 0.8f : 0.6f);
+		ImColor enableTextColor = band.mEnable ? 
+			ColorFromHTML("ffffff") : 
+			ColorFromHTML(enableHovered ? "ffffff" : "cccccc");
+			
+		dl->AddRectFilled(enableRect.Min, enableRect.Max, enableColor, 2.0f);
+		dl->AddRect(enableRect.Min, enableRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
+		
+		// Center text in button
+		ImVec2 enableTextSize = ImGui::CalcTextSize("E");
+		ImVec2 enableTextPos = { 
+			enableRect.Min.x + (enableRect.GetWidth() - enableTextSize.x) * 0.5f,
+			enableRect.Min.y + (enableRect.GetHeight() - enableTextSize.y) * 0.5f
+		};
+		dl->AddText(enableTextPos, enableTextColor, "E");
+
+		// Render DELTA button
+		bool isDelta = (bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta);
+		ImColor deltaColor = isDelta ? 
+			ColorFromHTML("cc44cc", 0.9f) : 
+			ColorFromHTML("444444", deltaHovered ? 0.8f : 0.6f);
+		ImColor deltaTextColor = isDelta ? 
+			ColorFromHTML("ffffff") : 
+			ColorFromHTML(deltaHovered ? "ffffff" : "cccccc");
+			
+		dl->AddRectFilled(deltaRect.Min, deltaRect.Max, deltaColor, 2.0f);
+		dl->AddRect(deltaRect.Min, deltaRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
+		
+		// Center text in button
+		ImVec2 deltaTextSize = ImGui::CalcTextSize("D");
+		ImVec2 deltaTextPos = { 
+			deltaRect.Min.x + (deltaRect.GetWidth() - deltaTextSize.x) * 0.5f,
+			deltaRect.Min.y + (deltaRect.GetHeight() - deltaTextSize.y) * 0.5f
+		};
+		dl->AddText(deltaTextPos, deltaTextColor, "D");
 
 		// Set cursor for hoverable buttons
 		if (anyButtonHovered) {
