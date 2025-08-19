@@ -408,6 +408,23 @@ private:
 	
 	// "Polar L" - Ozone-style envelope goniometer with sector peak detection
 	void RenderPolarL(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size) {
+		constexpr size_t kMaxSectorCount = 128; // Power of 2 for better smoothing
+		static size_t kSectorCount = 96; // Power of 2 for better smoothing
+		static float kSmoothnessK = 0.f; // 0.0 = original shape, 1.0 = perfect circle -- not very necessary because kernel size does a lot of smoothing already.
+		static int kSmoothingKernelSize = 3; // Larger = smoother curves
+		static float kVisualBoost = 1.0f; // Perceptual compensation boost
+
+
+		// for debugging, controls to change sector count, smoothness K, kernel size...
+		ImGui::BeginGroup();
+		ImGui::Text("Polar L Settings");
+		ImGui::SliderInt("Sector Count", (int*)&kSectorCount, 3, kMaxSectorCount, "%d");
+		ImGui::SliderFloat("Smoothness K", &kSmoothnessK, 0.0f, 1.0f, "%.2f");
+		ImGui::SliderInt("Smoothing Kernel Size", &kSmoothingKernelSize, 1, 32, "%d");
+		ImGui::SliderFloat("Visual Boost", &kVisualBoost, 0.5f, 4.0f, "%.2f");
+		ImGui::EndGroup();
+
+
 		auto* dl = ImGui::GetWindowDrawList();
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImRect bb(pos, pos + size);
@@ -440,9 +457,8 @@ private:
 		dl->AddText({bb.Min.x + 2, center.y - 8}, IM_COL32(150, 150, 255, 150), "L");              // 270° (left)
 		
 		// Static peak detection system for envelope - using unique static storage per instance
-		constexpr size_t kSectorCount = 127;
-		static std::map<std::string, std::array<float, kSectorCount>> sectorPeakRadiiMap;
-		static std::map<std::string, std::array<float, kSectorCount>> sectorHoldTimersMap;
+		static std::map<std::string, std::array<float, kMaxSectorCount>> sectorPeakRadiiMap;
+		static std::map<std::string, std::array<float, kMaxSectorCount>> sectorHoldTimersMap;
 		static std::map<std::string, double> lastUpdateTimeMap;
 		
 		std::string instanceId = std::string(id);
@@ -482,7 +498,14 @@ private:
 				
 				// Calculate angle and radius
 				float angle = atan2(side, mid) - 3.14159f * 0.5f; // Rotate -90° so mono appears at top
-				float currentRadius = std::min(magnitude / gMaxLevel, 1.0f) * radius;
+				
+				// *** PERCEPTUAL COMPENSATION BOOST ***
+				// Apply scientifically-based scaling to compensate for processing losses:
+				// 1. Square root for perceptual scaling (Stevens' Power Law for loudness ≈ amplitude^0.6)
+				// 2. Additional boost for visual clarity 
+				// 3. Compensate for smoothing losses
+				float compensatedMagnitude = std::sqrt(magnitude) * kVisualBoost;  // sqrt ≈ power law + boost
+				float currentRadius = std::min(compensatedMagnitude / gMaxLevel, 1.0f) * radius;
 				
 				// Normalize angle to 0-2π range
 				while (angle < 0) angle += 2 * 3.14159f;
@@ -516,6 +539,50 @@ private:
 			}
 		}
 		
+		// === SMOOTHING ALGORITHM ===
+		// Apply circular convolution smoothing to eliminate sharp polygon artifacts
+		
+		// Calculate average radius for circle fallback and mono signal detection
+		float averageRadius = 0.0f;
+		float maxRadius = 0.0f;
+		for (size_t i = 0; i < kSectorCount; ++i) {
+			averageRadius += sectorPeakRadii[i];
+			maxRadius = std::max(maxRadius, sectorPeakRadii[i]);
+		}
+		averageRadius /= static_cast<float>(kSectorCount);
+		
+		// Create smoothed radius array using circular convolution
+		std::array<float, kMaxSectorCount> smoothedRadii = {};
+		
+		for (size_t i = 0; i < kSectorCount; ++i) {
+			float smoothedValue = 0.0f;
+			float weightSum = 0.0f;
+			
+			// Apply smoothing kernel (Gaussian-like weighting)
+			for (int k = -kSmoothingKernelSize; k <= kSmoothingKernelSize; ++k) {
+				// Circular array indexing
+				size_t sampleIndex = (i + k + kSectorCount) % kSectorCount;
+				
+				// Gaussian-like weight (closer samples have more influence)
+				float weight = std::exp(-0.5f * (k * k) / (kSmoothingKernelSize * kSmoothingKernelSize * 0.25f));
+				
+				smoothedValue += sectorPeakRadii[sampleIndex] * weight;
+				weightSum += weight;
+			}
+			
+			// Normalize and blend with circular fallback
+			float kernelSmoothed = smoothedValue / weightSum;
+			float circularFallback = averageRadius; // Perfect circle
+			
+			// Apply smoothness blending: k=0 uses original kernel smoothing, k=1 uses circle
+			smoothedRadii[i] = kernelSmoothed * (1.0f - kSmoothnessK) + circularFallback * kSmoothnessK;
+			
+			// Enhanced minimum radius for mono signals (prevents disappearing)
+			// Use perceptually-scaled minimum that's more generous
+			float enhancedMinimumRadius = std::max(maxRadius * 0.15f, radius * 0.05f); // Either 15% of peak OR 5% of total radius
+			smoothedRadii[i] = std::max(smoothedRadii[i], enhancedMinimumRadius);
+		}
+		
 		// Draw faint current trace for reference  
 		if (historySize > 1) {
 			for (size_t i = std::max(1ULL, historySize - 8); i < historySize; ++i) {
@@ -533,8 +600,8 @@ private:
 				
 				float prevAngle = atan2(prevSide, prevMid) - 3.14159f * 0.5f;
 				float currAngle = atan2(currSide, currMid) - 3.14159f * 0.5f;
-				float prevRadius = std::min(prevMag, 1.0f) * radius;
-				float currRadius = std::min(currMag, 1.0f) * radius;
+				float prevRadius = std::min(std::sqrt(prevMag) * kVisualBoost, 1.0f) * radius;
+				float currRadius = std::min(std::sqrt(currMag) * kVisualBoost, 1.0f) * radius;
 				
 				ImVec2 prevPos = {center.x + cos(prevAngle) * prevRadius, center.y - sin(prevAngle) * prevRadius};
 				ImVec2 currPos = {center.x + cos(currAngle) * currRadius, center.y - sin(currAngle) * currRadius};
@@ -545,15 +612,15 @@ private:
 			}
 		}
 		
-		// Build envelope polygon from sector peaks
+		// Build smooth envelope polygon from smoothed sector peaks
 		std::vector<ImVec2> envelopePoints;
 		envelopePoints.reserve(kSectorCount);
 		
 		for (size_t i = 0; i < kSectorCount; ++i) {
 			float angle = (static_cast<float>(i) / static_cast<float>(kSectorCount)) * 2 * 3.14159f;
-			float envelopeRadius = sectorPeakRadii[i];
+			float envelopeRadius = smoothedRadii[i];
 			
-			if (envelopeRadius > 0.5f) { // Only add significant points
+			if (envelopeRadius > 0.01f) { // Always add points due to minimum radius
 				ImVec2 point = {
 					center.x + cos(angle) * envelopeRadius,
 					center.y - sin(angle) * envelopeRadius
@@ -562,7 +629,7 @@ private:
 			}
 		}
 		
-		// Draw the envelope polygon if we have enough points
+		// Draw the smooth envelope polygon
 		if (envelopePoints.size() >= 3) {
 			// Color based on phase correlation
 			float correlation = static_cast<float>(analysis.mPhaseCorrelation);
@@ -582,7 +649,7 @@ private:
 			// Draw filled envelope
 			dl->AddConvexPolyFilled(envelopePoints.data(), static_cast<int>(envelopePoints.size()), envelopeFillColor);
 			
-			// Draw envelope outline
+			// Draw smooth envelope outline
 			for (size_t i = 0; i < envelopePoints.size(); i++) {
 				size_t nextIdx = (i + 1) % envelopePoints.size();
 				dl->AddLine(envelopePoints[i], envelopePoints[nextIdx], envelopeLineColor, 2.0f);
@@ -591,7 +658,7 @@ private:
 		
 		// Labels and info
 		dl->AddText({bb.Min.x + 2, bb.Min.y + 2}, IM_COL32(255, 255, 255, 150), "Polar L");
-		dl->AddText({bb.Min.x + 2, bb.Min.y + 18}, IM_COL32(200, 200, 200, 120), "Envelope");
+		dl->AddText({bb.Min.x + 2, bb.Min.y + 18}, IM_COL32(200, 200, 200, 120), "Enhanced");
 		
 		// Phase correlation warning
 		if (analysis.mPhaseCorrelation < -0.3) {
@@ -600,7 +667,7 @@ private:
 		
 		// Analysis info
 		char polarText[128];
-		sprintf_s(polarText, "Corr: %.2f", static_cast<float>(analysis.mPhaseCorrelation));
+		sprintf_s(polarText, "Corr: %.2f Boost: %.1fx", static_cast<float>(analysis.mPhaseCorrelation), kVisualBoost);
 		ImVec2 textSize = ImGui::CalcTextSize(polarText);
 		dl->AddText({bb.Max.x - textSize.x - 2, bb.Max.y - 14}, IM_COL32(255, 255, 255, 150), polarText);
 		
