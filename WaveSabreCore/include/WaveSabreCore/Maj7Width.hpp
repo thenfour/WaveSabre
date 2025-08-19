@@ -57,6 +57,8 @@ namespace WaveSabreCore
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		AnalysisStream mInputAnalysis[2];
 		AnalysisStream mOutputAnalysis[2];
+		StereoImagingAnalysisStream mInputImagingAnalysis;
+		StereoImagingAnalysisStream mOutputImagingAnalysis;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7Width() :
@@ -133,6 +135,10 @@ namespace WaveSabreCore
 					mInputAnalysis[1].WriteSample(inputs[1][i]);
 					mOutputAnalysis[0].WriteSample(outputs[0][i]);
 					mOutputAnalysis[1].WriteSample(outputs[1][i]);
+					
+					// Feed stereo imaging analysis
+					mInputImagingAnalysis.WriteStereoSample(inputs[0][i], inputs[1][i]);
+					mOutputImagingAnalysis.WriteStereoSample(outputs[0][i], outputs[1][i]);
 				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
