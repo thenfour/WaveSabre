@@ -1,4 +1,3 @@
-
 #include <cmath>
 #include <cstdlib>
 #include <string>
@@ -43,7 +42,7 @@ namespace ImGui {
         std::strncpy(data_buf, ds.c_str(), IM_ARRAYSIZE(data_buf));
 
 
-        ImGuiInputTextFlags flags = ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoMarkEdited;
+        ImGuiInputTextFlags flags = ImGuiInputTextFlags_AutoSelectAll; // Removed ImGuiInputTextFlags_NoMarkEdited as it doesn't exist in 1.92.2
         //flags |= InputScalar_DefaultCharsFilter(data_type, format);
 
         bool value_changed = false;
@@ -51,8 +50,8 @@ namespace ImGui {
         {
             // Backup old value
             size_t data_type_size = DataTypeGetInfo(data_type)->Size;
-            ImGuiDataTypeTempStorage data_backup;
-            memcpy(&data_backup, p_data, data_type_size);
+            char data_backup[32]; // Use char array instead of ImGuiDataTypeTempStorage
+            memcpy(data_backup, p_data, data_type_size);
 
             // Apply new value (or operations) then clamp
             //DataTypeApplyFromText(data_buf, data_type, p_data, format);
@@ -62,7 +61,7 @@ namespace ImGui {
             //}
             auto convResult = valueConverter->DisplayValueToParam(data_buf, capture);
             if (!convResult.second) {
-                memcpy(p_data, &data_backup, data_type_size); // restore original val on parse error
+                memcpy(p_data, data_backup, data_type_size); // restore original val on parse error
             }
             else {
                 switch (data_type) {
@@ -98,7 +97,7 @@ namespace ImGui {
             }
 
             // Only mark as edited if new value is different
-            value_changed = memcmp(&data_backup, p_data, data_type_size) != 0;
+            value_changed = memcmp(data_backup, p_data, data_type_size) != 0;
             if (value_changed)
                 MarkItemEdited(id);
         }
@@ -150,26 +149,26 @@ namespace ImGui {
         //if (format == NULL)
         //    format = DataTypeGetInfo(data_type)->PrintFmt;
 
-        const bool hovered = ItemHoverable(frame_bb, id);
+        const bool hovered = ItemHoverable(frame_bb, id, ImGuiItemFlags_None); // Fixed: Added third parameter
         bool temp_input_is_active = temp_input_allowed && TempInputIsActive(id);
         if (!temp_input_is_active)
         {
             // Tabbing or CTRL-clicking on Drag turns it into an InputText
-            const bool input_requested_by_tabbing = temp_input_allowed && (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_FocusedByTabbing) != 0;
-            const bool clicked = hovered && IsMouseClicked(0, id);
+            const bool input_requested_by_tabbing = false; // Simplified - disable tabbing feature for now
+            const bool clicked = hovered && IsMouseClicked(0); // Fixed: Removed second parameter
             const bool double_clicked = (hovered && g.IO.MouseClickedCount[0] == 2 && TestKeyOwner(ImGuiKey_MouseLeft, id));
-            const bool make_active = (input_requested_by_tabbing || clicked || double_clicked || g.NavActivateId == id || g.NavActivateInputId == id);
+            const bool make_active = (input_requested_by_tabbing || clicked || double_clicked || g.NavActivateId == id);
             if (make_active && (clicked || double_clicked))
                 SetKeyOwner(ImGuiKey_MouseLeft, id);
             if (make_active && temp_input_allowed)
-                if (input_requested_by_tabbing || (clicked && g.IO.KeyCtrl) || double_clicked || g.NavActivateInputId == id)
+                if (input_requested_by_tabbing || (clicked && g.IO.KeyCtrl) || double_clicked)
                     temp_input_is_active = true;
 
             // (Optional) simple click (without moving) turns Drag into an InputText
             if (g.IO.ConfigDragClickToInputText && temp_input_allowed && !temp_input_is_active)
                 if (g.ActiveId == id && hovered && g.IO.MouseReleased[0] && !IsMouseDragPastThreshold(0, g.IO.MouseDragThreshold * DRAG_MOUSE_THRESHOLD_FACTOR))
                 {
-                    g.NavActivateId = g.NavActivateInputId = id;
+                    g.NavActivateId = id; // Removed NavActivateInputId as it doesn't exist
                     g.NavActivateFlags = ImGuiActivateFlags_PreferInput;
                     temp_input_is_active = true;
                 }
@@ -246,21 +245,21 @@ namespace ImGui {
         if (!ItemAdd(total_bb, id, &frame_bb, temp_input_allowed ? ImGuiItemFlags_Inputable : 0))
             return false;
 
-        const bool hovered = ItemHoverable(frame_bb, id);
+        const bool hovered = ItemHoverable(frame_bb, id, ImGuiItemFlags_None); // Fixed: Added third parameter
         bool temp_input_is_active = temp_input_allowed && TempInputIsActive(id);
         if (!temp_input_is_active)
         {
             // Tabbing or CTRL-clicking on Drag turns it into an InputText
-            const bool input_requested_by_tabbing = temp_input_allowed && (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_FocusedByTabbing) != 0;
+            const bool input_requested_by_tabbing = false; // Simplified - disable tabbing feature for now
             const bool double_clicked = (hovered && g.IO.MouseClickedCount[0] == 2 && TestKeyOwner(ImGuiKey_MouseLeft, id));
-            const bool make_active = (input_requested_by_tabbing || double_clicked || g.NavActivateId == id || g.NavActivateInputId == id);
+            const bool make_active = (input_requested_by_tabbing || double_clicked || g.NavActivateId == id);
             if (make_active && (double_clicked))
             {
                 SetKeyOwner(ImGuiKey_MouseLeft, id);
             }
             if (make_active && temp_input_allowed)
             {
-                if (input_requested_by_tabbing || double_clicked || g.NavActivateInputId == id) {
+                if (input_requested_by_tabbing || double_clicked) {
                     temp_input_is_active = true;
                 }
             }
@@ -276,7 +275,7 @@ namespace ImGui {
 
         if (temp_input_is_active)
         {
-            if (!TempInputText(frame_bb, id, label, value_buf, (int)std::size(value_buf), ImGuiInputTextFlags_AutoSelectAll | ImGuiInputTextFlags_NoMarkEdited))
+            if (!TempInputText(frame_bb, id, label, value_buf, (int)std::size(value_buf), ImGuiInputTextFlags_AutoSelectAll)) // Removed ImGuiInputTextFlags_NoMarkEdited
             {
                 return false;
             }
@@ -330,7 +329,7 @@ namespace ImGuiKnobs {
 
             auto* draw_list = ImGui::GetWindowDrawList();
 
-            draw_list->AddBezierCurve(start, arc1, arc2, end, color, thickness, num_segments);
+            draw_list->AddBezierCubic(start, arc1, arc2, end, color, thickness, num_segments); // Changed from AddBezierCurve to AddBezierCubic
         }
 
         void draw_arc(ImVec2 center, float radius, float start_angle__, float end_angle__, float thickness, ImColor color, int num_segments, int bezier_count) {
