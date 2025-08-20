@@ -108,6 +108,17 @@ namespace WaveSabreCore
 		WindowType GetWindowType() const { return mWindowType; }
 		FFTSize GetFFTSize() const { return mFFTSize; }
 		int GetFFTSizeInt() const { return mFFTSizeInt; }
+        void SetFFTSize(FFTSize fftSize) {
+            if (mFFTSize != fftSize) {
+                mFFTSize = fftSize;
+                mFFTSizeInt = static_cast<int>(fftSize);
+                mInputBuffer.resize(mFFTSizeInt);
+                mFFTBuffer.resize(mFFTSizeInt);
+                mSpectrum.resize(mFFTSizeInt / 2 + 1); // Real FFT output size
+                GenerateWindow();
+                Reset();
+            }
+		}
 		float GetSampleRate() const { return mSampleRate; }
 		int GetOverlapFactor() const { return mOverlapFactor; }
 		float GetSmoothingFactor() const { return mSmoothingFactor; }
@@ -288,6 +299,10 @@ namespace WaveSabreCore
         void SetSampleRate(float sampleRate) { mFFTAnalysis.SetSampleRate(sampleRate); }
         void SetWindowType(MonoFFTAnalysis::WindowType windowType) { mFFTAnalysis.SetWindowType(windowType); }
         void SetFFTSmoothing(float smoothing) { mFFTAnalysis.SetSmoothingFactor(smoothing); }
+		void SetFFTSize(MonoFFTAnalysis::FFTSize fftSize) { 
+            mFFTAnalysis.SetFFTSize(fftSize);
+            SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
+        }
         void SetOverlapFactor(int factor) { mFFTAnalysis.SetOverlapFactor(factor); SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), factor); }
         // Proxy getters for UI
         MonoFFTAnalysis::WindowType GetWindowType() const { return mFFTAnalysis.GetWindowType(); }

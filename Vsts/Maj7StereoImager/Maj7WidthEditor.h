@@ -37,9 +37,6 @@ struct Maj7WidthEditor : public VstEditor
 	bool mShowOutputSide = false;
 	bool mShowOutputWidth = true;
 
-	// Scale selection: 0=Linear, 1=Gamma, 2=Log
-	int mWidthScaleMode = 0;
-
 	// Persist across sessions
 	VstSerializableBoolParamRef mShowInputMidParam{ "ShowInputMidFFT", mShowInputMid };
 	VstSerializableBoolParamRef mShowInputSideParam{ "ShowInputSideFFT", mShowInputSide };
@@ -47,13 +44,12 @@ struct Maj7WidthEditor : public VstEditor
 	VstSerializableBoolParamRef mShowOutputMidParam{ "ShowOutputMidFFT", mShowOutputMid };
 	VstSerializableBoolParamRef mShowOutputSideParam{ "ShowOutputSideFFT", mShowOutputSide };
 	VstSerializableBoolParamRef mShowOutputWidthParam{ "ShowOutputWidthFFT", mShowOutputWidth };
-	VstSerializableIntParamRef<int> mWidthScaleModeParam{ "WidthScaleMode", mWidthScaleMode };
 
 	Maj7WidthEditor(AudioEffect* audioEffect) : //
 		VstEditor(audioEffect, 950, 900), // Increase height to accommodate frequency graph
 		mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
 	{
-		mpMaj7Width = ((Maj7WidthVst *)audioEffect)->GetMaj7Width();
+		mpMaj7Width = ((Maj7WidthVst*)audioEffect)->GetMaj7Width();
 	}
 
 	virtual void PopulateMenuBar() override
@@ -79,8 +75,8 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::BulletText("+1.0: Pure right input signal");
 			ImGui::EndTooltip();
 		}
-		
-		ImGui::SameLine(); 
+
+		ImGui::SameLine();
 		Maj7ImGuiParamFloatN11WithCenter((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RightSource, "Right source", 1, 1, 0, {});
 		if (ImGui::IsItemHovered()) {
 			ImGui::BeginTooltip();
@@ -137,10 +133,10 @@ struct Maj7WidthEditor : public VstEditor
 
 		// Final Output Section with Tooltips
 		ImGui::BeginGroup();
-		
+
 		Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
-		
-		ImGui::SameLine(); 
+
+		ImGui::SameLine();
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
 		ImGui::EndGroup();
 
@@ -219,9 +215,9 @@ struct Maj7WidthEditor : public VstEditor
 		// Frequency Analysis Controls
 		ImGui::BeginGroup();
 		bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
-		if (ToggleButton(&frequencyAnalysisEnabled, "Frequency Analysis", { 120, 20 })) {
-			mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
-			mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
+		if (!frequencyAnalysisEnabled) {
+			mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
+			mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
 		}
 		if (ImGui::IsItemHovered()) {
 			ImGui::BeginTooltip();
@@ -242,15 +238,10 @@ struct Maj7WidthEditor : public VstEditor
 			ToggleButton(&mShowOutputMid, "Out M"); ImGui::SameLine();
 			ToggleButton(&mShowOutputSide, "Out S"); ImGui::SameLine();
 			ToggleButton(&mShowOutputWidth, "Out W");
-			ImGui::SameLine(0, 20);
-			ImGui::Text("Width scale:"); ImGui::SameLine();
-			const char* kScaleNames[] = { "Linear","Gamma","Log" };
-			ImGui::SetNextItemWidth(80);
-			ImGui::Combo("##widthscale", &mWidthScaleMode, kScaleNames, 3);
 		}
-		if (frequencyAnalysisEnabled) {
-			RenderFrequencyAnalysis();
-		}
+
+		RenderFrequencyAnalysis();
+
 		ImGui::EndGroup();
 
 	}
@@ -274,7 +265,6 @@ struct Maj7WidthEditor : public VstEditor
 			&mShowOutputMidParam,
 			&mShowOutputSideParam,
 			&mShowOutputWidthParam,
-			&mWidthScaleModeParam,
 		};
 	}
 
@@ -315,7 +305,7 @@ private:
 			{},                              // minor ticks (defaults)
 			{},                              // fft overlays (fill below)
 			0.0f,                             // min (width)
-			4.0f,                             // max (width)
+			3.2f,                             // max (width)
 			true                              // independent scale
 		};
 		for (size_t i = 0; i < (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams; ++i) cfg.mParamCacheCopy[i] = mpMaj7Width->mParamCache[i];
@@ -328,16 +318,10 @@ private:
 		if (mShowOutputSide && analyzerOut->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetSideAnalyzer(), ColorFromHTML("CC6666", 0.9f), ColorFromHTML("663333", 0.25f), true, "Output Side", nullptr });
 
 		// Width overlays use linear width transform selection
-		auto widthLinear = [](float w){ return w; };
-		auto widthGamma = [](float w){ return std::pow(std::max(0.0f,w), 0.6f); };
-		auto widthLog = [](float w){ const float a = 1.8f; return std::log1p(a * std::max(0.0f,w)) / std::log1p(a * 3.0f); };
-		switch (mWidthScaleMode) {
-			case 0: mWidthGraph.SetFFTValueTransform(nullptr); mWidthGraph.SetFFTScaleCaption("Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 3.2f; break;
-			case 1: mWidthGraph.SetFFTValueTransform(widthGamma); mWidthGraph.SetFFTScaleCaption("Width^0.6"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 3.2f; break;
-			case 2: default: mWidthGraph.SetFFTValueTransform(widthLog); mWidthGraph.SetFFTScaleCaption("log1p Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 3.2f; break;
-		}
-		if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML("88FF44", 0.9f), ColorFromHTML("448822", 0.25f), true, "Input Width", widthLinear });
-		if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML("66CC33", 0.9f), ColorFromHTML("335511", 0.25f), true, "Output Width", widthLinear });
+		auto widthLog = [](float w)->float { const float a = 1.8f; return std::log1p(a * std::max(0.0f, w)) / std::log1p(a * 3.0f); };
+
+		if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML("88FF44", 0.9f), ColorFromHTML("448822", 0.25f), true, "Input Width", widthLog });
+		if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML("66CC33", 0.9f), ColorFromHTML("335511", 0.25f), true, "Output Width", widthLog });
 
 		mWidthGraph.OnRender(cfg);
 	}
@@ -357,7 +341,7 @@ private:
 
 		static constexpr float historyViewMinValue = -1.0f;  // For correlation (-1 to +1)
 		static constexpr float historyViewMaxValue = +2.0f;  // For width (0 to 2+)
-		
+
 		// Expanded to 10 series: 5 parameters × 2 signals (input + output)
 		HistoryView<13, historyViewWidth, historyViewHeight> mHistoryView;
 
@@ -372,7 +356,7 @@ private:
 		const char* kInputSideLevelColor = "ffbb88";
 		const char* kOutputSideLevelColor = "cc9966";
 
-		void Render(bool showToggles, const StereoImagingAnalysisStream& inputAnalysis, const StereoImagingAnalysisStream& outputAnalysis) 
+		void Render(bool showToggles, const StereoImagingAnalysisStream& inputAnalysis, const StereoImagingAnalysisStream& outputAnalysis)
 		{
 			ImGui::BeginGroup();
 			static constexpr float lineWidth = 2.0f;
@@ -398,31 +382,31 @@ private:
 				// Phase correlation: -1 to +1, bright cyan/blue  
 				HistoryViewSeriesConfig{
 					ColorFromHTML(kInputCorrellationColor, (mShowInput && mShowPhaseCorrelation) ? 0.9f : 0),
-					lineWidth, 
+					lineWidth,
 					-1.0f, +1.0f, true  // Custom scale for correlation
 				},
-				
+
 				// Stereo width: 0 to 3, bright green/yellow
 				HistoryViewSeriesConfig{
 					ColorFromHTML(kInputWidthColor, (mShowInput && mShowStereoWidth) ? 0.8f : 0),
 					lineWidth,
 					0.0f, 3.0f, true  // Custom scale for width (0 to 3 for better visibility)
 				},
-				
+
 				// Stereo balance: -1 to +1, bright red/orange
 				HistoryViewSeriesConfig{
 					ColorFromHTML(kInputBalanceColor, (mShowInput && mShowStereoBalance) ? 0.7f : 0),
 					lineWidth,
 					-1.0f, +1.0f, true  // Custom scale for balance
 				},
-				
+
 				// Mid level: 0 to 1, bright purple
 				HistoryViewSeriesConfig{
 					ColorFromHTML(kInputMidLevelColor, (mShowInput && mShowMidLevel) ? 0.6f : 0),
 					lineWidth,
 					0.0f, 1.0f, true  // Custom scale for RMS levels
 				},
-				
+
 				// Side level: 0 to 1, bright orange
 				HistoryViewSeriesConfig{
 					ColorFromHTML(kInputSideLevelColor, (mShowInput && mShowSideLevel) ? 0.6f : 0),
@@ -433,76 +417,76 @@ private:
 				// OUTPUT SIGNALS (darker variants) with per-series scaling
 				// Phase correlation: -1 to +1, darker cyan/blue
 				HistoryViewSeriesConfig{
-					ColorFromHTML(kOutputCorrellationColor, (mShowOutput && mShowPhaseCorrelation) ? 0.8f : 0), 
+					ColorFromHTML(kOutputCorrellationColor, (mShowOutput && mShowPhaseCorrelation) ? 0.8f : 0),
 					lineWidth,
 					-1.0f, +1.0f, true  // Custom scale for correlation
 				},
-				
+
 				// Stereo width: 0 to 3, darker green
 				HistoryViewSeriesConfig{
-					ColorFromHTML(kOutputWidthColor, (mShowOutput && mShowStereoWidth) ? 0.7f : 0), 
+					ColorFromHTML(kOutputWidthColor, (mShowOutput && mShowStereoWidth) ? 0.7f : 0),
 					lineWidth,
 					0.0f, 3.0f, true  // Custom scale for width
 				},
-				
+
 				// Stereo balance: -1 to +1, darker red/orange
 				HistoryViewSeriesConfig{
-					ColorFromHTML(kOutputBalanceColor, (mShowOutput && mShowStereoBalance) ? 0.6f : 0), 
+					ColorFromHTML(kOutputBalanceColor, (mShowOutput && mShowStereoBalance) ? 0.6f : 0),
 					lineWidth,
 					-1.0f, +1.0f, true  // Custom scale for balance
 				},
-				
+
 				// Mid level: 0 to 1, darker purple
 				HistoryViewSeriesConfig{
-					ColorFromHTML(kOutputMidLevelColor, (mShowOutput && mShowMidLevel) ? 0.5f : 0), 
+					ColorFromHTML(kOutputMidLevelColor, (mShowOutput && mShowMidLevel) ? 0.5f : 0),
 					lineWidth,
 					0.0f, 1.0f, true  // Custom scale for RMS levels
 				},
-				
+
 				// Side level: 0 to 1, darker orange
 				HistoryViewSeriesConfig{
-					ColorFromHTML(kOutputSideLevelColor, (mShowOutput && mShowSideLevel) ? 0.5f : 0), 
+					ColorFromHTML(kOutputSideLevelColor, (mShowOutput && mShowSideLevel) ? 0.5f : 0),
 					lineWidth,
 					0.0f, 1.0f, true  // Custom scale for RMS levels
 				},
-			}, {
-				0,
-				-0.5f,
-				+0.5f,
-				// INPUT VALUES (first 5 series) - raw values, no normalization needed
-				static_cast<float>(inputAnalysis.mPhaseCorrelation),                    // -1 to +1
-				static_cast<float>(inputAnalysis.mStereoWidth),                         // 0 to 3+
-				static_cast<float>(inputAnalysis.mStereoBalance),                       // -1 to +1  
-				static_cast<float>(inputAnalysis.mMidLevelDetector.mCurrentRMSValue),   // 0 to 1
-				static_cast<float>(inputAnalysis.mSideLevelDetector.mCurrentRMSValue),  // 0 to 1
+				}, {
+					0,
+					-0.5f,
+					+0.5f,
+					// INPUT VALUES (first 5 series) - raw values, no normalization needed
+					static_cast<float>(inputAnalysis.mPhaseCorrelation),                    // -1 to +1
+					static_cast<float>(inputAnalysis.mStereoWidth),                         // 0 to 3+
+					static_cast<float>(inputAnalysis.mStereoBalance),                       // -1 to +1  
+					static_cast<float>(inputAnalysis.mMidLevelDetector.mCurrentRMSValue),   // 0 to 1
+					static_cast<float>(inputAnalysis.mSideLevelDetector.mCurrentRMSValue),  // 0 to 1
 
-				// OUTPUT VALUES (last 5 series) - raw values, no normalization needed
-				static_cast<float>(outputAnalysis.mPhaseCorrelation),                   // -1 to +1
-				static_cast<float>(outputAnalysis.mStereoWidth),                        // 0 to 3+
-				static_cast<float>(outputAnalysis.mStereoBalance),                      // -1 to +1  
-				static_cast<float>(outputAnalysis.mMidLevelDetector.mCurrentRMSValue),  // 0 to 1
-				static_cast<float>(outputAnalysis.mSideLevelDetector.mCurrentRMSValue), // 0 to 1
-			}, historyViewMinValue, historyViewMaxValue);
+					// OUTPUT VALUES (last 5 series) - raw values, no normalization needed
+					static_cast<float>(outputAnalysis.mPhaseCorrelation),                   // -1 to +1
+					static_cast<float>(outputAnalysis.mStereoWidth),                        // 0 to 3+
+					static_cast<float>(outputAnalysis.mStereoBalance),                      // -1 to +1  
+					static_cast<float>(outputAnalysis.mMidLevelDetector.mCurrentRMSValue),  // 0 to 1
+					static_cast<float>(outputAnalysis.mSideLevelDetector.mCurrentRMSValue), // 0 to 1
+				}, historyViewMinValue, historyViewMaxValue);
 
-			if (showToggles) {
-				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
-				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+				if (showToggles) {
+					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
-				// Parameter toggles
-				ToggleButton(&mShowPhaseCorrelation, "Phase", {}, ButtonColorSpec{ kInputCorrellationColor });
-				ImGui::SameLine(); ToggleButton(&mShowStereoWidth, "Width", {}, ButtonColorSpec{kInputWidthColor});
-				ImGui::SameLine(); ToggleButton(&mShowStereoBalance, "Balance", {}, ButtonColorSpec{ kInputBalanceColor});
-				
-				ImGui::SameLine(0, 20); ToggleButton(&mShowMidLevel, "Mid", {}, ButtonColorSpec{ kInputMidLevelColor });
-				ImGui::SameLine(); ToggleButton(&mShowSideLevel, "Side", {}, ButtonColorSpec{ kInputSideLevelColor });
+					// Parameter toggles
+					ToggleButton(&mShowPhaseCorrelation, "Phase", {}, ButtonColorSpec{ kInputCorrellationColor });
+					ImGui::SameLine(); ToggleButton(&mShowStereoWidth, "Width", {}, ButtonColorSpec{ kInputWidthColor });
+					ImGui::SameLine(); ToggleButton(&mShowStereoBalance, "Balance", {}, ButtonColorSpec{ kInputBalanceColor });
 
-				// Input/Output toggles (separate line, similar to CompressorVis L/R pattern)
-				ImGui::SameLine(0, 40); ToggleButton(&mShowInput, "Input");
-				ImGui::SameLine(); ToggleButton(&mShowOutput, "Output");
+					ImGui::SameLine(0, 20); ToggleButton(&mShowMidLevel, "Mid", {}, ButtonColorSpec{ kInputMidLevelColor });
+					ImGui::SameLine(); ToggleButton(&mShowSideLevel, "Side", {}, ButtonColorSpec{ kInputSideLevelColor });
 
-				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
-			}
-			ImGui::EndGroup();
+					// Input/Output toggles (separate line, similar to CompressorVis L/R pattern)
+					ImGui::SameLine(0, 40); ToggleButton(&mShowInput, "Input");
+					ImGui::SameLine(); ToggleButton(&mShowOutput, "Output");
+
+					ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+				}
+				ImGui::EndGroup();
 		}
 	};
 
@@ -521,7 +505,7 @@ private:
 		// double mMidLevel = 0.0;          // Mid channel level (RMS)
 		// double mSideLevel = 0.0;         // Side channel level (RMS)
 
-		RenderGeneralMeter(analysis.mStereoWidth, 0, 2, meterSize, "width", 0, {"008800", 0.5, "ffff00", 1.0, "ff0000"});
+		RenderGeneralMeter(analysis.mStereoWidth, 0, 2, meterSize, "width", 0, { "008800", 0.5, "ffff00", 1.0, "ff0000" });
 		RenderGeneralMeter(analysis.mStereoBalance, -1, 1, meterSize, "balance", 0, {
 			"ff0000",
 			-0.5, "ffff00",
@@ -544,7 +528,7 @@ private:
 		//}
 
 		// Render the layered visualization
-		RenderLayeredStereoVisualization("stereovis", analysis, {dim, dim},
+		RenderLayeredStereoVisualization("stereovis", analysis, { dim, dim },
 			mShowGoniometer, mShowPolarL, mShowPhaseX);
 	}
 
@@ -553,20 +537,20 @@ private:
 		auto* dl = ImGui::GetWindowDrawList();
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImRect bb(pos, pos + size);
-		
+
 		// Background and grid (always shown)
 		dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(20, 20, 20, 255));
 		dl->AddRect(bb.Min, bb.Max, IM_COL32(100, 100, 100, 255));
-		
+
 		ImVec2 center = { bb.Min.x + size.x * 0.5f, bb.Min.y + size.y * 0.5f };
 		const float radius = std::min(size.x, size.y) * 0.45f;
-		
+
 		// Draw concentric circles for magnitude reference
 		for (int i = 1; i <= 4; ++i) {
 			float r = radius * i * 0.25f;
 			dl->AddCircle(center, r, IM_COL32(60, 60, 60, 100), 32, 1.0f);
 		}
-		
+
 		// Draw angular reference lines
 		for (int angle = 0; angle < 360; angle += 30) {
 			float rad = angle * 3.14159f / 180.0f;
@@ -574,28 +558,28 @@ private:
 			ImU32 color = (angle % 90 == 0) ? IM_COL32(120, 120, 120, 150) : IM_COL32(80, 80, 80, 100);
 			dl->AddLine(center, lineEnd, color, (angle % 90 == 0) ? 1.5f : 1.0f);
 		}
-		
+
 		// Add reference labels for key angles
 		dl->AddText({ center.x - 4, bb.Min.y + 2 }, IM_COL32(100, 255, 100, 150), "M");      // Mono
 		dl->AddText({ bb.Max.x - 15, center.y - 8 }, IM_COL32(150, 150, 255, 150), "R");     // Right
 		dl->AddText({ center.x - 20, bb.Max.y - 16 }, IM_COL32(255, 100, 100, 150), "inv");    // Side/Phase
 		dl->AddText({ bb.Min.x + 2, center.y - 8 }, IM_COL32(150, 150, 255, 150), "L");      // Left
-		
+
 		// Render layers in order (bottom to top)
 		if (showPolarL) {
 			RenderPolarLLayer(id, analysis, size, center, radius);
 		}
-		
+
 		if (showGoniometer) {
 			RenderGoniometerLayer(id, analysis, size, center, radius);
 		}
-		
+
 		if (showPhaseX) {
 			RenderPhaseCorrelationOverlay(id, analysis, size, center, radius);
 		}
-		
+
 		ImGui::Dummy(size);
 	}
-	
+
 };
 

@@ -194,6 +194,7 @@ namespace WaveSabreCore
             double falloffSamples = peakFalloffMaxMS * Helpers::CurrentSampleRateF / 1000.0;
             const double dBFalloffRange = 60.0; // Fall 60dB
             double linearFalloffRatio = std::pow(10.0, -dBFalloffRange / 20.0); // 10^(-60/20) = 0.001
+            if (falloffSamples < 1.0) falloffSamples = 1.0; // guard
             mPeakFalloffMultiplierPerSample = std::pow(linearFalloffRatio, 1.0 / falloffSamples);
             
             Reset();
@@ -258,15 +259,18 @@ namespace WaveSabreCore
                 return;
             }
 
+            int remaining = count;
             if (mPeakHoldCounter > 0) {
-                mPeakHoldCounter = (mPeakHoldCounter > count) ? (mPeakHoldCounter - count) : 0;
-                if (mPeakHoldCounter == 0 && mCurrentPeak > 0) {
-                    // Any remaining steps apply falloff
-                    // none here since we consumed exactly the count
+                if (mPeakHoldCounter >= remaining) {
+                    mPeakHoldCounter -= remaining;
+                    return;
+                } else {
+                    remaining -= mPeakHoldCounter;
+                    mPeakHoldCounter = 0;
                 }
-            } else if (mCurrentPeak > 0) {
-                // Apply exponential falloff for 'count' steps
-                double mult = std::pow(mPeakFalloffMultiplierPerSample, (double)count);
+            }
+            if (remaining > 0 && mCurrentPeak > 0) {
+                double mult = std::pow(mPeakFalloffMultiplierPerSample, (double)remaining);
                 mCurrentPeak *= mult;
                 if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
             }
@@ -298,22 +302,34 @@ namespace WaveSabreCore
         double mCurrentPeak = 0;
 
         void SetParams(double clipHoldMS, double peakHoldMS, double peakFalloffMaxMS, float frequency) {
+            // Preserve current state so changing params doesn't hard-reset visuals
+            int prevClipHoldCounter = mClipHoldCounter;
+            int prevPeakHoldCounter = mPeakHoldCounter;
+            double prevCurrentPeak = mCurrentPeak;
+            bool prevClipIndicator = mClipIndicator;
+
             mClipHoldSamples = int(clipHoldMS * Helpers::CurrentSampleRateF / 1000);
             mPeakHoldSamples = int(peakHoldMS * Helpers::CurrentSampleRateF / 1000);
             mFrequency = frequency;
             
             // Calculate base falloff multiplier (60dB falloff)
             double falloffSamples = peakFalloffMaxMS * Helpers::CurrentSampleRateF / 1000.0;
+            if (falloffSamples < 1.0) falloffSamples = 1.0; // guard
             const double dBFalloffRange = 60.0;
             double linearFalloffRatio = std::pow(10.0, -dBFalloffRange / 20.0); // 10^(-60/20) = 0.001
             
             // Apply frequency-dependent scaling
             float frequencyFactor = CalculateFrequencyFactor(frequency);
-            double adjustedFalloffSamples = falloffSamples / frequencyFactor; // Faster = fewer samples
+            double adjustedFalloffSamples = falloffSamples / std::max(0.0001, (double)frequencyFactor); // Faster = fewer samples
+            if (adjustedFalloffSamples < 1.0) adjustedFalloffSamples = 1.0; // guard
             
             mBaseFalloffMultiplierPerSample = std::pow(linearFalloffRatio, 1.0 / adjustedFalloffSamples);
             
-            Reset();
+            // Preserve counters and peak where possible under new constraints
+            mClipIndicator = prevClipIndicator;
+            mCurrentPeak = prevCurrentPeak;
+            mClipHoldCounter = std::min(prevClipHoldCounter, mClipHoldSamples);
+            mPeakHoldCounter = std::min(prevPeakHoldCounter, mPeakHoldSamples);
         }
 
         void Reset() {
@@ -339,7 +355,7 @@ namespace WaveSabreCore
             }
 
             // Peak detection and hold
-            if (rectifiedSample >= mCurrentPeak) {
+            if (rectifiedSample > mCurrentPeak) {
                 mCurrentPeak = rectifiedSample;
                 mPeakHoldCounter = mPeakHoldSamples;
             }
@@ -362,25 +378,33 @@ namespace WaveSabreCore
             if (rectifiedSample >= 1) {
                 mClipIndicator = true;
                 mClipHoldCounter = mClipHoldSamples; // reset to full
-            } else if (mClipHoldCounter > 0) {
-                mClipHoldCounter = (mClipHoldCounter > count) ? (mClipHoldCounter - count) : 0;
-                if (mClipHoldCounter == 0) mClipIndicator = false;
+            } else {
+                if (mClipHoldCounter > 0) {
+                    mClipHoldCounter = (mClipHoldCounter > count) ? (mClipHoldCounter - count) : 0;
+                    if (mClipHoldCounter == 0) mClipIndicator = false;
+                }
             }
 
             // Peak detection and hold/falloff in bulk
-            if (rectifiedSample >= mCurrentPeak) {
+            if (rectifiedSample > mCurrentPeak) {
                 mCurrentPeak = rectifiedSample;
                 mPeakHoldCounter = mPeakHoldSamples;
                 return;
             }
 
+            int remaining = count;
             if (mPeakHoldCounter > 0) {
-                mPeakHoldCounter = (mPeakHoldCounter > count) ? (mPeakHoldCounter - count) : 0;
-                if (mPeakHoldCounter == 0 && mCurrentPeak > 0) {
-                    // now future calls will fall off
+                if (mPeakHoldCounter >= remaining) {
+                    mPeakHoldCounter -= remaining;
+                    return; // all within hold period
+                } else {
+                    remaining -= mPeakHoldCounter;
+                    mPeakHoldCounter = 0; // hold exhausted; fall through to apply falloff for remainder
                 }
-            } else if (mCurrentPeak > 0) {
-                double mult = std::pow(mBaseFalloffMultiplierPerSample, (double)count);
+            }
+
+            if (remaining > 0 && mCurrentPeak > 0) {
+                double mult = std::pow(mBaseFalloffMultiplierPerSample, (double)remaining);
                 mCurrentPeak *= mult;
                 if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
             }
