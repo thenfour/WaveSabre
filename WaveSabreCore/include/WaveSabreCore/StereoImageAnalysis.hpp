@@ -14,6 +14,75 @@
 
 namespace WaveSabreCore
 {
+    // Reusable stereo-width helpers (no behavior changes)
+    struct StereoWidthUtil
+    {
+        // Convert dB (amplitude) to linear amplitude squared (power)
+        static inline float PowFromDb(float db)
+        {
+            const float amp = M7::math::DecibelsToLinear(db);
+            return amp * amp;
+        }
+
+        // Compute width from mid/side powers (0..1): side / (mid + side). 0 if both are 0
+        static inline float WidthFromPowers(float midPow, float sidePow)
+        {
+            const float total = midPow + sidePow;
+            return (total > 0.0f) ? (sidePow / total) : 0.0f;
+        }
+
+        // Result of width computation with a simple energy floor
+        struct WidthResult
+        {
+            float width;       // width in [0..1] or a tiny placeholder value when below floor
+            bool belowFloor;   // whether total energy is below the floor
+        };
+
+        // Compute width from mid/side amplitudes in dB with a power floor.
+        // Behavior mirrors the existing implementation:
+        // - If total power < noiseFloorPow => treat as "mono near silence" and return tiny placeholder (noiseFloorAmp).
+        // - Else width = side / (mid + side) using powers.
+        static inline WidthResult WidthFromDbWithFloor(float midDb, float sideDb, float noiseFloorDb /* e.g. -120 dB */)
+        {
+            const float midPow        = PowFromDb(midDb);
+            const float sidePow       = PowFromDb(sideDb);
+            const float totalPow      = midPow + sidePow;
+
+            const float floorAmp      = M7::math::DecibelsToLinear(noiseFloorDb);
+            const float floorPow      = floorAmp * floorAmp;
+
+            if (totalPow < floorPow)
+            {
+                return { floorAmp, true }; // tiny placeholder to avoid later GUI mapping issues
+            }
+
+            return { WidthFromPowers(midPow, sidePow), false };
+        }
+
+        // Width from mid/side linear RMS (amplitude) with noise-floor guard
+        static inline WidthResult WidthFromLinearWithFloor(float midAmp, float sideAmp, float noiseFloorDb)
+        {
+            const float midPow = midAmp * midAmp;
+            const float sidePow = sideAmp * sideAmp;
+            const float totalPow = midPow + sidePow;
+
+            const float floorAmp = M7::math::DecibelsToLinear(noiseFloorDb);
+            const float floorPow = floorAmp * floorAmp;
+
+            if (totalPow < floorPow)
+                return { floorAmp, true };
+
+            return { WidthFromPowers(midPow, sidePow), false };
+        }
+
+        // Instant width from peaks (side/mid), clamped via epsilon to avoid div-by-zero
+   //     static inline double InstantWidthFromPeaks(double midPeak, double sidePeak, double eps = 1e-8)
+   //     {
+			//if (midPeak < eps && sidePeak < eps) return 0.0; // both zero, return zero width
+   //         return (midPeak > eps) ? (sidePeak / midPeak) : 0.0;
+   //     }
+    };
+
     // Mid-Side frequency analyzer for stereo width analysis by frequency
     class MidSideFrequencyAnalyzer : public IFrequencyAnalysis {
     private:
@@ -27,6 +96,9 @@ namespace WaveSabreCore
         mutable std::mutex mSpectrumMutex; // Protects mWidthSpectrum
         mutable std::atomic<bool> mNeedsWidthUpdate{false}; // Audio thread sets, GUI thread clears
         mutable std::mutex mAnalyzerMutex; // protects mMidAnalyzer/mSideAnalyzer and their access
+
+        // Shared setting used in current implementation
+        static constexpr float kNoiseFloorDB = -120.0f;
         
     public:
         MidSideFrequencyAnalyzer() = default;
@@ -195,39 +267,17 @@ namespace WaveSabreCore
             std::lock_guard<std::mutex> sLock(mSpectrumMutex);
             if (mWidthSpectrum.size() != spectrumSize) mWidthSpectrum.resize(spectrumSize);
             
-            // Use FFT floor to remove artificial non-zero values at silence
-            const float kNoiseFloorDB = -120.f;
-            const float noiseFloorAmp = M7::math::DecibelsToLinear(kNoiseFloorDB);
-            const float noiseFloorPow = noiseFloorAmp * noiseFloorAmp;
-
             for (size_t i = 0; i < spectrumSize; ++i) {
-                const float frequency      = midSpectrum[i].frequency;
-                mWidthSpectrum[i].frequency = frequency;
+                mWidthSpectrum[i].frequency = midSpectrum[i].frequency;
 
-                const float midMagnitudeDB = midSpectrum[i].magnitudeDB;
-                const float sideMagnitudeDB= sideSpectrum[i].magnitudeDB;
+                const float midDb  = midSpectrum[i].magnitudeDB;
+                const float sideDb = sideSpectrum[i].magnitudeDB;
 
-                // Convert dB (amplitude) to linear amplitude, then to power
-                const float midAmp  = M7::math::DecibelsToLinear(midMagnitudeDB);
-                const float sideAmp = M7::math::DecibelsToLinear(sideMagnitudeDB);
-                float midPow  = midAmp * midAmp;
-                float sidePow = sideAmp * sideAmp;
+                // Use shared helper with same noise-floor behavior
+                const auto wr = StereoWidthUtil::WidthFromDbWithFloor(midDb, sideDb, kNoiseFloorDB);
 
-                const float totalPow = midPow + sidePow;
-
-                if (totalPow < noiseFloorPow) {
-                    // no energy, consider it mono. it keeps the graph looking nice during things like fadeouts.
-					// note that magnitudedb is just a value, not necessarily db.
-
-					// NOTE: we use a very small value, because 0 gets somehow mapped to a large value by the time it propagates to the GUI.
-
-					mWidthSpectrum[i].magnitudeDB = noiseFloorAmp; // mono
-                }
-                else {
-                    // width can be thought of as the % of the total energy that the side channel contributes. 100% = only side, 0% = only mid.
-					float width = sidePow / (midPow + sidePow);
-                    mWidthSpectrum[i].magnitudeDB = width;
-                }
+                // magnitudeDB stores width [0..1] or tiny placeholder when below energy floor
+                mWidthSpectrum[i].magnitudeDB = wr.width;
             }
             mNeedsWidthUpdate.store(false, std::memory_order_release);
         }
@@ -288,10 +338,17 @@ namespace WaveSabreCore
                 mFrequencyAnalyzer->ProcessMidSideSamples(static_cast<float>(mid), static_cast<float>(side));
             }
 
-            if (mMidLevelDetector.mCurrentPeak > 0.0001) {
-                double instantWidth = mSideLevelDetector.mCurrentPeak / mMidLevelDetector.mCurrentPeak;
-                mStereoWidth = mWidthDetector.ProcessSample(instantWidth);
-            }
+            // Keep original gating – only update when mid peak is sufficiently strong
+            //const double instantWidth = StereoWidthUtil::InstantWidthFromPeaks(
+            //    mMidLevelDetector.mCurrentPeak,
+            //    mSideLevelDetector.mCurrentPeak
+            //);
+            const double instantWidth = StereoWidthUtil::WidthFromLinearWithFloor(
+                (float)mMidLevelDetector.mCurrentRMSValue,
+                (float)mSideLevelDetector.mCurrentRMSValue,
+                -120.0f // noise floor in dB
+			).width; // Use width result directly
+            mStereoWidth = mWidthDetector.ProcessSample(instantWidth);
 
             double totalLevel = mLeftLevel + mRightLevel;
             if (totalLevel > 0.0001) mStereoBalance = (mRightLevel - mLeftLevel) / totalLevel;
