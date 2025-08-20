@@ -28,7 +28,7 @@ namespace WaveSabreCore
         mInputBuffer.resize(mFFTSizeInt, 0.0f);
         mFFTBuffer.resize(mFFTSizeInt);
         
-        int spectrumSize = mFFTSizeInt / 2; // Only need positive frequencies
+        int spectrumSize = mFFTSizeInt / 2; // Only need positive frequencies (exclude Nyquist)
         mSpectrum.resize(spectrumSize);
         mMagnitudeHistory.resize(spectrumSize, -80.0f);
         
@@ -156,8 +156,9 @@ namespace WaveSabreCore
             const float magnitude = std::sqrt(real * real + imag * imag);
             
             // Convert to dB with floor to prevent log(0), and apply display boost
-            const float magnitudeDB = magnitude > 1e-10f ? 
-                (20.0f * std::log10(magnitude / (mFFTSizeInt * 0.5f))) : (-200.0f);
+			// todo: use a more sophisticated scaling
+			const float magScaleFact = mFFTSizeInt * 0.5f; // Scale factor for normalization
+            const float magnitudeDB = M7::math::LinearToDecibels(magnitude / magScaleFact);// magnitude > 1e-10f ?
             
             // Light technical smoothing only (no peak-hold here)
             mMagnitudeHistory[i] = mMagnitudeHistory[i] * mSmoothingFactor + magnitudeDB * (1.0f - mSmoothingFactor);
@@ -236,15 +237,17 @@ namespace WaveSabreCore
     
     SmoothedStereoFFT::SmoothedStereoFFT()
         : mFFTAnalysis()
-        , mSamplesPerFFTUpdate(512) // Default: 2048 FFT with 75% overlap = 512 samples between updates
+        , mSamplesPerFFTUpdate(512) // initial default; will be updated below
         , mCurrentHoldTimeMs(0.0f)  // Default hold time
         , mCurrentFalloffTimeMs(200.0f) // Default falloff time
     {
         SetFFTSmoothing(0.7f);
+        // Set analyzer overlap and then sync our update rate from the analyzer's actual settings
         SetOverlapFactor(2);
         SetPeakHoldTime(60);
         SetFalloffRate(1200);
-        SetFFTUpdateRate(1024, 2);
+        // Ensure update rate matches current analyzer configuration (no hardcoded size)
+        SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
     }
 
     void SmoothedStereoFFT::SetPeakHoldTime(float holdTimeMs)

@@ -114,7 +114,10 @@ namespace WaveSabreCore
                 mFFTSizeInt = static_cast<int>(fftSize);
                 mInputBuffer.resize(mFFTSizeInt);
                 mFFTBuffer.resize(mFFTSizeInt);
-                mSpectrum.resize(mFFTSizeInt / 2 + 1); // Real FFT output size
+                // Keep spectrum size consistent with constructor: positive frequencies only
+                mSpectrum.resize(mFFTSizeInt / 2);
+                // Keep magnitude history in sync with spectrum
+                mMagnitudeHistory.resize(mSpectrum.size(), -80.0f);
                 GenerateWindow();
                 Reset();
             }
