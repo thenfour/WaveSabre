@@ -145,6 +145,11 @@ public:
   void SetFFTScaleCaption(const char* caption) {
     if (mFFTLayer) mFFTLayer->SetScaleCaption(caption);
   }
+
+  // Optional: set a value transform for the FFT layer (e.g., gamma/log).
+  void SetFFTValueTransform(std::function<float(float)> transform) {
+    if (mFFTLayer) mFFTLayer->SetValueTransform(std::move(transform));
+  }
 };
 
 } // namespace WaveSabreVstLib

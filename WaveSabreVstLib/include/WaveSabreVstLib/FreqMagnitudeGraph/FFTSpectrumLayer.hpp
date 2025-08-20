@@ -1,6 +1,7 @@
 #pragma once
 
 #include "FrequencyMagnitudeGraph.hpp"
+#include <functional>
 
 namespace WaveSabreVstLib {
 
@@ -27,18 +28,28 @@ private:
   float mFFTDisplayMaxDB = 0.0f;
   bool mUseIndependentScale = true;
   std::string mScaleCaption = "FFT"; // customizable caption for scale indicator
+
+  // Optional value transform (identity by default). Applied to data and to scale endpoints when mapping to Y
+  std::function<float(float)> mValueTransform;
   
-  // Convert dB to Y using FFT's independent scale if enabled
-  float FFTDBToY(float dB, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
+  // Convert sample value to Y using scale (with optional independent scaling)
+  float FFTValueToY(float value, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
+    float v = mValueTransform ? mValueTransform(value) : value;
     if (mUseIndependentScale) {
-      float t01 = M7::math::lerp_rev(mFFTDisplayMinDB, mFFTDisplayMaxDB, dB);
-      //t01 = M7::math::clamp01(t01);
+      float minT = mValueTransform ? mValueTransform(mFFTDisplayMinDB) : mFFTDisplayMinDB;
+      float maxT = mValueTransform ? mValueTransform(mFFTDisplayMaxDB) : mFFTDisplayMaxDB;
+      float t01 = (maxT - minT) != 0.0f ? M7::math::clamp01((v - minT) / (maxT - minT)) : 0.0f;
       return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
     } else {
-      return coords.DBToY(dB, bb);
+      return coords.DBToY(v, bb);
     }
   }
   
+  float MapToY(float value, float minV, float maxV, const ImRect& bb) const {
+    const float t01 = (maxV - minV) != 0.0f ? M7::math::clamp01((value - minV) / (maxV - minV)) : 0.0f;
+    return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
+  }
+
 public:
   FFTSpectrumLayer(const std::vector<FFTAnalysisOverlay>& overlays, 
                    float minDB = -90.0f, float maxDB = 0.0f, bool independentScale = true)
@@ -75,6 +86,10 @@ public:
 
   void SetScaleCaption(const char* caption) {
     mScaleCaption = caption ? caption : "";
+  }
+
+  void SetValueTransform(std::function<float(float)> transform) {
+    mValueTransform = std::move(transform);
   }
   
   void UpdateData(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
@@ -116,51 +131,40 @@ public:
       if (overlayIndex >= mFFTCache.size()) continue;
       
       const auto& fftCache = mFFTCache[overlayIndex];
-      
-      // Build screen-space points from cache
-      std::vector<ImVec2> fftPoints;
-      fftPoints.reserve(TSegmentCount);
-      
+      std::vector<ImVec2> pts; pts.reserve(TSegmentCount);
+
+      // Determine transform for this overlay
+      auto transform = overlay.valueTransform ? overlay.valueTransform : mValueTransform;
+
+      // Determine display min/max
+      float dispMin = mUseIndependentScale ? mFFTDisplayMinDB : coords.mDisplayMinDB;
+      float dispMax = mUseIndependentScale ? mFFTDisplayMaxDB : coords.mDisplayMaxDB;
+      float minT = transform ? transform(dispMin) : dispMin;
+      float maxT = transform ? transform(dispMax) : dispMax;
+      if (maxT < minT) std::swap(minT, maxT);
+
       for (int i = 0; i < TSegmentCount; ++i) {
-        const auto& cache = fftCache[i];
-        if (!cache.valid) continue;
-        
-        // Apply scaling (independent or shared)
-        float displayMin = mUseIndependentScale ? mFFTDisplayMinDB : coords.mDisplayMinDB;
-        float displayMax = mUseIndependentScale ? mFFTDisplayMaxDB : coords.mDisplayMaxDB;
-        
-        // Skip points outside display range
-        if (cache.magnitudeDB < displayMin || cache.magnitudeDB > displayMax) continue;
-        
-        float y = FFTDBToY(cache.magnitudeDB, coords, bb);
-        fftPoints.push_back({mScreenX[i], y});
+        const auto& cache = fftCache[i]; if (!cache.valid) continue;
+        float v = transform ? transform(cache.magnitudeDB) : cache.magnitudeDB;
+        if (v < minT || v > maxT) continue;
+        float y = MapToY(v, minT, maxT, bb);
+        pts.push_back({ mScreenX[i], y });
       }
-      
-      if (fftPoints.size() >= 2) {
+
+      if (pts.size() >= 2) {
         // Render filled area under curve first (behind line)
         if (overlay.enableFftFill) {
           const float baseline = bb.Max.y;
           
-          for (size_t i = 0; i < fftPoints.size() - 1; ++i) {
-            const ImVec2& p1 = fftPoints[i];
-            const ImVec2& p2 = fftPoints[i + 1];
-            
-            // Create quad for each segment
-            ImVec2 quad[4] = {
-              {p1.x, baseline},  // bottom-left
-              {p1.x, p1.y},      // top-left  
-              {p2.x, p2.y},      // top-right
-              {p2.x, baseline}   // bottom-right
-            };
-            
+          for (size_t i = 0; i + 1 < pts.size(); ++i) {
+            const ImVec2& p1 = pts[i]; const ImVec2& p2 = pts[i+1];
+            ImVec2 quad[4] = { {p1.x, baseline}, {p1.x, p1.y}, {p2.x, p2.y}, {p2.x, baseline} };
             dl->AddConvexPolyFilled(quad, 4, overlay.fftFillColor);
-            //dl->AddConcavePolyFilled(quad, 4, overlay.fftFillColor);
           }
         }
         
         // Render spectrum line
-        dl->AddPolyline(fftPoints.data(), static_cast<int>(fftPoints.size()), 
-                       overlay.fftColor, 0, 1.5f);
+        dl->AddPolyline(pts.data(), (int)pts.size(), overlay.fftColor, 0, 1.5f);
       }
     }
     
@@ -170,22 +174,18 @@ public:
       char scaleText[64];
       snprintf(scaleText, sizeof(scaleText), "%s: %.1f to %.1f", mScaleCaption.c_str(), mFFTDisplayMinDB, mFFTDisplayMaxDB);
       ImVec2 textSize = ImGui::CalcTextSize(scaleText);
-      ImVec2 textPos = {bb.Max.x - textSize.x - 4, bb.Min.y + 2};
+      ImVec2 textPos = { bb.Max.x - textSize.x - 4, bb.Min.y + 2 };
       dl->AddText(textPos, ColorFromHTML("888888", 0.7f), scaleText);
       
       // Draw legend for multiple overlays
       if (mOverlays.size() > 1) {
         float legendY = bb.Min.y + 20;
         for (size_t i = 0; i < mOverlays.size(); ++i) {
-          const auto& overlay = mOverlays[i];
-          if (!overlay.frequencyAnalysis || !overlay.label) continue;
-          
+          const auto& ov = mOverlays[i]; if (!ov.frequencyAnalysis || !ov.label) continue;
           float legendX = bb.Max.x - 80;
-          // Draw color swatch
-          dl->AddRectFilled({legendX, legendY}, {legendX + 12, legendY + 8}, overlay.fftColor);
-          // Draw label
-          ImVec2 labelPos = {legendX + 16, legendY - 2};
-          dl->AddText(labelPos, ColorFromHTML("CCCCCC", 0.8f), overlay.label);
+          dl->AddRectFilled({ legendX, legendY }, { legendX + 12, legendY + 8 }, ov.fftColor);
+          ImVec2 labelPos = { legendX + 16, legendY - 2 };
+          dl->AddText(labelPos, ColorFromHTML("CCCCCC", 0.8f), ov.label);
           legendY += 14;
         }
       }

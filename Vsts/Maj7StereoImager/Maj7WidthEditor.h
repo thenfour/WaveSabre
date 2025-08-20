@@ -29,6 +29,26 @@ struct Maj7WidthEditor : public VstEditor
 	// Frequency analysis visualization (width by frequency)
 	FrequencyResponseRendererLayered<800, 200, 0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams, true> mWidthGraph;
 
+	// FFT overlay toggles
+	bool mShowInputMid = false;
+	bool mShowInputSide = false;
+	bool mShowInputWidth = true;
+	bool mShowOutputMid = false;
+	bool mShowOutputSide = false;
+	bool mShowOutputWidth = true;
+
+	// Scale selection: 0=Linear, 1=Gamma, 2=Log
+	int mWidthScaleMode = 0;
+
+	// Persist across sessions
+	VstSerializableBoolParamRef mShowInputMidParam{ "ShowInputMidFFT", mShowInputMid };
+	VstSerializableBoolParamRef mShowInputSideParam{ "ShowInputSideFFT", mShowInputSide };
+	VstSerializableBoolParamRef mShowInputWidthParam{ "ShowInputWidthFFT", mShowInputWidth };
+	VstSerializableBoolParamRef mShowOutputMidParam{ "ShowOutputMidFFT", mShowOutputMid };
+	VstSerializableBoolParamRef mShowOutputSideParam{ "ShowOutputSideFFT", mShowOutputSide };
+	VstSerializableBoolParamRef mShowOutputWidthParam{ "ShowOutputWidthFFT", mShowOutputWidth };
+	VstSerializableIntParamRef<int> mWidthScaleModeParam{ "WidthScaleMode", mWidthScaleMode };
+
 	Maj7WidthEditor(AudioEffect* audioEffect) : //
 		VstEditor(audioEffect, 950, 900), // Increase height to accommodate frequency graph
 		mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
@@ -124,23 +144,6 @@ struct Maj7WidthEditor : public VstEditor
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
 		ImGui::EndGroup();
 
-		// Frequency Analysis Controls
-		ImGui::BeginGroup();
-		bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
-		if (ToggleButton(&frequencyAnalysisEnabled, "Frequency Analysis", {120, 20})) {
-			mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
-			mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::BeginTooltip();
-			ImGui::Text("Enable frequency-domain stereo analysis");
-			ImGui::Separator();
-			ImGui::TextWrapped("Shows stereo width, mid/side levels by frequency.");
-			ImGui::TextWrapped("Note: Uses additional CPU resources.");
-			ImGui::EndTooltip();
-		}
-		ImGui::EndGroup();
-
 		ImGui::EndGroup();
 
 		static const std::vector<VUMeterTick> tickSet = {
@@ -212,9 +215,43 @@ struct Maj7WidthEditor : public VstEditor
 		}
 
 		// Frequency analysis visualization (when enabled)
+
+		// Frequency Analysis Controls
+		ImGui::BeginGroup();
+		bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
+		if (ToggleButton(&frequencyAnalysisEnabled, "Frequency Analysis", { 120, 20 })) {
+			mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
+			mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
+		}
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Enable frequency-domain stereo analysis");
+			ImGui::Separator();
+			ImGui::TextWrapped("Shows stereo width, mid/side levels by frequency.");
+			ImGui::TextWrapped("Note: Uses additional CPU resources.");
+			ImGui::EndTooltip();
+		}
+
+		// FFT overlay toggles and scale selection
+		{
+			ImGui::Separator();
+			ImGui::Text("Freq overlays:");
+			ToggleButton(&mShowInputMid, "In M"); ImGui::SameLine();
+			ToggleButton(&mShowInputSide, "In S"); ImGui::SameLine();
+			ToggleButton(&mShowInputWidth, "In W"); ImGui::SameLine(0, 20);
+			ToggleButton(&mShowOutputMid, "Out M"); ImGui::SameLine();
+			ToggleButton(&mShowOutputSide, "Out S"); ImGui::SameLine();
+			ToggleButton(&mShowOutputWidth, "Out W");
+			ImGui::SameLine(0, 20);
+			ImGui::Text("Width scale:"); ImGui::SameLine();
+			const char* kScaleNames[] = { "Linear","Gamma","Log" };
+			ImGui::Combo("##widthscale", &mWidthScaleMode, kScaleNames, 3);
+		}
 		if (frequencyAnalysisEnabled) {
 			RenderFrequencyAnalysis();
 		}
+		ImGui::EndGroup();
+
 	}
 
 	virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() override
@@ -230,6 +267,13 @@ struct Maj7WidthEditor : public VstEditor
 			&mShowSideLevelParam,
 			&mShowInputParam,
 			&mShowOutputParam,
+			&mShowInputMidParam,
+			&mShowInputSideParam,
+			&mShowInputWidthParam,
+			&mShowOutputMidParam,
+			&mShowOutputSideParam,
+			&mShowOutputWidthParam,
+			&mWidthScaleModeParam,
 		};
 	}
 
@@ -252,16 +296,14 @@ private:
 
 	// Render frequency analysis graph
 	void RenderFrequencyAnalysis() {
-		// Get frequency analyzers
-		const auto* inputAnalyzer = mpMaj7Width->mInputImagingAnalysis.GetFrequencyAnalyzer();
-		const auto* outputAnalyzer = mpMaj7Width->mOutputImagingAnalysis.GetFrequencyAnalyzer();
+		const auto* analyzerIn = mpMaj7Width->mInputImagingAnalysis.GetFrequencyAnalyzer();
+		const auto* analyzerOut = mpMaj7Width->mOutputImagingAnalysis.GetFrequencyAnalyzer();
 
-		if (!inputAnalyzer || !outputAnalyzer) {
+		if (!analyzerIn || !analyzerOut) {
 			ImGui::Text("Frequency analysis not available");
 			return;
 		}
 
-		// Build layered renderer config for width-by-frequency overlays
 		FrequencyResponseRendererConfig<0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams> cfg{
 			ColorFromHTML("222222", 1.0f), // background
 			ColorFromHTML("aaaa00", 1.0f), // line (unused)
@@ -271,34 +313,31 @@ private:
 			{},                              // major ticks (defaults)
 			{},                              // minor ticks (defaults)
 			{},                              // fft overlays (fill below)
-			0.0f,                             // min (for width)
-			3.0f,                             // max (for width)
+			0.0f,                             // min (width)
+			4.0f,                             // max (width)
 			true                              // independent scale
 		};
-
-		// Optional param cache fill to satisfy API
 		for (size_t i = 0; i < (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams; ++i) cfg.mParamCacheCopy[i] = mpMaj7Width->mParamCache[i];
 
-		// Input/Output Width overlays (linear width ratio stored by analyzer)
-		cfg.fftOverlays = {
-			{
-				/*frequencyAnalysis*/ inputAnalyzer,
-				/*fftColor*/ ColorFromHTML("88FF44", 0.9f),
-				/*fftFillColor*/ ColorFromHTML("88FF44", 0.25f),
-				/*enableFftFill*/ true,
-				/*label*/ "Input Width"
-			},
-			{
-				/*frequencyAnalysis*/ outputAnalyzer,
-				/*fftColor*/ ColorFromHTML("66CC33", 0.9f),
-				/*fftFillColor*/ ColorFromHTML("66CC33", 0.25f),
-				/*enableFftFill*/ true,
-				/*label*/ "Output Width"
-			},
-		};
+		cfg.fftOverlays.clear();
+		// Mid/Side in dB
+		if (mShowInputMid && analyzerIn->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetMidAnalyzer(), ColorFromHTML("8888FF", 0.9f), ColorFromHTML("444488", 0.25f), true, "Input Mid", nullptr });
+		if (mShowInputSide && analyzerIn->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetSideAnalyzer(), ColorFromHTML("FF8888", 0.9f), ColorFromHTML("884444", 0.25f), true, "Input Side", nullptr });
+		if (mShowOutputMid && analyzerOut->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetMidAnalyzer(), ColorFromHTML("6666CC", 0.9f), ColorFromHTML("333366", 0.25f), true, "Output Mid", nullptr });
+		if (mShowOutputSide && analyzerOut->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetSideAnalyzer(), ColorFromHTML("CC6666", 0.9f), ColorFromHTML("663333", 0.25f), true, "Output Side", nullptr });
 
-		// Render with caption indicating non-dB scale
-		mWidthGraph.SetFFTScaleCaption("Width");
+		// Width overlays use linear width transform selection
+		auto widthLinear = [](float w){ return w; };
+		auto widthGamma = [](float w){ return std::pow(std::max(0.0f,w), 0.6f); };
+		auto widthLog = [](float w){ const float a = 1.8f; return std::log1p(a * std::max(0.0f,w)) / std::log1p(a * 3.0f); };
+		switch (mWidthScaleMode) {
+			case 0: mWidthGraph.SetFFTValueTransform(nullptr); mWidthGraph.SetFFTScaleCaption("Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 4.0f; break;
+			case 1: mWidthGraph.SetFFTValueTransform(widthGamma); mWidthGraph.SetFFTScaleCaption("Width^0.6"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 4.0f; break;
+			case 2: default: mWidthGraph.SetFFTValueTransform(widthLog); mWidthGraph.SetFFTScaleCaption("log1p Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 4.0f; break;
+		}
+		if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML("88FF44", 0.9f), ColorFromHTML("448822", 0.25f), true, "Input Width", widthLinear });
+		if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML("66CC33", 0.9f), ColorFromHTML("335511", 0.25f), true, "Output Width", widthLinear });
+
 		mWidthGraph.OnRender(cfg);
 	}
 

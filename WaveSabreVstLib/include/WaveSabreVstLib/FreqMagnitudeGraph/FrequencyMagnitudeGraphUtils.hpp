@@ -186,6 +186,8 @@ struct FFTAnalysisOverlay {
   ImColor fftFillColor = ColorFromHTML("4488FF", 0.2f);   // spectrum fill color
   bool enableFftFill = true;                              // enable filled area under curve
   const char* label = nullptr;                            // optional label for legend/display
+  // Optional value transform per overlay (e.g., convert Width->dB or gamma compress Width)
+  std::function<float(float)> valueTransform = nullptr;
 };
 
 //=============================================================================
