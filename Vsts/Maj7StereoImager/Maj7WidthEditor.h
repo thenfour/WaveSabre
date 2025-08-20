@@ -234,27 +234,29 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::Text("Freq overlays:");
 			// Input Mid (dB)
 			ToggleButton(&mShowInputMid, "In M");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Mid spectrum (dB)"); ImGui::Separator(); ImGui::Text("Mid = (L+R)*0.5"); ImGui::Text("Uses dB scale (-60..0) when any M/S overlays are enabled."); ImGui::EndTooltip(); }
+			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input mid / center channel");
+			ImGui::EndTooltip(); }
 			ImGui::SameLine();
 			// Input Side (dB)
 			ToggleButton(&mShowInputSide, "In S");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Side spectrum (dB)"); ImGui::Separator(); ImGui::Text("Side = (L-R)*0.5"); ImGui::Text("Uses dB scale (-60..0) when any M/S overlays are enabled."); ImGui::EndTooltip(); }
+			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Side"); ImGui::EndTooltip(); }
 			ImGui::SameLine();
 			// Input Width (linear width)
 			ToggleButton(&mShowInputWidth, "In W");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Width by frequency (linear)"); ImGui::Separator(); ImGui::Text("Width = |Side|/|Mid| (0..3)"); ImGui::Text("Shown on width scale (0..3.2) when no M/S overlays are enabled."); ImGui::TextDisabled("Hidden when any M/S overlays are enabled (dB scale)."); ImGui::EndTooltip(); }
+			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Width (normalized side)");
+			ImGui::EndTooltip(); }
 			ImGui::SameLine(0, 20);
 			// Output Mid (dB)
 			ToggleButton(&mShowOutputMid, "Out M");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Mid spectrum (dB)"); ImGui::Separator(); ImGui::Text("Mid = (L+R)*0.5"); ImGui::Text("Uses dB scale (-60..0) when any M/S overlays are enabled."); ImGui::EndTooltip(); }
+			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Mid/center"); ImGui::EndTooltip(); }
 			ImGui::SameLine();
 			// Output Side (dB)
 			ToggleButton(&mShowOutputSide, "Out S");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Side spectrum (dB)"); ImGui::Separator(); ImGui::Text("Side = (L-R)*0.5"); ImGui::Text("Uses dB scale (-60..0) when any M/S overlays are enabled."); ImGui::EndTooltip(); }
+			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Side"); ImGui::EndTooltip(); }
 			ImGui::SameLine();
 			// Output Width (linear width)
 			ToggleButton(&mShowOutputWidth, "Out W");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Width by frequency (linear)"); ImGui::Separator(); ImGui::Text("Width = |Side|/|Mid| (0..3)"); ImGui::Text("Shown on width scale (0..3.2) when no M/S overlays are enabled."); ImGui::TextDisabled("Hidden when any M/S overlays are enabled (dB scale)."); ImGui::EndTooltip(); }
+			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Width (normalized side)"); ImGui::EndTooltip(); }
 		}
 
 		RenderFrequencyAnalysis();
@@ -316,10 +318,11 @@ private:
 		const bool anyMidSide = (mShowInputMid || mShowInputSide || mShowOutputMid || mShowOutputSide);
 		const bool anyWidth = (mShowInputWidth || mShowOutputWidth);
 
-		// If user enabled any M/S overlays, use a dB scale (-60..0) suited for them, and omit width overlays
-		// Otherwise, use width scale (0..3.2) and show width overlays.
-		const float scaleMin = anyMidSide ? -60.0f : 0.0f;
-		const float scaleMax = anyMidSide ? 0.0f : 3.2f;
+		// If user enabled any M/S overlays, use a dB scale (-60..0) suited for them.
+		// Otherwise, use width scale (0..3.2).
+		static constexpr float scaleMinDb = -90.0f;
+		const float scaleMin = scaleMinDb;// anyMidSide ? -60.0f : 0.0f;
+		const float scaleMax = 0;// anyMidSide ? 0.0f : 3.2f;
 
 		FrequencyResponseRendererConfig<0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams> cfg{
 			ColorFromHTML("222222", 1.0f), // background
@@ -337,18 +340,29 @@ private:
 		for (size_t i = 0; i < (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams; ++i) cfg.mParamCacheCopy[i] = mpMaj7Width->mParamCache[i];
 
 		cfg.fftOverlays.clear();
-		if (anyMidSide) {
-			// Show Mid/Side in dB domain
-			if (mShowInputMid && analyzerIn->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetMidAnalyzer(), ColorFromHTML("8888FF", 0.9f), ColorFromHTML("444488", 0.25f), true, "Input Mid", nullptr });
-			if (mShowInputSide && analyzerIn->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetSideAnalyzer(), ColorFromHTML("FF8888", 0.9f), ColorFromHTML("884444", 0.25f), true, "Input Side", nullptr });
-			if (mShowOutputMid && analyzerOut->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetMidAnalyzer(), ColorFromHTML("6666CC", 0.9f), ColorFromHTML("333366", 0.25f), true, "Output Mid", nullptr });
-			if (mShowOutputSide && analyzerOut->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetSideAnalyzer(), ColorFromHTML("CC6666", 0.9f), ColorFromHTML("663333", 0.25f), true, "Output Side", nullptr });
-		} else if (anyWidth) {
-			// Width overlays use linear width transform selection under width scale
-			auto widthLog = [](float w)->float { const float a = 1.8f; return std::log1p(a * std::max(0.0f, w)) / std::log1p(a * 3.0f); };
-			if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML("88FF44", 0.9f), ColorFromHTML("448822", 0.25f), true, "Input Width", widthLog });
-			if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML("66CC33", 0.9f), ColorFromHTML("335511", 0.25f), true, "Output Width", widthLog });
-		}
+
+		// Mid/Side in dB domain
+		if (mShowInputMid && analyzerIn->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetMidAnalyzer(), ColorFromHTML("8888FF", 0.9f), ColorFromHTML("444488", 0.25f), true, "Input Mid", nullptr });
+		if (mShowInputSide && analyzerIn->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetSideAnalyzer(), ColorFromHTML("FF8888", 0.9f), ColorFromHTML("884444", 0.25f), true, "Input Side", nullptr });
+		if (mShowOutputMid && analyzerOut->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetMidAnalyzer(), ColorFromHTML("6666CC", 0.9f), ColorFromHTML("333366", 0.25f), true, "Output Mid", nullptr });
+		if (mShowOutputSide && analyzerOut->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetSideAnalyzer(), ColorFromHTML("CC6666", 0.9f), ColorFromHTML("663333", 0.25f), true, "Output Side", nullptr });
+
+		// Width overlays: choose transform based on chosen scale
+		//auto widthLog = [](float w)->float { const float a = 1.8f; return std::log1p(a * std::max(0.0f, w)) / std::log1p(a * 3.0f); };
+		auto widthAsDbScale = [](float v)->float {
+			// If v is a dB endpoint (negative range), pass-through so min/max remain [-60..0]
+			if (v <= 0.0f) return v;
+			// Otherwise v is width in [0..3], map to [-60..0] using the same perceptual curve as widthLog
+			const float a = 1.8f;
+			float t01 = std::log1p(a * std::max(0.0f, v)) / std::log1p(a * 3.0f); // 0..1
+			return M7::math::lerp(scaleMinDb, 0.0f, t01); // map to [-60..0]
+		};
+
+		//if (anyWidth) {
+			std::function<float(float)> widthTransform = std::function<float(float)>(widthAsDbScale);
+			if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML("88FF44", 0.9f), ColorFromHTML("448822", 0.25f), true, "Input Width", widthTransform });
+			if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML("66CC33", 0.9f), ColorFromHTML("335511", 0.25f), true, "Output Width", widthTransform });
+		//}
 
 		mWidthGraph.OnRender(cfg);
 	}
