@@ -19,7 +19,7 @@ namespace WaveSabreCore
     private:
         std::unique_ptr<SmoothedMonoFFT> mMidAnalyzer;
         std::unique_ptr<SmoothedMonoFFT> mSideAnalyzer;
-        mutable std::vector<SpectrumBin> mWidthSpectrum; // Computed width spectrum (Side/Mid ratio) - mutable for lazy evaluation
+        mutable std::vector<SpectrumBin> mWidthSpectrum; // Computed width spectrum (Side^2 / (Mid^2+Side^2)) - mutable for lazy evaluation
         
         bool mEnabled = false;
         
@@ -191,7 +191,7 @@ namespace WaveSabreCore
             std::lock_guard<std::mutex> sLock(mSpectrumMutex);
             if (mWidthSpectrum.size() != spectrumSize) mWidthSpectrum.resize(spectrumSize);
             
-            // Confidence weighting thresholds for stability in low-energy bins (use Mid only)
+            // Confidence weighting thresholds for stability in low-energy bins (use total energy)
             const float kFadeStartDB = -30.0f;  // start trusting less below this
             const float kFadeEndDB   = -80.0f;  // fully faded (treated as mono) below this
 
@@ -203,21 +203,29 @@ namespace WaveSabreCore
             };
             
             for (size_t i = 0; i < spectrumSize; ++i) {
-                float frequency = midSpectrum[i].frequency;
-                float midMagnitudeDB = midSpectrum[i].magnitudeDB;
-                float sideMagnitudeDB = sideSpectrum[i].magnitudeDB;
-                float deltaDB = sideMagnitudeDB - midMagnitudeDB;
-                float widthLinear = M7::math::DecibelsToLinear(deltaDB);
-                widthLinear = std::min(3.0f, std::max(0.0f, widthLinear));
+                const float frequency      = midSpectrum[i].frequency;
+                const float midMagnitudeDB = midSpectrum[i].magnitudeDB;
+                const float sideMagnitudeDB= sideSpectrum[i].magnitudeDB;
 
-                // Confidence based on Mid energy (denominator)
-                const float t = smoothstep(kFadeEndDB, kFadeStartDB, midMagnitudeDB);
+                // Convert dB (amplitude) to linear amplitude, then to power
+                const float midAmp  = M7::math::DecibelsToLinear(midMagnitudeDB);
+                const float sideAmp = M7::math::DecibelsToLinear(sideMagnitudeDB);
+                const float midPow  = midAmp * midAmp;
+                const float sidePow = sideAmp * sideAmp;
+                const float totalPow = midPow + sidePow;
 
-                // Silence considered mono: blend width to 0 as Mid energy vanishes
-                const float widthConfident = widthLinear * t;
-                
-                mWidthSpectrum[i].frequency = frequency;
-                mWidthSpectrum[i].magnitudeDB = widthConfident; // carries linear width for renderer
+                // Energy-normalized width fraction (bounded 0..1)
+                const float width = (totalPow > 0.0f) ? (sidePow / (totalPow + 1e-20f)) : 0.0f;
+
+                // Confidence based on total energy (amplitude from sqrt of power sum)
+                const float combinedAmp = std::sqrt(totalPow);
+                const float combinedDB  = (combinedAmp > 0.0f) ? M7::math::LinearToDecibels(combinedAmp) : -120.0f;
+                const float t = smoothstep(kFadeEndDB, kFadeStartDB, combinedDB);
+
+                const float widthConfident = width * t;
+
+                mWidthSpectrum[i].frequency   = frequency;
+                mWidthSpectrum[i].magnitudeDB = widthConfident; // stores [0..1] width for renderer
             }
             mNeedsWidthUpdate.store(false, std::memory_order_release);
         }
