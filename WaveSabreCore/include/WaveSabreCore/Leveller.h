@@ -154,11 +154,10 @@ namespace WaveSabreCore
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		AnalysisStream mInputAnalysis[2];
 		AnalysisStream mOutputAnalysis[2];
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
-		// New unified FFT + smoothing owners
 		SmoothedStereoFFT mInputSpectrumSmoother;   // Input display smoother + analyzer
 		SmoothedStereoFFT mOutputSpectrumSmoother;  // Output display smoother + analyzer
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 
 		Leveller() :
 			Device((int)ParamIndices::NumParams, mParamCache, gLevellerDefaults16)

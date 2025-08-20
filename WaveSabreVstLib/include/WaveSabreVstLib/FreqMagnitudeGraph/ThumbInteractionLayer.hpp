@@ -190,8 +190,6 @@ public:
       
       // Determine thumb visual state
       bool isActive = (mThumbInteraction.isDragging && mThumbInteraction.activeThumbIndex == i);
-      //bool isHovered = th.isInteractive && HitTestCircle(mousePos, th.point, mThumbRadius + 3.0f) && 
-      //                mouseInBounds && !mThumbInteraction.isDragging;
 	  bool isHovered = (hoveredThumb == i) && th.isInteractive && mouseInBounds && !mThumbInteraction.isDragging;
       
       // Draw thumb with state-based appearance

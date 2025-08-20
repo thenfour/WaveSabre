@@ -521,14 +521,22 @@ namespace WaveSabreCore
 					s1 = 0;
 					for (int iBand = 0; iBand < gBandCount; ++iBand) {
 						auto& band = mBands[iBand];
-						auto r = band.ProcessSample({ splitter0.s[iBand], splitter1.s[iBand] }, isGuiVisible);
+						auto r = band.ProcessSample({ splitter0.s[iBand], splitter1.s[iBand] }
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+						, isGuiVisible
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+						);
 						s0 += r.x[0] * outputGainLin;
 						s1 += r.x[1] * outputGainLin;
 					}
 				}
 				else {
 					auto& band = mBands[1];
-					auto r = band.ProcessSample({ s0, s1 }, isGuiVisible);
+					auto r = band.ProcessSample({ s0, s1 }
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+					, isGuiVisible
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+					);
 					s0 = r[0] * outputGainLin;
 					s1 = r[1] * outputGainLin;
 				}

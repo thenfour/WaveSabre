@@ -502,7 +502,11 @@ namespace WaveSabreCore
 				return s;
 			}
 
-			M7::FloatPair ProcessSample(float s0, float s1, float masterDryWet, bool isGuiVisible)
+			M7::FloatPair ProcessSample(float s0, float s1, float masterDryWet
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				, bool isGuiVisible
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+			)
 			{
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				if (isGuiVisible) {
@@ -695,7 +699,11 @@ namespace WaveSabreCore
 				s1 = 0;
 				for (int iBand = 0; iBand < gBandCount; ++iBand) {
 					auto& band = mBands[iBand];
-					auto r = band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet, isGuiVisible);
+					auto r = band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+						, isGuiVisible
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+					);
 					s0 += r.x[0] * mOutputGainLin;
 					s1 += r.x[1] * mOutputGainLin;
 				}

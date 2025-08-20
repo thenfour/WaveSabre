@@ -190,14 +190,5 @@ struct FFTAnalysisOverlay {
   std::function<float(float)> valueTransform = nullptr;
 };
 
-//=============================================================================
-// Hit test helper(s)
-//=============================================================================
-inline bool HitTestCircle(ImVec2 point, ImVec2 center, float radius)
-{
-  const float dx = point.x - center.x;
-  const float dy = point.y - center.y;
-  return (dx * dx + dy * dy) <= (radius * radius);
-}
 
 } // namespace WaveSabreVstLib
