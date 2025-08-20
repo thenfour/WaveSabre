@@ -20,6 +20,7 @@ private:
   
   // Store raw pointers to layers for configuration (graph owns the layers)
   GridLayer<TShowGridLabels>* mGridLayer = nullptr;
+  FFTDiffFlatLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTDiffFlatLayer = nullptr;
   FFTDiffLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTDiffLayer = nullptr;
   FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTLayer = nullptr;
   EQResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount, TFilterCount, TParamCount>* mEQLayer = nullptr;
@@ -34,14 +35,21 @@ public:
     auto gridLayer = std::make_unique<GridLayer<TShowGridLabels>>();
     mGridLayer = gridLayer.get();
     mGraph.AddLayer(std::move(gridLayer));
+
+    // Flat diff behind everything else
+    auto fftDiffFlatLayer = std::make_unique<FFTDiffFlatLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
+    mFFTDiffFlatLayer = fftDiffFlatLayer.get();
+    mFFTDiffFlatLayer->SetScaling(-24.0f, +24.0f, true);
+    mGraph.AddLayer(std::move(fftDiffFlatLayer));
+
+    // Filled diff behind FFT lines
+    auto fftDiffLayer = std::make_unique<FFTDiffLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
+    mFFTDiffLayer = fftDiffLayer.get();
+    mGraph.AddLayer(std::move(fftDiffLayer));
     
     auto fftLayer = std::make_unique<FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>(std::vector<FFTAnalysisOverlay>{});
     mFFTLayer = fftLayer.get();
     mGraph.AddLayer(std::move(fftLayer));
-
-    auto fftDiffLayer = std::make_unique<FFTDiffLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
-    mFFTDiffLayer = fftDiffLayer.get();
-    mGraph.AddLayer(std::move(fftDiffLayer));
 
     auto crossoverLayer = std::make_unique<CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
     mCrossoverLayer = crossoverLayer.get();
@@ -70,7 +78,7 @@ public:
     // Configure the graph background
     mGraph.SetBackgroundColor(cfg.backgroundColor);
     
-    // Update FFT diff layer scaling to match FFT layer request
+    // Update filled FFT diff layer scaling to match FFT layer request (shares scale)
     if (mFFTDiffLayer) {
       mFFTDiffLayer->SetScaling(cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB, cfg.useIndependentFFTScale);
     }
@@ -168,6 +176,17 @@ public:
   }
   void ClearFFTDiffOverlay() {
     if (mFFTDiffLayer) mFFTDiffLayer->ClearOverlay();
+  }
+
+  // FFT diff flat helpers
+  void SetFFTDiffFlatOverlay(const FFTDiffFlatOverlay& overlay) {
+    if (mFFTDiffFlatLayer) mFFTDiffFlatLayer->SetOverlay(overlay);
+  }
+  void ClearFFTDiffFlatOverlay() {
+    if (mFFTDiffFlatLayer) mFFTDiffFlatLayer->ClearOverlay();
+  }
+  void SetFFTDiffFlatScaling(float minDB, float maxDB, bool independent = true) {
+    if (mFFTDiffFlatLayer) mFFTDiffFlatLayer->SetScaling(minDB, maxDB, independent);
   }
 };
 

@@ -41,6 +41,7 @@ struct Maj7MBCEditor : public VstEditor
 	bool mShowInputFft = true;
 	bool mShowOutputFft = false;
 	bool mShowFftDiff = true;
+	bool mShowFftDiffFlat = false; // new toggle for FFT diff flat
 
 	VstSerializableIntParamRef<int> mEditingBandParam{ "EditingBand", mEditingBand };
 	VstSerializableBoolParamRef mShowInputHistoryParam{ "ShowInputHistory", mShowInputHistory };
@@ -55,6 +56,7 @@ struct Maj7MBCEditor : public VstEditor
 	VstSerializableBoolParamRef mShowInputFftParam{ "ShowInputFft", mShowInputFft };
 	VstSerializableBoolParamRef mShowOutputFftParam{ "ShowOutputFft", mShowOutputFft };
 	VstSerializableBoolParamRef mShowFftDiffParam{ "ShowFftDiff", mShowFftDiff }; // serialize diff toggle
+	VstSerializableBoolParamRef mShowFftDiffFlatParam{ "ShowFftDiffFlat", mShowFftDiffFlat };
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
@@ -65,7 +67,7 @@ struct Maj7MBCEditor : public VstEditor
 
 	virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() override
 	{
-		return {
+		auto base = std::vector<IVstSerializableParam*>{
 			&mEditingBandParam,
 			&mShowInputHistoryParam,
 			&mShowDetectorHistoryParam,
@@ -78,7 +80,9 @@ struct Maj7MBCEditor : public VstEditor
 			&mShowInputFftParam,
 			&mShowOutputFftParam,
 			&mShowFftDiffParam,
+			&mShowFftDiffFlatParam
 		};
+		return base;
 	}
 
 	virtual void PopulateMenuBar() override
@@ -576,6 +580,9 @@ public:
 			ToggleButton(&mShowOutputFft, "Output FFT");
 			ImGui::SameLine();
 			ToggleButton(&mShowFftDiff, "FFT Diff");
+			ImGui::SameLine();
+			ToggleButton(&mShowFftDiffFlat, "FFT Diff (flat)");
+
 			if (mbEnabled) {
 				ImGui::SameLine();
 				ToggleButton(&mShowCrossoverResponse, "Crossover response");
@@ -621,9 +628,20 @@ public:
 				diff.sourceA = &mpMaj7MBC->mInputSpectrum;
 				diff.sourceB = &mpMaj7MBC->mOutputSpectrum;
 				mCrossoverGraph.SetFFTDiffOverlay(diff);
-			}
-			else {
+			} else {
 				mCrossoverGraph.ClearFFTDiffOverlay();
+			}
+
+			if (mShowFftDiffFlat) {
+				FFTDiffFlatOverlay diffFlat{};
+				diffFlat.sourceB = &mpMaj7MBC->mInputSpectrum;
+				diffFlat.sourceA = &mpMaj7MBC->mOutputSpectrum;
+				// Default symmetric scale already set in layer; can override if desired:
+				mCrossoverGraph.SetFFTDiffFlatOverlay(diffFlat);
+				// Ensure default scale [-24..24]
+				mCrossoverGraph.SetFFTDiffFlatScaling(-24.0f, +24.0f, true);
+			} else {
+				mCrossoverGraph.ClearFFTDiffFlatOverlay();
 			}
 
 			mCrossoverGraph.mCrossoverLayer->mShowResponses = mShowCrossoverResponse;

@@ -3,18 +3,20 @@
 #include "FrequencyMagnitudeGraphUtils.hpp"
 #include "FrequencyMagnitudeGraph.hpp"
 #include <functional>
+#include <array>
+#include <WaveSabreCore/FFTAnalysis.hpp>
 
 namespace WaveSabreVstLib {
 
 // Configuration for FFT difference rendering
 struct FFTDiffOverlay {
   // Required analyzers (operate in dB domain)
-  const IFrequencyAnalysis* sourceA = nullptr; // e.g., Input/Source
-  const IFrequencyAnalysis* sourceB = nullptr; // e.g., Output/Processed
+  const WaveSabreCore::IFrequencyAnalysis* sourceA = nullptr; // e.g., Input/Source
+  const WaveSabreCore::IFrequencyAnalysis* sourceB = nullptr; // e.g., Output/Processed
 
   // Configurable colors (tweakable by host UI)
   ImColor colorInAOnly = ColorFromHTML("cc4444", 0.50f); // A above B
-  ImColor colorInBoth  = ColorFromHTML("aaaaaa", 0.0f); // common area (min(A,B))
+  ImColor colorInBoth  = ColorFromHTML("aaaaaa", 0.0f);   // common area (min(A,B))
   ImColor colorInBOnly = ColorFromHTML("449999", 0.50f); // B above A
 
   bool enabled = true;
@@ -190,6 +192,139 @@ public:
 
       ImVec2 quad[4] = { {x0, yB0}, {x1, yB1}, {x1, yMin1}, {x0, yMin0} };
       dl->AddConvexPolyFilled(quad, 4, mOverlay.colorInBOnly);
+    }
+  }
+};
+
+//=============================================================================
+// Flat diff layer: render A-B around a zero line (unity line), fill above/below
+//=============================================================================
+struct FFTDiffFlatOverlay {
+  const WaveSabreCore::IFrequencyAnalysis* sourceA = nullptr;
+  const WaveSabreCore::IFrequencyAnalysis* sourceB = nullptr;
+
+  // Colors reused for sign semantics (positive=A-only, negative=B-only)
+  ImColor colorPositive = ColorFromHTML("449999", 0.50f); // A > B
+  ImColor colorNegative = ColorFromHTML("cc4444", 0.50f); // B > A
+  ImColor unityLineColor = ColorFromHTML("cccccc", 0.7f);
+  float   unityLineThickness = 1.5f;
+
+  bool drawUnityLine = true;
+  bool enabled = true;
+};
+
+template <int TSegmentCount>
+class FFTDiffFlatLayer : public IFrequencyGraphLayer {
+private:
+  FFTDiffFlatOverlay mOverlay{};
+  bool mHasOverlay = false;
+
+  std::vector<float> mFrequencies;
+  std::vector<float> mScreenX;
+  std::array<float, TSegmentCount> mDelta{}; // A - B in dB
+  std::array<bool,  TSegmentCount> mValid{};
+
+  // Symmetric default for diff visualization; configurable
+  float mDisplayMinDB = -24.0f;
+  float mDisplayMaxDB = +24.0f;
+  bool  mUseIndependentScale = true;
+
+  float MapToY(float value, float minV, float maxV, const ImRect& bb) const {
+    const float t01 = (maxV - minV) != 0.0f ? M7::math::clamp01((value - minV) / (maxV - minV)) : 0.0f;
+    return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
+  }
+
+  float ValToY(float dB, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
+    if (mUseIndependentScale) return MapToY(dB, mDisplayMinDB, mDisplayMaxDB, bb);
+    return coords.DBToY(dB, bb);
+  }
+
+public:
+  FFTDiffFlatLayer() {
+    mFrequencies.reserve(TSegmentCount);
+    mScreenX.reserve(TSegmentCount);
+  }
+
+  void SetOverlay(const FFTDiffFlatOverlay& overlay) {
+    mOverlay = overlay;
+    mHasOverlay = (overlay.enabled && overlay.sourceA && overlay.sourceB);
+  }
+  void ClearOverlay() { mHasOverlay = false; mOverlay = FFTDiffFlatOverlay{}; }
+
+  void SetScaling(float minDB, float maxDB, bool independent = true) {
+    mDisplayMinDB = minDB; mDisplayMaxDB = maxDB; mUseIndependentScale = independent;
+  }
+
+  bool InfluencesAutoScale() const override { return false; }
+
+  void UpdateData(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
+    ScreenSpaceFrequencySampler::GenerateFrequencyPoints(TSegmentCount, mFrequencies, mScreenX, coords, bb);
+
+    if (!mHasOverlay) { for (int i = 0; i < TSegmentCount; ++i) mValid[i] = false; return; }
+
+    const auto* a = mOverlay.sourceA;
+    const auto* b = mOverlay.sourceB;
+
+    const float nyquistA = a ? a->GetNyquistFrequency() : 0.0f;
+    const float nyquistB = b ? b->GetNyquistFrequency() : 0.0f;
+    const float binResA  = a ? a->GetFrequencyResolution() : 0.0f;
+    const float binResB  = b ? b->GetFrequencyResolution() : 0.0f;
+
+    for (int i = 0; i < TSegmentCount; ++i) {
+      float f = mFrequencies[i];
+      bool valid = (a && b && f > 0.0f);
+      if (valid && nyquistA > 0.0f && binResA > 0.0f && f >= nyquistA) f = std::max(0.0f, nyquistA - 0.5f * binResA);
+      if (valid && nyquistB > 0.0f && binResB > 0.0f && f >= nyquistB) f = std::max(0.0f, nyquistB - 0.5f * binResB);
+
+      if (valid) {
+        float aDB = a->GetMagnitudeAtFrequency(f);
+        float bDB = b->GetMagnitudeAtFrequency(f);
+        mDelta[i] = aDB - bDB;
+        mValid[i] = true;
+      } else {
+        mDelta[i] = 0.0f;
+        mValid[i] = false;
+      }
+    }
+  }
+
+  void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
+    if (!mHasOverlay) return;
+
+    const float zeroY = ValToY(0.0f, coords, bb);
+
+    // Draw unity/zero line across graph
+    if (mOverlay.drawUnityLine) {
+      dl->AddLine({bb.Min.x, zeroY}, {bb.Max.x, zeroY}, mOverlay.unityLineColor, mOverlay.unityLineThickness);
+    }
+
+    const float dispMin = mUseIndependentScale ? mDisplayMinDB : coords.mDisplayMinDB;
+    const float dispMax = mUseIndependentScale ? mDisplayMaxDB : coords.mDisplayMaxDB;
+
+    // Fill positive and negative regions relative to zero
+    for (int i = 0; i + 1 < TSegmentCount; ++i) {
+      if (!mValid[i] || !mValid[i + 1]) continue;
+
+      float d0 = M7::math::clamp(mDelta[i],     dispMin, dispMax);
+      float d1 = M7::math::clamp(mDelta[i + 1], dispMin, dispMax);
+
+      // Positive region (A > B) if either endpoint > 0
+      if (d0 > 0.0f || d1 > 0.0f) {
+        float x0 = mScreenX[i], x1 = mScreenX[i + 1];
+        float y0 = ValToY(d0, coords, bb);
+        float y1 = ValToY(d1, coords, bb);
+        ImVec2 quad[4] = { {x0, zeroY}, {x0, y0}, {x1, y1}, {x1, zeroY} };
+        dl->AddConvexPolyFilled(quad, 4, mOverlay.colorPositive);
+      }
+
+      // Negative region (B > A) if either endpoint < 0
+      if (d0 < 0.0f || d1 < 0.0f) {
+        float x0 = mScreenX[i], x1 = mScreenX[i + 1];
+        float y0 = ValToY(d0, coords, bb);
+        float y1 = ValToY(d1, coords, bb);
+        ImVec2 quad[4] = { {x0, y0}, {x1, y1}, {x1, zeroY}, {x0, zeroY} };
+        dl->AddConvexPolyFilled(quad, 4, mOverlay.colorNegative);
+      }
     }
   }
 };
