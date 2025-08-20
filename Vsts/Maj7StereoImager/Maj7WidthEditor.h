@@ -25,7 +25,7 @@ struct Maj7WidthEditor : public VstEditor
 	Maj7WidthVst* mpMaj7WidthVst;
 
 	Maj7WidthEditor(AudioEffect* audioEffect) : //
-		VstEditor(audioEffect, 850, 750),
+		VstEditor(audioEffect, 950, 700),
 		mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
 	{
 		mpMaj7Width = ((Maj7WidthVst *)audioEffect)->GetMaj7Width();
@@ -146,6 +146,9 @@ struct Maj7WidthEditor : public VstEditor
 		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg);
 		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg);
 
+		ImGui::SameLine(); VUMeter("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg);
+		ImGui::SameLine(); VUMeter("ms_outp", mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector, mainCfg);
+
 		// Stereo imaging visualization
 		ImGui::SameLine(); 
 		RenderStereoImagingDisplay("stereo_imaging_inp", mpMaj7Width->mInputImagingAnalysis);
@@ -158,10 +161,21 @@ private:
 		ImGuiGroupScope _scope(id);
 
 		static constexpr int dim = 250;
+		ImVec2 meterSize(dim, 30);
 
 		RenderCorrelationMeter("correlation_in", analysis.mPhaseCorrelation, { dim, 30 });
 
-		RenderStereoBalance("stereo_balance_in", analysis, { dim, 30 });
+		// double mStereoWidth = 0.0;       // 0 = mono, 1 = normal stereo, >1 = wide  
+		// double mStereoBalance = 0.0;     // -1 to +1, -1 = full left, 0 = center, +1 = full right
+		// double mMidLevel = 0.0;          // Mid channel level (RMS)
+		// double mSideLevel = 0.0;         // Side channel level (RMS)
+
+		RenderGeneralMeter(analysis.mStereoWidth, 0, 2, meterSize, "width");
+		RenderGeneralMeter(analysis.mStereoBalance, -1, 1, meterSize, "balance");
+		//RenderGeneralMeter(analysis.mMidLevel, 0, 1, meterSize, "mid level");
+		//RenderGeneralMeter(analysis.mSideLevel, 0, 1, meterSize, "side level");
+
+		//RenderStereoBalance("stereo_balance_in", analysis, { dim, 30 });
 
 		// Add tabs to switch between different visualization modes
 		if (ImGui::BeginTabBar("StereoVizTabs", ImGuiTabBarFlags_None)) {

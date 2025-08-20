@@ -30,79 +30,53 @@ inline void RenderStereoBalance(const char* id, const StereoImagingAnalysisStrea
 	ImVec2 centerLineEnd = { bb.Min.x + size.x * 0.5f, bb.Max.y };
 	dl->AddLine(centerLine, centerLineEnd, IM_COL32(120, 120, 120, 150), 1.0f);
 
-	// Calculate instantaneous balance from recent samples
-	const auto* history = analysis.GetHistoryBuffer();
-	size_t historySize = analysis.GetHistorySize();
-
-	if (historySize > 10) {
-		// Average balance over recent samples for stability
-		float balanceSum = 0.0f;
-		int validSamples = 0;
-
-		size_t startIdx = (historySize >= 32) ? historySize - 32 : 0;
-		for (size_t i = startIdx; i < historySize; ++i) {
-			const auto& sample = history[i];
-			float magnitude = std::sqrt(sample.left * sample.left + sample.right * sample.right);
-
-			if (magnitude > 0.01f) { // Skip quiet samples
-				// Calculate balance: -1 = full left, 0 = center, +1 = full right
-				float balance = (sample.right - sample.left) / magnitude;
-				balanceSum += balance;
-				validSamples++;
-			}
-		}
-
-		if (validSamples > 0) {
-			float avgBalance = balanceSum / validSamples;
-
-			// Map balance to screen position (-1 to +1 -> 0 to width)
-			float balanceX = bb.Min.x + (avgBalance + 1.0f) * 0.5f * size.x;
-
-			// Draw balance indicator
-			ImU32 balanceColor;
-			if (abs(avgBalance) < 0.1f) {
-				balanceColor = IM_COL32(100, 255, 100, 200); // Green for centered
-			}
-			else if (abs(avgBalance) < 0.3f) {
-				balanceColor = IM_COL32(255, 255, 100, 200); // Yellow for slight imbalance
-			}
-			else {
-				balanceColor = IM_COL32(255, 100, 100, 200); // Red for significant imbalance
-			}
-
-			// Balance indicator bar
-			float barHeight = size.y * 0.6f;
-			float barY = bb.Min.y + size.y * 0.2f;
-			dl->AddRectFilled({ balanceX - 2, barY }, { balanceX + 2, barY + barHeight }, balanceColor);
-
-			// Balance value text
-			char balanceText[64];
-			sprintf_s(balanceText, "Balance: %.2f", avgBalance);
-			dl->AddText({ bb.Min.x + 4, bb.Min.y + 4 }, IM_COL32(255, 255, 255, 150), balanceText);
-		}
+	// *** SIMPLIFIED: Use properly smoothed balance from analysis stream ***
+	float smoothedBalance = static_cast<float>(analysis.mStereoBalance);
+	
+	// Map balance to screen position (-1 to +1 -> 0 to width)
+	float balanceX = bb.Min.x + (smoothedBalance + 1.0f) * 0.5f * size.x;
+	
+	// Draw balance indicator with professional color coding
+	ImU32 balanceColor;
+	float absBalance = std::abs(smoothedBalance);
+	if (absBalance < 0.1f) {
+		balanceColor = IM_COL32(100, 255, 100, 200); // Green for centered
+	} else if (absBalance < 0.3f) {
+		balanceColor = IM_COL32(255, 255, 100, 200); // Yellow for slight imbalance
+	} else {
+		balanceColor = IM_COL32(255, 100, 100, 200); // Red for significant imbalance
 	}
+	
+	// Balance indicator bar
+	float barHeight = size.y * 0.6f;
+	float barY = bb.Min.y + size.y * 0.2f;
+	dl->AddRectFilled({balanceX - 2, barY}, {balanceX + 2, barY + barHeight}, balanceColor);
+	
+	// Balance value text
+	char balanceText[64];
+	sprintf_s(balanceText, "Balance: %.2f", smoothedBalance);
+	dl->AddText({bb.Min.x + 4, bb.Min.y + 4}, IM_COL32(255, 255, 255, 150), balanceText);
 
-	// Stereo width indicator
-	float width = static_cast<float>(analysis.mStereoWidth);
+	// Stereo width indicator (also from analysis stream)
+	float smoothedWidth = static_cast<float>(analysis.mStereoWidth);
+	
 	ImU32 widthColor;
-	if (width < 0.5f) {
+	if (smoothedWidth < 0.5f) {
 		widthColor = IM_COL32(255, 255, 100, 150); // Yellow for narrow
-	}
-	else if (width > 2.0f) {
+	} else if (smoothedWidth > 2.0f) {
 		widthColor = IM_COL32(255, 100, 100, 150); // Red for too wide
-	}
-	else {
+	} else {
 		widthColor = IM_COL32(100, 255, 100, 150); // Green for good
 	}
-
+	
 	char widthText[64];
-	sprintf_s(widthText, "Width: %.2f", width);
+	sprintf_s(widthText, "Width: %.2f", smoothedWidth);
 	ImVec2 widthTextSize = ImGui::CalcTextSize(widthText);
-	dl->AddText({ bb.Max.x - widthTextSize.x - 4, bb.Min.y + 4 }, widthColor, widthText);
-
+	dl->AddText({bb.Max.x - widthTextSize.x - 4, bb.Min.y + 4}, widthColor, widthText);
+	
 	// Labels
-	dl->AddText({ bb.Min.x + 4, bb.Max.y - 18 }, IM_COL32(150, 150, 150, 150), "L");
-	dl->AddText({ bb.Max.x - 12, bb.Max.y - 18 }, IM_COL32(150, 150, 150, 150), "R");
-
+	dl->AddText({bb.Min.x + 4, bb.Max.y - 18}, IM_COL32(150, 150, 150, 150), "L");
+	dl->AddText({bb.Max.x - 12, bb.Max.y - 18}, IM_COL32(150, 150, 150, 150), "R");
+	
 	ImGui::Dummy(size);
 }

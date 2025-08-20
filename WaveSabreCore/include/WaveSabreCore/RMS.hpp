@@ -140,14 +140,22 @@ namespace WaveSabreCore
 
     // Stereo imaging analysis stream for real-time stereo field visualization
     struct StereoImagingAnalysisStream {
-        // Current analysis values (smoothed for display)
+        RMSDetector mLeftLevelDetector;   // *** LEFT CHANNEL RMS ***
+        RMSDetector mRightLevelDetector;  // *** RIGHT CHANNEL RMS ***
+        RMSDetector mWidthDetector;       // For stereo width RMS
+
+		AnalysisStream mMidLevelDetector; 
+		AnalysisStream mSideLevelDetector;
+
+        // Current analysis values (professionally smoothed)
         double mPhaseCorrelation = 0.0;  // -1 to +1, -1 = out of phase, 0 = uncorrelated, +1 = mono
-        double mStereoWidth = 0.0;       // 0 = mono, 1 = normal stereo, >1 = wide
-        double mMidLevel = 0.0;          // Mid channel level
-        double mSideLevel = 0.0;         // Side channel level
+        double mStereoWidth = 0.0;       // 0 = mono, 1 = normal stereo, >1 = wide  
+        double mStereoBalance = 0.0;     // -1 to +1, -1 = full left, 0 = center, +1 = full right
+        double mLeftLevel = 0.0;         // *** LEFT CHANNEL RMS LEVEL ***
+        double mRightLevel = 0.0;        // *** RIGHT CHANNEL RMS LEVEL ***
         
         // Smoothing filters for display stability
-        static constexpr double gSmoothingFactor = 0.8; // Higher = more smoothing
+        static constexpr double gSmoothingFactor = 0.8; // For correlation (sample-accurate calculation)
         
         // History buffer for phase scope visualization  
         static constexpr size_t gHistorySize = 256;
@@ -168,6 +176,10 @@ namespace WaveSabreCore
         static constexpr size_t gCorrelationWindowSize = 4800; // ~100ms at 48kHz
         
         explicit StereoImagingAnalysisStream() {
+            // Configure professional RMS detectors with appropriate time constants
+            mLeftLevelDetector.SetWindowSize(200);
+            mRightLevelDetector.SetWindowSize(200);
+            mWidthDetector.SetWindowSize(200);
             Reset();
         }
         
@@ -177,23 +189,28 @@ namespace WaveSabreCore
             mHistory[mHistoryIndex].right = static_cast<float>(right);
             mHistoryIndex = (mHistoryIndex + 1) % gHistorySize;
             
+            // *** PROCESS L/R CHANNELS WITH DEDICATED RMS DETECTORS ***
+            mLeftLevel = mLeftLevelDetector.ProcessSample(left);   // Direct L/R RMS
+            mRightLevel = mRightLevelDetector.ProcessSample(right); // No abs() needed - RMS detector handles it internally
+            
             // Calculate mid-side components
             double mid = (left + right) * 0.5;
             double side = (left - right) * 0.5;
             
-            // Update mid/side levels with smoothing
-            double midAbs = std::abs(mid);
-            double sideAbs = std::abs(side);
-            mMidLevel = mMidLevel * gSmoothingFactor + midAbs * (1.0 - gSmoothingFactor);
-            mSideLevel = mSideLevel * gSmoothingFactor + sideAbs * (1.0 - gSmoothingFactor);
+            mMidLevelDetector.WriteSample(mid);
+			mSideLevelDetector.WriteSample(side);
             
-            // Calculate stereo width (ratio of side to mid energy)
-            if (mMidLevel > 0.0001) {
-                double instantWidth = mSideLevel / mMidLevel;
-                mStereoWidth = mStereoWidth * gSmoothingFactor + instantWidth * (1.0 - gSmoothingFactor);
+            if (mMidLevelDetector.mCurrentPeak > 0.0001) {
+                double instantWidth = mSideLevelDetector.mCurrentPeak / mMidLevelDetector.mCurrentPeak;
+                mStereoWidth = mWidthDetector.ProcessSample(instantWidth);
             }
             
-            // Update correlation calculation
+            double totalLevel = mLeftLevel + mRightLevel;
+            if (totalLevel > 0.0001) {
+                mStereoBalance = (mRightLevel - mLeftLevel) / totalLevel;
+            }
+            
+            // Update correlation calculation (keep existing sample-accurate method)
             mLeftSum += left;
             mRightSum += right;
             mLeftSquaredSum += left * left;
@@ -217,9 +234,17 @@ namespace WaveSabreCore
         void Reset() {
             mPhaseCorrelation = 0.0;
             mStereoWidth = 0.0;
-            mMidLevel = 0.0;
-            mSideLevel = 0.0;
+            mStereoBalance = 0.0;
+            mLeftLevel = 0.0;
+            mRightLevel = 0.0;
             mHistoryIndex = 0;
+            
+            // Reset professional detectors
+            mLeftLevelDetector.Reset();
+            mRightLevelDetector.Reset();
+            mMidLevelDetector.Reset();
+            mSideLevelDetector.Reset();
+            mWidthDetector.Reset();
             
             for (auto& sample : mHistory) {
                 sample.left = sample.right = 0.0f;
