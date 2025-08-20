@@ -8,6 +8,7 @@ using namespace WaveSabreCore;
 
 #include "Maj7MBCVst.hpp"
 #include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
+#include <WaveSabreVstLib/FreqMagnitudeGraph/FFTDiffLayer.hpp>
 
 struct Maj7MBCEditor : public VstEditor
 {
@@ -38,7 +39,8 @@ struct Maj7MBCEditor : public VstEditor
 
 	bool mShowCrossoverResponse = true;
 	bool mShowInputFft = true;
-	bool mShowOutputFft = true;
+	bool mShowOutputFft = false;
+	bool mShowFftDiff = true;
 
 	VstSerializableIntParamRef<int> mEditingBandParam{ "EditingBand", mEditingBand };
 	VstSerializableBoolParamRef mShowInputHistoryParam{ "ShowInputHistory", mShowInputHistory };
@@ -52,6 +54,7 @@ struct Maj7MBCEditor : public VstEditor
 	VstSerializableBoolParamRef mShowCrossoverResponseParam{ "ShowCrossoverResponse", mShowCrossoverResponse };
 	VstSerializableBoolParamRef mShowInputFftParam{ "ShowInputFft", mShowInputFft };
 	VstSerializableBoolParamRef mShowOutputFftParam{ "ShowOutputFft", mShowOutputFft };
+	VstSerializableBoolParamRef mShowFftDiffParam{ "ShowFftDiff", mShowFftDiff }; // serialize diff toggle
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
@@ -71,9 +74,10 @@ struct Maj7MBCEditor : public VstEditor
 			&mShowThreshParam,
 			&mShowLeftParam,
 			&mShowRightParam,
-			& mShowCrossoverResponseParam,
-			& mShowInputFftParam,
+			&mShowCrossoverResponseParam,
+			&mShowInputFftParam,
 			&mShowOutputFftParam,
+			&mShowFftDiffParam,
 		};
 	}
 
@@ -334,18 +338,18 @@ private:
 		// Place buttons in the upper portion of the band rectangle
 		const float buttonHeight = 20.0f;
 		const float padding = 4.0f;
-		
+
 		// Calculate width for 4 buttons: Mute, Solo, Enable, Delta
 		const float buttonWidth = 22.0f;
 		const float buttonPadding = 1.5f;
 		const float totalWidth = buttonWidth * 4 + buttonPadding * 3 + padding * 2;
-		
+
 		// Center buttons horizontally in the band, place them near the top
 		float centerX = (bandRect.Min.x + bandRect.Max.x) * 0.5f;
 		float startX = centerX - totalWidth * 0.5f;
-		
+
 		return ImRect(
-			startX, 
+			startX,
 			bandRect.Min.y + padding,
 			startX + totalWidth,
 			bandRect.Min.y + padding + buttonHeight
@@ -360,7 +364,7 @@ private:
 
 		auto& band = mpMaj7MBC->mBands[bandIndex];
 		auto& bandConfig = band.mVSTConfig;
-		
+
 		// Get button area and individual button rects
 		ImRect buttonArea = GetBandButtonArea(bandRect);
 		if (bandRect.GetWidth() < 120.0f) { // Increased width requirement
@@ -370,42 +374,46 @@ private:
 		const float buttonWidth = 22.0f;
 		const float buttonHeight = 16.0f;
 		const float padding = 1.5f;
-		
+
 		ImVec2 mutePos = { buttonArea.Min.x + 4.0f, buttonArea.Min.y + 4.0f };
 		ImVec2 soloPos = { mutePos.x + buttonWidth + padding, mutePos.y };
 		ImVec2 enablePos = { soloPos.x + buttonWidth + padding, soloPos.y };
 		ImVec2 deltaPos = { enablePos.x + buttonWidth + padding, enablePos.y };
-		
+
 		ImRect muteRect(mutePos, { mutePos.x + buttonWidth, mutePos.y + buttonHeight });
 		ImRect soloRect(soloPos, { soloPos.x + buttonWidth, soloPos.y + buttonHeight });
 		ImRect enableRect(enablePos, { enablePos.x + buttonWidth, enablePos.y + buttonHeight });
 		ImRect deltaRect(deltaPos, { deltaPos.x + buttonWidth, deltaPos.y + buttonHeight });
 
 		ImVec2 mousePos = ImGui::GetIO().MousePos;
-		
+
 		if (muteRect.Contains(mousePos)) {
 			bandConfig.mMute = !bandConfig.mMute;
 			return true;
-		} else if (soloRect.Contains(mousePos)) {
+		}
+		else if (soloRect.Contains(mousePos)) {
 			bandConfig.mSolo = !bandConfig.mSolo;
 			return true;
-		} else if (enableRect.Contains(mousePos)) {
+		}
+		else if (enableRect.Contains(mousePos)) {
 			// Toggle band enable via parameter system
 			using BandParam = Maj7MBC::FreqBand::BandParam;
 			VstInt32 paramIndex = band.mParams.mBaseParamID + (VstInt32)BandParam::Enable;
 			float currentValue = GetEffectX()->getParameter(paramIndex);
 			GetEffectX()->setParameterAutomated(paramIndex, currentValue > 0.5f ? 0.0f : 1.0f);
 			return true;
-		} else if (deltaRect.Contains(mousePos)) {
+		}
+		else if (deltaRect.Contains(mousePos)) {
 			// Toggle delta output mode
 			if (bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta) {
 				bandConfig.mOutputStream = Maj7MBC::OutputStream::Normal;
-			} else {
+			}
+			else {
 				bandConfig.mOutputStream = Maj7MBC::OutputStream::Delta;
 			}
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -417,7 +425,7 @@ private:
 
 		auto& band = mpMaj7MBC->mBands[bandIndex];
 		auto& bandConfig = band.mVSTConfig;
-		
+
 		// Get button area for 4 buttons (Mute, Solo, Enable, Delta)
 		ImRect buttonArea = GetBandButtonArea(bandRect);
 
@@ -425,12 +433,12 @@ private:
 		const float buttonWidth = 22.0f;  // Smaller buttons to fit 4
 		const float buttonHeight = 16.0f;
 		const float padding = 1.5f;       // Smaller padding
-		
+
 		ImVec2 mutePos = { buttonArea.Min.x + padding, buttonArea.Min.y + padding };
 		ImVec2 soloPos = { mutePos.x + buttonWidth + padding, mutePos.y };
 		ImVec2 enablePos = { soloPos.x + buttonWidth + padding, soloPos.y };
 		ImVec2 deltaPos = { enablePos.x + buttonWidth + padding, enablePos.y };
-		
+
 		ImRect muteRect(mutePos, { mutePos.x + buttonWidth, mutePos.y + buttonHeight });
 		ImRect soloRect(soloPos, { soloPos.x + buttonWidth, soloPos.y + buttonHeight });
 		ImRect enableRect(enablePos, { enablePos.x + buttonWidth, enablePos.y + buttonHeight });
@@ -445,57 +453,57 @@ private:
 		bool anyButtonHovered = muteHovered || soloHovered || enableHovered || deltaHovered;
 
 		// Render MUTE button
-		ImColor muteColor = bandConfig.mMute ? 
-			ColorFromHTML("cc4444", 0.9f) : 
+		ImColor muteColor = bandConfig.mMute ?
+			ColorFromHTML("cc4444", 0.9f) :
 			ColorFromHTML("444444", muteHovered ? 0.8f : 0.6f);
-		ImColor muteTextColor = bandConfig.mMute ? 
-			ColorFromHTML("ffffff") : 
+		ImColor muteTextColor = bandConfig.mMute ?
+			ColorFromHTML("ffffff") :
 			ColorFromHTML(muteHovered ? "ffffff" : "cccccc");
-			
+
 		dl->AddRectFilled(muteRect.Min, muteRect.Max, muteColor, 2.0f);
 		dl->AddRect(muteRect.Min, muteRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
-		
+
 		// Center text in button
 		ImVec2 muteTextSize = ImGui::CalcTextSize("M");
-		ImVec2 muteTextPos = { 
+		ImVec2 muteTextPos = {
 			muteRect.Min.x + (muteRect.GetWidth() - muteTextSize.x) * 0.5f,
 			muteRect.Min.y + (muteRect.GetHeight() - muteTextSize.y) * 0.5f
 		};
 		dl->AddText(muteTextPos, muteTextColor, "M");
 
 		// Render SOLO button  
-		ImColor soloColor = bandConfig.mSolo ? 
-			ColorFromHTML("cccc44", 0.9f) : 
+		ImColor soloColor = bandConfig.mSolo ?
+			ColorFromHTML("cccc44", 0.9f) :
 			ColorFromHTML("444444", soloHovered ? 0.8f : 0.6f);
-		ImColor soloTextColor = bandConfig.mSolo ? 
-			ColorFromHTML("000000") : 
+		ImColor soloTextColor = bandConfig.mSolo ?
+			ColorFromHTML("000000") :
 			ColorFromHTML(soloHovered ? "ffffff" : "cccccc");
-			
+
 		dl->AddRectFilled(soloRect.Min, soloRect.Max, soloColor, 2.0f);
 		dl->AddRect(soloRect.Min, soloRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
-		
+
 		// Center text in button
 		ImVec2 soloTextSize = ImGui::CalcTextSize("S");
-		ImVec2 soloTextPos = { 
+		ImVec2 soloTextPos = {
 			soloRect.Min.x + (soloRect.GetWidth() - soloTextSize.x) * 0.5f,
 			soloRect.Min.y + (soloRect.GetHeight() - soloTextSize.y) * 0.5f
 		};
 		dl->AddText(soloTextPos, soloTextColor, "S");
 
 		// Render ENABLE button
-		ImColor enableColor = band.mEnable ? 
-			ColorFromHTML("44cc44", 0.9f) : 
+		ImColor enableColor = band.mEnable ?
+			ColorFromHTML("44cc44", 0.9f) :
 			ColorFromHTML("444444", enableHovered ? 0.8f : 0.6f);
-		ImColor enableTextColor = band.mEnable ? 
-			ColorFromHTML("ffffff") : 
+		ImColor enableTextColor = band.mEnable ?
+			ColorFromHTML("ffffff") :
 			ColorFromHTML(enableHovered ? "ffffff" : "cccccc");
-			
+
 		dl->AddRectFilled(enableRect.Min, enableRect.Max, enableColor, 2.0f);
 		dl->AddRect(enableRect.Min, enableRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
-		
+
 		// Center text in button
 		ImVec2 enableTextSize = ImGui::CalcTextSize("E");
-		ImVec2 enableTextPos = { 
+		ImVec2 enableTextPos = {
 			enableRect.Min.x + (enableRect.GetWidth() - enableTextSize.x) * 0.5f,
 			enableRect.Min.y + (enableRect.GetHeight() - enableTextSize.y) * 0.5f
 		};
@@ -503,19 +511,19 @@ private:
 
 		// Render DELTA button
 		bool isDelta = (bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta);
-		ImColor deltaColor = isDelta ? 
-			ColorFromHTML("cc44cc", 0.9f) : 
+		ImColor deltaColor = isDelta ?
+			ColorFromHTML("cc44cc", 0.9f) :
 			ColorFromHTML("444444", deltaHovered ? 0.8f : 0.6f);
-		ImColor deltaTextColor = isDelta ? 
-			ColorFromHTML("ffffff") : 
+		ImColor deltaTextColor = isDelta ?
+			ColorFromHTML("ffffff") :
 			ColorFromHTML(deltaHovered ? "ffffff" : "cccccc");
-			
+
 		dl->AddRectFilled(deltaRect.Min, deltaRect.Max, deltaColor, 2.0f);
 		dl->AddRect(deltaRect.Min, deltaRect.Max, ColorFromHTML("888888", 0.8f), 2.0f, 0, 1.0f);
-		
+
 		// Center text in button
 		ImVec2 deltaTextSize = ImGui::CalcTextSize("D");
-		ImVec2 deltaTextPos = { 
+		ImVec2 deltaTextPos = {
 			deltaRect.Min.x + (deltaRect.GetWidth() - deltaTextSize.x) * 0.5f,
 			deltaRect.Min.y + (deltaRect.GetHeight() - deltaTextSize.y) * 0.5f
 		};
@@ -549,261 +557,181 @@ public:
 			mEditingBand = 1;
 		}
 
-		//if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
-
-			//if (WSBeginTabItem("IO"))
-			{
-
-				//ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
-				//ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
-
-				bool mbdisabled = !mbEnabled;
-				//ImGui::BeginGroup();
-				if (ToggleButton(&mbdisabled, "Single-band", { 90,20 })) {
-
-					// NB: ToggleButton() has flipped the value.
-					pa.SetBoolValue(0, false);
-					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
-				}
-				ImGui::SameLine();
-				if (ToggleButton(&mbEnabled, "Multi-band", { 90,20 })) {
-					// NB: ToggleButton() has flipped the value.
-					pa.SetBoolValue(0, true);
-					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
-				}
-				//ImGui::EndGroup();
-
-				ImGui::SameLine(0, 200);
-
-				ImGui::SameLine();
-				ToggleButton(&mShowCrossoverResponse, "Crossover response");
-				ImGui::SameLine();
-				ToggleButton(&mShowInputFft, "Input FFT");
-				ImGui::SameLine();
-				ToggleButton(&mShowOutputFft, "Output FFT");
-
-
-				ImGui::Spacing();
-
-				//ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
-
-				// Show crossover visualization if multiband is enabled
-				// Build renderer config
-				FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> crossoverCfg{
-					ColorFromHTML("222222"), // background
-					ColorFromHTML("ff00ff"), // line (unused for crossover)
-					4.0f,
-					{}, // no EQ filters for crossover view
-				};
-				for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i) {
-					crossoverCfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
-				}
-
-				// Optional FFT overlay for input signal
-				crossoverCfg.fftOverlays.clear();
-				if (mShowInputFft) {
-					crossoverCfg.fftOverlays.push_back({
-						&mpMaj7MBC->mInputSpectrum,  // Input signal (before processing)
-						ColorFromHTML("888888", 0.8f),
-						ColorFromHTML("444444", 0.3f),
-						true,
-						"Input"
-						});
-				}
-
-				if (mShowOutputFft) {
-					crossoverCfg.fftOverlays.push_back({
-						&mpMaj7MBC->mOutputSpectrum, // Output signal (after processing)
-						ColorFromHTML(bandColors[1], 0.5f),
-						ColorFromHTML(bandColors[1], 0.2f),
-						true,
-						"Output"
-						});
-				}
-
-				mCrossoverGraph.mCrossoverLayer->mShowResponses = mShowCrossoverResponse;
-
-				mCrossoverGraph.mCrossoverLayer->mGetBandColor = [this](size_t bandIndex, bool hovered) -> ImColor {
-					auto disabledColor = ColorFromHTML("444444", hovered ? 0.8f : 0.6f);
-					// determine if this band is enabled
-					switch (bandIndex) {
-					case 0:
-					{
-						M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::AEnable) };
-						if (!aEnableParam.GetBoolValue()) {
-							return disabledColor;
-						}
-						break;
-					}
-					case 1:
-					{
-						M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::BEnable) };
-						if (!aEnableParam.GetBoolValue()) {
-							return disabledColor;
-						}
-						break;
-					}
-					case 2:
-					{
-						M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::CEnable) };
-						if (!aEnableParam.GetBoolValue()) {
-							return disabledColor;
-						}
-						break;
-					}
-					default:
-						return ColorFromHTML("ff00ff");
-					}
-
-					return ColorFromHTML(bandColors[bandIndex]);
-				};
-				mCrossoverGraph.SetCrossoverFilter(mbEnabled ? mpMaj7MBC : nullptr);
-				mCrossoverGraph.SetCurrentEditingBand(mEditingBand);
-
-				auto bandRenderer = [this, mbEnabled, &muteSoloEnabled](int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl) -> bool {
-					// Only process valid bands in multiband mode
-					if (!mbEnabled || bandIndex < 0 || bandIndex >= Maj7MBC::gBandCount) {
-						return false;
-					}
-
-					// If dl is nullptr, this is a mouse click area test
-					if (dl == nullptr) {
-						ImVec2 mousePos = ImGui::GetIO().MousePos;
-						ImRect buttonArea = GetBandButtonArea(bandRect);
-						return buttonArea.Contains(mousePos);
-					}
-
-					// If dl is special marker (1), this is click handling
-					if (dl == reinterpret_cast<ImDrawList*>(1)) {
-						return HandleBandClick(bandIndex, bandRect, isHovered, isSelected, mbEnabled);
-					}
-
-					// Otherwise, this is normal rendering
-					return RenderBandOverlay(bandIndex, bandRect, isHovered, isSelected, dl, muteSoloEnabled[bandIndex], mbEnabled);
-					};
-
-				mCrossoverGraph.SetBandRenderer(bandRenderer);
-
-				// Set up parameter change handler for crossover frequency dragging
-				if (mbEnabled) {
-					auto crossoverFreqHandler = [this](float freqHz, int crossoverIndex) {
-						// Convert freqHz to the param value
-						M7::QuickParam freqParam;
-						freqParam.SetFrequencyAssumingNoKeytracking(M7::gFilterFreqConfig, freqHz);
-						float freqParamValue = freqParam.GetRawValue();
-
-						// Determine which parameter to set based on crossover index
-						VstInt32 paramIndex;
-						if (crossoverIndex == 0) {
-							paramIndex = (VstInt32)ParamIndices::CrossoverAFrequency;
-						}
-						else if (crossoverIndex == 1) {
-							paramIndex = (VstInt32)ParamIndices::CrossoverBFrequency;
-						}
-						else {
-							return; // Invalid crossover index
-						}
-
-						// Set the parameter using VST automation
-						GetEffectX()->setParameterAutomated(paramIndex, M7::math::clamp01(freqParamValue));
-						};
-
-					mCrossoverGraph.SetFrequencyChangeHandler(crossoverFreqHandler);
-
-					// Set up band selection handler for clicking on band regions
-					auto bandChangeHandler = [this](int bandIndex) {
-						// Validate band index
-						if (bandIndex >= 0 && bandIndex < Maj7MBC::gBandCount) {
-							mEditingBand = bandIndex;
-						}
-						};
-
-					mCrossoverGraph.SetBandChangeHandler(bandChangeHandler);
-				}
-				else {
-					mCrossoverGraph.SetFrequencyChangeHandler(nullptr);
-					mCrossoverGraph.SetBandChangeHandler(nullptr);
-				}
-
-				ImGui::SameLine();
-
-				mCrossoverGraph.OnRender(crossoverCfg);
-
-
-
-				{
-
-					static const std::vector<VUMeterTick> tickSet = {
-							{-3.0f, "3db"},
-							{-6.0f, "6"},
-							{-12.0f, "12"},
-							{-20.0f, "20"},
-							{-30.0f, "30"},
-							{-40.0f, "40"},
-					};
-
-					VUMeterConfig mainCfg = {
-						kMainVuMeterSize,
-						VUMeterLevelMode::Audio,
-						VUMeterUnits::Linear,
-						-50, 6,
-						tickSet,
-					};
-
-					VUMeterConfig disabledCfg = mainCfg;
-					disabledCfg.levelMode = VUMeterLevelMode::Disabled;
-
-					ImGui::SameLine(); VUMeter("vu_inp", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[1], mainCfg);
-
-					ImGui::SameLine(); VUMeter("vu_outp", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[1], mainCfg);
-				}
-
-
-
-
-
-
-
-				ImGui::Spacing();
-
-				if (mbEnabled) {
-					ImGuiIdScope __scope{ "smallbands" };
-
-					ImGui::PushID("band0small");
-					RenderBandSmall(0, ParamIndices::AInputGain, "Lows", muteSoloEnabled[0], mbEnabled, mbEnabled);
-					ImGui::PopID();
-
-					ImGui::PushID("band1small");
-					ImGui::SameLine();
-					RenderBandSmall(1, ParamIndices::BInputGain, mbEnabled ? "Mids" : "All frequencies", muteSoloEnabled[1], true, mbEnabled);
-					ImGui::PopID();
-
-					ImGui::PushID("band2small");
-					ImGui::SameLine();
-					RenderBandSmall(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2], mbEnabled, mbEnabled);
-					ImGui::PopID();
-
-					{
-						ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
-						ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
-
-						ToggleButton(&mShowInputHistory, "Input");
-						ImGui::SameLine(); ToggleButton(&mShowDetectorHistory, "Detector");
-						ImGui::SameLine(); ToggleButton(&mShowAttenuationHistory, "Attenuation");
-						ImGui::SameLine(); ToggleButton(&mShowOutputHistory, "Output");
-
-						ImGui::SameLine(0, 40); ToggleButton(&mShowLeft, "L");
-						ImGui::SameLine(); ToggleButton(&mShowRight, "R");
-
-						ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
-					}
-
-				}
-
-				//ImGui::EndTabItem();
+			bool mbdisabled = !mbEnabled;
+			if (ToggleButton(&mbdisabled, "Single-band", { 90,20 })) {
+				pa.SetBoolValue(0, false);
+				mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
 			}
-			//EndTabBarWithColoredSeparator();
+			ImGui::SameLine();
+			if (ToggleButton(&mbEnabled, "Multi-band", { 90,20 })) {
+				pa.SetBoolValue(0, true);
+				mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
+			}
+
+			ImGui::SameLine(0, 200);
+
+			ToggleButton(&mShowInputFft, "Input FFT");
+			ImGui::SameLine();
+			ToggleButton(&mShowOutputFft, "Output FFT");
+			ImGui::SameLine();
+			ToggleButton(&mShowFftDiff, "FFT Diff");
+			ImGui::SameLine();
+			if (mbEnabled) {
+				ToggleButton(&mShowCrossoverResponse, "Crossover response");
+			}
+			ImGui::Spacing();
+
+			FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> crossoverCfg{
+				ColorFromHTML("222222"),
+				ColorFromHTML("ff00ff"),
+				4.0f,
+				{},
+			};
+			for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i) {
+				crossoverCfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+			}
+
+			// FFT overlays
+			crossoverCfg.fftOverlays.clear();
+			if (mShowInputFft) {
+				crossoverCfg.fftOverlays.push_back({
+					&mpMaj7MBC->mInputSpectrum,
+					ColorFromHTML("888888", 0.8f),
+					ColorFromHTML("444444", 0.3f),
+					true,
+					"Input"
+					});
+			}
+
+			if (mShowOutputFft) {
+				crossoverCfg.fftOverlays.push_back({
+					&mpMaj7MBC->mOutputSpectrum,
+					ColorFromHTML(bandColors[1], 0.5f),
+					ColorFromHTML(bandColors[1], 0.2f),
+					true,
+					"Output"
+					});
+			}
+
+			// Configure FFT diff overlay
+			if (mShowFftDiff) {
+				FFTDiffOverlay diff{};
+				diff.sourceA = &mpMaj7MBC->mInputSpectrum;
+				diff.sourceB = &mpMaj7MBC->mOutputSpectrum;
+				mCrossoverGraph.SetFFTDiffOverlay(diff);
+			}
+			else {
+				mCrossoverGraph.ClearFFTDiffOverlay();
+			}
+
+			mCrossoverGraph.mCrossoverLayer->mShowResponses = mShowCrossoverResponse;
+
+			mCrossoverGraph.mCrossoverLayer->mGetBandColor = [this](size_t bandIndex, bool hovered) -> ImColor {
+				auto disabledColor = ColorFromHTML("444444", hovered ? 0.8f : 0.6f);
+				// determine if this band is enabled
+				switch (bandIndex) {
+				case 0:
+				{
+					M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::AEnable) };
+					if (!aEnableParam.GetBoolValue()) {
+						return disabledColor;
+					}
+					break;
+				}
+				case 1:
+				{
+					M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::BEnable) };
+					if (!aEnableParam.GetBoolValue()) {
+						return disabledColor;
+					}
+					break;
+				}
+				case 2:
+				{
+					M7::QuickParam aEnableParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::CEnable) };
+					if (!aEnableParam.GetBoolValue()) {
+						return disabledColor;
+					}
+					break;
+				}
+				default:
+					return ColorFromHTML("ff00ff");
+				}
+
+				return ColorFromHTML(bandColors[bandIndex]);
+				};
+			mCrossoverGraph.SetCrossoverFilter(mbEnabled ? mpMaj7MBC : nullptr);
+			mCrossoverGraph.SetCurrentEditingBand(mEditingBand);
+
+			auto bandRenderer = [this, mbEnabled, &muteSoloEnabled](int bandIndex, const ImRect& bandRect, bool isHovered, bool isSelected, ImDrawList* dl) -> bool {
+				// Only process valid bands in multiband mode
+				if (!mbEnabled || bandIndex < 0 || bandIndex >= Maj7MBC::gBandCount) {
+					return false;
+				}
+
+				// If dl is nullptr, this is a mouse click area test
+				if (dl == nullptr) {
+					ImVec2 mousePos = ImGui::GetIO().MousePos;
+					ImRect buttonArea = GetBandButtonArea(bandRect);
+					return buttonArea.Contains(mousePos);
+				}
+
+				// If dl is special marker (1), this is click handling
+				if (dl == reinterpret_cast<ImDrawList*>(1)) {
+					return HandleBandClick(bandIndex, bandRect, isHovered, isSelected, mbEnabled);
+				}
+
+				// Otherwise, this is normal rendering
+				return RenderBandOverlay(bandIndex, bandRect, isHovered, isSelected, dl, muteSoloEnabled[bandIndex], mbEnabled);
+				};
+
+			mCrossoverGraph.SetBandRenderer(bandRenderer);
+
+			// Set up parameter change handler for crossover frequency dragging
+			if (mbEnabled) {
+				auto crossoverFreqHandler = [this](float freqHz, int crossoverIndex) {
+					// Convert freqHz to the param value
+					M7::QuickParam freqParam;
+					freqParam.SetFrequencyAssumingNoKeytracking(M7::gFilterFreqConfig, freqHz);
+					float freqParamValue = freqParam.GetRawValue();
+
+					// Determine which parameter to set based on crossover index
+					VstInt32 paramIndex;
+					if (crossoverIndex == 0) {
+						paramIndex = (VstInt32)ParamIndices::CrossoverAFrequency;
+					}
+					else if (crossoverIndex == 1) {
+						paramIndex = (VstInt32)ParamIndices::CrossoverBFrequency;
+					}
+					else {
+						return; // Invalid crossover index
+					}
+
+					// Set the parameter using VST automation
+					GetEffectX()->setParameterAutomated(paramIndex, M7::math::clamp01(freqParamValue));
+					};
+
+				mCrossoverGraph.SetFrequencyChangeHandler(crossoverFreqHandler);
+
+				// Set up band selection handler for clicking on band regions
+				auto bandChangeHandler = [this](int bandIndex) {
+					// Validate band index
+					if (bandIndex >= 0 && bandIndex < Maj7MBC::gBandCount) {
+						mEditingBand = bandIndex;
+					}
+					};
+
+				mCrossoverGraph.SetBandChangeHandler(bandChangeHandler);
+			}
+			else {
+				mCrossoverGraph.SetFrequencyChangeHandler(nullptr);
+				mCrossoverGraph.SetBandChangeHandler(nullptr);
+			}
+
+			ImGui::SameLine();
+
+			mCrossoverGraph.OnRender(crossoverCfg);
 		}
 
 		ImGui::Spacing();

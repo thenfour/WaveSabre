@@ -459,13 +459,16 @@ namespace WaveSabreVstLib {
 
 					// Fill area under curve by drawing trapezoids between successive samples
 					const float faintAlpha = 0.05f;        // very faint by default
-					const float hoverAlpha = 0.20f;        // hover opacity
-					const float selectedAlpha = 0.30f;     // selected band opacity
-					const float selectedHoverAlpha = 0.35f; // selected + hover opacity
+					const float hoverAlpha = 0.10f;        // hover opacity
+					const float selectedAlpha = 0.15f;     // selected band opacity
+					const float selectedHoverAlpha = 0.25f; // selected + hover opacity
 
 					// Determine highlight state
 					bool isHovered = (int(bandIdx) == hoveredBand);
 					bool isSelected = (int(bandIdx) == mCurrentEditingBand);
+
+					const float lineThickness = isSelected ? 3.0f : 2.0f;
+					const float lineAlpha = isSelected ? 0.30f : 0.15f;
 
 					float chosenAlpha = faintAlpha;
 					if (isSelected && isHovered) {
@@ -508,9 +511,6 @@ namespace WaveSabreVstLib {
 					}
 
 					if (points.size() >= 2) {
-						// Enhanced line thickness and opacity for selected band
-						float lineThickness = isSelected ? 3.0f : 2.0f;
-						float lineAlpha = isSelected ? 0.9f : 0.8f;
 						ImColor lineColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, lineAlpha);
 						dl->AddPolyline(points.data(), static_cast<int>(points.size()), lineColor, 0, lineThickness);
 					}

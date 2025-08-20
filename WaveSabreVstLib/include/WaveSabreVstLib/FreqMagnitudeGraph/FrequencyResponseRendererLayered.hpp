@@ -2,6 +2,7 @@
 
 #include "FrequencyMagnitudeGraphUtils.hpp"
 #include "FrequencyMagnitudeGraph.hpp"
+#include "FFTDiffLayer.hpp"
 #include "ThumbInteractionLayer.hpp"
 #include "TooltipLayer.hpp"
 #include "../Maj7VstUtils.hpp"
@@ -19,6 +20,7 @@ private:
   
   // Store raw pointers to layers for configuration (graph owns the layers)
   GridLayer<TShowGridLabels>* mGridLayer = nullptr;
+  FFTDiffLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTDiffLayer = nullptr;
   FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTLayer = nullptr;
   EQResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount, TFilterCount, TParamCount>* mEQLayer = nullptr;
   ThumbInteractionLayer<TFilterCount, TParamCount>* mThumbLayer = nullptr;
@@ -36,6 +38,10 @@ public:
     auto fftLayer = std::make_unique<FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>(std::vector<FFTAnalysisOverlay>{});
     mFFTLayer = fftLayer.get();
     mGraph.AddLayer(std::move(fftLayer));
+
+    auto fftDiffLayer = std::make_unique<FFTDiffLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
+    mFFTDiffLayer = fftDiffLayer.get();
+    mGraph.AddLayer(std::move(fftDiffLayer));
 
     auto crossoverLayer = std::make_unique<CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
     mCrossoverLayer = crossoverLayer.get();
@@ -63,6 +69,11 @@ public:
   void OnRender(const FrequencyResponseRendererConfig<TFilterCount, TParamCount> &cfg) {
     // Configure the graph background
     mGraph.SetBackgroundColor(cfg.backgroundColor);
+    
+    // Update FFT diff layer scaling to match FFT layer request
+    if (mFFTDiffLayer) {
+      mFFTDiffLayer->SetScaling(cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB, cfg.useIndependentFFTScale);
+    }
     
     // Update FFT layer configuration directly
     if (mFFTLayer) {
@@ -149,6 +160,14 @@ public:
   // Optional: set a value transform for the FFT layer (e.g., gamma/log).
   void SetFFTValueTransform(std::function<float(float)> transform) {
     if (mFFTLayer) mFFTLayer->SetValueTransform(std::move(transform));
+  }
+
+  // FFT diff helpers
+  void SetFFTDiffOverlay(const FFTDiffOverlay& overlay) {
+    if (mFFTDiffLayer) mFFTDiffLayer->SetOverlay(overlay);
+  }
+  void ClearFFTDiffOverlay() {
+    if (mFFTDiffLayer) mFFTDiffLayer->ClearOverlay();
   }
 };
 
