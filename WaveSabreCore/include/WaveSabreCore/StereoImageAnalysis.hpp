@@ -46,11 +46,11 @@ namespace WaveSabreCore
                 mMidAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
                 mSideAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
 
-                mMidAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::FFT512);
-                mSideAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::FFT512);
+                mMidAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::FFT1024);
+                mSideAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::FFT1024);
 
-                mMidAnalyzer->SetFFTSmoothing(0.7f);
-                mSideAnalyzer->SetFFTSmoothing(0.7f);
+                mMidAnalyzer->SetFFTSmoothing(0.3f);
+                mSideAnalyzer->SetFFTSmoothing(0.3f);
                 mMidAnalyzer->SetOverlapFactor(4);
                 mSideAnalyzer->SetOverlapFactor(4);
 
@@ -107,7 +107,11 @@ namespace WaveSabreCore
             mMidAnalyzer->ProcessSample(midSample);
             mSideAnalyzer->ProcessSample(sideSample);
             
-            if (mMidAnalyzer->HasNewOutput() || mSideAnalyzer->HasNewOutput()) {
+            // Only publish a new width spectrum when BOTH mid and side have produced a new frame.
+            // This keeps frames aligned and avoids width beating from mixed-age spectra.
+            const bool midNew = mMidAnalyzer->HasNewOutput();
+            const bool sideNew = mSideAnalyzer->HasNewOutput();
+            if (midNew && sideNew) {
                 mNeedsWidthUpdate.store(true, std::memory_order_release);
                 mMidAnalyzer->ConsumeOutput();
                 mSideAnalyzer->ConsumeOutput();
@@ -191,9 +195,10 @@ namespace WaveSabreCore
             std::lock_guard<std::mutex> sLock(mSpectrumMutex);
             if (mWidthSpectrum.size() != spectrumSize) mWidthSpectrum.resize(spectrumSize);
             
-            // Confidence weighting thresholds for stability in low-energy bins (use total energy)
-            const float kFadeStartDB = -30.0f;  // start trusting less below this
-            const float kFadeEndDB   = -80.0f;  // fully faded (treated as mono) below this
+            // Use FFT floor to remove artificial non-zero values at silence
+            const float kNoiseFloorDB = -120.f;
+            const float noiseFloorAmp = M7::math::DecibelsToLinear(kNoiseFloorDB);
+            const float noiseFloorPow = noiseFloorAmp * noiseFloorAmp;
 
             auto saturate01 = [](float x) { return x < 0.f ? 0.f : (x > 1.f ? 1.f : x); };
             auto smoothstep = [&](float lo, float hi, float x) {
@@ -204,28 +209,29 @@ namespace WaveSabreCore
             
             for (size_t i = 0; i < spectrumSize; ++i) {
                 const float frequency      = midSpectrum[i].frequency;
+                mWidthSpectrum[i].frequency = frequency;
+
                 const float midMagnitudeDB = midSpectrum[i].magnitudeDB;
                 const float sideMagnitudeDB= sideSpectrum[i].magnitudeDB;
 
                 // Convert dB (amplitude) to linear amplitude, then to power
                 const float midAmp  = M7::math::DecibelsToLinear(midMagnitudeDB);
                 const float sideAmp = M7::math::DecibelsToLinear(sideMagnitudeDB);
-                const float midPow  = midAmp * midAmp;
-                const float sidePow = sideAmp * sideAmp;
+                float midPow  = midAmp * midAmp;
+                float sidePow = sideAmp * sideAmp;
+
                 const float totalPow = midPow + sidePow;
 
-                // Energy-normalized width fraction (bounded 0..1)
-                const float width = (totalPow > 0.0f) ? (sidePow / (totalPow + 1e-20f)) : 0.0f;
-
-                // Confidence based on total energy (amplitude from sqrt of power sum)
-                const float combinedAmp = std::sqrt(totalPow);
-                const float combinedDB  = (combinedAmp > 0.0f) ? M7::math::LinearToDecibels(combinedAmp) : -120.0f;
-                const float t = smoothstep(kFadeEndDB, kFadeStartDB, combinedDB);
-
-                const float widthConfident = width * t;
-
-                mWidthSpectrum[i].frequency   = frequency;
-                mWidthSpectrum[i].magnitudeDB = widthConfident; // stores [0..1] width for renderer
+                if (totalPow < noiseFloorPow) {
+                    // no energy, consider it mono. it keeps the graph looking nice during things like fadeouts.
+					// note that magnitudedb is just a value, not necessarily db.
+					mWidthSpectrum[i].magnitudeDB = noiseFloorAmp; // mono
+                }
+                else {
+                    // width can be thought of as the % of the total energy that the side channel contributes. 100% = only side, 0% = only mid.
+					float width = sidePow / (midPow + sidePow);
+                    mWidthSpectrum[i].magnitudeDB = width;
+                }
             }
             mNeedsWidthUpdate.store(false, std::memory_order_release);
         }
