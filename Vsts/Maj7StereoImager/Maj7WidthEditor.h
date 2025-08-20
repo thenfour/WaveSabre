@@ -73,7 +73,7 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::BeginTooltip();
 			ImGui::Text("Left Channel Source");
 			ImGui::Separator();
-			ImGui::TextWrapped("Select where the left channel originates from:");
+			ImGui::Text("Select where the left channel originates from:");
 			ImGui::BulletText("-1.0: Pure left input signal");
 			ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
 			ImGui::BulletText("+1.0: Pure right input signal");
@@ -86,7 +86,7 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::BeginTooltip();
 			ImGui::Text("Right Channel Source");
 			ImGui::Separator();
-			ImGui::TextWrapped("Select where the right channel originates from:");
+			ImGui::Text("Select where the right channel originates from:");
 			ImGui::BulletText("-1.0: Pure left input signal");
 			ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
 			ImGui::BulletText("+1.0: Pure right input signal");
@@ -101,7 +101,7 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::BeginTooltip();
 			ImGui::Text("Stereo Field Rotation");
 			ImGui::Separator();
-			ImGui::TextWrapped("Rotate the stereo image around the center point.");
+			ImGui::Text("Rotate the stereo image around the center point.");
 			ImGui::Spacing();
 			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.7f, 1.0f), "Use Cases:");
 			ImGui::BulletText("Correct imbalanced recordings");
@@ -118,7 +118,7 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::BeginTooltip();
 			ImGui::Text("Side Channel High-Pass Filter");
 			ImGui::Separator();
-			ImGui::TextWrapped("Reduces stereo width of low frequencies using a 6dB/octave slope.");
+			ImGui::Text("Reduces stereo width of low frequencies using a 6dB/octave slope.");
 			ImGui::EndTooltip();
 		}
 		ImGui::EndGroup();
@@ -130,7 +130,7 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::BeginTooltip();
 			ImGui::Text("Mid-Side Balance Control");
 			ImGui::Separator();
-			ImGui::TextWrapped("Blend between mono (mid) and stereo (side) content:");
+			ImGui::Text("Blend between mono (mid) and stereo (side) content:");
 			ImGui::EndTooltip();
 		}
 		ImGui::EndGroup();
@@ -245,6 +245,7 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::SameLine(0, 20);
 			ImGui::Text("Width scale:"); ImGui::SameLine();
 			const char* kScaleNames[] = { "Linear","Gamma","Log" };
+			ImGui::SetNextItemWidth(80);
 			ImGui::Combo("##widthscale", &mWidthScaleMode, kScaleNames, 3);
 		}
 		if (frequencyAnalysisEnabled) {
@@ -331,9 +332,9 @@ private:
 		auto widthGamma = [](float w){ return std::pow(std::max(0.0f,w), 0.6f); };
 		auto widthLog = [](float w){ const float a = 1.8f; return std::log1p(a * std::max(0.0f,w)) / std::log1p(a * 3.0f); };
 		switch (mWidthScaleMode) {
-			case 0: mWidthGraph.SetFFTValueTransform(nullptr); mWidthGraph.SetFFTScaleCaption("Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 4.0f; break;
-			case 1: mWidthGraph.SetFFTValueTransform(widthGamma); mWidthGraph.SetFFTScaleCaption("Width^0.6"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 4.0f; break;
-			case 2: default: mWidthGraph.SetFFTValueTransform(widthLog); mWidthGraph.SetFFTScaleCaption("log1p Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 4.0f; break;
+			case 0: mWidthGraph.SetFFTValueTransform(nullptr); mWidthGraph.SetFFTScaleCaption("Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 3.2f; break;
+			case 1: mWidthGraph.SetFFTValueTransform(widthGamma); mWidthGraph.SetFFTScaleCaption("Width^0.6"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 3.2f; break;
+			case 2: default: mWidthGraph.SetFFTValueTransform(widthLog); mWidthGraph.SetFFTScaleCaption("log1p Width"); cfg.fftDisplayMinDB = 0.0f; cfg.fftDisplayMaxDB = 3.2f; break;
 		}
 		if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML("88FF44", 0.9f), ColorFromHTML("448822", 0.25f), true, "Input Width", widthLinear });
 		if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML("66CC33", 0.9f), ColorFromHTML("335511", 0.25f), true, "Output Width", widthLinear });

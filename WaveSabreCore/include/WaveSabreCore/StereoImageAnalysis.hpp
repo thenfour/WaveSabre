@@ -46,14 +46,16 @@ namespace WaveSabreCore
                 mMidAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
                 mSideAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
                 
-                mMidAnalyzer->SetFFTSmoothing(0.3f);
-                mSideAnalyzer->SetFFTSmoothing(0.3f);
+                mMidAnalyzer->SetFFTSmoothing(0.7f);
+                mSideAnalyzer->SetFFTSmoothing(0.7f);
                 mMidAnalyzer->SetOverlapFactor(4);
                 mSideAnalyzer->SetOverlapFactor(4);
-                mMidAnalyzer->SetPeakHoldTime(60.0f);
-                mSideAnalyzer->SetPeakHoldTime(60.0f);
-                mMidAnalyzer->SetFalloffRate(1200.0f);
-                mSideAnalyzer->SetFalloffRate(1200.0f);
+
+                mMidAnalyzer->SetPeakHoldTime(300);
+                mSideAnalyzer->SetPeakHoldTime(300);
+
+                mMidAnalyzer->SetFalloffRate(5000.0f);
+                mSideAnalyzer->SetFalloffRate(5000.0f);
                 
             } else if (!enabled && mEnabled) {
                 // release analyzers safely
