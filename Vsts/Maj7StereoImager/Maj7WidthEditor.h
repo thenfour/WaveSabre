@@ -157,7 +157,12 @@ struct Maj7WidthEditor : public VstEditor
 	}
 
 private:
-	static void RenderStereoImagingDisplay(const char* id, const StereoImagingAnalysisStream& analysis) {
+	bool mShowGoniometer = false;
+	bool mShowPolarL = true;
+	bool mShowPhaseX = true;
+
+
+	void RenderStereoImagingDisplay(const char* id, const StereoImagingAnalysisStream& analysis) {
 		ImGuiGroupScope _scope(id);
 
 		static constexpr int dim = 250;
@@ -170,7 +175,7 @@ private:
 		// double mMidLevel = 0.0;          // Mid channel level (RMS)
 		// double mSideLevel = 0.0;         // Side channel level (RMS)
 
-		RenderGeneralMeter(analysis.mStereoWidth, 0, 2, meterSize, "width", 0, {"008800", 0.5, "ffff00"});
+		RenderGeneralMeter(analysis.mStereoWidth, 0, 2, meterSize, "width", 0, {"008800", 0.5, "ffff00", 1.0, "ff0000"});
 		RenderGeneralMeter(analysis.mStereoBalance, -1, 1, meterSize, "balance", 0, {
 			"ff0000",
 			-0.5, "ffff00",
@@ -183,18 +188,116 @@ private:
 
 		//RenderStereoBalance("stereo_balance_in", analysis, { dim, 30 });
 
-		// Add tabs to switch between different visualization modes
-		if (ImGui::BeginTabBar("StereoVizTabs", ImGuiTabBarFlags_None)) {
-			if (ImGui::BeginTabItem("Goniometer")) {
-				RenderGoniometer("inp_gonio", analysis, { dim, dim });
-				ImGui::EndTabItem();
+		// Layer visibility toggles - use static variables with unique IDs per instance
+
+		//// Initialize defaults on first use
+		//if (showGoniometerMap.find(instanceId) == showGoniometerMap.end()) {
+		//	showGoniometer = true;  // Default to showing goniometer
+		//	showPolarL = true;     // Default to hiding polar L
+		//	showPhaseX = true;      // Default to showing phase correlation X
+		//}
+
+		// Toggle buttons for layer visibility
+		ImGui::BeginGroup();
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2);
+			
+			// Create toggle buttons with appropriate colors
+			if (mShowGoniometer) {
+				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 120, 60, 200));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 140, 80, 200));
+			} else {
+				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 60, 60, 200));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 80, 80, 200));
 			}
-			if (ImGui::BeginTabItem("Polar L")) {
-				RenderPolarL("inp_polar_l", analysis, { dim, dim });
-				ImGui::EndTabItem();
+			if (ImGui::Button("Gonio", ImVec2(50, 20))) {
+				mShowGoniometer = !mShowGoniometer;
 			}
-			ImGui::EndTabBar();
+			ImGui::PopStyleColor(2);
+			
+			ImGui::SameLine();
+			if (mShowPolarL) {
+				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(120, 60, 120, 200));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(140, 80, 140, 200));
+			} else {
+				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 60, 60, 200));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 80, 80, 200));
+			}
+			if (ImGui::Button("Poly", ImVec2(50, 20))) {
+				mShowPolarL = !mShowPolarL;
+			}
+			ImGui::PopStyleColor(2);
+			
+			ImGui::SameLine();
+			if (mShowPhaseX) {
+				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(120, 120, 60, 200));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(140, 140, 80, 200));
+			} else {
+				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 60, 60, 200));
+				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 80, 80, 200));
+			}
+			if (ImGui::Button("Scissor", ImVec2(60, 20))) {
+				mShowPhaseX = !mShowPhaseX;
+			}
+			ImGui::PopStyleColor(2);
+			
+			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
 		}
+		ImGui::EndGroup();
+
+		// Render the layered visualization
+		RenderLayeredStereoVisualization("stereovis", analysis, {dim, dim},
+			mShowGoniometer, mShowPolarL, mShowPhaseX);
+	}
+
+	// Main layered visualization renderer
+	static void RenderLayeredStereoVisualization(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, bool showGoniometer, bool showPolarL, bool showPhaseX) {
+		auto* dl = ImGui::GetWindowDrawList();
+		ImVec2 pos = ImGui::GetCursorScreenPos();
+		ImRect bb(pos, pos + size);
+		
+		// Background and grid (always shown)
+		dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(20, 20, 20, 255));
+		dl->AddRect(bb.Min, bb.Max, IM_COL32(100, 100, 100, 255));
+		
+		ImVec2 center = { bb.Min.x + size.x * 0.5f, bb.Min.y + size.y * 0.5f };
+		const float radius = std::min(size.x, size.y) * 0.45f;
+		
+		// Draw concentric circles for magnitude reference
+		for (int i = 1; i <= 4; ++i) {
+			float r = radius * i * 0.25f;
+			dl->AddCircle(center, r, IM_COL32(60, 60, 60, 100), 32, 1.0f);
+		}
+		
+		// Draw angular reference lines
+		for (int angle = 0; angle < 360; angle += 30) {
+			float rad = angle * 3.14159f / 180.0f;
+			ImVec2 lineEnd = { center.x + cos(rad) * radius, center.y + sin(rad) * radius };
+			ImU32 color = (angle % 90 == 0) ? IM_COL32(120, 120, 120, 150) : IM_COL32(80, 80, 80, 100);
+			dl->AddLine(center, lineEnd, color, (angle % 90 == 0) ? 1.5f : 1.0f);
+		}
+		
+		// Add reference labels for key angles
+		dl->AddText({ center.x - 15, bb.Min.y + 2 }, IM_COL32(100, 255, 100, 150), "M");      // Mono
+		dl->AddText({ bb.Max.x - 15, center.y - 8 }, IM_COL32(150, 150, 255, 150), "R");     // Right
+		dl->AddText({ center.x - 20, bb.Max.y - 16 }, IM_COL32(255, 100, 100, 150), "S");    // Side/Phase
+		dl->AddText({ bb.Min.x + 2, center.y - 8 }, IM_COL32(150, 150, 255, 150), "L");      // Left
+		
+		// Render layers in order (bottom to top)
+		if (showPolarL) {
+			RenderPolarLLayer(id, analysis, size, center, radius);
+		}
+		
+		if (showGoniometer) {
+			RenderGoniometerLayer(id, analysis, size, center, radius);
+		}
+		
+		if (showPhaseX) {
+			RenderPhaseCorrelationOverlay(id, analysis, size, center, radius);
+		}
+		
+		ImGui::Dummy(size);
 	}
 	
 };

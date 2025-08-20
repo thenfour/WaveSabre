@@ -15,6 +15,7 @@ using namespace WaveSabreCore;
 #include <cmath>
 #include <variant>
 
+#include "WidthBase.hpp"
 
 // usage:
 // specify initializer list from low to high values.
@@ -76,15 +77,15 @@ struct ColorRegionMap {
 			return defaultColor;
 		}
 		
-		// Find the appropriate region
-		for (size_t i = 0; i < regions.size(); ++i) {
-			if (value < regions[i].threshold || i == regions.size() - 1) {
+		// Find the appropriate region by looking for the highest threshold that value meets or exceeds
+		for (int i = static_cast<int>(regions.size()) - 1; i >= 0; --i) {
+			if (value >= regions[i].threshold) {
 				return regions[i].color;
 			}
 		}
 		
-		// Fallback (should not be reached)
-		return regions.back().color;
+		// Fallback (should not be reached due to the first check)
+		return defaultColor;
 	}
 };
 
@@ -208,3 +209,44 @@ inline void RenderGeneralMeter(double value, double minValue, double maxValue, I
 	ImGui::Dummy(size);
 }
 
+
+
+
+// Custom phase correlation "X" overlay renderer
+inline void RenderPhaseCorrelationOverlay(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, ImVec2 center, float radius) {
+	auto* dl = ImGui::GetWindowDrawList();
+
+	float correlation = static_cast<float>(analysis.mPhaseCorrelation);
+	ImU32 phaseLineColor = GetCorrellationColor(correlation, 0.8f);
+
+	// Calculate correlation angle - same logic as in PolarL
+	float correlationAngle = acosf(std::max(-1.0f, std::min(1.0f, correlation * 0.5f + 0.5f)));
+	correlationAngle -= 3.14159f * 0.5f;
+
+	// Calculate line extent 
+	float lineLength = radius * 0.9f;
+
+	// First diagonal of the X
+	ImVec2 lineStart1 = {
+		center.x - cosf(correlationAngle) * lineLength,
+		center.y + sinf(correlationAngle) * lineLength
+	};
+	ImVec2 lineEnd1 = {
+		center.x + cosf(correlationAngle) * lineLength,
+		center.y - sinf(correlationAngle) * lineLength
+	};
+
+	// Second diagonal of the X (perpendicular)
+	ImVec2 lineStart2 = {
+		center.x + cosf(correlationAngle) * lineLength,
+		center.y + sinf(correlationAngle) * lineLength
+	};
+	ImVec2 lineEnd2 = {
+		center.x - cosf(correlationAngle) * lineLength,
+		center.y - sinf(correlationAngle) * lineLength
+	};
+
+	// Draw the X-shaped phase correlation lines
+	dl->AddLine(lineStart1, lineEnd1, phaseLineColor, 2.5f);
+	dl->AddLine(lineStart2, lineEnd2, phaseLineColor, 2.5f);
+}
