@@ -244,6 +244,17 @@ private:
 		// Expanded to 10 series: 5 parameters × 2 signals (input + output)
 		HistoryView<13, historyViewWidth, historyViewHeight> mHistoryView;
 
+		const char* kInputCorrellationColor = "00ccff";
+		const char* kOutputCorrellationColor = "0099cc";
+		const char* kInputWidthColor = "88ff44";
+		const char* kOutputWidthColor = "66cc33";
+		const char* kInputBalanceColor = "ff8844";
+		const char* kOutputBalanceColor = "cc6633";
+		const char* kInputMidLevelColor = "bb88ff";
+		const char* kOutputMidLevelColor = "9966cc";
+		const char* kInputSideLevelColor = "ffbb88";
+		const char* kOutputSideLevelColor = "cc9966";
+
 		void Render(bool showToggles, const StereoImagingAnalysisStream& inputAnalysis, const StereoImagingAnalysisStream& outputAnalysis) 
 		{
 			ImGui::BeginGroup();
@@ -269,35 +280,35 @@ private:
 				// INPUT SIGNALS (brighter colors) with per-series scaling
 				// Phase correlation: -1 to +1, bright cyan/blue  
 				HistoryViewSeriesConfig{
-					ColorFromHTML("00ccff", (mShowInput && mShowPhaseCorrelation) ? 0.9f : 0), 
+					ColorFromHTML(kInputCorrellationColor, (mShowInput && mShowPhaseCorrelation) ? 0.9f : 0),
 					lineWidth, 
 					-1.0f, +1.0f, true  // Custom scale for correlation
 				},
 				
 				// Stereo width: 0 to 3, bright green/yellow
 				HistoryViewSeriesConfig{
-					ColorFromHTML("88ff44", (mShowInput && mShowStereoWidth) ? 0.8f : 0), 
+					ColorFromHTML(kInputWidthColor, (mShowInput && mShowStereoWidth) ? 0.8f : 0),
 					lineWidth,
 					0.0f, 3.0f, true  // Custom scale for width (0 to 3 for better visibility)
 				},
 				
 				// Stereo balance: -1 to +1, bright red/orange
 				HistoryViewSeriesConfig{
-					ColorFromHTML("ff8844", (mShowInput && mShowStereoBalance) ? 0.7f : 0), 
+					ColorFromHTML(kInputBalanceColor, (mShowInput && mShowStereoBalance) ? 0.7f : 0),
 					lineWidth,
 					-1.0f, +1.0f, true  // Custom scale for balance
 				},
 				
 				// Mid level: 0 to 1, bright purple
 				HistoryViewSeriesConfig{
-					ColorFromHTML("bb88ff", (mShowInput && mShowMidLevel) ? 0.6f : 0), 
+					ColorFromHTML(kInputMidLevelColor, (mShowInput && mShowMidLevel) ? 0.6f : 0),
 					lineWidth,
 					0.0f, 1.0f, true  // Custom scale for RMS levels
 				},
 				
 				// Side level: 0 to 1, bright orange
 				HistoryViewSeriesConfig{
-					ColorFromHTML("ffbb88", (mShowInput && mShowSideLevel) ? 0.6f : 0), 
+					ColorFromHTML(kInputSideLevelColor, (mShowInput && mShowSideLevel) ? 0.6f : 0),
 					lineWidth,
 					0.0f, 1.0f, true  // Custom scale for RMS levels
 				},
@@ -305,35 +316,35 @@ private:
 				// OUTPUT SIGNALS (darker variants) with per-series scaling
 				// Phase correlation: -1 to +1, darker cyan/blue
 				HistoryViewSeriesConfig{
-					ColorFromHTML("0099cc", (mShowOutput && mShowPhaseCorrelation) ? 0.8f : 0), 
+					ColorFromHTML(kOutputCorrellationColor, (mShowOutput && mShowPhaseCorrelation) ? 0.8f : 0), 
 					lineWidth,
 					-1.0f, +1.0f, true  // Custom scale for correlation
 				},
 				
 				// Stereo width: 0 to 3, darker green
 				HistoryViewSeriesConfig{
-					ColorFromHTML("66cc33", (mShowOutput && mShowStereoWidth) ? 0.7f : 0), 
+					ColorFromHTML(kOutputWidthColor, (mShowOutput && mShowStereoWidth) ? 0.7f : 0), 
 					lineWidth,
 					0.0f, 3.0f, true  // Custom scale for width
 				},
 				
 				// Stereo balance: -1 to +1, darker red/orange
 				HistoryViewSeriesConfig{
-					ColorFromHTML("cc6633", (mShowOutput && mShowStereoBalance) ? 0.6f : 0), 
+					ColorFromHTML(kOutputBalanceColor, (mShowOutput && mShowStereoBalance) ? 0.6f : 0), 
 					lineWidth,
 					-1.0f, +1.0f, true  // Custom scale for balance
 				},
 				
 				// Mid level: 0 to 1, darker purple
 				HistoryViewSeriesConfig{
-					ColorFromHTML("9966cc", (mShowOutput && mShowMidLevel) ? 0.5f : 0), 
+					ColorFromHTML(kOutputMidLevelColor, (mShowOutput && mShowMidLevel) ? 0.5f : 0), 
 					lineWidth,
 					0.0f, 1.0f, true  // Custom scale for RMS levels
 				},
 				
 				// Side level: 0 to 1, darker orange
 				HistoryViewSeriesConfig{
-					ColorFromHTML("cc9966", (mShowOutput && mShowSideLevel) ? 0.5f : 0), 
+					ColorFromHTML(kOutputSideLevelColor, (mShowOutput && mShowSideLevel) ? 0.5f : 0), 
 					lineWidth,
 					0.0f, 1.0f, true  // Custom scale for RMS levels
 				},
@@ -361,12 +372,12 @@ private:
 				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
 				// Parameter toggles
-				ToggleButton(&mShowPhaseCorrelation, "Phase");
-				ImGui::SameLine(); ToggleButton(&mShowStereoWidth, "Width");
-				ImGui::SameLine(); ToggleButton(&mShowStereoBalance, "Balance");
+				ToggleButton(&mShowPhaseCorrelation, "Phase", {}, ButtonColorSpec{ kInputCorrellationColor });
+				ImGui::SameLine(); ToggleButton(&mShowStereoWidth, "Width", {}, ButtonColorSpec{kInputWidthColor});
+				ImGui::SameLine(); ToggleButton(&mShowStereoBalance, "Balance", {}, ButtonColorSpec{ kInputBalanceColor});
 				
-				ImGui::SameLine(0, 20); ToggleButton(&mShowMidLevel, "Mid");
-				ImGui::SameLine(); ToggleButton(&mShowSideLevel, "Side");
+				ImGui::SameLine(0, 20); ToggleButton(&mShowMidLevel, "Mid", {}, ButtonColorSpec{ kInputMidLevelColor });
+				ImGui::SameLine(); ToggleButton(&mShowSideLevel, "Side", {}, ButtonColorSpec{ kInputSideLevelColor });
 
 				// Input/Output toggles (separate line, similar to CompressorVis L/R pattern)
 				ImGui::SameLine(0, 40); ToggleButton(&mShowInput, "Input");

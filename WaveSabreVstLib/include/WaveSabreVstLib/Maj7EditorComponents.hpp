@@ -31,6 +31,11 @@ public:
       mNormal = ColorFromHTML(notSelColor);
       mHovered = ColorFromHTML(hoverColor);
   }
+  explicit ButtonColorSpec(const char* color) {
+      mActive = ColorFromHTML(color, 0.45f);
+      mNormal = ColorFromHTML("333333");
+      mHovered = ColorFromHTML(color, 1.f);
+  }
   ButtonColorSpec(ImColor selColor, ImColor normal, ImColor hovered) {
       mActive = selColor;
       mNormal = normal;
