@@ -140,6 +140,11 @@ public:
   float YToDB(float y, ImRect &bb) {
     return mGraph.mCoords.YToDB(y, bb);
   }
+
+  // Optional: customize caption for FFT scale (e.g., "Width", "dB")
+  void SetFFTScaleCaption(const char* caption) {
+    if (mFFTLayer) mFFTLayer->SetScaleCaption(caption);
+  }
 };
 
 } // namespace WaveSabreVstLib

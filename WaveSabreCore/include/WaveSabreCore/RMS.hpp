@@ -237,6 +237,40 @@ namespace WaveSabreCore
                 if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
             }
         }
+
+        // Multi-step processing to simulate N identical samples efficiently
+        void ProcessSampleMulti(double s, int count) {
+            double rectifiedSample = fabs(s);
+            // Clip detection bulk update
+            if (rectifiedSample >= 1) {
+                mClipIndicator = true;
+                mClipHoldCounter = mClipHoldSamples; // reset hold fully
+            } else {
+                if (mClipHoldCounter > 0) {
+                    mClipHoldCounter = (mClipHoldCounter > count) ? (mClipHoldCounter - count) : 0;
+                    if (mClipHoldCounter == 0) mClipIndicator = false;
+                }
+            }
+
+            if (rectifiedSample >= mCurrentPeak) {
+                mCurrentPeak = rectifiedSample;
+                mPeakHoldCounter = mPeakHoldSamples;
+                return;
+            }
+
+            if (mPeakHoldCounter > 0) {
+                mPeakHoldCounter = (mPeakHoldCounter > count) ? (mPeakHoldCounter - count) : 0;
+                if (mPeakHoldCounter == 0 && mCurrentPeak > 0) {
+                    // Any remaining steps apply falloff
+                    // none here since we consumed exactly the count
+                }
+            } else if (mCurrentPeak > 0) {
+                // Apply exponential falloff for 'count' steps
+                double mult = std::pow(mPeakFalloffMultiplierPerSample, (double)count);
+                mCurrentPeak *= mult;
+                if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
+            }
+        }
     };
 
     // Professional frequency-dependent peak detector for spectrum display
@@ -316,6 +350,38 @@ namespace WaveSabreCore
                 // Frequency-dependent exponential falloff
                 mCurrentPeak *= mBaseFalloffMultiplierPerSample;
                 
+                if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
+            }
+        }
+
+        // Multi-step processing to simulate N identical samples efficiently
+        void ProcessSampleMulti(double s, int count) {
+            double rectifiedSample = fabs(s);
+
+            // Clip detection bulk update
+            if (rectifiedSample >= 1) {
+                mClipIndicator = true;
+                mClipHoldCounter = mClipHoldSamples; // reset to full
+            } else if (mClipHoldCounter > 0) {
+                mClipHoldCounter = (mClipHoldCounter > count) ? (mClipHoldCounter - count) : 0;
+                if (mClipHoldCounter == 0) mClipIndicator = false;
+            }
+
+            // Peak detection and hold/falloff in bulk
+            if (rectifiedSample >= mCurrentPeak) {
+                mCurrentPeak = rectifiedSample;
+                mPeakHoldCounter = mPeakHoldSamples;
+                return;
+            }
+
+            if (mPeakHoldCounter > 0) {
+                mPeakHoldCounter = (mPeakHoldCounter > count) ? (mPeakHoldCounter - count) : 0;
+                if (mPeakHoldCounter == 0 && mCurrentPeak > 0) {
+                    // now future calls will fall off
+                }
+            } else if (mCurrentPeak > 0) {
+                double mult = std::pow(mBaseFalloffMultiplierPerSample, (double)count);
+                mCurrentPeak *= mult;
                 if (mCurrentPeak < 1e-10) mCurrentPeak = 0;
             }
         }

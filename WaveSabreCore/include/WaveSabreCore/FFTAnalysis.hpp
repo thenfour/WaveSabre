@@ -146,6 +146,7 @@ namespace WaveSabreCore
     {
     private:
         MonoFFTAnalysis mAnalyzers[2]; // Left and right channel analyzers
+        mutable std::vector<SpectrumBin> mCombinedSpectrum; // per-instance buffer to avoid static
         
     public:
         using FFTSize = MonoFFTAnalysis::FFTSize;
@@ -194,13 +195,19 @@ namespace WaveSabreCore
     private:
 		FFTAnalysis mFFTAnalysis; // Underlying FFT analysis
         std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
-        std::vector<SpectrumBin> mOutput;
+        std::vector<SpectrumBin> mBuffers[2]; // double-buffered output
+        std::atomic<int> mActiveBuffer{0};
+        std::atomic<bool> mHasNewOutput{false};
 
         int mSamplesPerFFTUpdate; // How many samples between FFT updates (e.g., 512)
 
         // Track current settings to avoid overwriting each other
         float mCurrentHoldTimeMs;
         float mCurrentFalloffTimeMs;
+
+        // Helper to get inactive buffer index
+        int InactiveBufferIndex() const { return 1 - mActiveBuffer.load(std::memory_order_acquire); }
+        void PublishBuffer(int idx) { mActiveBuffer.store(idx, std::memory_order_release); mHasNewOutput.store(true, std::memory_order_release); }
 
     public:
         SmoothedStereoFFT();
@@ -232,12 +239,161 @@ namespace WaveSabreCore
         void ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum);
 
         // IFrequencyAnalysis implementation (display-ready smoothed spectrum)
-        const std::vector<SpectrumBin>& GetSpectrum() const { return mOutput; }
+        const std::vector<SpectrumBin>& GetSpectrum() const { return mBuffers[mActiveBuffer.load(std::memory_order_acquire)]; }
         float GetMagnitudeAtFrequency(float frequency) const override;
         float GetFrequencyResolution() const override { return mFFTAnalysis.GetFrequencyResolution(); }
         float GetNyquistFrequency() const override { return mFFTAnalysis.GetNyquistFrequency(); }
 
         void Reset();
+
+        // Output update signalling
+        bool HasNewOutput() const { return mHasNewOutput.load(std::memory_order_acquire); }
+        void ConsumeOutput() { mHasNewOutput.store(false, std::memory_order_release); }
+    };
+
+    // Mono version to avoid redundant processing for M/S
+    class SmoothedMonoFFT : public IFrequencyAnalysis
+    {
+    private:
+        MonoFFTAnalysis mFFTAnalysis; // Underlying FFT analysis (mono)
+        std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
+        std::vector<SpectrumBin> mBuffers[2];
+        std::atomic<int> mActiveBuffer{0};
+        std::atomic<bool> mHasNewOutput{false};
+
+        int mSamplesPerFFTUpdate; // How many samples between FFT updates
+
+        float mCurrentHoldTimeMs;
+        float mCurrentFalloffTimeMs;
+
+        int InactiveBufferIndex() const { return 1 - mActiveBuffer.load(std::memory_order_acquire); }
+        void PublishBuffer(int idx) { mActiveBuffer.store(idx, std::memory_order_release); mHasNewOutput.store(true, std::memory_order_release); }
+
+    public:
+        SmoothedMonoFFT()
+            : mFFTAnalysis()
+            , mSamplesPerFFTUpdate(512)
+            , mCurrentHoldTimeMs(0.0f)
+            , mCurrentFalloffTimeMs(200.0f)
+        {
+            // Reasonable defaults similar to stereo variant
+            mFFTAnalysis.SetSmoothingFactor(0.7f);
+            mFFTAnalysis.SetOverlapFactor(2);
+            SetPeakHoldTime(60);
+            SetFalloffRate(1200);
+            SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
+        }
+
+        // Configure FFT/analyzer behavior
+        void SetSampleRate(float sampleRate) { mFFTAnalysis.SetSampleRate(sampleRate); }
+        void SetWindowType(MonoFFTAnalysis::WindowType windowType) { mFFTAnalysis.SetWindowType(windowType); }
+        void SetFFTSmoothing(float smoothing) { mFFTAnalysis.SetSmoothingFactor(smoothing); }
+        void SetOverlapFactor(int factor) { mFFTAnalysis.SetOverlapFactor(factor); SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), factor); }
+        // Proxy getters for UI
+        MonoFFTAnalysis::WindowType GetWindowType() const { return mFFTAnalysis.GetWindowType(); }
+        MonoFFTAnalysis::FFTSize GetFFTSize() const { return mFFTAnalysis.GetFFTSize(); }
+        int GetFFTSizeInt() const { return mFFTAnalysis.GetFFTSizeInt(); }
+        float GetFFTSmoothing() const { return mFFTAnalysis.GetSmoothingFactor(); }
+        int GetOverlapFactor() const { return mFFTAnalysis.GetOverlapFactor(); }
+
+        // Configure display behavior
+        void SetPeakHoldTime(float holdTimeMs)
+        {
+            mCurrentHoldTimeMs = holdTimeMs;
+            for (size_t i = 0; i < mPeakDetectors.size(); ++i)
+            {
+                float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
+                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+            }
+        }
+        void SetFalloffRate(float falloffTimeMs)
+        {
+            mCurrentFalloffTimeMs = falloffTimeMs;
+            for (size_t i = 0; i < mPeakDetectors.size(); ++i)
+            {
+                float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
+                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+            }
+        }
+        void SetFFTUpdateRate(int fftSize, int overlapFactor) { mSamplesPerFFTUpdate = (overlapFactor > 0) ? (fftSize / overlapFactor) : fftSize; }
+
+        float GetPeakHoldTime() const { return mCurrentHoldTimeMs; }
+        float GetFalloffTime() const { return mCurrentFalloffTimeMs; }
+
+        // Feed samples and update smoothing when new spectrum is available
+        void ProcessSample(float sample)
+        {
+            mFFTAnalysis.ProcessSample(sample);
+            if (mFFTAnalysis.HasNewSpectrum())
+            {
+                const auto& raw = mFFTAnalysis.GetSpectrum();
+                // Process and publish
+                // Resize if needed
+                if (mPeakDetectors.size() != raw.size())
+                {
+                    mPeakDetectors.resize(raw.size());
+                    // initialize detectors with current settings and per-bin frequency
+                    for (size_t i = 0; i < mPeakDetectors.size(); ++i)
+                    {
+                        float frequency = (i < raw.size()) ? raw[i].frequency : 0.0f;
+                        mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+                    }
+                    // ensure both buffers sized
+                    mBuffers[0].resize(raw.size());
+                    mBuffers[1].resize(raw.size());
+                }
+
+                int inactive = InactiveBufferIndex();
+                auto& out = mBuffers[inactive];
+                out.resize(raw.size());
+
+                // Per-frame smoothing using N-step processing
+                for (size_t i = 0; i < raw.size(); ++i)
+                {
+                    float magnitudeLinear = M7::math::DecibelsToLinear(raw[i].magnitudeDB);
+                    mPeakDetectors[i].ProcessSampleMulti(magnitudeLinear, mSamplesPerFFTUpdate);
+                    float smoothedMagnitudeDB = M7::math::LinearToDecibels((float)mPeakDetectors[i].mCurrentPeak);
+                    out[i].frequency = raw[i].frequency;
+                    out[i].magnitudeDB = smoothedMagnitudeDB;
+                }
+
+                PublishBuffer(inactive);
+                mFFTAnalysis.ConsumeSpectrum();
+            }
+        }
+
+        // IFrequencyAnalysis implementation (display-ready smoothed spectrum)
+        const std::vector<SpectrumBin>& GetSpectrum() const { return mBuffers[mActiveBuffer.load(std::memory_order_acquire)]; }
+        float GetMagnitudeAtFrequency(float frequency) const override
+        {
+            const auto& output = GetSpectrum();
+            if (output.empty() || frequency <= 0.0f || frequency >= mFFTAnalysis.GetNyquistFrequency())
+                return -80.0f;
+            const float frequencyResolution = GetFrequencyResolution();
+            const float binIndex = frequency / frequencyResolution;
+            const int lowerBin = static_cast<int>(std::floor(binIndex));
+            const int upperBin = std::min(lowerBin + 1, static_cast<int>(output.size()) - 1);
+            if (lowerBin >= static_cast<int>(output.size()) || lowerBin < 0)
+                return -80.0f;
+            if (lowerBin == upperBin)
+                return output[lowerBin].magnitudeDB;
+            const float fraction = binIndex - lowerBin;
+            return output[lowerBin].magnitudeDB * (1.0f - fraction) + 
+                   output[upperBin].magnitudeDB * fraction;
+        }
+        float GetFrequencyResolution() const override { return mFFTAnalysis.GetFrequencyResolution(); }
+        float GetNyquistFrequency() const override { return mFFTAnalysis.GetNyquistFrequency(); }
+
+        void Reset()
+        {
+            for (auto& detector : mPeakDetectors) detector.Reset();
+            mFFTAnalysis.Reset();
+            mHasNewOutput.store(false, std::memory_order_release);
+        }
+
+        // Output update signalling
+        bool HasNewOutput() const { return mHasNewOutput.load(std::memory_order_acquire); }
+        void ConsumeOutput() { mHasNewOutput.store(false, std::memory_order_release); }
     };
 }
 

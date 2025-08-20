@@ -26,6 +26,7 @@ private:
   float mFFTDisplayMinDB = -90.0f;
   float mFFTDisplayMaxDB = 0.0f;
   bool mUseIndependentScale = true;
+  std::string mScaleCaption = "FFT"; // customizable caption for scale indicator
   
   // Convert dB to Y using FFT's independent scale if enabled
   float FFTDBToY(float dB, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
@@ -70,6 +71,10 @@ public:
     mFFTDisplayMinDB = minDB;
     mFFTDisplayMaxDB = maxDB;
     mUseIndependentScale = independent;
+  }
+
+  void SetScaleCaption(const char* caption) {
+    mScaleCaption = caption ? caption : "";
   }
   
   void UpdateData(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
@@ -162,8 +167,8 @@ public:
     // Draw scale indicator and legend
     if (mUseIndependentScale && !mOverlays.empty()) {
       // Draw scale indicator in top-right corner
-      char scaleText[32];
-      snprintf(scaleText, sizeof(scaleText), "FFT: %.0f to %.0fdB", mFFTDisplayMinDB, mFFTDisplayMaxDB);
+      char scaleText[64];
+      snprintf(scaleText, sizeof(scaleText), "%s: %.1f to %.1f", mScaleCaption.c_str(), mFFTDisplayMinDB, mFFTDisplayMaxDB);
       ImVec2 textSize = ImGui::CalcTextSize(scaleText);
       ImVec2 textPos = {bb.Max.x - textSize.x - 4, bb.Min.y + 2};
       dl->AddText(textPos, ColorFromHTML("888888", 0.7f), scaleText);

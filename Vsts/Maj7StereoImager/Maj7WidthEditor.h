@@ -19,14 +19,18 @@ using namespace WaveSabreCore;
 #include <WaveSabreVstLib/Width/Goniometer.hpp>
 #include <WaveSabreVstLib/Width/PolarL.hpp>
 #include <WaveSabreVstLib/HistoryVisualization.hpp>
+#include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
 
 struct Maj7WidthEditor : public VstEditor
 {
 	Maj7Width* mpMaj7Width;
 	Maj7WidthVst* mpMaj7WidthVst;
 
+	// Frequency analysis visualization (width by frequency)
+	FrequencyResponseRendererLayered<800, 200, 0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams, true> mWidthGraph;
+
 	Maj7WidthEditor(AudioEffect* audioEffect) : //
-		VstEditor(audioEffect, 950, 700),
+		VstEditor(audioEffect, 950, 900), // Increase height to accommodate frequency graph
 		mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
 	{
 		mpMaj7Width = ((Maj7WidthVst *)audioEffect)->GetMaj7Width();
@@ -120,6 +124,23 @@ struct Maj7WidthEditor : public VstEditor
 		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
 		ImGui::EndGroup();
 
+		// Frequency Analysis Controls
+		ImGui::BeginGroup();
+		bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
+		if (ToggleButton(&frequencyAnalysisEnabled, "Frequency Analysis", {120, 20})) {
+			mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
+			mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(frequencyAnalysisEnabled);
+		}
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Enable frequency-domain stereo analysis");
+			ImGui::Separator();
+			ImGui::TextWrapped("Shows stereo width, mid/side levels by frequency.");
+			ImGui::TextWrapped("Note: Uses additional CPU resources.");
+			ImGui::EndTooltip();
+		}
+		ImGui::EndGroup();
+
 		ImGui::EndGroup();
 
 		static const std::vector<VUMeterTick> tickSet = {
@@ -190,21 +211,25 @@ struct Maj7WidthEditor : public VstEditor
 			}
 		}
 
+		// Frequency analysis visualization (when enabled)
+		if (frequencyAnalysisEnabled) {
+			RenderFrequencyAnalysis();
+		}
 	}
 
 	virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() override
 	{
 		return {
 			&mShowGoniometerParam,
-			& mShowPolarLParam,
-			& mShowPhaseXParam,
-			& mShowPhaseCorrelationParam,
-			& mShowStereoWidthParam,
-			& mShowStereoBalanceParam,
-			& mShowMidLevelParam,
-			& mShowSideLevelParam,
-			& mShowInputParam,
-			& mShowOutputParam,
+			&mShowPolarLParam,
+			&mShowPhaseXParam,
+			&mShowPhaseCorrelationParam,
+			&mShowStereoWidthParam,
+			&mShowStereoBalanceParam,
+			&mShowMidLevelParam,
+			&mShowSideLevelParam,
+			&mShowInputParam,
+			&mShowOutputParam,
 		};
 	}
 
@@ -224,6 +249,58 @@ private:
 	VstSerializableBoolParamRef mShowSideLevelParam{ "ShowSideLevel", mStereoHistory.mShowSideLevel };
 	VstSerializableBoolParamRef mShowInputParam{ "ShowInput", mStereoHistory.mShowInput };
 	VstSerializableBoolParamRef mShowOutputParam{ "ShowOutput", mStereoHistory.mShowOutput };
+
+	// Render frequency analysis graph
+	void RenderFrequencyAnalysis() {
+		// Get frequency analyzers
+		const auto* inputAnalyzer = mpMaj7Width->mInputImagingAnalysis.GetFrequencyAnalyzer();
+		const auto* outputAnalyzer = mpMaj7Width->mOutputImagingAnalysis.GetFrequencyAnalyzer();
+
+		if (!inputAnalyzer || !outputAnalyzer) {
+			ImGui::Text("Frequency analysis not available");
+			return;
+		}
+
+		// Build layered renderer config for width-by-frequency overlays
+		FrequencyResponseRendererConfig<0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams> cfg{
+			ColorFromHTML("222222", 1.0f), // background
+			ColorFromHTML("aaaa00", 1.0f), // line (unused)
+			0.0f,                            // thumb radius (no thumbs)
+			{},                              // filters
+			{},                              // param cache copy (unused)
+			{},                              // major ticks (defaults)
+			{},                              // minor ticks (defaults)
+			{},                              // fft overlays (fill below)
+			0.0f,                             // min (for width)
+			3.0f,                             // max (for width)
+			true                              // independent scale
+		};
+
+		// Optional param cache fill to satisfy API
+		for (size_t i = 0; i < (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams; ++i) cfg.mParamCacheCopy[i] = mpMaj7Width->mParamCache[i];
+
+		// Input/Output Width overlays (linear width ratio stored by analyzer)
+		cfg.fftOverlays = {
+			{
+				/*frequencyAnalysis*/ inputAnalyzer,
+				/*fftColor*/ ColorFromHTML("88FF44", 0.9f),
+				/*fftFillColor*/ ColorFromHTML("88FF44", 0.25f),
+				/*enableFftFill*/ true,
+				/*label*/ "Input Width"
+			},
+			{
+				/*frequencyAnalysis*/ outputAnalyzer,
+				/*fftColor*/ ColorFromHTML("66CC33", 0.9f),
+				/*fftFillColor*/ ColorFromHTML("66CC33", 0.25f),
+				/*enableFftFill*/ true,
+				/*label*/ "Output Width"
+			},
+		};
+
+		// Render with caption indicating non-dB scale
+		mWidthGraph.SetFFTScaleCaption("Width");
+		mWidthGraph.OnRender(cfg);
+	}
 
 	// Stereo history visualization system
 	template<int historyViewWidth, int historyViewHeight>

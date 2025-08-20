@@ -60,6 +60,7 @@ namespace WaveSabreCore
     //    mDisplayBoostDB = boostDB;
     //}
 
+
     void MonoFFTAnalysis::SetWindowType(WindowType windowType)
     {
         if (mWindowType != windowType)
@@ -244,7 +245,6 @@ namespace WaveSabreCore
         SetPeakHoldTime(60);
         SetFalloffRate(1200);
         SetFFTUpdateRate(1024, 2);
-
     }
 
     void SmoothedStereoFFT::SetPeakHoldTime(float holdTimeMs)
@@ -254,7 +254,8 @@ namespace WaveSabreCore
         // Update all existing peak detectors with BOTH current settings + their frequencies
         for (size_t i = 0; i < mPeakDetectors.size(); ++i)
         {
-            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : 0.0f;
+            const auto& active = mBuffers[mActiveBuffer.load(std::memory_order_acquire)];
+            float frequency = (i < active.size()) ? active[i].frequency : 0.0f;
             mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
         }
     }
@@ -266,7 +267,8 @@ namespace WaveSabreCore
         // Update all existing peak detectors with BOTH current settings + their frequencies
         for (size_t i = 0; i < mPeakDetectors.size(); ++i)
         {
-            float frequency = (i < mOutput.size()) ? mOutput[i].frequency : 0.0f;
+            const auto& active = mBuffers[mActiveBuffer.load(std::memory_order_acquire)];
+            float frequency = (i < active.size()) ? active[i].frequency : 0.0f;
             mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
         }
     }
@@ -274,7 +276,6 @@ namespace WaveSabreCore
     void SmoothedStereoFFT::SetFFTUpdateRate(int fftSize, int overlapFactor)
     {
         // Calculate how many samples occur between FFT updates
-        // This is critical for correct timing compensation
         mSamplesPerFFTUpdate = (overlapFactor > 0) ? (fftSize / overlapFactor) : fftSize;
     }
 
@@ -284,39 +285,32 @@ namespace WaveSabreCore
         if (mPeakDetectors.size() != rawSpectrum.size())
         {
             mPeakDetectors.resize(rawSpectrum.size());
-            mOutput.resize(rawSpectrum.size());
-            
-            // Initialize new peak detectors with CURRENT settings and their frequencies
+            // initialize detectors with current settings and their frequencies
             for (size_t i = 0; i < mPeakDetectors.size(); ++i)
             {
                 float frequency = (i < rawSpectrum.size()) ? rawSpectrum[i].frequency : 0.0f;
                 mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
             }
+            // resize buffers
+            mBuffers[0].resize(rawSpectrum.size());
+            mBuffers[1].resize(rawSpectrum.size());
         }
         
-        // Process each bin using existing PeakDetector
-        // Key insight: Simulate the missing samples between FFT updates
+        int inactive = InactiveBufferIndex();
+        auto& out = mBuffers[inactive];
+        out.resize(rawSpectrum.size());
+        
+        // Process each bin once per FFT update using multi-step falloff
         for (size_t i = 0; i < rawSpectrum.size(); ++i)
         {
-            // Convert dB to linear for PeakDetector (which expects linear values 0-1+)
             float magnitudeLinear = M7::math::DecibelsToLinear(rawSpectrum[i].magnitudeDB);
-            
-            // Since PeakDetector expects to be called every sample, we need to simulate
-            // the missing samples by calling it multiple times with the same value
-            // This maintains correct timing for hold/falloff calculations
-            for (int s = 0; s < mSamplesPerFFTUpdate; ++s)
-            {
-                mPeakDetectors[i].ProcessSample(magnitudeLinear);
-            }
-            
-            // Convert back to dB for output
-            //float smoothedMagnitudeDB = 20.0f * std::log10(std::max(1e-10f, (float)mPeakDetectors[i].mCurrentPeak));
-			float smoothedMagnitudeDB = M7::math::LinearToDecibels((float)mPeakDetectors[i].mCurrentPeak);
-            
-            mOutput[i].frequency = rawSpectrum[i].frequency;
-            mOutput[i].magnitudeDB = smoothedMagnitudeDB;
-            //mOutput[i].phase = rawSpectrum[i].phase;
+            mPeakDetectors[i].ProcessSampleMulti(magnitudeLinear, mSamplesPerFFTUpdate);
+            float smoothedMagnitudeDB = M7::math::LinearToDecibels((float)mPeakDetectors[i].mCurrentPeak);
+            out[i].frequency = rawSpectrum[i].frequency;
+            out[i].magnitudeDB = smoothedMagnitudeDB;
         }
+
+        PublishBuffer(inactive);
     }
 
     void SmoothedStereoFFT::ProcessSamples(float leftSample, float rightSample)
@@ -334,25 +328,26 @@ namespace WaveSabreCore
 
     float SmoothedStereoFFT::GetMagnitudeAtFrequency(float frequency) const
     {
-        if (mOutput.empty() || frequency <= 0.0f || frequency >= mFFTAnalysis.GetNyquistFrequency())
+        const auto& output = GetSpectrum();
+        if (output.empty() || frequency <= 0.0f || frequency >= mFFTAnalysis.GetNyquistFrequency())
             return -80.0f;
         
         // Find the appropriate bin (assuming uniform frequency spacing)
         const float frequencyResolution = GetFrequencyResolution();
         const float binIndex = frequency / frequencyResolution;
         const int lowerBin = static_cast<int>(std::floor(binIndex));
-        const int upperBin = std::min(lowerBin + 1, static_cast<int>(mOutput.size()) - 1);
+        const int upperBin = std::min(lowerBin + 1, static_cast<int>(output.size()) - 1);
         
-        if (lowerBin >= static_cast<int>(mOutput.size()) || lowerBin < 0)
+        if (lowerBin >= static_cast<int>(output.size()) || lowerBin < 0)
             return -80.0f;
         
         if (lowerBin == upperBin)
-            return mOutput[lowerBin].magnitudeDB;
+            return output[lowerBin].magnitudeDB;
         
         // Linear interpolation between bins
         const float fraction = binIndex - lowerBin;
-        return mOutput[lowerBin].magnitudeDB * (1.0f - fraction) + 
-               mOutput[upperBin].magnitudeDB * fraction;
+        return output[lowerBin].magnitudeDB * (1.0f - fraction) + 
+               output[upperBin].magnitudeDB * fraction;
     }
 
     void SmoothedStereoFFT::Reset()
@@ -362,6 +357,7 @@ namespace WaveSabreCore
             detector.Reset(); // Use the built-in Reset() method
         }
         mFFTAnalysis.Reset();
+        mHasNewOutput.store(false, std::memory_order_release);
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -417,29 +413,27 @@ namespace WaveSabreCore
 
     const std::vector<SpectrumBin>& FFTAnalysis::GetSpectrum() const
     {
-		// Return a combined spectrum for both channels
-        static std::vector<SpectrumBin> combinedSpectrum;
-        combinedSpectrum.clear();
+        // Return a combined spectrum for both channels using per-instance buffer
+        mCombinedSpectrum.clear();
         
         const auto& leftSpectrum = mAnalyzers[0].GetSpectrum();
         const auto& rightSpectrum = mAnalyzers[1].GetSpectrum();
         
         size_t maxSize = std::max(leftSpectrum.size(), rightSpectrum.size());
-        combinedSpectrum.resize(maxSize);
+        mCombinedSpectrum.resize(maxSize);
         
         for (size_t i = 0; i < maxSize; ++i)
         {
             if (i < leftSpectrum.size())
-                combinedSpectrum[i].frequency = leftSpectrum[i].frequency;
+                mCombinedSpectrum[i].frequency = leftSpectrum[i].frequency;
             else
-                combinedSpectrum[i].frequency = rightSpectrum[i].frequency;
-            combinedSpectrum[i].magnitudeDB = std::max(
+                mCombinedSpectrum[i].frequency = rightSpectrum[i].frequency;
+            mCombinedSpectrum[i].magnitudeDB = std::max(
                 i < leftSpectrum.size() ? leftSpectrum[i].magnitudeDB : -80.0f,
                 i < rightSpectrum.size() ? rightSpectrum[i].magnitudeDB : -80.0f);
-            //combinedSpectrum[i].phase = 0.0f; // Phase is not used in this context
         }
         
-		return combinedSpectrum;
+        return mCombinedSpectrum;
     }
 
     float FFTAnalysis::GetMagnitudeAtFrequency(float frequency) const
