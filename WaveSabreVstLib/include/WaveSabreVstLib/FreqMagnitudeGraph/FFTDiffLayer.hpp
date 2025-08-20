@@ -301,29 +301,60 @@ public:
     const float dispMin = mUseIndependentScale ? mDisplayMinDB : coords.mDisplayMinDB;
     const float dispMax = mUseIndependentScale ? mDisplayMaxDB : coords.mDisplayMaxDB;
 
-    // Fill positive and negative regions relative to zero
+    // Fill positive and negative regions relative to zero, splitting at zero crossing
     for (int i = 0; i + 1 < TSegmentCount; ++i) {
       if (!mValid[i] || !mValid[i + 1]) continue;
 
       float d0 = M7::math::clamp(mDelta[i],     dispMin, dispMax);
       float d1 = M7::math::clamp(mDelta[i + 1], dispMin, dispMax);
 
-      // Positive region (A > B) if either endpoint > 0
-      if (d0 > 0.0f || d1 > 0.0f) {
-        float x0 = mScreenX[i], x1 = mScreenX[i + 1];
-        float y0 = ValToY(d0, coords, bb);
-        float y1 = ValToY(d1, coords, bb);
-        ImVec2 quad[4] = { {x0, zeroY}, {x0, y0}, {x1, y1}, {x1, zeroY} };
-        dl->AddConvexPolyFilled(quad, 4, mOverlay.colorPositive);
-      }
+      float x0 = mScreenX[i];
+      float x1 = mScreenX[i + 1];
+      float y0 = ValToY(d0, coords, bb);
+      float y1 = ValToY(d1, coords, bb);
 
-      // Negative region (B > A) if either endpoint < 0
-      if (d0 < 0.0f || d1 < 0.0f) {
-        float x0 = mScreenX[i], x1 = mScreenX[i + 1];
-        float y0 = ValToY(d0, coords, bb);
-        float y1 = ValToY(d1, coords, bb);
-        ImVec2 quad[4] = { {x0, y0}, {x1, y1}, {x1, zeroY}, {x0, zeroY} };
-        dl->AddConvexPolyFilled(quad, 4, mOverlay.colorNegative);
+      const bool s0p = d0 > 0.0f;
+      const bool s1p = d1 > 0.0f;
+      const bool s0n = d0 < 0.0f;
+      const bool s1n = d1 < 0.0f;
+
+      // No crossing: draw a single convex quad
+      if ((s0p && s1p)) {
+        // Positive quad: top-left, top-right, bottom-right, bottom-left (clockwise)
+        dl->AddQuadFilled({x0, y0}, {x1, y1}, {x1, zeroY}, {x0, zeroY}, mOverlay.colorPositive);
+      } else if ((s0n && s1n)) {
+        // Negative quad: top-left, top-right, bottom-right, bottom-left (clockwise)
+        dl->AddQuadFilled({x0, zeroY}, {x1, zeroY}, {x1, y1}, {x0, y0}, mOverlay.colorNegative);
+      } else if ((s0p && s1n) || (s0n && s1p)) {
+        // Crossing: split into two triangles at zero
+        const float denom = (d0 - d1);
+        float t = denom != 0.0f ? (d0 / denom) : 0.5f; // fraction from x0->x1 where delta crosses zero
+        t = M7::math::clamp01(t);
+        const float xC = M7::math::lerp(x0, x1, t);
+        const float yC = zeroY;
+
+        if (s0p && s1n) {
+          // Left positive triangle (clockwise: top-left -> top-right -> bottom-left)
+          dl->AddTriangleFilled({x0, y0}, {xC, yC}, {x0, zeroY}, mOverlay.colorPositive);
+          // Right negative triangle (clockwise: top-left -> top-right -> bottom-right)
+          dl->AddTriangleFilled({xC, yC}, {x1, zeroY}, {x1, y1}, mOverlay.colorNegative);
+        } else { // s0n && s1p
+          // Left negative triangle (clockwise: top-left -> top-right -> bottom-left)
+          dl->AddTriangleFilled({x0, zeroY}, {xC, yC}, {x0, y0}, mOverlay.colorNegative);
+          // Right positive triangle (clockwise: top-left -> top-right -> bottom-right)
+          dl->AddTriangleFilled({xC, yC}, {x1, y1}, {x1, zeroY}, mOverlay.colorPositive);
+        }
+      } else {
+        // One endpoint is exactly zero, draw a thin triangle/line on the non-zero side only
+        if (s0p || s1p) {
+          // Positive side
+          if (s0p) dl->AddTriangleFilled({x0, y0}, {x1, zeroY}, {x0, zeroY}, mOverlay.colorPositive);
+          else     dl->AddTriangleFilled({x0, zeroY}, {x1, y1}, {x1, zeroY}, mOverlay.colorPositive);
+        } else if (s0n || s1n) {
+          // Negative side
+          if (s0n) dl->AddTriangleFilled({x0, zeroY}, {x1, zeroY}, {x0, y0}, mOverlay.colorNegative);
+          else     dl->AddTriangleFilled({x0, zeroY}, {x1, zeroY}, {x1, y1}, mOverlay.colorNegative);
+        }
       }
     }
   }
