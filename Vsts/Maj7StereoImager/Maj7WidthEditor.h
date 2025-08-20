@@ -144,16 +144,47 @@ struct Maj7WidthEditor : public VstEditor
 		attenCfg.levelMode = VUMeterLevelMode::Attenuation;
 
 		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg);
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Input stereo L R");
+			ImGui::EndTooltip();
+		}
 		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg);
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Output stereo L R");
+			ImGui::EndTooltip();
+		}
 
-		ImGui::SameLine(); VUMeter("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg);
-		ImGui::SameLine(); VUMeter("ms_outp", mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector, mainCfg);
+		ImGui::SameLine(); VUMeterMS("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg);
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Input mid side");
+			ImGui::EndTooltip();
+		}
 
+		ImGui::SameLine(); VUMeterMS("ms_outp", mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector, mainCfg);
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Output mid side");
+			ImGui::EndTooltip();
+		}
+
+		ImGui::SameLine();
 		// Stereo imaging visualization
-		ImGui::SameLine(); 
-		RenderStereoImagingDisplay("stereo_imaging_inp", mpMaj7Width->mInputImagingAnalysis);
-		ImGui::SameLine(); RenderStereoImagingDisplay("stereo_imaging_outp", mpMaj7Width->mOutputImagingAnalysis);
+		{
+			ImGuiGroupScope _grp("stereo_imaging");
+			RenderStereoImagingDisplay("stereo_imaging_inp", mpMaj7Width->mInputImagingAnalysis);
+			ImGui::SameLine(); RenderStereoImagingDisplay("stereo_imaging_outp", mpMaj7Width->mOutputImagingAnalysis);
 
+			// Toggle buttons for layer visibility
+			{
+				// Create toggle buttons with appropriate colors
+				ToggleButton(&mShowGoniometer, "Gonio");
+				ImGui::SameLine(); ToggleButton(&mShowPolarL, "Poly");
+				ImGui::SameLine(); ToggleButton(&mShowPhaseX, "Scissor");
+			}
+		}
 	}
 
 private:
@@ -197,55 +228,6 @@ private:
 		//	showPhaseX = true;      // Default to showing phase correlation X
 		//}
 
-		// Toggle buttons for layer visibility
-		ImGui::BeginGroup();
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
-			ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 2);
-			
-			// Create toggle buttons with appropriate colors
-			if (mShowGoniometer) {
-				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 120, 60, 200));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 140, 80, 200));
-			} else {
-				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 60, 60, 200));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 80, 80, 200));
-			}
-			if (ImGui::Button("Gonio", ImVec2(50, 20))) {
-				mShowGoniometer = !mShowGoniometer;
-			}
-			ImGui::PopStyleColor(2);
-			
-			ImGui::SameLine();
-			if (mShowPolarL) {
-				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(120, 60, 120, 200));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(140, 80, 140, 200));
-			} else {
-				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 60, 60, 200));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 80, 80, 200));
-			}
-			if (ImGui::Button("Poly", ImVec2(50, 20))) {
-				mShowPolarL = !mShowPolarL;
-			}
-			ImGui::PopStyleColor(2);
-			
-			ImGui::SameLine();
-			if (mShowPhaseX) {
-				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(120, 120, 60, 200));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(140, 140, 80, 200));
-			} else {
-				ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(60, 60, 60, 200));
-				ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(80, 80, 80, 200));
-			}
-			if (ImGui::Button("Scissor", ImVec2(60, 20))) {
-				mShowPhaseX = !mShowPhaseX;
-			}
-			ImGui::PopStyleColor(2);
-			
-			ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
-		}
-		ImGui::EndGroup();
-
 		// Render the layered visualization
 		RenderLayeredStereoVisualization("stereovis", analysis, {dim, dim},
 			mShowGoniometer, mShowPolarL, mShowPhaseX);
@@ -279,9 +261,9 @@ private:
 		}
 		
 		// Add reference labels for key angles
-		dl->AddText({ center.x - 15, bb.Min.y + 2 }, IM_COL32(100, 255, 100, 150), "M");      // Mono
+		dl->AddText({ center.x - 4, bb.Min.y + 2 }, IM_COL32(100, 255, 100, 150), "M");      // Mono
 		dl->AddText({ bb.Max.x - 15, center.y - 8 }, IM_COL32(150, 150, 255, 150), "R");     // Right
-		dl->AddText({ center.x - 20, bb.Max.y - 16 }, IM_COL32(255, 100, 100, 150), "S");    // Side/Phase
+		dl->AddText({ center.x - 20, bb.Max.y - 16 }, IM_COL32(255, 100, 100, 150), "inv");    // Side/Phase
 		dl->AddText({ bb.Min.x + 2, center.y - 8 }, IM_COL32(150, 150, 255, 150), "L");      // Left
 		
 		// Render layers in order (bottom to top)

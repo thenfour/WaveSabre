@@ -41,6 +41,26 @@ enum VUMeterUnits {
   Linear,
 };
 
+inline const VUMeterColors* GetVUMeterColorsForMidSideLevel() {
+	// Mid-side level visualization using a blue-based color scheme (distinct from audio's green scheme)
+    static VUMeterColors colors;
+    colors.background = ColorFromHTML("1c2b32");        // Dark bluish background (inverted from audio's 2b321c)
+    colors.foregroundRMS = ColorFromHTML("0a6c9b");     // Bright blue RMS (inverted from audio's 6c9b0a)
+    colors.foregroundPeak = ColorFromHTML("324a63");    // Darker blue peak (inverted from audio's 4a6332)
+
+    colors.backgroundOverUnity = ColorFromHTML("440000"); // Keep same red for clipping
+    colors.foregroundOverUnity = ColorFromHTML("cccc00"); // Keep same yellow for over-unity
+
+    colors.text = ColorFromHTML("ffffff", 0.2f);           // Keep same text
+    colors.tick = ColorFromHTML("00ffff");                // Keep same cyan ticks  
+    colors.clipTick = ColorFromHTML("ff0000");            // Keep same red clip indicator
+    colors.peak = ColorFromHTML("0a6c9b", 0.8f);         // Blue peak marker (matching RMS blue)
+    colors.text.Value.w = 0.33f;
+    colors.tick.Value.w = 0.33f;
+
+	return &colors;
+}
+
 struct VUMeterConfig {
   ImVec2 size;
   VUMeterLevelMode levelMode;
@@ -57,57 +77,62 @@ struct VUMeterConfig {
 inline bool VUMeter(const char *id, const double *rmsLevel,
                     const double *peakLevel, const double *heldPeakLevel,
                     const bool *clipIndicator, bool allowTickText,
-                    const VUMeterConfig &cfg) {
+                    const VUMeterConfig &cfg, const VUMeterColors* colorsOverride = nullptr) {
   VUMeterColors colors;
-  switch (cfg.levelMode) {
-  case VUMeterLevelMode::Audio: {
-    colors.background = ColorFromHTML("2b321c");
-    colors.foregroundRMS = ColorFromHTML("6c9b0a");
-    colors.foregroundPeak = ColorFromHTML("4a6332");
-
-    colors.backgroundOverUnity = ColorFromHTML("440000");
-    colors.foregroundOverUnity = ColorFromHTML("cccc00");
-
-    colors.text = ColorFromHTML("ffffff");
-    colors.tick = ColorFromHTML("00ffff");
-    colors.clipTick = ColorFromHTML("ff0000");
-    colors.peak = ColorFromHTML("6c9b0a", 0.8f);
-    break;
+  if (colorsOverride) {
+          colors = *colorsOverride;
   }
-  case VUMeterLevelMode::Attenuation: {
-    colors.background = ColorFromHTML("402e2e");
-    colors.foregroundRMS = ColorFromHTML("900000");
-    colors.foregroundPeak = ColorFromHTML("600000");
+  else {
+      switch (cfg.levelMode) {
+      case VUMeterLevelMode::Audio: {
+          colors.background = ColorFromHTML("2b321c");
+          colors.foregroundRMS = ColorFromHTML("6c9b0a");
+          colors.foregroundPeak = ColorFromHTML("4a6332");
 
-    colors.backgroundOverUnity = ColorFromHTML("440000");
-    colors.foregroundOverUnity = ColorFromHTML("cccc00");
+          colors.backgroundOverUnity = ColorFromHTML("440000");
+          colors.foregroundOverUnity = ColorFromHTML("cccc00");
 
-    colors.text = ColorFromHTML("ffffff");
-    colors.tick = ColorFromHTML("00ffff");
-    colors.clipTick = ColorFromHTML("ff0000");
-    colors.peak = ColorFromHTML("6c9b0a", 0.8f);
-    break;
+          colors.text = ColorFromHTML("ffffff");
+          colors.tick = ColorFromHTML("00ffff");
+          colors.clipTick = ColorFromHTML("ff0000");
+          colors.peak = ColorFromHTML("6c9b0a", 0.8f);
+          break;
+      }
+      case VUMeterLevelMode::Attenuation: {
+          colors.background = ColorFromHTML("402e2e");
+          colors.foregroundRMS = ColorFromHTML("900000");
+          colors.foregroundPeak = ColorFromHTML("600000");
+
+          colors.backgroundOverUnity = ColorFromHTML("440000");
+          colors.foregroundOverUnity = ColorFromHTML("cccc00");
+
+          colors.text = ColorFromHTML("ffffff");
+          colors.tick = ColorFromHTML("00ffff");
+          colors.clipTick = ColorFromHTML("ff0000");
+          colors.peak = ColorFromHTML("6c9b0a", 0.8f);
+          break;
+      }
+      default:
+      case VUMeterLevelMode::Disabled: {
+          colors.background = ColorFromHTML("222222");
+          colors.foregroundRMS = ColorFromHTML("eeeeee", 0);
+          colors.foregroundPeak = ColorFromHTML("666666", 0);
+
+          colors.backgroundOverUnity = ColorFromHTML("666666", 0);
+          colors.foregroundOverUnity = ColorFromHTML("777777", 0);
+
+          colors.text = ColorFromHTML("555555", .5);
+          colors.tick = ColorFromHTML("666666", 0);
+          colors.clipTick =
+              colors.foregroundRMS; // don't bother with clipping for attenuation
+          colors.peak = ColorFromHTML("cccccc", 0);
+          break;
+      }
+      }
+      colors.text.Value.w = 0.33f;
+      colors.tick.Value.w = 0.33f;
   }
-  default:
-  case VUMeterLevelMode::Disabled: {
-    colors.background = ColorFromHTML("222222");
-    colors.foregroundRMS = ColorFromHTML("eeeeee", 0);
-    colors.foregroundPeak = ColorFromHTML("666666", 0);
 
-    colors.backgroundOverUnity = ColorFromHTML("666666", 0);
-    colors.foregroundOverUnity = ColorFromHTML("777777", 0);
-
-    colors.text = ColorFromHTML("555555", .5);
-    colors.tick = ColorFromHTML("666666", 0);
-    colors.clipTick =
-        colors.foregroundRMS; // don't bother with clipping for attenuation
-    colors.peak = ColorFromHTML("cccccc", 0);
-    break;
-  }
-  }
-
-  colors.text.Value.w = 0.33f;
-  colors.tick.Value.w = 0.33f;
 
   float rmsDB = 0;
   if (rmsLevel) {
@@ -287,6 +312,25 @@ inline void VUMeter(const char *id, IAnalysisStream &a0, IAnalysisStream &a1,
   }
   ImGui::PopID();
   ImGui::PopStyleVar();
+}
+
+inline void VUMeterMS(const char* id, IAnalysisStream& a0, IAnalysisStream& a1,
+    const VUMeterConfig& cfg) {
+    ImGui::PushID(id);
+    if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak,
+        &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg, GetVUMeterColorsForMidSideLevel())) {
+        a0.Reset();
+        a1.Reset();
+    }
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
+    ImGui::SameLine();
+    if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak,
+        &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg, GetVUMeterColorsForMidSideLevel())) {
+        a0.Reset();
+        a1.Reset();
+    }
+    ImGui::PopID();
+    ImGui::PopStyleVar();
 }
 
 inline void VUMeterAtten(const char *id, IAnalysisStream &a0,
