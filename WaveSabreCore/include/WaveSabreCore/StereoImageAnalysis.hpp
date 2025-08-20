@@ -191,6 +191,17 @@ namespace WaveSabreCore
             std::lock_guard<std::mutex> sLock(mSpectrumMutex);
             if (mWidthSpectrum.size() != spectrumSize) mWidthSpectrum.resize(spectrumSize);
             
+            // Confidence weighting thresholds for stability in low-energy bins (use Mid only)
+            const float kFadeStartDB = -30.0f;  // start trusting less below this
+            const float kFadeEndDB   = -80.0f;  // fully faded (treated as mono) below this
+
+            auto saturate01 = [](float x) { return x < 0.f ? 0.f : (x > 1.f ? 1.f : x); };
+            auto smoothstep = [&](float lo, float hi, float x) {
+                // lo < hi; returns 0..1
+                float t = saturate01((x - lo) / (hi - lo));
+                return t * t * (3.0f - 2.0f * t);
+            };
+            
             for (size_t i = 0; i < spectrumSize; ++i) {
                 float frequency = midSpectrum[i].frequency;
                 float midMagnitudeDB = midSpectrum[i].magnitudeDB;
@@ -198,8 +209,15 @@ namespace WaveSabreCore
                 float deltaDB = sideMagnitudeDB - midMagnitudeDB;
                 float widthLinear = M7::math::DecibelsToLinear(deltaDB);
                 widthLinear = std::min(3.0f, std::max(0.0f, widthLinear));
+
+                // Confidence based on Mid energy (denominator)
+                const float t = smoothstep(kFadeEndDB, kFadeStartDB, midMagnitudeDB);
+
+                // Silence considered mono: blend width to 0 as Mid energy vanishes
+                const float widthConfident = widthLinear * t;
+                
                 mWidthSpectrum[i].frequency = frequency;
-                mWidthSpectrum[i].magnitudeDB = widthLinear;
+                mWidthSpectrum[i].magnitudeDB = widthConfident; // carries linear width for renderer
             }
             mNeedsWidthUpdate.store(false, std::memory_order_release);
         }
