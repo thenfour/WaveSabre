@@ -3,7 +3,7 @@
 #include "Device.h"
 #include "Maj7Basic.hpp"
 #include "Filters/FilterOnePole.hpp"
-#include "RMS.hpp"
+#include "StereoImageAnalysis.hpp"
 
 #define MAJ7WIDTH_FULL_FEATURE
 
