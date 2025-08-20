@@ -36,6 +36,10 @@ struct Maj7MBCEditor : public VstEditor
 	bool mShowLeft = true;
 	bool mShowRight = false;
 
+	bool mShowCrossoverResponse = true;
+	bool mShowInputFft = true;
+	bool mShowOutputFft = true;
+
 	VstSerializableIntParamRef<int> mEditingBandParam{ "EditingBand", mEditingBand };
 	VstSerializableBoolParamRef mShowInputHistoryParam{ "ShowInputHistory", mShowInputHistory };
 	VstSerializableBoolParamRef mShowDetectorHistoryParam{ "ShowDetectorHistory", mShowDetectorHistory };
@@ -44,6 +48,10 @@ struct Maj7MBCEditor : public VstEditor
 	VstSerializableBoolParamRef mShowThreshParam{ "ShowThresh", mShowThresh };
 	VstSerializableBoolParamRef mShowLeftParam{ "ShowLeft", mShowLeft };
 	VstSerializableBoolParamRef mShowRightParam{ "ShowRight", mShowRight };
+
+	VstSerializableBoolParamRef mShowCrossoverResponseParam{ "ShowCrossoverResponse", mShowCrossoverResponse };
+	VstSerializableBoolParamRef mShowInputFftParam{ "ShowInputFft", mShowInputFft };
+	VstSerializableBoolParamRef mShowOutputFftParam{ "ShowOutputFft", mShowOutputFft };
 
 	Maj7MBCEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 1150, 950),
@@ -63,6 +71,9 @@ struct Maj7MBCEditor : public VstEditor
 			&mShowThreshParam,
 			&mShowLeftParam,
 			&mShowRightParam,
+			& mShowCrossoverResponseParam,
+			& mShowInputFftParam,
+			&mShowOutputFftParam,
 		};
 	}
 
@@ -74,6 +85,7 @@ struct Maj7MBCEditor : public VstEditor
 
 	void RenderBand(size_t iBand, ParamIndices enabledParam, const char* caption, bool muteSoloEnabled, bool mbEnabledEnabled, bool mbEnabled)
 	{
+		ImGuiIdScope __scope{ iBand };
 		auto& band = mpMaj7MBC->mBands[iBand];
 		auto& bandConfig = band.mVSTConfig;// mpMaj7MBCVst->mBandConfig[iBand];
 		bool bandEnabled = band.mEnable;
@@ -555,12 +567,22 @@ public:
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
 				}
 				ImGui::SameLine();
-				if (ToggleButton(&mbEnabled, "Mult-band", { 90,20 })) {
+				if (ToggleButton(&mbEnabled, "Multi-band", { 90,20 })) {
 					// NB: ToggleButton() has flipped the value.
 					pa.SetBoolValue(0, true);
 					mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
 				}
 				//ImGui::EndGroup();
+
+				ImGui::SameLine(0, 200);
+
+				ImGui::SameLine();
+				ToggleButton(&mShowCrossoverResponse, "Crossover response");
+				ImGui::SameLine();
+				ToggleButton(&mShowInputFft, "Input FFT");
+				ImGui::SameLine();
+				ToggleButton(&mShowOutputFft, "Output FFT");
+
 
 				ImGui::Spacing();
 
@@ -579,15 +601,28 @@ public:
 				}
 
 				// Optional FFT overlay for input signal
-				crossoverCfg.fftOverlays = {
-					{
+				crossoverCfg.fftOverlays.clear();
+				if (mShowInputFft) {
+					crossoverCfg.fftOverlays.push_back({
 						&mpMaj7MBC->mInputSpectrum,  // Input signal (before processing)
 						ColorFromHTML("888888", 0.8f),
 						ColorFromHTML("444444", 0.3f),
 						true,
 						"Input"
-					}
-				};
+						});
+				}
+
+				if (mShowOutputFft) {
+					crossoverCfg.fftOverlays.push_back({
+						&mpMaj7MBC->mOutputSpectrum, // Output signal (after processing)
+						ColorFromHTML(bandColors[1], 0.5f),
+						ColorFromHTML(bandColors[1], 0.2f),
+						true,
+						"Output"
+						});
+				}
+
+				mCrossoverGraph.mCrossoverLayer->mShowResponses = mShowCrossoverResponse;
 
 				mCrossoverGraph.mCrossoverLayer->mGetBandColor = [this](size_t bandIndex, bool hovered) -> ImColor {
 					auto disabledColor = ColorFromHTML("444444", hovered ? 0.8f : 0.6f);
@@ -733,6 +768,8 @@ public:
 				ImGui::Spacing();
 
 				if (mbEnabled) {
+					ImGuiIdScope __scope{ "smallbands" };
+
 					ImGui::PushID("band0small");
 					RenderBandSmall(0, ParamIndices::AInputGain, "Lows", muteSoloEnabled[0], mbEnabled, mbEnabled);
 					ImGui::PopID();

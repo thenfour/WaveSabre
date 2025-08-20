@@ -20,7 +20,7 @@ namespace WaveSabreVstLib
 			ImGui::BeginGroup();
 			ImGui::PushID(pushId);
 		}
-		explicit ImGuiGroupScope(const char *pushId) : mIdSet(true) {
+		explicit ImGuiGroupScope(const char* pushId) : mIdSet(true) {
 			ImGui::BeginGroup();
 			ImGui::PushID(pushId);
 		}
@@ -32,6 +32,21 @@ namespace WaveSabreVstLib
 				ImGui::PopID();
 			}
 			ImGui::EndGroup();
+		}
+	};
+
+	struct ImGuiIdScope {
+		explicit ImGuiIdScope(int pushId) {
+			ImGui::PushID(pushId);
+		}
+		explicit ImGuiIdScope(size_t pushId) {
+			ImGui::PushID((int)pushId);
+		}
+		explicit ImGuiIdScope(const char* pushId) {
+			ImGui::PushID(pushId);
+		}
+		~ImGuiIdScope() {
+			ImGui::PopID();
 		}
 	};
 
@@ -486,6 +501,7 @@ namespace WaveSabreVstLib
 
 		void Render(bool enabled, bool showToggles, MonoCompressor& comp, AnalysisStream(&inputAnalysis)[2], AnalysisStream(&detectorAnalysis)[2], AnalysisStream(&attenuationAnalysis)[2], AnalysisStream(&outputAnalysis)[2])
 		{
+			ImGuiIdScope __scope{ "compressor_vis" };
 			//INLINE float LookupLUT1D(const float(&mpTable)[N], float x)
 
 			ImGui::BeginGroup();

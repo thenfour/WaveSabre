@@ -393,6 +393,7 @@ namespace WaveSabreCore
 		AnalysisStream mOutputAnalysis[2];
 		AttenuationAnalysisStream mClippingAnalysis[2];
 		SmoothedStereoFFT mInputSpectrum;
+		SmoothedStereoFFT mOutputSpectrum;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		Maj7MBC() :
@@ -550,6 +551,7 @@ namespace WaveSabreCore
 				if (isGuiVisible) {
 					mOutputAnalysis[0].WriteSample(s0);
 					mOutputAnalysis[1].WriteSample(s1);
+					mOutputSpectrum.ProcessSamples(s0, s1);
 				}
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 

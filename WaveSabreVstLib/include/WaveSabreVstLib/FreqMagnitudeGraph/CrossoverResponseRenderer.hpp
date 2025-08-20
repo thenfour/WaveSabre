@@ -217,6 +217,7 @@ namespace WaveSabreVstLib {
 		}
 
 		std::function<ImColor(size_t bandIndex, bool hovered)> mGetBandColor;
+		bool mShowResponses = true;
 
 	private:
 		// Helper to calculate the bounding rectangle for a specific band region - NEW
@@ -447,71 +448,74 @@ namespace WaveSabreVstLib {
 			}
 
 			// Render each crossover band response
-			for (size_t bandIdx = 0; bandIdx < mBandResponses.size(); ++bandIdx) {
-				const auto& bandResponse = mBandResponses[bandIdx];
-				if (bandResponse.empty()) continue;
+			if (mShowResponses) {
+				for (size_t bandIdx = 0; bandIdx < mBandResponses.size(); ++bandIdx) {
+					const auto& bandResponse = mBandResponses[bandIdx];
+					if (bandResponse.empty()) continue;
 
-				// Determine band color
-				//ImColor bandColor = (bandIdx < mBandColors.size()) ? mBandColors[bandIdx] : ColorFromHTML("888888", 0.7f);
-				ImColor bandColor = (mGetBandColor) ? mGetBandColor(bandIdx, hoveredBand == bandIdx) : ColorFromHTML("888888", 0.7f);
+					// Determine band color
+					//ImColor bandColor = (bandIdx < mBandColors.size()) ? mBandColors[bandIdx] : ColorFromHTML("888888", 0.7f);
+					ImColor bandColor = (mGetBandColor) ? mGetBandColor(bandIdx, hoveredBand == bandIdx) : ColorFromHTML("888888", 0.7f);
 
-				// Fill area under curve by drawing trapezoids between successive samples
-				const float faintAlpha = 0.05f;        // very faint by default
-				const float hoverAlpha = 0.20f;        // hover opacity
-				const float selectedAlpha = 0.30f;     // selected band opacity
-				const float selectedHoverAlpha = 0.35f; // selected + hover opacity
-				
-				// Determine highlight state
-				bool isHovered = (int(bandIdx) == hoveredBand);
-				bool isSelected = (int(bandIdx) == mCurrentEditingBand);
-				
-				float chosenAlpha = faintAlpha;
-				if (isSelected && isHovered) {
-					chosenAlpha = selectedHoverAlpha;
-				} else if (isSelected) {
-					chosenAlpha = selectedAlpha;
-				} else if (isHovered) {
-					chosenAlpha = hoverAlpha;
-				}
-				
-				ImColor fillColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, chosenAlpha);
-				float yBottom = bb.Max.y; // bottom of plot area
-				float displayMin = mUseIndependentScale ? mXODisplayMinDB : coords.mDisplayMinDB;
-				float displayMax = mUseIndependentScale ? mXODisplayMaxDB : coords.mDisplayMaxDB;
-				for (int i = 0; i < TSegmentCount - 1; ++i) {
-					float dB0 = bandResponse[i];
-					float dB1 = bandResponse[i + 1];
-					dB0 = M7::math::clamp(dB0, displayMin, displayMax);
-					dB1 = M7::math::clamp(dB1, displayMin, displayMax);
-					float x0 = mScreenX[i];
-					float x1 = mScreenX[i + 1];
-					float y0 = XODBToY(dB0, coords, bb);
-					float y1 = XODBToY(dB1, coords, bb);
-					ImVec2 quad[4] = { {x0, y0}, {x1, y1}, {x1, yBottom}, {x0, yBottom} };
-					dl->AddConvexPolyFilled(quad, 4, fillColor);
-				}
+					// Fill area under curve by drawing trapezoids between successive samples
+					const float faintAlpha = 0.05f;        // very faint by default
+					const float hoverAlpha = 0.20f;        // hover opacity
+					const float selectedAlpha = 0.30f;     // selected band opacity
+					const float selectedHoverAlpha = 0.35f; // selected + hover opacity
 
-				// Build polyline points - enhance line visibility for selected band
-				std::vector<ImVec2> points;
-				points.reserve(TSegmentCount);
+					// Determine highlight state
+					bool isHovered = (int(bandIdx) == hoveredBand);
+					bool isSelected = (int(bandIdx) == mCurrentEditingBand);
 
-				for (int i = 0; i < TSegmentCount; ++i) {
-					float dB = bandResponse[i];
-					if (dB < displayMin || dB > displayMax) continue;
+					float chosenAlpha = faintAlpha;
+					if (isSelected && isHovered) {
+						chosenAlpha = selectedHoverAlpha;
+					}
+					else if (isSelected) {
+						chosenAlpha = selectedAlpha;
+					}
+					else if (isHovered) {
+						chosenAlpha = hoverAlpha;
+					}
 
-					float y = XODBToY(dB, coords, bb);
-					points.push_back({ mScreenX[i], y });
-				}
+					ImColor fillColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, chosenAlpha);
+					float yBottom = bb.Max.y; // bottom of plot area
+					float displayMin = mUseIndependentScale ? mXODisplayMinDB : coords.mDisplayMinDB;
+					float displayMax = mUseIndependentScale ? mXODisplayMaxDB : coords.mDisplayMaxDB;
+					for (int i = 0; i < TSegmentCount - 1; ++i) {
+						float dB0 = bandResponse[i];
+						float dB1 = bandResponse[i + 1];
+						dB0 = M7::math::clamp(dB0, displayMin, displayMax);
+						dB1 = M7::math::clamp(dB1, displayMin, displayMax);
+						float x0 = mScreenX[i];
+						float x1 = mScreenX[i + 1];
+						float y0 = XODBToY(dB0, coords, bb);
+						float y1 = XODBToY(dB1, coords, bb);
+						ImVec2 quad[4] = { {x0, y0}, {x1, y1}, {x1, yBottom}, {x0, yBottom} };
+						dl->AddConvexPolyFilled(quad, 4, fillColor);
+					}
 
-				if (points.size() >= 2) {
-					// Enhanced line thickness and opacity for selected band
-					float lineThickness = isSelected ? 3.0f : 2.0f;
-					float lineAlpha = isSelected ? 0.9f : 0.8f;
-					ImColor lineColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, lineAlpha);
-					dl->AddPolyline(points.data(), static_cast<int>(points.size()), lineColor, 0, lineThickness);
+					// Build polyline points - enhance line visibility for selected band
+					std::vector<ImVec2> points;
+					points.reserve(TSegmentCount);
+
+					for (int i = 0; i < TSegmentCount; ++i) {
+						float dB = bandResponse[i];
+						if (dB < displayMin || dB > displayMax) continue;
+
+						float y = XODBToY(dB, coords, bb);
+						points.push_back({ mScreenX[i], y });
+					}
+
+					if (points.size() >= 2) {
+						// Enhanced line thickness and opacity for selected band
+						float lineThickness = isSelected ? 3.0f : 2.0f;
+						float lineAlpha = isSelected ? 0.9f : 0.8f;
+						ImColor lineColor = ImColor(bandColor.Value.x, bandColor.Value.y, bandColor.Value.z, lineAlpha);
+						dl->AddPolyline(points.data(), static_cast<int>(points.size()), lineColor, 0, lineThickness);
+					}
 				}
 			}
-
 			// Draw crossover marker lines (if device present)
 			if (mDevice) {
 				float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
