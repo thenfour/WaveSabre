@@ -200,13 +200,6 @@ namespace WaveSabreCore
             const float noiseFloorAmp = M7::math::DecibelsToLinear(kNoiseFloorDB);
             const float noiseFloorPow = noiseFloorAmp * noiseFloorAmp;
 
-            auto saturate01 = [](float x) { return x < 0.f ? 0.f : (x > 1.f ? 1.f : x); };
-            auto smoothstep = [&](float lo, float hi, float x) {
-                // lo < hi; returns 0..1
-                float t = saturate01((x - lo) / (hi - lo));
-                return t * t * (3.0f - 2.0f * t);
-            };
-            
             for (size_t i = 0; i < spectrumSize; ++i) {
                 const float frequency      = midSpectrum[i].frequency;
                 mWidthSpectrum[i].frequency = frequency;
@@ -225,6 +218,9 @@ namespace WaveSabreCore
                 if (totalPow < noiseFloorPow) {
                     // no energy, consider it mono. it keeps the graph looking nice during things like fadeouts.
 					// note that magnitudedb is just a value, not necessarily db.
+
+					// NOTE: we use a very small value, because 0 gets somehow mapped to a large value by the time it propagates to the GUI.
+
 					mWidthSpectrum[i].magnitudeDB = noiseFloorAmp; // mono
                 }
                 else {

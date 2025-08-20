@@ -45,6 +45,15 @@ struct Maj7WidthEditor : public VstEditor
 	VstSerializableBoolParamRef mShowOutputSideParam{ "ShowOutputSideFFT", mShowOutputSide };
 	VstSerializableBoolParamRef mShowOutputWidthParam{ "ShowOutputWidthFFT", mShowOutputWidth };
 
+	const char* kInputMidFftColor = "664444";
+	const char* kInputSideFftColor = "446644";
+	const char* kInputWidthFftColor = "444466";
+
+	const char* kOutputMidFftColor = bandColors[0];
+	const char* kOutputSideFftColor = bandColors[1];
+	const char* kOutputWidthFftColor = bandColors[2];
+
+
 	Maj7WidthEditor(AudioEffect* audioEffect) : //
 		VstEditor(audioEffect, 950, 900), // Increase height to accommodate frequency graph
 		mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
@@ -233,29 +242,33 @@ struct Maj7WidthEditor : public VstEditor
 			ImGui::Separator();
 			ImGui::Text("Freq overlays:");
 			// Input Mid (dB)
-			ToggleButton(&mShowInputMid, "In M");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input mid / center channel");
-			ImGui::EndTooltip(); }
+			ToggleButton(&mShowInputMid, "In M", {}, ButtonColorSpec{kInputMidFftColor});
+			if (ImGui::IsItemHovered()) {
+				ImGui::BeginTooltip(); ImGui::Text("Input mid / center channel");
+				ImGui::EndTooltip();
+			}
 			ImGui::SameLine();
 			// Input Side (dB)
-			ToggleButton(&mShowInputSide, "In S");
+			ToggleButton(&mShowInputSide, "In S", {}, ButtonColorSpec{ kInputSideFftColor });
 			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Side"); ImGui::EndTooltip(); }
 			ImGui::SameLine();
 			// Input Width (linear width)
-			ToggleButton(&mShowInputWidth, "In W");
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Width (normalized side)");
-			ImGui::EndTooltip(); }
+			ToggleButton(&mShowInputWidth, "In W", {}, ButtonColorSpec{ kInputWidthFftColor });
+			if (ImGui::IsItemHovered()) {
+				ImGui::BeginTooltip(); ImGui::Text("Input Width (normalized side)");
+				ImGui::EndTooltip();
+			}
 			ImGui::SameLine(0, 20);
 			// Output Mid (dB)
-			ToggleButton(&mShowOutputMid, "Out M");
+			ToggleButton(&mShowOutputMid, "Out M", {}, ButtonColorSpec{ kOutputMidFftColor });
 			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Mid/center"); ImGui::EndTooltip(); }
 			ImGui::SameLine();
 			// Output Side (dB)
-			ToggleButton(&mShowOutputSide, "Out S");
+			ToggleButton(&mShowOutputSide, "Out S", {}, ButtonColorSpec{ kOutputSideFftColor });
 			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Side"); ImGui::EndTooltip(); }
 			ImGui::SameLine();
 			// Output Width (linear width)
-			ToggleButton(&mShowOutputWidth, "Out W");
+			ToggleButton(&mShowOutputWidth, "Out W", {}, ButtonColorSpec{ kOutputWidthFftColor });
 			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Width (normalized side)"); ImGui::EndTooltip(); }
 		}
 
@@ -342,10 +355,18 @@ private:
 		cfg.fftOverlays.clear();
 
 		// Mid/Side in dB domain
-		if (mShowInputMid && analyzerIn->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetMidAnalyzer(), ColorFromHTML("8888FF", 0.9f), ColorFromHTML("444488", 0.25f), true, "Input Mid", nullptr });
-		if (mShowInputSide && analyzerIn->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerIn->GetSideAnalyzer(), ColorFromHTML("FF8888", 0.9f), ColorFromHTML("884444", 0.25f), true, "Input Side", nullptr });
-		if (mShowOutputMid && analyzerOut->GetMidAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetMidAnalyzer(), ColorFromHTML("6666CC", 0.9f), ColorFromHTML("333366", 0.25f), true, "Output Mid", nullptr });
-		if (mShowOutputSide && analyzerOut->GetSideAnalyzer()) cfg.fftOverlays.push_back({ analyzerOut->GetSideAnalyzer(), ColorFromHTML("CC6666", 0.9f), ColorFromHTML("663333", 0.25f), true, "Output Side", nullptr });
+		if (mShowInputMid && analyzerIn->GetMidAnalyzer()) {
+			cfg.fftOverlays.push_back({ analyzerIn->GetMidAnalyzer(), ColorFromHTML(kInputMidFftColor, 0.9f), ColorFromHTML(kInputMidFftColor, 0.25f), true, "Input Mid", nullptr });
+		}
+		if (mShowInputSide && analyzerIn->GetSideAnalyzer()) {
+			cfg.fftOverlays.push_back({ analyzerIn->GetSideAnalyzer(), ColorFromHTML(kInputSideFftColor, 0.9f), ColorFromHTML(kInputSideFftColor, 0.25f), true, "Input Side", nullptr });
+		}
+		if (mShowOutputMid && analyzerOut->GetMidAnalyzer()) {
+			cfg.fftOverlays.push_back({ analyzerOut->GetMidAnalyzer(), ColorFromHTML(kOutputMidFftColor, 0.9f), ColorFromHTML(kOutputMidFftColor, 0.25f), true, "Output Mid", nullptr });
+		}
+		if (mShowOutputSide && analyzerOut->GetSideAnalyzer()) {
+			cfg.fftOverlays.push_back({ analyzerOut->GetSideAnalyzer(), ColorFromHTML(kOutputSideFftColor, 0.9f), ColorFromHTML(kOutputSideFftColor, 0.25f), true, "Output Side", nullptr });
+		}
 
 		// Width overlays: choose transform based on chosen scale
 		//auto widthLog = [](float w)->float { const float a = 1.8f; return std::log1p(a * std::max(0.0f, w)) / std::log1p(a * 3.0f); };
@@ -356,12 +377,12 @@ private:
 			const float a = 1.8f;
 			float t01 = std::log1p(a * std::max(0.0f, v)) / std::log1p(a * 3.0f); // 0..1
 			return M7::math::lerp(scaleMinDb, 0.0f, t01); // map to [-60..0]
-		};
+			};
 
 		//if (anyWidth) {
-			std::function<float(float)> widthTransform = std::function<float(float)>(widthAsDbScale);
-			if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML("88FF44", 0.9f), ColorFromHTML("448822", 0.25f), true, "Input Width", widthTransform });
-			if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML("66CC33", 0.9f), ColorFromHTML("335511", 0.25f), true, "Output Width", widthTransform });
+		std::function<float(float)> widthTransform = std::function<float(float)>(widthAsDbScale);
+		if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML(kInputWidthFftColor, 0.9f), ColorFromHTML(kInputWidthFftColor, 0.25f), true, "Input Width", widthTransform });
+		if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML(kOutputWidthFftColor, 0.9f), ColorFromHTML(kOutputWidthFftColor, 0.25f), true, "Output Width", widthTransform });
 		//}
 
 		mWidthGraph.OnRender(cfg);
