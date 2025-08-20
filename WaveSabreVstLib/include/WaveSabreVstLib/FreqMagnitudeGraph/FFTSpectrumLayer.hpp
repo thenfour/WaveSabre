@@ -149,6 +149,7 @@ public:
             };
             
             dl->AddConvexPolyFilled(quad, 4, overlay.fftFillColor);
+            //dl->AddConcavePolyFilled(quad, 4, overlay.fftFillColor);
           }
         }
         

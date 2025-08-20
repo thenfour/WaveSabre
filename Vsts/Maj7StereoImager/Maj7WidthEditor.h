@@ -170,8 +170,14 @@ private:
 		// double mMidLevel = 0.0;          // Mid channel level (RMS)
 		// double mSideLevel = 0.0;         // Side channel level (RMS)
 
-		RenderGeneralMeter(analysis.mStereoWidth, 0, 2, meterSize, "width");
-		RenderGeneralMeter(analysis.mStereoBalance, -1, 1, meterSize, "balance");
+		RenderGeneralMeter(analysis.mStereoWidth, 0, 2, meterSize, "width", 0, {"008800", 0.5, "ffff00"});
+		RenderGeneralMeter(analysis.mStereoBalance, -1, 1, meterSize, "balance", 0, {
+			"ff0000",
+			-0.5, "ffff00",
+			-0.2, "00ff00",
+			+0.2, "ffff00",
+			+0.5, "ff0000",
+			});
 		//RenderGeneralMeter(analysis.mMidLevel, 0, 1, meterSize, "mid level");
 		//RenderGeneralMeter(analysis.mSideLevel, 0, 1, meterSize, "side level");
 

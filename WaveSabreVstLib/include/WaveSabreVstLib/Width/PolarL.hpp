@@ -15,6 +15,12 @@ using namespace WaveSabreCore;
 #include <cmath>
 
 
+template<typename T, size_t N>
+inline std::vector<T> VectorFromArray(std::array<T, N> arr) {
+	return std::vector<T>(arr.begin(), arr.end());
+}
+
+
 // "Polar L" - effectively a goniometer which renders as a smoothed polygon to see the general shape of the stereo image.
 // phase correllation "X" is overlayed
 inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size) {
@@ -261,8 +267,9 @@ inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& anal
 			envelopeLineColor = GetCorrellationColor(correlation, 0.3f),
 			phaseLineColor = GetCorrellationColor(correlation, 0.7f);
 
-		// Draw filled envelope
-		dl->AddConvexPolyFilled(envelopePoints.data(), static_cast<int>(envelopePoints.size()), envelopeFillColor);
+		std::vector<ImVec2> reversedEnvelopePoints = envelopePoints;
+		std::reverse(reversedEnvelopePoints.begin(), reversedEnvelopePoints.end());
+		dl->AddConcavePolyFilled(reversedEnvelopePoints.data(), static_cast<int>(reversedEnvelopePoints.size()), envelopeFillColor);
 
 		// Draw smooth envelope outline
 		for (size_t i = 0; i < envelopePoints.size(); i++) {
