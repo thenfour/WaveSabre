@@ -47,4 +47,5 @@ target_compile_features(WaveSabreVstLib PUBLIC cxx_std_17)
 
 if(MSVC)
 	target_compile_options(WaveSabreVstLib PUBLIC /EHsc)
+	target_link_libraries(WaveSabreVstLib PUBLIC d3d9)
 endif()
