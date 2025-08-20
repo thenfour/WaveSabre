@@ -17,7 +17,7 @@
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 
-#include "./FrequencyResponseRenderer.hpp"
+#include "./FreqMagnitudeGraph/FrequencyResponseRenderer.hpp"
 
 // Include the split header files
 #include "CompressorTransferCurve.hpp"

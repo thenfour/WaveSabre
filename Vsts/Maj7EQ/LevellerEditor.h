@@ -7,7 +7,7 @@ using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
 
 #include "LevellerVst.h"
-#include <WaveSabreVstLib/FrequencyResponseRendererLayered.hpp>
+#include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
 
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

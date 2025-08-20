@@ -1,8 +1,8 @@
-file(GLOB WAVE_SABRE_VSTLIB_HEADERS
+file(GLOB_RECURSE WAVE_SABRE_VSTLIB_HEADERS
     "include/WaveSabreVstLib/*.h"
     "include/WaveSabreVstLib/*.hpp"
 )
-file(GLOB WAVE_SABRE_VSTLIB_SOURCES
+file(GLOB_RECURSE WAVE_SABRE_VSTLIB_SOURCES
     "src/*.cpp"
     "src/*.c"
 )

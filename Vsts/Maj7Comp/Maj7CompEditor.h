@@ -7,7 +7,7 @@ using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
 
 #include "Maj7CompVst.h"
-#include <WaveSabreVstLib/FrequencyResponseRendererLayered.hpp>
+#include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
 
 
 struct Maj7CompEditor : public VstEditor

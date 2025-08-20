@@ -5,7 +5,7 @@
 #include "Filters/FilterOnePole.hpp"
 #include "RMS.hpp"
 
-//#define MAJ7WIDTH_FULL_FEATURE
+#define MAJ7WIDTH_FULL_FEATURE
 
 namespace WaveSabreCore
 {

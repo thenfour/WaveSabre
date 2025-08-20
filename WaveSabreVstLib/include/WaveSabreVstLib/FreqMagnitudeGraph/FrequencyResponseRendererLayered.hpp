@@ -4,7 +4,7 @@
 #include "FrequencyMagnitudeGraph.hpp"
 #include "ThumbInteractionLayer.hpp"
 #include "TooltipLayer.hpp"
-#include "Maj7VstUtils.hpp"
+#include "../Maj7VstUtils.hpp"
 #include "CrossoverResponseRenderer.hpp"
 
 

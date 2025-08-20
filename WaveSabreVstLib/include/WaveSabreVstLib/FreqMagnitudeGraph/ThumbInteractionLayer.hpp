@@ -1,8 +1,8 @@
 #pragma once
 
 #include "FrequencyMagnitudeGraph.hpp"
-#include "Maj7VstUtils.hpp"
-#include "FrequencyDomainMath.hpp"
+#include "../Maj7VstUtils.hpp"
+#include "../FrequencyDomainMath.hpp"
 
 namespace WaveSabreVstLib {
 
