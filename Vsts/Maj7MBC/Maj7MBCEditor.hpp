@@ -576,10 +576,11 @@ public:
 			ToggleButton(&mShowOutputFft, "Output FFT");
 			ImGui::SameLine();
 			ToggleButton(&mShowFftDiff, "FFT Diff");
-			ImGui::SameLine();
 			if (mbEnabled) {
+				ImGui::SameLine();
 				ToggleButton(&mShowCrossoverResponse, "Crossover response");
 			}
+
 			ImGui::Spacing();
 
 			FrequencyResponseRendererConfig<0, (size_t)Maj7MBC::ParamIndices::NumParams> crossoverCfg{
