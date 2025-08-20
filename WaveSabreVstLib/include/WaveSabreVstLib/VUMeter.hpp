@@ -41,9 +41,9 @@ enum VUMeterUnits {
   Linear,
 };
 
-inline const VUMeterColors* GetVUMeterColorsForMidSideLevel() {
+inline VUMeterColors GetVUMeterColorsForMidSideLevel() {
 	// Mid-side level visualization using a blue-based color scheme (distinct from audio's green scheme)
-    static VUMeterColors colors;
+    VUMeterColors colors;
     colors.background = ColorFromHTML("1c2b32");        // Dark bluish background (inverted from audio's 2b321c)
     colors.foregroundRMS = ColorFromHTML("0a6c9b");     // Bright blue RMS (inverted from audio's 6c9b0a)
     colors.foregroundPeak = ColorFromHTML("324a63");    // Darker blue peak (inverted from audio's 4a6332)
@@ -55,10 +55,7 @@ inline const VUMeterColors* GetVUMeterColorsForMidSideLevel() {
     colors.tick = ColorFromHTML("00ffff");                // Keep same cyan ticks  
     colors.clipTick = ColorFromHTML("ff0000");            // Keep same red clip indicator
     colors.peak = ColorFromHTML("0a6c9b", 0.8f);         // Blue peak marker (matching RMS blue)
-    colors.text.Value.w = 0.33f;
-    colors.tick.Value.w = 0.33f;
-
-	return &colors;
+	return colors;
 }
 
 struct VUMeterConfig {
@@ -314,23 +311,26 @@ inline void VUMeter(const char *id, IAnalysisStream &a0, IAnalysisStream &a1,
   ImGui::PopStyleVar();
 }
 
-inline void VUMeterMS(const char* id, IAnalysisStream& a0, IAnalysisStream& a1,
-    const VUMeterConfig& cfg) {
-    ImGui::PushID(id);
-    if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak,
-        &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg, GetVUMeterColorsForMidSideLevel())) {
-        a0.Reset();
-        a1.Reset();
-    }
-    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 1, 0 });
-    ImGui::SameLine();
-    if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak,
-        &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg, GetVUMeterColorsForMidSideLevel())) {
-        a0.Reset();
-        a1.Reset();
-    }
-    ImGui::PopID();
-    ImGui::PopStyleVar();
+// Mid-Side VU Meter with blue color scheme
+inline void VUMeterMS(const char *id, IAnalysisStream &mid, IAnalysisStream &side,
+                      const VUMeterConfig &cfg) {
+  VUMeterColors msColors = GetVUMeterColorsForMidSideLevel();
+  
+  ImGui::PushID(id);
+  if (VUMeter("VU M", &mid.mCurrentRMSValue, &mid.mCurrentPeak,
+              &mid.mCurrentHeldPeak, &mid.mClipIndicator, true, cfg, &msColors)) {
+    mid.Reset();
+    side.Reset();
+  }
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
+  ImGui::SameLine();
+  if (VUMeter("VU S", &side.mCurrentRMSValue, &side.mCurrentPeak,
+              &side.mCurrentHeldPeak, &side.mClipIndicator, false, cfg, &msColors)) {
+    mid.Reset();
+    side.Reset();
+  }
+  ImGui::PopID();
+  ImGui::PopStyleVar();
 }
 
 inline void VUMeterAtten(const char *id, IAnalysisStream &a0,

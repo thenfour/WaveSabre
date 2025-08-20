@@ -18,6 +18,7 @@ using namespace WaveSabreCore;
 #include <WaveSabreVstLib/Width/StereoBalance.hpp>
 #include <WaveSabreVstLib/Width/Goniometer.hpp>
 #include <WaveSabreVstLib/Width/PolarL.hpp>
+#include <WaveSabreVstLib/HistoryVisualization.hpp>
 
 struct Maj7WidthEditor : public VstEditor
 {
@@ -184,14 +185,200 @@ struct Maj7WidthEditor : public VstEditor
 				ImGui::SameLine(); ToggleButton(&mShowPolarL, "Poly");
 				ImGui::SameLine(); ToggleButton(&mShowPhaseX, "Scissor");
 			}
+			{
+				mStereoHistory.Render(true, mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
+			}
 		}
+
 	}
+
+	virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() override
+	{
+		return {
+			&mShowGoniometerParam,
+			& mShowPolarLParam,
+			& mShowPhaseXParam,
+			& mShowPhaseCorrelationParam,
+			& mShowStereoWidthParam,
+			& mShowStereoBalanceParam,
+			& mShowMidLevelParam,
+			& mShowSideLevelParam,
+			& mShowInputParam,
+			& mShowOutputParam,
+		};
+	}
+
 
 private:
 	bool mShowGoniometer = false;
 	bool mShowPolarL = true;
 	bool mShowPhaseX = true;
 
+	VstSerializableBoolParamRef mShowGoniometerParam{ "ShowGoniometer", mShowGoniometer };
+	VstSerializableBoolParamRef mShowPolarLParam{ "ShowPolarL", mShowPolarL };
+	VstSerializableBoolParamRef mShowPhaseXParam{ "ShowPhaseX", mShowPhaseX };
+	VstSerializableBoolParamRef mShowPhaseCorrelationParam{ "ShowPhaseCorrelation", mStereoHistory.mShowPhaseCorrelation };
+	VstSerializableBoolParamRef mShowStereoWidthParam{ "ShowStereoWidth", mStereoHistory.mShowStereoWidth };
+	VstSerializableBoolParamRef mShowStereoBalanceParam{ "ShowStereoBalance", mStereoHistory.mShowStereoBalance };
+	VstSerializableBoolParamRef mShowMidLevelParam{ "ShowMidLevel", mStereoHistory.mShowMidLevel };
+	VstSerializableBoolParamRef mShowSideLevelParam{ "ShowSideLevel", mStereoHistory.mShowSideLevel };
+	VstSerializableBoolParamRef mShowInputParam{ "ShowInput", mStereoHistory.mShowInput };
+	VstSerializableBoolParamRef mShowOutputParam{ "ShowOutput", mStereoHistory.mShowOutput };
+
+	// Stereo history visualization system
+	template<int historyViewWidth, int historyViewHeight>
+	struct StereoHistoryVis
+	{
+		// Parameter visibility toggles
+		bool mShowPhaseCorrelation = true;
+		bool mShowStereoWidth = true;
+		bool mShowStereoBalance = true;
+		bool mShowMidLevel = false;
+		bool mShowSideLevel = false;
+		bool mShowInput = true;
+		bool mShowOutput = true;
+
+		static constexpr float historyViewMinValue = -1.0f;  // For correlation (-1 to +1)
+		static constexpr float historyViewMaxValue = +2.0f;  // For width (0 to 2+)
+		
+		// Expanded to 10 series: 5 parameters × 2 signals (input + output)
+		HistoryView<13, historyViewWidth, historyViewHeight> mHistoryView;
+
+		void Render(bool showToggles, const StereoImagingAnalysisStream& inputAnalysis, const StereoImagingAnalysisStream& outputAnalysis) 
+		{
+			ImGui::BeginGroup();
+			static constexpr float lineWidth = 2.0f;
+
+			mHistoryView.RenderCustom({
+				// a unity line
+				HistoryViewSeriesConfig{
+					ColorFromHTML("ffffff", 0.2f),
+					1, // line width
+					-1.0f, +1.0f, true
+				},
+				HistoryViewSeriesConfig{
+					ColorFromHTML("ffffff", 0.1f),
+					1, // line width
+					-1.0f, +1.0f, true
+				},
+				HistoryViewSeriesConfig{
+					ColorFromHTML("ffffff", 0.1f),
+					1, // line width
+					-1.0f, +1.0f, true
+				},
+				// INPUT SIGNALS (brighter colors) with per-series scaling
+				// Phase correlation: -1 to +1, bright cyan/blue  
+				HistoryViewSeriesConfig{
+					ColorFromHTML("00ccff", (mShowInput && mShowPhaseCorrelation) ? 0.9f : 0), 
+					lineWidth, 
+					-1.0f, +1.0f, true  // Custom scale for correlation
+				},
+				
+				// Stereo width: 0 to 3, bright green/yellow
+				HistoryViewSeriesConfig{
+					ColorFromHTML("88ff44", (mShowInput && mShowStereoWidth) ? 0.8f : 0), 
+					lineWidth,
+					0.0f, 3.0f, true  // Custom scale for width (0 to 3 for better visibility)
+				},
+				
+				// Stereo balance: -1 to +1, bright red/orange
+				HistoryViewSeriesConfig{
+					ColorFromHTML("ff8844", (mShowInput && mShowStereoBalance) ? 0.7f : 0), 
+					lineWidth,
+					-1.0f, +1.0f, true  // Custom scale for balance
+				},
+				
+				// Mid level: 0 to 1, bright purple
+				HistoryViewSeriesConfig{
+					ColorFromHTML("bb88ff", (mShowInput && mShowMidLevel) ? 0.6f : 0), 
+					lineWidth,
+					0.0f, 1.0f, true  // Custom scale for RMS levels
+				},
+				
+				// Side level: 0 to 1, bright orange
+				HistoryViewSeriesConfig{
+					ColorFromHTML("ffbb88", (mShowInput && mShowSideLevel) ? 0.6f : 0), 
+					lineWidth,
+					0.0f, 1.0f, true  // Custom scale for RMS levels
+				},
+
+				// OUTPUT SIGNALS (darker variants) with per-series scaling
+				// Phase correlation: -1 to +1, darker cyan/blue
+				HistoryViewSeriesConfig{
+					ColorFromHTML("0099cc", (mShowOutput && mShowPhaseCorrelation) ? 0.8f : 0), 
+					lineWidth,
+					-1.0f, +1.0f, true  // Custom scale for correlation
+				},
+				
+				// Stereo width: 0 to 3, darker green
+				HistoryViewSeriesConfig{
+					ColorFromHTML("66cc33", (mShowOutput && mShowStereoWidth) ? 0.7f : 0), 
+					lineWidth,
+					0.0f, 3.0f, true  // Custom scale for width
+				},
+				
+				// Stereo balance: -1 to +1, darker red/orange
+				HistoryViewSeriesConfig{
+					ColorFromHTML("cc6633", (mShowOutput && mShowStereoBalance) ? 0.6f : 0), 
+					lineWidth,
+					-1.0f, +1.0f, true  // Custom scale for balance
+				},
+				
+				// Mid level: 0 to 1, darker purple
+				HistoryViewSeriesConfig{
+					ColorFromHTML("9966cc", (mShowOutput && mShowMidLevel) ? 0.5f : 0), 
+					lineWidth,
+					0.0f, 1.0f, true  // Custom scale for RMS levels
+				},
+				
+				// Side level: 0 to 1, darker orange
+				HistoryViewSeriesConfig{
+					ColorFromHTML("cc9966", (mShowOutput && mShowSideLevel) ? 0.5f : 0), 
+					lineWidth,
+					0.0f, 1.0f, true  // Custom scale for RMS levels
+				},
+			}, {
+				0,
+				-0.5f,
+				+0.5f,
+				// INPUT VALUES (first 5 series) - raw values, no normalization needed
+				static_cast<float>(inputAnalysis.mPhaseCorrelation),                    // -1 to +1
+				static_cast<float>(inputAnalysis.mStereoWidth),                         // 0 to 3+
+				static_cast<float>(inputAnalysis.mStereoBalance),                       // -1 to +1  
+				static_cast<float>(inputAnalysis.mMidLevelDetector.mCurrentRMSValue),   // 0 to 1
+				static_cast<float>(inputAnalysis.mSideLevelDetector.mCurrentRMSValue),  // 0 to 1
+
+				// OUTPUT VALUES (last 5 series) - raw values, no normalization needed
+				static_cast<float>(outputAnalysis.mPhaseCorrelation),                   // -1 to +1
+				static_cast<float>(outputAnalysis.mStereoWidth),                        // 0 to 3+
+				static_cast<float>(outputAnalysis.mStereoBalance),                      // -1 to +1  
+				static_cast<float>(outputAnalysis.mMidLevelDetector.mCurrentRMSValue),  // 0 to 1
+				static_cast<float>(outputAnalysis.mSideLevelDetector.mCurrentRMSValue), // 0 to 1
+			}, historyViewMinValue, historyViewMaxValue);
+
+			if (showToggles) {
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
+				ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+				// Parameter toggles
+				ToggleButton(&mShowPhaseCorrelation, "Phase");
+				ImGui::SameLine(); ToggleButton(&mShowStereoWidth, "Width");
+				ImGui::SameLine(); ToggleButton(&mShowStereoBalance, "Balance");
+				
+				ImGui::SameLine(0, 20); ToggleButton(&mShowMidLevel, "Mid");
+				ImGui::SameLine(); ToggleButton(&mShowSideLevel, "Side");
+
+				// Input/Output toggles (separate line, similar to CompressorVis L/R pattern)
+				ImGui::SameLine(0, 40); ToggleButton(&mShowInput, "Input");
+				ImGui::SameLine(); ToggleButton(&mShowOutput, "Output");
+
+				ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+			}
+			ImGui::EndGroup();
+		}
+	};
+
+	StereoHistoryVis<508, 120> mStereoHistory;
 
 	void RenderStereoImagingDisplay(const char* id, const StereoImagingAnalysisStream& analysis) {
 		ImGuiGroupScope _scope(id);
