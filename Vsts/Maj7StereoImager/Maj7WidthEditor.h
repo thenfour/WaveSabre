@@ -27,7 +27,7 @@ struct Maj7WidthEditor : public VstEditor
 	Maj7WidthVst* mpMaj7WidthVst;
 
 	// Frequency analysis visualization (width by frequency)
-	FrequencyResponseRendererLayered<800, 200, 0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams, true> mWidthGraph;
+	FrequencyResponseRendererLayered<800, 200, 0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams, false> mWidthGraph;
 
 	// FFT overlay toggles
 	bool mShowInputMid = false;
@@ -173,32 +173,10 @@ struct Maj7WidthEditor : public VstEditor
 		VUMeterConfig attenCfg = mainCfg;
 		attenCfg.levelMode = VUMeterLevelMode::Attenuation;
 
-		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg);
-		if (ImGui::IsItemHovered()) {
-			ImGui::BeginTooltip();
-			ImGui::Text("Input stereo L R");
-			ImGui::EndTooltip();
-		}
-		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg);
-		if (ImGui::IsItemHovered()) {
-			ImGui::BeginTooltip();
-			ImGui::Text("Output stereo L R");
-			ImGui::EndTooltip();
-		}
-
-		ImGui::SameLine(); VUMeterMS("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg);
-		if (ImGui::IsItemHovered()) {
-			ImGui::BeginTooltip();
-			ImGui::Text("Input mid side");
-			ImGui::EndTooltip();
-		}
-
-		ImGui::SameLine(); VUMeterMS("ms_outp", mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector, mainCfg);
-		if (ImGui::IsItemHovered()) {
-			ImGui::BeginTooltip();
-			ImGui::Text("Output mid side");
-			ImGui::EndTooltip();
-		}
+		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg, "Input left channel", "Input right channel");
+		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg, "Output left channel", "Output right channel");
+		ImGui::SameLine(); VUMeterMS("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg, "Input mid channel", "Input side channel");
+		ImGui::SameLine(); VUMeterMS("ms_outp", mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector, mainCfg, "Output mid channel", "Output side channel");
 
 		ImGui::SameLine();
 		// Stereo imaging visualization
@@ -227,14 +205,6 @@ struct Maj7WidthEditor : public VstEditor
 		if (!frequencyAnalysisEnabled) {
 			mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
 			mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
-		}
-		if (ImGui::IsItemHovered()) {
-			ImGui::BeginTooltip();
-			ImGui::Text("Enable frequency-domain stereo analysis");
-			ImGui::Separator();
-			ImGui::TextWrapped("Shows stereo width, mid/side levels by frequency.");
-			ImGui::TextWrapped("Note: Uses additional CPU resources.");
-			ImGui::EndTooltip();
 		}
 
 		// FFT overlay toggles and scale selection

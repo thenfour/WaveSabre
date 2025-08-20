@@ -293,12 +293,17 @@ inline void VUMeter(const char *id, AnalysisStream &a0, AnalysisStream &a1,
 }
 
 inline void VUMeter(const char *id, IAnalysisStream &a0, IAnalysisStream &a1,
-                    const VUMeterConfig &cfg) {
+                    const VUMeterConfig &cfg, const std::string& tooltipLeft = "", const std::string& tooltipRight = "") {
   ImGui::PushID(id);
   if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak,
               &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg)) {
     a0.Reset();
     a1.Reset();
+  }
+  if (!tooltipLeft.empty() && ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::Text(tooltipLeft.c_str());
+      ImGui::EndTooltip();
   }
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
   ImGui::SameLine();
@@ -307,13 +312,18 @@ inline void VUMeter(const char *id, IAnalysisStream &a0, IAnalysisStream &a1,
     a0.Reset();
     a1.Reset();
   }
+  if (!tooltipRight.empty() && ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::Text(tooltipRight.c_str());
+      ImGui::EndTooltip();
+  }
   ImGui::PopID();
   ImGui::PopStyleVar();
 }
 
 // Mid-Side VU Meter with blue color scheme
 inline void VUMeterMS(const char *id, IAnalysisStream &mid, IAnalysisStream &side,
-                      const VUMeterConfig &cfg) {
+                      const VUMeterConfig &cfg, const std::string& tooltipMid, const std::string& tooltipSide) {
   VUMeterColors msColors = GetVUMeterColorsForMidSideLevel();
   
   ImGui::PushID(id);
@@ -322,12 +332,23 @@ inline void VUMeterMS(const char *id, IAnalysisStream &mid, IAnalysisStream &sid
     mid.Reset();
     side.Reset();
   }
+  if (!tooltipMid.empty() && ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::Text(tooltipMid.c_str());
+      ImGui::EndTooltip();
+  }
+
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
   ImGui::SameLine();
   if (VUMeter("VU S", &side.mCurrentRMSValue, &side.mCurrentPeak,
               &side.mCurrentHeldPeak, &side.mClipIndicator, false, cfg, &msColors)) {
     mid.Reset();
     side.Reset();
+  }
+  if (!tooltipSide.empty() && ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::Text(tooltipSide.c_str());
+      ImGui::EndTooltip();
   }
   ImGui::PopID();
   ImGui::PopStyleVar();
