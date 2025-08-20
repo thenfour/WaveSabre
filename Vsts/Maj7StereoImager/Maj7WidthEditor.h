@@ -100,39 +100,33 @@ struct Maj7WidthEditor : public VstEditor
 
 		// Stereo imaging visualization
 		ImGui::SameLine(); 
-		RenderStereoImagingDisplay("stereo_imaging", mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
+		RenderStereoImagingDisplay("stereo_imaging_inp", mpMaj7Width->mInputImagingAnalysis);
+		ImGui::SameLine(); RenderStereoImagingDisplay("stereo_imaging_outp", mpMaj7Width->mOutputImagingAnalysis);
 
 	}
 
 private:
-	static void RenderStereoImagingDisplay(const char* id, const StereoImagingAnalysisStream& inputAnalysis, const StereoImagingAnalysisStream& outputAnalysis) {
-		ImGui::BeginGroup();
+	static void RenderStereoImagingDisplay(const char* id, const StereoImagingAnalysisStream& analysis) {
+		ImGuiGroupScope _scope(id);
 
 		static constexpr int dim = 250;
 
-		// Phase correlation meter
-		RenderCorrelationMeter("correlation_in", inputAnalysis.mPhaseCorrelation, { dim, 30 });
-		RenderCorrelationMeter("correlation_out", outputAnalysis.mPhaseCorrelation, { dim, 30 });
+		RenderCorrelationMeter("correlation_in", analysis.mPhaseCorrelation, { dim, 30 });
 
-		RenderStereoBalance("stereo_balance_in", inputAnalysis, { dim, 30 });
-		RenderStereoBalance("stereo_balance_out", outputAnalysis, { dim, 30 });
+		RenderStereoBalance("stereo_balance_in", analysis, { dim, 30 });
 
 		// Add tabs to switch between different visualization modes
 		if (ImGui::BeginTabBar("StereoVizTabs", ImGuiTabBarFlags_None)) {
 			if (ImGui::BeginTabItem("Goniometer")) {
-				RenderGoniometer("inp_gonio", inputAnalysis, { dim, dim });
-				RenderGoniometer("outp_gonio", outputAnalysis, { dim, dim });
+				RenderGoniometer("inp_gonio", analysis, { dim, dim });
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Polar L")) {
-				RenderPolarL("inp_polar_l", inputAnalysis, { dim, dim });
-				RenderPolarL("outp_polar_l", outputAnalysis, { dim, dim });
+				RenderPolarL("inp_polar_l", analysis, { dim, dim });
 				ImGui::EndTabItem();
 			}
 			ImGui::EndTabBar();
 		}
-
-		ImGui::EndGroup();
 	}
 	
 };

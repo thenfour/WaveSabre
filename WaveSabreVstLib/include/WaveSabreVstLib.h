@@ -20,6 +20,10 @@ namespace WaveSabreVstLib
 			ImGui::BeginGroup();
 			ImGui::PushID(pushId);
 		}
+		explicit ImGuiGroupScope(const char *pushId) : mIdSet(true) {
+			ImGui::BeginGroup();
+			ImGui::PushID(pushId);
+		}
 		ImGuiGroupScope() {
 			ImGui::BeginGroup();
 		}

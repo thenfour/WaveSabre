@@ -16,7 +16,6 @@ using namespace WaveSabreCore;
 
 #include "WidthBase.hpp"
 
-// Polar/circular goniometer - better for spotting mono compatibility issues
 inline void RenderGoniometer(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size) {
 	auto* dl = ImGui::GetWindowDrawList();
 	ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -106,20 +105,6 @@ inline void RenderGoniometer(const char* id, const StereoImagingAnalysisStream& 
 			dl->AddLine(prevPos, currPos, color, 1.5f);
 		}
 	}
-
-	// Labels and problem indicators
-	//dl->AddText({ bb.Min.x + 2, bb.Min.y + 2 }, IM_COL32(255, 255, 255, 150), "Goniometer");
-
-	// Phase correlation warning
-	//if (analysis.mPhaseCorrelation < -0.3) {
-	//	dl->AddText({ bb.Min.x + 2, bb.Min.y + 18 }, IM_COL32(255, 100, 100, 200), "Decorrellation");
-	//}
-
-	// Analysis info
-	//char goniText[128];
-	//sprintf_s(goniText, "Corr: %.2f", static_cast<float>(analysis.mPhaseCorrelation));
-	//ImVec2 textSize = ImGui::CalcTextSize(goniText);
-	//dl->AddText({ bb.Max.x - textSize.x - 2, bb.Max.y - 14 }, IM_COL32(255, 255, 255, 150), goniText);
 
 	ImGui::Dummy(size);
 }

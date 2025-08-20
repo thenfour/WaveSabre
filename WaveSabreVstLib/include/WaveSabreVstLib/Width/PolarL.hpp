@@ -286,26 +286,7 @@ inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& anal
 		// Draw both lines to form complete X/cross
 		dl->AddLine(lineStart, lineEnd, phaseLineColor, 3.0f);                    // Original line "/"
 		dl->AddLine(reflectedLineStart, reflectedLineEnd, phaseLineColor, 3.0f);  // Reflected line "\"
-
-		// Add center dot to show the correlation X origin
-		//dl->AddCircleFilled(center, 3.0f, envelopeLineColor, 8);
 	}
-
-
-	// Labels and info
-	//dl->AddText({ bb.Min.x + 2, bb.Min.y + 2 }, IM_COL32(255, 255, 255, 150), "Polar L");
-	//dl->AddText({ bb.Min.x + 2, bb.Min.y + 18 }, IM_COL32(200, 200, 200, 120), "Enhanced");
-
-	// Phase correlation warning
-	//if (analysis.mPhaseCorrelation < -0.3) {
-	//	dl->AddText({ bb.Min.x + 2, bb.Min.y + 34 }, IM_COL32(255, 100, 100, 200), "PHASE ISSUE!");
-	//}
-
-	//// Analysis info
-	//char polarText[128];
-	//sprintf_s(polarText, "Corr: %.2f Boost: %.1fx", static_cast<float>(analysis.mPhaseCorrelation), kVisualBoost);
-	//ImVec2 textSize = ImGui::CalcTextSize(polarText);
-	//dl->AddText({ bb.Max.x - textSize.x - 2, bb.Max.y - 14 }, IM_COL32(255, 255, 255, 150), polarText);
 
 	ImGui::Dummy(size);
 }
