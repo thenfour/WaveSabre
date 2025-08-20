@@ -15,7 +15,8 @@ using namespace WaveSabreCore;
 #include <cmath>
 
 
-// "Polar L" - Ozone-style envelope goniometer with sector peak detection
+// "Polar L" - effectively a goniometer which renders as a smoothed polygon to see the general shape of the stereo image.
+// phase correllation "X" is overlayed
 inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size) {
 	constexpr size_t kMaxSectorCount = 128; // Power of 2 for better smoothing
 	static size_t kSectorCount = 96; // Power of 2 for better smoothing
@@ -69,6 +70,7 @@ inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& anal
 	static std::map<std::string, std::array<float, kMaxSectorCount>> sectorPeakRadiiMap;
 	static std::map<std::string, std::array<float, kMaxSectorCount>> sectorHoldTimersMap;
 	static std::map<std::string, double> lastUpdateTimeMap;
+	static std::map<std::string, bool> wasVisibleLastFrameMap;
 
 	std::string instanceId = std::string(id);
 	constexpr float kHoldTimeMs = 200.0f;
@@ -77,81 +79,88 @@ inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& anal
 	auto& sectorPeakRadii = sectorPeakRadiiMap[instanceId];
 	auto& sectorHoldTimers = sectorHoldTimersMap[instanceId];
 	auto& lastUpdateTime = lastUpdateTimeMap[instanceId];
+	auto& wasVisibleLastFrame = wasVisibleLastFrameMap[instanceId];
 
-	// Get current time and calculate delta
-	double currentTime = ImGui::GetTime();
-	float deltaTimeMs = static_cast<float>((currentTime - lastUpdateTime) * 1000.0);
-	lastUpdateTime = currentTime;
+	bool isCurrentlyVisible = ImGui::IsItemVisible();
+	
+	// Reset state when becoming visible after being hidden
+	if (isCurrentlyVisible && !wasVisibleLastFrame) {
+		// just became visible - reset peak detection to prevent stale data artifacts
+		std::fill(sectorPeakRadii.begin(), sectorPeakRadii.end(), 0.0f);
+		std::fill(sectorHoldTimers.begin(), sectorHoldTimers.end(), 0.0f);
+		lastUpdateTime = ImGui::GetTime();
+	}
+	wasVisibleLastFrame = isCurrentlyVisible;
 
-	// Clamp delta time to prevent huge jumps on first frame
-	deltaTimeMs = std::min(deltaTimeMs, 50.0f);
+	if (isCurrentlyVisible) {
+		// Get current time and calculate delta
+		double currentTime = ImGui::GetTime();
+		float deltaTimeMs = static_cast<float>((currentTime - lastUpdateTime) * 1000.0);
+		lastUpdateTime = currentTime;
 
-	// Update peak detection system with current audio data
-	const auto* history = analysis.GetHistoryBuffer();
-	size_t historySize = analysis.GetHistorySize();
+		deltaTimeMs = std::max(0.0f, std::min(deltaTimeMs, 50.0f)); // Max 33ms (30 FPS minimum)
 
-	if (historySize > 0) {
-		static constexpr float gMaxLevel = 1.0f;
+		// Update peak detection system with current audio data
+		const auto* history = analysis.GetHistoryBuffer();
+		size_t historySize = analysis.GetHistorySize();
 
-		// Process recent samples to update sector peaks
-		size_t samplesToProcess = std::min(historySize, static_cast<size_t>(16));
-		for (size_t i = historySize - samplesToProcess; i < historySize; ++i) {
-			const auto& sample = history[i];
+		if (historySize > 0) {
+			static constexpr float gMaxLevel = 1.0f;
 
-			float magnitude = std::sqrt(sample.left * sample.left + sample.right * sample.right);
-			if (magnitude < 0.01f) continue;
+			// Process recent samples to update sector peaks
+			size_t samplesToProcess = std::min(historySize, static_cast<size_t>(16));
+			for (size_t i = historySize - samplesToProcess; i < historySize; ++i) {
+				const auto& sample = history[i];
 
-			// Convert to mid-side for proper goniometer orientation
-			float mid = (sample.left + sample.right) * 0.5f;
-			float side = (sample.left - sample.right) * 0.5f;
+				float magnitude = std::sqrt(sample.left * sample.left + sample.right * sample.right);
+				if (magnitude < 0.01f) continue;
 
-			// Calculate angle and radius
-			float angle = atan2(side, mid) - 3.14159f * 0.5f; // Rotate -90° so mono appears at top
+				// Convert to mid-side for proper goniometer orientation
+				float mid = (sample.left + sample.right) * 0.5f;
+				float side = (sample.left - sample.right) * 0.5f;
 
-			// *** PERCEPTUAL COMPENSATION BOOST ***
-			// Apply scientifically-based scaling to compensate for processing losses:
-			// 1. Square root for perceptual scaling (Stevens' Power Law for loudness ≈ amplitude^0.6)
-			// 2. Additional boost for visual clarity 
-			// 3. Compensate for smoothing losses
-			float compensatedMagnitude = std::sqrt(magnitude) * kVisualBoost;  // sqrt ≈ power law + boost
-			float currentRadius = std::min(compensatedMagnitude / gMaxLevel, 1.0f) * radius;
+				// Calculate angle and radius
+				float angle = atan2(side, mid) - 3.14159f * 0.5f; // Rotate -90° so mono appears at top
 
-			// Normalize angle to 0-2π range
-			while (angle < 0) angle += 2 * 3.14159f;
-			while (angle >= 2 * 3.14159f) angle -= 2 * 3.14159f;
+				// *** PERCEPTUAL COMPENSATION BOOST ***
+				float compensatedMagnitude = std::sqrt(magnitude) * kVisualBoost;
+				float currentRadius = std::min(compensatedMagnitude / gMaxLevel, 1.0f) * radius;
 
-			// Determine which sector this sample belongs to
-			size_t sectorIndex = static_cast<size_t>((angle / (2 * 3.14159f)) * kSectorCount) % kSectorCount;
+				// Normalize angle to 0-2π range
+				while (angle < 0) angle += 2 * 3.14159f;
+				while (angle >= 2 * 3.14159f) angle -= 2 * 3.14159f;
 
-			// Update peak for this sector with slight smoothing
-			if (currentRadius > sectorPeakRadii[sectorIndex]) {
-				sectorPeakRadii[sectorIndex] = currentRadius;
-				sectorHoldTimers[sectorIndex] = kHoldTimeMs;
+				// Determine which sector this sample belongs to
+				size_t sectorIndex = static_cast<size_t>((angle / (2 * 3.14159f)) * kSectorCount) % kSectorCount;
+
+				// Update peak for this sector with slight smoothing
+				if (currentRadius > sectorPeakRadii[sectorIndex]) {
+					sectorPeakRadii[sectorIndex] = currentRadius;
+					sectorHoldTimers[sectorIndex] = kHoldTimeMs;
+				}
 			}
 		}
-	}
 
-	// Update peak hold and falloff for all sectors
-	for (size_t i = 0; i < kSectorCount; ++i) {
-		if (sectorHoldTimers[i] > 0.0f) {
-			// In hold phase
-			sectorHoldTimers[i] = std::max(0.0f, sectorHoldTimers[i] - deltaTimeMs);
-		}
-		else {
-			// In falloff phase - exponential decay
-			float falloffRate = 2.0f / kFalloffTimeMs; // Decay factor per ms
-			sectorPeakRadii[i] *= std::exp(-falloffRate * deltaTimeMs);
+		// Update peak hold and falloff for all sectors
+		for (size_t i = 0; i < kSectorCount; ++i) {
+			if (sectorHoldTimers[i] > 0.0f) {
+				// In hold phase
+				sectorHoldTimers[i] = std::max(0.0f, sectorHoldTimers[i] - deltaTimeMs);
+			}
+			else {
+				// In falloff phase - exponential decay
+				float falloffRate = 2.0f / kFalloffTimeMs; // Decay factor per ms
+				sectorPeakRadii[i] *= std::exp(-falloffRate * deltaTimeMs);
 
-			// Prevent underflow
-			if (sectorPeakRadii[i] < 0.01f) {
-				sectorPeakRadii[i] = 0.0f;
+				// Prevent underflow
+				if (sectorPeakRadii[i] < 0.01f) {
+					sectorPeakRadii[i] = 0.0f;
+				}
 			}
 		}
-	}
+	} // isCurrentlyVisible
 
-	// === SMOOTHING ALGORITHM ===
-	// Apply circular convolution smoothing to eliminate sharp polygon artifacts
-
+	// === SMOOTHING ALGORITHM (Always run for display) ===
 	// Calculate average radius for circle fallback and mono signal detection
 	float averageRadius = 0.0f;
 	float maxRadius = 0.0f;
@@ -193,32 +202,37 @@ inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& anal
 		smoothedRadii[i] = std::max(smoothedRadii[i], enhancedMinimumRadius);
 	}
 
-	// Draw faint current trace for reference  
-	if (historySize > 1) {
-		for (size_t i = std::max(1ULL, historySize - 8); i < historySize; ++i) {
-			const auto& prev = history[(i - 1) % historySize];
-			const auto& curr = history[i % historySize];
+	// Draw faint current trace for reference (only when visible)
+	if (isCurrentlyVisible) {
+		const auto* history = analysis.GetHistoryBuffer();
+		size_t historySize = analysis.GetHistorySize();
+		
+		if (historySize > 1) {
+			for (size_t i = std::max(1ULL, historySize - 8); i < historySize; ++i) {
+				const auto& prev = history[(i - 1) % historySize];
+				const auto& curr = history[i % historySize];
 
-			float prevMag = std::sqrt(prev.left * prev.left + prev.right * prev.right);
-			float currMag = std::sqrt(curr.left * curr.left + curr.right * curr.right);
-			if (prevMag < 0.01f && currMag < 0.01f) continue;
+				float prevMag = std::sqrt(prev.left * prev.left + prev.right * prev.right);
+				float currMag = std::sqrt(curr.left * curr.left + curr.right * curr.right);
+				if (prevMag < 0.01f && currMag < 0.01f) continue;
 
-			float prevMid = (prev.left + prev.right) * 0.5f;
-			float prevSide = (prev.left - prev.right) * 0.5f;
-			float currMid = (curr.left + curr.right) * 0.5f;
-			float currSide = (curr.left - curr.right) * 0.5f;
+				float prevMid = (prev.left + prev.right) * 0.5f;
+				float prevSide = (prev.left - prev.right) * 0.5f;
+				float currMid = (curr.left + curr.right) * 0.5f;
+				float currSide = (curr.left - curr.right) * 0.5f;
 
-			float prevAngle = atan2(prevSide, prevMid) - 3.14159f * 0.5f;
-			float currAngle = atan2(currSide, currMid) - 3.14159f * 0.5f;
-			float prevRadius = std::min(std::sqrt(prevMag) * kVisualBoost, 1.0f) * radius;
-			float currRadius = std::min(std::sqrt(currMag) * kVisualBoost, 1.0f) * radius;
+				float prevAngle = atan2(prevSide, prevMid) - 3.14159f * 0.5f;
+				float currAngle = atan2(currSide, currMid) - 3.14159f * 0.5f;
+				float prevRadius = std::min(std::sqrt(prevMag) * kVisualBoost, 1.0f) * radius;
+				float currRadius = std::min(std::sqrt(currMag) * kVisualBoost, 1.0f) * radius;
 
-			ImVec2 prevPos = { center.x + cos(prevAngle) * prevRadius, center.y - sin(prevAngle) * prevRadius };
-			ImVec2 currPos = { center.x + cos(currAngle) * currRadius, center.y - sin(currAngle) * currRadius };
+				ImVec2 prevPos = { center.x + cos(prevAngle) * prevRadius, center.y - sin(prevAngle) * prevRadius };
+				ImVec2 currPos = { center.x + cos(currAngle) * currRadius, center.y - sin(currAngle) * currRadius };
 
-			// Very faint current trace
-			ImU32 color = IM_COL32(150, 150, 150, 30);
-			dl->AddLine(prevPos, currPos, color, 1.0f);
+				// Very faint current trace
+				ImU32 color = IM_COL32(150, 150, 150, 30);
+				dl->AddLine(prevPos, currPos, color, 1.0f);
+			}
 		}
 	}
 
@@ -257,11 +271,11 @@ inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& anal
 		}
 
 		// *** ADD BI-POLAR CORRELATION LINE OVERLAY (X-SHAPED) ***
-		float correlationAngle = acosf(std::max(-1.0f, std::min(1.0f, correlation * .5f + .5f))); // Map +1→0°, -1→90°
-		correlationAngle -= 3.14159f * 0.5f; // Rotate -90° so +1.0 (mono) points up (0°)
+		float correlationAngle = acosf(std::max(-1.0f, std::min(1.0f, correlation * .5f + .5f))); 
+		correlationAngle -= 3.14159f * 0.5f; 
 
 		// Calculate the line extent (use max envelope radius for proper scaling)
-		float lineLength = std::max(maxRadius, radius * 0.8f); // Use envelope extent or minimum 80% of display radius
+		float lineLength = std::max(maxRadius, radius * 0.8f); 
 
 		// *** ORIGINAL CORRELATION LINE ***
 		ImVec2 lineStart = {
@@ -275,17 +289,17 @@ inline void RenderPolarL(const char* id, const StereoImagingAnalysisStream& anal
 
 		// *** REFLECTED CORRELATION LINE (mirror around Y-axis to complete the X) ***
 		ImVec2 reflectedLineStart = {
-			center.x + cosf(correlationAngle) * lineLength,  // Flip X coordinate
-			center.y + sinf(correlationAngle) * lineLength   // Keep Y coordinate same
+			center.x + cosf(correlationAngle) * lineLength,  
+			center.y + sinf(correlationAngle) * lineLength   
 		};
 		ImVec2 reflectedLineEnd = {
-			center.x - cosf(correlationAngle) * lineLength,  // Flip X coordinate  
-			center.y - sinf(correlationAngle) * lineLength   // Keep Y coordinate same
+			center.x - cosf(correlationAngle) * lineLength,  
+			center.y - sinf(correlationAngle) * lineLength   
 		};
 
 		// Draw both lines to form complete X/cross
-		dl->AddLine(lineStart, lineEnd, phaseLineColor, 3.0f);                    // Original line "/"
-		dl->AddLine(reflectedLineStart, reflectedLineEnd, phaseLineColor, 3.0f);  // Reflected line "\"
+		dl->AddLine(lineStart, lineEnd, phaseLineColor, 3.0f);                    
+		dl->AddLine(reflectedLineStart, reflectedLineEnd, phaseLineColor, 3.0f);  
 	}
 
 	ImGui::Dummy(size);

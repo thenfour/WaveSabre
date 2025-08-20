@@ -25,7 +25,7 @@ struct Maj7WidthEditor : public VstEditor
 	Maj7WidthVst* mpMaj7WidthVst;
 
 	Maj7WidthEditor(AudioEffect* audioEffect) : //
-		VstEditor(audioEffect, 800, 750),
+		VstEditor(audioEffect, 850, 750),
 		mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
 	{
 		mpMaj7Width = ((Maj7WidthVst *)audioEffect)->GetMaj7Width();
@@ -41,35 +41,83 @@ struct Maj7WidthEditor : public VstEditor
 	{
 		ImGui::BeginGroup();
 
+		// Left/Right Source Controls with Tooltip
 		ImGui::BeginGroup();
 		Maj7ImGuiParamFloatN11WithCenter((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LeftSource, "Left source", -1, -1, 0, {});
-		ImGui::SameLine(); Maj7ImGuiParamFloatN11WithCenter((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RightSource, "Right source", 1, 1, 0, {});
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Left Channel Source");
+			ImGui::Separator();
+			ImGui::TextWrapped("Select where the left channel originates from:");
+			ImGui::BulletText("-1.0: Pure left input signal");
+			ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
+			ImGui::BulletText("+1.0: Pure right input signal");
+			ImGui::EndTooltip();
+		}
+		
+		ImGui::SameLine(); 
+		Maj7ImGuiParamFloatN11WithCenter((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RightSource, "Right source", 1, 1, 0, {});
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Right Channel Source");
+			ImGui::Separator();
+			ImGui::TextWrapped("Select where the right channel originates from:");
+			ImGui::BulletText("-1.0: Pure left input signal");
+			ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
+			ImGui::BulletText("+1.0: Pure right input signal");
+			ImGui::EndTooltip();
+		}
 		ImGui::EndGroup();
 
-		//ImGui::SameLine(); ImGui::Text("Select where the left / right channels originate.\r\nThis can be used to swap L/R for example.");
-
+		// Rotation Control with Tooltip
 		ImGui::BeginGroup();
 		Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle, "Rotation", -M7::math::gPI, M7::math::gPI, 0, 0, 0, {});
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Stereo Field Rotation");
+			ImGui::Separator();
+			ImGui::TextWrapped("Rotate the stereo image around the center point.");
+			ImGui::Spacing();
+			ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.7f, 1.0f), "Use Cases:");
+			ImGui::BulletText("Correct imbalanced recordings");
+			ImGui::BulletText("Fix poor microphone placement");
+			ImGui::BulletText("Creative stereo field manipulation");
+			ImGui::EndTooltip();
+		}
 		ImGui::EndGroup();
 
-		//ImGui::SameLine(); ImGui::Text("Rotate is just another way to manipulate the image.\r\nIt may cause phase issues, or it may help center an imbalanced image,\r\ne.g. correcting weird mic placement.");
-
+		// Side HPF Control with Tooltip
 		ImGui::BeginGroup();
 		Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SideHPFrequency, -1, "Side HPF", M7::gFilterFreqConfig, 0, {});
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Side Channel High-Pass Filter");
+			ImGui::Separator();
+			ImGui::TextWrapped("Reduces stereo width of low frequencies using a 6dB/octave slope.");
+			ImGui::EndTooltip();
+		}
 		ImGui::EndGroup();
-		//ImGui::SameLine(); ImGui::Text("This reduces width of low frequencies. Fixed at 6db/Oct slope.");
 
+		// Mid-Side Balance Control with Tooltip
 		ImGui::BeginGroup();
 		Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MidSideBalance, "Mid-Side balance", 0.0f, 0, {});
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Mid-Side Balance Control");
+			ImGui::Separator();
+			ImGui::TextWrapped("Blend between mono (mid) and stereo (side) content:");
+			ImGui::EndTooltip();
+		}
 		ImGui::EndGroup();
-		//ImGui::SameLine(); ImGui::Text("Mix between mono -> normal -> wide");
 
+		// Final Output Section with Tooltips
 		ImGui::BeginGroup();
-		ImGui::Text("Final output panning");
+		
 		Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
-		ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
+		
+		ImGui::SameLine(); 
+		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
 		ImGui::EndGroup();
-		//ImGui::SameLine(); ImGui::Text("Final output panning & gain");
 
 		ImGui::EndGroup();
 
