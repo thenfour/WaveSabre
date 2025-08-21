@@ -6,6 +6,7 @@
 #include "Maj7Comp.hpp"
 #include "Maj7MBC.hpp"
 #include "Maj7Sat.hpp"
+#include "Maj7Analyze.hpp"
 
 #include "Leveller.h"
 //#include "Crusher.h"
@@ -13,5 +14,6 @@
 //#include "Chamber.h"
 //#include "Twister.h"
 #include "Cathedral.h"
+
 
 #endif

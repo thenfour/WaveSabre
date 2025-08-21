@@ -38,6 +38,8 @@ WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)
     case SongRenderer::DeviceId::Maj7Comp: return new WaveSabreCore::Maj7Comp();
     case SongRenderer::DeviceId::Maj7Sat: return new WaveSabreCore::Maj7Sat();
     case SongRenderer::DeviceId::Maj7MBC: return new WaveSabreCore::Maj7MBC();
+    case SongRenderer::DeviceId::Maj7Analyze:
+      return new WaveSabreCore::Maj7Analyze();
     }
 	return nullptr;
 }

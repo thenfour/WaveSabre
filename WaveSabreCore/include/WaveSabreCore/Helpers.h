@@ -89,7 +89,7 @@ namespace WaveSabreCore
     static constexpr double CurrentSampleRate = CurrentSampleRateI;
     static constexpr float CurrentSampleRateRecipF = 1.0f / CurrentSampleRateF;
 #else
-    static double CurrentSampleRateI;
+    static int CurrentSampleRateI;
     static double CurrentSampleRate;
     static float CurrentSampleRateF;
     static float CurrentSampleRateRecipF;

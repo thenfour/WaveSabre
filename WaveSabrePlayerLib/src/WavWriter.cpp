@@ -20,8 +20,14 @@ namespace WaveSabrePlayerLib
 		constexpr int bitsPerSample = sizeof(SongRenderer::Sample) * 8;
 
 		constexpr int stepSize = 100 * SongRenderer::NumChannels;
+    //constexpr int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
+#ifdef MIN_SIZE_REL
     constexpr int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
-		int numSamples = (int)(z * songRenderer->GetLength()) / stepSize * stepSize;
+#else
+    const int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
+#endif  // MIN_SIZE_REL
+	
+	int numSamples = (int)(z * songRenderer->GetLength()) / stepSize * stepSize;
 
 		auto file = fopen(fileName, "wb");
 

@@ -11,7 +11,11 @@ namespace WaveSabrePlayerLib
 		length = songRenderer.GetLength();
 
 		constexpr int stepSize = 100 * SongRenderer::NumChannels;
+#ifdef MIN_SIZE_REL
 		constexpr int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
+#else 
+		const int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
+#endif  // MIN_SIZE_REL
 		renderBufferSize = (int)(z * songRenderer.GetLength()) / stepSize * stepSize;
 		renderBuffer = new SongRenderer::Sample[renderBufferSize];
 

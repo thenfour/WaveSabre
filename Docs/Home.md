@@ -30,7 +30,6 @@ WaveSabre has a new [CMake](https://cmake.org/) based build-system that can gene
     - Maj7CompVst.h
 - copy & modify / create core device @ WaveSabre\WaveSabreCore\include\WaveSabreCore\Maj7Comp.hpp with boilerplate
   - see boilerplate folder.
-- add to `WaveSabre\WaveSabreCore\CMakeLists.txt`: `include/WaveSabreCore/Maj7Comp.hpp`
 - run "switch to x64" which configures & generates projects
 - notice: the Maj7Comp project exists with just a .def.
 - Devices.h: add `#include "Maj7Comp.hpp"`
