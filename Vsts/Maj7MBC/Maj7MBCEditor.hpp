@@ -159,6 +159,12 @@ struct Maj7MBCEditor : public VstEditor
 					ImGui::SameLine(0, 120); Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
 					//ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
 					ImGui::SameLine(); Maj7ImGuiParamScaledFloat(param(BandParam::Drive), "Drive(dB)", 0, 30, 0, 0, 0, {});
+					// show tooltip for drive.
+					if (ImGui::IsItemHovered()) {
+						ImGui::BeginTooltip();
+						ImGui::TextUnformatted("Nonlinear saturation applied post-compression stage");
+						ImGui::EndTooltip();
+					}
 
 					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Makeup", M7::gVolumeCfg24db, 0, {});
 					ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "Dry-Wet", 1.0f, 0);
@@ -341,6 +347,7 @@ private:
 	ImRect GetBandButtonArea(const ImRect& bandRect) const {
 		// Place buttons in the upper portion of the band rectangle
 		const float buttonHeight = 20.0f;
+		const float paddingY = 12.0f;
 		const float padding = 4.0f;
 
 		// Calculate width for 4 buttons: Mute, Solo, Enable, Delta
@@ -354,9 +361,9 @@ private:
 
 		return ImRect(
 			startX,
-			bandRect.Min.y + padding,
+			bandRect.Min.y + paddingY,
 			startX + totalWidth,
-			bandRect.Min.y + padding + buttonHeight
+			bandRect.Min.y + paddingY + buttonHeight
 		);
 	}
 
@@ -432,6 +439,17 @@ private:
 
 		// Get button area for 4 buttons (Mute, Solo, Enable, Delta)
 		ImRect buttonArea = GetBandButtonArea(bandRect);
+
+		if (isSelected) {
+			dl->AddRect(bandRect.Min, bandRect.Max, ColorFromHTML(bandColors[bandIndex], 0.8f));
+			// draw a "selected" rectangle indicator towards the bottom of the band rect
+			//ImVec2 bottomLeft = { bandRect.Min.x, bandRect.Min.y };
+			//ImVec2 bottomRight = { bandRect.Max.x, bandRect.Min.y };
+			dl->AddRectFilled(
+				{ bandRect.Min },// min
+				{ bandRect.Max.x, bandRect.Min.y + 4 }, // max
+				ColorFromHTML(bandColors[bandIndex], 0.8f), 2.0f);
+		}
 
 		// Button dimensions for 4 buttons
 		const float buttonWidth = 22.0f;  // Smaller buttons to fit 4
@@ -787,6 +805,9 @@ public:
 			//	SoftClipEnable,
 			//	SoftClipThresh,
 			//	SoftClipOutput,
+			
+			ImGui::Spacing();
+			ImGui::SeparatorText("Global controls");
 			ImGui::Spacing();
 
 
@@ -819,6 +840,8 @@ public:
 			}
 
 
+			ImGui::SameLine(); VUMeter("main_vu_inp", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[0], kMainVuMeterSize, "Input Left", "Input Right");
+			ImGui::SameLine(); VUMeter("main_vu_outp", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[0], kMainVuMeterSize, "Output Left", "Output Right");
 
 		}
 		//if (mbEnabled) {

@@ -261,7 +261,7 @@ inline bool VUMeter(const char *id, const double *rmsLevel,
 }
 
 inline void VUMeter(const char *id, AnalysisStream &a0, AnalysisStream &a1,
-                    ImVec2 size = {30, 300}) {
+                    ImVec2 size = {30, 300}, const std::string& tooltipLeft = "", const std::string& tooltipRight = "") {
   static const std::vector<VUMeterTick> standardTickSet = {
       {-3.0f, "3db"},   {-6.0f, "6db"},   {-12.0f, "12db"},  {-18.0f, "18db"},
       {-24.0f, "24db"}, {-30.0f, "30db"}, {-40.0f, nullptr},
@@ -281,12 +281,22 @@ inline void VUMeter(const char *id, AnalysisStream &a0, AnalysisStream &a1,
     a0.Reset();
     a1.Reset();
   }
+  if (!tooltipLeft.empty() && ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::Text(tooltipLeft.c_str());
+      ImGui::EndTooltip();
+  }
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
   ImGui::SameLine();
   if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak,
               &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg)) {
     a0.Reset();
     a1.Reset();
+  }
+  if (!tooltipRight.empty() && ImGui::IsItemHovered()) {
+      ImGui::BeginTooltip();
+      ImGui::Text(tooltipRight.c_str());
+      ImGui::EndTooltip();
   }
   ImGui::PopID();
   ImGui::PopStyleVar();
