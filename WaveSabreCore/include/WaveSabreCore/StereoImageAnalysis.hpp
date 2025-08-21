@@ -419,7 +419,13 @@ struct StereoImagingAnalysisStream
 
     double totalLevel = mLeftLevel + mRightLevel;
     if (totalLevel > 0.0001)
+    {
       mStereoBalance = (mRightLevel - mLeftLevel) / totalLevel;
+    }
+    else
+    {
+      mStereoBalance = 0.0;  // Reset balance if no valid levels
+    }
 
     mLeftSum += left;
     mRightSum += right;
@@ -521,6 +527,10 @@ private:
       double instantCorrelation = covariance / denominator;
       instantCorrelation = std::max(-1.0, std::min(1.0, instantCorrelation));
       mPhaseCorrelation = mPhaseCorrelation * gSmoothingFactor + instantCorrelation * (1.0 - gSmoothingFactor);
+    }
+    else
+    {
+      mPhaseCorrelation = 0.0;  // No valid correlation
     }
   }
 };
