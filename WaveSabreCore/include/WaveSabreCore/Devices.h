@@ -7,6 +7,8 @@
 #include "Maj7MBC.hpp"
 #include "Maj7Sat.hpp"
 #include "Maj7Analyze.hpp"
+#include "Maj7Crush.hpp"
+#include "Maj7Space.hpp"
 
 #include "Leveller.h"
 //#include "Crusher.h"

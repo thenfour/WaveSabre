@@ -22,6 +22,8 @@ namespace WaveSabreConvert
             Maj7Sat,
             Maj7MBC,
             Maj7Analyze,
+            Maj7Crush,
+            Maj7Space,
         }
 
         public class Receive
