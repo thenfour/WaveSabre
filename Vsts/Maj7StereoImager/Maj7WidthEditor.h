@@ -188,7 +188,8 @@ struct Maj7WidthEditor : public VstEditor
 			// Toggle buttons for layer visibility
 			{
 				// Create toggle buttons with appropriate colors
-				ToggleButton(&mShowGoniometer, "Gonio");
+				ToggleButton(&mShowGoniometerLines, "Lines");
+				ImGui::SameLine(); ToggleButton(&mShowGoniometerPoints, "Points");
 				ImGui::SameLine(); ToggleButton(&mShowPolarL, "Poly");
 				ImGui::SameLine(); ToggleButton(&mShowPhaseX, "Scissor");
 			}
@@ -251,7 +252,8 @@ struct Maj7WidthEditor : public VstEditor
 	virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() override
 	{
 		return {
-			&mShowGoniometerParam,
+			&mShowGoniometerLinesParam,
+			& mShowGoniometerPointsParam,
 			&mShowPolarLParam,
 			&mShowPhaseXParam,
 			&mShowPhaseCorrelationParam,
@@ -272,11 +274,13 @@ struct Maj7WidthEditor : public VstEditor
 
 
 private:
-	bool mShowGoniometer = false;
+	bool mShowGoniometerLines = false;
+	bool mShowGoniometerPoints = true;
 	bool mShowPolarL = true;
 	bool mShowPhaseX = true;
 
-	VstSerializableBoolParamRef mShowGoniometerParam{ "ShowGoniometer", mShowGoniometer };
+	VstSerializableBoolParamRef mShowGoniometerLinesParam{ "ShowGoniometerLines", mShowGoniometerLines };
+	VstSerializableBoolParamRef mShowGoniometerPointsParam{ "ShowGoniometerPoints", mShowGoniometerPoints };
 	VstSerializableBoolParamRef mShowPolarLParam{ "ShowPolarL", mShowPolarL };
 	VstSerializableBoolParamRef mShowPhaseXParam{ "ShowPhaseX", mShowPhaseX };
 	VstSerializableBoolParamRef mShowPhaseCorrelationParam{ "ShowPhaseCorrelation", mStereoHistory.mShowPhaseCorrelation };
@@ -505,7 +509,7 @@ private:
 					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
 					// Parameter toggles
-					ToggleButton(&mShowPhaseCorrelation, "Phase", {}, ButtonColorSpec{ kInputCorrellationColor });
+					ToggleButton(&mShowPhaseCorrelation, "Correllation", {}, ButtonColorSpec{ kInputCorrellationColor });
 					ImGui::SameLine(); ToggleButton(&mShowStereoWidth, "Width", {}, ButtonColorSpec{ kInputWidthColor });
 					ImGui::SameLine(); ToggleButton(&mShowStereoBalance, "Balance", {}, ButtonColorSpec{ kInputBalanceColor });
 
@@ -531,13 +535,29 @@ private:
 		ImVec2 meterSize(dim, 30);
 
 		RenderCorrelationMeter("correlation_in", analysis.mPhaseCorrelation, { dim, 30 });
-
-		// double mStereoWidth = 0.0;       // 0 = mono, 1 = normal stereo, >1 = wide  
-		// double mStereoBalance = 0.0;     // -1 to +1, -1 = full left, 0 = center, +1 = full right
-		// double mMidLevel = 0.0;          // Mid channel level (RMS)
-		// double mSideLevel = 0.0;         // Side channel level (RMS)
+		// add tooltip to phase correllation meter
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Phase correlation");
+			ImGui::Separator();
+			ImGui::Text("Indicates stereo phase correlation:");
+			ImGui::BulletText("-1.0: out of phase (180°)");
+			ImGui::BulletText(" 0.0: No correlation (random phase)");
+			ImGui::BulletText("+1.0: Perfectly in phase (0°)");
+			ImGui::EndTooltip();
+		}
 
 		RenderGeneralMeter(analysis.mStereoWidth, 0, 1, meterSize, "Stereo width", 0, { "008800", 0.5, "ffff00", 1.0, "ff0000" });
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Stereo width");
+			ImGui::Separator();
+			ImGui::Text("Indicates how much of the total signal energy is the side channel.");
+			ImGui::BulletText("0.0: Mono (no side channel)");
+			ImGui::BulletText("1.0: Widest possible (no mid signal)");
+			ImGui::EndTooltip();
+		}
+
 		RenderGeneralMeter(analysis.mStereoBalance, -1, 1, meterSize, "Left-right balance", 0, {
 			"ff0000",
 			-0.5, "ffff00",
@@ -545,6 +565,18 @@ private:
 			+0.2, "ffff00",
 			+0.5, "ff0000",
 			});
+
+		if (ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::Text("Left-right balance");
+			ImGui::Separator();
+			ImGui::Text("Indicates the balance between left and right channels:");
+			ImGui::BulletText("-1.0: Full left (right channel silent)");
+			ImGui::BulletText(" 0.0: Centered (equal left/right)");
+			ImGui::BulletText("+1.0: Full right (left channel silent)");
+			ImGui::EndTooltip();
+		}
+
 		//RenderGeneralMeter(analysis.mMidLevel, 0, 1, meterSize, "mid level");
 		//RenderGeneralMeter(analysis.mSideLevel, 0, 1, meterSize, "side level");
 
@@ -560,12 +592,11 @@ private:
 		//}
 
 		// Render the layered visualization
-		RenderLayeredStereoVisualization("stereovis", analysis, { dim, dim },
-			mShowGoniometer, mShowPolarL, mShowPhaseX);
+		RenderLayeredStereoVisualization("stereovis", analysis, { dim, dim });
 	}
 
 	// Main layered visualization renderer
-	static void RenderLayeredStereoVisualization(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, bool showGoniometer, bool showPolarL, bool showPhaseX) {
+	void RenderLayeredStereoVisualization(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size) {
 		auto* dl = ImGui::GetWindowDrawList();
 		ImVec2 pos = ImGui::GetCursorScreenPos();
 		ImRect bb(pos, pos + size);
@@ -598,15 +629,20 @@ private:
 		dl->AddText({ bb.Min.x + 2, center.y - 8 }, IM_COL32(150, 150, 255, 150), "L");      // Left
 
 		// Render layers in order (bottom to top)
-		if (showPolarL) {
+		if (mShowPolarL) {
 			RenderPolarLLayer(id, analysis, size, center, radius);
 		}
 
-		if (showGoniometer) {
-			RenderGoniometerLayer(id, analysis, size, center, radius);
+		if (mShowGoniometerPoints) {
+			RenderGoniometerLayer(id, analysis, size, center, radius, true);
 		}
 
-		if (showPhaseX) {
+
+		if (mShowGoniometerLines) {
+			RenderGoniometerLayer(id, analysis, size, center, radius, false);
+		}
+
+		if (mShowPhaseX) {
 			RenderPhaseCorrelationOverlay(id, analysis, size, center, radius);
 		}
 

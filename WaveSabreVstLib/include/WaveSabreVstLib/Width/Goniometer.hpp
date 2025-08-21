@@ -104,7 +104,7 @@ using namespace WaveSabreCore;
 
 
 	// Goniometer layer renderer (based on RenderGoniometer but without background/grid)
-inline void RenderGoniometerLayer(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, ImVec2 center, float radius) {
+inline void RenderGoniometerLayer(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, ImVec2 center, float radius, bool renderAsPoints) {
 	auto* dl = ImGui::GetWindowDrawList();
 
 	constexpr bool kNormalizeToCircle = true;
@@ -150,7 +150,15 @@ inline void RenderGoniometerLayer(const char* id, const StereoImagingAnalysisStr
 			int alpha = static_cast<int>((1.0f - ageFactor) * 180 + 50);
 			ImU32 color = (baseColor & 0x00FFFFFF) | (alpha << 24);
 
-			dl->AddLine(prevPos, currPos, color, 1.5f);
+			if (renderAsPoints) {
+				//dl->AddCircleFilled(prevPos, 1.5f, color);
+				dl->AddCircleFilled(currPos, 1.f, color,2);
+			}
+			else {
+				// Draw line between previous and current position
+
+				dl->AddLine(prevPos, currPos, color, 1.5f);
+			}
 		}
 	}
 }

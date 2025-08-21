@@ -302,7 +302,7 @@ namespace WaveSabreCore
         double mRightLevel = 0.0;
         static constexpr double gSmoothingFactor = 0.8;
 
-        static constexpr size_t gHistorySize = 256;
+        static constexpr size_t gHistorySize = 768;// 256;
         struct StereoSample { float left = 0.0f; float right = 0.0f; };
         StereoSample mHistory[gHistorySize];
         size_t mHistoryIndex = 0;
