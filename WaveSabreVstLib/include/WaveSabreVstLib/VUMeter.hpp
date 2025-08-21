@@ -64,6 +64,18 @@ inline VUMeterColors GetVUMeterColorsForMidSideLevel()
   return colors;
 }
 
+enum class VUMeterRenderStyle
+{
+  ContinuousFill,
+  SteppedSegments,
+};
+
+struct VUMeterStepOptions
+{
+  float segmentPx = 3.0f;  // segment block height in pixels
+  float gapPx = 1.0f;      // pixel gap between segments
+};
+
 struct VUMeterConfig
 {
   ImVec2 size;
@@ -72,7 +84,136 @@ struct VUMeterConfig
   float minDB;
   float maxDB;
   std::vector<VUMeterTick> ticks;
+  // New optional rendering customization (defaults preserve existing behavior)
+  VUMeterRenderStyle renderStyle = VUMeterRenderStyle::ContinuousFill;
+  VUMeterStepOptions stepOptions{};
 };
+
+// Map a dB value to a Y coordinate inside the meter bounding box.
+static inline float VUMeterDbToY(const ImRect& bb, const VUMeterConfig& cfg, float db)
+{
+  float x = M7::math::lerp_rev(cfg.minDB, cfg.maxDB, db);
+  x = M7::math::clamp01(x);
+  return M7::math::lerp(bb.Max.y, bb.Min.y, x);
+}
+
+// Fill the range [dB1, dB2] with colors, splitting at 0 dB to use under/over-unity colors.
+static inline void VUMeterRenderRegionContinuous(ImDrawList* dl,
+                                                 const ImRect& bb,
+                                                 const VUMeterConfig& cfg,
+                                                 float dB1,
+                                                 float dB2,
+                                                 ImColor colUnderUnity,
+                                                 ImColor colOverUnity)
+{
+  if (dB1 > dB2)
+    std::swap(dB1, dB2);  // ensure order
+
+  // intersection with renderable region
+  float cmin = std::max(dB1, cfg.minDB);
+  float cmax = std::min(dB2, cfg.maxDB);
+  if (cmin >= cmax)
+    return;  // nothing to render
+
+  // Render depending on relation to 0 dB
+  if (cmax <= 0)
+  {
+    // Entire range is <= 0 dB
+    dl->AddRectFilled({bb.Min.x, VUMeterDbToY(bb, cfg, cmin)}, {bb.Max.x, VUMeterDbToY(bb, cfg, cmax)}, colUnderUnity);
+  }
+  else if (cmin >= 0)
+  {
+    // Entire range is >= 0 dB
+    dl->AddRectFilled({bb.Min.x, VUMeterDbToY(bb, cfg, cmin)}, {bb.Max.x, VUMeterDbToY(bb, cfg, cmax)}, colOverUnity);
+  }
+  else
+  {
+    // Range spans across 0, split into two regions
+    dl->AddRectFilled({bb.Min.x, VUMeterDbToY(bb, cfg, cmin)}, {bb.Max.x, VUMeterDbToY(bb, cfg, 0)}, colUnderUnity);
+    dl->AddRectFilled({bb.Min.x, VUMeterDbToY(bb, cfg, 0)}, {bb.Max.x, VUMeterDbToY(bb, cfg, cmax)}, colOverUnity);
+  }
+}
+
+// this kinda looks OK -- the idea is to avoid pixel-based vertical rendering which can look jumpy and "raw".
+// stepped meters feel more calm and don't distract with insignificant changes in signal. however, it just kinda
+// looks messy at the moment. something to refine later maybe. the reality is that it's not really important.
+// - consider rendering in gaps
+// - avoid overlaying on stepped meters (put ticks & text outside)
+static inline void VUMeterRenderRegionSteppedRange(ImDrawList* dl,
+                                                   const ImRect& bb,
+                                                   const VUMeterConfig& cfg,
+                                                   float loDb,
+                                                   float hiDb,
+                                                   ImColor color,
+                                                   const VUMeterStepOptions& opt)
+{
+  // Compute target fill region in pixel Y (top smaller, bottom larger)
+  float yA = std::round(VUMeterDbToY(bb, cfg, loDb));
+  float yB = std::round(VUMeterDbToY(bb, cfg, hiDb));
+  float yMin = std::min(yA, yB);
+  float yMax = std::max(yA, yB);
+
+  // Segment grid anchored to the bottom of the meter
+  const float seg = (opt.segmentPx > 0.0f) ? opt.segmentPx : 1.0f;
+  const float gap = std::max(0.0f, opt.gapPx);
+  const float step = seg + gap;
+
+  const float yBottom = std::round(bb.Max.y);
+  const float yTopLimit = std::round(bb.Min.y);
+
+  for (float ySegBot = yBottom; ySegBot > yTopLimit; ySegBot -= step)
+  {
+    float ySegTop = ySegBot - seg;
+
+    // Clamp segment to the meter bounds
+    float ySegTopClamped = std::max(ySegTop, yTopLimit);
+    float ySegBotClamped = std::min(ySegBot, yBottom);
+    if (ySegBotClamped <= ySegTopClamped)
+      continue;
+
+    // Decide to fill this segment based on its midpoint being within target range
+    float yMid = (ySegTopClamped + ySegBotClamped) * 0.5f;
+    if (yMid >= yMin && yMid <= yMax)
+    {
+      dl->AddRectFilled({bb.Min.x, ySegTopClamped}, {bb.Max.x, ySegBotClamped}, color);
+    }
+  }
+}
+
+static inline void VUMeterRenderRegionStepped(ImDrawList* dl,
+                                              const ImRect& bb,
+                                              const VUMeterConfig& cfg,
+                                              float dB1,
+                                              float dB2,
+                                              ImColor colUnderUnity,
+                                              ImColor colOverUnity,
+                                              const VUMeterStepOptions& opt)
+{
+  if (dB1 > dB2)
+    std::swap(dB1, dB2);
+
+  float cmin = std::max(dB1, cfg.minDB);
+  float cmax = std::min(dB2, cfg.maxDB);
+  if (cmin >= cmax)
+    return;
+
+  if (cmax <= 0)
+  {
+    // entirely under unity
+    VUMeterRenderRegionSteppedRange(dl, bb, cfg, cmin, cmax, colUnderUnity, opt);
+  }
+  else if (cmin >= 0)
+  {
+    // entirely over unity
+    VUMeterRenderRegionSteppedRange(dl, bb, cfg, cmin, cmax, colOverUnity, opt);
+  }
+  else
+  {
+    // split at 0 dB
+    VUMeterRenderRegionSteppedRange(dl, bb, cfg, cmin, 0.0f, colUnderUnity, opt);
+    VUMeterRenderRegionSteppedRange(dl, bb, cfg, 0.0f, cmax, colOverUnity, opt);
+  }
+}
 
 // rms level may be nullptr to not graph it.
 // peak level may be nullptr to not graph it.
@@ -191,51 +332,12 @@ inline bool VUMeter(const char* id,
   bb.Min = ImGui::GetCursorScreenPos();
   bb.Max = bb.Min + cfg.size;
 
-  auto DbToY = [&](float db)
-  {
-    float x = M7::math::lerp_rev(cfg.minDB, cfg.maxDB, db);
-    x = M7::math::clamp01(x);
-    return M7::math::lerp(bb.Max.y, bb.Min.y, x);
-  };
-
   auto* dl = ImGui::GetWindowDrawList();
 
   assert(cfg.minDB < cfg.maxDB);  // simplifies logic.
 
-  auto RenderDBRegion = [&](float dB1, float dB2, ImColor bgUnderUnity, ImColor bgOverUnity)
-  {
-    if (dB1 > dB2)
-      std::swap(dB1, dB2);  // make sure in order to simplify logic
-
-    // find the intersection of the desired region and the renderable region.
-    float cmin = std::max(dB1, cfg.minDB);
-    float cmax = std::min(dB2, cfg.maxDB);
-    if (cmin >= cmax)
-    {
-      return;  // nothing to render.
-    }
-
-    // break render rgn into positive & negative dB regions.
-    if (cmax <= 0)
-    {  // Entire range is negative; render cmin,cmax in under-unity style
-      dl->AddRectFilled({bb.Min.x, DbToY(cmin)}, {bb.Max.x, DbToY(cmax)}, bgUnderUnity);
-    }
-    else if (cmin >= 0)
-    {  // Entire range is non-negative, render cmin,cmax in
-       // over-unity style
-      dl->AddRectFilled({bb.Min.x, DbToY(cmin)}, {bb.Max.x, DbToY(cmax)}, bgOverUnity);
-    }
-    else
-    {
-      // Range spans across 0, split into two regions
-      dl->AddRectFilled({bb.Min.x, DbToY(cmin)}, {bb.Max.x, DbToY(0)}, bgUnderUnity);
-      dl->AddRectFilled({bb.Min.x, DbToY(0)}, {bb.Max.x, DbToY(cmax)}, bgOverUnity);
-    }
-  };
-
-  RenderDBRegion(cfg.minDB, cfg.maxDB, colors.background, colors.backgroundOverUnity);
-
-  float levelY = DbToY(rmsDB);
+  // background (keep continuous for readability)
+  VUMeterRenderRegionContinuous(dl, bb, cfg, cfg.minDB, cfg.maxDB, colors.background, colors.backgroundOverUnity);
 
   // draw the peak bar
   if (peakLevel)
@@ -243,7 +345,11 @@ inline bool VUMeter(const char* id,
     float fgBaseDB = cfg.minDB;
     if (cfg.levelMode == VUMeterLevelMode::Attenuation)
       fgBaseDB = 0;
-    RenderDBRegion(peakDb, fgBaseDB, colors.foregroundPeak, colors.foregroundOverUnity);
+
+    if (cfg.renderStyle == VUMeterRenderStyle::SteppedSegments)
+      VUMeterRenderRegionStepped(dl, bb, cfg, peakDb, fgBaseDB, colors.foregroundPeak, colors.foregroundOverUnity, cfg.stepOptions);
+    else
+      VUMeterRenderRegionContinuous(dl, bb, cfg, peakDb, fgBaseDB, colors.foregroundPeak, colors.foregroundOverUnity);
   }
 
   // draw the RMS bar
@@ -252,7 +358,11 @@ inline bool VUMeter(const char* id,
     float fgBaseDB = cfg.minDB;
     if (cfg.levelMode == VUMeterLevelMode::Attenuation)
       fgBaseDB = 0;
-    RenderDBRegion(rmsDB, fgBaseDB, colors.foregroundRMS, colors.foregroundOverUnity);
+
+    if (cfg.renderStyle == VUMeterRenderStyle::SteppedSegments)
+      VUMeterRenderRegionStepped(dl, bb, cfg, rmsDB, fgBaseDB, colors.foregroundRMS, colors.foregroundOverUnity, cfg.stepOptions);
+    else
+      VUMeterRenderRegionContinuous(dl, bb, cfg, rmsDB, fgBaseDB, colors.foregroundRMS, colors.foregroundOverUnity);
   }
 
   // draw clip
@@ -265,7 +375,7 @@ inline bool VUMeter(const char* id,
   // draw held peak
   if (heldPeakLevel != nullptr)
   {
-    float peakY = DbToY(heldPeakDb);
+    float peakY = VUMeterDbToY(bb, cfg, heldPeakDb);
     ImRect threshbb = bb;
     threshbb.Min.y = threshbb.Max.y = peakY;
     float tickHeight = 2.0f;
@@ -277,7 +387,7 @@ inline bool VUMeter(const char* id,
   auto drawTick = [&](float tickdb, const char* txt)
   {
     ImRect tickbb = bb;
-    tickbb.Min.y = std::round(DbToY(tickdb));  // make crisp lines plz.
+    tickbb.Min.y = std::round(VUMeterDbToY(bb, cfg, tickdb));  // make crisp lines plz.
     tickbb.Max.y = tickbb.Min.y;
     dl->AddLine(tickbb.Min, tickbb.Max, colors.text);
     if (txt && allowTickText)
@@ -318,7 +428,12 @@ inline void VUMeter(const char* id,
       {-40.0f, nullptr},
   };
 
-  const VUMeterConfig cfg = {size, VUMeterLevelMode::Audio, VUMeterUnits::Linear, -50, 6, smallTickSet};
+  const VUMeterConfig cfg = {
+      size,
+      VUMeterLevelMode::Audio,
+      VUMeterUnits::Linear,
+      -50, 6, smallTickSet,
+  };
 
   ImGui::PushID(id);
   if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))

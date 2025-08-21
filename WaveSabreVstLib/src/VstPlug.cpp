@@ -55,7 +55,7 @@ namespace WaveSabreVstLib
 
 			LARGE_INTEGER timeStart, timeEnd;
 			QueryPerformanceCounter(&timeStart);
-			device->Run(ti ? ti->samplePos / ti->sampleRate : 0.0, inputs, outputs, sampleFrames);
+			device->Run(inputs, outputs, sampleFrames);
 			QueryPerformanceCounter(&timeEnd);
 
 			// to calculate CPU, assume that 100% CPU usage would mean it runs at the same as realtime speed. a 3ms buffer took 3ms to process.
