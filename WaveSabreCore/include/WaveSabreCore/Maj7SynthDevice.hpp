@@ -19,11 +19,11 @@ namespace WaveSabreCore
 	public:
 		Maj7SynthDevice(int numParams, float *paramCache);
 
-		virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) = 0;
+		virtual void ProcessBlock(float* const* const outputs, int numSamples) = 0;
 		virtual void HandlePitchBend(float pbN11) = 0;
 		virtual void HandleMidiCC(int ccN, int val) = 0;
 
-		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples);
+		virtual void Run(float** inputs, float** outputs, int numSamples) override;
 
 		virtual void AllNotesOff();
 		virtual void NoteOn(int note, int velocity, int deltaSamples);

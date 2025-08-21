@@ -56,7 +56,7 @@ namespace WaveSabreCore
 
 		Cathedral();
 
-		virtual void Run(double songPosition, float **inputs, float **outputs, int numSamples);
+		virtual void Run(float **inputs, float **outputs, int numSamples) override;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		AnalysisStream mInputAnalysis[2];

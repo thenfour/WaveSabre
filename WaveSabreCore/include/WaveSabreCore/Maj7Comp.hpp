@@ -299,7 +299,7 @@ namespace WaveSabreCore
 			}
 		}
 
-		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
+		virtual void Run(float** inputs, float** outputs, int numSamples) override
 		{
 			float channelLink01 = mParams.Get01Value(ParamIndices::ChannelLink);
 			//bool midside = mParams.GetBoolValue(ParamIndices::MidSideEnable);

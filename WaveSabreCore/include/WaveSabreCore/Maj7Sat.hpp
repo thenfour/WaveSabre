@@ -663,7 +663,7 @@ namespace WaveSabreCore
 		AnalysisStream mOutputAnalysis1;
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
+		virtual void Run(float** inputs, float** outputs, int numSamples) override
 		{
 			float masterDryWet = mParams.GetRawVal(ParamIndices::OverallDryWet);
 

@@ -31,7 +31,7 @@ namespace WaveSabreCore
 		LoadDefaults();
 	}
 
-	void Cathedral::Run(double songPosition, float **inputs, float **outputs, int numSamples)
+	void Cathedral::Run(float **inputs, float **outputs, int numSamples)
 	{
 		preDelayBuffer.SetLength(preDelayMS);
 

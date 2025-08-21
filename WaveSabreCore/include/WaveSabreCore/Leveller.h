@@ -178,7 +178,7 @@ namespace WaveSabreCore
 			LoadDefaults();
 		}
 
-		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
+		virtual void Run(float** inputs, float** outputs, int numSamples) override
 		{
 			float masterGain = mParams.GetLinearVolume(ParamIndices::OutputVolume, M7::gVolumeCfg12db);
 			bool enableDC = mParams.GetBoolValue(ParamIndices::EnableDCFilter);

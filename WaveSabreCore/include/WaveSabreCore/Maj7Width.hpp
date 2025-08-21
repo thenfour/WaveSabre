@@ -88,7 +88,7 @@ namespace WaveSabreCore
 		}
 #endif // MAJ7WIDTH_FULL_FEATURE
 
-		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
+		virtual void Run(float** inputs, float** outputs, int numSamples) override
 		{
 			auto gains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
 			mFilter.SetParams(M7::FilterType::HP, mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig), 0);

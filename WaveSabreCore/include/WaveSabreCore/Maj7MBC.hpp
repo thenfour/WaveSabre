@@ -474,7 +474,7 @@ namespace WaveSabreCore
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 			}
 
-		virtual void Run(double songPosition, float** inputs, float** outputs, int numSamples) override
+		virtual void Run(float** inputs, float** outputs, int numSamples) override
 		{
 			float inputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
 			float outputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);

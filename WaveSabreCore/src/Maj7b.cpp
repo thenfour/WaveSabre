@@ -13,7 +13,7 @@ namespace WaveSabreCore {
             float x[gModulationRecalcSampleMaskValues[0] * 2];
             memset(x, 0, sizeof(x));
             float* outputs[2] = { x, x };
-            ProcessBlock(0, outputs, numSamples, true);
+            ProcessBlock(outputs, numSamples, true);
         }
 
         Maj7::Maj7Voice::LFOVoice::LFOVoice(Maj7::LFODevice& device, ModMatrixNode& modMatrix) :

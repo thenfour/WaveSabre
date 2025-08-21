@@ -17,7 +17,7 @@ namespace WaveSabreCore
 		explicit Device(int numParams, float* paramCache, const int16_t* defaults16);
 		virtual ~Device();
 
-		virtual void Run(double songPosition, float **inputs, float **outputs, int numSamples) = 0;
+		virtual void Run(float **inputs, float **outputs, int numSamples) = 0;
 
 		virtual void AllNotesOff();
 		virtual void NoteOn(int note, int velocity, int deltaSamples);

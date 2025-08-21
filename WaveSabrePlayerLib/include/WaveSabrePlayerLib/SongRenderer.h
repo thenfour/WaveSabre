@@ -613,7 +613,7 @@ namespace WaveSabrePlayerLib
 				}
 
 				for (int i = 0; i < numDevices; i++) {
-					songRenderer->devices[devicesIndicies[i]]->Run((double)lastSamplePos / WaveSabreCore::Helpers::CurrentSampleRate, Buffers, Buffers, numSamples);
+					songRenderer->devices[devicesIndicies[i]]->Run(Buffers, Buffers, numSamples);
 				}
 
 				if (volume != 1.0f)

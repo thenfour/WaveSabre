@@ -189,7 +189,7 @@ namespace WaveSabreCore
 
 	// plays through the buffer,
 	// handling events and processing audio in sub-chunks broken up by events.
-	void Maj7SynthDevice::Run(double songPosition, float **inputs, float **__outputs, int numSamples)
+	void Maj7SynthDevice::Run(float **inputs, float **__outputs, int numSamples)
 	{
 		clearOutputs(__outputs, numSamples);
 
@@ -256,14 +256,14 @@ namespace WaveSabreCore
 				++iEvent;
 			}
 
-			this->ProcessBlock(songPosition, runningOutputs, samplesToNextEvent);
+			this->ProcessBlock(runningOutputs, samplesToNextEvent);
 
 			// advance a virtual cursor
 			for (int i = iEvent; i < mEventCount; i++)
 			{
 				mEvents[i].DeltaSamples -= samplesToNextEvent;
 			}
-			songPosition += (double)samplesToNextEvent / Helpers::CurrentSampleRate;
+			//songPosition += (double)samplesToNextEvent / Helpers::CurrentSampleRate;
 			runningOutputs[0] += samplesToNextEvent;
 			runningOutputs[1] += samplesToNextEvent;
 			numSamples -= samplesToNextEvent;

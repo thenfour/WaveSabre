@@ -373,12 +373,12 @@ namespace WaveSabreCore
 
 			}
 
-			virtual void ProcessBlock(double songPosition, float* const* const outputs, int numSamples) override
+			virtual void ProcessBlock(float* const* const outputs, int numSamples) override
 			{
-				ProcessBlock(songPosition, outputs, numSamples, false);
+				ProcessBlock(outputs, numSamples, false);
 			}
 
-			void ProcessBlock(double songPosition, float* const* const outputs, int numSamples, bool forceAllVoicesToProcess)
+			void ProcessBlock(float* const* const outputs, int numSamples, bool forceAllVoicesToProcess)
 			{
 				bool sourceEnabled[gSourceCount];
 
