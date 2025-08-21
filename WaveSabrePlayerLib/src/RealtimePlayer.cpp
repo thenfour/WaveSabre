@@ -31,15 +31,15 @@ namespace WaveSabrePlayerLib
         new DirectSoundRenderThread(renderCallback, this, WaveSabreCore::Helpers::CurrentSampleRateI, bufferSizeMs);
 	}
 
-	int RealtimePlayer::GetTempo() const
-	{
-		return songRenderer->GetTempo();
-	}
+	//int RealtimePlayer::GetTempo() const
+	//{
+	//	return songRenderer->GetTempo();
+	//}
 
-	int RealtimePlayer::GetSampleRate() const
-	{
-		return WaveSabreCore::Helpers::CurrentSampleRateI;  // songRenderer->GetSampleRate();
-	}
+	//int RealtimePlayer::GetSampleRate() const
+	//{
+	//	return WaveSabreCore::Helpers::CurrentSampleRateI;  // songRenderer->GetSampleRate();
+	//}
 
 	double RealtimePlayer::GetLength() const
 	{

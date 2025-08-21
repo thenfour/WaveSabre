@@ -15,8 +15,8 @@ namespace WaveSabrePlayerLib
 
 		virtual void Play();
 		
-		virtual int GetTempo() const;
-		virtual int GetSampleRate() const;
+		//virtual int GetTempo() const;
+		//virtual int GetSampleRate() const;
 		virtual double GetLength() const;
 		virtual double GetSongPos() const;
 

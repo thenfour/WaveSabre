@@ -880,10 +880,10 @@ namespace WaveSabrePlayerLib
 			}
 		}
 
-		int GetTempo() const
-		{
-			return bpm;
-		}
+		//int GetTempo() const
+		//{
+		//	return bpm;
+		//}
 		//int GetSampleRate() const
 		//{
 		//	return sampleRate;

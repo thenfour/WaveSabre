@@ -6,7 +6,7 @@ namespace WaveSabrePlayerLib
 	{
 		SongRenderer songRenderer(song, numRenderThreads);
 
-		tempo = songRenderer.GetTempo();
+		//tempo = songRenderer.GetTempo();
 		//sampleRate = songRenderer.GetSampleRate();
 		length = songRenderer.GetLength();
 
@@ -56,18 +56,18 @@ namespace WaveSabrePlayerLib
 
 		playbackBufferIndex = 0;
 
-		renderThread = new DirectSoundRenderThread(renderCallback, this, sampleRate, playbackBufferSizeMs);
+		renderThread = new DirectSoundRenderThread(renderCallback, this, WaveSabreCore::Helpers::CurrentSampleRateI, playbackBufferSizeMs);
 	}
 
-	int PreRenderPlayer::GetTempo() const
-	{
-		return tempo;
-	}
+	//int PreRenderPlayer::GetTempo() const
+	//{
+	//	return tempo;
+	//}
 
-	int PreRenderPlayer::GetSampleRate() const
-	{
-		return sampleRate;
-	}
+	//int PreRenderPlayer::GetSampleRate() const
+	//{
+	//	return sampleRate;
+	//}
 
 	double PreRenderPlayer::GetLength() const
 	{
