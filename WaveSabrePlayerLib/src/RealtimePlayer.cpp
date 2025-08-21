@@ -27,7 +27,8 @@ namespace WaveSabrePlayerLib
 			delete songRenderer;
 
 		songRenderer = new SongRenderer(song, numRenderThreads);
-		renderThread = new DirectSoundRenderThread(renderCallback, this, HARD_CODED_SAMPLE_RATE, bufferSizeMs);
+    renderThread =
+        new DirectSoundRenderThread(renderCallback, this, WaveSabreCore::Helpers::CurrentSampleRateI, bufferSizeMs);
 	}
 
 	int RealtimePlayer::GetTempo() const
@@ -37,7 +38,7 @@ namespace WaveSabrePlayerLib
 
 	int RealtimePlayer::GetSampleRate() const
 	{
-		return HARD_CODED_SAMPLE_RATE;// songRenderer->GetSampleRate();
+		return WaveSabreCore::Helpers::CurrentSampleRateI;  // songRenderer->GetSampleRate();
 	}
 
 	double RealtimePlayer::GetLength() const

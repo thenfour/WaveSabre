@@ -83,9 +83,17 @@ namespace WaveSabreCore
 	class Helpers
 	{
 	public:
-		static double CurrentSampleRate;
-		static float CurrentSampleRateF;
-		static float CurrentSampleRateRecipF;
+#ifdef MIN_SIZE_REL
+    static constexpr int CurrentSampleRateI = 44100;
+    static constexpr float CurrentSampleRateF = CurrentSampleRateI;
+    static constexpr double CurrentSampleRate = CurrentSampleRateI;
+    static constexpr float CurrentSampleRateRecipF = 1.0f / CurrentSampleRateF;
+#else
+    static double CurrentSampleRateI;
+    static double CurrentSampleRate;
+    static float CurrentSampleRateF;
+    static float CurrentSampleRateRecipF;
+#endif  // MIN_SIZE_REL
 
 		static int CurrentTempo;
 		//static int RandomSeed;
@@ -94,29 +102,29 @@ namespace WaveSabreCore
 
 		//static float RandFloat();
 
-		static double Exp2(double x);
-		static float Exp2F(float x);
+		//static double Exp2(double x);
+		//static float Exp2F(float x);
 
-		static inline float Exp10F(float x)
-		{
-			const float scale = (float)(M_LN10 / M_LN2);
-			return Exp2F(x * scale);
-		}
+		//static inline float Exp10F(float x)
+		//{
+		//	static constexpr float scale = (float)(M_LN10 / M_LN2);
+		//	return Exp2F(x * scale);
+		//}
 
-		static inline double Pow2(double x)
-		{
-			return x * x;
-		}
+		//static inline double Pow2(double x)
+		//{
+		//	return x * x;
+		//}
 
-		static inline double Pow4(double x)
-		{
-			return Pow2(Pow2(x));
-		}
+		//static inline double Pow4(double x)
+		//{
+		//	return Pow2(Pow2(x));
+		//}
 
-		static inline float Pow2F(float x)
-		{
-			return x * x;
-		}
+		//static inline float Pow2F(float x)
+		//{
+		//	return x * x;
+		//}
 
 		//static double FastCos(double x);
 		//static double FastSin(double x);
@@ -137,11 +145,11 @@ namespace WaveSabreCore
 		//static float VolumeToScalar(float volume);
 		//static float ScalarToVolume(float scalar);
 
-		static bool ParamToBoolean(float value);
-		static float BooleanToParam(bool b);
+		//static bool ParamToBoolean(float value);
+		//static float BooleanToParam(bool b);
 
-		static float ParamToFrequency(float param);
-		static float FrequencyToParam(float freq);
+		//static float ParamToFrequency(float param);
+		//static float FrequencyToParam(float freq);
 
 		//static float ParamToQ(float param);
 		//static float QToParam(float q);

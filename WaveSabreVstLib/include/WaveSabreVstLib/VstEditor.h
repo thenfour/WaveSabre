@@ -193,13 +193,17 @@ public:
     ImGui::BeginGroup();
     ImGui::PushID(id);
     float paramValue = GetEffectX()->getParameter((VstInt32)paramId);
-    bool bval = ::WaveSabreCore::Helpers::ParamToBoolean(paramValue);
+    M7::QuickParam p{paramValue};
+    
+    bool bval = p.GetBoolValue();
+
     bool r = false;
     ImGui::Text(GetRenderedTextFromID(id).c_str());
     r = ImGui::Checkbox("##cb", &bval);
     if (r) {
+      p.SetBoolValue(bval);
       GetEffectX()->setParameterAutomated(
-          paramId, ::WaveSabreCore::Helpers::BooleanToParam(bval));
+          paramId, p.GetRawValue());
     }
     ImGui::PopID();
     ImGui::EndGroup();

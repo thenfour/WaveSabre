@@ -97,9 +97,13 @@ namespace cc
 
 namespace WaveSabreCore
 {
+#ifndef MIN_SIZE_REL
+	int Helpers::CurrentSampleRateI = 44100;
 	double Helpers::CurrentSampleRate = 44100.0;
 	float Helpers::CurrentSampleRateF = 44100.0f;
 	float Helpers::CurrentSampleRateRecipF = 1.0f/44100.0f;
+#endif  // MIN_SIZE_REL
+
 	int Helpers::CurrentTempo = 120;
 	//int Helpers::RandomSeed = 1;
 
@@ -125,14 +129,14 @@ namespace WaveSabreCore
 	//	return (float)((RandomSeed *= 0x15a4e35) % 255) / 255.0f;
 	//}
 
-	double Helpers::Exp2(double x)
-	{
-		return (double)M7::math::pow2((float)x);
-	}
-	float Helpers::Exp2F(float x)
-	{
-		return M7::math::pow2(x);
-	}
+	//double Helpers::Exp2(double x)
+	//{
+	//	return (double)M7::math::pow2((float)x);
+	//}
+	//float Helpers::Exp2F(float x)
+	//{
+	//	return M7::math::pow2(x);
+	//}
 	//
 //	float Helpers::Exp2F(float x)
 //	{
@@ -229,25 +233,25 @@ namespace WaveSabreCore
 	//	return sqrtf(scalar) / .4f;
 	//}
 
-	bool Helpers::ParamToBoolean(float value)
-	{
-		return value >= .5f;
-	}
+	//bool Helpers::ParamToBoolean(float value)
+	//{
+	//	return value >= .5f;
+	//}
 
-	float Helpers::BooleanToParam(bool b)
-	{
-		return b ? 1.0f : 0.0f;
-	}
+	//float Helpers::BooleanToParam(bool b)
+	//{
+	//	return b ? 1.0f : 0.0f;
+	//}
 
-	float Helpers::ParamToFrequency(float param)
-	{
-		return 20.0f + (20000.0f - 20.0f) * param * param;
-	}
+	//float Helpers::ParamToFrequency(float param)
+	//{
+	//	return 20.0f + (20000.0f - 20.0f) * param * param;
+	//}
 
-	float Helpers::FrequencyToParam(float freq)
-	{
-		return sqrtf((freq - 20.0f) / (20000.0f - 20.0f));
-	}
+	//float Helpers::FrequencyToParam(float freq)
+	//{
+	//	return sqrtf((freq - 20.0f) / (20000.0f - 20.0f));
+	//}
 
 	// https://www.desmos.com/calculator/23rsmykjp9
 	//// input [0,1], output [.33,12]

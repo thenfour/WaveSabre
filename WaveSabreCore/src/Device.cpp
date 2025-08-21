@@ -24,13 +24,15 @@ namespace WaveSabreCore
 	void Device::NoteOn(int note, int velocity, int deltaSamples) { }
 	void Device::NoteOff(int note, int deltaSamples) { }
 
+#ifndef MIN_SIZE_REL
 	void Device::SetSampleRate(float sampleRate)
 	{
+		Helpers::CurrentSampleRateI = (int)sampleRate;
 		Helpers::CurrentSampleRate = (double)sampleRate;
 		Helpers::CurrentSampleRateF = sampleRate;
 		Helpers::CurrentSampleRateRecipF = 1.0f / sampleRate;
 	}
-
+#endif
 	void Device::SetTempo(int tempo)
 	{
 		Helpers::CurrentTempo = tempo;

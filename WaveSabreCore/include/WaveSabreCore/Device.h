@@ -25,7 +25,9 @@ namespace WaveSabreCore
 		virtual void MidiCC(int ccNumber, int rawValue, int deltaSamples) {};
 		virtual void PitchBend(int lsb, int msb, int deltaSamples) {};
 
-		void SetSampleRate(float sampleRate);
+#ifndef MIN_SIZE_REL
+	    void SetSampleRate(float sampleRate);
+#endif
 		void SetTempo(int tempo);
 		virtual void OnParamsChanged() {} // like Reaper's @slider section, run when params have changed. means you don't have to override setparam() to do that kind of recalcing.
 		virtual void SetParam(int index, float value) {

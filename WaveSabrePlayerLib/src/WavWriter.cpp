@@ -16,11 +16,12 @@ namespace WaveSabrePlayerLib
 
 	void WavWriter::Write(const char *fileName, ProgressCallback callback, void *data)
 	{
-		static constexpr int sampleRate = HARD_CODED_SAMPLE_RATE;// songRenderer->GetSampleRate();
-		const int bitsPerSample = sizeof(SongRenderer::Sample) * 8;
+		//static constexpr int sampleRate = HARD_CODED_SAMPLE_RATE;// songRenderer->GetSampleRate();
+		constexpr int bitsPerSample = sizeof(SongRenderer::Sample) * 8;
 
-		const int stepSize = 100 * SongRenderer::NumChannels;
-		int numSamples = (int)((double)(sampleRate * SongRenderer::NumChannels) * songRenderer->GetLength()) / stepSize * stepSize;
+		constexpr int stepSize = 100 * SongRenderer::NumChannels;
+    constexpr int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
+		int numSamples = (int)(z * songRenderer->GetLength()) / stepSize * stepSize;
 
 		auto file = fopen(fileName, "wb");
 
@@ -36,8 +37,8 @@ namespace WaveSabrePlayerLib
 		writeInt(16, file);
 		writeShort(WAVE_FORMAT_PCM, file);
 		writeShort(SongRenderer::NumChannels, file);
-		writeInt(sampleRate, file);
-		writeInt(sampleRate * SongRenderer::NumChannels * bitsPerSample / 8, file);
+    writeInt(WaveSabreCore::Helpers::CurrentSampleRateI, file);
+    writeInt(WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels * bitsPerSample / 8, file);
 		writeShort(SongRenderer::NumChannels * bitsPerSample / 8, file);
 		writeShort(bitsPerSample, file);
 

@@ -10,7 +10,7 @@ namespace WSPlayerApp
 {
 
     // set this in order to use WSTime
-    static constexpr DWORD gSampleRate = HARD_CODED_SAMPLE_RATE;
+    //static constexpr DWORD gSampleRate = HARD_CODED_SAMPLE_RATE;
 
     //#define WM_WRITEWAV (WM_APP + 1)
 #define WM_RENDERINGCOMPLETE (WM_APP + 2)
@@ -73,7 +73,7 @@ namespace WSPlayerApp
         WSTime() {}
         static int32_t MillisecondsToFrames(int32_t ms)
         {
-            return MulDiv(ms, gSampleRate, 1000);
+          return MulDiv(ms, WaveSabreCore::Helpers::CurrentSampleRateI, 1000);
             // this will overflow for even moderate ms amounts. need to be careful. for example a 10 minute value
             // = 60 sec = 60000 ms * 44100 = 2,646,000,000, overflowing. so assume the samplerate is a multiple of 10.
             // 2,147,483,647
@@ -88,7 +88,7 @@ namespace WSPlayerApp
             return int32_t(mFrames * 2);
         }
         int32_t GetMilliseconds() const {
-            return MulDiv(mFrames, 1000, gSampleRate);
+          return MulDiv(mFrames, 1000, WaveSabreCore::Helpers::CurrentSampleRateI);
         }
         int32_t GetBytes() const {
             static_assert(std::is_same_v<WaveSabrePlayerLib::SongRenderer::Sample, int16_t>, "assuming 16-bit sample format");

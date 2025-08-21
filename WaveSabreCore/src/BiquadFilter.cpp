@@ -53,7 +53,7 @@ namespace WaveSabreCore
 		// NB: frequency params typically go down to like 31.25hz or so. catch that to give the user the option of bypassing.
 		freq = M7::math::clamp(freq, 32, 20000);
 
-		const float A = Helpers::Exp10F(gain / 40.0f);
+		const float A = M7::math::DecibelsToLinear(gain);
 
 		const float w0 = M7::math::gPITimes2 * freq * Helpers::CurrentSampleRateRecipF;
 		const float alpha = M7::math::sin(w0) / (q * 2);
@@ -123,7 +123,7 @@ namespace WaveSabreCore
 	float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
 	{
 		// Use normalized coefficients (a0 == 1)
-		const double w = 2.0 * 3.14159265358979323846 * double(freqHz) / double(Helpers::CurrentSampleRate);
+		const double w = 2.0 * 3.14159265358979323846 * double(freqHz) / Helpers::CurrentSampleRate;
 		const double a1 = double(normCoeffs[1]);
 		const double a2 = double(normCoeffs[2]);
 		const double b0 = double(normCoeffs[3]);

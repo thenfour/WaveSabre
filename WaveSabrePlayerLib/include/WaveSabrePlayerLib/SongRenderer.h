@@ -3,7 +3,7 @@
 #include <new>     // for placement new
 #include <WaveSabreCore.h>
 
-#define HARD_CODED_SAMPLE_RATE 44100
+//#define HARD_CODED_SAMPLE_RATE 44100
 
 
 // Leaving this profiling code here because it was pretty useful during development & optimization of the new graph runner.
@@ -494,7 +494,7 @@ namespace WaveSabrePlayerLib
 				this->songRenderer = songRenderer;
 
 				for (int i = 0; i < numBuffers; i++) {
-					Buffers[i] = new float[HARD_CODED_SAMPLE_RATE];// songRenderer->sampleRate];
+					Buffers[i] = new float[WaveSabreCore::Helpers::CurrentSampleRateI];// songRenderer->sampleRate];
 				}
 
 				volume = ds.ReadFloat();
@@ -628,7 +628,7 @@ namespace WaveSabrePlayerLib
 			}
 
 		private:
-			static const int numBuffers = 4;
+			static constexpr int numBuffers = 4;
 		public:
 			float* Buffers[numBuffers];
 
@@ -748,7 +748,7 @@ namespace WaveSabrePlayerLib
 			{
 				auto& d = devices[i];
 				d = song->factory((DeviceId)ds.ReadUByte());
-				d->SetSampleRate(HARD_CODED_SAMPLE_RATE);// (float)sampleRate);
+				//d->SetSampleRate(HARD_CODED_SAMPLE_RATE);// (float)sampleRate);
 				d->SetTempo(bpm);
 				int chunkSize = ds.ReadVarUInt32();
 				const uint8_t* expectedCursor = ds.mpCursor + chunkSize;

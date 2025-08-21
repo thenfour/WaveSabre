@@ -50,14 +50,16 @@ namespace WSPlayerApp
 
             gSongLength.SetMilliseconds(WaveSabreCore::M7::math::DoubleToLong(gpRenderer->GetLength() * 1000));
             static_assert(SongRenderer::NumChannels == 2, "everything here assumes stereo");
-            gAllocatedSampleCount = gSongLength.GetStereoSamples() + (gSampleRate * 2); // allocate more than the song requires for good measure.
+            gAllocatedSampleCount = gSongLength.GetStereoSamples() +
+                                    (WaveSabreCore::Helpers::CurrentSampleRateI *
+                                     2);  // allocate more than the song requires for good measure.
             gpBuffer = new SongRenderer::Sample[gAllocatedSampleCount];
             auto bufferSizeBytes = gAllocatedSampleCount * sizeof(SongRenderer::Sample);
             memset(gpBuffer, 0, bufferSizeBytes);
 
             WaveFMT.wFormatTag = WAVE_FORMAT_PCM;
             WaveFMT.nChannels = 2;
-            WaveFMT.nSamplesPerSec = gSampleRate;
+            WaveFMT.nSamplesPerSec = WaveSabreCore::Helpers::CurrentSampleRateI;
             WaveFMT.wBitsPerSample = sizeof(SongRenderer::Sample) * 8;
             WaveFMT.nBlockAlign = (WaveFMT.nChannels * WaveFMT.wBitsPerSample) / 8;
             WaveFMT.nAvgBytesPerSec = WaveFMT.nSamplesPerSec * WaveFMT.nBlockAlign;
