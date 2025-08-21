@@ -126,15 +126,17 @@ namespace WaveSabreConvert
         {
             var bite = bitRangeStart >> 3;
             var offsetInByte = ( bitRangeStart & 7 );
-            var mask = ~(((  0xffffffff) << (32 - numBits)) >> (32 - numBits));
+            //var mask = ~(((  0xffffffff) << (32 - numBits)) >> (32 - numBits));
+            uint mask = ~(((0xFFFFFFFFu << (32 - numBits)) >> (32 - numBits)));
 
             while (numBits > 0 && bite < size)
             {
                 var bitsThisTime = Math.Min( numBits, 8 - offsetInByte);
-                var tempMask = (mask << offsetInByte) | ~(((0xffffffff) >> offsetInByte) << offsetInByte);
-                var tempBits = bitsToSet << offsetInByte;
+                uint tempMask = (mask << offsetInByte) | ~(((0xffffffff) >> offsetInByte) << offsetInByte);
+                uint tempBits = ((uint)bitsToSet << offsetInByte) & 0xFFu;
 
                 data[bite] = (byte)((data[bite] & tempMask) | tempBits);
+
                 ++bite;
                 numBits -= bitsThisTime;
                 bitsToSet >>= bitsThisTime;
