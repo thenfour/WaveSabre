@@ -606,6 +606,13 @@ namespace WaveSabreCore
       return {a.x[0] * aLin + b.x[0] * bLin, a.x[1] * aLin + b.x[1] * bLin};
     }
 
+            //FloatPair FloatPair::MSEncode() const {
+            //    return {
+            //        (x[0] + x[1]) * math::gSqrt2Recip,
+            //        (x[0] - x[1]) * math::gSqrt2Recip
+            //    };
+            //}
+
 
 	} // namespace M7
 

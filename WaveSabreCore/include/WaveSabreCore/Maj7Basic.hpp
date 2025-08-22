@@ -186,16 +186,42 @@ namespace WaveSabreCore
                 x[0] += m.x[0];
                 x[1] += m.x[1];
             }
+            [[nodiscard]]
             float Left() const
             {
               return x[0];
             }
+            [[nodiscard]]
             float Right() const
             {
               return x[1];
             }
+            [[nodiscard]]
+            float Mid() const
+            {
+              return x[0];
+            }
+            [[nodiscard]]
+            float Side() const
+            {
+              return x[1];
+            }
 
+            // hm this is a weird function actually... not sure it should be expressed this way.
             static FloatPair Mix(const FloatPair& a, const FloatPair& b, float aLin, float bLin);
+
+        [[nodiscard]]
+            FloatPair MSEncode() const {
+                return {
+                    (x[0] + x[1]) * math::gSqrt2Recip,
+                    (x[0] - x[1]) * math::gSqrt2Recip
+                };
+            }
+
+            [[nodiscard]]
+            FloatPair MSDecode() const {
+                return MSEncode();
+            }
         };
 
 
@@ -638,15 +664,15 @@ namespace WaveSabreCore
         }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-        inline void MSEncode(float left, float right, float* mid, float* side) {
-            *mid = (left + right) * math::gSqrt2Recip;
-            *side = (left - right) * math::gSqrt2Recip;
-        }
+        // inline void MSEncode(float left, float right, float* mid, float* side) {
+        //     *mid = (left + right) * math::gSqrt2Recip;
+        //     *side = (left - right) * math::gSqrt2Recip;
+        // }
 
-        inline void MSDecode(float mid, float side, float* left, float* right) {
-            *left = (mid + side) * math::gSqrt2Recip;
-            *right = (mid - side) * math::gSqrt2Recip;
-        }
+        // inline void MSDecode(float mid, float side, float* left, float* right) {
+        //     *left = (mid + side) * math::gSqrt2Recip;
+        //     *right = (mid - side) * math::gSqrt2Recip;
+        // }
 
         // AA correction polynomial to be added THIS sample.
         // x is 0-1 samples after the discontinuity.

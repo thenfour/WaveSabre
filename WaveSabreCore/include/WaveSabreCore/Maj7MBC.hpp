@@ -381,18 +381,19 @@ struct Maj7MBC : public Device
         }
 
         // Apply Mid/Side balance exactly like Maj7Width
-        float mid, side;
-        M7::MSEncode(output.x[0], output.x[1], &mid, &side);
+        auto ms = output.MSEncode();
+        //M7::MSEncode(output.x[0], output.x[1], &mid, &side);
         float msbal = mMidSideMixN11;
         if (msbal < 0.0f)
         {
-          side *= (msbal + 1.0f); // reduce side when negative
+          ms.x[1] *= (msbal + 1.0f); // reduce side when negative
         }
         else if (msbal > 0.0f)
         {
-          mid *= (1.0f - msbal); // reduce mid when positive
+          ms.x[0] *= (1.0f - msbal); // reduce mid when positive
         }
-        M7::MSDecode(mid, side, &output.x[0], &output.x[1]);
+        //M7::MSDecode(mid, side, &output.x[0], &output.x[1]);
+        output = ms.MSDecode();
 
         // Apply equal-power pan with compensation (same as Maj7Width)
         output.x[0] *= mPanGains.x[0] * M7::math::gPanCompensationGainLin;

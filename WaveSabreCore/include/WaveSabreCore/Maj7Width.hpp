@@ -106,26 +106,26 @@ namespace WaveSabreCore
 				Rotate2(left, right, ParamIndices::RotationAngle);
 #endif // MAJ7WIDTH_FULL_FEATURE
 
-				float mid;
-				float side;
-				M7::MSEncode(left, right, &mid, &side);
+				auto ms = M7::FloatPair{left, right}.MSEncode();
 
 				// hp on side channel
-				side = mFilter.ProcessSample(side);
+				ms.x[1] = mFilter.ProcessSample(ms.Side());
 				float msbal = mParams.GetN11Value(ParamIndices::MidSideBalance, 0);
 				if (msbal < 0) {
 					// reduce side
-					side *= msbal + 1.0f;
+					ms.x[1] *= msbal + 1.0f;
 				}
 				if (msbal > 0) {
-					mid *= 1.0f - msbal;
+					ms.x[0] *= 1.0f - msbal;
 				}
 
-				M7::MSDecode(mid, side, &left, &right);
-				left *= gains.x[0] * masterLinearGain;
-				outputs[0][i] = left;
-				right *= gains.x[1] * masterLinearGain;
-				outputs[1][i] = right;
+				auto output = ms.MSDecode() * masterLinearGain;
+
+				//M7::MSDecode(mid, side, &left, &right);
+				//left *= gains.x[0] * masterLinearGain;
+				outputs[0][i] = output.Left();
+				//right *= gains.x[1] * masterLinearGain;
+				outputs[1][i] = output.Right();
 
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
