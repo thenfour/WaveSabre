@@ -154,6 +154,12 @@ public:
 			p.SetRawVal(Param::HighPassFrequency, defaults.GetRawVal(Param::HighPassFrequency));
 			p.SetRawVal(Param::HighPassQ, defaults.GetRawVal(Param::HighPassQ));
 			p.SetRawVal(Param::SidechainFilterEnable, defaults.GetRawVal(Param::SidechainFilterEnable));
+		  p.SetRawVal(Param::LowPassFrequency, defaults.GetRawVal(Param::LowPassFrequency));
+		  p.SetRawVal(Param::LowPassQ, defaults.GetRawVal(Param::LowPassQ));
+		  p.SetRawVal(Param::DryWet, defaults.GetRawVal(Param::DryWet));
+		  p.SetRawVal(Param::Drive, defaults.GetRawVal(Param::Drive));
+		  p.SetRawVal(Param::MidSideMix, defaults.GetRawVal(Param::MidSideMix));
+		  p.SetRawVal(Param::Pan, defaults.GetRawVal(Param::Pan));
 		}
 	}
 };

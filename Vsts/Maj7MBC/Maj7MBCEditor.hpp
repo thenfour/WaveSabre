@@ -169,6 +169,9 @@ struct Maj7MBCEditor : public VstEditor
 					ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Makeup", M7::gVolumeCfg24db, 0, {});
 					ImGui::SameLine(); Maj7ImGuiParamFloat01(param(BandParam::DryWet), "Dry-Wet", 1.0f, 0);
 
+					ImGui::SameLine(0,40); Maj7ImGuiParamFloatN11(param(BandParam::MidSideMix), "Width", 0, 0, {});
+					ImGui::SameLine(); Maj7ImGuiParamFloatN11(param(BandParam::Pan), "Pan", 0, 0, {});
+
 					// turns out these aren't so useful.
 					//if (mbEnabled)
 					//{
@@ -832,7 +835,7 @@ public:
 					 ColorFromHTML("ffff00"), // line clipped
 					 ColorFromHTML("444444"), // tick
 					}, [&](float x) {
-						return Maj7MBC::Softclip(x, softClipThreshLin, 1)[0];
+					return Maj7MBC::Softclip(x, softClipThreshLin, 1)[0];
 					});
 
 

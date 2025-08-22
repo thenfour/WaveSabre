@@ -82,6 +82,7 @@ struct Maj7MBC : public Device
     BMidSideMix,
     BPan,
     BDryWet,
+
     CInputGain,
     COutputGain,
     CThreshold,
@@ -100,6 +101,7 @@ struct Maj7MBC : public Device
     CMidSideMix,
     CPan,
     CDryWet,
+
     NumParams,
   };
 
@@ -196,9 +198,9 @@ struct Maj7MBC : public Device
       32767,  // ALPF = 0
       14563,  // ALPQ = 0.444427490234375
       0,      // ADrive = 0.125885009765625
+      32767,  // ADryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
-      32767,  // ADryWet = 0.999969482421875
       8230,   // BInVol = 0.25115966796875
       8230,   // BOutVol = 0.25115966796875
       21845,  // BThresh = 0.666656494140625
@@ -214,9 +216,9 @@ struct Maj7MBC : public Device
       32767,  // BLPF = 0
       14563,  // BLPQ = 0.444427490234375
       0,      // BDrive = 0.125885009765625
+      32767,  // BDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
-      32767,  // BDryWet = 0.999969482421875
       8230,   // CInVol = 0.25115966796875
       8230,   // COutVol = 0.25115966796875
       21845,  // CThresh = 0.666656494140625
@@ -232,9 +234,9 @@ struct Maj7MBC : public Device
       32767,  // CLPF = 0
       14563,  // CLPQ = 0.444427490234375
       0,      // CDrive = 0.125885009765625
+      32767,  // CDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
-      32767,  // CDryWet = 0.999969482421875
   };
 
 
@@ -275,6 +277,9 @@ struct Maj7MBC : public Device
     float mInputGainLin;
     float mOutputGainLin;
     float mDryWetMix;
+    // cached imaging params
+    float mMidSideMixN11 = 0.0f; // -1..+1
+    M7::FloatPair mPanGains{1.0f, 1.0f};
 
     FreqBand(float* paramCache, ParamIndices baseParamID)
         :  //
@@ -310,6 +315,13 @@ struct Maj7MBC : public Device
 
       // tanh gain compensation is not perfect, but experimentally this works quite well.
       mDriveGainCompensationFact = M7::math::CalcTanhGainCompensation(mDriveLin);
+
+      // cache imaging params
+      mMidSideMixN11 = mParams.GetN11Value(BandParam::MidSideMix, 0);
+      {
+        float panN11 = mParams.GetN11Value(BandParam::Pan, 0);
+        mPanGains = M7::math::PanToFactor(panN11);
+      }
 
       for (auto& c : mComp)
       {
@@ -361,12 +373,38 @@ struct Maj7MBC : public Device
           if (isGuiVisible)
           {
             mInputAnalysis[ich].WriteSample(inpAudio);
-            mOutputAnalysis[ich].WriteSample(finalSignal);
+            // move mOutputAnalysis write after stereo transforms
             mDetectorAnalysis[ich].WriteSample(detector);
             mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
           }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
         }
+
+        // Apply Mid/Side balance exactly like Maj7Width
+        float mid, side;
+        M7::MSEncode(output.x[0], output.x[1], &mid, &side);
+        float msbal = mMidSideMixN11;
+        if (msbal < 0.0f)
+        {
+          side *= (msbal + 1.0f); // reduce side when negative
+        }
+        else if (msbal > 0.0f)
+        {
+          mid *= (1.0f - msbal); // reduce mid when positive
+        }
+        M7::MSDecode(mid, side, &output.x[0], &output.x[1]);
+
+        // Apply equal-power pan with compensation (same as Maj7Width)
+        output.x[0] *= mPanGains.x[0] * M7::math::gPanCompensationGainLin;
+        output.x[1] *= mPanGains.x[1] * M7::math::gPanCompensationGainLin;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+        if (isGuiVisible)
+        {
+          mOutputAnalysis[0].WriteSample(output.x[0]);
+          mOutputAnalysis[1].WriteSample(output.x[1]);
+        }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
       }  // ENABLE
       else
       {
