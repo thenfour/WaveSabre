@@ -5,28 +5,9 @@
 
 namespace WaveSabreCore
 {
-	//AllPass::AllPass()
-	//{
-	//	buffer = nullptr;
-	//	bufferIndex = 0;
-	//}
-
-	//AllPass::~AllPass()
-	//{
-	//	if (buffer) delete[] buffer;
-	//}
-
 	void AllPass::SetBufferSize(int size)
 	{
 		mBuffer.SetLengthSamples(size);
-		//if (size < 1) size = 1;
-		//bufferSize = size;
-		//auto newBuffer = new float[size];
-		//for (int i = 0; i < size; i++) newBuffer[i] = 0.0f;
-		//bufferIndex = 0;
-		//auto oldBuffer = buffer;
-		//buffer = newBuffer;
-		//if (oldBuffer) delete[] oldBuffer;
 	}
 
 	void AllPass::SetFeedback(float value)
@@ -34,23 +15,15 @@ namespace WaveSabreCore
 		feedback = value;
 	}
 
-	//float AllPass::GetFeedback()
-	//{
-	//	return feedback;
-	//}
-
 	float AllPass::Process(float input)
 	{
 		float output;
 		float bufferOut;
 
-		bufferOut = mBuffer.PeekAtCursor();// buffer[bufferIndex];
+		bufferOut = mBuffer.PeekAtCursor();
 
 		output = -input + bufferOut;
 		mBuffer.WriteAndAdvance(input + (bufferOut * feedback));
-		//buffer[bufferIndex] = input + (bufferOut * feedback);
-
-		//bufferIndex = (bufferIndex + 1) % bufferSize;
 
 		return output;
 	}

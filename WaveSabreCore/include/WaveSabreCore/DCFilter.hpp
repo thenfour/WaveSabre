@@ -1,13 +1,6 @@
 #pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/BiquadFilter.h>
-#include "Maj7ModMatrix.hpp"
-#include "Filters/FilterMoog.hpp"
-#include "Filters/FilterOnePole.hpp"
-#include <array>
-#include "SVFilter.hpp"
-
 
 namespace WaveSabreCore
 {

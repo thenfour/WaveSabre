@@ -194,10 +194,10 @@ namespace WaveSabreCore
             // non-periodic.
             struct LUT01
             {
-                const size_t mNSamples;
-                float* mpTable;
+                //const size_t mNSamples;
+              float mpTable[gLutSize1D];
 
-                LUT01(size_t nSamples, float (*fn)(float));
+                LUT01( /*size_t nSamples, */float (*fn)(float));
                 //#ifdef MIN_SIZE_REL
                 //#else
                 //                virtual ~LUT01();
@@ -207,7 +207,7 @@ namespace WaveSabreCore
 
             struct SinCosLUT : public LUT01
             {
-                SinCosLUT(size_t nSamples, float (*fn)(float));
+                SinCosLUT(/*size_t nSamples,*/ float (*fn)(float));
 
                 virtual float Invoke(float x) const override;
             };
@@ -215,16 +215,17 @@ namespace WaveSabreCore
             // tanh approaches -1 before -PI, and +1 after +PI. so squish the range and do a 0,1 LUT mapping from -PI,PI
             struct TanHLUT : public LUT01
             {
-                TanHLUT(size_t nSamples);
+                TanHLUT(/*size_t nSamples*/);
                 virtual float Invoke(float x) const override;
             };
 
             struct LUT2D {
-                size_t mNSamplesX;
-                size_t mNSamplesY;
-                float* mpTable;
+                //size_t mNSamplesX;
+                //size_t mNSamplesY;
+                //float* mpTable;
+              float mpTable[gLutSize2D * gLutSize2D];
 
-                LUT2D(size_t nSamplesX, size_t nSamplesY, float (*fn)(float, float));
+                LUT2D(float (*fn)(float, float));
                 //#ifdef MIN_SIZE_REL
                 //#else
                 //                virtual ~LUT2D();
@@ -243,7 +244,7 @@ namespace WaveSabreCore
                 static real_t modCurve_xN11_kN11_RT(real_t x, real_t k);
 
                 // incoming values should support -1,1 and output -1,1
-                CurveLUT(size_t nSamples);
+                CurveLUT();
 
                 // user passes in n11 values; need to map N11 to 01
                 virtual float Invoke(float xN11, float yN11) const override;
@@ -253,7 +254,7 @@ namespace WaveSabreCore
             // the range of `n` is [-15,+15] but depends on frequency param scale. so let's extend a bit and make a huge lut.
             struct Pow2_N16_16_LUT : public LUT01
             {
-                Pow2_N16_16_LUT(size_t nSamples);
+                Pow2_N16_16_LUT(/*size_t nSamples*/);
                 virtual float Invoke(float x) const override;
             };
 
