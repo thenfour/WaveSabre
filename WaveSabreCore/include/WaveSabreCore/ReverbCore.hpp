@@ -1,3 +1,5 @@
+#pragma once
+
 #include "AllPass.h"
 #include "Comb.h"
 #include "DelayBuffer.h"

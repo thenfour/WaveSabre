@@ -10,7 +10,6 @@ namespace WaveSabreCore
 {
 struct Echo : public Device
 {
-  static constexpr M7::IntParamConfig gDelayCoarseCfg{0, 48};
   //static constexpr M7::IntParamConfig gDelayFineCfg{ 0, 200 };
 
   enum class ParamIndices
@@ -121,14 +120,8 @@ struct Echo : public Device
     mCore.mFeedbackLin = mParams.GetLinearVolume(ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
     mCore.mFeedbackDriveLin = mParams.GetLinearVolume(ParamIndices::FeedbackDriveDB, M7::gVolumeCfg36db, 0);
 
-    float leftBufferLengthMs =
-        DelayCore::CalcDelayMS(mParams.GetIntValue(ParamIndices::LeftDelayCoarse, gDelayCoarseCfg),
-                               mParams.GetN11Value(ParamIndices::LeftDelayFine, 0),
-                               mParams.GetBipolarPowCurvedValue(ParamIndices::LeftDelayMS, M7::gEnvTimeCfg, 0));
-    float rightBufferLengthMs =
-        DelayCore::CalcDelayMS(mParams.GetIntValue(ParamIndices::RightDelayCoarse, gDelayCoarseCfg),
-                               mParams.GetN11Value(ParamIndices::RightDelayFine, 0),
-                               mParams.GetBipolarPowCurvedValue(ParamIndices::RightDelayMS, M7::gEnvTimeCfg, 0));
+    float leftBufferLengthMs = DelayCore::CalcDelayMS(mParams, (int)ParamIndices::LeftDelayCoarse);
+    float rightBufferLengthMs = DelayCore::CalcDelayMS(mParams, (int)ParamIndices::RightDelayCoarse);
 
     mCore.OnParamsChanged(leftBufferLengthMs,
                           rightBufferLengthMs,

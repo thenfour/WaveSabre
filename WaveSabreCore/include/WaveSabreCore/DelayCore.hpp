@@ -18,6 +18,8 @@ private:
   float mFeedbackDriveGainCompensationFact;
 
 public:
+  static constexpr M7::IntParamConfig gDelayCoarseCfg{0, 48};
+
   float mFeedbackLin;
   float mFeedbackDriveLin;
 
@@ -56,6 +58,7 @@ public:
     //return {dry[0] * mDryLin + delayBufferSignal[0] * mWetLin, dry[1] * mDryLin + delayBufferSignal[1] * mWetLin};
   }
 
+private:
   static float CalcDelayMS(int eighthsI, float eighths01, float msParam)
   {
     // 60000/bpm = milliseconds per beat. but we are going to be in 8 divisions per beat.
@@ -64,6 +67,15 @@ public:
     float ms = 7500.0f / Helpers::CurrentTempo * eighths;
     ms += msParam;
     return std::max(0.0f, ms);
+  }
+
+public:
+  static float CalcDelayMS(const M7::ParamAccessor& params,
+                           int eighthsIntParamOffset)
+  {
+    return DelayCore::CalcDelayMS(params.GetIntValue(eighthsIntParamOffset, gDelayCoarseCfg),
+                                  params.GetN11Value(eighthsIntParamOffset + 1, 0),
+                                  params.GetBipolarPowCurvedValue(eighthsIntParamOffset + 2, M7::gEnvTimeCfg, 0));
   }
 
   //virtual void SetParam(int index, float value) override

@@ -155,15 +155,29 @@ namespace WaveSabreCore
             const float& operator [](size_t i) const {
                 return x[i];
             }
+            [[nodiscard]]
             FloatPair add(FloatPair m)const {
                 return { x[0] + m.x[0], x[1] + m.x[1]};
             }
+            [[nodiscard]]
             FloatPair mul(float m)const {
                 return { x[0] * m, x[1] * m };
             }
+            [[nodiscard]]
             FloatPair mul(const FloatPair& m)const {
                 return { x[0] * m.x[0], x[1] * m.x[1]};
             }
+
+            [[nodiscard]]
+            FloatPair operator +(const FloatPair& m) const {
+                return add(m);
+            }
+
+            [[nodiscard]]
+            FloatPair operator *(float m) const {
+                return mul(m);
+            }
+
             void Accumulate(const float m) {
                 x[0] += m;
                 x[1] += m;
