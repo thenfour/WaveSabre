@@ -801,10 +801,16 @@ public:
   void Maj7ImGuiParamFrequency(VstInt32 paramID, VstInt32 ktParamID,
                                const char *label, M7::FreqParamConfig cfg,
                                M7::real_t defaultParamValue,
-                               ImGuiKnobs::ModInfo modInfo) {
+                               ImGuiKnobs::ModInfo modInfo, float centerValueParam01 = 0) {
     M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
     Maj7FrequencyConverter conv{cfg, ktParamID};
-    if (ImGuiKnobs::Knob(label, &tempVal, 0, 1, defaultParamValue, 0, modInfo,
+    if (ImGuiKnobs::Knob(label,
+                         &tempVal,
+                         0,
+                         1,
+                         defaultParamValue,
+                         centerValueParam01,
+                         modInfo,
                          gNormalKnobSpeed, gSlowKnobSpeed, nullptr,
                          ImGuiKnobVariant_WiperOnly, 0,
                          ImGuiKnobFlags_CustomInput, 10, &conv, this)) {

@@ -1,160 +1,71 @@
-#include <cstdint>
 #include <WaveSabreCore/Cathedral.h>
 #include <WaveSabreCore/Helpers.h>
+#include <cstdint>
 
 namespace WaveSabreCore
 {
-	Cathedral::Cathedral()
-		: Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults),
-		mParams{mParamCache, 0}
-	{
-		static constexpr int16_t CombTuning[numCombs] = { 1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617 };
-		static constexpr int16_t AllPassTuning[numAllPasses] = { 556, 441, 341, 225 };
-		static constexpr int16_t stereoSpread = 23;
-
-		for (int i = 0; i < numCombs; i++)
-		{
-			combLeft[i].SetBufferSize(CombTuning[i]);
-			combRight[i].SetBufferSize(CombTuning[i] + stereoSpread);
-		}
-
-		for (int i = 0; i < numAllPasses; i++)
-		{
-			allPassLeft[i].SetBufferSize(AllPassTuning[i]);
-			allPassRight[i].SetBufferSize(AllPassTuning[i] + stereoSpread);
-
-			// NOTE: this is never set again, so effectively it means a fixed feedback amount of 0.5.
-			allPassLeft[i].SetFeedback(/*roomSize*/0.5f);
-			allPassRight[i].SetFeedback(/*roomSize*/0.5f);
-		}
-
-		LoadDefaults();
-	}
-
-	void Cathedral::Run(float **inputs, float **outputs, int numSamples)
-	{
-		preDelayBuffer.SetLength(preDelayMS);
-
-		float dryMul = mParams.GetLinearVolume(ParamIndices::DryOut, M7::gVolumeCfg12db);
-		float wetMul = mParams.GetLinearVolume(ParamIndices::WetOut, M7::gVolumeCfg12db);
-
-		static constexpr float SVQ = 1;
-
-		for (int s = 0; s < numSamples; s++)
-		{
-			float leftInput = inputs[0][s];
-			float rightInput = inputs[1][s];
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-			if (IsGuiVisible())
-			{
-				mInputAnalysis[0].WriteSample(leftInput);
-				mInputAnalysis[1].WriteSample(rightInput);
-			}
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
-			// mono feed into the reverb network
-			float input = (leftInput + rightInput) * 0.015f;
-
-			// Pre-EQ: apply LP/HP to the signal feeding the reverb network (more typical usage)
-			input = highCutFilter[0].SVFlow(input, highCutFreq, SVQ);   // low-pass
-			input = lowCutFilter[0].SVFhigh(input, lowCutFreq, SVQ);    // high-pass
-
-			// predelay is part of the reverb network; feed it the pre-filtered signal
-			if (preDelayMS > 0)
-			{
-				preDelayBuffer.WriteSample(input);
-				input = preDelayBuffer.ReadSample();
-			}
-
-			float outL = 0;
-			float outR = 0;
-
-			// Accumulate comb filters in parallel
-			for (int i = 0; i < numCombs; i++)
-			{
-				outL += combLeft[i].Process(input);
-				outR += combRight[i].Process(input);
-			}
-
-			// Feed through allpasses in series
-			for (int i = 0; i < numAllPasses; i++)
-			{
-				outL = allPassLeft[i].Process(outL);
-				outR = allPassRight[i].Process(outR);
-			}
-
-			// Post-EQ removed; shaping is now handled at the input (pre-EQ)
-			//outL = highCutFilter[0].SVFlow(outL, highCutFreq, SVQ);
-			//outL = lowCutFilter[0].SVFhigh(outL, lowCutFreq, SVQ);
-
-			//outR = highCutFilter[1].SVFlow(outR, highCutFreq, SVQ);
-			//outR = lowCutFilter[1].SVFhigh(outR, lowCutFreq, SVQ);
-
-			//outL = outL*wet1 + outR*wet2;
-			//outR = outR*wet1 + outL*wet2;
-
-			// Width cross-mix for the wet signal (0=mono center, 1=full width)
-			float wetL = outL * wet1 + outR * wet2;
-			float wetR = outR * wet1 + outL * wet2;
-
-			outputs[0][s] = leftInput* dryMul + wetL * wetMul;
-			outputs[1][s] = rightInput * dryMul + wetR * wetMul;
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-			if (IsGuiVisible())
-			{
-				mOutputAnalysis[0].WriteSample(outputs[0][s]);
-				mOutputAnalysis[1].WriteSample(outputs[1][s]);
-			}
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
-		}
-	}
-
-	void Cathedral::OnParamsChanged()
-	{
-		//freeze = mParams.GetBoolValue(ParamIndices::Freeze);
-		roomSize = mParams.Get01Value(ParamIndices::RoomSize);
-		preDelayMS = mParams.Get01Value(ParamIndices::PreDelay) * 500.0f;
-		damp = mParams.Get01Value(ParamIndices::Damp);
-		width = mParams.Get01Value(ParamIndices::Width);
-		lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);
-		highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);
-
-		// roomsize is not a linear param.
-		roomSize = 1.0f - roomSize;
-		M7::ParamAccessor pa{&roomSize, 0};
-		float t = pa.GetDivCurvedValue(0, { 0.0f, 1.0f, 1.140f }, 0);
-		roomSize = 1.0f - t;
-		roomSize = M7::math::clamp01(roomSize);
-
-		// Width mapping: 0 -> mono center (wet1=0.5, wet2=0.5), 1 -> full width (wet1=1.0, wet2=0.0)
-		wet1 = (width * 0.5f) + 0.5f;
-		wet2 = (1.0f - width) * 0.5f;
-
-		//if (freeze)
-		//{
-		//	roomSize1 = 1;
-		//	damp1 = 0;
-		//	gain = 0.0f;
-		//}
-		//else
-		//{
-		//	roomSize1 = roomSize;
-		//	damp1 = damp;
-		//	gain = 0.015f;
-		//}
-
-		//// this does not exist in the original. it feels like it should belong but causes a lot of ringing and ugliness.
-		//for (int i = 0; i < numAllPasses; i++)
-		//{
-		//	allPassLeft[i].SetFeedback(roomSize);
-		//	allPassRight[i].SetFeedback(roomSize);
-		//}
-
-		for (int i = 0; i < numCombs; i++)
-		{
-			combLeft[i].SetParams(damp, roomSize);
-			combRight[i].SetParams(damp, roomSize);
-		}
-	}
-
+Cathedral::Cathedral()
+    : Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults)
+    , mParams{mParamCache, 0}
+{
+  LoadDefaults();
 }
+
+void Cathedral::Run(float** inputs, float** outputs, int numSamples)
+{
+  float dryMul = mParams.GetLinearVolume(ParamIndices::DryOut, M7::gVolumeCfg12db);
+  float wetMul = mParams.GetLinearVolume(ParamIndices::WetOut, M7::gVolumeCfg12db);
+
+  //static constexpr float SVQ = 1;
+
+  for (int s = 0; s < numSamples; s++)
+  {
+    float leftInput = inputs[0][s];
+    float rightInput = inputs[1][s];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    if (IsGuiVisible())
+    {
+      mInputAnalysis[0].WriteSample(leftInput);
+      mInputAnalysis[1].WriteSample(rightInput);
+    }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+    M7::FloatPair dry = {leftInput, rightInput};
+    auto wet = mCore.ProcessSample(dry);
+    auto outp = M7::FloatPair::Mix(dry, wet, dryMul, wetMul);
+
+    outputs[0][s] = outp.Left();
+    outputs[1][s] = outp.Right();
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    if (IsGuiVisible())
+    {
+      mOutputAnalysis[0].WriteSample(outputs[0][s]);
+      mOutputAnalysis[1].WriteSample(outputs[1][s]);
+    }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+  }
+}
+
+void Cathedral::OnParamsChanged()
+{
+  mCore.preDelayMS = mParams.GetScaledRealValue(
+      ParamIndices::PreDelay, 0, 500);  //mParams.Get01Value(ParamIndices::PreDelay) * 500.0f;
+  mCore.damp = mParams.Get01Value(ParamIndices::Damp);
+  mCore.width = mParams.Get01Value(ParamIndices::Width);
+  mCore.lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);
+  mCore.highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);
+
+  // roomsize is not a linear param. it's also not a div-curved param; it's inverted.
+  // gotta flip -> map -> flip.
+  auto roomSize = mParams.Get01Value(ParamIndices::RoomSize);
+  roomSize = 1.0f - roomSize;
+  M7::ParamAccessor pa{&roomSize, 0};
+  float t = pa.GetDivCurvedValue(0, {0.0f, 1.0f, 1.140f}, 0);
+  roomSize = 1.0f - t;
+  mCore.roomSize = M7::math::clamp01(roomSize);
+  //mCore.roomSize = mParams.GetDivCurvedValue(ParamIndices::RoomSize, Cathedral::mRoomSizeParamCfg);
+
+  mCore.Update();
+}
+
+}  // namespace WaveSabreCore

@@ -601,6 +601,11 @@ namespace WaveSabreCore
 		//    return WordBitfield{ ReadUWord() };
 		//}
 
+	FloatPair FloatPair::Mix(const FloatPair& a, const FloatPair& b, float aLin, float bLin)
+    {
+      return {a.x[0] * aLin + b.x[0] * bLin, a.x[1] * aLin + b.x[1] * bLin};
+    }
+
 
 	} // namespace M7
 

@@ -57,7 +57,7 @@ public:
 		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)Echo::ParamIndices::LowCutQ, "Low Q", M7::gBiquadFilterQCfg, 0.75f, {});
 
 		fp.SetFrequencyAssumingNoKeytracking(8500);
-		ImGui::SameLine(); Maj7ImGuiParamFrequency((int)Echo::ParamIndices::HighCutFreq, -1, "Highcut", M7::gFilterFreqConfig, fp.GetRawValue(), {});
+		ImGui::SameLine(); Maj7ImGuiParamFrequency((int)Echo::ParamIndices::HighCutFreq, -1, "Highcut", M7::gFilterFreqConfig, fp.GetRawValue(), {}, 1);
 		//ImGui::SameLine(); Maj7ImGuiParamFloat01((int)Echo::ParamIndices::HighCutQ, "High Q", 0.2f, 0.2f);
 		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)Echo::ParamIndices::HighCutQ, "High Q", M7::gBiquadFilterQCfg, 0.75f, {});
 
@@ -126,17 +126,17 @@ public:
 			mpEchoVST->getParameter((int)Echo::ParamIndices::RightDelayCoarse),
 			mpEchoVST->getParameter((int)Echo::ParamIndices::RightDelayFine),
 			mpEchoVST->getParameter((int)Echo::ParamIndices::RightDelayMS),
-			mpEchoVST->getParameter((int)Echo::ParamIndices::Cross),
-		};
+        mpEchoVST->getParameter((int)Echo::ParamIndices::Cross),
+    };
 		M7::ParamAccessor pa{ backing, 0 };
 
-		float leftPeriodMS = mpEcho->CalcDelayMS(
+		float leftPeriodMS = WaveSabreCore::DelayCore::CalcDelayMS(
 			pa.GetIntValue(0, Echo::gDelayCoarseCfg),
 			pa.GetN11Value(1, 0),
 			pa.GetBipolarPowCurvedValue(2, M7::gEnvTimeCfg, 0)
 			//pa.GetScaledRealValue(2, -200, 200, 0)
 		);
-		float rightPeriodMS = mpEcho->CalcDelayMS(
+    float rightPeriodMS = WaveSabreCore::DelayCore::CalcDelayMS(
 			pa.GetIntValue(3, Echo::gDelayCoarseCfg),
 			pa.GetN11Value(4, 0),
 			pa.GetBipolarPowCurvedValue(5, M7::gEnvTimeCfg, 0)
@@ -150,17 +150,27 @@ public:
 		float panL = -1;
 		float panR = 1;
 		int i = 0;
+
+    float feedbackAmp = mpEcho->mParams.GetLinearVolume((int)Echo::ParamIndices::FeedbackLevel, M7::gVolumeCfg6db, 0);
+    float feedbackAmp01 = M7::math::sqrt01(M7::math::clamp01(feedbackAmp));
+
+	float fbFactor = feedbackAmp01;
+    //fbFactor *= M7::math::sqrt(M7::math::lerp(0, 0.99f, feedbackAmp01));
+  float alpha = 1.0f;
 		while (leftBeat < endBeat) {
 			dl->AddLine({ beatsToX(leftBeat), bb.Min.y }, { beatsToX(leftBeat), bb.Max.y }, ColorFromHTML(bandColors[0], 0.4f), 1);
-			dl->AddCircleFilled({ beatsToX(leftBeat), panToY(panL) }, leftRadius, ColorFromHTML(bandColors[0], 0.8f));
+      dl->AddCircleFilled({beatsToX(leftBeat), panToY(panL)}, leftRadius, ColorFromHTML(bandColors[0], alpha));
 
 			leftBeat += leftPeriodBeats;
-			leftRadius *= 0.8f;
+      leftRadius *= fbFactor;
+      alpha *= fbFactor;
 			i++;
 			if (leftPeriodMS < 2 || i > 100) break;
 			float xpanL = M7::math::lerp(panL, panR, crossMix10);
 			panR = M7::math::lerp(panR, panL, crossMix10);
 			panL = xpanL;
+
+			//radiusScale *= M7::math::sqrt(M7::math::lerp(0.5f, 0.99f, feedbackAmp01));
 		}
 
 		float rightPeriodBeats = msToBeats(rightPeriodMS);
@@ -169,18 +179,23 @@ public:
 		panL = -1;
 		panR = 1;
 		i = 0;
-		while (rightBeat < endBeat) {
+    //radiusScale = 1.0f;
+    while (rightBeat < endBeat)
+    {
 			dl->AddLine({ beatsToX(rightBeat), bb.Min.y }, { beatsToX(rightBeat), bb.Max.y }, ColorFromHTML(bandColors[1], 0.2f), 1);
 			dl->AddCircleFilled({ beatsToX(rightBeat), panToY(panR) }, rightRadius, ColorFromHTML(bandColors[1], 0.8f));
 
 			rightBeat += rightPeriodBeats;
-			rightRadius *= 0.8f;
-			i++;
+      rightRadius *= fbFactor;
+      alpha *= fbFactor;
+      i++;
 			if (rightPeriodMS < 2 || i > 100) break;
 			float xpanL = M7::math::lerp(panL, panR, crossMix10);
 			panR = M7::math::lerp(panR, panL, crossMix10);
 			panL = xpanL;
-		}
+
+			//radiusScale *= M7::math::sqrt(M7::math::lerp(0.5f, 0.99f, feedbackAmp01));
+    }
 
 		char s[100];
 		std::sprintf(s, "%d ms left\r\n%d ms right", (int)std::round(leftPeriodMS), (int)std::round(rightPeriodMS));

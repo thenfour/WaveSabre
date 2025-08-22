@@ -633,6 +633,8 @@ namespace WaveSabrePlayerLib
 		private:
 			static constexpr int numBuffers = 4;
 		public:
+			// buffers & buffer size are constexpr so we can avoid dynamic allocation in a loop.
+			// but initial testing shows it doesn't change anything; plus it would change the fn signatures of everything that use buffers.
 			float* Buffers[numBuffers];
 
 			int NumReceives;

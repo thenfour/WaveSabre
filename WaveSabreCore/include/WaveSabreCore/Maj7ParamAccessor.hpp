@@ -44,7 +44,8 @@ namespace WaveSabreCore
 			}
 		};
 
-		static constexpr PowCurvedParamCfg gEnvTimeCfg{ 0.0f, 12000.0f, 12.0f }; // value of K can be found by looking in param explorer in a vst.
+		static constexpr PowCurvedParamCfg
+        gEnvTimeCfg{0.0f, 12000.0f, 12.0f};  // value of K can be found by looking in param explorer in a vst.
 
 		// something like compressor ratio requires a very steep curve, and using 1/x will fit that. it's based off the principle curve 1/(1-x).
 		struct DivCurvedParamCfg {

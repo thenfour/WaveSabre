@@ -47,12 +47,18 @@ public:
 
     fp.SetFrequencyAssumingNoKeytracking(5500);
     Maj7ImGuiParamFrequency((int)ParamIndices::HighCutFreq, -1, "LP Freq(Hz)",
-                            M7::gFilterFreqConfig, fp.GetRawValue(), {});
+                            M7::gFilterFreqConfig, fp.GetRawValue(), {}, 1);
 
-    Maj7ImGuiParamFloat01((VstInt32)ParamIndices::PreDelay, "PreDelay", 0, 0);
+    //Maj7ImGuiParamFloat01((VstInt32)ParamIndices::PreDelay, "PreDelay", 0, 0);
+    Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::PreDelay, "PreDelay(ms)", 0, 500, 1, 1, 0, {});
     ImGui::SameLine();
-    Maj7ImGuiParamFloat01((VstInt32)ParamIndices::RoomSize, "RoomSize", 0.5f,
-                          0);
+
+
+    //Maj7ImGuiParamScaledFloat((VstInt32)ParamIndices::RoomSize, "RoomSize", 1.0f, 0.0f, 0.5, 0, 0, {});
+    Maj7ImGuiParamFloat01((VstInt32)ParamIndices::RoomSize, "RoomSize", 0.5f, 0);
+    //Maj7ImGuiDivCurvedParam(
+    //    (VstInt32)ParamIndices::RoomSize, "RoomSize", WaveSabreCore::Cathedral::mRoomSizeParamCfg, 0.5f, {});
+
     ImGui::SameLine();
     Maj7ImGuiParamFloat01((VstInt32)ParamIndices::Damp, "Damp", 0.15f, 0);
     ImGui::SameLine();

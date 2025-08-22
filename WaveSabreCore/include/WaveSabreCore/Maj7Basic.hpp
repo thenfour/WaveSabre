@@ -172,6 +172,16 @@ namespace WaveSabreCore
                 x[0] += m.x[0];
                 x[1] += m.x[1];
             }
+            float Left() const
+            {
+              return x[0];
+            }
+            float Right() const
+            {
+              return x[1];
+            }
+
+            static FloatPair Mix(const FloatPair& a, const FloatPair& b, float aLin, float bLin);
         };
 
 
@@ -587,6 +597,7 @@ namespace WaveSabreCore
 
         } // namespace math
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
         // takes an array of mute & solo switches, and outputs whether each band would be output eventually.
         template<size_t NBands>
         void CalculateMuteSolo(bool (&mutes)[NBands], bool(&solos)[NBands], bool(&outputs)[NBands])
@@ -611,6 +622,7 @@ namespace WaveSabreCore
                 }
             }
         }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
         inline void MSEncode(float left, float right, float* mid, float* side) {
             *mid = (left + right) * math::gSqrt2Recip;
