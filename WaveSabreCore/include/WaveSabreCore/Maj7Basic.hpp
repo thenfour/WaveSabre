@@ -148,7 +148,7 @@ namespace WaveSabreCore
 
         struct FloatPair
         {
-            float x[2];
+          float x[2] = {0};
             float& operator [](size_t i) {
                 return x[i];
             }

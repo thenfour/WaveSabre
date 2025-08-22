@@ -233,9 +233,7 @@ public:
   template <typename TparamID>
   void Maj7ImGuiBoolParamToggleButton(TparamID paramID, const char *label,
                                       const char *selectedColorHTML) {
-    ButtonColorSpec cfg;
-    cfg.selectedColor = selectedColorHTML;
-    Maj7ImGuiBoolParamToggleButton(paramID, label, {}, cfg);
+    Maj7ImGuiBoolParamToggleButton(paramID, label, {}, ButtonColorSpec{selectedColorHTML});
   }
 
   void WSImGuiParamEnumList(VstInt32 paramID, const char *ctrlLabel,

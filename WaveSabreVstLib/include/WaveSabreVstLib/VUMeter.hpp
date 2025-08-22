@@ -25,6 +25,48 @@ struct VUMeterColors
   ImColor tick;
   ImColor clipTick;
   ImColor peak;
+
+  VUMeterColors() = default;
+  explicit VUMeterColors(const char* htmlColor)
+  {
+    // Derive a cohesive palette from the base color using HSV variations.
+    // - RMS: bright and saturated
+    // - Peak: darker and slightly less saturated than RMS
+    // - Background: very dark, low saturation of the same hue
+    // - Over-unity and indicators: consistent across themes
+    ImColor base = ColorFromHTML(htmlColor);
+
+    float h = 0.0f, s = 0.0f, v = 0.0f;
+    ImGui::ColorConvertRGBtoHSV(base.Value.x, base.Value.y, base.Value.z, h, s, v);
+
+    auto clamp01 = [](float x) { return x < 0.0f ? 0.0f : (x > 1.0f ? 1.0f : x); };
+
+    // Tuned ranges for a readable meter with the provided hue
+    float sStrong = clamp01(std::max(0.60f, s * 1.15f));
+    float sMid    = clamp01(std::max(0.35f, s * 0.85f));
+    float sBg     = clamp01(std::min(0.35f, s * 0.35f));
+
+    float vBright = clamp01(std::max(0.72f, std::min(0.96f, v * 1.20f)));
+    float vPeak   = clamp01(std::max(0.42f, std::min(0.70f, v * 0.75f)));
+    float vBg     = clamp01(std::max(0.08f, std::min(0.20f, v * 0.20f)));
+
+    background        = ImColor::HSV(h, sBg,     vBg,     1.0f);
+    foregroundRMS     = ImColor::HSV(h, sStrong, vBright, 1.0f);
+    foregroundPeak    = ImColor::HSV(h, sMid,    vPeak,   1.0f);
+
+    // Keep critical UI colors consistent for readability and status signaling
+    backgroundOverUnity = ColorFromHTML("440000");
+    foregroundOverUnity = ColorFromHTML("cccc00");
+    clipTick            = ColorFromHTML("ff0000");
+
+    // Text/ticks are semi-transparent to avoid overpowering the meter
+    text = ColorFromHTML("ffffff", 0.33f);
+    tick = ColorFromHTML("00ffff", 0.33f);
+
+    // Peak marker: same hue as RMS but semi-transparent
+    peak = foregroundRMS;
+    peak.Value.w = 0.8f;
+  }
 };
 
 struct VUMeterTick
@@ -409,7 +451,8 @@ inline void VUMeter(const char* id,
                     AnalysisStream& a1,
                     ImVec2 size = {30, 300},
                     const std::string& tooltipLeft = "",
-                    const std::string& tooltipRight = "")
+                    const std::string& tooltipRight = "",
+    const char *htmlColor = nullptr)
 {
   static const std::vector<VUMeterTick> standardTickSet = {
       {-3.0f, "3db"},
@@ -435,8 +478,16 @@ inline void VUMeter(const char* id,
       -50, 6, smallTickSet,
   };
 
+  VUMeterColors* pColorOverride = nullptr;
+  VUMeterColors colorOverride;
+  if (htmlColor)
+  {
+    colorOverride = VUMeterColors{htmlColor};
+    pColorOverride = &colorOverride;
+  }
+
   ImGui::PushID(id);
-  if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
+  if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg, pColorOverride))
   {
     a0.Reset();
     a1.Reset();
@@ -449,7 +500,7 @@ inline void VUMeter(const char* id,
   }
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
   ImGui::SameLine();
-  if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg))
+  if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg, pColorOverride))
   {
     a0.Reset();
     a1.Reset();

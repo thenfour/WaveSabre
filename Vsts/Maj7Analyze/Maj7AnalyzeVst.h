@@ -52,13 +52,4 @@ public:
 	Maj7Analyze* GetMaj7Analyze() const {
 		return (Maj7Analyze*)getDevice();
 	}
-
-	virtual void OptimizeParams() override
-	{
-		using Params = Maj7Comp::ParamIndices;
-		M7::ParamAccessor defaults{ mDefaultParamCache.data(), 0 };
-		M7::ParamAccessor p{ GetMaj7Analyze()->mParamCache, 0 };
-	}
-
-
 };

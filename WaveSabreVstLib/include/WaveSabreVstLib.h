@@ -35,6 +35,24 @@ namespace WaveSabreVstLib
 		}
 	};
 
+	struct ImGuiEnabledScope
+	{
+		bool mWasDisabled = false;
+		ImGuiEnabledScope(bool enabled)
+		{
+			if (!enabled) {
+				mWasDisabled = true;
+				ImGui::BeginDisabled();
+			}
+		}
+		~ImGuiEnabledScope()
+		{
+			if (mWasDisabled) {
+				ImGui::EndDisabled();
+			}
+    }
+	};
+
 	struct ImGuiIdScope {
 		explicit ImGuiIdScope(int pushId) {
 			ImGui::PushID(pushId);
