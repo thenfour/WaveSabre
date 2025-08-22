@@ -7,6 +7,7 @@
 #include "AllPass.h"
 #include "Maj7Filter.hpp"
 #include "RMS.hpp"
+#include "SVFilter.hpp"
 
 namespace WaveSabreCore
 {

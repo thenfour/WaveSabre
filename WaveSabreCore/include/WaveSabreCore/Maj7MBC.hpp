@@ -4,6 +4,7 @@
 #include "Maj7Basic.hpp"
 #include "Maj7Comp.hpp"
 #include <WaveSabreCore/FFTAnalysis.hpp>
+#include <WaveSabreCore/BandSplitter.hpp>
 
 namespace WaveSabreCore
 {
@@ -57,8 +58,9 @@ namespace WaveSabreCore
 			ALowPassFrequency, // biquad freq
 			ALowPassQ, // default 0.2
 			ADrive,
+			AMidSideMix,
+			APan,
 			ADryWet,
-
 			BInputGain,
 			BOutputGain,
 			BThreshold,
@@ -74,8 +76,9 @@ namespace WaveSabreCore
 			BLowPassFrequency, // biquad freq
 			BLowPassQ, // default 0.2
 			BDrive,
-			BDryWet,
-
+      BMidSideMix,
+      BPan,
+      BDryWet,
 			CInputGain,
 			COutputGain,
 			CThreshold,
@@ -91,8 +94,9 @@ namespace WaveSabreCore
 			CLowPassFrequency, // biquad freq
 			CLowPassQ, // default 0.2
 			CDrive,
-			CDryWet,
-
+      CMidSideMix,
+      CPan,
+      CDryWet,
 			NumParams,
 		};
 
@@ -120,8 +124,10 @@ namespace WaveSabreCore
 			{"AHPQ"},\
 			{"ALPF"},\
 			{"ALPQ"},\
-			{"ADrive"},\
-			{"ADryWet"},\
+			{"ADrive"}, \
+    {"AWidth"},\
+	{"APan"},\
+ {"ADryWet"},\
 			{"BInVol"},\
 			{"BOutVol"},\
 			{"BThresh"},\
@@ -137,7 +143,9 @@ namespace WaveSabreCore
 			{"BLPF"},\
 			{"BLPQ"},\
 			{"BDrive"},\
-			{"BDryWet"},\
+    {"BWidth"}, \
+	{"BPan"}, \
+	{"BDryWet"},\
 			{"CInVol"},\
 			{"COutVol"},\
 			{"CThresh"},\
@@ -153,10 +161,12 @@ namespace WaveSabreCore
 			{"CLPF"},\
 			{"CLPQ"},\
 			{"CDrive"},\
-			{"CDryWet"},\
-}
+    {"CWidth"}, \
+	{"CPan"}, \
+	{"CDryWet"}, \
+  }
 
-		static_assert((int)ParamIndices::NumParams == 56, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 62, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InGain = 0.25115966796875
 		  0, // MBEnable = 0
@@ -181,6 +191,8 @@ namespace WaveSabreCore
 		  32767, // ALPF = 0
 		  14563, // ALPQ = 0.444427490234375
 		  0, // ADrive = 0.125885009765625
+      16384,  // AMidSideMix = 0.5
+      16384,  // APan = 0.5
 		  32767, // ADryWet = 0.999969482421875
 		  8230, // BInVol = 0.25115966796875
 		  8230, // BOutVol = 0.25115966796875
@@ -197,7 +209,9 @@ namespace WaveSabreCore
 		  32767, // BLPF = 0
 		  14563, // BLPQ = 0.444427490234375
 		  0, // BDrive = 0.125885009765625
-		  32767, // BDryWet = 0.999969482421875
+      16384,  // AMidSideMix = 0.5
+      16384,  // APan = 0.5
+      32767,  // BDryWet = 0.999969482421875
 		  8230, // CInVol = 0.25115966796875
 		  8230, // COutVol = 0.25115966796875
 		  21845, // CThresh = 0.666656494140625
@@ -213,7 +227,9 @@ namespace WaveSabreCore
 		  32767, // CLPF = 0
 		  14563, // CLPQ = 0.444427490234375
 		  0, // CDrive = 0.125885009765625
-		  32767, // CDryWet = 0.999969482421875
+      16384,  // AMidSideMix = 0.5
+      16384,  // APan = 0.5
+      32767,  // CDryWet = 0.999969482421875
 		};
 
 
@@ -237,6 +253,8 @@ namespace WaveSabreCore
 				LowPassQ,
 				Drive,
 				DryWet,
+        MidSideMix,
+        Pan,
 				Count__,
 			};
 

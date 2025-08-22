@@ -12,6 +12,7 @@
 #include "BiquadFilter.h"
 #include "RMS.hpp"
 #include "Maj7Filter.hpp"
+#include "DCFilter.hpp"
 
 namespace WaveSabreCore
 {
