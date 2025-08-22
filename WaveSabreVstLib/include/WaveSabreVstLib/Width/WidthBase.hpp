@@ -6,7 +6,7 @@ using namespace WaveSabreVstLib;
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
 
-#include "Maj7WidthVst.h"
+//#include "Maj7WidthVst.h"
 #include <map>
 #include <array>
 #include <string>
