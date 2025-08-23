@@ -372,11 +372,14 @@ struct Maj7MBC : public Device
           WRITE_ANALYSIS_SAMPLE(isGuiVisible, mAttenuationAnalysis[ich], mComp[ich].mGainReduction);
         }
 
-        output = output.MidSideMixOnStereo(mMidSideMixN11);
+        if (channelMode == ChannelMode::Stereo)
+        {
+          output = output.MidSideMixOnStereo(mMidSideMixN11);
 
-        // Apply equal-power pan with compensation (same as Maj7Width)
-        output.x[0] *= mPanGains.x[0] * M7::math::gPanCompensationGainLin;
-        output.x[1] *= mPanGains.x[1] * M7::math::gPanCompensationGainLin;
+          // Apply equal-power pan with compensation (same as Maj7Width)
+          output.x[0] *= mPanGains.x[0] * M7::math::gPanCompensationGainLin;
+          output.x[1] *= mPanGains.x[1] * M7::math::gPanCompensationGainLin;
+        }
 
         WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[0], output.x[0]);
         WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[1], output.x[1]);
