@@ -8,11 +8,13 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7ParamAccessor.hpp>
 #include <WaveSabreCore/FFTAnalysis.hpp>
+#include <WaveSabreCore/AnalysisStream.hpp>
 #include "Device.h"
 #include "BiquadFilter.h"
 #include "RMS.hpp"
 #include "Maj7Filter.hpp"
 #include "DCFilter.hpp"
+
 
 namespace WaveSabreCore
 {

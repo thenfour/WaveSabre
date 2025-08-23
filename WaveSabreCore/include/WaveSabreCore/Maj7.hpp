@@ -34,6 +34,7 @@
 #include <WaveSabreCore/Maj7GmDls.hpp>
 
 #include <WaveSabreCore/RMS.hpp>
+#include <WaveSabreCore/AnalysisStream.hpp>
 
 //#include <Windows.h>
 //#undef min

@@ -1,48 +1,12 @@
 #pragma once
 
 #include "Maj7Basic.hpp"
+#include "PeakDetector.hpp"
+#include "RMS.hpp"
 
 namespace WaveSabreCore
 {
-static inline float CalcFollowerCoef(float ms)
-{
-  auto samples = M7::math::MillisecondsToSamples(ms);
-  return M7::math::expf(-1.0f / samples);
-  //return M7::math::expf(-1.0f / (Helpers::CurrentSampleRateF * ms / 1000.0f));
-}
-
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-
-struct RMSDetector
-{
-  double mContinuousValue = 0;
-
-  double mWindowMS = 0;
-  double mAlpha = 0;
-
-  void Reset()
-  {
-    mContinuousValue = 0;
-  }
-  // because this is not a perfect curve, the "milliseconds" is a misnomer, it's a sort of approximation.
-  void SetWindowSize(double ms)
-  {
-    if (ms == mWindowMS)
-      return;
-    mWindowMS = ms;
-    mAlpha = 1.0 - CalcFollowerCoef(float(ms));
-  }
-
-  // returns the current "RMS"
-  double ProcessSample(double s)
-  {
-    // a sort of one-pole LP filter to smooth continuously, without requiring a memory buffer
-    mContinuousValue = M7::math::lerpD(mContinuousValue, s * s, mAlpha);
-    return M7::math::sqrt(float(mContinuousValue));
-  }
-
-};  // struct RMSDetector
-
 
 // frequency-dependent peak detector for spectrum display
 // Uses different falloff rates per frequency band

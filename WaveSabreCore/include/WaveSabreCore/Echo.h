@@ -5,6 +5,7 @@
 #include "Device.h"
 #include "Maj7Basic.hpp"
 #include "RMS.hpp"
+#include <WaveSabreCore/AnalysisStream.hpp>
 
 namespace WaveSabreCore
 {

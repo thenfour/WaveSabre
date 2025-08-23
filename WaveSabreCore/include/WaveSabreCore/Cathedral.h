@@ -4,6 +4,7 @@
 #include "Device.h"
 #include "ReverbCore.hpp"
 #include "RMS.hpp"
+#include <WaveSabreCore/AnalysisStream.hpp>
 
 namespace WaveSabreCore
 {
