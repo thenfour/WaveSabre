@@ -324,6 +324,10 @@ void SmoothedStereoFFT::ProcessSamples(float leftSample, float rightSample)
     mFFTAnalysis.ConsumeSpectrum();
   }
 }
+void SmoothedStereoFFT::ProcessSamples(const M7::FloatPair& s)
+{
+  ProcessSamples(s.Left(), s.Right());
+}
 
 float SmoothedStereoFFT::GetMagnitudeAtFrequency(float frequency) const
 {

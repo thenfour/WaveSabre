@@ -18,12 +18,13 @@ struct Maj7MBC : public Device
     Count__,
   };
 
-  //enum class DisplayStyle : uint8_t {
-  //	Compact,
-  //	//Normal,
-  //	Big,
-  //	Count__,
-  //};
+  enum class ChannelMode : uint8_t
+  {
+    Stereo,
+    Mid,
+    Side,
+    Count__,
+  };
 
   struct BandConfig
   {
@@ -37,6 +38,7 @@ struct Maj7MBC : public Device
   enum class ParamIndices
   {
     InputGain,
+    ChannelMode,
     MultibandEnable,
     CrossoverAFrequency,
     CrossoverBFrequency,
@@ -109,6 +111,7 @@ struct Maj7MBC : public Device
 		// NB: max 8 chars per string.
 #define MAJ7MBC_PARAM_VST_NAMES(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7MBC::ParamIndices::NumParams]{ \
     {"InGain"},\
+    {"ChMode"},\
     {"MBEnable"},\
     {"xAFreq"},\
     {"xBFreq"},\
@@ -173,9 +176,10 @@ struct Maj7MBC : public Device
   }
   // clang-format on
 
-  static_assert((int)ParamIndices::NumParams == 62, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 63, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       8230,   // InGain = 0.25115966796875
+      0,      // channel mode
       0,      // MBEnable = 0
       13557,  // xAFreq = 0.413726806640625
       21577,  // xBFreq = 0.658477783203125
@@ -278,7 +282,7 @@ struct Maj7MBC : public Device
     float mOutputGainLin;
     float mDryWetMix;
     // cached imaging params
-    float mMidSideMixN11 = 0.0f; // -1..+1
+    float mMidSideMixN11 = 0.0f;  // -1..+1
     M7::FloatPair mPanGains{1.0f, 1.0f};
 
     FreqBand(float* paramCache, ParamIndices baseParamID)
@@ -338,22 +342,16 @@ struct Maj7MBC : public Device
       }
     }
 
-    M7::FloatPair ProcessSample(M7::FloatPair input
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-                                ,
-                                bool isGuiVisible
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-    )
+    M7::FloatPair ProcessSample(const M7::FloatPair& input,
+                                ChannelMode channelMode, bool isGuiVisible)
     {
-      // apply stereo linking
-      float monoDetector =
-          (input.x[0] + input.x[1]) *
-          0.5f;  // apparently averaging yields slightly more consistent sweeping between mono->stereo link
-      float channelLink01 = mParams.Get01Value(BandParam::ChannelLink);
       M7::FloatPair output{input};
-
       if (mEnable)
       {
+        float monoDetector =
+            (input.x[0] + input.x[1]) *
+            0.5f;  // apparently averaging yields slightly more consistent sweeping between mono->stereo link
+        float channelLink01 = channelMode == ChannelMode::Stereo ? mParams.Get01Value(BandParam::ChannelLink) : 0;
         for (size_t ich = 0; ich < 2; ++ich)
         {
           float inpAudio = input.x[ich] * mInputGainLin;
@@ -369,59 +367,33 @@ struct Maj7MBC : public Device
           float finalSignal = M7::math::lerp(inpAudio, wetSignal, mDryWetMix);
           output.x[ich] = finalSignal;
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-          if (isGuiVisible)
-          {
-            mInputAnalysis[ich].WriteSample(inpAudio);
-            // move mOutputAnalysis write after stereo transforms
-            mDetectorAnalysis[ich].WriteSample(detector);
-            mAttenuationAnalysis[ich].WriteSample(mComp[ich].mGainReduction);
-          }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+          WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[ich], inpAudio);
+          WRITE_ANALYSIS_SAMPLE(isGuiVisible, mDetectorAnalysis[ich], detector);
+          WRITE_ANALYSIS_SAMPLE(isGuiVisible, mAttenuationAnalysis[ich], mComp[ich].mGainReduction);
         }
 
-        // Apply Mid/Side balance exactly like Maj7Width
-        auto ms = output.MSEncode();
-        //M7::MSEncode(output.x[0], output.x[1], &mid, &side);
-        float msbal = mMidSideMixN11;
-        if (msbal < 0.0f)
-        {
-          ms.x[1] *= (msbal + 1.0f); // reduce side when negative
-        }
-        else if (msbal > 0.0f)
-        {
-          ms.x[0] *= (1.0f - msbal); // reduce mid when positive
-        }
-        //M7::MSDecode(mid, side, &output.x[0], &output.x[1]);
-        output = ms.MSDecode();
+        output = output.MidSideMixOnStereo(mMidSideMixN11);
 
         // Apply equal-power pan with compensation (same as Maj7Width)
         output.x[0] *= mPanGains.x[0] * M7::math::gPanCompensationGainLin;
         output.x[1] *= mPanGains.x[1] * M7::math::gPanCompensationGainLin;
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-        if (isGuiVisible)
-        {
-          mOutputAnalysis[0].WriteSample(output.x[0]);
-          mOutputAnalysis[1].WriteSample(output.x[1]);
-        }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[0], output.x[0]);
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[1], output.x[1]);
       }  // ENABLE
       else
       {
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-        if (isGuiVisible)
-        {
-          for (size_t ich = 0; ich < 2; ++ich)
-          {
-            mInputAnalysis[ich].WriteSample(0);
-            mOutputAnalysis[ich].WriteSample(0);
-            mDetectorAnalysis[ich].WriteSample(0);
-            mAttenuationAnalysis[ich].WriteSample(0);
-          }
-        }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[0], 0);
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[0], 0);
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mDetectorAnalysis[0], 0);
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mAttenuationAnalysis[0], 0);
+
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[1], 0);
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[1], 0);
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mDetectorAnalysis[1], 0);
+        WRITE_ANALYSIS_SAMPLE(isGuiVisible, mAttenuationAnalysis[1], 0);
       }
+
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       if (!mMuteSoloEnable)
       {
@@ -559,15 +531,16 @@ struct Maj7MBC : public Device
 virtual void
 Run(float** inputs, float** outputs, int numSamples) override
 {
-  float inputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
-  float outputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
-  float crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
-  float crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
-  bool mbEnable = mParams.GetBoolValue(ParamIndices::MultibandEnable);
+  const float inputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
+  const float outputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
+  const float crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
+  const float crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
+  const bool mbEnable = mParams.GetBoolValue(ParamIndices::MultibandEnable);
 
-  bool softClipEnabled = mParams.GetBoolValue(ParamIndices::SoftClipEnable);
-  float softClipThreshLin = mParams.GetLinearVolume(ParamIndices::SoftClipThresh, M7::gUnityVolumeCfg);
-  float softClipOutputLin = mParams.GetLinearVolume(ParamIndices::SoftClipOutput, M7::gUnityVolumeCfg);
+  const bool softClipEnabled = mParams.GetBoolValue(ParamIndices::SoftClipEnable);
+  const float softClipThreshLin = mParams.GetLinearVolume(ParamIndices::SoftClipThresh, M7::gUnityVolumeCfg);
+  const float softClipOutputLin = mParams.GetLinearVolume(ParamIndices::SoftClipOutput, M7::gUnityVolumeCfg);
+  const ChannelMode channelMode = mParams.GetEnumValue<ChannelMode>(ParamIndices::ChannelMode);
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   bool muteSoloEnabled[Maj7MBC::gBandCount] = {false, false, false};
@@ -584,82 +557,98 @@ Run(float** inputs, float** outputs, int numSamples) override
 
   // CPU optimization: only process FFT for visualization when GUI is visible
   const bool isGuiVisible = IsGuiVisible();
+#else
+  constexpr bool isGuiVisible = false;
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   for (size_t i = 0; i < (size_t)numSamples; ++i)
   {
-    float s0 = inputs[0][i] * inputGainLin;
-    float s1 = inputs[1][i] * inputGainLin;
+    M7::FloatPair s{inputs[0][i], inputs[1][i]};
+    s *= inputGainLin;
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-    if (isGuiVisible)
+    // channel mode processing. everything internally is 2-channel, and there's the channel mix knob,
+    // so for mid or side modes, we could
+    // 1. set both channels to mid or side
+    // 2. set one channel to mid/side and the other to 0.
+    // 3. set one channel to mid/side and the other to the original opposite channel (side or mid).
+    //    THIS is probably the "best" because it lets channel mix knob make sense (detector blend from mid-side), even if this is kinda odd and barely useful.
+    // 4. don't set the other channel. in this case it's the original input signal but it just doesn't matter because chan link shall be 0 for mid/side modes.
+    auto inputMidSide = s.MSEncode();
+    switch (channelMode)
     {
-      mInputSpectrum.ProcessSamples(inputs[0][i], inputs[1][i]);
-      mInputAnalysis[0].WriteSample(s0);
-      mInputAnalysis[1].WriteSample(s1);
+      case ChannelMode::Mid:
+      {
+        s[0] = inputMidSide.Mid();
+        break;
+      }
+      case ChannelMode::Side:
+      {
+        s[0] = inputMidSide.Side();
+        break;
+      }
     }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+    WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[0], s[0]);
+    WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[1], s[1]);
+    WRITE_SPECTRUM_SAMPLE(isGuiVisible, mInputSpectrum, s);
 
     if (mbEnable)
     {
       // split into 3 bands
-      splitter0.frequency_splitter(s0, crossoverFreqA, crossoverFreqB);
-      splitter1.frequency_splitter(s1, crossoverFreqA, crossoverFreqB);
+      splitter0.frequency_splitter(s[0], crossoverFreqA, crossoverFreqB);
+      splitter1.frequency_splitter(s[1], crossoverFreqA, crossoverFreqB);
 
-      s0 = 0;
-      s1 = 0;
+      s.Clear();
+
       for (int iBand = 0; iBand < gBandCount; ++iBand)
       {
         auto& band = mBands[iBand];
-        auto r = band.ProcessSample({splitter0.s[iBand], splitter1.s[iBand]}
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-                                    ,
-                                    isGuiVisible
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-        );
-        s0 += r.x[0] * outputGainLin;
-        s1 += r.x[1] * outputGainLin;
+        auto r = band.ProcessSample({splitter0.s[iBand], splitter1.s[iBand]}, channelMode, isGuiVisible);
+        s.Accumulate(r * outputGainLin);
       }
     }
     else
     {
       auto& band = mBands[1];
-      auto r = band.ProcessSample({s0, s1}
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-                                  ,
-                                  isGuiVisible
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-      );
-      s0 = r[0] * outputGainLin;
-      s1 = r[1] * outputGainLin;
+      auto r = band.ProcessSample(s, channelMode, isGuiVisible);
+      s = r * outputGainLin;
     }
 
     if (softClipEnabled)
     {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-      auto sc0 = Softclip(s0, softClipThreshLin, softClipOutputLin);
-      auto sc1 = Softclip(s1, softClipThreshLin, softClipOutputLin);
-      s0 = sc0[0];
-      s1 = sc1[0];
+      auto sc0 = Softclip(s[0], softClipThreshLin, softClipOutputLin);
+      auto sc1 = Softclip(s[1], softClipThreshLin, softClipOutputLin);
+      s[0] = sc0[0];
+      s[1] = sc1[0];
       mClippingAnalysis[0].WriteSample(sc0[1]);
       mClippingAnalysis[1].WriteSample(sc1[1]);
 #else
-        s0 = Softclip(s0, softClipThreshLin, softClipOutputLin);
-        s1 = Softclip(s1, softClipThreshLin, softClipOutputLin);
+      s[0] = Softclip(s[0], softClipThreshLin, softClipOutputLin);
+      s[1] = Softclip(s[1], softClipThreshLin, softClipOutputLin);
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     }
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-    if (isGuiVisible)
+    WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[0], s[0]);
+    WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[1], s[1]);
+    WRITE_SPECTRUM_SAMPLE(isGuiVisible, mOutputSpectrum, s);
+
+    switch (channelMode)
     {
-      mOutputAnalysis[0].WriteSample(s0);
-      mOutputAnalysis[1].WriteSample(s1);
-      mOutputSpectrum.ProcessSamples(s0, s1);
+      case ChannelMode::Mid:
+      {
+        s = M7::FloatPair{s[0], inputMidSide[1]}.MSDecode();
+        break;
+      }
+      case ChannelMode::Side:
+      {
+        s = M7::FloatPair{inputMidSide[0], s[0]}.MSDecode();
+        break;
+      }
     }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-    outputs[0][i] = s0;
-    outputs[1][i] = s1;
+    outputs[0][i] = s[0];
+    outputs[1][i] = s[1];
 
   }  // for i < numSamples
 }

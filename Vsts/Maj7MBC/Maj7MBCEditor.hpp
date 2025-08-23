@@ -220,8 +220,22 @@ struct Maj7MBCEditor : public VstEditor
 					}
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					ImGui::SameLine();
-					Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "StereoLink", 0.8f, 0);
 
+					auto channelMode = mpMaj7MBC->mParams.GetEnumValue<Maj7MBC::ChannelMode>(ParamIndices::ChannelMode);
+
+					{
+            ImGuiEnabledScope channelLinkEnabled{channelMode == Maj7MBC::ChannelMode::Stereo};
+
+            Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "StereoLink", 0.8f, 0);
+            // show tooltip for stereo link.
+            if (ImGui::IsItemHovered())
+            {
+              ImGui::BeginTooltip();
+              ImGui::TextUnformatted("0% = independent channels, 100% = full stereo link");
+              ImGui::TextUnformatted("Note: For mid/side channel modes, this knob is not used.");
+              ImGui::EndTooltip();
+            }
+          }
 					ImGui::SameLine();
 					WSImGuiParamCheckbox(param(BandParam::SidechainFilterEnable), "SC Filter");
 
@@ -620,7 +634,18 @@ public:
 		}
 
 		{
+      using ChannelMode = Maj7MBC::ChannelMode;
+      Maj7ImGuiParamEnumToggleButtonArray<ChannelMode>(ParamIndices::ChannelMode, nullptr,
+		  {
+              EnumToggleButtonArrayItem{"Stereo", Maj7MBC::ChannelMode::Stereo, bandColors[1]},
+			  EnumToggleButtonArrayItem{"Mid", Maj7MBC::ChannelMode::Mid, bandColors[3]},
+			  EnumToggleButtonArrayItem{"Side", Maj7MBC::ChannelMode::Side, bandColors[4]},
+		  });
+    }
+
+		{
 			bool mbdisabled = !mbEnabled;
+			ImGui::SameLine();
 			if (ToggleButton(&mbdisabled, "Single-band", { 90,20 })) {
 				pa.SetBoolValue(0, false);
 				mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);

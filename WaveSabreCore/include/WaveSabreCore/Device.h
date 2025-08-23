@@ -5,8 +5,21 @@
 #include <stdint.h>
 #include <atomic>
 
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  //#define OPTIMIZE_OUT(x) x
+  #define WRITE_ANALYSIS_SAMPLE(isGuiVisible, stream, value) if (isGuiVisible) { stream.WriteSample(value); }
+  #define WRITE_SPECTRUM_SAMPLE(isGuiVisible, stream, value) if (isGuiVisible) { stream.ProcessSamples(value); }
+#else
+  //#define OPTIMIZE_OUT(x)
+  #define WRITE_ANALYSIS_SAMPLE(isGuiVisible, stream, value)
+  #define WRITE_SPECTRUM_SAMPLE(isGuiVisible, stream, value)
+#endif
+
+
 namespace WaveSabreCore
 {
+
 	namespace M7
 	{
 		struct Deserializer;

@@ -248,7 +248,8 @@ namespace WaveSabreCore
 
         // Feed samples and update smoothing when new spectrum is available
         void ProcessSamples(float leftSample, float rightSample);
-        
+        void ProcessSamples(const M7::FloatPair& s);
+
         // Process new FFT data for display (optional external use)
         void ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum);
 
