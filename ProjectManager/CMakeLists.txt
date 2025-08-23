@@ -48,5 +48,7 @@ add_custom_command(TARGET ProjectManager POST_BUILD COMMAND ${CMAKE_COMMAND} -E 
 
 foreach(target ${VST_TARGETS})
 	add_custom_command(TARGET ProjectManager POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${target}> $<TARGET_FILE_DIR:ProjectManager>)
-	add_custom_command(TARGET ProjectManager POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy "$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>.pdb" $<TARGET_FILE_DIR:ProjectManager>)
+	# Conditionally copy PDB only if it exists (e.g., Debug/RelWithDebInfo). Skip for MinSizeRel/Release where PDB may be absent.
+	add_custom_command(TARGET ProjectManager POST_BUILD 
+		COMMAND ${CMAKE_COMMAND} -DSRC="$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_BASE_NAME:${target}>.pdb" -DDST="$<TARGET_FILE_DIR:ProjectManager>" -P "${CMAKE_CURRENT_LIST_DIR}/CopyIfExists.cmake")
 endforeach()
