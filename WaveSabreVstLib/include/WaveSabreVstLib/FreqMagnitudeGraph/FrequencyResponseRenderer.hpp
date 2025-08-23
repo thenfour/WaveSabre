@@ -49,7 +49,7 @@ struct FrequencyResponseRendererConfig {
   std::vector<float> majorFreqTicks{}; // labeled and drawn with major style
   std::vector<float> minorFreqTicks{}; // unlabeled and drawn with minor style
   
-  // Multiple FFT spectrum overlays with independent scaling (Professional approach)
+  // Multiple FFT spectrum overlays with independent scaling
   using FFTAnalysisOverlay = WaveSabreVstLib::FFTAnalysisOverlay; // alias shared type
   
   std::vector<FFTAnalysisOverlay> fftOverlays{};            // Multiple FFT overlays

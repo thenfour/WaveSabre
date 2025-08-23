@@ -8,7 +8,9 @@
 
 namespace WaveSabreVstLib {
 
-// Configuration for FFT difference rendering
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+    // Configuration for FFT difference rendering
 struct FFTDiffOverlay {
   // Required analyzers (operate in dB domain)
   const WaveSabreCore::IFrequencyAnalysis* sourceA = nullptr; // e.g., Input/Source
@@ -359,5 +361,7 @@ public:
     }
   }
 };
+
+#endif
 
 } // namespace WaveSabreVstLib

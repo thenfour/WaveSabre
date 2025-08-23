@@ -16,6 +16,7 @@ using namespace WaveSabreCore;
 #include <variant>
 
 #include "WidthBase.hpp"
+#include <WaveSabreVstLib/AnalysisMocks.hpp>
 
 // usage:
 // specify initializer list from low to high values.

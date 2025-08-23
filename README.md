@@ -37,3 +37,11 @@ It's quite robust and usable, however because it's a 1-man show, there's no anno
   * [Discord](https://discord.gg/kkf9gQfKAd)
   * [Twitter](https://twitter.com/tenfour2)
 
+
+
+## dev notes
+
+### msvcrt / build-msvcrt
+
+- the `msvcrt` project is a tiny shim that compensates for the fact that we are `NODEFAULTLIB`.
+- the `build-msvcrt` project generates a `.lib` from a `.def` so we can minimally link against the OS msvcrt.dll

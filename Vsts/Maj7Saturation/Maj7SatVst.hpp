@@ -38,23 +38,20 @@ public:
     return GetSimpleJSONVstChunk(
         GetJSONTagName(), data, GetMaj7Sat()->mParamCache, paramNames,
         [&](clarinoid::JsonVariantWriter &elem) {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
           elem.Object_MakeKey("BandASolo")
               .WriteBoolean(p->mBands[0].mVSTConfig.mSolo);
           elem.Object_MakeKey("BandAMute")
               .WriteBoolean(p->mBands[0].mVSTConfig.mMute);
-          // elem.Object_MakeKey("BandAOutputStream").WriteBoolean(int(p->mBands[0].mVSTConfig.mOutputStream));
-
           elem.Object_MakeKey("BandBSolo")
               .WriteBoolean(p->mBands[1].mVSTConfig.mSolo);
           elem.Object_MakeKey("BandBMute")
               .WriteBoolean(p->mBands[1].mVSTConfig.mMute);
-          // elem.Object_MakeKey("BandBOutputStream").WriteBoolean(int(p->mBands[1].mVSTConfig.mOutputStream));
-
           elem.Object_MakeKey("BandCSolo")
               .WriteBoolean(p->mBands[2].mVSTConfig.mSolo);
           elem.Object_MakeKey("BandCMute")
               .WriteBoolean(p->mBands[2].mVSTConfig.mMute);
-          // elem.Object_MakeKey("BandCOutputStream").WriteBoolean(int(p->mBands[2].mVSTConfig.mOutputStream));
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
         });
   }
 
@@ -66,35 +63,25 @@ public:
         GetMaj7Sat(), GetJSONTagName(), data, byteSize,
         GetMaj7Sat()->mParamCache, paramNames,
         [&](clarinoid::JsonVariantReader &elem) {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
           if (elem.mKeyName == "BandASolo") {
             p->mBands[0].mVSTConfig.mSolo = elem.mBooleanValue;
           } else if (elem.mKeyName == "BandAMute") {
             p->mBands[0].mVSTConfig.mMute = elem.mBooleanValue;
           }
-          // else if (elem.mKeyName == "BandAOutputStream") {
-          //	p->mBands[0].mVSTConfig.mOutputStream = ToEnum(elem,
-          //Maj7MBC::OutputStream::Count__);
-          // }
-
           else if (elem.mKeyName == "BandBSolo") {
             p->mBands[1].mVSTConfig.mSolo = elem.mBooleanValue;
           } else if (elem.mKeyName == "BandBMute") {
             p->mBands[1].mVSTConfig.mMute = elem.mBooleanValue;
           }
-          // else if (elem.mKeyName == "BandBOutputStream") {
-          //	p->mBands[1].mVSTConfig.mOutputStream = ToEnum(elem,
-          //Maj7MBC::OutputStream::Count__);
-          // }
-
           else if (elem.mKeyName == "BandCSolo") {
             p->mBands[2].mVSTConfig.mSolo = elem.mBooleanValue;
-          } else if (elem.mKeyName == "BandCMute") {
+          }
+          else if (elem.mKeyName == "BandCMute") {
             p->mBands[2].mVSTConfig.mMute = elem.mBooleanValue;
           }
-          // else if (elem.mKeyName == "BandCOutputStream") {
-          //	p->mBands[2].mVSTConfig.mOutputStream = ToEnum(elem,
-          //Maj7MBC::OutputStream::Count__);
-          // }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
         });
   }
 

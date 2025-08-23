@@ -20,9 +20,13 @@ private:
   
   // Store raw pointers to layers for configuration (graph owns the layers)
   GridLayer<TShowGridLabels>* mGridLayer = nullptr;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   FFTDiffFlatLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTDiffFlatLayer = nullptr;
   FFTDiffLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTDiffLayer = nullptr;
   FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTLayer = nullptr;
+#endif
+
   EQResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount, TFilterCount, TParamCount>* mEQLayer = nullptr;
   ThumbInteractionLayer<TFilterCount, TParamCount>* mThumbLayer = nullptr;
   TooltipLayer<TFilterCount, TParamCount>* mTooltipLayer = nullptr;
@@ -36,7 +40,7 @@ public:
     mGridLayer = gridLayer.get();
     mGraph.AddLayer(std::move(gridLayer));
 
-    // Flat diff behind everything else
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     auto fftDiffFlatLayer = std::make_unique<FFTDiffFlatLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
     mFFTDiffFlatLayer = fftDiffFlatLayer.get();
     mFFTDiffFlatLayer->SetScaling(-24.0f, +24.0f, true);
@@ -50,6 +54,7 @@ public:
     auto fftLayer = std::make_unique<FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>(std::vector<FFTAnalysisOverlay>{});
     mFFTLayer = fftLayer.get();
     mGraph.AddLayer(std::move(fftLayer));
+#endif
 
     auto crossoverLayer = std::make_unique<CrossoverResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>>();
     mCrossoverLayer = crossoverLayer.get();
@@ -78,6 +83,7 @@ public:
     // Configure the graph background
     mGraph.SetBackgroundColor(cfg.backgroundColor);
     
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     // Update filled FFT diff layer scaling to match FFT layer request (shares scale)
     if (mFFTDiffLayer) {
       mFFTDiffLayer->SetScaling(cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB, cfg.useIndependentFFTScale);
@@ -89,7 +95,7 @@ public:
       mFFTLayer->SetDisplayRange(cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB);
       mFFTLayer->SetUseIndependentScale(cfg.useIndependentFFTScale);
     }
-    
+#endif
     // Configure EQ layer
     if (mEQLayer) {
       mEQLayer->SetParamCacheCopy(cfg.mParamCacheCopy);
@@ -160,15 +166,17 @@ public:
     return mGraph.mCoords.YToDB(y, bb);
   }
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
   // Optional: customize caption for FFT scale (e.g., "Width", "dB")
   void SetFFTScaleCaption(const char* caption) {
-    if (mFFTLayer) mFFTLayer->SetScaleCaption(caption);
+      if (mFFTLayer) mFFTLayer->SetScaleCaption(caption);
   }
 
   // Optional: set a value transform for the FFT layer (e.g., gamma/log).
   void SetFFTValueTransform(std::function<float(float)> transform) {
     if (mFFTLayer) mFFTLayer->SetValueTransform(std::move(transform));
-  }
+    }
 
   // FFT diff helpers
   void SetFFTDiffOverlay(const FFTDiffOverlay& overlay) {
@@ -188,6 +196,7 @@ public:
   void SetFFTDiffFlatScaling(float minDB, float maxDB, bool independent = true) {
     if (mFFTDiffFlatLayer) mFFTDiffFlatLayer->SetScaling(minDB, maxDB, independent);
   }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 };
 
 } // namespace WaveSabreVstLib

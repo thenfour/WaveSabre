@@ -86,10 +86,22 @@ public:
 
     ImGui::EndGroup();
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    auto& iaL = mpEcho->mInputAnalysis[0];
+    auto& iaR = mpEcho->mInputAnalysis[1];
+    auto& oaL = mpEcho->mOutputAnalysis[0];
+    auto& oaR = mpEcho->mOutputAnalysis[1];
+#else
+    AnalysisStream iaL{};  // mocks
+    AnalysisStream iaR{};
+    AnalysisStream oaL{};
+    AnalysisStream oaR{};
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
     ImGui::SameLine();
-    VUMeter("vu_inp", mpEcho->mInputAnalysis[0], mpEcho->mInputAnalysis[1]);
+    VUMeter("vu_inp", iaL, iaR);
     ImGui::SameLine();
-    VUMeter("vu_outp", mpEcho->mOutputAnalysis[0], mpEcho->mOutputAnalysis[1]);
+    VUMeter("vu_outp", oaL, oaR);
 
     using ParamIndices = WaveSabreCore::Echo::ParamIndices;
     float leftBufferLengthMs = DelayCore::CalcDelayMS(mpEcho->mParams,

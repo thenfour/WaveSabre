@@ -134,7 +134,21 @@ struct Maj7CompEditor : public VstEditor
 			EndTabBarWithColoredSeparator();
 		}
 
-		mCompressorVis->Render(true, true, mpMaj7Comp->mComp[0], mpMaj7Comp->mInputAnalysis, mpMaj7Comp->mDetectorAnalysis, mpMaj7Comp->mAttenuationAnalysis, mpMaj7Comp->mOutputAnalysis);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    auto& ia = mpMaj7Comp->mInputAnalysis;
+    auto& da = mpMaj7Comp->mDetectorAnalysis;
+    auto& aa = mpMaj7Comp->mAttenuationAnalysis;
+    auto& oa = mpMaj7Comp->mOutputAnalysis;
+#else
+    AnalysisStream ia[2];  // mocks
+    AnalysisStream da[2];
+    AnalysisStream aa[2];
+    AnalysisStream oa[2];
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+		mCompressorVis->Render(true, true, mpMaj7Comp->mComp[0],
+			ia, da, aa, oa);
 	}
 };
 

@@ -69,8 +69,6 @@ struct Maj7WidthEditor : public VstEditor
 
 	virtual void renderImgui() override
 	{
-		ImGui::BeginGroup();
-
 		// Left/Right Source Controls with Tooltip
 		ImGui::BeginGroup();
 		Maj7ImGuiParamFloatN11WithCenter((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LeftSource, "Left source", -1, -1, 0, {});
@@ -173,6 +171,8 @@ struct Maj7WidthEditor : public VstEditor
 		VUMeterConfig attenCfg = mainCfg;
 		attenCfg.levelMode = VUMeterLevelMode::Attenuation;
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg, "Input left channel", "Input right channel");
 		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg, "Output left channel", "Output right channel");
 		ImGui::SameLine(); VUMeterMS("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg, "Input mid channel", "Input side channel");
@@ -244,8 +244,7 @@ struct Maj7WidthEditor : public VstEditor
 		}
 
 		RenderFrequencyAnalysis();
-
-		ImGui::EndGroup();
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 	}
 
@@ -292,6 +291,7 @@ private:
 	VstSerializableBoolParamRef mShowOutputParam{ "ShowOutput", mStereoHistory.mShowOutput };
 
 	// Render frequency analysis graph
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 	void RenderFrequencyAnalysis() {
 		const auto* analyzerIn = mpMaj7Width->mInputImagingAnalysis.GetFrequencyAnalyzer();
 		const auto* analyzerOut = mpMaj7Width->mOutputImagingAnalysis.GetFrequencyAnalyzer();
@@ -353,14 +353,13 @@ private:
 			return M7::math::lerp(scaleMinDb, 0.0f, t01); // map to [-60..0]
 			};
 
-		//if (anyWidth) {
 		std::function<float(float)> widthTransform = std::function<float(float)>(widthAsDbScale);
 		if (mShowInputWidth) cfg.fftOverlays.push_back({ analyzerIn, ColorFromHTML(kInputWidthFftColor, 0.9f), ColorFromHTML(kInputWidthFftColor, 0.25f), true, "Input Width", widthTransform });
 		if (mShowOutputWidth) cfg.fftOverlays.push_back({ analyzerOut, ColorFromHTML(kOutputWidthFftColor, 0.9f), ColorFromHTML(kOutputWidthFftColor, 0.25f), true, "Output Width", widthTransform });
-		//}
 
 		mWidthGraph.OnRender(cfg);
 	}
+#endif
 
 	// Stereo history visualization system
 	template<int historyViewWidth, int historyViewHeight>

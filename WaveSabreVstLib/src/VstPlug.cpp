@@ -122,7 +122,10 @@ namespace WaveSabreVstLib
 	void VstPlug::setSampleRate(float sampleRate)
 	{
 		AudioEffect::setSampleRate(sampleRate);
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		// minsizerel hardcodes the samplerate so changes are unsupported.
 		if (device) device->SetSampleRate(sampleRate);
+#endif
 	}
 
 	void VstPlug::setTempo(int tempo)

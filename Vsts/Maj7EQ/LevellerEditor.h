@@ -25,10 +25,10 @@ class LevellerEditor : public VstEditor
 	const ImVec2 kvuMeterSize{20, 400};
 
 	// FFT Analysis controls (not VST parameters, just UI state)
-	float mFFTSmoothingFactor;// = 0.0f;      // 0.0-0.9
-	int mFFTOverlapFactor;// = 2;             // 2, 4, 8, or 16 (more options for testing)
-	float mSpectrumPeakHoldTime;// = 300.0f;    // 0-1000 ms
-	float mSpectrumFalloffTime;//= 2000.0f;   // 50-5000 ms
+	//float mFFTSmoothingFactor;// = 0.0f;      // 0.0-0.9
+	//int mFFTOverlapFactor;// = 2;             // 2, 4, 8, or 16 (more options for testing)
+	//float mSpectrumPeakHoldTime;// = 300.0f;    // 0-1000 ms
+	//float mSpectrumFalloffTime;//= 2000.0f;   // 50-5000 ms
 	//FFTSize mFFTSizeSelection;// = 1;             // 0=512, 1=1024, 2=2048, 3=4096
 	//WindowType mFFTWindowType;// = 1;                // 0=Rectangular, 1=Hanning, 2=Hamming, 3=Blackman
 	float mFFTDisplayMinDB = -80.0f;       // Noise floor
@@ -42,10 +42,10 @@ public:
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
 
 		// Initialize FFT control values to match current Leveller settings
-		mFFTSmoothingFactor = mpLeveller->mInputSpectrumSmoother.GetFFTSmoothing();
-		mFFTOverlapFactor = mpLeveller->mInputSpectrumSmoother.GetOverlapFactor();
-		mSpectrumPeakHoldTime = mpLeveller->mInputSpectrumSmoother.GetPeakHoldTime();
-		mSpectrumFalloffTime = mpLeveller->mInputSpectrumSmoother.GetFalloffTime();
+		//mFFTSmoothingFactor = mpLeveller->mInputSpectrumSmoother.GetFFTSmoothing();
+		//mFFTOverlapFactor = mpLeveller->mInputSpectrumSmoother.GetOverlapFactor();
+		//mSpectrumPeakHoldTime = mpLeveller->mInputSpectrumSmoother.GetPeakHoldTime();
+		//mSpectrumFalloffTime = mpLeveller->mInputSpectrumSmoother.GetFalloffTime();
 		//mFFTSizeSelection = mpLeveller->mInputSpectrumSmoother.GetFFTSize();
 		//mFFTWindowType = mpLeveller->mInputSpectrumSmoother.GetWindowType();
 	}
@@ -213,12 +213,13 @@ public:
 			{}, // majorFreqTicks (empty = defaults)
 			{}, // minorFreqTicks (empty = defaults)
 			{}, // fftOverlays - will be populated below
-			-60.0f, // fftDisplayMinDB - Professional noise floor
+			-60.0f, // fftDisplayMinDB - noise floor
 			0.0f,   // fftDisplayMaxDB - Digital maximum  
 			true    // useIndependentFFTScale - Separate from EQ response scale
 		};
 
 		// Configure FFT overlays for input/output comparison
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		cfg.fftOverlays = {
 			{
 				&mpLeveller->mInputSpectrumSmoother,  // Input signal (before EQ)
@@ -235,7 +236,7 @@ public:
 				"Output"                               // Label for legend
 			}
 		};
-
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		//// FFT Analysis Controls Section
 		//if (ImGui::CollapsingHeader("FFT Analysis Controls (Testing)", ImGuiTreeNodeFlags_DefaultOpen))
@@ -279,7 +280,7 @@ public:
 		//		ImGui::SetTooltip("Technical smoothing applied to raw FFT data.\n0.0 = No smoothing\n0.9 = Heavy smoothing\nApplies to both input and output analyzers.");
 		//	}
 
-		//	// Professional FFT Y-Axis Scaling (Independent from EQ response)
+		//	// FFT Y-Axis Scaling (Independent from EQ response)
 		//	ImGui::Text("FFT Display Scale (Independent from EQ):");
 
 		//	bool fftScaleChanged = false;
@@ -358,8 +359,21 @@ public:
 
 		ImGui::SameLine();
 
-		VUMeter("vu_inp", mpLeveller->mInputAnalysis[0], mpLeveller->mInputAnalysis[1], kvuMeterSize);
-		ImGui::SameLine(); VUMeter("vu_outp", mpLeveller->mOutputAnalysis[0], mpLeveller->mOutputAnalysis[1], kvuMeterSize);
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    auto& iaL = mpLeveller->mInputAnalysis[0];
+    auto& iaR = mpLeveller->mInputAnalysis[1];
+    auto& oaL = mpLeveller->mOutputAnalysis[0];
+    auto& oaR = mpLeveller->mOutputAnalysis[1];
+#else
+    AnalysisStream iaL {}; // mock
+    AnalysisStream iaR {}; // mock
+    AnalysisStream oaL {}; // mock
+    AnalysisStream oaR {}; // mock
+
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+		VUMeter("vu_inp", iaL, iaR, kvuMeterSize);
+		ImGui::SameLine(); VUMeter("vu_outp", oaL, oaR, kvuMeterSize);
 
 		ImGui::Spacing();
 

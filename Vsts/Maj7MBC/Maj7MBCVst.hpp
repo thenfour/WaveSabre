@@ -45,6 +45,7 @@ public:
 		// import all device params.
 		MAJ7MBC_PARAM_VST_NAMES(paramNames);
 		return SetSimpleJSONVstChunk(GetMaj7MBC(), GetJSONTagName(), data, byteSize, GetMaj7MBC()->mParamCache, paramNames, [&](clarinoid::JsonVariantReader& elem) {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			if (elem.mKeyName == "BandASolo") {
 				p->mBands[0].mVSTConfig.mSolo = elem.mBooleanValue;
 			}
@@ -74,7 +75,7 @@ public:
 			else if (elem.mKeyName == "BandCOutputStream") {
 				p->mBands[2].mVSTConfig.mOutputStream = ToEnum(elem, Maj7MBC::OutputStream::Count__);
 			}
-
+#endif
 			auto& editor = *static_cast<WaveSabreVstLib::VstEditor*>(getEditor());
 			auto map = editor.GetVstOnlyParams();
 			for (auto& p : map) {
@@ -90,6 +91,7 @@ public:
 		MAJ7MBC_PARAM_VST_NAMES(paramNames);
 		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7MBC()->mParamCache, paramNames, [&](clarinoid::JsonVariantWriter& elem)
 			{
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				elem.Object_MakeKey("BandASolo").WriteBoolean(p->mBands[0].mVSTConfig.mSolo);
 				elem.Object_MakeKey("BandAMute").WriteBoolean(p->mBands[0].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandAOutputStream").WriteNumberValue(int(p->mBands[0].mVSTConfig.mOutputStream));
@@ -104,7 +106,7 @@ public:
 				elem.Object_MakeKey("BandCMute").WriteBoolean(p->mBands[2].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandCOutputStream").WriteNumberValue(int(p->mBands[2].mVSTConfig.mOutputStream));
 				//elem.Object_MakeKey("BandCDisplayMode").WriteNumberValue(int(p->mBands[2].mVSTConfig.mDisplayStyle));
-
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				auto& editor = *static_cast<WaveSabreVstLib::VstEditor*>(getEditor());
 				auto map = editor.GetVstOnlyParams();
 				for (auto& p : map) {

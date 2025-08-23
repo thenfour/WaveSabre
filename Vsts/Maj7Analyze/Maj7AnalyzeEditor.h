@@ -214,6 +214,7 @@ private:
   // Render frequency analysis graph (single stream)
   void RenderFrequencyAnalysis()
   {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     const auto* analyzer = mpMaj7Analyze->mInputImagingAnalysis.GetFrequencyAnalyzer();
     if (!analyzer)
     {
@@ -295,6 +296,7 @@ private:
     }
 
     mWidthGraph.OnRender(cfg);
+#endif
   }
 
 private:
@@ -323,7 +325,9 @@ private:
 
     void Render(bool showToggles, const StereoImagingAnalysisStream& analysis)
     {
-      ImGuiGroupScope __group{"history"};
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+        ImGuiGroupScope __group{"history"};
       static constexpr float lineWidth = 2.0f;
 
       mHistoryView.RenderCustom(
@@ -373,6 +377,9 @@ private:
         ToggleButton(&mShowSideLevel, "Side", {}, ButtonColorSpec{kSideLevelColor});
         ImGui::PopStyleVar(2);
       }
+#else
+      ImGui::Text("Analysis features are disabled in this build.");
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     }
   };
 

@@ -204,7 +204,7 @@ struct FrequencyDependentPeakDetector
   }
 
 private:
-  // Professional frequency-dependent falloff model
+  // frequency-dependent falloff model
   static float CalculateFrequencyFactor(float frequency)
   {
     // Clamp frequency to reasonable range

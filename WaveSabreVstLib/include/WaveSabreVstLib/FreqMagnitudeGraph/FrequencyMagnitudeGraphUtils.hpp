@@ -14,6 +14,7 @@
 #include "../imgui/imgui-knobs.h"
 #include "../imgui/imgui.h"
 #include "../imgui/imgui_internal.h"
+#include <WaveSabreVstLib/AnalysisMocks.hpp>
 #include "Maj7VstUtils.hpp"
 #include "VstPlug.h"
 #include <WaveSabreCore/FFTAnalysis.hpp>

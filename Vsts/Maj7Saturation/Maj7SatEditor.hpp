@@ -39,11 +39,14 @@ struct Maj7SatEditor : public VstEditor
 	void RenderBand(size_t iBand, ParamIndices enabledParam, const char *caption)
 	{
 		auto& band = mpMaj7Sat->mBands[iBand];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		auto& bandConfig = band.mVSTConfig;// mpMaj7MBCVst->mBandConfig[iBand];
-
+		bool muteSoloEnabled = band.mMuteSoloEnabled;// && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
+#else
+		bool muteSoloEnabled = false;
+#endif
 		if (BeginTabBar2("general", ImGuiTabBarFlags_None))
 		{
-			bool muteSoloEnabled = band.mMuteSoloEnabled;// && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
 			bool effectEnabled = band.mEnableEffect;// && (band.mOutputSignal != Maj7Sat::OutputSignal::Bypass);
 			ColorMod& cm = muteSoloEnabled ? mBandColors : mBandDisabledColors;
 			auto token = cm.Push();
@@ -92,6 +95,7 @@ struct Maj7SatEditor : public VstEditor
 					//	bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
 					//}
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 					ImGui::SameLine(0, 60);
 					if (ToggleButton(&bandConfig.mMute, "MUTE", { 0,0 }, { "990000", "294a7a", "999999", })) {
 						// this doesn't work; the common wisdom seems to be to 
@@ -103,6 +107,7 @@ struct Maj7SatEditor : public VstEditor
 						//GetEffectX()->setParameter(0, GetEffectX()->getParameter(0)); // tell the host that the params have changed (even though they haven't)
 						//mpMaj7MBCVst->updateDisplay();
 					}
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 					ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
 
@@ -151,8 +156,21 @@ struct Maj7SatEditor : public VstEditor
 						return band.transfer(x);
 					});
 
-				ImGui::SameLine(); VUMeter("inputVU", band.mInputAnalysis0, band.mInputAnalysis1, {15,100 });
-				ImGui::SameLine(); VUMeter("outputVU", band.mOutputAnalysis0, band.mOutputAnalysis1, { 15,100 });
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				auto& iaL = band.mInputAnalysis0;
+				auto& iaR = band.mInputAnalysis1;
+				auto& oaL = band.mOutputAnalysis0;
+        auto& oaR = band.mOutputAnalysis1;
+#else
+				AnalysisStream iaL{}; // mocks
+				AnalysisStream iaR{};
+				AnalysisStream oaL{};
+        AnalysisStream oaR{};
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+
+				ImGui::SameLine(); VUMeter("inputVU", iaL, iaR, {15,100 });
+				ImGui::SameLine(); VUMeter("outputVU", oaL, oaR, { 15,100 });
 
 				ImGui::EndDisabled();
 
@@ -185,17 +203,32 @@ struct Maj7SatEditor : public VstEditor
 
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
-				ImGui::SameLine(); VUMeter("inputVU", mpMaj7Sat->mInputAnalysis0, mpMaj7Sat->mInputAnalysis1, { 15,100 });
-				ImGui::SameLine(); VUMeter("outputVU", mpMaj7Sat->mOutputAnalysis0, mpMaj7Sat->mOutputAnalysis1, { 15,100 });
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+				auto& iaL = mpMaj7Sat->mInputAnalysis0;
+				auto& iaR = mpMaj7Sat->mInputAnalysis1;
+				auto& oaL = mpMaj7Sat->mOutputAnalysis0;
+        auto& oaR = mpMaj7Sat->mOutputAnalysis1;
+#else
+				AnalysisStream iaL{}; // mocks
+				AnalysisStream iaR{};
+				AnalysisStream oaL{};
+        AnalysisStream oaR{};
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+				ImGui::SameLine(); VUMeter("inputVU", iaL, iaR, { 15,100 });
+				ImGui::SameLine(); VUMeter("outputVU", oaL, oaR, { 15,100 });
 
 
 				bool showWarning = false;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				for (auto& b : mpMaj7Sat->mBands) {
 					if (b.mVSTConfig.mMute || b.mVSTConfig.mSolo) {
 						showWarning = true;
 						break;
 					}
 				}
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				if (showWarning) {
 					ImGui::SameLine();

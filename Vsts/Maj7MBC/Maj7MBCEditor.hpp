@@ -95,7 +95,9 @@ struct Maj7MBCEditor : public VstEditor
 	{
 		ImGuiIdScope __scope{ iBand };
 		auto& band = mpMaj7MBC->mBands[iBand];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		auto& bandConfig = band.mVSTConfig;// mpMaj7MBCVst->mBandConfig[iBand];
+#endif
 		bool bandEnabled = band.mEnable;
 
 		KnobColorMod colorMod{
@@ -127,6 +129,7 @@ struct Maj7MBCEditor : public VstEditor
 
 				Maj7ImGuiBoolParamToggleButton(param(BandParam::Enable), "Enable", { 0,0 }, { bandColors[iBand], "294a7a", "999999", });
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				ImGui::SameLine(0, 40);
 				if (mbEnabled)
 				{
@@ -142,6 +145,7 @@ struct Maj7MBCEditor : public VstEditor
 						bandConfig.mOutputStream = !delta ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Delta;
 					}
 				}
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				//ImGui::BeginDisabled(!band.mEnable);
 
@@ -208,12 +212,13 @@ struct Maj7MBCEditor : public VstEditor
 					//ImGui::SameLine(); Maj7ImGuiParamFrequency(param(BandParam::LowPassFrequency), -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
 					//ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::LowPassQ), "LP Q", M7::gBiquadFilterQCfg, 1.0f, {});
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 					bool sidechain = bandConfig.mOutputStream == Maj7MBC::OutputStream::Sidechain;
 					if (ToggleButton(&sidechain, "Detector", { 0,0 }, { "cc22cc", "294a7a", "999999", })) {
 						// NB: ToggleButton() has flipped the value.
 						bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
 					}
-
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					ImGui::SameLine();
 					Maj7ImGuiParamFloat01(param(BandParam::ChannelLink), "StereoLink", 0.8f, 0);
 
@@ -269,11 +274,20 @@ struct Maj7MBCEditor : public VstEditor
 				} // band enabled
 
 				//ImGui::EndGroup();
-
 				if (bandEnabled) {
-					mCompressorVisBig[iBand].Render(band.mEnable, true, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+          auto& ia = band.mInputAnalysis;
+          auto& da = band.mDetectorAnalysis;
+		  auto& aa = band.mAttenuationAnalysis;
+          auto& oa = band.mOutputAnalysis;
+#else 
+					AnalysisStream ia[2]; // mock
+					AnalysisStream da[2]; // mock
+					AnalysisStream aa[2]; // mock
+					AnalysisStream oa[2]; // mock
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+					mCompressorVisBig[iBand].Render(band.mEnable, true, band.mComp[0], ia, da, aa, oa);
 				}
-
 				//ImGui::EndTabItem();
 			}
 
@@ -285,7 +299,9 @@ struct Maj7MBCEditor : public VstEditor
 	void RenderBandSmall(size_t iBand, ParamIndices enabledParam, const char* caption, bool muteSoloEnabled, bool mbEnabledEnabled, bool mbEnabled)
 	{
 		auto& band = mpMaj7MBC->mBands[iBand];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		auto& bandConfig = band.mVSTConfig;// mpMaj7MBCVst->mBandConfig[iBand];
+#endif
 		bool bandEnabled = band.mEnable;
 
 		ColorMod& cm = (muteSoloEnabled && mbEnabledEnabled) ? mBandColors : mBandDisabledColors;
@@ -307,7 +323,18 @@ struct Maj7MBCEditor : public VstEditor
 
 		//if (bandEnabled) {
 			//ImGui::SameLine();
-		mCompressorVisSmall[iBand].Render(band.mEnable, false, band.mComp[0], band.mInputAnalysis, band.mDetectorAnalysis, band.mAttenuationAnalysis, band.mOutputAnalysis);
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+          auto& ia = band.mInputAnalysis;
+          auto& da = band.mDetectorAnalysis;
+		  auto& aa = band.mAttenuationAnalysis;
+          auto& oa = band.mOutputAnalysis;
+#else 
+					AnalysisStream ia[2]; // mock
+					AnalysisStream da[2]; // mock
+					AnalysisStream aa[2]; // mock
+					AnalysisStream oa[2]; // mock
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+		mCompressorVisSmall[iBand].Render(band.mEnable, false, band.mComp[0], ia, da, aa, oa);
 		//}
 	}
 
@@ -377,7 +404,9 @@ private:
 		}
 
 		auto& band = mpMaj7MBC->mBands[bandIndex];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		auto& bandConfig = band.mVSTConfig;
+#endif
 
 		// Get button area and individual button rects
 		ImRect buttonArea = GetBandButtonArea(bandRect);
@@ -401,20 +430,21 @@ private:
 
 		ImVec2 mousePos = ImGui::GetIO().MousePos;
 
-		if (muteRect.Contains(mousePos)) {
-			bandConfig.mMute = !bandConfig.mMute;
-			return true;
-		}
-		else if (soloRect.Contains(mousePos)) {
-			bandConfig.mSolo = !bandConfig.mSolo;
-			return true;
-		}
-		else if (enableRect.Contains(mousePos)) {
+		if (enableRect.Contains(mousePos)) {
 			// Toggle band enable via parameter system
 			using BandParam = Maj7MBC::FreqBand::BandParam;
 			VstInt32 paramIndex = band.mParams.mBaseParamID + (VstInt32)BandParam::Enable;
 			float currentValue = GetEffectX()->getParameter(paramIndex);
 			GetEffectX()->setParameterAutomated(paramIndex, currentValue > 0.5f ? 0.0f : 1.0f);
+			return true;
+		}
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		else if (muteRect.Contains(mousePos)) {
+			bandConfig.mMute = !bandConfig.mMute;
+			return true;
+		}
+		else if (soloRect.Contains(mousePos)) {
+			bandConfig.mSolo = !bandConfig.mSolo;
 			return true;
 		}
 		else if (deltaRect.Contains(mousePos)) {
@@ -427,6 +457,7 @@ private:
 			}
 			return true;
 		}
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		return false;
 	}
@@ -438,7 +469,9 @@ private:
 		}
 
 		auto& band = mpMaj7MBC->mBands[bandIndex];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		auto& bandConfig = band.mVSTConfig;
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		// Get button area for 4 buttons (Mute, Solo, Enable, Delta)
 		ImRect buttonArea = GetBandButtonArea(bandRect);
@@ -478,6 +511,7 @@ private:
 		bool anyButtonHovered = muteHovered || soloHovered || enableHovered || deltaHovered;
 
 		// Render MUTE button
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		ImColor muteColor = bandConfig.mMute ?
 			ColorFromHTML("cc4444", 0.9f) :
 			ColorFromHTML("444444", muteHovered ? 0.8f : 0.6f);
@@ -514,7 +548,7 @@ private:
 			soloRect.Min.y + (soloRect.GetHeight() - soloTextSize.y) * 0.5f
 		};
 		dl->AddText(soloTextPos, soloTextColor, "S");
-
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		// Render ENABLE button
 		ImColor enableColor = band.mEnable ?
 			ColorFromHTML("44cc44", 0.9f) :
@@ -534,6 +568,7 @@ private:
 		};
 		dl->AddText(enableTextPos, enableTextColor, "E");
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		// Render DELTA button
 		bool isDelta = (bandConfig.mOutputStream == Maj7MBC::OutputStream::Delta);
 		ImColor deltaColor = isDelta ?
@@ -553,6 +588,7 @@ private:
 			deltaRect.Min.y + (deltaRect.GetHeight() - deltaTextSize.y) * 0.5f
 		};
 		dl->AddText(deltaTextPos, deltaTextColor, "D");
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		// Set cursor for hoverable buttons
 		if (anyButtonHovered) {
@@ -569,10 +605,11 @@ public:
 		mBandDisabledColors.EnsureInitialized();
 
 		bool muteSoloEnabled[Maj7MBC::gBandCount] = { false, false, false };
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		bool mutes[Maj7MBC::gBandCount] = { mpMaj7MBC->mBands[0].mVSTConfig.mMute, mpMaj7MBC->mBands[1].mVSTConfig.mMute , mpMaj7MBC->mBands[2].mVSTConfig.mMute };
 		bool solos[Maj7MBC::gBandCount] = { mpMaj7MBC->mBands[0].mVSTConfig.mSolo, mpMaj7MBC->mBands[1].mVSTConfig.mSolo , mpMaj7MBC->mBands[2].mVSTConfig.mSolo };
 		M7::CalculateMuteSolo(mutes, solos, muteSoloEnabled);
-
+#endif
 		float backing = mpMaj7MBCVst->getParameter((int)ParamIndices::MultibandEnable);
 		M7::ParamAccessor pa{ &backing, 0 };
 		bool mbEnabled = pa.GetBoolValue(0);
@@ -622,6 +659,7 @@ public:
 			}
 
 			// FFT overlays
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 			crossoverCfg.fftOverlays.clear();
 			if (mShowInputFft) {
 				crossoverCfg.fftOverlays.push_back({
@@ -664,7 +702,7 @@ public:
 			} else {
 				mCrossoverGraph.ClearFFTDiffFlatOverlay();
 			}
-
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 			mCrossoverGraph.mCrossoverLayer->mShowResponses = mShowCrossoverResponse;
 
 			mCrossoverGraph.mCrossoverLayer->mGetBandColor = [this](size_t bandIndex, bool hovered) -> ImColor {
@@ -834,17 +872,33 @@ public:
 					ColorFromHTML("8888cc"), // line
 					 ColorFromHTML("ffff00"), // line clipped
 					 ColorFromHTML("444444"), // tick
-					}, [&](float x) {
+					}, [&](float x) -> float {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 					return Maj7MBC::Softclip(x, softClipThreshLin, 1)[0];
+#else
+					return 0;
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					});
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+        auto& ca = mpMaj7MBC->mClippingAnalysis;
+#else
+        AnalysisStream ca[2];  // mock
+#endif
 
-				ImGui::SameLine(); VUMeterAtten("scclip", mpMaj7MBC->mClippingAnalysis[0], mpMaj7MBC->mClippingAnalysis[1], { 30,120 });
+				ImGui::SameLine(); VUMeterAtten("scclip", ca[0], ca[1], { 30,120 });
 			}
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+      auto& ia = mpMaj7MBC->mInputAnalysis;
+      auto& oa = mpMaj7MBC->mOutputAnalysis;
+#else
+        AnalysisStream ia[2];  // mock
+        AnalysisStream oa[2];  // mock
+#endif
 
-			ImGui::SameLine(); VUMeter("main_vu_inp", mpMaj7MBC->mInputAnalysis[0], mpMaj7MBC->mInputAnalysis[0], kMainVuMeterSize, "Input Left", "Input Right");
-			ImGui::SameLine(); VUMeter("main_vu_outp", mpMaj7MBC->mOutputAnalysis[0], mpMaj7MBC->mOutputAnalysis[0], kMainVuMeterSize, "Output Left", "Output Right");
+			ImGui::SameLine(); VUMeter("main_vu_inp", ia[0], ia[0], kMainVuMeterSize, "Input Left", "Input Right");
+			ImGui::SameLine(); VUMeter("main_vu_outp", oa[0], oa[0], kMainVuMeterSize, "Output Left", "Output Right");
 
 		}
 		//if (mbEnabled) {

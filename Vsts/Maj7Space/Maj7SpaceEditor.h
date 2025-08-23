@@ -161,6 +161,8 @@ struct Maj7SpaceEditor : public VstEditor
 
       constexpr ImVec2 vuSize{20, 130};
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
       ImGui::SameLine();
       VUMeter("vu_inp", mpMaj7Space->mInputAnalysis[0], mpMaj7Space->mInputAnalysis[1], vuSize, "Input Left", "Input Right");
       ImGui::SameLine();
@@ -172,6 +174,7 @@ struct Maj7SpaceEditor : public VstEditor
       ImGui::SameLine();
       VUMeter("vu_outp", mpMaj7Space->mOutputAnalysis[0], mpMaj7Space->mOutputAnalysis[1], vuSize, "Output Left", "Output Right");
 
+#endif
 
     }
   }

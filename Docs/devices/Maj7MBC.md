@@ -1,5 +1,5 @@
 
-# Maj7 MBC Multiband compressor - Limiter - Saturator
+# Maj7 MBC Multiband compressor - Limiter - Saturator - Imager
 
 Maj7 MBC is a high quality and feature-rich multi-band compressor and saturator. All the features pro audio engineers are used to are implemented in a robust and stable way.
 

@@ -64,12 +64,22 @@ public:
     ImGui::EndGroup();
 
     ImGui::SameLine();
-    VUMeter("vu_inp", mpCathedral->mInputAnalysis[0],
-            mpCathedral->mInputAnalysis[1]);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    auto& iaL = mpCathedral->mInputAnalysis[0];
+    auto& iaR = mpCathedral->mInputAnalysis[1];
+    auto& oaL = mpCathedral->mOutputAnalysis[0];
+    auto& oaR = mpCathedral->mOutputAnalysis[1];
+#else
+    AnalysisStream iaL {}; // mocks
+    AnalysisStream iaR {};
+    AnalysisStream oaL {};
+    AnalysisStream oaR {};
+#endif
+    VUMeter("vu_inp", iaL, iaR);
 
     ImGui::SameLine();
-    VUMeter("vu_outp", mpCathedral->mOutputAnalysis[0],
-            mpCathedral->mOutputAnalysis[1]);
+    VUMeter("vu_outp", oaL, oaR);
   }
 };
 

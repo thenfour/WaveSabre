@@ -152,13 +152,16 @@ public:
     AEffEditor::open(ptr);
     Window_Open((HWND)ptr);
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 	GetEffectX()->getDevice()->mGuiVisible.store(true, std::memory_order_relaxed);
-
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     return true;
   }
 
   void close() override {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       GetEffectX()->getDevice()->mGuiVisible.store(false, std::memory_order_relaxed);
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
       Window_Close();
     AEffEditor::close();
   }

@@ -530,6 +530,8 @@ public:
 		::MessageBoxA(mCurrentWindow, "Copied new contents of WaveSabreCore/Maj7.cpp", "WaveSabre Maj7", MB_OK);
 	}
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+	
 	virtual std::string GetMenuBarStatusText() override 
 	{
 		std::string ret = " Voices:";
@@ -543,6 +545,7 @@ public:
 
 		return ret;
 	};
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 	void Maj7ImGuiParamMacro(int imacro) {
 		int paramID = (int)M7::ParamIndices::Macro1 + imacro;
@@ -736,7 +739,10 @@ public:
 				tickSet,
 			};
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 			ImGui::SameLine(0, 160); VUMeter("outputVU", pMaj7->mOutputAnalysis[0], pMaj7->mOutputAnalysis[1], mainCfg);
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		}
 
 		// osc1

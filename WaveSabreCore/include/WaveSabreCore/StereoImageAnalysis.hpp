@@ -533,7 +533,9 @@ private:
       mPhaseCorrelation = 0.0;  // No valid correlation
     }
   }
-};
+}; // StereoImagingAnalysisStream
+
+
 }  // namespace WaveSabreCore
 
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
