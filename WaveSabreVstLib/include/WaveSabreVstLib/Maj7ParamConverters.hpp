@@ -29,7 +29,7 @@ inline std::string FloatToString(float x, const char *suffix = nullptr) {
 }
 
 static inline std::string midiNoteToString(int midiNote) {
-  static constexpr char *const noteNames[] = {
+  static constexpr char const *const noteNames[] = {
       "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
   int note = midiNote % 12;
   int octave = midiNote / 12 - 1;

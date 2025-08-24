@@ -13,7 +13,7 @@ namespace WSPlayerApp
     {
         //using Heights = WaveSabreCore::M7::Pair<int, int>;
         using Heights = int;
-        static_assert(std::is_pod_v<Heights>, "heights is memset so...");
+        static_assert(std::is_trivially_copyable_v<Heights>, "heights is memset so...");
 
         Renderer& mRenderer;
         //const Rect mRect;

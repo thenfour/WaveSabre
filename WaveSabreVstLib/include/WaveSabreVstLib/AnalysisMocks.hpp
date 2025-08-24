@@ -86,8 +86,8 @@ struct StereoImagingAnalysisStream
   //RMSDetector mRightLevelDetector;  // *** RIGHT CHANNEL RMS ***
   //RMSDetector mWidthDetector;       // For stereo width RMS
 
-  //AnalysisStream mMidLevelDetector;
-  //AnalysisStream mSideLevelDetector;
+  AnalysisStream mMidLevelDetector;
+  AnalysisStream mSideLevelDetector;
 
   double mPhaseCorrelation = 0.0;
   double mStereoWidth = 0.0;

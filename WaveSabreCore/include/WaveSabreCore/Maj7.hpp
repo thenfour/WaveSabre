@@ -822,9 +822,9 @@ struct Maj7 : public Maj7SynthDevice
       for (size_t i = 0; i < gModLFOCount; ++i)
       {
         auto& lfo = *mpLFOs[i];
-        float s = lfo.mNode.ProcessSampleForLFO(false);
-        s = lfo.mFilter.ProcessSample(s);
-        mModMatrix.SetSourceValue(lfo.mDevice.mInfo.mModSource, s);
+        float lfoSample = lfo.mNode.ProcessSampleForLFO(false);
+        lfoSample = lfo.mFilter.ProcessSample(lfoSample);
+        mModMatrix.SetSourceValue(lfo.mDevice.mInfo.mModSource, lfoSample);
       }
 
       // TODO: what is this loop?
@@ -851,7 +851,8 @@ struct Maj7 : public Maj7SynthDevice
       float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 
       float sourceValues[gOscillatorCount];  // required for FM to hold all source values
-      float detuneMul[gSourceCount];         // = { 0 };
+      //float detuneMul[gSourceCount];         // = { 0 };
+      float det = math::SemisToFrequencyMul(myUnisonoDetune);
       float ampEnvGains[gSourceCount];
       FloatPair outputGains[gSourceCount];
 
@@ -873,13 +874,10 @@ struct Maj7 : public Maj7SynthDevice
         float volumeLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::Volume, gUnityVolumeCfg, volumeMod);
 
         float panMod = mModMatrix.GetDestinationValue(AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Pan));
-        float panN11 = dev->mParams.GetN11Value(SourceParamIndexOffsets::Pan, panMod);
+        float panN11 = dev->mParams.GetN11Value(SourceParamIndexOffsets::Pan, panMod + myUnisonoPan);
 
         auto panLin = M7::math::PanToFactor(panN11);
         outputGains[i] = panLin.mul(volumeLin);
-
-        float semis = myUnisonoDetune;
-        float det = detuneMul[i] = math::SemisToFrequencyMul(semis);
 
         if (i >= gOscillatorCount)  // if sampler, process sample here while it's fresh
         {
@@ -899,7 +897,7 @@ struct Maj7 : public Maj7SynthDevice
       {
         auto* po = mpOscillatorNodes[i];
         float s = po->ProcessSampleForAudio(
-            mMidiNote, detuneMul[i], globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
+            mMidiNote, det, globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
         mixedSources.Accumulate(outputGains[i].mul(s));
       }
 

@@ -6,6 +6,7 @@
 #include <Windows.h>
 #include <algorithm>
 #include <memory>
+#include <optional>
 
 using std::max;
 using std::min;
@@ -32,13 +33,7 @@ using std::min;
 // - compensation gain (just use output gain if no parallel processing there's no point)
 #define MAJ7COMP_FULL
 
-
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  #include <vector>
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
-//#define ENABLE_PITCHBEND
-
+// #define ENABLE_PITCHBEND
 
 #ifdef _DEBUG
   #define WSASSERT(condition)                                                                                          \
@@ -194,7 +189,7 @@ struct FloatPair
     return *this;
   }
 
-  FloatPair & operator+=(const FloatPair& m)
+  FloatPair& operator+=(const FloatPair& m)
   {
     x[0] += m.x[0];
     x[1] += m.x[1];
@@ -278,6 +273,55 @@ struct FloatPair
   }
 };
 
+
+template <typename T, typename... Deps>
+class Memo {
+public:
+  // usage: get([&]{ return compute(); }, dep1, dep2, ...)
+  template <typename F>
+  const T& get(F&& compute, const Deps&... deps) {
+    std::tuple<Deps...> newDeps{deps...};
+    if (!value_ || !depsEqual(newDeps)) {
+      value_.emplace(std::invoke(std::forward<F>(compute)));
+      deps_ = std::move(newDeps);
+    }
+    return *value_;
+  }
+
+  // Force recompute on next call.
+  void invalidate() { value_.reset(); }
+
+  bool hasValue() const noexcept { return value_.has_value(); }
+
+private:
+  // equality helpers
+  //static bool eq(const float& a, const float& b, double eps) {
+  //  const double da = a, db = b;
+  //  const double scale = 1.0 + std::max(std::abs(da), std::abs(db));
+  //  return std::abs(da - db) <= eps * scale;
+  //}
+  //static bool eq(const double& a, const double& b, double eps) {
+  //  const double scale = 1.0 + std::max(std::abs(a), std::abs(b));
+  //  return std::abs(a - b) <= eps * scale;
+  //}
+  //static bool eq(const long double& a, const long double& b, double eps) {
+  //  const long double scale = 1.0L + std::max(std::abs(a), std::abs(b));
+  //  return std::abs(a - b) <= static_cast<long double>(eps) * scale;
+  //}
+  template <class U>
+  static bool eq(const U& a, const U& b) { return a == b; }
+
+  template <std::size_t... I>
+  bool depsEqualImpl(const std::tuple<Deps...>& nd, std::index_sequence<I...>) const {
+    return (eq(std::get<I>(deps_), std::get<I>(nd)) && ...);
+  }
+  bool depsEqual(const std::tuple<Deps...>& nd) const {
+    return depsEqualImpl(nd, std::index_sequence_for<Deps...>{});
+  }
+
+  std::optional<T> value_;
+  std::tuple<Deps...> deps_{};
+};
 
 template <typename Tret, typename Tb>
 Tret AddEnum(Tret a, Tb b)

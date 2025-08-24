@@ -264,7 +264,7 @@ namespace WaveSabreVstLib
 		int size = GetMinifiedChunk(&data, true);
 		ret.uncompressedSize = size;
 
-		for (size_t i = 0; i < numParams; ++i) {
+		for (size_t i = 0; i < (size_t)numParams; ++i) {
 			float d = getParameter((VstInt32)i) - mDefaultParamCache[i];
 			if (fabsf(d) > 0.00001f) ret.nonZeroParams++;
 			else ret.defaultParams++;

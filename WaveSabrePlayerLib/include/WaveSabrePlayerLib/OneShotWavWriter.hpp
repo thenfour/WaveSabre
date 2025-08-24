@@ -19,7 +19,7 @@ namespace WSPlayerApp
             if (!ghFile || ghFile == INVALID_HANDLE_VALUE)
                 return;
 
-            auto write = [&](void* p, int n) {
+            auto write = [&](const void* p, int n) {
                 DWORD br;
                 WriteFile(ghFile, p, n, &br, 0);
             };

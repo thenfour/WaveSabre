@@ -254,7 +254,7 @@ namespace WaveSabreCore
 				SetDivCurvedValue__((int)offset, cfg, v);
 			}
 
-			float ParamAccessor::ApplyCurveToValue__(int offset, float x, float modVal) const;
+			float ApplyCurveToValue__(int offset, float x, float modVal) const;
 			template<typename Toffset>
 			real_t ApplyCurveToValue(Toffset offset, real_t x, real_t mod = 0.0f) const {
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
@@ -395,7 +395,7 @@ namespace WaveSabreCore
 			float GetMidiNote(Toffset freqOffset, Toffset ktOffset, const FreqParamConfig& cfg, float playingMidiNote, float mod) const
 			{
 				static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-				return GetMidiNote__((int)freqOffset, (int)ktOffset, cfg, noteHz, mod);
+				return GetMidiNote__((int)freqOffset, (int)ktOffset, cfg, playingMidiNote, mod);
 			}
 
 			void SetFrequencyAssumingNoKeytracking__(int freqOffset, const FreqParamConfig& cfg, float hz);

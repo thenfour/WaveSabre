@@ -12,7 +12,12 @@
 
 #include <WaveSabreCore.h>
 
+#ifndef PROGMEM
 #define PROGMEM
+#endif
+#ifndef FLASHMEM
+#define FLASHMEM
+#endif  // 
 
 namespace clarinoid
 {

@@ -18,5 +18,6 @@
 #include "WaveSabreCore/Devices.h"
 
 #include "WaveSabreCore/GsmSample.h"
+#include "WaveSabreCore/Maj7Basic.hpp"
 
 #endif

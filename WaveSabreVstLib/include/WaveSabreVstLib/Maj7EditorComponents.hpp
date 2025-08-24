@@ -8,6 +8,9 @@
 #include "Maj7ParamConverters.hpp"
 #include <functional>
 #include <vector>
+#include <WaveSabreVstLib.h>
+
+#include "ImGuiUtils.hpp"
 
 using namespace WaveSabreCore;
 

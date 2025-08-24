@@ -26,8 +26,9 @@ if(MSVC)
 	set_property(TARGET WaveSabreCore APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS_MINSIZEREL
 		" /LTCG")
 
-	if(MSVC_VERSION GREATER 1900)
-		target_compile_options(WaveSabreCore PUBLIC
-			$<$<CONFIG:MinSizeRel>:/Zc:sizedDealloc->)
-	endif()
+	# MSVC MinSizeRel quirk: avoid sized delete calls that would pull in vcruntime
+	# if(MSVC_VERSION GREATER 1900)
+	# 	target_compile_options(WaveSabreCore PUBLIC
+	# 		$<$<CONFIG:MinSizeRel>:/Zc:sizedDealloc->)
+	# endif()
 endif()

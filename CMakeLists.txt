@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.11)
 project("WaveSabre" LANGUAGES C CXX CSharp)
 
+# Explicit C++ standard for all targets
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;MinSizeRel" CACHE STRING "" FORCE)
 
 set(TOOLS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Tools CACHE STRING "" FORCE)
@@ -17,6 +22,10 @@ add_compile_definitions(
     $<$<NOT:$<CONFIG:MinSizeRel>>:FFT_ANALYSIS_SUPPORT>
 )
 
+# MSVC MinSizeRel quirk: avoid sized delete calls that would pull in vcruntime
+if(MSVC)
+  add_compile_options($<$<CONFIG:MinSizeRel>:/Zc:sizedDealloc->)
+endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
