@@ -283,6 +283,9 @@ public:
 			}
 
 			ImGui::Separator();
+
+			ImGui::MenuItem("Show performance window", nullptr, &GetEffectX()->mShowingPerformanceWindow);
+
 			if (ImGui::BeginMenu("Performance"))
 			{
 				QUALITY_SETTING_CAPTIONS(captions);

@@ -346,6 +346,8 @@ inline void PopulateStandardMenuBar(HWND hWnd,
   {
     bool b = false;
 
+    auto pEditor = (VstEditor*)pVst->getEditor();
+
     ImGui::Separator();
     if (ImGui::MenuItem("Init patch"))
     {
@@ -357,6 +359,8 @@ inline void PopulateStandardMenuBar(HWND hWnd,
     {
       //mShowDemoWindow = !mShowDemoWindow;
     }
+
+    ImGui::MenuItem("Show performance window", nullptr, &pVst->mShowingPerformanceWindow);
 
     ImGui::Separator();
 

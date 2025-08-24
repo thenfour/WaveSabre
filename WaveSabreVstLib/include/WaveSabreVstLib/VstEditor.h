@@ -1560,7 +1560,6 @@ public:
     }
   };
 
-
 protected:
   VstKeyCode mLastKeyDown = {0};
   VstKeyCode mLastKeyUp = {0};
@@ -1629,6 +1628,7 @@ protected:
 
   bool showingParamExplorer = false;
   ParamExplorer mParamExplorer;
+
 };
 
 }  // namespace WaveSabreVstLib

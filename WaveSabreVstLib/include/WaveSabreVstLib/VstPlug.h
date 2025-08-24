@@ -1,7 +1,7 @@
 #ifndef __WAVESABREVSTLIB_VSTPLUG_H__
 #define __WAVESABREVSTLIB_VSTPLUG_H__
 
-#undef _WIN32_WINNT // todo: WHY?
+#undef _WIN32_WINNT  // todo: WHY?
 
 #define _7ZIP_ST  // single-threaded LZMA lib
 
@@ -13,6 +13,7 @@
 #include <memory>
 
 #include "./Serialization.hpp"
+#include "SmoothedValue.h"
 #include <WaveSabreCore.h>
 
 // copies 16-bit static array of values to a float buffer. specifically intended to copy a 'defaults' array to a usable float parameter array.
@@ -133,6 +134,44 @@ struct ChunkStats
   int compressedSize = 0;
 };
 
+// -------- Performance stats public API --------
+struct PerfStatsSnapshot
+{
+  size_t count = 0;
+  double mean = 0.0;
+  double stddev = 0.0;
+  double min = 0.0;
+  double max = 0.0;
+  double p50 = 0.0;  // median
+  double p95 = 0.0;  // 95th percentile
+  // Robust centers
+  double trimmedMean10 = 0.0;   // mean after trimming 10% tails on both sides
+  double mad = 0.0;             // median absolute deviation around median
+  double madClippedMean = 0.0;  // mean of samples within 3*MAD of median
+};
+
+struct PerfHistogramSnapshot
+{
+  static constexpr size_t kBins = 50;
+  std::array<int, kBins> bins{};
+  size_t total = 0;
+  double min = 0.0;
+  double max = 0.0;
+  double binWidth = 0.0;  // nominal width per bin (in value units)
+  int modeIndex = -1;     // index of max-count bin
+  int modeCount = 0;      // sample count in mode bin
+};
+
+struct PerfSeriesSnapshot
+{
+  std::vector<float> values;  // chronological, oldest -> newest
+  float min = 0.0f;
+  float max = 0.0f;
+};
+
+// Forward declaration of internal perf recorder
+struct PerfRecorder;
+
 class VstPlug : public AudioEffectX
 {
 public:
@@ -174,10 +213,26 @@ public:
   // Tell hosts we require keyboard focus (enables effKeysRequired path in some DAWs)
   virtual bool DECLARE_VST_DEPRECATED(keysRequired)() override;
 
-  double GetCPUUsage01() const
+  // UI-presented CPU usage with throttling/hysteresis
+  double GetCPUUsage01_UI() const
   {
-    return mCPUUsage.GetValue();
+    return mCPUUsageUI.Get();
   }
+
+  // UI-presented cycles per sample
+  double GetCyclesPerSample_UI() const
+  {
+    return mCyclesPerSampleUI.Get();
+  }
+
+  // Performance telemetry: call from UI thread periodically to drain samples
+  void Perf_DrainToUiThread();
+  PerfStatsSnapshot Perf_GetCPUUsageStats() const;
+  PerfStatsSnapshot Perf_GetCyclesPerSampleStats() const;
+  PerfHistogramSnapshot Perf_GetCPUUsageHistogram() const;
+  PerfHistogramSnapshot Perf_GetCyclesPerSampleHistogram() const;
+  PerfSeriesSnapshot Perf_GetCPUUsageSeries(size_t maxPoints) const;
+  PerfSeriesSnapshot Perf_GetCyclesPerSampleSeries(size_t maxPoints) const;
 
   // takes the current patch, returns a binary blob containing the WaveSabre chunk.
   // this is where we serialize "diff" params, and save to 16-bit values.
@@ -243,6 +298,7 @@ public:
   WaveSabreCore::Device* getDevice() const;
 
   std::vector<float> mDefaultParamCache;
+  bool mShowingPerformanceWindow = false;
 
 protected:
   void setEditor(class VstEditor* editor);
@@ -252,7 +308,11 @@ private:
   bool synth;
 
   LARGE_INTEGER perfFreq;
-  MovingAverage<double, 100> mCPUUsage;
+  SmoothedValue<double> mCPUUsageUI;
+  SmoothedValue<double> mCyclesPerSampleUI;
+
+  // Internal perf recorder (audio thread producer, UI thread consumer)
+  PerfRecorder* mPerf = nullptr;
 
   char programName[kVstMaxProgNameLen + 1];
 
@@ -274,9 +334,6 @@ inline int WaveSabreDeviceVSTChunkToMinifiedChunk_Impl(const char* deviceName,
   auto p = new TVST(nullptr);  // assume too big for stack.
   auto* pVst = (WaveSabreVstLib::VstPlug*)p;
   pVst->setChunk(inpData, inpSize, false);  // apply JSON via the VST.
-  //auto* pDevice = pd->getDevice();
-  //M7::Deserializer ds{ (const uint8_t*)inpData };
-  //pDevice->SetMaj7StyleChunk(ds);
   p->OptimizeParams();
   *outpSize = p->GetMinifiedChunk(outpData, !!deltaFromDefaults);
   delete p;
