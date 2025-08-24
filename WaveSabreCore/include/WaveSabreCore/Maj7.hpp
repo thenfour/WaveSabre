@@ -693,6 +693,9 @@ struct Maj7 : public Maj7SynthDevice
     // K-rate cache for master pan factors
     FloatPair mMasterPanFactorsCached{1.0f, 1.0f};
     bool mMasterPanInitialized = false;
+    // K-rate cache for LFO samples
+    float mLFOSampleCached[gModLFOCount]{};
+    bool mLFOInitialized = false;
 
     void BeginBlock(bool forceProcessing)
     {
@@ -795,6 +798,7 @@ struct Maj7 : public Maj7SynthDevice
       // Ensure output/master pan gains get recomputed on the first sample of processing
       mOutputGainsInitialized = false;
       mMasterPanInitialized = false;
+      mLFOInitialized = false;
     }
 
     inline bool IsKRateBoundary() const
@@ -838,6 +842,39 @@ struct Maj7 : public Maj7SynthDevice
       }
     }
 
+    // K-rate LFO update: compute on boundary, otherwise advance phase cheaply and reuse cached value
+    inline void UpdateLFOsIfNeeded()
+    {
+      if (!mLFOInitialized || IsKRateBoundary())
+      {
+        for (size_t i = 0; i < gModLFOCount; ++i)
+        {
+          auto& lfo = *mpLFOs[i];
+          float lfoSample = lfo.mNode.ProcessSampleForLFO(false);
+          // filter at K-rate; acceptable for modulation smoothing
+          lfoSample = lfo.mFilter.ProcessSample(lfoSample);
+          mLFOSampleCached[i] = lfoSample;
+        }
+        mLFOInitialized = true;
+      }
+      else
+      {
+        // advance phase without producing a new sample value
+        for (size_t i = 0; i < gModLFOCount; ++i)
+        {
+          auto& lfo = *mpLFOs[i];
+          lfo.mNode.ProcessSampleForLFO(true);
+        }
+      }
+
+      // publish cached samples into mod matrix
+      for (size_t i = 0; i < gModLFOCount; ++i)
+      {
+        auto& lfo = *mpLFOs[i];
+        mModMatrix.SetSourceValue(lfo.mDevice.mInfo.mModSource, mLFOSampleCached[i]);
+      }
+    }
+
     void ProcessAndMix(float* s, bool forceProcessing)
     {
       // NB: process envelopes before short-circuiting due to being not playing.
@@ -858,13 +895,8 @@ struct Maj7 : public Maj7SynthDevice
         return;
       }
 
-      for (size_t i = 0; i < gModLFOCount; ++i)
-      {
-        auto& lfo = *mpLFOs[i];
-        float lfoSample = lfo.mNode.ProcessSampleForLFO(false);
-        lfoSample = lfo.mFilter.ProcessSample(lfoSample);
-        mModMatrix.SetSourceValue(lfo.mDevice.mInfo.mModSource, lfoSample);
-      }
+      // LFOs at K-rate
+      UpdateLFOsIfNeeded();
 
       // TODO: what is this loop?
       //for (size_t i = 0; i < gSourceCount; ++i)
