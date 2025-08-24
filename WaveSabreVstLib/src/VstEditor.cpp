@@ -87,6 +87,9 @@ void VstEditor::Window_Open(HWND parentWindow)
     (void)io;
     // Do not force io.WantCaptureKeyboard: it is an output from Dear ImGui
 
+    // Disable imgui.ini load/save
+    io.IniFilename = nullptr;
+
     ImGui::StyleColorsDark();
 
     ImGui_ImplWin32_Init(hwnd);
@@ -431,7 +434,9 @@ void VstEditor::ImguiPresent()
 
   if (fx->mShowingPerformanceWindow)
   {
-    if (ImGui::Begin("Perf", &fx->mShowingPerformanceWindow, ImGuiWindowFlags_AlwaysAutoResize))
+    // Ensure Perf window is not collapsed and cannot be collapsed
+    ImGui::SetNextWindowCollapsed(false, ImGuiCond_Always);
+    if (ImGui::Begin("Perf", &fx->mShowingPerformanceWindow, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoCollapse))
     {
       auto* fx = GetEffectX();
       auto usageStats = fx->Perf_GetCPUUsageStats();
