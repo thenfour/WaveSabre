@@ -687,6 +687,10 @@ struct Maj7 : public Maj7SynthDevice
 
     ISoundSourceDevice::Voice* mSourceVoices[gSourceCount];
 
+    // K-rate cache for per-source output gains (pan * volume)
+    FloatPair mOutputGainsCached[gSourceCount];
+    bool mOutputGainsInitialized = false;
+
     void BeginBlock(bool forceProcessing)
     {
       for (size_t i = 0; i < gSourceCount; ++i)
@@ -782,20 +786,39 @@ struct Maj7 : public Maj7SynthDevice
       {
         auto* srcVoice = mSourceVoices[i];
 
-        //float volumeMod = mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mVolumeModDestID);
-
-        // treat panning as added to modulation value
-        //float panParam = myUnisonoPan;// +
-        //srcVoice->mpSrcDevice->GetAuxPan() + //>mAuxPanParam.mCachedVal +
-        //srcVoice->mpSrcDevice->mAuxPanDeviceModAmt +
-        //mModMatrix.GetDestinationValue(srcVoice->mpSrcDevice->mAuxPanModDestID); // -1 would mean full Left, 1 is full Right.
-        //float outputVolLin = srcVoice->mpSrcDevice->GetLinearVolume(volumeMod);
-        //auto panGains = math::PanToFactor(panParam);
-        //srcVoice->mOutputGain[0] = outputVolLin * panGains.first;
-        //srcVoice->mOutputGain[1] = outputVolLin * panGains.second;
-        //srcVoice->mOutputGain = outputVolLin;// *panGains.second;
-
         srcVoice->BeginBlock();
+      }
+
+      // Ensure output gains get recomputed on the first sample of processing
+      mOutputGainsInitialized = false;
+    }
+
+    inline bool IsKRateBoundary() const
+    {
+      return (mModMatrix.mnSampleCount & GetModulationRecalcSampleMask()) == 0;
+    }
+
+    // Recompute per-source output gains (pan * volume) at K-rate
+    inline void UpdateOutputGainsIfNeeded(float myUnisonoPan)
+    {
+      if (!mOutputGainsInitialized || IsKRateBoundary())
+      {
+        for (size_t i = 0; i < gSourceCount; ++i)
+        {
+          auto* const srcVoice = mSourceVoices[i];
+          auto* const dev = srcVoice->mpSrcDevice;
+
+          float volumeMod = mModMatrix.GetDestinationValue(
+              AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Volume));
+          float volumeLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::Volume, gUnityVolumeCfg, volumeMod);
+
+          float panMod = mModMatrix.GetDestinationValue(AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Pan));
+          float panN11 = dev->mParams.GetN11Value(SourceParamIndexOffsets::Pan, panMod + myUnisonoPan);
+
+          auto panLin = M7::math::PanToFactor(panN11);
+          mOutputGainsCached[i] = panLin.mul(volumeLin);
+        }
+        mOutputGainsInitialized = true;
       }
     }
 
@@ -850,11 +873,13 @@ struct Maj7 : public Maj7SynthDevice
       float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
       float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 
+      // Update cached per-source output gains K-rate
+      UpdateOutputGainsIfNeeded(myUnisonoPan);
+
       float sourceValues[gOscillatorCount];  // required for FM to hold all source values
       //float detuneMul[gSourceCount];         // = { 0 };
       float det = math::SemisToFrequencyMul(myUnisonoDetune);
       float ampEnvGains[gSourceCount];
-      FloatPair outputGains[gSourceCount];
 
       FloatPair mixedSources{0, 0};
 
@@ -869,21 +894,11 @@ struct Maj7 : public Maj7SynthDevice
         ParamAccessor hiddenAmpParam{&hiddenVolumeBacking, 0};
         float ampEnvGain = ampEnvGains[i] = hiddenAmpParam.GetLinearVolume(0, gUnityVolumeCfg);
 
-        float volumeMod = mModMatrix.GetDestinationValue(
-            AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Volume));
-        float volumeLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::Volume, gUnityVolumeCfg, volumeMod);
-
-        float panMod = mModMatrix.GetDestinationValue(AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Pan));
-        float panN11 = dev->mParams.GetN11Value(SourceParamIndexOffsets::Pan, panMod + myUnisonoPan);
-
-        auto panLin = M7::math::PanToFactor(panN11);
-        outputGains[i] = panLin.mul(volumeLin);
-
         if (i >= gOscillatorCount)  // if sampler, process sample here while it's fresh
         {
           auto ps = static_cast<SamplerVoice*>(srcVoice);
           float s = ps->ProcessSample(mMidiNote, det, 0, ampEnvGain);
-          mixedSources.Accumulate(outputGains[i].mul(s));
+          mixedSources.Accumulate(mOutputGainsCached[i].mul(s));
         }
         else
         {
@@ -898,7 +913,7 @@ struct Maj7 : public Maj7SynthDevice
         auto* po = mpOscillatorNodes[i];
         float s = po->ProcessSampleForAudio(
             mMidiNote, det, globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
-        mixedSources.Accumulate(outputGains[i].mul(s));
+        mixedSources.Accumulate(mOutputGainsCached[i].mul(s));
       }
 
       // apply panning & filter, and mix with s[] as requested
