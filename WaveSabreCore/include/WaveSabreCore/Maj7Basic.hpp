@@ -194,6 +194,13 @@ struct FloatPair
     return *this;
   }
 
+  FloatPair & operator+=(const FloatPair& m)
+  {
+    x[0] += m.x[0];
+    x[1] += m.x[1];
+    return *this;
+  }
+
   FloatPair& Accumulate(const float m)
   {
     x[0] += m;
@@ -206,6 +213,13 @@ struct FloatPair
     x[1] += m.x[1];
     return *this;
   }
+
+  [[nodiscard]]
+  FloatPair yx() const
+  {
+    return {x[1], x[0]};
+  }
+
   [[nodiscard]]
   float Left() const
   {

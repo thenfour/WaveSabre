@@ -342,8 +342,7 @@ struct Maj7MBC : public Device
       }
     }
 
-    M7::FloatPair ProcessSample(const M7::FloatPair& input,
-                                ChannelMode channelMode, bool isGuiVisible)
+    M7::FloatPair ProcessSample(const M7::FloatPair& input, ChannelMode channelMode, bool isGuiVisible)
     {
       M7::FloatPair output{input};
       if (mEnable)
@@ -561,7 +560,7 @@ Run(float** inputs, float** outputs, int numSamples) override
   // CPU optimization: only process FFT for visualization when GUI is visible
   const bool isGuiVisible = IsGuiVisible();
 #else
-  constexpr bool isGuiVisible = false;
+    constexpr bool isGuiVisible = false;
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   for (size_t i = 0; i < (size_t)numSamples; ++i)
@@ -576,20 +575,28 @@ Run(float** inputs, float** outputs, int numSamples) override
     // 3. set one channel to mid/side and the other to the original opposite channel (side or mid).
     //    THIS is probably the "best" because it lets channel mix knob make sense (detector blend from mid-side), even if this is kinda odd and barely useful.
     // 4. don't set the other channel. in this case it's the original input signal but it just doesn't matter because chan link shall be 0 for mid/side modes.
-    auto inputMidSide = s.MSEncode();
-    switch (channelMode)
+    if (channelMode != ChannelMode::Stereo)
     {
-      case ChannelMode::Mid:
-      {
-        s[0] = inputMidSide.Mid();
-        break;
-      }
-      case ChannelMode::Side:
-      {
-        s[0] = inputMidSide.Side();
-        break;
-      }
+      s = s.MSEncode();
     }
+    //switch (channelMode)
+    //{
+    //  case ChannelMode::Mid:
+    //  {
+    //    s = inputMidSide;
+    //    break;
+    //  }
+    //  case ChannelMode::Side:
+    //  {
+    //    s = inputMidSide.yx();
+    //    break;
+    //  }
+    //}
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    // to support solo/mute, because this gets clobbered later, if you are doing ms processing and solo/muting, need to accumulate this just like the main signal.
+    M7::FloatPair msDrySignal;
+#endif      // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
     WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[0], s[0]);
     WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[1], s[1]);
@@ -606,15 +613,42 @@ Run(float** inputs, float** outputs, int numSamples) override
       for (int iBand = 0; iBand < gBandCount; ++iBand)
       {
         auto& band = mBands[iBand];
-        auto r = band.ProcessSample({splitter0.s[iBand], splitter1.s[iBand]}, channelMode, isGuiVisible);
+        M7::FloatPair bandInput{splitter0.s[iBand], splitter1.s[iBand]};
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+        if (band.mMuteSoloEnable)
+        {
+          msDrySignal += bandInput;
+        }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+        auto r = band.ProcessSample(bandInput, channelMode, isGuiVisible);
         s.Accumulate(r * outputGainLin);
       }
     }
     else
     {
       auto& band = mBands[1];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+        if (band.mMuteSoloEnable)
+        {
+          msDrySignal += s;
+        }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
       auto r = band.ProcessSample(s, channelMode, isGuiVisible);
       s = r * outputGainLin;
+    }
+
+    switch (channelMode)
+    {
+      case ChannelMode::Mid:
+      {
+        s = M7::FloatPair{s[0], msDrySignal[1]}.MSDecode();
+        break;
+      }
+      case ChannelMode::Side:
+      {
+        s = M7::FloatPair{msDrySignal[0], s[1]}.MSDecode();
+        break;
+      }
     }
 
     if (softClipEnabled)
@@ -627,28 +661,14 @@ Run(float** inputs, float** outputs, int numSamples) override
       mClippingAnalysis[0].WriteSample(sc0[1]);
       mClippingAnalysis[1].WriteSample(sc1[1]);
 #else
-      s[0] = Softclip(s[0], softClipThreshLin, softClipOutputLin);
-      s[1] = Softclip(s[1], softClipThreshLin, softClipOutputLin);
+        s[0] = Softclip(s[0], softClipThreshLin, softClipOutputLin);
+        s[1] = Softclip(s[1], softClipThreshLin, softClipOutputLin);
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     }
 
     WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[0], s[0]);
     WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[1], s[1]);
     WRITE_SPECTRUM_SAMPLE(isGuiVisible, mOutputSpectrum, s);
-
-    switch (channelMode)
-    {
-      case ChannelMode::Mid:
-      {
-        s = M7::FloatPair{s[0], inputMidSide[1]}.MSDecode();
-        break;
-      }
-      case ChannelMode::Side:
-      {
-        s = M7::FloatPair{inputMidSide[0], s[0]}.MSDecode();
-        break;
-      }
-    }
 
     outputs[0][i] = s[0];
     outputs[1][i] = s[1];
