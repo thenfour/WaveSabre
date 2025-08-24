@@ -189,7 +189,32 @@ struct Maj7MBCEditor : public VstEditor
             // NB: ToggleButton() has flipped the value.
             bandConfig.mOutputStream = !delta ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Delta;
           }
+
+          bool sidechain = bandConfig.mOutputStream == Maj7MBC::OutputStream::Sidechain;
+          ImGui::SameLine(0, 60);
+          if (ToggleButton(&sidechain,
+                           "Detector audition",
+                           {0, 0},
+                           {
+                               "cc22cc",
+                               "294a7a",
+                               "999999",
+                           }))
+          {
+            // NB: ToggleButton() has flipped the value.
+            bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
+          }
+          // tooltip
+          if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+          {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted("When enabled, you will hear the detector signal instead of.");
+            ImGui::TextUnformatted("the main input signal. This lets you hear the sidechain filter,");
+            ImGui::TextUnformatted("or channel linking.");
+            ImGui::EndTooltip();
+          }
         }
+
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
         //ImGui::BeginDisabled(!band.mEnable);
@@ -287,23 +312,6 @@ struct Maj7MBCEditor : public VstEditor
           //ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::HighPassQ), "HP Q", M7::gBiquadFilterQCfg, 1.0f, {});
           //ImGui::SameLine(); Maj7ImGuiParamFrequency(param(BandParam::LowPassFrequency), -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
           //ImGui::SameLine(); Maj7ImGuiDivCurvedParam(param(BandParam::LowPassQ), "LP Q", M7::gBiquadFilterQCfg, 1.0f, {});
-
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-          bool sidechain = bandConfig.mOutputStream == Maj7MBC::OutputStream::Sidechain;
-          if (ToggleButton(&sidechain,
-                           "Detector",
-                           {0, 0},
-                           {
-                               "cc22cc",
-                               "294a7a",
-                               "999999",
-                           }))
-          {
-            // NB: ToggleButton() has flipped the value.
-            bandConfig.mOutputStream = !sidechain ? Maj7MBC::OutputStream::Normal : Maj7MBC::OutputStream::Sidechain;
-          }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-          ImGui::SameLine();
 
           {
             ImGuiEnabledScope channelLinkEnabled{channelMode == Maj7MBC::ChannelMode::Stereo};
@@ -711,15 +719,21 @@ public:
   {
     mBandColors.EnsureInitialized();
     mBandDisabledColors.EnsureInitialized();
+    using OutputStream = Maj7MBC::OutputStream;
 
     bool muteSoloEnabled[Maj7MBC::gBandCount] = {false, false, false};
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     bool mutes[Maj7MBC::gBandCount] = {mpMaj7MBC->mBands[0].mVSTConfig.mMute,
                                        mpMaj7MBC->mBands[1].mVSTConfig.mMute,
                                        mpMaj7MBC->mBands[2].mVSTConfig.mMute};
-    bool solos[Maj7MBC::gBandCount] = {mpMaj7MBC->mBands[0].mVSTConfig.mSolo,
-                                       mpMaj7MBC->mBands[1].mVSTConfig.mSolo,
-                                       mpMaj7MBC->mBands[2].mVSTConfig.mSolo};
+    bool solos[Maj7MBC::gBandCount] = {
+        mpMaj7MBC->mBands[0].mVSTConfig.mSolo ||
+            (mpMaj7MBC->mBands[0].mVSTConfig.mOutputStream != OutputStream::Normal),
+        mpMaj7MBC->mBands[1].mVSTConfig.mSolo ||
+            (mpMaj7MBC->mBands[1].mVSTConfig.mOutputStream != OutputStream::Normal),
+        mpMaj7MBC->mBands[2].mVSTConfig.mSolo ||
+            (mpMaj7MBC->mBands[2].mVSTConfig.mOutputStream != OutputStream::Normal),
+    };
     M7::CalculateMuteSolo(mutes, solos, muteSoloEnabled);
 #endif
     float backing = mpMaj7MBCVst->getParameter((int)ParamIndices::MultibandEnable);

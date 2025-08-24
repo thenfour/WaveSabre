@@ -85,7 +85,7 @@ struct VstSerializableIntParamRef : public IVstSerializableParam
   {
     if (elem.mKeyName == mKey)
     {
-      mValue = static_cast<T>(elem.mNumericValue.mIntValue);
+      mValue = elem.mNumericValue.Get<T>();
       return true;
     }
     return false;

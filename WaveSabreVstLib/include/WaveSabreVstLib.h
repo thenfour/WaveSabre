@@ -156,6 +156,7 @@ struct ImGuiScope
 };
 
 using HtmlColorString = char[7];
+//using HtmlColorString = std::array<char, 7>;
 const HtmlColorString bandColors[Leveller::gBandCount] = {
     "ff98f5",  // vibrant magenta
     "00d88e",  // punchy teal-green

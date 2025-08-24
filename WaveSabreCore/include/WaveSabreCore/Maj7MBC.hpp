@@ -30,8 +30,7 @@ struct Maj7MBC : public Device
   {
     // let's just assume bool is atomic.
     bool mMute = false;
-    bool mSolo = false;
-    //DisplayStyle mDisplayStyle = DisplayStyle::Normal;
+    bool mSolo = false;  // note that when output stream = delta or sidechain, solo is implicitly on.
     OutputStream mOutputStream = OutputStream::Normal;
   };
 
@@ -538,9 +537,11 @@ Run(float** inputs, float** outputs, int numSamples) override
   bool mutes[Maj7MBC::gBandCount] = {mBands[0].mVSTConfig.mMute,
                                      mBands[1].mVSTConfig.mMute,
                                      mBands[2].mVSTConfig.mMute};
-  bool solos[Maj7MBC::gBandCount] = {mBands[0].mVSTConfig.mSolo,
-                                     mBands[1].mVSTConfig.mSolo,
-                                     mBands[2].mVSTConfig.mSolo};
+  bool solos[Maj7MBC::gBandCount] = {
+      mBands[0].mVSTConfig.mSolo || (mBands[0].mVSTConfig.mOutputStream != OutputStream::Normal),
+      mBands[1].mVSTConfig.mSolo || (mBands[1].mVSTConfig.mOutputStream != OutputStream::Normal),
+      mBands[2].mVSTConfig.mSolo || (mBands[2].mVSTConfig.mOutputStream != OutputStream::Normal),
+  };
   M7::CalculateMuteSolo(mutes, solos, muteSoloEnabled);
   mBands[0].mMuteSoloEnable = muteSoloEnabled[0];
   mBands[1].mMuteSoloEnable = muteSoloEnabled[1];
@@ -602,10 +603,10 @@ Run(float** inputs, float** outputs, int numSamples) override
     {
       auto& band = mBands[1];
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-        if (band.mMuteSoloEnable)
-        {
-          msDrySignal += s;
-        }
+      if (band.mMuteSoloEnable)
+      {
+        msDrySignal += s;
+      }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
       auto r = band.ProcessSample(s, channelMode, isGuiVisible);
       s = r * outputGainLin;

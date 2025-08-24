@@ -16,6 +16,7 @@ using namespace WaveSabreCore;
 #include <WaveSabreVstLib/Width/PolarL.hpp>
 #include <WaveSabreVstLib/Width/StereoBalance.hpp>
 
+
 struct Maj7AnalyzeEditor : public VstEditor
 {
   Maj7Analyze* mpMaj7Analyze;
@@ -131,7 +132,10 @@ struct Maj7AnalyzeEditor : public VstEditor
       ToggleButton(&mShowPhaseX, "Scissor");
     }
 
-    mStereoHistory.Render(true, mpMaj7Analyze->mInputImagingAnalysis);
+    mStereoHistory.Render(true,
+                          mpMaj7Analyze->mInputImagingAnalysis,
+                          mpMaj7Analyze->mLoudnessAnalysis[0],
+                          mpMaj7Analyze->mLoudnessAnalysis[1]);
 
     // Frequency Analysis Controls and Graph
     ImGui::BeginGroup();
@@ -202,6 +206,8 @@ struct Maj7AnalyzeEditor : public VstEditor
         &mShowSignalWidthParam,
 
         // Stereo history toggles
+        &mShowLeftPeakParam,
+        &mShowRightPeakParam,
         &mShowPhaseCorrelationParam,
         &mShowStereoWidthParam,
         &mShowStereoBalanceParam,
@@ -311,11 +317,15 @@ private:
     bool mShowMidLevel = false;
     bool mShowSideLevel = false;
 
+    bool mShowLeftPeak = false;
+    bool mShowLeftRMS = false;
+    bool mShowRightPeak = false;
+    bool mShowRightRMS = false;
+
     static constexpr float historyViewMinValue = -1.0f;  // For correlation (-1 to +1)
     static constexpr float historyViewMaxValue = +2.0f;  // For width (0 to 2+)
 
-    // 3 reference + 5 series = 8
-    HistoryView<8, historyViewWidth, historyViewHeight> mHistoryView;
+    HistoryView<10, historyViewWidth, historyViewHeight> mHistoryView;
 
     const char* kCorrelationColor = "00ccff";
     const char* kWidthColor = "88ff44";
@@ -323,11 +333,17 @@ private:
     const char* kMidLevelColor = "bb88ff";
     const char* kSideLevelColor = "ffbb88";
 
-    void Render(bool showToggles, const StereoImagingAnalysisStream& analysis)
+    const char* kLeftPeakColor = bandColors[0];
+    const char* kRightPeakColor = bandColors[2];
+
+    void Render(bool showToggles,
+                const StereoImagingAnalysisStream& analysis,
+                const AnalysisStream& analStreamL,
+                const AnalysisStream& analStreamR)
     {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-        ImGuiGroupScope __group{"history"};
+      ImGuiGroupScope __group{"history"};
       static constexpr float lineWidth = 2.0f;
 
       mHistoryView.RenderCustom(
@@ -336,6 +352,11 @@ private:
               HistoryViewSeriesConfig{ColorFromHTML("ffffff", 0.2f), 1, -1.0f, +1.0f, true},
               HistoryViewSeriesConfig{ColorFromHTML("ffffff", 0.1f), 1, -1.0f, +1.0f, true},
               HistoryViewSeriesConfig{ColorFromHTML("ffffff", 0.1f), 1, -1.0f, +1.0f, true},
+
+              HistoryViewSeriesConfig{
+                  ColorFromHTML(kLeftPeakColor, mShowLeftPeak ? 0.9f : 0), lineWidth, 0, +1.0f, true},
+              HistoryViewSeriesConfig{
+                  ColorFromHTML(kRightPeakColor, mShowRightPeak ? 0.9f : 0), lineWidth, 0, +1.0f, true},
 
               // single signal series with per-series scaling
               HistoryViewSeriesConfig{
@@ -353,6 +374,8 @@ private:
               0,
               -0.5f,
               +0.5f,
+              static_cast<float>(analStreamL.mCurrentPeak),
+              static_cast<float>(analStreamR.mCurrentPeak),
               static_cast<float>(analysis.mPhaseCorrelation),
               static_cast<float>(analysis.mStereoWidth),
               static_cast<float>(analysis.mStereoBalance),
@@ -364,18 +387,15 @@ private:
 
       if (showToggles)
       {
-        ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {2, 0});
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
-        ToggleButton(&mShowPhaseCorrelation, "Correllation", {}, ButtonColorSpec{kCorrelationColor});
-        ImGui::SameLine();
-        ToggleButton(&mShowStereoWidth, "Width", {}, ButtonColorSpec{kWidthColor});
-        ImGui::SameLine();
-        ToggleButton(&mShowStereoBalance, "Balance", {}, ButtonColorSpec{kBalanceColor});
-        ImGui::SameLine(0, 20);
-        ToggleButton(&mShowMidLevel, "Mid", {}, ButtonColorSpec{kMidLevelColor});
-        ImGui::SameLine();
-        ToggleButton(&mShowSideLevel, "Side", {}, ButtonColorSpec{kSideLevelColor});
-        ImGui::PopStyleVar(2);
+        ButtonArray<7>({
+            MakeButtonSpec("L Peak", &mShowLeftPeak, kLeftPeakColor),
+            MakeButtonSpec("R Peak", &mShowRightPeak, kRightPeakColor),
+            MakeButtonSpec("Correllation", &mShowPhaseCorrelation, kCorrelationColor),
+            MakeButtonSpec("Width", &mShowStereoWidth, kWidthColor),
+            MakeButtonSpec("Balance", &mShowStereoBalance, kBalanceColor),
+            MakeButtonSpec("Mid", &mShowMidLevel, kMidLevelColor),
+            MakeButtonSpec("Side", &mShowSideLevel, kSideLevelColor),
+        });
       }
 #else
       ImGui::Text("Analysis features are disabled in this build.");
@@ -386,6 +406,8 @@ private:
   SingleStereoHistoryVis<800, 120> mStereoHistory;
 
   // Persist toggles for single-stream history
+  VstSerializableBoolParamRef mShowLeftPeakParam{"ShowLeftPeak", mStereoHistory.mShowLeftPeak};
+  VstSerializableBoolParamRef mShowRightPeakParam{"ShowRightPeak", mStereoHistory.mShowRightPeak};
   VstSerializableBoolParamRef mShowPhaseCorrelationParam{"ShowPhaseCorrelation", mStereoHistory.mShowPhaseCorrelation};
   VstSerializableBoolParamRef mShowStereoWidthParam{"ShowStereoWidth", mStereoHistory.mShowStereoWidth};
   VstSerializableBoolParamRef mShowStereoBalanceParam{"ShowStereoBalance", mStereoHistory.mShowStereoBalance};

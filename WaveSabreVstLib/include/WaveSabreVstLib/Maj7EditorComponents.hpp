@@ -47,7 +47,7 @@ public:
 };
 
 inline bool ToggleButton(bool *value, const char *label, ImVec2 size = {},
-                         const ButtonColorSpec &cfg = {}) {
+                         const ButtonColorSpec &cfg = {}, const char *tooltip = nullptr) {
   bool ret = false;
   ImGui::PushStyleColor(ImGuiCol_ButtonHovered, cfg.HoveredU32());
   if (*value) {
@@ -62,10 +62,58 @@ inline bool ToggleButton(bool *value, const char *label, ImVec2 size = {},
     *value = !(*value);
     ret = true;
   }
+  if (tooltip && ImGui::IsItemHovered()) {
+    ImGui::SetTooltip("%s", tooltip);
+  }
 
   ImGui::PopStyleColor(3);
   return ret;
 }
+
+
+
+struct ButtonArrayButtonSpec
+{
+  std::string label;
+  bool* pSelected = nullptr;
+  const char* color;
+  const char* tooltip;
+  std::function<void()> onClick;
+  // space before
+  // space after
+  // disabled
+};
+
+inline ButtonArrayButtonSpec MakeButtonSpec(const char* label,
+                                     bool* pValueRef,
+                                     const char* colorHTML,
+                                     const char* tooltip = nullptr)
+{
+  return ButtonArrayButtonSpec{label, pValueRef, colorHTML, tooltip};
+}
+
+template <size_t N>
+inline void ButtonArray(const std::array<ButtonArrayButtonSpec, N>& x)
+{
+  ImGuiScope ims;
+  ims.PushStyleVar(ImGuiStyleVar_ItemSpacing, {2, 0});
+  ims.PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+  ImGuiGroupScope grp;
+
+  for (size_t i = 0; i < N; ++i)
+  {
+    const auto& btn = x[i];
+    if (i > 0)
+      ImGui::SameLine();
+    if (ToggleButton(btn.pSelected, btn.label.c_str(), {}, ButtonColorSpec{btn.color}))
+    {
+      if (btn.onClick)
+        btn.onClick();
+    }
+  }
+}
+
 
 struct ParamExplorer {
   float mPowKnobMin = 0;
