@@ -462,17 +462,6 @@ struct Maj7MBC : public Device
     LoadDefaults();
   }
 
-  //#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  //		// Called by VST editor when GUI is opened/closed to optimize CPU usage
-  //		void SetGuiVisible(bool visible) {
-  //			mGuiVisible.store(visible, std::memory_order_relaxed);
-  //		}
-  //
-  //		bool IsGuiVisible() const {
-  //			return mGuiVisible.load(std::memory_order_relaxed);
-  //		}
-  //#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
   virtual void OnParamsChanged() override
   {
     for (auto& b : mBands)
@@ -579,24 +568,9 @@ Run(float** inputs, float** outputs, int numSamples) override
     {
       s = s.MSEncode();
     }
-    //switch (channelMode)
-    //{
-    //  case ChannelMode::Mid:
-    //  {
-    //    s = inputMidSide;
-    //    break;
-    //  }
-    //  case ChannelMode::Side:
-    //  {
-    //    s = inputMidSide.yx();
-    //    break;
-    //  }
-    //}
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     // to support solo/mute, because this gets clobbered later, if you are doing ms processing and solo/muting, need to accumulate this just like the main signal.
-    M7::FloatPair msDrySignal;
-#endif      // SELECTABLE_OUTPUT_STREAM_SUPPORT
+    M7::FloatPair msDrySignal{s};
 
     WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[0], s[0]);
     WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[1], s[1]);
