@@ -690,6 +690,9 @@ struct Maj7 : public Maj7SynthDevice
     // K-rate cache for per-source output gains (pan * volume)
     FloatPair mOutputGainsCached[gSourceCount];
     bool mOutputGainsInitialized = false;
+    // K-rate cache for master pan factors
+    FloatPair mMasterPanFactorsCached{1.0f, 1.0f};
+    bool mMasterPanInitialized = false;
 
     void BeginBlock(bool forceProcessing)
     {
@@ -789,8 +792,9 @@ struct Maj7 : public Maj7SynthDevice
         srcVoice->BeginBlock();
       }
 
-      // Ensure output gains get recomputed on the first sample of processing
+      // Ensure output/master pan gains get recomputed on the first sample of processing
       mOutputGainsInitialized = false;
+      mMasterPanInitialized = false;
     }
 
     inline bool IsKRateBoundary() const
@@ -819,6 +823,18 @@ struct Maj7 : public Maj7SynthDevice
           mOutputGainsCached[i] = panLin.mul(volumeLin);
         }
         mOutputGainsInitialized = true;
+      }
+    }
+
+    // Recompute master pan factors at K-rate
+    inline void UpdateMasterPanIfNeeded(float myUnisonoPan)
+    {
+      if (!mMasterPanInitialized || IsKRateBoundary())
+      {
+        float masterPanN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan,
+                                                          mModMatrix.GetDestinationValue(ModDestination::Pan));
+        mMasterPanFactorsCached = M7::math::PanToFactor(masterPanN11 + myUnisonoPan);
+        mMasterPanInitialized = true;
       }
     }
 
@@ -875,6 +891,8 @@ struct Maj7 : public Maj7SynthDevice
 
       // Update cached per-source output gains K-rate
       UpdateOutputGainsIfNeeded(myUnisonoPan);
+      // Update cached master pan factors K-rate
+      UpdateMasterPanIfNeeded(myUnisonoPan);
 
       float sourceValues[gOscillatorCount];  // required for FM to hold all source values
       //float detuneMul[gSourceCount];         // = { 0 };
@@ -917,10 +935,11 @@ struct Maj7 : public Maj7SynthDevice
       }
 
       // apply panning & filter, and mix with s[] as requested
-      float masterPanN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan,
-                                                        mModMatrix.GetDestinationValue(ModDestination::Pan));
-      auto panFactors = M7::math::PanToFactor(masterPanN11 + myUnisonoPan);
-      mixedSources = panFactors.mul(mixedSources);
+      //float masterPanN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan,
+      //                                                  mModMatrix.GetDestinationValue(ModDestination::Pan));
+      //auto panFactors = M7::math::PanToFactor(masterPanN11 + myUnisonoPan);
+      //mixedSources = panFactors.mul(mixedSources);
+      mixedSources = mMasterPanFactorsCached.mul(mixedSources);
 
       for (size_t ich = 0; ich < 2; ++ich)
       {
