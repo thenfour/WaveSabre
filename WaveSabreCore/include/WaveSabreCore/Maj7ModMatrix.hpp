@@ -139,7 +139,8 @@ namespace WaveSabreCore
 			Osc1Pan,
 			Osc1PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc1Waveshape, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1WaveshapeA, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc1WaveshapeB, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1SyncFrequency, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1FrequencyParam, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc1PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
@@ -162,7 +163,8 @@ namespace WaveSabreCore
 			Osc2Pan,
 			Osc2PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 
-			Osc2Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2WaveshapeA, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc2WaveshapeB, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc2PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
@@ -183,7 +185,8 @@ namespace WaveSabreCore
 			Osc3Volume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3Pan,
 			Osc3PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc3Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3WaveshapeA, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc3WaveshapeB, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc3PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
@@ -204,7 +207,8 @@ namespace WaveSabreCore
 			Osc4Volume, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc4Pan,
 			Osc4PreFMVolume, // KEEP IN SYNC WITH OscModParamIndexOffsets
-			Osc4Waveshape, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4WaveshapeA, // KEEP IN SYNC WITH OscModParamIndexOffsets
+			Osc4WaveshapeB, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc4SyncFrequency, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc4FrequencyParam, // KEEP IN SYNC WITH OscModParamIndexOffsets
 			Osc4PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
@@ -242,22 +246,26 @@ namespace WaveSabreCore
 			Env2ReleaseTime, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 			Env2ReleaseCurve, // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
-			LFO1Waveshape,
+			LFO1WaveshapeA,
+			LFO1WaveshapeB,
 			LFO1FrequencyParam,
 				LFO1Phase,
 				LFO1Sharpness,
 
-				LFO2Waveshape,
+				LFO2WaveshapeA,
+				LFO2WaveshapeB,
 				LFO2FrequencyParam,
 				LFO2Phase,
 				LFO2Sharpness,
 
-				LFO3Waveshape,
+				LFO3WaveshapeA,
+				LFO3WaveshapeB,
 				LFO3FrequencyParam,
 				LFO3Phase,
 				LFO3Sharpness,
 
-				LFO4Waveshape,
+				LFO4WaveshapeA,
+				LFO4WaveshapeB,
 				LFO4FrequencyParam,
 				LFO4Phase,
 				LFO4Sharpness,
@@ -382,7 +390,8 @@ namespace WaveSabreCore
 			Pan, // keep in sync between SourceModParamIndexOffsets, OscModParamIndexOffsets, SamplerModParamIndexOffsets, ModDestination
 			PreFMVolume, // keep in sync between SourceModParamIndexOffsets, OscModParamIndexOffsets, SamplerModParamIndexOffsets, ModDestination
 
-			Waveshape,
+			WaveshapeA,
+			WaveshapeB,
 			SyncFrequency,
 			FrequencyParam,
 			PitchFine, // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
@@ -405,7 +414,8 @@ namespace WaveSabreCore
 
 		enum class LFOModParamIndexOffsets// : uint8_t // MUST BE IN SYNC WITH ABOVE
 		{
-			Waveshape,
+			WaveshapeA,
+			WaveshapeB,
 			FrequencyParam,
 			Phase,
 			Sharpness,
@@ -424,7 +434,8 @@ namespace WaveSabreCore
 		"Osc1Volume", \
 			"Osc1Pan", \
 			"Osc1PreFMVolume", \
-			"Osc1Waveshape", \
+			"Osc1WaveshapeA", \
+			"Osc1WaveshapeB", \
 			"Osc1SyncFrequency", \
 			"Osc1FrequencyParam", \
 			"Osc1PitchFine", \
@@ -442,7 +453,8 @@ namespace WaveSabreCore
 		"Osc2Volume", \
 			"Osc2Pan", \
 			"Osc2PreFMVolume", \
-			"Osc2Waveshape", \
+			"Osc2WaveshapeA", \
+			"Osc2WaveshapeB", \
 			"Osc2SyncFrequency", \
 			"Osc2FrequencyParam", \
 			"Osc2PitchFine", \
@@ -460,7 +472,8 @@ namespace WaveSabreCore
 			"Osc3Volume", \
 			"Osc3Pan", \
 			"Osc3PreFMVolume", \
-			"Osc3Waveshape", \
+			"Osc3WaveshapeA", \
+			"Osc3WaveshapeB", \
 			"Osc3SyncFrequency", \
 			"Osc3FrequencyParam", \
 			"Osc3PitchFine", \
@@ -478,7 +491,8 @@ namespace WaveSabreCore
 			"Osc4Volume", \
 			"Osc4Pan", \
 			"Osc4PreFMVolume", \
-			"Osc4Waveshape", \
+			"Osc4WaveshapeA", \
+			"Osc4WaveshapeB", \
 			"Osc4SyncFrequency", \
 			"Osc4FrequencyParam", \
 			"Osc4PitchFine", \
@@ -511,19 +525,23 @@ namespace WaveSabreCore
 			"Env2SustainLevel", \
 			"Env2ReleaseTime", \
 			"Env2ReleaseCurve", \
-			"LFO1Waveshape", \
+			"LFO1WaveshapeA", \
+			"LFO1WaveshapeB", \
 			"LFO1FrequencyParam", \
 			"LFO1Phase", \
 			"LFO1Sharpness", \
-			"LFO2Waveshape", \
+			"LFO2WaveshapeA", \
+			"LFO2WaveshapeB", \
 			"LFO2FrequencyParam", \
 			"LFO2Phase", \
 			"LFO2Sharpness", \
-			"LFO3Waveshape", \
+			"LFO3WaveshapeA", \
+			"LFO3WaveshapeB", \
 			"LFO3FrequencyParam", \
 			"LFO3Phase", \
 			"LFO3Sharpness", \
-			"LFO4Waveshape", \
+			"LFO4WaveshapeA", \
+			"LFO4WaveshapeB", \
 			"LFO4FrequencyParam", \
 			"LFO4Phase", \
 			"LFO4Sharpness", \
@@ -617,7 +635,8 @@ namespace WaveSabreCore
 "O1Vol", \
 "O1Pan", \
 "O1PreVol", \
-"O1Shape", \
+"O1ShapeA", \
+"O1ShapeB", \
 "O1Sync", \
 "O1Freq", \
 "O1Fine", \
@@ -635,7 +654,8 @@ namespace WaveSabreCore
 "O2Vol", \
 "O2Pan", \
 "O2PreVol", \
-"O2Shape", \
+"O2ShapeA", \
+"O2ShapeB", \
 "O2Sync", \
 "O2Freq", \
 "O2Fine", \
@@ -653,7 +673,8 @@ namespace WaveSabreCore
 "O3Vol", \
 "O3Pan", \
 "O3PreVol", \
-"O3Shape", \
+"O3ShapeA", \
+"O3ShapeB", \
 "O3Sync", \
 "O3Freq", \
 "O3Fine", \
@@ -671,7 +692,8 @@ namespace WaveSabreCore
 "O4Vol", \
 "O4Pan", \
 "O4PreVol", \
-"O4Shape", \
+"O4ShapeA", \
+"O4ShapeB", \
 "O4Sync", \
 "O4Freq", \
 "O4Fine", \
@@ -704,19 +726,23 @@ namespace WaveSabreCore
 "Env2Sus", \
 "Env2Rel", \
 "Env2RelCrv", \
-"LFO1Shp", \
+"LFO1ShpA", \
+"LFO1ShpB", \
 "LFO1Freq", \
 "LFO1Ph", \
 "LFO1Shrp", \
-"LFO2Shp", \
+"LFO2ShpA", \
+"LFO2ShpB", \
 "LFO2Freq", \
 "LFO2Ph", \
 "LFO2Shrp", \
-"LFO3Shp", \
+"LFO3ShpA", \
+"LFO3ShpB", \
 "LFO3Freq", \
 "LFO3Ph", \
 "LFO3Shrp", \
-"LFO4Shp", \
+"LFO4ShpA", \
+"LFO4ShpB", \
 "LFO4Freq", \
 "LFO4Ph", \
 "LFO4Shrp", \

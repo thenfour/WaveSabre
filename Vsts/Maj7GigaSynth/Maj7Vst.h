@@ -932,7 +932,8 @@ namespace WaveSabreCore
 			p->mParams.Set01Val(LFOParamIndexOffsets::FrequencyParam, 0.6f);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 
 			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::TriTrunc);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
-			p->mParams.Set01Val(LFOParamIndexOffsets::Waveshape, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
+			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeA, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
+			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeB, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(LFOParamIndexOffsets::PhaseOffset, 0);// p->mPhaseOffset.SetN11Value(0);
 			p->mParams.SetEnumValue(LFOParamIndexOffsets::FrequencyBasis, TimeBasis::Frequency);
 			p->mParams.Set01Val(LFOParamIndexOffsets::Sharpness, 0.5f);
@@ -952,7 +953,8 @@ namespace WaveSabreCore
 			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 
 			p->mParams.SetEnumValue(OscParamIndexOffsets::Waveform, OscillatorWaveform::SineClip);//p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
-			p->mParams.Set01Val(OscParamIndexOffsets::Waveshape, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
+			p->mParams.Set01Val(OscParamIndexOffsets::WaveshapeA, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
+			p->mParams.Set01Val(OscParamIndexOffsets::WaveshapeB, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(OscParamIndexOffsets::PhaseOffset, 0);//p->mPhaseOffset.SetN11Value(0);
 			p->mParams.Set01Val(OscParamIndexOffsets::SyncFrequency, M7::gFreqParamKTUnity);//p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
 			p->mParams.Set01Val(OscParamIndexOffsets::SyncFrequencyKT, 1);//p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);

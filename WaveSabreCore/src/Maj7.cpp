@@ -80,9 +80,10 @@ namespace WaveSabreCore {
           16384, // M1rngXA = 0.5
           21845, // M1rngXB = 0.666656494140625
         };
-        static_assert((int)M7::LFOParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultLFOParams[7] = {
+        static_assert((int)M7::LFOParamIndexOffsets::Count == 8, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultLFOParams[8] = {
           105, // LFO1wav = 0.0032114624045789241791
+          16384, // LFO1shp = 0.5
           16384, // LFO1shp = 0.5
           0, // LFO1rst = 0
           16384, // LFO1ph = 0.5
@@ -104,14 +105,15 @@ namespace WaveSabreCore {
           32767, // AE1rst = 0.999969482421875
           0, // AE1mode = 0
         };
-        static_assert((int)M7::OscParamIndexOffsets::Count == 18, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultOscillatorParams[18] = {
+        static_assert((int)M7::OscParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultOscillatorParams[19] = {
           0, // O1En = 0
           32767, // O1Vol = 0.999969482421875
           16384, // pan
           128, // O1KRmin = 0.00390625
           32640, // O1KRmax = 0.99609375
           56, // O1Wave = 0.001708984375
+          16384, // O1Shp = 0.5
           16384, // O1Shp = 0.5
           0, // O1PRst = 0
           16384, // O1Poff = 0.5

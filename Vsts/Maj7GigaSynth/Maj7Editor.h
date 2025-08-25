@@ -1051,12 +1051,17 @@ public:
 		//if (WSBeginTabItem(labelWithID, 0, 0)) {
 		if (WSBeginTabItemWithSel(labelWithID, oscID, mSourceTabSelHelper)) {
 			//WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
-			Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
+			Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "On");
 			//Maj7ImGuiParamBoolToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
 			ImGui::SameLine(); Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume, "Volume", M7::gUnityVolumeCfg, 0, lGetModInfo(M7::OscModParamIndexOffsets::Volume ));
 
-			ImGui::SameLine(); WaveformParam(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform, enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, nullptr);
-			ImGui::SameLine(); Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::Waveshape, "Shape", 0.5f, 0.5f, 0, lGetModInfo(M7::OscModParamIndexOffsets::Waveshape));
+			ImGui::SameLine(); WaveformParam(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform,
+				enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeA,
+				enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeB,
+				enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset,
+				nullptr);
+			ImGui::SameLine(); Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeA, "shapeA", 0.5f, 0.5f, 0, lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeA));
+			ImGui::SameLine(); Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeB, "shapeB", 0.5f, 0.5f, 0, lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeB));
 
 			ImGui::SameLine(0, 60); Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam, enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "Freq", M7::gSourceFreqConfig, M7::gFreqParamKTUnity, lGetModInfo(M7::OscModParamIndexOffsets::FrequencyParam));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT, "KT", 0, 1, 1, 1, 0, {});
@@ -1064,7 +1069,7 @@ public:
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PitchFine, "FineTune", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::PitchFine));
 			ImGui::SameLine(); Maj7ImGuiParamScaledFloat(enabledParamID + (int)M7::OscParamIndexOffsets::FreqMul, "FreqMul", 0, M7::gFrequencyMulMax, 1, 0, 0, {});
 			
-			ImGui::SameLine(0, 60); Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "Phase\r\nRst");
+			ImGui::SameLine(0, 40); Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseRestart, "Phase\r\nRst");
 
 			ImGui::SameLine(); Maj7ImGuiParamFloatN11(enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset, "Phase", 0, 0, lGetModInfo(M7::OscModParamIndexOffsets::Phase));
 			//ImGui::SameLine(0, 60); WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::SyncEnable, "Sync");
@@ -1109,9 +1114,12 @@ public:
 
 		TIME_BASIS_CAPTIONS(timeBasisCaptions);
 
-		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform, waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, &phaseCursor);
+		WaveformParam(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform,
+			waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeA,
+			waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeB,
+			waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset, &phaseCursor);
 
-		ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveshape, "Shape");
+		ImGui::SameLine(); WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeA, "Shape");
 		// TODO: in the future,
 		//ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
 		ImGui::SameLine(); Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam, -1, "Freq", M7::gLFOFreqConfig, 0.4f, lGetModInfo(M7::LFOModParamIndexOffsets::FrequencyParam));
@@ -1712,7 +1720,7 @@ public:
 		}
 	}
 
-	void WaveformGraphic(M7::OscillatorWaveform waveform, float waveshape01, float phaseOffsetN11, ImRect bb, float* cursorPhase)
+	void WaveformGraphic(M7::OscillatorWaveform waveform, float waveshapeA01, float waveshapeB01, float phaseOffsetN11, ImRect bb, float* cursorPhase)
 	{
 		OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
 		std::unique_ptr<M7::IOscillatorWaveform> pWaveform;
@@ -1752,11 +1760,8 @@ public:
 		case M7::OscillatorWaveform::TriTrunc:
 			pWaveform.reset(new M7::TriTruncWaveform);
 			break;
-		case M7::OscillatorWaveform::VarTrapezoidHard:
-			pWaveform.reset(new M7::VarTrapezoidWaveform{ M7::gVarTrapezoidHardSlope });
-			break;
-		case M7::OscillatorWaveform::VarTrapezoidSoft:
-			pWaveform.reset(new M7::VarTrapezoidWaveform { M7::gVarTrapezoidSoftSlope });
+		case M7::OscillatorWaveform::VarTrapezoid:
+			pWaveform.reset(new M7::VarTrapezoidWaveform);
 			break;
 
     case M7::OscillatorWaveform::SineRectified:
@@ -1793,7 +1798,7 @@ public:
 
 		// freq & samplerate should be set such that we have `width` samples per 1 cycle.
 		// samples per cycle = srate / freq
-		pWaveform->SetParams(freq, 0, waveshape01, bb.GetWidth(), M7::OscillatorIntention::LFO);
+		pWaveform->SetParams(freq, 0, waveshapeA01, waveshapeB01, bb.GetWidth(), M7::OscillatorIntention::LFO);
 
 		ImVec2 outerTL = bb.Min;// ImGui::GetCursorPos();
 		ImVec2 outerBR = { outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight() };
@@ -1830,7 +1835,7 @@ public:
 		drawList->AddText(bb.Min, ImGui::GetColorU32(ImGuiCol_Text), gWaveformCaptions[(int)waveform]);
 	}
 
-	bool WaveformButton(ImGuiID id, M7::OscillatorWaveform waveform, float waveshape01, float phaseOffsetN11, float* phaseCursor)
+	bool WaveformButton(ImGuiID id, M7::OscillatorWaveform waveform, float waveshapeA01, float waveshapeB01, float phaseOffsetN11, float* phaseCursor)
 	{
 		id += 10;// &= 0x8000; // just to comply with ImGui expectations of IDs never being 0. 
 		ImGuiButtonFlags flags = 0;
@@ -1848,14 +1853,14 @@ public:
 
 		bool hovered, held;
 
-		WaveformGraphic(waveform, waveshape01, phaseOffsetN11, bb, phaseCursor);
+		WaveformGraphic(waveform, waveshapeA01, waveshapeB01, phaseOffsetN11, bb, phaseCursor);
 
 		bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
 
 		return pressed;
 	}
 
-	void WaveformParam(int waveformParamID, int waveshapeParamID, int phaseOffsetParamID, float* phaseCursor)
+	void WaveformParam(int waveformParamID, int waveshapeAParamID, int waveshapeBParamId, int phaseOffsetParamID, float* phaseCursor)
 	{
 		OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
 
@@ -1864,12 +1869,13 @@ public:
 		//M7::EnumParam<M7::OscillatorWaveform> waveformParam(pMaj7->mParamCache[waveformParamID], M7::OscillatorWaveform::Count);
 		//M7::Float01Param waveshapeParam(pMaj7->mParamCache[waveshapeParamID]);
 		M7::OscillatorWaveform selectedWaveform = waveformParam.GetEnumValue< M7::OscillatorWaveform>();
-		float waveshape01 = GetEffectX()->getParameter((VstInt32)waveshapeParamID);// waveshapeParam.Get01Value();
+		float waveshapeA01 = GetEffectX()->getParameter((VstInt32)waveshapeAParamID);// waveshapeParam.Get01Value();
+		float waveshapeB01 = GetEffectX()->getParameter((VstInt32)waveshapeBParamId);// waveshapeParam.Get01Value();
 		//M7::FloatN11Param phaseOffsetParam(pMaj7->mParamCache[phaseOffsetParamID]);
 		M7::QuickParam phaseOffsetParam{ GetEffectX()->getParameter((VstInt32)phaseOffsetParamID) };
 		float phaseOffsetN11 = phaseOffsetParam.GetN11Value();
 
-		if (WaveformButton(waveformParamID, selectedWaveform, waveshape01, phaseOffsetN11, phaseCursor)) {
+		if (WaveformButton(waveformParamID, selectedWaveform, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor)) {
 			ImGui::OpenPopup("selectWaveformPopup");
 		}
 		ImGui::SameLine();
@@ -1879,7 +1885,7 @@ public:
 			{
 				M7::OscillatorWaveform wf = (M7::OscillatorWaveform)n;
 				ImGui::PushID(n);
-				if (WaveformButton(n, wf, waveshape01, phaseOffsetN11, phaseCursor)) {
+				if (WaveformButton(n, wf, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor)) {
 					//float t;
 					//M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count);
 					//tp.SetEnumValue(wf);
