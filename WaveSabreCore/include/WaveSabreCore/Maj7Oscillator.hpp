@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7Envelope.hpp>
@@ -88,6 +88,11 @@ namespace WaveSabreCore
 			VarTrapezoidHard,
 			VarTrapezoidSoft,
 			WhiteNoiseSH,
+			SineRectified,
+			SinePhaseDist,
+			StaircaseSaw,
+			TriFold,
+			DoublePulse,
 			Count,
 		};
 		// size-optimize using macro
@@ -102,6 +107,11 @@ namespace WaveSabreCore
 			"VarTrapezoidHard",\
 			"VarTrapezoidSoft",\
 			"WhiteNoiseSH",\
+			"SineRectified", \
+			"SinePhaseDist", \
+			"StaircaseSaw", \
+			"TriFold", \
+			"DoublePulse", \
 		}
 
 
@@ -299,28 +309,28 @@ namespace WaveSabreCore
 		//};
 
 		/////////////////////////////////////////////////////////////////////////////
-		struct SawClipWaveform :IOscillatorWaveform
-		{
-			// returns Y value at specified phase. instance / stateless.
-			virtual float NaiveSample(float phase01) override
-			{
-				return phase01 * 2 - 1;
-			}
+		//struct SawClipWaveform :IOscillatorWaveform
+		//{
+		//	// returns Y value at specified phase. instance / stateless.
+		//	virtual float NaiveSample(float phase01) override
+		//	{
+		//		return phase01 * 2 - 1;
+		//	}
 
-			virtual float NaiveSampleSlope(float phase01) override
-			{
-				return 1;
-			}
+		//	virtual float NaiveSampleSlope(float phase01) override
+		//	{
+		//		return 1;
+		//	}
 
-			virtual void AfterSetParams() override
-			{
-			}
-			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
-			{
-				float blepScale = -1;
-				OSC_ACCUMULATE_BLEP(newPhase, 0/*edge*/, blepScale, samples, samplesTillNextSample);
-			}
-		};
+		//	virtual void AfterSetParams() override
+		//	{
+		//	}
+		//	virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+		//	{
+		//		float blepScale = -1;
+		//		OSC_ACCUMULATE_BLEP(newPhase, 0/*edge*/, blepScale, samples, samplesTillNextSample);
+		//	}
+		//};
 
 
 
@@ -702,114 +712,17 @@ namespace WaveSabreCore
 		//		return -1 / mShape;
 		//	}
 
-		//	virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+		//	virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
 		//	{
 		//		float scale = float(mPhaseIncrement / mShape);
-		//		OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-		//		OSC_ACCUMULATE_BLAMP(newPhase, mShape * .5f/*edge*/, -2 * scale, samples, samplesTillNextSample);
-		//		OSC_ACCUMULATE_BLAMP(newPhase, mShape/*edge*/, scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape * .5f/*edge*/, -2 * scale, samples, samplesTillNextSample);
+		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mShape/*edge*/, scale, samples, samplesTillNextSample);
 		//	}
 		//};
 
 
 		///////////////////////////////////////////////////////////////////////////////
-		//struct TriSquareWaveform :IOscillatorWaveform
-		//{
-		//	float mT1 = 0;
-		//	float mT2 = 0;
-		//	float mT3 = 0;
-		//	virtual void SetParams(float freq, float phaseOffset, float waveshape, double sampleRate) override
-		//	{
-		//		IOscillatorWaveform::SetParams(freq, phaseOffset, waveshape, sampleRate);
-		//		waveshape = std::abs(waveshape * 2 - 1); // create reflection to make bipolar
-		//		mShape = math::lerp(0, .49f, waveshape * waveshape);
-
-		//		mT1 = .5f - mShape;
-		//		mT2 = .5f;
-		//		mT3 = 1 - mShape;
-		//	}
-
-		//	virtual float NaiveSample(float t) override
-		//	{
-		//		/*
-		//		  // my original impl created a tall triangle wave, and then clipped it.
-		//		  // that is elegant, but when dealing with fixed point arith, those amplitudes will definitely get out of bounds.
-		//		  // and i don't want to rely on saturating arith.
-		//		  // so as with the others, let's REMAKE it.
-
-		//		  //         shape describes the width of the flat areas.
-		//		  //         0<shape<0.5. shape cannot be 0.5 exactly; it must be minus at least 1 sample length
-		//		  //       1-|    /````\
-		//		  //         |   /      \
-		//		  //       0-|  /        \
-		//		  //         | /          \
-		//		  //      -1-|/            \____
-		//		  //          ^    <==>     <==>
-		//		  //          ^   t1  t2    t3  ^
-		//		  //          0       .5        1
-		//		  //          t2-t1 = 1-t3 = shape
-		//		  //          t1-t0 = (1-shape*2)/2 = .5-shape
-		//		  //          slope = 2 / shape
-		//		  (t<this.t1) ? (
-		//			(t/this.t1)*2-1
-		//		  ):(t<this.t2)?(
-		//			1
-		//		  ):(t<this.t3)?(
-		//			1-(t-.5)/this.t1*2
-		//		  ):(
-		//			-1
-		//		  );
-		//		*/
-		//		if (t < mT1) {
-		//			return (t / mT1) * 2 - 1;
-		//		}
-		//		if (t < mT2) {
-		//			return 1;
-		//		}
-		//		if (t < mT3) {
-		//			return 1 - (t - 0.5f) / mT1 * 2;
-		//		}
-		//		return -1;
-		//	}
-
-		//	virtual float NaiveSampleSlope(float t) override
-		//	{
-		//		/*
-		//		  (t<this.t1) ? (
-		//			1/this.t1;
-		//		  ):(t<this.t2)?(
-		//			0
-		//		  ):(t<this.t3)?(
-		//			-1/this.t1;
-		//		  ):(
-		//			0
-		//		  );
-		//		*/
-		//		if (t < mT1) {
-		//			return 1 / mT1;
-		//		}
-		//		if (t < mT2) {
-		//			return 0;
-		//		}
-		//		if (t < mT3) {
-		//			return -1 / mT1;
-		//		}
-		//		return 0;
-		//	}
-
-		//	virtual void Visit(std::pair<float, float>& bleps, double newPhase, float samples, float samplesTillNextSample) override
-		//	{
-		//		float scale = float(mPhaseIncrement / mT1);
-		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, 0/*edge*/, scale, samples, samplesTillNextSample);
-		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT1/*edge*/, -scale, samples, samplesTillNextSample);
-		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT2/*edge*/, -scale, samples, samplesTillNextSample);
-		//		OSC_ACCUMULATE_BLAMP(bleps, newPhase, mT3/*edge*/, scale, samples, samplesTillNextSample);
-		//	}
-
-		//};
-
-
-		/////////////////////////////////////////////////////////////////////////////
 		struct TriTruncWaveform :IOscillatorWaveform
 		{
 			virtual void AfterSetParams() override
@@ -927,7 +840,7 @@ namespace WaveSabreCore
 
 			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
 			{
-				float scale = float(mPhaseIncrement / (mSlope));
+				float scale = (float)(mPhaseIncrement / (mSlope));
 				OSC_ACCUMULATE_BLAMP(newPhase, 0/*edge*/, -scale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(newPhase, mT1/*edge*/, -scale, samples, samplesTillNextSample);
 				OSC_ACCUMULATE_BLAMP(newPhase, mT2/*edge*/, scale, samples, samplesTillNextSample);
@@ -946,6 +859,310 @@ namespace WaveSabreCore
 				slope = std::abs(slope * 2 - 1); // create reflection to make bipolar
 				mSlope = math::lerp(0.5f, 0.015f, math::sqrt01(slope));
 				VarTrapezoidWaveform::SetParams(freq, phaseOffset, 0.5f, sampleRate, intention);
+			}
+		};
+
+
+		struct NotchSawWaveform : IOscillatorWaveform
+		{
+			// fixed notch at 0.5 for simplicity; mShape controls depth [0..1]
+			static constexpr float kNotchPos = 0.5f;
+			float mDepth = 0.0f; // actual notch depth [0..1]
+
+			virtual void AfterSetParams() override
+			{
+				// gentle curve for depth feel, and avoid extremes
+				mDepth = math::clamp01(mShape);
+				// DC: step is active for half the cycle -> avg shift = -depth * 0.5
+				mDCOffset = +0.5f * mDepth;
+				mScale = 1.0f;
+			}
+
+			virtual float NaiveSample(float phase01) override
+			{
+				// base saw plus a negative step at the notch
+				float y = phase01 * 2.0f - 1.0f;
+				if (phase01 >= kNotchPos) y -= mDepth;
+				return y;
+			}
+
+			virtual float NaiveSampleSlope(float /*phase01*/) override
+			{
+				// piecewise linear everywhere except discontinuities (handled by BLEP)
+				return 2.0f;
+			}
+
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+			{
+				// One value-step at wrap (0), one at notch.
+				// For a value step of delta, blepScale should be delta/2.
+				// Base saw has delta = -2 -> blepScale = -1 at 0.
+				// The notch adds: step -mDepth at kNotchPos, and +mDepth at wrap (when step resets).
+				OSC_ACCUMULATE_BLEP(newPhase, 0.0f, -1.0f, samples, samplesTillNextSample);                  // saw wrap
+				OSC_ACCUMULATE_BLEP(newPhase, 0.0f, +0.5f * mDepth, samples, samplesTillNextSample);         // step resets at wrap
+				OSC_ACCUMULATE_BLEP(newPhase, kNotchPos, -0.5f * mDepth, samples, samplesTillNextSample);    // notch step
+			}
+		};
+
+				struct RectifiedSineWaveform : IOscillatorWaveform
+		{
+			// mShape is the morph amount 0 (pure sine) .. 1 (full rectified)
+			virtual void AfterSetParams() override
+			{
+				// DC of (2|sin|-1) over a cycle is (4/pi - 1). We lerp toward it by mShape.
+				float dcRect = 4.0f / math::gPI - 1.0f;
+				mDCOffset = -dcRect * mShape;
+				mScale = 1.0f;
+			}
+
+			virtual float NaiveSample(float phase01) override
+			{
+				float s = math::sin(math::gPITimes2 * phase01);
+				float rect = 2.0f * std::abs(s) - 1.0f;
+				return math::lerp(s, rect, mShape);
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				// derivative (not used for Visit kinks, but useful for sync)
+				float s = math::sin(math::gPITimes2 * phase01);
+				float c = math::cos(math::gPITimes2 * phase01);
+				float ds = math::gPITimes2 * c; // sine derivative
+				float drect = 4.0f * math::gPI * ((s >= 0.0f) ? 1.0f : -1.0f) * c; // derivative of 2|sin|-1
+				return math::lerp(ds, drect, mShape);
+			}
+
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+			{
+				// Kinks at phase 0 and 0.5. Slope jump magnitude = 8*pi*mShape.
+				if (mIntention != OscillatorIntention::Audio || mShape <= 1e-5f) return;
+				float scale = float(mPhaseIncrement * (8.0 * math::gPI) * mShape);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0.0f, scale, samples, samplesTillNextSample);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0.5f, scale, samples, samplesTillNextSample);
+			}
+		};
+
+		struct PhaseDistortedSineWaveform : IOscillatorWaveform
+		{
+			float mBreak = 0.5f; // breakpoint in [0,1], avoid extremes
+
+			virtual void AfterSetParams() override
+			{
+				// map mShape -> breakpoint (keep away from 0/1 to prevent crazy slopes)
+				float x = math::clamp01(mShape);
+				mBreak = math::lerp(0.08f, 0.92f, x);
+				mDCOffset = 0.0f;
+				mScale = 1.0f;
+			}
+
+			inline float WarpPhase(float t) const
+			{
+				// compress [0..mBreak] into [0..0.5], [mBreak..1] into [0.5..1]
+				if (t < mBreak) return (t / mBreak) * 0.5f;
+				return 0.5f + (t - mBreak) / (1.0f - mBreak) * 0.5f;
+			}
+
+			virtual float NaiveSample(float phase01) override
+			{
+				float phi = WarpPhase(phase01);
+				return math::sin(math::gPITimes2 * phi);
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				// dy/dt = 2π cos(2π phi) * dphi/dt
+				float dphidt = (phase01 < mBreak) ? (0.5f / mBreak) : (0.5f / (1.0f - mBreak));
+				float phi = WarpPhase(phase01);
+				return math::gPITimes2 * math::cos(math::gPITimes2 * phi) * dphidt;
+			}
+
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+			{
+				// BLAMP at breakpoint (phi=0.5, cos(pi)=-1) and at wrap (0).
+				float dphidtBefore = 0.5f / mBreak;
+				float dphidtAfter  = 0.5f / (1.0f - mBreak);
+
+				// slope jump at mBreak: -2π*(after - before)
+				float deltaMid = -2.0f * float(math::gPI) * (dphidtAfter - dphidtBefore);
+				OSC_ACCUMULATE_BLAMP(newPhase, mBreak, float(mPhaseIncrement) * deltaMid, samples, samplesTillNextSample);
+
+				// slope jump at wrap (end -> start): 2π*(before - after)
+				float deltaWrap =  2.0f * float(math::gPI) * (dphidtBefore - dphidtAfter);
+				OSC_ACCUMULATE_BLAMP(newPhase, 0.0f, float(mPhaseIncrement) * deltaWrap, samples, samplesTillNextSample);
+			}
+		};
+
+		// New: Staircase saw (quantized steps per cycle)
+		struct StaircaseSawWaveform : IOscillatorWaveform
+		{
+			static constexpr int kMinSteps = 2;
+			static constexpr int kMaxSteps = 32;
+			int mSteps = 8;
+			float mStepHeight = 0.0f; // 2/steps
+
+			virtual void AfterSetParams() override
+			{
+				// map shape^2 -> steps in [2..32]
+				float x = mShape; x = x * x;
+				int steps = (int)(math::lerp((float)kMinSteps, (float)kMaxSteps, x) + 0.5f);
+				mSteps = math::ClampI(steps, kMinSteps, kMaxSteps);
+				mStepHeight = 2.0f / (float)mSteps;
+				// Zero mean for our definition where top step is +1
+				mDCOffset = -1.0f / (float)mSteps;
+				mScale = 1.0f;
+			}
+
+			virtual float NaiveSample(float phase01) override
+			{
+				float idx = std::floor(phase01 * (float)mSteps);
+				float y = -1.0f + mStepHeight * (idx + 1.0f);
+				return y;
+			}
+
+			virtual float NaiveSampleSlope(float /*phase01*/) override { return 0.0f; }
+
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+			{
+				// Wrap step at 0 has delta = -2 + 2/steps => blepScale = -(1 - 1/steps)
+				float wrapScale = -(1.0f - 1.0f / (float)mSteps);
+				OSC_ACCUMULATE_BLEP(newPhase, 0.0f, wrapScale, samples, samplesTillNextSample);
+				// interior rising steps at n/steps with delta = +2/steps => blepScale = +1/steps
+				float interiorScale = 1.0f / (float)mSteps;
+				for (int n = 1; n < mSteps; ++n)
+				{
+					float edge = (float)n / (float)mSteps;
+					OSC_ACCUMULATE_BLEP(newPhase, edge, interiorScale, samples, samplesTillNextSample);
+				}
+			}
+		};
+
+		// New: Folded triangle (single fold threshold)
+		struct TriFoldWaveform : IOscillatorWaveform
+		{
+			float mThreshold = 1.0f; // 0..1
+
+			virtual void AfterSetParams() override
+			{
+				// map shape^2 to threshold from 1 -> 0.05 (avoid 0)
+				float x = mShape; x = x * x;
+				mThreshold = math::lerp(1.0f, 0.05f, x);
+				mDCOffset = 0.0f;
+				mScale = 1.0f;
+			}
+
+			inline static float Tri(float t)
+			{
+				// triangle, range [-1,1], tri(0)=0
+				float a = math::fract(t + 0.25f) - 0.5f;
+				return (std::abs(a) * 4.0f - 1.0f);
+			}
+
+			inline static float TriSlope(float t)
+			{
+				// sign based on position inside the triangle cycle
+				float b = math::fract(t + 0.25f) - 0.5f;
+				return (b < 0.0f) ? -4.0f : 4.0f;
+			}
+
+			virtual float NaiveSample(float phase01) override
+			{
+				float x = Tri(phase01);
+				float ax = std::abs(x);
+				if (ax <= mThreshold) return x; // no fold region
+				float y = (2.0f * mThreshold - ax);
+				return (x >= 0.0f) ? y : -y;
+			}
+
+			virtual float NaiveSampleSlope(float phase01) override
+			{
+				float x = Tri(phase01);
+				float s = TriSlope(phase01);
+				// inside fold, dy/dt = -s, else dy/dt = s
+				return (std::abs(x) <= mThreshold) ? s : -s;
+			}
+
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+			{
+				// Always handle base triangle corners and wrap
+				float k = float(mPhaseIncrement) * 8.0f; // slope jump magnitude (±8)
+				OSC_ACCUMULATE_BLAMP(newPhase, 0.0f, +k, samples, samplesTillNextSample);    // wrap: -4 -> +4
+				OSC_ACCUMULATE_BLAMP(newPhase, 0.25f, -k, samples, samplesTillNextSample);  // corner: +4 -> -4 (after folding sign)
+				OSC_ACCUMULATE_BLAMP(newPhase, 0.75f, +k, samples, samplesTillNextSample);  // corner: -4 -> +4 (after folding sign)
+
+				// Additional knees introduced by folding where |tri| == threshold
+				if (mThreshold < 0.999f)
+				{
+					float th = mThreshold;
+					float t1 = th * 0.25f;
+					float t2 = 0.5f - th * 0.25f;
+					float t3 = 0.5f + th * 0.25f;
+					float t4 = 1.0f - th * 0.25f;
+					// Correct signs for slope jumps at knees:
+					// t1: inside -> folded: -4 -> +4 => +k
+					// t2: folded -> inside: -4 -> +4 => +k
+					// t3: inside -> folded: +4 -> -4 => -k
+					// t4: folded -> inside: +4 -> -4 => -k
+					OSC_ACCUMULATE_BLAMP(newPhase, t1, +k, samples, samplesTillNextSample);
+					OSC_ACCUMULATE_BLAMP(newPhase, t2, +k, samples, samplesTillNextSample);
+					OSC_ACCUMULATE_BLAMP(newPhase, t3, -k, samples, samplesTillNextSample);
+					OSC_ACCUMULATE_BLAMP(newPhase, t4, -k, samples, samplesTillNextSample);
+				}
+			}
+		};
+
+		// New: Double pulse (two pulses per cycle)
+		struct DoublePulseWaveform : IOscillatorWaveform
+		{
+			float mCenter1 = 0.35f;
+			float mCenter2 = 0.65f;
+			float mWidth = 0.08f; // fixed width per pulse
+
+			virtual void AfterSetParams() override
+			{
+				// shape controls separation between the two pulse centers, keep symmetric around 0.5
+				float sep = math::lerp(0.10f, 0.45f, mShape); // half-distance from 0.5
+				mCenter1 = 0.5f - sep * 0.5f;
+				mCenter2 = 0.5f + sep * 0.5f;
+				mWidth = 0.08f; // fixed for now
+				float duty = math::clamp01(2.0f * mWidth);
+				float mean = -1.0f + 2.0f * duty;
+				mDCOffset = -mean; // center around zero
+				mScale = 1.0f;
+			}
+
+			virtual float NaiveSample(float t) override
+			{
+				auto inPulse = [&](float c){
+					float d = t - c;
+					// wrap shortest distance in 0..1 domain
+					d -= std::floor(d + 0.5f);
+					return std::abs(d) < (mWidth * 0.5f);
+				};
+				bool on = inPulse(mCenter1) || inPulse(mCenter2);
+				return on ? 1.0f : -1.0f;
+			}
+
+			virtual float NaiveSampleSlope(float /*t*/) override { return 0.0f; }
+
+			virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+			{
+				// Four edges per cycle (two pulses). Handle wrap by duplicating edges +/- 1.
+				auto emitPulseEdges = [&](float c){
+					float a = c - mWidth * 0.5f;
+					float b = c + mWidth * 0.5f;
+					// rising at a, falling at b
+					float edges[4] = { a, b, a-1.0f, b-1.0f };
+					for (int i=0;i<4;++i){
+						float e = edges[i];
+						if (e < 0.0f) e += 1.0f;
+						// Decide sign: at 'a' we go -1 -> +1 => +1 blepScale; at 'b' we go +1 -> -1 => -1
+						bool isRising = (i % 2) == 0; // a and a-1
+						float s = isRising ? +1.0f : -1.0f;
+						OSC_ACCUMULATE_BLEP(newPhase, e, s, samples, samplesTillNextSample);
+					}
+				};
+				emitPulseEdges(mCenter1);
+				emitPulseEdges(mCenter2);
 			}
 		};
 
@@ -1028,7 +1245,7 @@ namespace WaveSabreCore
 			{
 				mpSlaveWave = mpWaveforms[(int)OscillatorWaveform::Pulse] = new PulsePWMWaveform;
 				mpWaveforms[(int)OscillatorWaveform::PulseTristate] = new PulseTristateWaveform;
-				mpWaveforms[(int)OscillatorWaveform::SawClip] = new SawClipWaveform;
+				mpWaveforms[(int)OscillatorWaveform::SawClip] = new NotchSawWaveform;
 				mpWaveforms[(int)OscillatorWaveform::SineClip] = new SineClipWaveform;
 				mpWaveforms[(int)OscillatorWaveform::SineHarmTrunc] = new SineHarmTruncWaveform;
 //				mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = ;// new SineHarmTruncWaveform;
@@ -1038,9 +1255,14 @@ namespace WaveSabreCore
 				mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft] = new VarTrapezoidWaveform{ gVarTrapezoidSoftSlope };
 				//mpWaveforms[(int)OscillatorWaveform::VarTriangle] = mpWaveforms[(int)OscillatorWaveform::TriClip__obsolete] = new VarTriWaveform;
 				mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH] = new WhiteNoiseWaveform;
+				mpWaveforms[(int)OscillatorWaveform::SineRectified] = new RectifiedSineWaveform;
+				mpWaveforms[(int)OscillatorWaveform::SinePhaseDist] = new PhaseDistortedSineWaveform;
+				mpWaveforms[(int)OscillatorWaveform::StaircaseSaw] = new StaircaseSawWaveform;
+				mpWaveforms[(int)OscillatorWaveform::TriFold] = new TriFoldWaveform;
+				mpWaveforms[(int)OscillatorWaveform::DoublePulse] = new DoublePulseWaveform;
 			}
 
-						~OscillatorNode()
+					~OscillatorNode()
 			{
 #ifdef MIN_SIZE_REL
 #pragma message("OscillatorNode::~OscillatorNode() Leaking memory to save bits.")
@@ -1049,7 +1271,7 @@ namespace WaveSabreCore
 
 				delete (PulsePWMWaveform*)mpWaveforms[(int)OscillatorWaveform::Pulse];
 				delete (PulseTristateWaveform*)mpWaveforms[(int)OscillatorWaveform::PulseTristate];
-				delete (SawClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SawClip];
+				delete (NotchSawWaveform*)mpWaveforms[(int)OscillatorWaveform::SawClip];
 				delete (SineClipWaveform*)mpWaveforms[(int)OscillatorWaveform::SineClip];
 				delete (SineHarmTruncWaveform*)mpWaveforms[(int)OscillatorWaveform::SineHarmTrunc];
 				delete (TriSquareWaveform*)mpWaveforms[(int)OscillatorWaveform::TriSquare];
@@ -1058,7 +1280,11 @@ namespace WaveSabreCore
 				delete (VarTrapezoidWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTrapezoidSoft];
 				//delete (VarTriWaveform*)mpWaveforms[(int)OscillatorWaveform::VarTriangle];
 				delete (WhiteNoiseWaveform*)mpWaveforms[(int)OscillatorWaveform::WhiteNoiseSH];
-
+				delete (RectifiedSineWaveform*)mpWaveforms[(int)OscillatorWaveform::SineRectified];
+				delete (PhaseDistortedSineWaveform*)mpWaveforms[(int)OscillatorWaveform::SinePhaseDist];
+				delete (StaircaseSawWaveform*)mpWaveforms[(int)OscillatorWaveform::StaircaseSaw];
+				delete (TriFoldWaveform*)mpWaveforms[(int)OscillatorWaveform::TriFold];
+				delete (DoublePulseWaveform*)mpWaveforms[(int)OscillatorWaveform::DoublePulse];
 
 #endif // MIN_SIZE_REL
 
@@ -1127,7 +1353,7 @@ namespace WaveSabreCore
 					// - osc fine (semis)                 note         oscillator                   
 					// - osc sync freq / kt (Hz)          hz           oscillator                        
 					// - osc freq / kt (Hz)               hz           oscillator                   
-					// - osc mul (Hz)                     hz           oscillator             
+					// - osc mul (Hz)                     hz           oscillator              
 					// - osc detune (semis)               hz+semis     oscillator                         
 					// - unisono detune (semis)           hz+semis     oscillator                             
 					int pitchSemis = params.GetIntValue(OscParamIndexOffsets::PitchSemis, gSourcePitchSemisRange);
@@ -1209,7 +1435,7 @@ namespace WaveSabreCore
 				if (!mnSamples)// NOTE: important that this is designed to be 0 the first run to force initial calculation.
 				{
 					float freq = mpSrcDevice->mParams.GetFrequency(LFOParamIndexOffsets::FrequencyParam, -1, gLFOFreqConfig, 0, mFreqModVal);
-					// 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
+					 // 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
 					freq = std::max(freq, 0.001f);
 					mCurrentFreq = freq;
 
@@ -1238,6 +1464,9 @@ namespace WaveSabreCore
 
 
 } // namespace WaveSabreCore
+
+
+
 
 
 

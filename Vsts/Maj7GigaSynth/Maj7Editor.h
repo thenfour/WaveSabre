@@ -1731,7 +1731,7 @@ public:
 			pWaveform.reset(new M7::PulseTristateWaveform);
 			break;
 		case M7::OscillatorWaveform::SawClip:
-			pWaveform.reset(new M7::SawClipWaveform);
+			pWaveform.reset(new M7::NotchSawWaveform);
 			break;
 		//case M7::OscillatorWaveform::SineAsym:
 		//	pWaveform.reset(new M7::SineAsymWaveform);
@@ -1758,7 +1758,24 @@ public:
 		case M7::OscillatorWaveform::VarTrapezoidSoft:
 			pWaveform.reset(new M7::VarTrapezoidWaveform { M7::gVarTrapezoidSoftSlope });
 			break;
-		//case M7::OscillatorWaveform::TriClip__obsolete:
+
+    case M7::OscillatorWaveform::SineRectified:
+			pWaveform.reset(new M7::RectifiedSineWaveform);
+			break;
+    case M7::OscillatorWaveform::SinePhaseDist:
+			pWaveform.reset(new M7::PhaseDistortedSineWaveform);
+			break;
+
+	case M7::OscillatorWaveform::StaircaseSaw:
+			pWaveform.reset(new M7::StaircaseSawWaveform);
+			break;
+  case M7::OscillatorWaveform::TriFold:
+			pWaveform.reset(new M7::TriFoldWaveform);
+			break;
+  case M7::OscillatorWaveform::DoublePulse:
+			pWaveform.reset(new M7::DoublePulseWaveform);
+			break;
+//case M7::OscillatorWaveform::TriClip__obsolete:
 		//case M7::OscillatorWaveform::VarTriangle:
 		//	pWaveform.reset(new M7::VarTriWaveform);
 		//	break;
