@@ -696,13 +696,18 @@ struct Maj7 : public Maj7SynthDevice
     // K-rate cache for LFO samples
     float mLFOSampleCached[gModLFOCount]{};
     bool mLFOInitialized = false;
+    // Per-block usage/enabled caches
+    bool mSourceEnabledCache[gSourceCount]{};  // mirrors device enabled state
+    bool mLFOUsedCache[gModLFOCount]{};        // true if any enabled modulation references this LFO
 
     void BeginBlock(bool forceProcessing)
     {
       for (size_t i = 0; i < gSourceCount; ++i)
       {
         auto* srcVoice = mSourceVoices[i];
-        if (!srcVoice->mpSrcDevice->IsEnabled())
+        bool enabled = srcVoice->mpSrcDevice->IsEnabled();
+        mSourceEnabledCache[i] = enabled;
+        if (!enabled)
         {
           srcVoice->mpAmpEnv->kill();
           continue;
@@ -799,6 +804,25 @@ struct Maj7 : public Maj7SynthDevice
       mOutputGainsInitialized = false;
       mMasterPanInitialized = false;
       mLFOInitialized = false;
+
+      // Recompute per-block usage caches (LFO usage)
+      for (size_t i = 0; i < gModLFOCount; ++i) mLFOUsedCache[i] = false;
+       for (int imod = 0; imod < (int)std::size(mpOwner->mpModulations); ++imod)
+       {
+         auto* m = mpOwner->mpModulations[imod];
+         if (!m->mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) continue;
+         auto srcMain = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
+         bool auxEnabled = m->mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+         auto srcAux = auxEnabled ? m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource) : ModSource::None;
+         for (size_t i = 0; i < gModLFOCount; ++i)
+         {
+           auto lfoSrc = mpOwner->mpLFOs[i]->mInfo.mModSource;
+           if (srcMain == lfoSrc || srcAux == lfoSrc)
+           {
+             mLFOUsedCache[i] = true;
+           }
+         }
+       }
     }
 
     inline bool IsKRateBoundary() const
@@ -849,6 +873,12 @@ struct Maj7 : public Maj7SynthDevice
       {
         for (size_t i = 0; i < gModLFOCount; ++i)
         {
+           if (!mLFOUsedCache[i])
+           {
+             // If not used, ensure published value is zero.
+             mLFOSampleCached[i] = 0.0f;
+             continue;
+           }
           auto& lfo = *mpLFOs[i];
           float lfoSample = lfo.mNode.ProcessSampleForLFO(false);
           // filter at K-rate; acceptable for modulation smoothing
@@ -859,15 +889,16 @@ struct Maj7 : public Maj7SynthDevice
       }
       else
       {
-        // advance phase without producing a new sample value
+        // advance phase without producing a new sample value for used LFOs only
         for (size_t i = 0; i < gModLFOCount; ++i)
         {
+          if (!mLFOUsedCache[i]) continue;
           auto& lfo = *mpLFOs[i];
           lfo.mNode.ProcessSampleForLFO(true);
         }
       }
 
-      // publish cached samples into mod matrix
+      // publish cached samples into mod matrix (0 for unused LFOs)
       for (size_t i = 0; i < gModLFOCount; ++i)
       {
         auto& lfo = *mpLFOs[i];
@@ -898,17 +929,6 @@ struct Maj7 : public Maj7SynthDevice
       // LFOs at K-rate
       UpdateLFOsIfNeeded();
 
-      // TODO: what is this loop?
-      //for (size_t i = 0; i < gSourceCount; ++i)
-      //{
-      //  auto* srcVoice = mSourceVoices[i];
-      //  if (!srcVoice->mpSrcDevice->IsEnabled())
-      //  {
-      //    srcVoice->mpAmpEnv->kill();
-      //    continue;
-      //  }
-      //}
-
       // process modulations here. sources have just been set, and past here we're getting many destination values.
       // processing here ensures fairly up-to-date accurate values.
       // one area where this is quite sensitive is envelopes with instant attacks/releases
@@ -932,6 +952,7 @@ struct Maj7 : public Maj7SynthDevice
       float ampEnvGains[gSourceCount];
 
       FloatPair mixedSources{0, 0};
+      static constexpr float kAmpSilent = 1e-6f;
 
       for (size_t i = 0; i < gSourceCount; ++i)
       {
@@ -943,6 +964,17 @@ struct Maj7 : public Maj7SynthDevice
             AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::HiddenVolume));
         ParamAccessor hiddenAmpParam{&hiddenVolumeBacking, 0};
         float ampEnvGain = ampEnvGains[i] = hiddenAmpParam.GetLinearVolume(0, gUnityVolumeCfg);
+
+        if (!mSourceEnabledCache[i] || ampEnvGain <= kAmpSilent)
+        {
+          if (i < gOscillatorCount)
+          {
+            // ensure FM reads zero from disabled/quiet oscillators
+            sourceValues[i] = 0.0f;
+          }
+          // skip sampler processing and mixing when disabled/quiet
+          continue;
+        }
 
         if (i >= gOscillatorCount)  // if sampler, process sample here while it's fresh
         {
@@ -960,6 +992,10 @@ struct Maj7 : public Maj7SynthDevice
       // cannot do this in previous loop because we need all the source values in advance.
       for (int i = 0; i < gOscillatorCount; ++i)
       {
+        if (!mSourceEnabledCache[i] || ampEnvGains[i] <= kAmpSilent)
+        {
+          continue;
+        }
         auto* po = mpOscillatorNodes[i];
         float s = po->ProcessSampleForAudio(
             mMidiNote, det, globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
@@ -967,10 +1003,6 @@ struct Maj7 : public Maj7SynthDevice
       }
 
       // apply panning & filter, and mix with s[] as requested
-      //float masterPanN11 = mpOwner->mParams.GetN11Value(ParamIndices::Pan,
-      //                                                  mModMatrix.GetDestinationValue(ModDestination::Pan));
-      //auto panFactors = M7::math::PanToFactor(masterPanN11 + myUnisonoPan);
-      //mixedSources = panFactors.mul(mixedSources);
       mixedSources = mMasterPanFactorsCached.mul(mixedSources);
 
       for (size_t ich = 0; ich < 2; ++ich)
