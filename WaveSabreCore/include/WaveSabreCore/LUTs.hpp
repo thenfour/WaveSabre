@@ -91,6 +91,8 @@ namespace WaveSabreCore
                 return (v_val - v_min) / (v_max - v_min);
             }
             INLINE float fract(float x) {
+              // for negative values, fract works like,
+              // e.g. -1.3 -> 0.7, because floor(-1.3) is -2.
                 return x - math::floor(x);
             }
             INLINE double fract(double x) {

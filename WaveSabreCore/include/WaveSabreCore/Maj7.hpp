@@ -230,8 +230,8 @@ struct Maj7 : public Maj7SynthDevice
     explicit LFODevice(float* paramCache, size_t ilfo);
     const LFOInfo& mInfo;
     OscillatorDevice mDevice;
-    ModMatrixNode mNullModMatrix;
     OscillatorNode mPhase{&mNullModMatrix, &mDevice, nullptr};
+    ModMatrixNode mNullModMatrix;
   };
 
   LFODevice* mpLFOs[gModLFOCount];
@@ -767,8 +767,11 @@ struct Maj7 : public Maj7SynthDevice
         auto& lfo = *mpLFOs[i];
         if (!lfo.mNode.mpOscDevice->GetPhaseRestart())
         {
+          // phase restart means per-voice phases.
+          // but otherwise, this lets the voice-level LFOs appear to be one unified LFO. Almost always this would be a NOP.
           // sync phase with device-level. TODO: also check that modulations aren't creating per-voice variation?
-          lfo.mNode.SetPhase(lfo.mDevice.mPhase.mPhase);
+          //lfo.mNode.SetPhase(lfo.mDevice.mPhase.mPhase);
+          lfo.mNode.SynchronizePhase(lfo.mDevice.mPhase);
         }
         lfo.mNode.BeginBlock();
 
@@ -806,23 +809,26 @@ struct Maj7 : public Maj7SynthDevice
       mLFOInitialized = false;
 
       // Recompute per-block usage caches (LFO usage)
-      for (size_t i = 0; i < gModLFOCount; ++i) mLFOUsedCache[i] = false;
-       for (int imod = 0; imod < (int)std::size(mpOwner->mpModulations); ++imod)
-       {
-         auto* m = mpOwner->mpModulations[imod];
-         if (!m->mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) continue;
-         auto srcMain = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
-         bool auxEnabled = m->mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
-         auto srcAux = auxEnabled ? m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource) : ModSource::None;
-         for (size_t i = 0; i < gModLFOCount; ++i)
-         {
-           auto lfoSrc = mpOwner->mpLFOs[i]->mInfo.mModSource;
-           if (srcMain == lfoSrc || srcAux == lfoSrc)
-           {
-             mLFOUsedCache[i] = true;
-           }
-         }
-       }
+      for (size_t i = 0; i < gModLFOCount; ++i)
+        mLFOUsedCache[i] = false;
+      for (int imod = 0; imod < (int)std::size(mpOwner->mpModulations); ++imod)
+      {
+        auto* m = mpOwner->mpModulations[imod];
+        if (!m->mParams.GetBoolValue(ModParamIndexOffsets::Enabled))
+          continue;
+        auto srcMain = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
+        bool auxEnabled = m->mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+        auto srcAux = auxEnabled ? m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource)
+                                 : ModSource::None;
+        for (size_t i = 0; i < gModLFOCount; ++i)
+        {
+          auto lfoSrc = mpOwner->mpLFOs[i]->mInfo.mModSource;
+          if (srcMain == lfoSrc || srcAux == lfoSrc)
+          {
+            mLFOUsedCache[i] = true;
+          }
+        }
+      }
     }
 
     inline bool IsKRateBoundary() const
@@ -873,12 +879,12 @@ struct Maj7 : public Maj7SynthDevice
       {
         for (size_t i = 0; i < gModLFOCount; ++i)
         {
-           if (!mLFOUsedCache[i])
-           {
-             // If not used, ensure published value is zero.
-             mLFOSampleCached[i] = 0.0f;
-             continue;
-           }
+          if (!mLFOUsedCache[i])
+          {
+            // If not used, ensure published value is zero.
+            mLFOSampleCached[i] = 0.0f;
+            continue;
+          }
           auto& lfo = *mpLFOs[i];
           float lfoSample = lfo.mNode.ProcessSampleForLFO(false);
           // filter at K-rate; acceptable for modulation smoothing
@@ -892,7 +898,8 @@ struct Maj7 : public Maj7SynthDevice
         // advance phase without producing a new sample value for used LFOs only
         for (size_t i = 0; i < gModLFOCount; ++i)
         {
-          if (!mLFOUsedCache[i]) continue;
+          if (!mLFOUsedCache[i])
+            continue;
           auto& lfo = *mpLFOs[i];
           lfo.mNode.ProcessSampleForLFO(true);
         }
@@ -997,8 +1004,8 @@ struct Maj7 : public Maj7SynthDevice
           continue;
         }
         auto* po = mpOscillatorNodes[i];
-        float s = po->ProcessSampleForAudio(
-            mMidiNote, det, globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
+        float s =
+            po->ProcessSampleForAudio(mMidiNote, det, globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
         mixedSources.Accumulate(mOutputGainsCached[i].mul(s));
       }
 

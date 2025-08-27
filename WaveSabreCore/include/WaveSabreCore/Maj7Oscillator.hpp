@@ -144,11 +144,11 @@ struct OscillatorNode : ISoundSourceDevice::Voice
     return mOutSample;
   }
 
-  // used by LFOs to just hard-set the phase. nothing fancy.
-  void SetPhase(double phase01)
+  // used by LFOs to just hard-set the phase. usually NOP
+  void SynchronizePhase(const OscillatorNode& src)
   {
-    mPhase = phase01;
-    mpSlaveWave->mPhase = phase01;
+    mPhase = src.mPhase;
+    mpSlaveWave->mPhase = mPhase;
   }
 
 
