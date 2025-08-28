@@ -57,7 +57,7 @@ struct ISoundSourceDevice
   {
     ISoundSourceDevice* mpSrcDevice;
     ModMatrixNode* mpModMatrix;
-    EnvelopeNode* mpAmpEnv;
+    EnvelopeNode* mpAmpEnv;// voices are responsible for knowing when they are playing or not; this is needed for that.
 
     Voice(ISoundSourceDevice* psrcDevice, ModMatrixNode* pModMatrix, EnvelopeNode* pAmpEnv)
         : mpSrcDevice(psrcDevice)

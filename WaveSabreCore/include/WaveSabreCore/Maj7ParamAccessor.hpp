@@ -569,6 +569,11 @@ namespace WaveSabreCore
 				return mBacking;
 			}
 
+			float GetFrequency(const FreqParamConfig& cfg) const {
+				CCASSERT(!!mHasValue);
+				return mAccessor.GetFrequency(0, cfg);
+			}
+
 			float GetFrequency() const {
 				CCASSERT(!!mHasValue);
 				CCASSERT(!!mHasFreqCfg);

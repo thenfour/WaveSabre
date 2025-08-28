@@ -15,6 +15,11 @@
 
 #pragma comment(lib, "d3d9.lib")
 
+void InitWaveSabre()
+{
+  WaveSabreCore::M7::math::InitLUTs();
+}
+
 static LPDIRECT3D9 g_pD3D = NULL;
 static LPDIRECT3DDEVICE9 g_pd3dDevice = NULL;
 static D3DPRESENT_PARAMETERS g_d3dpp = {};
@@ -111,6 +116,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
   ImGui_ImplWin32_Init(hwnd);
   ImGui_ImplDX9_Init(g_pd3dDevice);
 
+  InitWaveSabre();
+
   // Main loop
   bool done = false;
   while (!done)
@@ -130,7 +137,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    renderManualTestsUI();
+    WaveSabreVstLib::renderManualTestsUI();
 
     ImGui::EndFrame();
     g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);
