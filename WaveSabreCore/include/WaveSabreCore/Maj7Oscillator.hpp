@@ -69,8 +69,8 @@ struct OscillatorDevice : ISoundSourceDevice
   virtual void EndBlock() override {}
 };
 
-/////////////////////////////////////////////////////////////////////////////
-struct OscillatorNode : ISoundSourceDevice::Voice
+
+struct OscillatorNodeX : ISoundSourceDevice::Voice
 {
   OscillatorDevice* mpOscDevice = nullptr;
 
@@ -90,7 +90,7 @@ struct OscillatorNode : ISoundSourceDevice::Voice
 
   IOscillatorWaveform* mpSlaveWave;  // = &mSawClipWaveform;
 
-  OscillatorNode(ModMatrixNode* pModMatrix, OscillatorDevice* pOscDevice, EnvelopeNode* pAmpEnv)
+  OscillatorNodeX(ModMatrixNode* pModMatrix, OscillatorDevice* pOscDevice, EnvelopeNode* pAmpEnv)
       : ISoundSourceDevice::Voice(pOscDevice, pModMatrix, pAmpEnv)
       , mpOscDevice(pOscDevice)
   {
@@ -112,7 +112,7 @@ struct OscillatorNode : ISoundSourceDevice::Voice
     mpWaveforms[(int)OscillatorWaveform::DoublePulse] = new DoublePulseWaveform;
   }
 
-  ~OscillatorNode()
+  ~OscillatorNodeX()
   {
 #ifdef MIN_SIZE_REL
   #pragma message("OscillatorNode::~OscillatorNode() Leaking memory to save bits.")
@@ -145,7 +145,7 @@ struct OscillatorNode : ISoundSourceDevice::Voice
   }
 
   // used by LFOs to just hard-set the phase. usually NOP
-  void SynchronizePhase(const OscillatorNode& src)
+  void SynchronizePhase(const OscillatorNodeX& src)
   {
     mPhase = src.mPhase;
     mpSlaveWave->mPhase = mPhase;
@@ -359,6 +359,10 @@ struct OscillatorNode : ISoundSourceDevice::Voice
     return mOutSample;
   }  // process sample for lfo
 };
+
+
+
+
 }  // namespace M7
 
 

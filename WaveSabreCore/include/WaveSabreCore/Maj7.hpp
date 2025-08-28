@@ -31,6 +31,7 @@
 
 #include <WaveSabreCore/Maj7GmDls.hpp>
 #include <WaveSabreCore/Maj7Oscillator.hpp>
+#include <WaveSabreCore/Maj7Oscillator2.hpp>
 #include <WaveSabreCore/Maj7Sampler.hpp>
 
 #include <WaveSabreCore/AnalysisStream.hpp>
@@ -230,7 +231,7 @@ struct Maj7 : public Maj7SynthDevice
     explicit LFODevice(float* paramCache, size_t ilfo);
     const LFOInfo& mInfo;
     OscillatorDevice mDevice;
-    OscillatorNode mPhase{&mNullModMatrix, &mDevice, nullptr};
+    OscillatorNode mPhase{&mDevice, OscillatorIntention::LFO, &mNullModMatrix, nullptr};
     ModMatrixNode mNullModMatrix;
   };
 
@@ -501,7 +502,7 @@ struct Maj7 : public Maj7SynthDevice
       for (size_t i = 0; i < gModLFOCount; ++i)
       {
         auto& lfo = *mpLFOs[i];
-        lfo.mPhase.ProcessSampleForLFO(true);
+        lfo.mPhase.RenderSampleForLFOAndAdvancePhase(true);
       }
     }
 
@@ -532,7 +533,8 @@ struct Maj7 : public Maj7SynthDevice
       case OutputStream::ModMatrix_NormRecalcSample:
         return float(this->mMaj7Voice[0]->mModMatrix.mnSampleCount) / GetModulationRecalcSampleMask();
       case OutputStream::LFO1_NormRecalcSample:
-        return float(this->mMaj7Voice[0]->mpLFOs[0]->mNode.mnSamples) / GetAudioOscillatorRecalcSampleMask();
+        return float(this->mMaj7Voice[0]->mpLFOs[0]->mNode.GetSamplesSinceRecalc()) /
+               GetAudioOscillatorRecalcSampleMask();
       case OutputStream::ModSource_LFO1:
         return this->mMaj7Voice[0]->mModMatrix.GetSourceValue(ModSource::LFO1);
       case OutputStream::ModSource_LFO2:
@@ -626,8 +628,9 @@ struct Maj7 : public Maj7SynthDevice
       {
         mpLFOs[i] = new LFOVoice{*mpOwner->mpLFOs[i], mModMatrix};
 
-        mSourceVoices[i] = mpOscillatorNodes[i] = new OscillatorNode(&mModMatrix,
-                                                                     owner->mpOscillatorDevices[i],
+        mSourceVoices[i] = mpOscillatorNodes[i] = new OscillatorNode(owner->mpOscillatorDevices[i],
+                                                                     OscillatorIntention::Audio,
+                                                                     &mModMatrix,
                                                                      mpEnvelopes[i]);
         mSourceVoices[i + gOscillatorCount] = mpSamplerVoices[i] = new SamplerVoice(mModMatrix,
                                                                                     owner->mpSamplerDevices[i],
@@ -765,7 +768,7 @@ struct Maj7 : public Maj7SynthDevice
       for (size_t i = 0; i < gModLFOCount; ++i)
       {
         auto& lfo = *mpLFOs[i];
-        if (!lfo.mNode.mpOscDevice->GetPhaseRestart())
+        if (!lfo.mDevice.mDevice.GetPhaseRestart())
         {
           // phase restart means per-voice phases.
           // but otherwise, this lets the voice-level LFOs appear to be one unified LFO. Almost always this would be a NOP.
@@ -886,7 +889,7 @@ struct Maj7 : public Maj7SynthDevice
             continue;
           }
           auto& lfo = *mpLFOs[i];
-          float lfoSample = lfo.mNode.ProcessSampleForLFO(false);
+          float lfoSample = lfo.mNode.RenderSampleForLFOAndAdvancePhase(false);
           // filter at K-rate; acceptable for modulation smoothing
           lfoSample = lfo.mFilter.ProcessSample(lfoSample);
           mLFOSampleCached[i] = lfoSample;
@@ -901,7 +904,7 @@ struct Maj7 : public Maj7SynthDevice
           if (!mLFOUsedCache[i])
             continue;
           auto& lfo = *mpLFOs[i];
-          lfo.mNode.ProcessSampleForLFO(true);
+          lfo.mNode.RenderSampleForLFOAndAdvancePhase(true);
         }
       }
 
@@ -1004,8 +1007,8 @@ struct Maj7 : public Maj7SynthDevice
           continue;
         }
         auto* po = mpOscillatorNodes[i];
-        float s =
-            po->ProcessSampleForAudio(mMidiNote, det, globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
+        float s = po->RenderSampleForAudioAndAdvancePhase(
+            mMidiNote, det, globalFMScale, mpOwner->mParams, sourceValues, i, ampEnvGains[i]);
         mixedSources.Accumulate(mOutputGainsCached[i].mul(s));
       }
 

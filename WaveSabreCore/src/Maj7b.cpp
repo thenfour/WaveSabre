@@ -18,7 +18,7 @@ namespace WaveSabreCore {
 
         Maj7::Maj7Voice::LFOVoice::LFOVoice(Maj7::LFODevice& device, ModMatrixNode& modMatrix) :
             mDevice(device),
-            mNode(&modMatrix, &device.mDevice, nullptr)
+            mNode(&device.mDevice, OscillatorIntention::LFO, &modMatrix, nullptr)
         {}
 
 

@@ -1341,7 +1341,7 @@ public:
       return GetModInfo((M7::ModDestination)((int)pMaj7->mpLFOs[ilfo]->mDevice.mModDestBaseID + (int)x));
     };
 
-    float phaseCursor = (float)(this->pMaj7->mpLFOs[ilfo]->mPhase.mPhase);
+    float phaseCursor = (float)(this->pMaj7->mpLFOs[ilfo]->mPhase.GetPhase01());
 
     TIME_BASIS_CAPTIONS(timeBasisCaptions);
 
