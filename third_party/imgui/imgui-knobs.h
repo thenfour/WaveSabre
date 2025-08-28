@@ -2,10 +2,6 @@
 
 // adaptation from https://github.com/altschuler/imgui-knobs
 
-// TODO: disabled state
-// TODO: color schemes
-// TODO: modulation indicators
-
 #include <cstdlib>
 #include <functional>
 #include <string>
@@ -13,8 +9,6 @@
 
 #include <WaveSabreCore/Maj7.hpp>
 #include <WaveSabreVstLib/Maj7VstUtils.hpp>
-
-#define IMGUI_DEFINE_MATH_OPERATORS
 
 #include "imgui.h"
 

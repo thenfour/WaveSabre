@@ -7,8 +7,8 @@ file(GLOB_RECURSE WAVE_SABRE_VSTLIB_SOURCES
     "src/*.c"
 )
 file(GLOB WAVE_SABRE_VSTLIB_7Z
-    "7z/*.h"
-    "7z/*.c"
+	"${CMAKE_SOURCE_DIR}/third_party/7z/*.h"
+	"${CMAKE_SOURCE_DIR}/third_party/7z/*.c"
 )
 
 add_library(WaveSabreVstLib STATIC
@@ -18,28 +18,30 @@ add_library(WaveSabreVstLib STATIC
     ${WAVE_SABRE_VSTLIB_HEADERS}
     ${WAVE_SABRE_VSTLIB_SOURCES}
     ${WAVE_SABRE_VSTLIB_7Z}
-	imgui/imconfig.h
-	imgui/imgui-knobs.cpp
-	imgui/imgui-knobs.h
-	imgui/imgui.cpp
-	imgui/imgui.h
-	imgui/imgui_demo.cpp
-	imgui/imgui_draw.cpp
-	imgui/imgui_impl_dx9.cpp
-	imgui/imgui_impl_dx9.h
-	imgui/imgui_impl_win32.cpp
-	imgui/imgui_impl_win32.h
-	imgui/imgui_internal.h
-	imgui/imgui_tables.cpp
-	imgui/imgui_widgets.cpp
-	imgui/imstb_rectpack.h
-	imgui/imstb_textedit.h
-	imgui/imstb_truetype.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imconfig.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui-knobs.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui-knobs.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_demo.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_draw.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_impl_dx9.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_impl_dx9.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_impl_win32.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_impl_win32.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_internal.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_tables.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imgui_widgets.cpp
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imstb_rectpack.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imstb_textedit.h
+	${CMAKE_SOURCE_DIR}/third_party/imgui/imstb_truetype.h
 )
 
 target_include_directories(WaveSabreVstLib PUBLIC
 	include
 	../WaveSabreCore/include
+	${CMAKE_SOURCE_DIR}/third_party/imgui
+	${CMAKE_SOURCE_DIR}/third_party/7z
 	${VSTSDK3_DIR}/public.sdk/source/vst2.x
 	${VSTSDK3_DIR})
 

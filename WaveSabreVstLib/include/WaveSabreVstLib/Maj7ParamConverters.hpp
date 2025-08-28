@@ -2,7 +2,7 @@
 #define __WAVESABREVSTLIB_MAJ7PARAMCONVERTERS_H__
 
 #include "Common.h"
-#include "../imgui/imgui-knobs.h"
+#include <imgui-knobs.h>
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <string>

@@ -1,6 +1,5 @@
 #pragma once
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "../imgui/imgui.h"
+#include <imgui.h>
 #include "Common.h"
 #include "Maj7VstUtils.hpp"
 #include "WaveSabreVstLib.h"

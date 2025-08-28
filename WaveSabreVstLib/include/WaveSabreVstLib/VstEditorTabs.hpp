@@ -2,8 +2,8 @@
 #define __WAVESABREVSTLIB_VSTEDITORTABS_H__
 
 #include "Common.h"
-#include "../imgui/imgui.h"
-#include "../imgui/imgui_internal.h"
+#include <imgui.h>
+#include <imgui_internal.h>
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 

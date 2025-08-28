@@ -1,7 +1,7 @@
 #ifndef __WAVESABREVSTLIB_VUMETER_H__
 #define __WAVESABREVSTLIB_VUMETER_H__
 
-#include "../imgui/imgui.h"
+#include <imgui.h>
 #include "Common.h"
 #include "Maj7VstUtils.hpp"
 #include <WaveSabreCore/Helpers.h>

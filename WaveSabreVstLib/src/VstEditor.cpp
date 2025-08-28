@@ -1,6 +1,5 @@
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "../imgui/imgui_impl_dx9.h"
-#include "../imgui/imgui_impl_win32.h"
+#include <imgui_impl_dx9.h>
+#include <imgui_impl_win32.h>
 #include <WaveSabreVstLib/VstEditor.h>
 
 #include <sstream>

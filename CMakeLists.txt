@@ -72,6 +72,8 @@ add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_definitions(WINVER=0x0A00)
 add_compile_definitions(_WIN32_WINNT=0x0A00)
 
+add_compile_definitions(IMGUI_DEFINE_MATH_OPERATORS)
+
 # shared code
 add_subdirectory(MSVCRT)
 add_subdirectory(WaveSabreCore)
@@ -86,6 +88,8 @@ set(VST_TARGETS "" CACHE INTERNAL "")
 if(${BUILD_VST_PLUGINS} AND VSTSDK3_DIR)
 	add_subdirectory(WaveSabreVstLib)
 	add_subdirectory(Vsts)
+	# ImGui-based manual test harness
+	add_subdirectory(WaveSabreManualTests)
 endif()
 
 # Project file conversions

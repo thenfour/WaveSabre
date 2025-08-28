@@ -2,7 +2,7 @@
 #define __WAVESABREVSTLIB_HISTORYVISUALIZATION_H__
 
 #include "Common.h"
-#include "../imgui/imgui.h"
+#include <imgui.h>
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <deque>

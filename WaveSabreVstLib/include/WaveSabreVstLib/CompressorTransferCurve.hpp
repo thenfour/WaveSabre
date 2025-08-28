@@ -1,7 +1,7 @@
 #ifndef __WAVESABREVSTLIB_COMPRESSORTRANSFERCURVE_H__
 #define __WAVESABREVSTLIB_COMPRESSORTRANSFERCURVE_H__
 
-#include "../imgui/imgui.h"
+#include <imgui.h>
 #include "Common.h"
 #include "HistoryVisualization.hpp"
 #include "Maj7VstUtils.hpp"

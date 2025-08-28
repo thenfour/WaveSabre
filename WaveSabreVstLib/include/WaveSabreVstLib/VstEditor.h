@@ -8,11 +8,9 @@
 #include <string>
 #include <vector>
 
-#define IMGUI_DEFINE_MATH_OPERATORS
-
-#include "../imgui/imgui-knobs.h"
-#include "../imgui/imgui.h"
-#include "../imgui/imgui_internal.h"
+#include <imgui-knobs.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include "VstPlug.h"
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>

@@ -7,7 +7,7 @@
 
 #include <WaveSabreCore/Maj7Basic.hpp>
 
-#include "../7z/LzmaEnc.h"
+#include <LzmaEnc.h>
 #include "audioeffectx.h"
 
 #include <memory>
