@@ -13,8 +13,8 @@
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreVstLib/ImGuiUtils.hpp>
-#include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 #include <WaveSabreVstLib/Maj7EditorComponents.hpp>
+#include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 
 #include "manualTestUtils.hpp"
 #include "waveformView.hpp"
@@ -76,8 +76,8 @@ void renderManualTestsUI()
   }
 
   Helpers::SetSampleRate(4410);
-  
-  M7::Maj7 synth; // todo ... 
+
+  M7::Maj7 synth;  // todo ...
 
   static float phaseOffset = 0;
   KnobN11("phase offset", &phaseOffset, 0, 0);
@@ -99,6 +99,26 @@ void renderManualTestsUI()
   static float secondsToShow = 0.1f;
   ImGui::SameLine();
   KnobScaled("seconds", &secondsToShow, 0.001f, 0.2f);
+
+  static float blepScale = 0;
+  KnobN11("blepscale", &blepScale, 0, 0);
+  synth.mMaj7Voice[0]->mpOscillatorNodes[0]->mInv = blepScale;
+
+
+  static bool showLollipops = true;
+  static bool showStems = true;
+  static bool showLines = true;
+  //static bool invertBleps = false;
+  ImGui::SameLine();
+  ButtonArray<3>({
+      MakeButtonSpec("Lollipops", &showLollipops),
+      MakeButtonSpec("Stems", &showStems),
+      MakeButtonSpec("Lines", &showLines),
+      //MakeButtonSpec("Invert Bleps", &invertBleps),
+  });
+
+  //synth.mMaj7Voice[0]->mpOscillatorNodes[0]->mInv = invertBleps ? -1.0f : 1.0f;
+
 
   int sampleCount = (int)(Helpers::CurrentSampleRateF * secondsToShow);
   static std::vector<float> samples;
@@ -123,27 +143,19 @@ void renderManualTestsUI()
     );
   }
 
-  static bool showLollipops = true;
-  static bool showStems = true;
-  static bool showLines = true;
-        ButtonArray<3>({
-            MakeButtonSpec("Lollipops", &showLollipops),
-            MakeButtonSpec("Stems", &showStems),
-            MakeButtonSpec("Lines", &showLines),
-        });
-
-
-        std::vector<float> referenceLines = {-1.0f, 0.0f, 1.0f};
+  std::vector<float> referenceLines = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
   WaveformViewImpl("wf",
-                         {io.DisplaySize.x - 20, 600},
-                         samples,
-                         {
-                             .referenceYValues = &referenceLines,
-                             .showLollipops = showLollipops,
-                             .showStems = showStems,
-                             .showLines = showLines,
-                         }
-      );
+                   {io.DisplaySize.x - 20, 600},
+                   samples,
+                   {
+                       .referenceYValues = &referenceLines,
+                       .showLollipops = showLollipops,
+                       .showStems = showStems,
+                       .showLines = showLines,
+                       .autoRangeY = false,
+                       .yMin = -2.0f,
+                       .yMax = 2.0f,
+                   });
 
   ImGui::End();
 }

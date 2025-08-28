@@ -362,8 +362,6 @@ class SawCore final : public IWaveformCore
 public:
   CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& s, EdgeSink& edges, double phaseOffset01) override
   {
-    edges.beginSample(s.phaseDelta01PerSample);
-
     // Each wrap/reset produces a step from near +1 to -1 => step magnitude ~ -2
     for (int i = 0; i < s.eventCount; ++i)
     {
@@ -401,8 +399,6 @@ public:
 
   CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& s, EdgeSink& edges, double phaseOffset01) override
   {
-    edges.beginSample(s.phaseDelta01PerSample);
-
     const double pStart = math::wrap01(s.phaseStart01 + phaseOffset01);
     const double pEnd = math::wrap01(s.phaseEnd01 + phaseOffset01);
 
@@ -641,8 +637,8 @@ public:
     {
       const double tWrap = (1.0 - readStart) / (dt + 1e-30);         // when read-phase hits 1.0
       const double valueBefore = sampleSawAt(nextToward(1.0, 0.0));  // ≈ +1
-      const double valueAfter = sampleSawAt(0.0);                     // = -1
-      const double stepMagnitude = (valueAfter - valueBefore);         // typically -2
+      const double valueAfter = sampleSawAt(0.0);                    // = -1
+      const double stepMagnitude = (valueAfter - valueBefore);       // typically -2
       applyPolyBLEP(stepMagnitude, tWrap, dt, correctionNow, spillToNext);
     }
 
@@ -692,7 +688,11 @@ private:
 
   // Apply 2-sample polyBLEP around discontinuity at time t in [0,1].
   // Adds "now" portion to correctionNow and queues "late lobe" to spillToNext.
-  static inline void applyPolyBLEP(double stepMagnitude, double t, double dt, double& correctionNow, double& spillToNext)
+  static inline void applyPolyBLEP(double stepMagnitude,
+                                   double t,
+                                   double dt,
+                                   double& correctionNow,
+                                   double& spillToNext)
   {
     // Current-sample portion (early lobe)
     correctionNow += stepMagnitude * polyBLEP(t, dt);
@@ -735,8 +735,6 @@ public:
 
   CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& s, EdgeSink& edges, double phaseOffset01) override
   {
-    edges.beginSample(s.phaseDelta01PerSample);
-
     // Slope wrt phase is +4 for phase<0.5, -4 for phase>=0.5.
     // Corners at 0.5 and at wrap/reset: slope jump magnitude = ±8 (per cycle).
     const double pStart = math::wrap01(s.phaseStart01 + phaseOffset01);
@@ -974,6 +972,9 @@ private:
   }
 
 public:
+
+    float mInv = 1;
+
   OscillatorNode(OscillatorDevice* pOscDevice,
                  OscillatorIntention intention,
                  ModMatrixNode* pModMatrix,
@@ -985,9 +986,9 @@ public:
     if (mIntention == OscillatorIntention::Audio)
     {
       //mCore = std::make_unique<SawCoreInlineBLEP>();
-      mCore = std::make_unique<SawCore>();
+      //mCore = std::make_unique<SawCore>();
       //mCore = std::make_unique<SquareCoreInlineBLEP>();
-      //mCore = std::make_unique<SquareCore>();
+      mCore = std::make_unique<SquareCore>();
 
       mSink = std::make_unique<PolyBlepBlampSink>();
       //mSink = std::make_unique<NoBandlimitSink>();
@@ -1198,7 +1199,7 @@ public:
     const CoreSample cs = mCore->renderNaiveAndEmitEdges(adv, *mSink, GetPhaseOffset());
 
     float y = cs.naive;
-    y -= (float)mSink->takeCorrectionAndFinishSample();
+    y += mInv * (float)mSink->takeCorrectionAndFinishSample();
 
     //y = math::clampN11(y);  // prevent FM from going crazy.
     mPreviousSample = y;
@@ -1241,6 +1242,8 @@ public:
       mPreviousSample = 0.0f;
       return 0.0f;
     }
+
+    // no bandlimiting for LFOs; don't touch edge sink (for size savings)
     const CoreSample cs = mCore->renderNaiveAndEmitEdges(adv, *mSink, GetPhaseOffset());
     float y = cs.naive;
     mPreviousSample = y;

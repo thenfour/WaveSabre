@@ -27,12 +27,16 @@ namespace WaveSabreVstLib
     struct WaveformViewConfig
     {
         const std::vector<float>* referenceYValues = nullptr; // optional list of Y values (in data space) to draw subtle reference lines for
-        ImU32 referenceLineColor = ColorFromHTML("333333", 0.35f);
+        ImU32 referenceLineColor = ColorFromHTML("333333");
         float referenceLineThickness = 1.0f;
 
         bool showLollipops = true;  // whether to draw circular markers at each sample point
         bool showStems = false;     // whether to draw vertical lines from baseline to each sample point
         bool showLines = true;      // whether to draw a connected line through the sample points
+
+        bool autoRangeY = true;  // whether to auto-range the Y axis to fit the data (overrides yMin/yMax if true)
+        float yMin = -1.0f;  
+        float yMax = 1.0f;   
     };
 
     // Internal implementation shared by public overloads
@@ -62,6 +66,21 @@ namespace WaveSabreVstLib
         {
             minVal -= 1.0f;
             maxVal += 1.0f;
+        }
+
+        if (cfg.autoRangeY)
+        {
+            // Expand range slightly for better visibility
+            float range = maxVal - minVal;
+            float padding = range * 0.05f; // 5% padding
+            minVal -= padding;
+            maxVal += padding;
+        }
+        else
+        {
+            // Use configured fixed range
+            minVal = cfg.yMin;
+            maxVal = cfg.yMax;
         }
 
         const float range = std::max(1e-6f, maxVal - minVal);
