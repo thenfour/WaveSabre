@@ -466,6 +466,263 @@ private:
   }
 };
 
+
+// SquareCore that band-limits internally (polyBLEP), for debugging.
+// - Does NOT emit edges to EdgeSink.
+// - Keeps its own 1-sample spill buffer.
+// - Assumes at most one wrap + one reset per sample (same as PhaseAccumulator).
+class SquareCoreInlineBLEP final : public IWaveformCore
+{
+public:
+  void setDuty(float d)
+  {
+    mDuty01 = std::clamp(d, 0.001f, 0.999f);
+  }
+
+  void SetParams(float shapeA, float shapeB) override
+  {
+    setDuty(shapeA);  // shapeA = duty cycle [0,1]
+    (void)shapeB;     // shapeB unused
+  }
+
+  CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& step, EdgeSink& /*unusedSink*/, double phaseOffset01) override
+  {
+    // Per-sample setup
+    const double dt = std::min(1.0, std::max(step.phaseDelta01PerSample, 1e-6));
+
+    // Pull spill from previous sample into the correction sum; clear next spill accumulator
+    double correctionNow = mSpillFromPrev;
+    mSpillFromPrev = 0.0f;
+    double spillToNext = 0.0f;
+
+    // Phase at sample start/end with slow PM applied (sampling offset)
+    const double pStart = math::wrap01(step.phaseStart01 + phaseOffset01);
+    const double pEnd = math::wrap01(step.phaseEnd01 + phaseOffset01);
+
+    // 1) PWM duty crossing inside this sample? -> step at tCross with magnitude after-before (±2)
+    double tCross = 0.0f;
+    if (findPhaseCrossingFraction(pStart, pEnd, mDuty01, tCross))
+    {
+      const double before = sampleSquareAt(nextToward(mDuty01, 0.0f), mDuty01);
+      const double after = sampleSquareAt(mDuty01, mDuty01);
+      const double stepMag = (after - before);  // typically ±2
+      applyPolyBLEP(stepMag, tCross, dt, correctionNow, spillToNext);
+    }
+
+    // 2) Wrap/reset events: step occurs if value flips across the event
+    for (int i = 0; i < step.eventCount; ++i)
+    {
+      const double t = step.events[i].whenInSample01;
+
+      // Value just BEFORE the event (phase ~ 1^- with offset), and just AFTER (phase = 0 with offset)
+      const double before = sampleSquareAt(nextToward(1.0f, 0.0f), mDuty01);  // p ≈ 1^-
+      const double after = sampleSquareAt(0.0f, mDuty01);                     // p = 0
+      if (before != after)
+      {
+        const double stepMag = (after - before);  // ±2 depending on duty
+        applyPolyBLEP(stepMag, t, dt, correctionNow, spillToNext);
+      }
+    }
+
+    // Naïve sample at end, plus our internally computed correction
+    const double naive = sampleSquareAt(pEnd, mDuty01);
+    const double y = naive + correctionNow;
+
+    // Commit spill for next sample
+    mSpillFromPrev = spillToNext;
+
+    return {(float)y};
+  }
+
+private:
+  double mDuty01 = 0.5f;
+  double mSpillFromPrev = 0.0f;  // 1-sample spill buffer
+
+  // --- Helpers (localized to this core) ---
+
+  static inline double sampleSquareAt(double phase01, double duty01) noexcept
+  {
+    return (phase01 < duty01) ? +1.0f : -1.0f;
+  }
+
+  static inline double nextToward(double x, double toward) noexcept
+  {
+    const double eps = 1e-6f;
+    return (x > toward) ? (x - eps) : (x + eps);
+  }
+
+  // Detect crossing of target phase within [pStart -> pEnd] accounting for wrap.
+  // Returns t in [0,1] if crossed.
+  static bool findPhaseCrossingFraction(double pStart, double pEnd, double target, double& outT)
+  {
+    double a = pStart, b = pEnd;
+    if (b < a)
+      b += 1.0f;  // unwrap interval
+    double e = target;
+    if (e < a)
+      e += 1.0f;
+    if (e >= a && e < b)
+    {
+      outT = (e - a) / (b - a);
+      return true;
+    }
+    return false;
+  }
+
+  // 2-sample polyBLEP window, expressed with (t, dt).
+  // Adds "now" portion to correctionNow, and queues "late lobe" into spillToNext.
+  static inline void applyPolyBLEP(double magnitude, double t, double dt, double& correctionNow, double& spillToNext)
+  {
+    // current-sample contribution
+    correctionNow += magnitude * polyBLEP(t, dt);
+    // next-sample spill (evaluate the mirrored lobe by shifting t -> t+1)
+    spillToNext += magnitude * polyBLEP(t + 1.0f, dt);
+  }
+
+  static inline double polyBLEP(double t, double dt)
+  {
+    // Map to [0,1]; handle the "late" lobe case (t+1) by wrapping
+    t = math::wrap01(t);
+
+    if (t < dt)
+    {
+      const double x = t / dt;
+      // x + x - x^2 - 1
+      return x + x - x * x - 1.0f;
+    }
+    else if (t > 1.0f - dt)
+    {
+      const double x = (t - 1.0f) / dt;
+      // x^2 + x + 1
+      return x * x + x + 1.0f;
+    }
+    return 0.0f;
+  }
+};
+
+
+// SawCore that band-limits internally (polyBLEP), for debugging.
+// - Does NOT emit edges to EdgeSink.
+// - Owns a 1-sample spill buffer.
+// - ASSUMPTION: at most one read-phase wrap and at most one external reset in a sample.
+//   (Same constraint as PhaseAccumulator: phaseDelta01PerSample <= 1)
+
+class SawCoreInlineBLEP final : public IWaveformCore
+{
+public:
+  void SetParams(float shapeA, float shapeB) override
+  {
+    (void)shapeA;
+    (void)shapeB;  // shapeB unused
+  }
+
+  CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& step,
+                                     EdgeSink& /*unusedSink*/,
+                                     double slowPhaseOffset01) override
+  {
+    // --- Per-sample setup ----------------------------------------------------
+    const double dt = std::min(1.0, std::max(step.phaseDelta01PerSample, 1e-6));
+
+    // Bring in last frame's late lobe; prep next spill bucket.
+    double correctionNow = mSpillFromPrevSample;
+    mSpillFromPrevSample = 0.0f;
+    double spillToNext = 0.0f;
+
+    // Read-phase (sampling) trajectory with slow PM/offset applied.
+    // IMPORTANT: We use the read-phase to locate the discontinuity time; placing
+    // the BLEP at the *read* discontinuity prevents mis-timed lobes (spikes).
+    const double readStart = math::wrap01(step.phaseStart01 + slowPhaseOffset01);
+    const double readEnd = math::wrap01(step.phaseEnd01 + slowPhaseOffset01);
+
+    // --- 1) Discontinuity from read-phase wrap (i.e., sampling crosses 1→0) ---
+    // If the read-phase decreases modulo 1 (end < start), there was a wrap
+    // somewhere inside this sample; compute its fractional time and step size.
+    if (readEnd < readStart)
+    {
+      const double tWrap = (1.0 - readStart) / (dt + 1e-30);         // when read-phase hits 1.0
+      const double valueBefore = sampleSawAt(nextToward(1.0, 0.0));  // ≈ +1
+      const double valueAfter = sampleSawAt(0.0);                     // = -1
+      const double stepMagnitude = (valueAfter - valueBefore);         // typically -2
+      applyPolyBLEP(stepMagnitude, tWrap, dt, correctionNow, spillToNext);
+    }
+
+    // --- 2) Discontinuities from explicit hard resets (PhaseEventKind::Reset) ---
+    // Even if there was no read-phase wrap, a hard reset forces a jump in the read signal.
+    for (int i = 0; i < step.eventCount; ++i)
+    {
+      if (step.events[i].kind != PhaseEventKind::Reset)
+        continue;
+
+      const double t = step.events[i].whenInSample01;
+
+      // Phase *just before* reset: advance readStart by dt*t (unwrapped), then wrap for sampling.
+      const double readBefore = math::wrap01(readStart + dt * t);
+      const double valueBefore = sampleSawAt(nextToward(readBefore, 1.0f));  // safe "just before"
+      const double valueAfter = sampleSawAt(math::wrap01(0.0 + slowPhaseOffset01));
+      const double stepMagnitude = (valueAfter - valueBefore);
+
+      applyPolyBLEP(stepMagnitude, t, dt, correctionNow, spillToNext);
+    }
+
+    // --- Naïve sample plus our internal correction ---------------------------
+    const double naive = sampleSawAt(readEnd);
+    const double y = naive + correctionNow;
+
+    // Commit spill for next sample
+    mSpillFromPrevSample = spillToNext;
+
+    return {(float)y};
+  }
+
+private:
+  double mSpillFromPrevSample = 0.0f;  // one-sample late-lobe storage
+
+  // Saw mapping [-1,+1] from normalized phase
+  static inline double sampleSawAt(double phase01) noexcept
+  {
+    return 2.0f * phase01 - 1.0f;
+  }
+
+  static inline double nextToward(double x, double toward) noexcept
+  {
+    // small epsilon to safely evaluate "just before" or "just after"
+    const double eps = 1e-6;
+    return (x > toward) ? (x - eps) : (x + eps);
+  }
+
+  // Apply 2-sample polyBLEP around discontinuity at time t in [0,1].
+  // Adds "now" portion to correctionNow and queues "late lobe" to spillToNext.
+  static inline void applyPolyBLEP(double stepMagnitude, double t, double dt, double& correctionNow, double& spillToNext)
+  {
+    // Current-sample portion (early lobe)
+    correctionNow += stepMagnitude * polyBLEP(t, dt);
+    // Next-sample portion (late lobe). Using t+1 maps the window into next frame.
+    spillToNext += stepMagnitude * polyBLEP(t + 1, dt);
+  }
+
+  // Standard 2-lobe polyBLEP (piecewise polynomial), parameterized by event time t and width dt.
+  static inline double polyBLEP(double t, double dt)
+  {
+    // Wrap t to [0,1] so that (t+1) also lands in-range for the late lobe.
+    t = math::wrap01(t);
+
+    if (t < dt)
+    {
+      const double x = t / dt;
+      // early lobe: x + x - x^2 - 1
+      return x + x - x * x - 1;
+    }
+    else if (t > 1.0f - dt)
+    {
+      const double x = (t - 1) / dt;
+      // late lobe: x^2 + x + 1
+      return x * x + x + 1;
+    }
+    return 0.0f;
+  }
+};
+
+
 // --- Triangle (slope changes → BLAMP) ---
 class TriangleCore final : public IWaveformCore
 {
@@ -727,8 +984,13 @@ public:
   {
     if (mIntention == OscillatorIntention::Audio)
     {
-      mCore = std::make_unique<SquareCore>();
+      //mCore = std::make_unique<SawCoreInlineBLEP>();
+      mCore = std::make_unique<SawCore>();
+      //mCore = std::make_unique<SquareCoreInlineBLEP>();
+      //mCore = std::make_unique<SquareCore>();
+
       mSink = std::make_unique<PolyBlepBlampSink>();
+      //mSink = std::make_unique<NoBandlimitSink>();
     }
     else
     {
@@ -936,7 +1198,7 @@ public:
     const CoreSample cs = mCore->renderNaiveAndEmitEdges(adv, *mSink, GetPhaseOffset());
 
     float y = cs.naive;
-    y += (float)mSink->takeCorrectionAndFinishSample();
+    y -= (float)mSink->takeCorrectionAndFinishSample();
 
     //y = math::clampN11(y);  // prevent FM from going crazy.
     mPreviousSample = y;

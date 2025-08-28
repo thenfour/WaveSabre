@@ -68,8 +68,41 @@ void KnobN11(const char* label, float* v, float defaultValN11 = 0, float centerV
                    ImGuiKnobFlags_CustomInput,
                    10,  // steps
                    &conv);
+  p.SetRawValue(tempVal);
   *v = p.GetN11Value();
 }
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void KnobScaled(const char* label, float* v, float vmin, float vmax, float defaultVal = 0, float centerVal = 0)
+{
+  WaveSabreVstLib::ScaledFloatConverter conv{ vmin, vmax };
+
+  M7::QuickParam p;
+  p.SetScaledValue(vmin, vmax, defaultVal);
+  float defaultVal01 = p.GetRawValue();
+  p.SetScaledValue(vmin, vmax, centerVal);
+  float centerVal01 = p.GetRawValue();
+  p.SetScaledValue(vmin, vmax, *v);
+  float tempVal = p.GetRawValue();
+  ImGuiKnobs::Knob(label,
+                   &tempVal,
+                   0,
+                   1,
+                   defaultVal01,
+                   centerVal01,
+                   {},  // modinfo
+                   WaveSabreVstLib::gNormalKnobSpeed,
+                   WaveSabreVstLib::gSlowKnobSpeed,
+                   nullptr,
+                   ImGuiKnobVariant_WiperOnly,
+                   0,
+                   ImGuiKnobFlags_CustomInput,
+                   10,  // steps
+                   &conv);
+  p.SetRawValue(tempVal);
+  *v = p.GetScaledValue(vmin, vmax);
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void KnobFilterFrequency(const char* label, float* hz, float defaultValHz, float centerValHz)

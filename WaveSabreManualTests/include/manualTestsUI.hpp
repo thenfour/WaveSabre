@@ -14,8 +14,11 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreVstLib/ImGuiUtils.hpp>
 #include <WaveSabreVstLib/Maj7ParamConverters.hpp>
+#include <WaveSabreVstLib/Maj7EditorComponents.hpp>
 
 #include "manualTestUtils.hpp"
+#include "waveformView.hpp"
+
 //
 //namespace WaveSabreCore
 //{
@@ -56,60 +59,91 @@ namespace WaveSabreVstLib
 {
 void renderManualTestsUI()
 {
-  ImGui::Begin("Manual Tests");
+  auto& io = ImGui::GetIO();
+
+  ImGui::SetNextWindowPos(ImVec2{0, 0});
+  ImGui::SetNextWindowSize(io.DisplaySize);
+
+  ImGui::Begin("##main",
+               0,
+               ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove |
+                   ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar);
+
+
+  if (ImGui::BeginMenuBar())
+  {
+    ImGui::EndMenuBar();
+  }
 
   Helpers::SetSampleRate(4410);
+  
+  M7::Maj7 synth; // todo ... 
 
   static float phaseOffset = 0;
-  KnobN11("phase off", &phaseOffset, 0.25f, 0.75f);
+  KnobN11("phase offset", &phaseOffset, 0, 0);
+  synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1PhaseOffset, phaseOffset);
 
-  static float freq = 12050;
-  KnobFilterFrequency("filter hz", &freq, 8000, 9000);
+  //static float freq = 12050;
+  ImGui::SameLine();
+  static float freq01 = 0.4f;
+  Knob01("freq", &freq01, 0.4f, 0.4f);
+  synth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParam] = freq01;
 
   static float volDb = 0;
+  ImGui::SameLine();
   KnobVolume("volume", &volDb, M7::gVolumeCfg12db);
-
 
   float otherSignals[M7::gOscillatorCount - 1] = {0};
 
-  //M7::MockSynth synth;
-  M7::Maj7 synth;
-
   // let's show a full 1.5 cycles of the wave.
   static float secondsToShow = 0.1f;
-  Knob01("seconds", &secondsToShow);
+  ImGui::SameLine();
+  KnobScaled("seconds", &secondsToShow, 0.001f, 0.2f);
+
   int sampleCount = (int)(Helpers::CurrentSampleRateF * secondsToShow);
-  static std::unique_ptr<float[]> samples = std::make_unique<float[]>(sampleCount);
+  static std::vector<float> samples;
 
-  static int calcTrigger = 0;
-  if (ImGui::Button("Trigger"))
+  if (samples.size() != sampleCount)
   {
-    for (int i = 0; i < sampleCount; ++i)
-    {
-      samples[i] = synth.mMaj7Voice[0]->mpOscillatorNodes[0]->RenderSampleForAudioAndAdvancePhase(
-          64,                                // midi note
-          1.f,                               // freq detune MUL
-          0.0f,                              // fm scale
-          synth.mParams,                     // param accessor
-          otherSignals,                      // other osc signals
-          0,                                 // this osc index
-          M7::math::DecibelsToLinear(volDb)  // amp env linear
+    samples.resize(sampleCount);
+  }
+
+  synth.mMaj7Voice[0]->mpOscillatorNodes[0]->NoteOn(false);
+
+  for (int i = 0; i < sampleCount; ++i)
+  {
+    samples[i] = synth.mMaj7Voice[0]->mpOscillatorNodes[0]->RenderSampleForAudioAndAdvancePhase(
+        64,                                // midi note
+        1.f,                               // freq detune MUL
+        0.0f,                              // fm scale
+        synth.mParams,                     // param accessor
+        otherSignals,                      // other osc signals
+        0,                                 // this osc index
+        M7::math::DecibelsToLinear(volDb)  // amp env linear
+    );
+  }
+
+  static bool showLollipops = true;
+  static bool showStems = true;
+  static bool showLines = true;
+        ButtonArray<3>({
+            MakeButtonSpec("Lollipops", &showLollipops),
+            MakeButtonSpec("Stems", &showStems),
+            MakeButtonSpec("Lines", &showLines),
+        });
+
+
+        std::vector<float> referenceLines = {-1.0f, 0.0f, 1.0f};
+  WaveformViewImpl("wf",
+                         {io.DisplaySize.x - 20, 600},
+                         samples,
+                         {
+                             .referenceYValues = &referenceLines,
+                             .showLollipops = showLollipops,
+                             .showStems = showStems,
+                             .showLines = showLines,
+                         }
       );
-    }
-  }
-
-  {
-    ImGui::Text("Oscillator output (1.5 cycles at %.1fHz)", freq);
-    ImGuiGroupScope groupScope{"plot"};
-    ImVec2 plotSize = {800, 600};
-    ImGui::PlotLines("", samples.get(), sampleCount, 0, nullptr, -1.0f, 1.0f, plotSize);
-    // draw phase offset line
-    ImDrawList* dl = ImGui::GetWindowDrawList();
-    ImVec2 pos = ImGui::GetItemRectMin();
-    ImVec2 size = ImGui::GetItemRectSize();
-    float x = pos.x + size.x * M7::math::fract(phaseOffset);
-    dl->AddLine({x, pos.y}, {x, pos.y + size.y}, IM_COL32(255, 0, 0, 255), 1.0f);
-  }
 
   ImGui::End();
 }

@@ -8,12 +8,12 @@
 #include <string>
 #include <vector>
 
-#include <imgui-knobs.h>
-#include <imgui.h>
-#include <imgui_internal.h>
 #include "VstPlug.h"
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <imgui-knobs.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 
 #include "./FreqMagnitudeGraph/FrequencyResponseRenderer.hpp"
 
@@ -184,26 +184,15 @@ public:
     AEffEditor::close();
   }
 
-  bool WSImGuiParamKnob(VstInt32 id,
-                        const char* name,
-                        ParamBehavior behavior = ParamBehavior::Default01,
-                        const char* fmt = "%.3f")
+  bool WSImGuiParamKnob(VstInt32 id, const char* name, const char* fmt = "%.3f")
   {
     float paramValue = GetEffectX()->getParameter((VstInt32)id);
     bool r = false;
-    switch (behavior)
+    r = ImGuiKnobs::Knob(
+        name, &paramValue, 0, 1, 0.5f, 0, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly);
+    if (r)
     {
-      case ParamBehavior::Default01:
-      default:
-      {
-        r = ImGuiKnobs::Knob(
-            name, &paramValue, 0, 1, 0.5f, 0, ImGuiKnobs::ModInfo{}, 0.003f, 0.0001f, fmt, ImGuiKnobVariant_WiperOnly);
-        if (r)
-        {
-          GetEffectX()->setParameterAutomated(id, M7::math::clamp01(paramValue));
-        }
-        break;
-      }
+      GetEffectX()->setParameterAutomated(id, M7::math::clamp01(paramValue));
     }
     return r;
   }
@@ -1626,7 +1615,6 @@ protected:
 
   bool showingParamExplorer = false;
   ParamExplorer mParamExplorer;
-
 };
 
 }  // namespace WaveSabreVstLib
