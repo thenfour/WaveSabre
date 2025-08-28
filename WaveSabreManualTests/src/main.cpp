@@ -24,6 +24,11 @@ static LPDIRECT3D9 g_pD3D = NULL;
 static LPDIRECT3DDEVICE9 g_pd3dDevice = NULL;
 static D3DPRESENT_PARAMETERS g_d3dpp = {};
 
+// Defer window resize handling to a safe point (before starting a new frame)
+static bool g_ResizePending = false;
+static UINT g_ResizeWidth = 0;
+static UINT g_ResizeHeight = 0;
+
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -133,6 +138,18 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     if (done)
       break;
 
+    // Apply pending resize before beginning a new ImGui frame
+    if (g_ResizePending && g_pd3dDevice != NULL)
+    {
+      if (g_ResizeWidth > 0 && g_ResizeHeight > 0)
+      {
+        g_d3dpp.BackBufferWidth = g_ResizeWidth;
+        g_d3dpp.BackBufferHeight = g_ResizeHeight;
+        ResetDevice();
+      }
+      g_ResizePending = false;
+    }
+
     ImGui_ImplDX9_NewFrame();
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
@@ -175,11 +192,12 @@ static LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
   switch (msg)
   {
     case WM_SIZE:
+      // Defer device reset to the main loop to avoid interfering with ImGui frame lifecycle
       if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
       {
-        g_d3dpp.BackBufferWidth = LOWORD(lParam);
-        g_d3dpp.BackBufferHeight = HIWORD(lParam);
-        ResetDevice();
+        g_ResizeWidth = LOWORD(lParam);
+        g_ResizeHeight = HIWORD(lParam);
+        g_ResizePending = true;
       }
       return 0;
     case WM_SYSCOMMAND:
