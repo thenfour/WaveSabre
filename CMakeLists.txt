@@ -5,6 +5,7 @@ project("WaveSabre" LANGUAGES C CXX CSharp)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+include(CTest) # provides BUILD_TESTING option and CTest integration
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;MinSizeRel" CACHE STRING "" FORCE)
 
@@ -98,4 +99,9 @@ endif()
 # Project manager
 if(${BUILD_PROJECT_MANAGER})
 	add_subdirectory(ProjectManager)
+endif()
+
+# Unit tests (GoogleTest)
+if(BUILD_TESTING)
+	add_subdirectory(WaveSabreCoreTests)
 endif()

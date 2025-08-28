@@ -93,6 +93,7 @@ namespace WaveSabreCore
     static double CurrentSampleRate;
     static float CurrentSampleRateF;
     static float CurrentSampleRateRecipF;
+	static void SetSampleRate(int sampleRate);
 #endif  // MIN_SIZE_REL
 
 		static int CurrentTempo;
