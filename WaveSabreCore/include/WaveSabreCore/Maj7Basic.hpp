@@ -783,31 +783,44 @@ void CalculateMuteSolo(bool (&mutes)[NBands], bool (&solos)[NBands], bool (&outp
 
 // AA correction polynomial to be added THIS sample.
 // x is 0-1 samples after the discontinuity.
-inline float BlepBefore(float x)
+template<typename T>
+inline T BlepBefore(T x)
 {
+  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
   return x * x;
 }
 
 // AA correction polynomial to be added NEXT sample.
 // x is 0-1 samples after the discontinuity.
-inline float BlepAfter(float x)
+template<typename T>
+inline T BlepAfter(T x)
 {
-  x = 1.0f - x;
+  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+  x = 1 - x;
   return -x * x;
 }
 
-inline float BlampBefore(float x)
+template<typename T>
+inline T BlampBefore(T x)
 {
-  static constexpr float OneThird = 1.0f / 3.0f;
+  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+  static constexpr T OneThird = T{1} / T{3};
   return x * x * x * OneThird;
 }
 
-inline float BlampAfter(float x)
+template<typename T>
+inline T BlampAfter(T x)
 {
-  static constexpr float NegOneThird = -1.0f / 3.0f;
-  x = x - 1.0f;
+  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+  static constexpr T NegOneThird = T{-1} / T{3};
+  x = x - 1;
   return NegOneThird * x * x * x;
 }
+
+
+
+
+
 
 // for detune & unisono, based on enabled oscillators etc, distribute a [-1,1] value among many items.
 // there could be various ways of doing this but to save space just unify.

@@ -194,20 +194,21 @@ struct IOscillatorWaveform
   float samplesSinceEdge;
   float samplesFromEdgeToNextSample;
 
-  void WeirdPreBlepBlampCode(double newPhase,
-                             float edge,
-                             float blepScale,
-                             float samplesFromNewPositionUntilNextSample,
-                             decltype(BlepBefore) pProcBefore,
-                             decltype(BlepBefore) pProcAfter)
-  {
-    if (!math::DoesEncounter(mPhase, newPhase, edge))
-      return;
-    samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
-    samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
-    mBlepBefore += blepScale * pProcBefore(samplesFromEdgeToNextSample);
-    mBlepAfter += blepScale * pProcAfter(samplesFromEdgeToNextSample);
-  }
+  //void WeirdPreBlepBlampCode(double newPhase,
+  //                           float edge,
+  //                           float blepScale,
+  //                           float samplesFromNewPositionUntilNextSample,
+  //                           decltype(BlepBefore) pProcBefore,
+  //                           decltype(BlepBefore) pProcAfter
+  //)
+  //{
+  //  if (!math::DoesEncounter(mPhase, newPhase, edge))
+  //    return;
+  //  samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
+  //  samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
+  //  mBlepBefore += blepScale * pProcBefore(samplesFromEdgeToNextSample);
+  //  mBlepAfter += blepScale * pProcAfter(samplesFromEdgeToNextSample);
+  //}
 
   inline void OSC_ACCUMULATE_BLEP(double newPhase,
                                   float edge,
@@ -215,13 +216,7 @@ struct IOscillatorWaveform
                                   float samples,
                                   float samplesFromNewPositionUntilNextSample)
   {
-    //if (!math::DoesEncounter(mPhase, newPhase, edge))
-    //	return;
-    //float samplesSinceEdge = float(math::fract(newPhase - edge) / this->mPhaseIncrement);
-    //float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
-    WeirdPreBlepBlampCode(newPhase, edge, blepScale, samplesFromNewPositionUntilNextSample, BlepBefore, BlepAfter);
-    //mBlepBefore += blepScale * BlepBefore(samplesFromEdgeToNextSample);
-    //mBlepAfter += blepScale * BlepAfter(samplesFromEdgeToNextSample);
+    //WeirdPreBlepBlampCode(newPhase, edge, blepScale, samplesFromNewPositionUntilNextSample, BlepBefore, BlepAfter);
   }
 
   inline void OSC_ACCUMULATE_BLAMP(double newPhase,
@@ -230,15 +225,7 @@ struct IOscillatorWaveform
                                    float samples,
                                    float samplesFromNewPositionUntilNextSample)
   {
-    //if (!math::DoesEncounter((mPhase), (newPhase), edge))
-    //	return;
-
-    //float samplesSinceEdge = float(math::fract(newPhase - edge) / float(this->mPhaseIncrement));
-    //float samplesFromEdgeToNextSample = math::fract(samplesSinceEdge + samplesFromNewPositionUntilNextSample);
-    WeirdPreBlepBlampCode(newPhase, edge, blampScale, samplesFromNewPositionUntilNextSample, BlampBefore, BlampAfter);
-
-    //mBlepBefore += blampScale * BlampBefore(samplesFromEdgeToNextSample);
-    //mBlepAfter += blampScale * BlampAfter(samplesFromEdgeToNextSample);
+    //WeirdPreBlepBlampCode(newPhase, edge, blampScale, samplesFromNewPositionUntilNextSample, BlampBefore, BlampAfter);
   }
 
 

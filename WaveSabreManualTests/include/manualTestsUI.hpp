@@ -78,8 +78,9 @@ void renderManualTestsUI()
   Helpers::SetSampleRate(4410);
 
   M7::Maj7 synth;  // todo ...
+  auto& oscNode = *synth.mMaj7Voice[0]->mpOscillatorNodes[0];
 
-  static float phaseOffset = 0;
+  static float phaseOffset = -0.64f;
   KnobN11("phase offset", &phaseOffset, 0, 0);
   synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1PhaseOffset, phaseOffset);
 
@@ -96,13 +97,13 @@ void renderManualTestsUI()
   float otherSignals[M7::gOscillatorCount - 1] = {0};
 
   // let's show a full 1.5 cycles of the wave.
-  static float secondsToShow = 0.1f;
+  static float secondsToShow = 0.01f;
   ImGui::SameLine();
   KnobScaled("seconds", &secondsToShow, 0.001f, 0.2f);
 
-  static float blepScale = 0;
+  static float blepScale = 1;
   KnobN11("blepscale", &blepScale, 0, 0);
-  synth.mMaj7Voice[0]->mpOscillatorNodes[0]->mInv = blepScale;
+  oscNode.mInv = blepScale;
 
 
   static bool showLollipops = true;
@@ -117,22 +118,19 @@ void renderManualTestsUI()
       //MakeButtonSpec("Invert Bleps", &invertBleps),
   });
 
-  //synth.mMaj7Voice[0]->mpOscillatorNodes[0]->mInv = invertBleps ? -1.0f : 1.0f;
-
-
   int sampleCount = (int)(Helpers::CurrentSampleRateF * secondsToShow);
-  static std::vector<float> samples;
+  static std::vector<WFVSample> samples;
 
   if (samples.size() != sampleCount)
   {
     samples.resize(sampleCount);
   }
 
-  synth.mMaj7Voice[0]->mpOscillatorNodes[0]->NoteOn(false);
+  oscNode.NoteOn(false);
 
   for (int i = 0; i < sampleCount; ++i)
   {
-    samples[i] = synth.mMaj7Voice[0]->mpOscillatorNodes[0]->RenderSampleForAudioAndAdvancePhase(
+    auto r = oscNode.RenderSampleForAudioAndAdvancePhase(
         64,                                // midi note
         1.f,                               // freq detune MUL
         0.0f,                              // fm scale
@@ -141,9 +139,14 @@ void renderManualTestsUI()
         0,                                 // this osc index
         M7::math::DecibelsToLinear(volDb)  // amp env linear
     );
+    // collect more detailed info.
+    samples[i].sample = oscNode.mLastSample;
   }
 
   std::vector<float> referenceLines = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
+
+  ImGui::Text("Frequency: %.3f Hz", samples.empty() ? 0.0f : samples[0].sample.phaseAdvance.ComputeFrequencyHz());
+
   WaveformViewImpl("wf",
                    {io.DisplaySize.x - 20, 600},
                    samples,

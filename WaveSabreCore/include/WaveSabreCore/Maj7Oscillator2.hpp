@@ -156,168 +156,250 @@ private:
 //    - Slope edges: use polyBLAMP
 //    - Both use a tiny "spill" to next sample (carry buffer)
 // ============================================================================
-
-enum class EdgeKind
-{
-  Step,
-  Slope
-};  // Step: value jump; Slope: derivative jump
-
-struct EdgeEvent
-{
-  double whenInSample01 = 0.0f;  // 0..1, time of discontinuity within THIS sample
-  EdgeKind kind = EdgeKind::Step;
-  float magnitude = 0.0f;
-  // For Step:   magnitude == step height (e.g., ±2 for square/saw).
-  // For Slope:  magnitude == change in dY/dPhase at the corner (per cycle).
-  //             (Sink will multiply by phaseDelta01PerSample to convert to dY/dSample.)
-};
-
-struct EdgeSink
-{
-  virtual ~EdgeSink() = default;
-  virtual void beginSample(double phaseDelta01PerSample) = 0;  // prepare per-sample state
-  virtual void addEdge(const EdgeEvent& e) = 0;                // schedule an edge this sample
-  virtual double takeCorrectionAndFinishSample() = 0;          // sum tails now; spill the rest
-};
-
-// --- No band-limiting (for LFO / debugging) ---
-class NoBandlimitSink final : public EdgeSink
-{
-public:
-  void beginSample(double) override
-  { /* no-op */
-  }
-  void addEdge(const EdgeEvent&) override
-  { /* no-op */
-  }
-  double takeCorrectionAndFinishSample() override
-  {
-    return 0.0;
-  }
-};
-
-// --- PolyBLEP / PolyBLAMP band-limiting ---
-// Two-sample polynomial kernels with spillover into next sample.
-// References: widely used forms in open-source softsynths.
 //
-// Conventions:
-//   - dt := phaseDelta01PerSample (width of kernel in sample space).
-//   - t  := position of the discontinuity within the current sample [0,1].
-//   - We evaluate a portion NOW (t in [0,1]) and precompute the spill that will
-//     be needed NEXT sample (by evaluating with t+1).
-class PolyBlepBlampSink final : public EdgeSink
-{
-public:
-  void beginSample(double phaseDelta01PerSample) override
-  {
-    // Pull in spill from previous sample, reset accumulators, and latch dt.
-    mSumThisSample = mSpillFromPrevSample;
-    mSpillFromPrevSample = 0.0f;
-    mSpillToNextSample = 0.0f;
-    // Limit dt to [tiny, 1] so polynomial windows behave.
-    mDt = std::min(1.0, std::max(phaseDelta01PerSample, 1e-6));
-  }
+//enum class EdgeKind
+//{
+//  Step,
+//  Slope
+//};  // Step: value jump; Slope: derivative jump
+//
+//struct EdgeEvent
+//{
+//  double whenInSample01 = 0.0f;  // 0..1, time of discontinuity within THIS sample
+//  EdgeKind kind = EdgeKind::Step;
+//  float magnitude = 0.0f;
+//  // For Step:   magnitude == step height (e.g., ±2 for square/saw).
+//  // For Slope:  magnitude == change in dY/dPhase at the corner (per cycle).
+//  //             (Sink will multiply by phaseDelta01PerSample to convert to dY/dSample.)
+//};
+//
+//struct EdgeSink
+//{
+//  virtual ~EdgeSink() = default;
+//  virtual void beginSample(double phaseDelta01PerSample) = 0;  // prepare per-sample state
+//  virtual void addEdge(const EdgeEvent& e) = 0;                // schedule an edge this sample
+//  virtual double takeCorrectionAndFinishSample() = 0;          // sum tails now; spill the rest
+//};
 
-  void addEdge(const EdgeEvent& e) override
-  {
-    const double t = math::clamp01(e.whenInSample01);
-    const double dt = mDt;
+//// --- No band-limiting (for LFO / debugging) ---
+//class NoBandlimitSink final : public EdgeSink
+//{
+//public:
+//  void beginSample(double) override
+//  { /* no-op */
+//  }
+//  void addEdge(const EdgeEvent&) override
+//  { /* no-op */
+//  }
+//  double takeCorrectionAndFinishSample() override
+//  {
+//    return 0.0;
+//  }
+//};
+//
+//// --- PolyBLEP / PolyBLAMP band-limiting ---
+//// Two-sample polynomial kernels with spillover into next sample.
+//// References: widely used forms in open-source softsynths.
+////
+//// Conventions:
+////   - dt := phaseDelta01PerSample (width of kernel in sample space).
+////   - t  := position of the discontinuity within the current sample [0,1].
+////   - We evaluate a portion NOW (t in [0,1]) and precompute the spill that will
+////     be needed NEXT sample (by evaluating with t+1).
+//class PolyBlepBlampSink final : public EdgeSink
+//{
+//public:
+//  void beginSample(double phaseDelta01PerSample) override
+//  {
+//    // Pull in spill from previous sample, reset accumulators, and latch dt.
+//    mSumThisSample = mSpillFromPrevSample;
+//    mSpillFromPrevSample = 0.0f;
+//    mSpillToNextSample = 0.0f;
+//    // Limit dt to [tiny, 1] so polynomial windows behave.
+//    mDt = std::min(1.0, std::max(phaseDelta01PerSample, 1e-6));
+//  }
+//
+//  void addEdge(const EdgeEvent& e) override
+//  {
+//    const double t = math::clamp01(e.whenInSample01);
+//    const double dt = mDt;
+//
+//    switch (e.kind)
+//    {
+//      case EdgeKind::Step:
+//      {
+//        const float mag = e.magnitude;
+//
+//        // Contribution in the current sample:
+//        mSumThisSample += mag * polyBLEP(t, dt);
+//
+//        // Spill for the next sample (evaluate with t+1, which maps into [0,1] for next frame):
+//        mSpillToNextSample += mag * polyBLEP(t + 1.0f, dt);
+//      }
+//      break;
+//
+//      case EdgeKind::Slope:
+//      {
+//        // Convert slope jump per-cycle to per-sample by multiplying by dt.
+//        // (dy/dPhase) * (dPhase/dSample) = (dy/dPhase) * dt
+//        const double magPerSample = e.magnitude * dt;
+//
+//        mSumThisSample += magPerSample * polyBLAMP(t, dt);
+//        mSpillToNextSample += magPerSample * polyBLAMP(t + 1.0f, dt);
+//      }
+//      break;
+//    }
+//  }
+//
+//  double takeCorrectionAndFinishSample() override
+//  {
+//    const double out = mSumThisSample;
+//    // Queue spill for the next beginSample()
+//    mSpillFromPrevSample = mSpillToNextSample;
+//    // Clear this-sample sum
+//    mSumThisSample = 0.0f;
+//    mSpillToNextSample = 0.0f;
+//    return out;
+//  }
+//
+//private:
+//  // polyBLEP for a step discontinuity
+//  static inline double polyBLEP(double t, double dt)
+//  {
+//    // Map to [0,1] window(s). Two lobes exist: near 0 and near 1.
+//    if (t < 0.0f || t > 1.0f)
+//    {
+//      // when called with (t+1), map back into [0,1]
+//      t = math::wrap01(t);
+//    }
+//
+//    if (t < dt)
+//    {
+//      const double x = t / dt;
+//      // x + x - x^2 - 1  (smoothly cancels a step over width dt)
+//      return x + x - x * x - 1.0f;
+//    }
+//    else if (t > 1.0f - dt)
+//    {
+//      const double x = (t - 1.0f) / dt;
+//      // x^2 + x + 1 (mirror lobe near end of sample)
+//      return x * x + x + 1.0f;
+//    }
+//    return 0.0f;
+//  }
+//
+//  // polyBLAMP for a slope discontinuity (integrated polyBLEP)
+//  static inline double polyBLAMP(double t, double dt)
+//  {
+//    static constexpr double oneSixth = 1.0f / 6.0f;
+//    static constexpr double oneThird = 1.0f / 3.0f;
+//    if (t < 0.0f || t > 1.0f)
+//    {
+//      t = math::wrap01(t);
+//    }
+//
+//    if (t < dt)
+//    {
+//      const double x = t / dt;
+//      // x^2 * (x/3 - 1/2)
+//      return x * x * (x * oneThird - 0.5f);
+//    }
+//    else if (t > 1.0f - dt)
+//    {
+//      const double x = (t - 1.0f) / dt;
+//      // x^2 * (x/3 + 1/2) + 1/6
+//      return x * x * (x * oneThird + 0.5f) + oneSixth;
+//    }
+//    return 0.0f;
+//  }
+//
+//  double mDt = 0.0f;
+//  double mSumThisSample = 0.0f;
+//  double mSpillFromPrevSample = 0.0f;
+//  double mSpillToNextSample = 0.0f;
+//};
+//
+//
+//// -----------------------------------------------------------------------------
+//// EdgeSink that uses user's split-lobe polynomials:
+////   BlepBefore(x),  BlepAfter(x)   // step smoothing (BLEP)
+////   BlampBefore(x), BlampAfter(x)  // slope smoothing (BLAMP)
+//// Assumptions & mapping:
+//// - PhaseAdvance gives: event time t = whenInSample01 in [0,1], and dt = phaseDelta01PerSample in (0,1].
+//// - The BLEP/BLAMP lobe width is dt (in *sample fractions*). We provide each helper with x in [0,1].
+////   * "Before" lobe lives in [t - dt, t]   -> fraction in *current* sample: xBefore = clamp(t / dt, 0..1)
+////   * "After"  lobe lives in [t, t + dt]   -> fraction that spills to *next* sample: xAfter  = clamp((1 - t) / dt, 0..1)
+//// - For Slope edges: magnitude is a slope jump per *phase*; convert to per *sample* by multiplying by dt.
+//// - This sink keeps a 1-sample spill (just like your split-lobe design).
+////
+//// IMPORTANT: Do not use this sink together with cores that already apply BLEP/BLAMP internally,
+//// otherwise you’ll double-correct.
+//// -----------------------------------------------------------------------------
+//
+//// Declare your helpers (link your existing definitions)
+//
+//class SplitLobeBlepBlampSink final : public EdgeSink
+//{
+//public:
+//  void beginSample(double phaseDelta01PerSample) override
+//  {
+//    // Bring in late lobe from the previous frame, reset accumulators.
+//    mSumThisSample = mCarryFromPrev;
+//    mCarryFromPrev = 0.0f;
+//    mCarryToNext = 0.0f;
+//
+//    // Latch dt (limit to a safe range; dt==0 would explode the mapping)
+//    mDt = std::min(1.0, std::max(phaseDelta01PerSample, 1e-6));
+//  }
+//
+//  void addEdge(const EdgeEvent& e) override
+//  {
+//    const double t = math::clamp01(e.whenInSample01);
+//    const double dt = mDt;
+//
+//    // Fractions for the parts that belong to "now" and "next"
+//    // (Portions outside the sample simply clamp to 0 or 1 in the helper polynomials.)
+//    const double xBefore = math::clamp01(t / dt);         // part of the BEFORE lobe inside current sample
+//    const double xAfter = math::clamp01((1.0 - t) / dt);  // part of the AFTER  lobe inside next sample
+//
+//    switch (e.kind)
+//    {
+//      case EdgeKind::Step:
+//      {
+//        const double stepMag = e.magnitude;  // e.g., square ±2, saw ≈ -2 at wrap/reset
+//        mSumThisSample += stepMag * BlepBefore(xBefore);
+//        mCarryToNext += stepMag * BlepAfter(xAfter);
+//      }
+//      break;
+//
+//      case EdgeKind::Slope:
+//      {
+//        // Convert slope jump per-cycle to per-sample
+//        const double slopePerSample = e.magnitude * dt;
+//        mSumThisSample += slopePerSample * BlampBefore(xBefore);
+//        mCarryToNext += slopePerSample * BlampAfter(xAfter);
+//      }
+//      break;
+//    }
+//  }
+//
+//  double takeCorrectionAndFinishSample() override
+//  {
+//    const double out = mSumThisSample;
+//    mSumThisSample = 0.0f;
+//    // Queue the spill for the next frame
+//    mCarryFromPrev = mCarryToNext;
+//    mCarryToNext = 0;
+//    return out;
+//  }
+//
+//private:
+//  double mDt = 0;
+//  double mSumThisSample = 0;
+//  double mCarryFromPrev = 0;  // late lobe from previous frame
+//  double mCarryToNext = 0;    // late lobe for next frame
+//};
 
-    switch (e.kind)
-    {
-      case EdgeKind::Step:
-      {
-        const float mag = e.magnitude;
-
-        // Contribution in the current sample:
-        mSumThisSample += mag * polyBLEP(t, dt);
-
-        // Spill for the next sample (evaluate with t+1, which maps into [0,1] for next frame):
-        mSpillToNextSample += mag * polyBLEP(t + 1.0f, dt);
-      }
-      break;
-
-      case EdgeKind::Slope:
-      {
-        // Convert slope jump per-cycle to per-sample by multiplying by dt.
-        // (dy/dPhase) * (dPhase/dSample) = (dy/dPhase) * dt
-        const double magPerSample = e.magnitude * dt;
-
-        mSumThisSample += magPerSample * polyBLAMP(t, dt);
-        mSpillToNextSample += magPerSample * polyBLAMP(t + 1.0f, dt);
-      }
-      break;
-    }
-  }
-
-  double takeCorrectionAndFinishSample() override
-  {
-    const double out = mSumThisSample;
-    // Queue spill for the next beginSample()
-    mSpillFromPrevSample = mSpillToNextSample;
-    // Clear this-sample sum
-    mSumThisSample = 0.0f;
-    mSpillToNextSample = 0.0f;
-    return out;
-  }
-
-private:
-  // polyBLEP for a step discontinuity
-  static inline double polyBLEP(double t, double dt)
-  {
-    // Map to [0,1] window(s). Two lobes exist: near 0 and near 1.
-    if (t < 0.0f || t > 1.0f)
-    {
-      // when called with (t+1), map back into [0,1]
-      t = math::wrap01(t);
-    }
-
-    if (t < dt)
-    {
-      const double x = t / dt;
-      // x + x - x^2 - 1  (smoothly cancels a step over width dt)
-      return x + x - x * x - 1.0f;
-    }
-    else if (t > 1.0f - dt)
-    {
-      const double x = (t - 1.0f) / dt;
-      // x^2 + x + 1 (mirror lobe near end of sample)
-      return x * x + x + 1.0f;
-    }
-    return 0.0f;
-  }
-
-  // polyBLAMP for a slope discontinuity (integrated polyBLEP)
-  static inline double polyBLAMP(double t, double dt)
-  {
-    static constexpr double oneSixth = 1.0f / 6.0f;
-    static constexpr double oneThird = 1.0f / 3.0f;
-    if (t < 0.0f || t > 1.0f)
-    {
-      t = math::wrap01(t);
-    }
-
-    if (t < dt)
-    {
-      const double x = t / dt;
-      // x^2 * (x/3 - 1/2)
-      return x * x * (x * oneThird - 0.5f);
-    }
-    else if (t > 1.0f - dt)
-    {
-      const double x = (t - 1.0f) / dt;
-      // x^2 * (x/3 + 1/2) + 1/6
-      return x * x * (x * oneThird + 0.5f) + oneSixth;
-    }
-    return 0.0f;
-  }
-
-  double mDt = 0.0f;
-  double mSumThisSample = 0.0f;
-  double mSpillFromPrevSample = 0.0f;
-  double mSpillToNextSample = 0.0f;
-};
 
 // ============================================================================
 // 3) Waveform cores (pure shape + where their edges are)
@@ -332,27 +414,23 @@ struct CoreSample
 
 struct IWaveformCore
 {
-  virtual ~IWaveformCore() = default;
-  virtual CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& step,
-                                             EdgeSink& edgeSink,
-                                             double optionalPhaseOffset01 /*PM, slow*/) = 0;
-  virtual void SetParams(float shapeA, float shapeB) = 0;
+  virtual void SetParams(float shapeA, float shapeB) {};
+
+  // Render the current sample, and advance phase by 1 sample.
+  // step : describes the phase kinematics for this sample.
+  // The reason we output the "current" sample and not the sample at the end of the step,
+  // is so we render the first sample of the waveform at the initial phase. Otherwise we would always skip the 1st sample of the waveform.
+  virtual CoreSample renderSample(const PhaseAdvance& step, double optionalPhaseOffset01 /*PM, slow*/) = 0;
 };
 
 // --- Sine (no edges) ---
 class SineCore final : public IWaveformCore
 {
 public:
-  CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& s, EdgeSink& edges, double phaseOffset01) override
+  CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& s, double phaseOffset01) override
   {
-    (void)edges;                                                        // no edges
     const float p = (float)math::wrap01(s.phaseEnd01 + phaseOffset01);  // sample at end with optional slow PM
     return {std::sinf(2.0f * float(M_PI) * p)};
-  }
-  void SetParams(float shapeA, float shapeB) override
-  {
-    (void)shapeA;
-    (void)shapeB;  // no params
   }
 };
 
@@ -360,13 +438,13 @@ public:
 class SawCore final : public IWaveformCore
 {
 public:
-  CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& s, EdgeSink& edges, double phaseOffset01) override
+  CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& s, double phaseOffset01) override
   {
     // Each wrap/reset produces a step from near +1 to -1 => step magnitude ~ -2
-    for (int i = 0; i < s.eventCount; ++i)
-    {
-      edges.addEdge({s.events[i].whenInSample01, EdgeKind::Step, -2.0f});
-    }
+    //for (int i = 0; i < s.eventCount; ++i)
+    //{
+    //  edges.addEdge({s.events[i].whenInSample01, EdgeKind::Step, -2.0f});
+    //}
 
     return {sampleSawAt((float)math::wrap01(s.phaseEnd01 + phaseOffset01))};
   }
@@ -594,6 +672,60 @@ private:
     }
     return 0.0f;
   }
+};
+
+
+/////////////////////////////////////////////////////////////////////////////
+struct SquareCoreArtisnal : IWaveformCore
+{
+  float mShapeA = 0.5f;  // duty cycle
+  void SetParams(float shapeA, float shapeB) override
+  {
+    mShapeA = std::clamp(shapeA, 0.001f, 0.999f);  // duty cycle
+    (void)shapeB;                                  // unused
+  }
+
+  float NaiveSample(float phase01)
+  {
+    return phase01 < mShapeA ? -1.0f : 1.0f;
+  }
+
+  CoreSample renderNaiveAndEmitEdges(const PhaseAdvance& step, EdgeSink& /*unusedSink*/, double phaseOffset01) override
+  {
+    const double pStart = math::wrap01(step.phaseStart01 + phaseOffset01);
+    const double pEnd = math::wrap01(step.phaseEnd01 + phaseOffset01);
+    // 1) Edge at PWM duty crossing inside the sample?
+    double tCross = 0.0f;
+    if (findPhaseCrossingFraction(pStart, pEnd, mShapeA, tCross))
+    {
+      //const double before = NaiveSample(nextToward(mShapeA, 0.0f));
+      //const double after = NaiveSample(mShapeA);
+      //if (before != after)
+      //{
+      //  OSC_ACCUMULATE_BLEP(tCross, 0, after - before, samples, samplesTillNextSample);
+      //}
+      //OSC_ACCUMULATE_BLEP(tCross, 0, -2, samples, samplesTillNextSample);
+      //OSC_ACCUMULATE_BLEP(tCross, mShapeA, 2, samples, samplesTillNextSample);
+    }
+    // 2) Edges at wrap / reset if they flip the square
+    for (int i = 0; i < step.eventCount; ++i)
+    {
+      const double before = NaiveSample(nextToward(1.0f, 0.0f));  // value immediately before event
+      const double after = NaiveSample(0.0f);                     // immediately after
+      if (before != after)
+      {
+        //OSC_ACCUMULATE_BLEP(step.events[i].whenInSample01, 0, after - before, samples, samplesTillNextSample);
+        //OSC_ACCUMULATE_BLEP(step.events[i].whenInSample01, 0, -2, samples, samplesTillNextSample);
+        //OSC_ACCUMULATE_BLEP(step.events[i].whenInSample01, mShapeA, 2, samples, samplesTillNextSample);
+      }
+    }
+    return {NaiveSample(pEnd)};
+  }
+  //virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
+  //{
+  //  OSC_ACCUMULATE_BLEP(newPhase, 0, -1, samples, samplesTillNextSample);
+  //  OSC_ACCUMULATE_BLEP(newPhase, mShapeA, 1, samples, samplesTillNextSample);
+  //}
 };
 
 
@@ -972,8 +1104,7 @@ private:
   }
 
 public:
-
-    float mInv = 1;
+  float mInv = 1;
 
   OscillatorNode(OscillatorDevice* pOscDevice,
                  OscillatorIntention intention,
@@ -988,15 +1119,19 @@ public:
       //mCore = std::make_unique<SawCoreInlineBLEP>();
       //mCore = std::make_unique<SawCore>();
       //mCore = std::make_unique<SquareCoreInlineBLEP>();
-      mCore = std::make_unique<SquareCore>();
+      mCore = std::make_unique<SquareCoreArtisnal>();
+      //mCore = std::make_unique<SquareCore>();
+      //mCore = std::make_unique<TriangleCore>();
 
-      mSink = std::make_unique<PolyBlepBlampSink>();
+
+      //mSink = std::make_unique<PolyBlepBlampSink>();
+      //mSink = std::make_unique<SplitLobeBlepBlampSink>();
       //mSink = std::make_unique<NoBandlimitSink>();
     }
     else
     {
       mCore = std::make_unique<SineCore>();
-      mSink = std::make_unique<NoBandlimitSink>();
+      //mSink = std::make_unique<NoBandlimitSink>();
     }
   }
 
@@ -1195,16 +1330,31 @@ public:
     const PhaseAdvance adv = mPhase.advanceOneSample();
 
     // Let the core emit edges and the sink turn them into correction
-    mSink->beginSample(adv.phaseDelta01PerSample);
-    const CoreSample cs = mCore->renderNaiveAndEmitEdges(adv, *mSink, GetPhaseOffset());
+    const PhaseAdvance syncAdv = mSyncPhase.advanceOneSample();  // just advance, ignore output
+
+    //mSink->beginSample(adv.phaseDelta01PerSample);
+    const CoreSample cs = mCore->renderSample(adv, GetPhaseOffset());
 
     float y = cs.naive;
-    y += mInv * (float)mSink->takeCorrectionAndFinishSample();
+    float correction = (float)mSink->takeCorrectionAndFinishSample();
+
+    mSampleInfo.correction = correction;
+    mSampleInfo.naive = y;
+
+    y += mInv * correction;
+    mSampleInfo.final = y;
 
     //y = math::clampN11(y);  // prevent FM from going crazy.
     mPreviousSample = y;
     return y * ampEnvLin;
   }
+
+  struct
+  {
+    float naive = 0;
+    float correction = 0;
+    float final = 0;
+  } mSampleInfo;
 
   // render one sample for LFO, advance phase.
   // forceSilence skips rendering the wave but still advances phase
@@ -1244,7 +1394,7 @@ public:
     }
 
     // no bandlimiting for LFOs; don't touch edge sink (for size savings)
-    const CoreSample cs = mCore->renderNaiveAndEmitEdges(adv, *mSink, GetPhaseOffset());
+    const CoreSample cs = mCore->renderSample(adv, GetPhaseOffset());
     float y = cs.naive;
     mPreviousSample = y;
     return y;

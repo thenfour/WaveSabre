@@ -31,7 +31,7 @@
 
 #include <WaveSabreCore/Maj7GmDls.hpp>
 #include <WaveSabreCore/Maj7Oscillator.hpp>
-#include <WaveSabreCore/Maj7Oscillator2.hpp>
+#include <WaveSabreCore/Maj7Oscillator3.hpp>
 #include <WaveSabreCore/Maj7Sampler.hpp>
 
 #include <WaveSabreCore/AnalysisStream.hpp>

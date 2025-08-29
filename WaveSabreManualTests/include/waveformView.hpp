@@ -16,284 +16,308 @@
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 #include <WaveSabreVstLib/ImGuiUtils.hpp>
+#include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 #include <WaveSabreVstLib/Maj7VstUtils.hpp>
 
 namespace WaveSabreVstLib
 {
 
-    // Internal config for the waveform renderer
-    struct WaveformViewConfig
+// Internal config for the waveform renderer
+struct WaveformViewConfig
+{
+  const std::vector<float>* referenceYValues =
+      nullptr;  // optional list of Y values (in data space) to draw subtle reference lines for
+  ImU32 referenceLineColor = ColorFromHTML("333333");
+  float referenceLineThickness = 1.0f;
+
+  bool showLollipops = true;  // whether to draw circular markers at each sample point
+  bool showStems = false;     // whether to draw vertical lines from baseline to each sample point
+  bool showLines = true;      // whether to draw a connected line through the sample points
+
+  bool autoRangeY = true;  // whether to auto-range the Y axis to fit the data (overrides yMin/yMax if true)
+  float yMin = -1.0f;
+  float yMax = 1.0f;
+};
+
+struct WFVSample
+{
+    M7::CoreSample sample;
+  ImVec2 point;  // used internally
+};
+
+// Internal implementation shared by public overloads
+static inline void WaveformViewImpl(const char* id,
+                                    ImVec2 size,
+                                    std::vector<WFVSample>& samples,
+                                    const WaveformViewConfig& cfg)
+{
+  using namespace WaveSabreCore;
+
+  ImGuiIdScope idScope{id};
+
+  // Early out placeholder when no data
+  if (samples.empty())
+  {
+    ImGui::Dummy(size);
+    return;
+  }
+
+  // Compute bounds
+  float minVal = samples[0].sample.amplitude;
+  float maxVal = samples[0].sample.amplitude;
+  for (size_t i = 1; i < samples.size(); ++i)
+  {
+    minVal = std::min(minVal, samples[i].sample.amplitude);
+    maxVal = std::max(maxVal, samples[i].sample.amplitude);
+  }
+  // Fallback to a sensible range if flat
+  if (M7::math::FloatEquals(minVal, maxVal))
+  {
+    minVal -= 1.0f;
+    maxVal += 1.0f;
+  }
+
+  if (cfg.autoRangeY)
+  {
+    // Expand range slightly for better visibility
+    float range = maxVal - minVal;
+    float padding = range * 0.05f;  // 5% padding
+    minVal -= padding;
+    maxVal += padding;
+  }
+  else
+  {
+    // Use configured fixed range
+    minVal = cfg.yMin;
+    maxVal = cfg.yMax;
+  }
+
+  const float range = std::max(1e-6f, maxVal - minVal);
+
+  // Layout
+  ImVec2 pos = ImGui::GetCursorScreenPos();
+  ImRect bb{pos, pos + size};
+  auto* dl = ImGui::GetWindowDrawList();
+
+  // Background and border
+  ImGui::RenderFrame(bb.Min, bb.Max, ColorFromHTML("222222"));
+
+  // Helpers for coordinate mapping
+  auto XForIndex = [&](size_t i)
+  {
+    float t = samples.size() > 1 ? (float)i / (float)(samples.size() - 1) : 0.0f;
+    return M7::math::lerp(bb.Min.x, bb.Max.x, t);
+  };
+  auto YForValue = [&](float v)
+  {
+    float t = (v - minVal) / range;  // 0..1
+    t = M7::math::clamp01(t);
+    return M7::math::lerp(bb.Max.y, bb.Min.y, t);
+  };
+
+  // Optional reference lines (behind waveform)
+  if (cfg.referenceYValues && !cfg.referenceYValues->empty())
+  {
+    for (float v : *cfg.referenceYValues)
     {
-        const std::vector<float>* referenceYValues = nullptr; // optional list of Y values (in data space) to draw subtle reference lines for
-        ImU32 referenceLineColor = ColorFromHTML("333333");
-        float referenceLineThickness = 1.0f;
+      // Skip if equals baseline 0 to avoid duplicating baseline (within epsilon)
+      if (M7::math::FloatEquals(v, 0.0f))
+        continue;
+      float y = YForValue(v);
+      if (y >= bb.Min.y && y <= bb.Max.y)
+      {
+        dl->AddLine(ImVec2(bb.Min.x, y), ImVec2(bb.Max.x, y), cfg.referenceLineColor, cfg.referenceLineThickness);
+      }
+    }
+  }
 
-        bool showLollipops = true;  // whether to draw circular markers at each sample point
-        bool showStems = false;     // whether to draw vertical lines from baseline to each sample point
-        bool showLines = true;      // whether to draw a connected line through the sample points
+  // Baseline at 0 amplitude (may be outside if range doesn't include 0)
+  const float baselineY = YForValue(0.0f);
+  const bool baselineVisible = baselineY >= bb.Min.y && baselineY <= bb.Max.y;
+  if (baselineVisible)
+  {
+    dl->AddLine(ImVec2(bb.Min.x, baselineY), ImVec2(bb.Max.x, baselineY), ColorFromHTML("444444"));
+  }
 
-        bool autoRangeY = true;  // whether to auto-range the Y axis to fit the data (overrides yMin/yMax if true)
-        float yMin = -1.0f;  
-        float yMax = 1.0f;   
-    };
+  // Build point list for connected line
+  //std::vector<WFVSample> points;
+  //points.reserve(samples.size());
+  for (size_t i = 0; i < samples.size(); ++i)
+  {
+    samples[i].point = ImVec2(XForIndex(i), YForValue(samples[i].sample.amplitude));
+  }
 
-    // Internal implementation shared by public overloads
-    static inline void WaveformViewImpl(const char *id, ImVec2 size, std::vector<float> &samples, const WaveformViewConfig& cfg)
+  // Hover detection within bounding box (before Dummy so we can render highlight behind markers)
+  int hoveredIdx = -1;
+  if (ImGui::IsMouseHoveringRect(bb.Min, bb.Max))
+  {
+    ImVec2 mouse = ImGui::GetIO().MousePos;
+    float xNorm = (mouse.x - bb.Min.x) / std::max(1.0f, (bb.Max.x - bb.Min.x));
+    xNorm = M7::math::clamp01(xNorm);
+    size_t i = (size_t)std::round(xNorm * (samples.size() - 1));
+    if (i < samples.size())
+      hoveredIdx = (int)i;
+  }
+
+  // Subtle background highlight for hovered sample (vertical band)
+  if (hoveredIdx >= 0)
+  {
+    const int i = hoveredIdx;
+    float left = (i == 0) ? bb.Min.x : 0.5f * (samples[(size_t)i - 1].point.x + samples[(size_t)i].point.x);
+    float right = (i == (int)samples.size() - 1) ? bb.Max.x
+                                                 : 0.5f * (samples[(size_t)i].point.x + samples[(size_t)i + 1].point.x);
+    left = std::max(left, bb.Min.x);
+    right = std::min(right, bb.Max.x);
+    if (right > left)
     {
-        using namespace WaveSabreCore;
+      dl->AddRectFilled(ImVec2(left, bb.Min.y), ImVec2(right, bb.Max.y), ColorFromHTML("ffffff", 0.05f));
+    }
+  }
 
-        ImGuiIdScope idScope{id};
-
-        // Early out placeholder when no data
-        if (samples.empty())
-        {
-            ImGui::Dummy(size);
-            return;
-        }
-
-        // Compute bounds
-        float minVal = samples[0];
-        float maxVal = samples[0];
-        for (size_t i = 1; i < samples.size(); ++i)
-        {
-            minVal = std::min(minVal, samples[i]);
-            maxVal = std::max(maxVal, samples[i]);
-        }
-        // Fallback to a sensible range if flat
-        if (M7::math::FloatEquals(minVal, maxVal))
-        {
-            minVal -= 1.0f;
-            maxVal += 1.0f;
-        }
-
-        if (cfg.autoRangeY)
-        {
-            // Expand range slightly for better visibility
-            float range = maxVal - minVal;
-            float padding = range * 0.05f; // 5% padding
-            minVal -= padding;
-            maxVal += padding;
-        }
-        else
-        {
-            // Use configured fixed range
-            minVal = cfg.yMin;
-            maxVal = cfg.yMax;
-        }
-
-        const float range = std::max(1e-6f, maxVal - minVal);
-
-        // Layout
-        ImVec2 pos = ImGui::GetCursorScreenPos();
-        ImRect bb{pos, pos + size};
-        auto *dl = ImGui::GetWindowDrawList();
-
-        // Background and border
-        ImGui::RenderFrame(bb.Min, bb.Max, ColorFromHTML("222222"));
-
-        // Helpers for coordinate mapping
-        auto XForIndex = [&](size_t i) {
-            float t = samples.size() > 1 ? (float)i / (float)(samples.size() - 1) : 0.0f;
-            return M7::math::lerp(bb.Min.x, bb.Max.x, t);
-        };
-        auto YForValue = [&](float v) {
-            float t = (v - minVal) / range; // 0..1
-            t = M7::math::clamp01(t);
-            return M7::math::lerp(bb.Max.y, bb.Min.y, t);
-        };
-
-        // Optional reference lines (behind waveform)
-        if (cfg.referenceYValues && !cfg.referenceYValues->empty())
-        {
-            for (float v : *cfg.referenceYValues)
-            {
-                // Skip if equals baseline 0 to avoid duplicating baseline (within epsilon)
-                if (M7::math::FloatEquals(v, 0.0f))
-                    continue;
-                float y = YForValue(v);
-                if (y >= bb.Min.y && y <= bb.Max.y)
-                {
-                    dl->AddLine(ImVec2(bb.Min.x, y), ImVec2(bb.Max.x, y), cfg.referenceLineColor, cfg.referenceLineThickness);
-                }
-            }
-        }
-
-        // Baseline at 0 amplitude (may be outside if range doesn't include 0)
-        const float baselineY = YForValue(0.0f);
-        const bool baselineVisible = baselineY >= bb.Min.y && baselineY <= bb.Max.y;
-        if (baselineVisible)
-        {
-            dl->AddLine(ImVec2(bb.Min.x, baselineY), ImVec2(bb.Max.x, baselineY), ColorFromHTML("444444"));
-        }
-
-        // Build point list for connected line
-        std::vector<ImVec2> points;
-        points.reserve(samples.size());
-        for (size_t i = 0; i < samples.size(); ++i)
-        {
-            points.emplace_back(XForIndex(i), YForValue(samples[i]));
-        }
-
-        // Hover detection within bounding box (before Dummy so we can render highlight behind markers)
-        int hoveredIdx = -1;
-        if (ImGui::IsMouseHoveringRect(bb.Min, bb.Max))
-        {
-            ImVec2 mouse = ImGui::GetIO().MousePos;
-            float xNorm = (mouse.x - bb.Min.x) / std::max(1.0f, (bb.Max.x - bb.Min.x));
-            xNorm = M7::math::clamp01(xNorm);
-            size_t i = (size_t)std::round(xNorm * (samples.size() - 1));
-            if (i < samples.size())
-                hoveredIdx = (int)i;
-        }
-
-        // Subtle background highlight for hovered sample (vertical band)
-        if (hoveredIdx >= 0 && !points.empty())
-        {
-            const int i = hoveredIdx;
-            float left = (i == 0) ? bb.Min.x : 0.5f * (points[(size_t)i - 1].x + points[(size_t)i].x);
-            float right = (i == (int)points.size() - 1) ? bb.Max.x : 0.5f * (points[(size_t)i].x + points[(size_t)i + 1].x);
-            left = std::max(left, bb.Min.x);
-            right = std::min(right, bb.Max.x);
-            if (right > left)
-            {
-                dl->AddRectFilled(ImVec2(left, bb.Min.y), ImVec2(right, bb.Max.y), ColorFromHTML("ffffff", 0.05f));
-            }
-        }
-
-        // Connected base line
-        const ImU32 baseLineColor = ColorFromHTML("88ccff");
-        const float baseLineThickness = 1.5f;
-        if (points.size() > 1 && cfg.showLines)
-        {
-            dl->AddPolyline(points.data(), (int)points.size(), baseLineColor, 0, baseLineThickness);
-        }
-
-        // Lollipop stems and markers
-        const float stemThickness = 1.0f;
-        const float markerRadius = 5.0f;
-        const ImU32 stemColor = ColorFromHTML("888888");
-        const ImU32 markerFill = ColorFromHTML("ffffff");
-        const ImU32 markerOutline = ColorFromHTML("000000");
-
-        // Highlight styles
-        const ImU32 hlLineColor = ColorFromHTML("ffcc66");
-        const float hlLineThickness = 2.5f;
-        const ImU32 hlStemColor = ColorFromHTML("ffcc66");
-        const float hlStemThickness = 1.5f;
-        const ImU32 hlMarkerFill = ColorFromHTML("ffcc66");
-        const ImU32 hlMarkerOutline = ColorFromHTML("000000");
-
-        // Overlay: highlight line segments around hovered sample
-        if (hoveredIdx >= 0 && points.size() > 1)
-        {
-            const int i = hoveredIdx;
-            if (i > 0)
-                dl->AddLine(points[(size_t)i - 1], points[(size_t)i], hlLineColor, hlLineThickness);
-            if (i < (int)points.size() - 1)
-                dl->AddLine(points[(size_t)i], points[(size_t)i + 1], hlLineColor, hlLineThickness);
-        }
-
-        if (baselineVisible)
-        {
-            for (size_t i = 0; i < samples.size(); ++i)
-            {
-                const ImVec2 p = points[i];
-                const bool isHovered = ((int)i == hoveredIdx);
-                // stem to baseline
-                if (cfg.showStems)
-                {
-                  dl->AddLine(ImVec2(p.x, p.y),
-                              ImVec2(p.x, baselineY),
-                              isHovered ? hlStemColor : stemColor,
-                              isHovered ? hlStemThickness : stemThickness);
-                }
-
-                // marker
-                if (cfg.showLollipops)
-                {
-                    dl->AddCircleFilled(p, markerRadius, isHovered ? hlMarkerFill : markerFill, 8);
-                    dl->AddCircle(p, markerRadius, isHovered ? hlMarkerOutline : markerOutline, 8, 1.0f);
-                }
-            }
-        }
-        else
-        {
-            // If baseline is off-screen, still draw markers
-          if (cfg.showStems)
-          {
-            for (size_t i = 0; i < points.size(); ++i)
-            {
-              const ImVec2& p = points[i];
-              const bool isHovered = ((int)i == hoveredIdx);
-              dl->AddCircleFilled(p, markerRadius, isHovered ? hlMarkerFill : markerFill, 8);
-              dl->AddCircle(p, markerRadius, isHovered ? hlMarkerOutline : markerOutline, 8, 1.0f);
-            }
-          }
-        }
-
-        // Make the drawn area interactive (for tooltip)
-        ImGui::Dummy(size);
-
-        // Tooltip with XY details
-        if (ImGui::IsItemHovered())
-        {
-            ImVec2 mouse = ImGui::GetIO().MousePos;
-            // Nearest sample index from mouse X
-            float xNorm = (mouse.x - bb.Min.x) / std::max(1.0f, (bb.Max.x - bb.Min.x));
-            xNorm = M7::math::clamp01(xNorm);
-            size_t i = (size_t)std::round(xNorm * (samples.size() - 1));
-            i = (size_t)std::min<size_t>(i, samples.size() - 1);
-
-            const float vLin = samples[i];
-            const float vDb = M7::math::LinearToDecibels(std::max(std::abs(vLin), M7::gMinGainLinear));
-            const float sampleRate = Helpers::CurrentSampleRateF;
-            const float tSec = sampleRate > 0.0f ? (float)i / sampleRate : 0.0f;
-            const float tMs = tSec * 1000.0f;
-            // Phase 0..1 (avoid hitting exactly 1.0 at the end)
-            const float phase = (float)i / (float)samples.size();
-
-            ImGui::BeginTooltip();
-            ImGui::Text("Sample: %u", (unsigned)i);
-            ImGui::Text("Time: %.4f s (%.2f ms)", tSec, tMs);
-            ImGui::Text("Phase: %.4f", phase);
-            ImGui::Separator();
-            ImGui::Text("Amplitude: %.6f lin", vLin);
-            ImGui::Text("Amplitude: %.2f dB", vDb);
-            ImGui::EndTooltip();
-        }
+  // Connected base line
+  const ImU32 baseLineColor = ColorFromHTML("88ccff");
+  const float baseLineThickness = 1.5f;
+  if (samples.size() > 1 && cfg.showLines)
+  {
+    std::vector<ImVec2> points;
+    points.reserve(samples.size());
+    for (size_t i = 0; i < samples.size(); ++i)
+    {
+      points.push_back(samples[i].point);
     }
 
-    // renders a bordered lollipop plot, with connected lines.
-    // tooltips show XY values
-    //   X = sample#, time, and cycle phase 0-1 (0 = first sample of the cycle, 0.99?? = last).
-    //   Y = amplitude in dB and linear.
-    // always displays all samples
-    // Y scale is normalized to the input data
-    inline void WaveformView(const char *id, ImVec2 size, std::vector<float> &samples)
-    {
-        WaveformViewConfig cfg; // defaults, no reference lines
-        WaveformViewImpl(id, size, samples, cfg);
-    }
+    dl->AddPolyline(points.data(), (int)points.size(), baseLineColor, 0, baseLineThickness);
+  }
 
-    // Overload with support for reference Y lines
-    inline void WaveformView(const char *id, ImVec2 size, std::vector<float> &samples,
-                             const std::vector<float> &referenceYValues,
-                             ImU32 referenceLineColor = ColorFromHTML("999999", 0.35f),
-                             float referenceLineThickness = 1.0f)
+  // Lollipop stems and markers
+  const float stemThickness = 1.0f;
+  const float markerRadius = 5.0f;
+  const ImU32 stemColor = ColorFromHTML("888888");
+  const ImU32 markerFill = ColorFromHTML("ffffff");
+  const ImU32 markerOutline = ColorFromHTML("000000");
+
+  // Highlight styles
+  const ImU32 hlLineColor = ColorFromHTML("ffcc66");
+  const float hlLineThickness = 2.5f;
+  const ImU32 hlStemColor = ColorFromHTML("ffcc66");
+  const float hlStemThickness = 1.5f;
+  const ImU32 hlMarkerFill = ColorFromHTML("ffcc66");
+  const ImU32 hlMarkerOutline = ColorFromHTML("000000");
+
+  // Overlay: highlight line segments around hovered sample
+  if (hoveredIdx >= 0 && samples.size() > 1 && cfg.showLines)
+  {
+    const int i = hoveredIdx;
+    if (i > 0)
+      dl->AddLine(samples[(size_t)i - 1].point, samples[(size_t)i].point, hlLineColor, hlLineThickness);
+    if (i < (int)samples.size() - 1)
+      dl->AddLine(samples[(size_t)i].point, samples[(size_t)i + 1].point, hlLineColor, hlLineThickness);
+  }
+
+  if (baselineVisible)
+  {
+    for (size_t i = 0; i < samples.size(); ++i)
     {
-        WaveformViewConfig cfg;
-        cfg.referenceYValues = &referenceYValues;
-        cfg.referenceLineColor = referenceLineColor;
-        cfg.referenceLineThickness = referenceLineThickness;
-        WaveformViewImpl(id, size, samples, cfg);
+      const auto& s = samples[i];
+      const ImVec2 p = s.point;
+      const bool isHovered = ((int)i == hoveredIdx);
+      // stem to baseline
+      if (cfg.showStems)
+      {
+        dl->AddLine(ImVec2(p.x, p.y),
+                    ImVec2(p.x, baselineY),
+                    isHovered ? hlStemColor : stemColor,
+                    isHovered ? hlStemThickness : stemThickness);
+      }
+
+      // marker
+      if (cfg.showLollipops)
+      {
+        dl->AddCircleFilled(p, markerRadius, isHovered ? hlMarkerFill : markerFill, 8);
+        dl->AddCircle(p, markerRadius, isHovered ? hlMarkerOutline : markerOutline, 8, 1.0f);
+      }
     }
+  }
+  else
+  {
+    // If baseline is off-screen, still draw markers
+    if (cfg.showStems)
+    {
+      for (size_t i = 0; i < samples.size(); ++i)
+      {
+        const auto& s = samples[i];
+        const ImVec2& p = s.point;
+        const bool isHovered = ((int)i == hoveredIdx);
+        dl->AddCircleFilled(p, markerRadius, isHovered ? hlMarkerFill : markerFill, 8);
+        dl->AddCircle(p, markerRadius, isHovered ? hlMarkerOutline : markerOutline, 8, 1.0f);
+      }
+    }
+  }
+
+  // Make the drawn area interactive (for tooltip)
+  ImGui::Dummy(size);
+
+  // Tooltip with XY details
+  if (ImGui::IsItemHovered())
+  {
+    ImVec2 mouse = ImGui::GetIO().MousePos;
+    // Nearest sample index from mouse X
+    float xNorm = (mouse.x - bb.Min.x) / std::max(1.0f, (bb.Max.x - bb.Min.x));
+    xNorm = M7::math::clamp01(xNorm);
+    size_t i = (size_t)std::round(xNorm * (samples.size() - 1));
+    i = (size_t)std::min<size_t>(i, samples.size() - 1);
+
+    const auto& s = samples[i];
+    const float vLin = s.sample.amplitude;
+    const float vDb = M7::math::LinearToDecibels(std::max(std::abs(vLin), M7::gMinGainLinear));
+    const float sampleRate = Helpers::CurrentSampleRateF;
+    const float tSec = sampleRate > 0.0f ? (float)i / sampleRate : 0.0f;
+    const float tMs = tSec * 1000.0f;
+    // Phase 0..1 (avoid hitting exactly 1.0 at the end)
+    const float phase = (float)i / (float)samples.size();
+
+    ImGui::BeginTooltip();
+    ImGui::Text("Sample: %u", (unsigned)i);
+    ImGui::Text("Time: %.4f s (%.2f ms)", tSec, tMs);
+    ImGui::Text("Phase: %.4f", phase);
+    ImGui::Separator();
+    ImGui::Text("Amplitude: %.6f lin", vLin);
+    ImGui::Text("Amplitude: %.2f dB", vDb);
+    ImGui::Separator();
+    ImGui::Text("Naive: %.3f", s.sample.naive);
+    ImGui::Text("Correction: %.3f dB", s.sample.correction);
+    ImGui::Text("Frequency: %.3f Hz", s.sample.phaseAdvance.ComputeFrequencyHz());
+    ImGui::EndTooltip();
+  }
+}
+
+//// renders a bordered lollipop plot, with connected lines.
+//// tooltips show XY values
+////   X = sample#, time, and cycle phase 0-1 (0 = first sample of the cycle, 0.99?? = last).
+////   Y = amplitude in dB and linear.
+//// always displays all samples
+//// Y scale is normalized to the input data
+//inline void WaveformView(const char* id, ImVec2 size, std::vector<WFVSample>& samples)
+//{
+//  WaveformViewConfig cfg;  // defaults, no reference lines
+//  WaveformViewImpl(id, size, samples, cfg);
+//}
+//
+//// Overload with support for reference Y lines
+//inline void WaveformView(const char* id,
+//                         ImVec2 size,
+//                         std::vector<WFVSample>& samples,
+//                         const std::vector<float>& referenceYValues,
+//                         ImU32 referenceLineColor = ColorFromHTML("999999", 0.35f),
+//                         float referenceLineThickness = 1.0f)
+//{
+//  WaveformViewConfig cfg;
+//  cfg.referenceYValues = &referenceYValues;
+//  cfg.referenceLineColor = referenceLineColor;
+//  cfg.referenceLineThickness = referenceLineThickness;
+//  WaveformViewImpl(id, size, samples, cfg);
+//}
 
 
 }  // namespace WaveSabreVstLib
-
-
-
-
-
