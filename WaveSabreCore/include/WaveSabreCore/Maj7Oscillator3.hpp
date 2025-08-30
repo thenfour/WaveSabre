@@ -71,6 +71,12 @@ public:
     mCore->ForcefullySynchronizePhase(*src.mCore);
   }
 
+  // used only by vst editor.
+  float GetPhase01() const
+  {
+    return (float)mCore->mPhaseAcc.GetAudiblePhase01();
+  }
+
   // Returns the theoretical phase offset (not a live cursor).
   // considers phase offset + modulation.
   // not 100% certain if this is the best way to express this.

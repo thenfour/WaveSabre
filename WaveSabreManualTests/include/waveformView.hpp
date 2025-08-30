@@ -153,26 +153,25 @@ static inline void WaveformViewImpl(const char* id,
   if (ImGui::IsMouseHoveringRect(bb.Min, bb.Max))
   {
     ImVec2 mouse = ImGui::GetIO().MousePos;
+    const float offset =
+        1;  // highlight from THIS sample to the next (in the sample window, the sample emitted is at the beginning of the window)
     float xNorm = (mouse.x - bb.Min.x) / std::max(1.0f, (bb.Max.x - bb.Min.x));
     xNorm = M7::math::clamp01(xNorm);
     size_t i = (size_t)std::round(xNorm * (samples.size() - 1));
-    if (i < samples.size())
-      hoveredIdx = (int)i;
+    i = (size_t)std::min<size_t>(i, samples.size() - 1);
+    hoveredIdx = (int)i;
   }
 
   // Subtle background highlight for hovered sample (vertical band)
   if (hoveredIdx >= 0)
   {
     const int i = hoveredIdx;
-    float left = (i == 0) ? bb.Min.x : 0.5f * (samples[(size_t)i - 1].point.x + samples[(size_t)i].point.x);
-    float right = (i == (int)samples.size() - 1) ? bb.Max.x
-                                                 : 0.5f * (samples[(size_t)i].point.x + samples[(size_t)i + 1].point.x);
-    left = std::max(left, bb.Min.x);
-    right = std::min(right, bb.Max.x);
-    if (right > left)
-    {
-      dl->AddRectFilled(ImVec2(left, bb.Min.y), ImVec2(right, bb.Max.y), ColorFromHTML("ffffff", 0.05f));
-    }
+    const float offset =
+        1;  // highlight from THIS sample to the next (in the sample window, the sample emitted is at the beginning of the window)
+    const float x0 = XForIndex((size_t)i);
+    const float x1 = XForIndex(std::min((size_t)i + (size_t)offset, samples.size() - 1));
+    dl->AddRectFilled(ImVec2(x0, bb.Min.y), ImVec2(x1, bb.Max.y), ColorFromHTML("44446633"));
+
   }
 
   // Connected base line
@@ -209,8 +208,8 @@ static inline void WaveformViewImpl(const char* id,
   if (hoveredIdx >= 0 && samples.size() > 1 && cfg.showLines)
   {
     const int i = hoveredIdx;
-    if (i > 0)
-      dl->AddLine(samples[(size_t)i - 1].point, samples[(size_t)i].point, hlLineColor, hlLineThickness);
+    //if (i > 0)
+    //  dl->AddLine(samples[(size_t)i - 1].point, samples[(size_t)i].point, hlLineColor, hlLineThickness);
     if (i < (int)samples.size() - 1)
       dl->AddLine(samples[(size_t)i].point, samples[(size_t)i + 1].point, hlLineColor, hlLineThickness);
   }
@@ -288,6 +287,13 @@ static inline void WaveformViewImpl(const char* id,
     ImGui::Text("Naive: %.3f", s.sample.naive);
     ImGui::Text("Correction: %.3f dB", s.sample.correction);
     ImGui::Text("Frequency: %.3f Hz", s.sample.phaseAdvance.ComputeFrequencyHz());
+    ImGui::Separator();
+    for (int i = 0; i < s.sample.phaseAdvance.eventCount; ++i)
+    {
+      const auto& e = s.sample.phaseAdvance.events[i];
+      const char* kindStr = (e.kind == M7::PhaseEventKind::Wrap) ? "Wrap" : "Reset";
+      ImGui::Text("Event %d: %s at %.3f", i, kindStr, e.whenInSample01);
+    }
     ImGui::EndTooltip();
   }
 }

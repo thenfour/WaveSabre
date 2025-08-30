@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
@@ -15,13 +14,24 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+struct PhaseUnits
+{
+  double mValue;
+};
+struct SampleUnits
+{
+  double mValue;
+};
 
+// line-based waveform segment boundary description
 struct SegBoundary
 {
   double phase01;
   float dAmp;
   float dSlope;
 };
+
+// line-based waveform shape description expressed in deltas
 struct CumShape
 {
   float mAmpAt0;
@@ -50,33 +60,38 @@ struct CumShape
     return {amp, slope};
   }
 
-  // todo: what is this?
+  // phase distance from "from" to "to", wrapping around 1.0.
+  // IOW, how far do you have to go forward from "from" to reach "to";
+  // this can never be more than 1.0.
   static inline double ForwardDistance01(double from, double to)
   {
-    // distance along +phase direction on the unit circle
     return (to >= from) ? (to - from) : (1.0 - from + to);
   }
 
+  // Visit all edges that lie on the path starting at phiStartRender01, advancing by pathDelta.
   template <class F>
-  inline void VisitEdgesOnPath(double renderOffset01,
-                               double phiStartRender01,
-                               double pathDelta,
-                               double alpha,
-                               double deltaTotal,
-                               F&& onEdge) const
+  inline void VisitEdgesOnPath(double renderOffset01,    // a-rate phase offset, applied to all edges
+                               double phiStartRender01,  // start of the render window, in phase units [0,1)
+                               double pathDelta,         // distance of the path to traverse, in phase units [0,1)
+                               double alpha,             // whenInSample01 at start of path [0,1)
+                               double deltaTotal,        // total phase delta of the sample [0,1)
+                               F&& onEdge                // void(double whenInSample01, float dAmp, float dSlope)
+  ) const
   {
     if (pathDelta <= 0.0 || deltaTotal <= 0.0)
       return;
 
     for (const auto& e : mEdges)
     {
-      const double eRender = math::wrap01(e.phase01 + renderOffset01);
+      const double eRender = e.phase01;  // + renderOffset01; wrap not needed; offset is baked into phiStartRender01
+      // distance from start of render window to edge, in [0,1)
       const double d = ForwardDistance01(phiStartRender01, eRender);
       if (d >= pathDelta)
-        continue;                         // edge lies outside this sub-window
+        continue;  // edge lies outside the specified window
+
       double u = alpha + d / deltaTotal;  // whenInSample01 in [0,1)
       if (u >= 1.0)
-        u = std::nextafter(1.0, 0.0);
+        u = std::nextafter(1.0, 0.0);  // avoid hitting exactly 1.0; this should maybe never happen?
       onEdge(u, e.dAmp, e.dSlope);
     }
   }
@@ -95,41 +110,10 @@ struct PolyBlepBlampExecutor
     mNextSampleCorrection = 0.0;
   }
 
-  void AccumulateEdge(double u, float dAmp, float dSlope)
+  // u is 0-1 samples after the discontinuity.
+  void AccumulateEdge(double edgePosInSampleInPhase01, float dAmp, float dSlope)
   {
-    // optimization: put these back in the if blocks. this is to reduce code size.
-    const double u2 = u * u;
-    const double u3 = u2 * u;
-    if (dAmp != 0.0f)
-    {
-      // calculate polyBLEP contribution
-      if (u < 1.0)
-      {
-        const double blep = (2.0 * u3 - 3.0 * u2 + 1.0);
-        mThisSampleCorrection += dAmp * blep;
-        mNextSampleCorrection += dAmp * (-(2.0 * u3) + 3.0 * u2);
-      }
-      else
-      {
-        // edge happens exactly at end of sample window; all contribution to next sample
-        mNextSampleCorrection += dAmp * 1.0;
-      }
-    }
-    if (dSlope != 0.0f)
-    {
-      // calculate polyBLAMP contribution
-      if (u < 1.0)
-      {
-        const double blamp = (u3 - 1.5 * u2 + 0.5);
-        mThisSampleCorrection += dSlope * blamp;
-        mNextSampleCorrection += dSlope * (-u3 + 1.5 * u2);
-      }
-      else
-      {
-        // edge happens exactly at end of sample window; all contribution to next sample
-        mNextSampleCorrection += dSlope * 0.5;
-      }
-    }
+      // apply corrections...
   }
 
   std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude)
@@ -160,31 +144,32 @@ struct BandLimitedOscillatorCore : public OscillatorCore
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const PhaseAdvance step = mPhaseAcc.advanceOneSample();
-    const double delta = step.phaseDelta01PerSample;
-
     const CumShape cs = GetCumWaveDesc();
+    const auto sampleWindowSizeInPhase01 = step.lengthInPhase01;
 
     mHelper.OpenSample();
 
     // Naive sample: evaluate at render-space begin-phase
-    const double phi0Render = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
-    const auto [amp0, /*slope0*/ _] = cs.EvalAmpSlopeAt(phi0Render);
+    const double sampleStartInPhase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
+    const auto [amp0, /*slope0*/ _] = cs.EvalAmpSlopeAt(sampleStartInPhase01);
     const float naive = amp0;
 
     auto addEdge = [&](double u, float dAmp, float dSlope)
     {
-      mHelper.AccumulateEdge(u, dAmp, dSlope);
+      // convert u (in [0,1) sample units) to edgePosInSampleInPhase01 (in [0,1) phase units)
+      double edgePosInSampleInPhase01 = u * sampleWindowSizeInPhase01;
+      mHelper.AccumulateEdge(edgePosInSampleInPhase01, dAmp, dSlope);
     };
 
     // Check for an in-sample hard-sync reset
     bool hasReset = false;
-    double tReset = 0.0;
+    double resetPosInSample01 = 0.0;  // when in this sample a reset happens [0,1)
     for (int i = 0; i < step.eventCount; ++i)
     {
       if (step.events[i].kind == PhaseEventKind::Reset)
       {
         hasReset = true;
-        tReset = step.events[i].whenInSample01;
+        resetPosInSample01 = step.events[i].whenInSample01;
         break;  // at most one reset per sample by design
       }
     }
@@ -192,28 +177,47 @@ struct BandLimitedOscillatorCore : public OscillatorCore
     if (!hasReset)
     {
       // Single continuous path: start at phi0Render, advance by delta
-      cs.VisitEdgesOnPath(audioRatePhaseOffset, phi0Render, delta, /*alpha*/ 0.0, delta, addEdge);
+      cs.VisitEdgesOnPath(audioRatePhaseOffset,
+                          sampleStartInPhase01,       // path begin
+                          sampleWindowSizeInPhase01,  // path length
+                          0.0,                        // whenInSample01 at start of path = beginning of sample
+                          sampleWindowSizeInPhase01,  // total delta = full sample
+                          addEdge);
     }
     else
     {
       // 1) Pre-reset path: [0 .. tReset)
-      const double path1 = tReset * delta;
-      cs.VisitEdgesOnPath(audioRatePhaseOffset, phi0Render, path1, /*alpha*/ 0.0, delta, addEdge);
+      const double preResetLengthInPhase01 = resetPosInSample01 *
+                                             sampleWindowSizeInPhase01;  // distance from start to reset, in phase units
+      cs.VisitEdgesOnPath(audioRatePhaseOffset,
+                          sampleStartInPhase01,       // path begin
+                          preResetLengthInPhase01,    // path length = distance from start to reset
+                          0.0,                        // whenInSample01 at start of path = beginning of sample
+                          sampleWindowSizeInPhase01,  // total delta = full sample
+                          addEdge);
 
       // 2) Insert BLEP/BLAMP at the reset instant for the *teleport* to phase 0
-      const double phiAtResetRender = math::wrap01(phi0Render + path1);  // just before reset
-      const auto [ampBefore, slopeBefore] = cs.EvalAmpSlopeAt(phiAtResetRender);
+      const double resetPosInPhase01 = math::wrap01(sampleStartInPhase01 +
+                                                    preResetLengthInPhase01);  // just before reset
+      const auto [ampBefore, slopeBefore] = cs.EvalAmpSlopeAt(resetPosInPhase01);
+
+      // after reset, we're at phase 0 + phase offset.
       const auto [ampAfter, slopeAfter] = cs.EvalAmpSlopeAt(math::wrap01(audioRatePhaseOffset));  // 0+ with offset
 
       const float dAmp = ampAfter - ampBefore;
       const float dSlope = slopeAfter - slopeBefore;
 
-      addEdge(tReset, dAmp, dSlope);
+      addEdge(resetPosInSample01, dAmp, dSlope);
 
       // 3) Post-reset path: [tR .. 1)
-      const double path2 = (1.0 - tReset) * delta;
+      const double postResetLengthInPhase01 = (1.0 - resetPosInSample01) * sampleWindowSizeInPhase01;
       const double phiAfterResetRender = math::wrap01(audioRatePhaseOffset);  // start at 0+ (render space)
-      cs.VisitEdgesOnPath(audioRatePhaseOffset, phiAfterResetRender, path2, /*alpha*/ tReset, delta, addEdge);
+      cs.VisitEdgesOnPath(audioRatePhaseOffset,
+                          phiAfterResetRender,        // path begin = 0+ with offset
+                          postResetLengthInPhase01,   // path length = distance from reset to end of sample
+                          resetPosInSample01,         // whenInSample01 at start of path = reset time
+                          sampleWindowSizeInPhase01,  // total delta = full sample
+                          addEdge);
     }
 
     const auto [correction, amplitude] = mHelper.CloseSampleAndGetCorrection(naive);

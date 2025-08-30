@@ -34,8 +34,8 @@ struct PhaseAdvance
   // this is the "end" of the sample, i.e. where the next sample will be emitted (immediately after the end of this sample window).
   double phaseEnd01 = 0.0f;
 
-  // sample window size, in phase units
-  double phaseDelta01PerSample = 0.0f;
+  // sample window size, in phase units (this is phaseEnd01 - phaseBegin01, wrapped to [0,1) )
+  double lengthInPhase01 = 0.0f;
 
   // In-sample events (at most: one wrap + one external reset).
   // more than 1 of either kind of event implies frequencies above Nyquist so it's not supported and expect artifacts.
@@ -46,7 +46,7 @@ struct PhaseAdvance
 
   float ComputeFrequencyHz() const
   {
-    return static_cast<float>(phaseDelta01PerSample * Helpers::CurrentSampleRateF);
+    return static_cast<float>(lengthInPhase01 * Helpers::CurrentSampleRateF);
   }
 };
 
@@ -65,6 +65,12 @@ public:
     mPhase01 = math::wrap01(phase01);
   }
 
+  // used only by vst editor.
+  double getPhase01() const
+  {
+    return mPhase01;
+  }
+
   void SynchronizeWith(const PhaseAccumulator& src)
   {
     mPhase01 = src.mPhase01;
@@ -81,7 +87,7 @@ public:
   {
     PhaseAdvance out{};
     out.phaseBegin01 = mPhase01;
-    out.phaseDelta01PerSample = mPhaseDeltaPerSample01;
+    out.lengthInPhase01 = mPhaseDeltaPerSample01;
 
     double next = mPhase01 + mPhaseDeltaPerSample01;
 
@@ -122,6 +128,12 @@ struct HardSyncPhaseAccumulator
   {
     mMaster.setPhase01(phase01);
     mSlave.setPhase01(phase01);
+  }
+
+  // used only by vst editor.
+  float GetAudiblePhase01() const
+  {
+    return (float)mSlave.getPhase01();
   }
 
   void SynchronizeWith(const HardSyncPhaseAccumulator& src)
@@ -172,7 +184,7 @@ struct HardSyncPhaseAccumulator
     // Recompute the end phase after reset:
     // - phase grows from s.phaseBegin01 up to reset (tR), then jumps to 0,
     // - then advances the remaining (1 - tR) fraction at the same delta.
-    const double delta = s.phaseDelta01PerSample;
+    const double delta = s.lengthInPhase01;
     const double afterResetAdvance = (1.0 - tReset) * delta;
     out.phaseEnd01 = math::wrap01(afterResetAdvance);  // starts at 0 after reset
 
@@ -258,6 +270,5 @@ struct SineCore : public OscillatorCore
 };
 
 }  // namespace M7
-
 
 }  // namespace WaveSabreCore
