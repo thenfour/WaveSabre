@@ -89,8 +89,8 @@ struct SegBoundary
 // line-based waveform shape description expressed in deltas
 struct CumShape
 {
-  float mAmpAt0;
-  float mSlopeAt0;
+  float mAmpAt0;    // PRE edge value at 0 (must be consistent with the end of the wave cycle as defined by edges)
+  float mSlopeAt0;  // PRE edge slope at 0 (must be consistent with the end of the wave cycle as defined by edges)
   std::vector<SegBoundary> mEdges;
 
   // Evaluate naive amplitude and slope at canonical phase p ∈ [0,1)
@@ -320,9 +320,9 @@ struct PWMCore : public BandLimitedOscillatorCore
 
   CumShape GetCumWaveDesc() override
   {
-    CumShape cs{.mAmpAt0 = 1.0f, .mSlopeAt0 = 0};
+    CumShape cs{.mAmpAt0 = -1, .mSlopeAt0 = 0};
     cs.mEdges.reserve(2);
-    cs.mEdges.push_back(SegBoundary{.phase01 = 0.0, .dAmp = 0.0f, .dSlope = 0.0f});
+    cs.mEdges.push_back(SegBoundary{.phase01 = 0.0, .dAmp = +2.0f, .dSlope = 0.0f});
     cs.mEdges.push_back(SegBoundary{.phase01 = mDutyCycle01, .dAmp = -2.0f, .dSlope = 0.0f});
     return cs;
   }
@@ -353,9 +353,10 @@ struct TriTruncCore : public BandLimitedOscillatorCore
   }
   CumShape GetCumWaveDesc() override
   {
-    CumShape cs{.mAmpAt0 = 1, .mSlopeAt0 = 2};
+    CumShape cs{.mAmpAt0 = -1, .mSlopeAt0 = -4};
     cs.mEdges.reserve(1);
-    cs.mEdges.push_back(SegBoundary{.phase01 = 0.0, .dAmp = -2.0f, .dSlope = 0});
+    cs.mEdges.push_back(SegBoundary{.phase01 = 0.0, .dAmp = 0, .dSlope = +8});
+    cs.mEdges.push_back(SegBoundary{.phase01 = 0.5, .dAmp = 0, .dSlope = -8});
     return cs;
   }
 };

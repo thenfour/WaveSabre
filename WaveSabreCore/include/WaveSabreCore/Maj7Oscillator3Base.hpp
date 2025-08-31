@@ -225,6 +225,7 @@ public:
     mWaveshapeA = shapeA;
     mWaveshapeB = shapeB;
     mPhaseAcc.setParams(mainFreqHz, enableHardSync, syncFreqHz);
+    HandleParamsChanged();
   };
 
   // used by LFOs to just hard-set the phase. LFO phase, when "note restart" is disabled, is global, so

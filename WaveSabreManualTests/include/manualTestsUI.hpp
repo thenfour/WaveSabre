@@ -80,7 +80,17 @@ void renderManualTestsUI()
   M7::Maj7 synth;  // todo ...
   auto& oscNode = *synth.mMaj7Voice[0]->mpOscillatorNodes[0];
 
+  static float waveShapeA = 0.5f;
+  Knob01("waveshape A", &waveShapeA, 0.5f, 0.5f);
+  synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeA, waveShapeA);
+
+  static float waveShapeB = 0.5f;
+  ImGui::SameLine();
+  Knob01("waveshape B", &waveShapeB, 0.5f, 0.5f);
+  synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeB, waveShapeB);
+
   static float phaseOffset = -0.64f;
+  ImGui::SameLine();
   KnobN11("phase offset", &phaseOffset, 0, 0);
   synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1PhaseOffset, phaseOffset);
 
@@ -109,11 +119,12 @@ void renderManualTestsUI()
   SelectEnumButtonArray(
       "waveform",
       wf,
-      std::array<SelectEnumButtonArrayItem<M7::OscillatorWaveform>, 3>
+      std::array<SelectEnumButtonArrayItem<M7::OscillatorWaveform>, 4>
       {
           SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Sine", .value = M7::OscillatorWaveform::SineClip },
           SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Saw", .value = M7::OscillatorWaveform::SawClip },
           SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Pulse", .value = M7::OscillatorWaveform::Pulse },
+          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Tri", .value = M7::OscillatorWaveform::TriTrunc },
       });
   synth.mParams.SetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform, wf);
 
