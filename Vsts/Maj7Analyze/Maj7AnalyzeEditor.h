@@ -387,7 +387,7 @@ private:
 
       if (showToggles)
       {
-        ButtonArray<7>({
+        ButtonArray<7>("displayOptions1" , {
             MakeButtonSpec("L Peak", &mShowLeftPeak, kLeftPeakColor),
             MakeButtonSpec("R Peak", &mShowRightPeak, kRightPeakColor),
             MakeButtonSpec("Correllation", &mShowPhaseCorrelation, kCorrelationColor),

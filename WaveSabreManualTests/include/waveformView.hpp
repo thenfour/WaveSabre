@@ -170,7 +170,7 @@ static inline void WaveformViewImpl(const char* id,
         1;  // highlight from THIS sample to the next (in the sample window, the sample emitted is at the beginning of the window)
     const float x0 = XForIndex((size_t)i);
     const float x1 = XForIndex(std::min((size_t)i + (size_t)offset, samples.size() - 1));
-    dl->AddRectFilled(ImVec2(x0, bb.Min.y), ImVec2(x1, bb.Max.y), ColorFromHTML("44446633"));
+    dl->AddRectFilled(ImVec2(x0, bb.Min.y), ImVec2(x1, bb.Max.y), ColorFromHTML("444466", 0.3f));
 
   }
 

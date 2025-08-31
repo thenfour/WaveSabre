@@ -781,42 +781,42 @@ void CalculateMuteSolo(bool (&mutes)[NBands], bool (&solos)[NBands], bool (&outp
 //     *right = (mid - side) * math::gSqrt2Recip;
 // }
 
-// AA correction polynomial to be added THIS sample.
-// x is 0-1 samples after the discontinuity.
-template<typename T>
-inline T BlepBefore(T x)
-{
-  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-  return x * x;
-}
-
-// AA correction polynomial to be added NEXT sample.
-// x is 0-1 samples after the discontinuity.
-template<typename T>
-inline T BlepAfter(T x)
-{
-  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-  x = 1 - x;
-  return -x * x;
-}
-
-template<typename T>
-inline T BlampBefore(T x)
-{
-  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-  static constexpr T OneThird = T{1} / T{3};
-  return x * x * x * OneThird;
-}
-
-template<typename T>
-inline T BlampAfter(T x)
-{
-  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-  static constexpr T NegOneThird = T{-1} / T{3};
-  x = x - 1;
-  return NegOneThird * x * x * x;
-}
-
+//// AA correction polynomial to be added THIS sample.
+//// x is 0-1 samples after the discontinuity.
+//template<typename T>
+//inline T BlepBefore(T x)
+//{
+//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+//  return x * x;
+//}
+//
+//// AA correction polynomial to be added NEXT sample.
+//// x is 0-1 samples after the discontinuity.
+//template<typename T>
+//inline T BlepAfter(T x)
+//{
+//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+//  x = 1 - x;
+//  return -x * x;
+//}
+//
+//template<typename T>
+//inline T BlampBefore(T x)
+//{
+//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+//  static constexpr T OneThird = T{1} / T{3};
+//  return x * x * x * OneThird;
+//}
+//
+//template<typename T>
+//inline T BlampAfter(T x)
+//{
+//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+//  static constexpr T NegOneThird = T{-1} / T{3};
+//  x = x - 1;
+//  return NegOneThird * x * x * x;
+//}
+//
 
 
 

@@ -2276,86 +2276,24 @@ public:
                        float* cursorPhase)
   {
     OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
-    std::unique_ptr<M7::IOscillatorWaveform> pWaveform;
-
-    float freq = 1;  // 1 hz at width-in-pixels samplerate will put 1 cycle in frame.
-    switch (waveform)
-    {
-      default:
-        // if the waveform is not supported, careful because it would crash gWaveformCaptions. bring it into usable range.
-        waveform = M7::OscillatorWaveform::Pulse;
-        pWaveform.reset(new M7::PulsePWMWaveform);
-        break;
-      case M7::OscillatorWaveform::Pulse:
-        pWaveform.reset(new M7::PulsePWMWaveform);
-        break;
-      case M7::OscillatorWaveform::PulseTristate:
-        pWaveform.reset(new M7::PulseTristateWaveform);
-        break;
-      case M7::OscillatorWaveform::SawClip:
-        pWaveform.reset(new M7::NotchSawWaveform);
-        break;
-      //case M7::OscillatorWaveform::SineAsym:
-      //	pWaveform.reset(new M7::SineAsymWaveform);
-      //	break;
-      case M7::OscillatorWaveform::SineClip:
-        pWaveform.reset(new M7::SineClipWaveform);
-        break;
-      case M7::OscillatorWaveform::SineHarmTrunc:
-        pWaveform.reset(new M7::SineHarmTruncWaveform);
-        break;
-      //case M7::OscillatorWaveform::SineTrunc:
-      //	pWaveform.reset(new M7::SineTruncWaveform);
-      //	break;
-      //pWaveform.reset(new M7::TriClipWaveform);
-      case M7::OscillatorWaveform::TriSquare:
-        pWaveform.reset(new M7::TriSquareWaveform);
-        break;
-      case M7::OscillatorWaveform::TriTrunc:
-        pWaveform.reset(new M7::TriTruncWaveform);
-        break;
-      case M7::OscillatorWaveform::VarTrapezoid:
-        pWaveform.reset(new M7::VarTrapezoidWaveform);
-        break;
-
-      case M7::OscillatorWaveform::SineRectified:
-        pWaveform.reset(new M7::RectifiedSineWaveform);
-        break;
-      case M7::OscillatorWaveform::SinePhaseDist:
-        pWaveform.reset(new M7::PhaseDistortedSineWaveform);
-        break;
-
-      case M7::OscillatorWaveform::StaircaseSaw:
-        pWaveform.reset(new M7::StaircaseSawWaveform);
-        break;
-      case M7::OscillatorWaveform::TriFold:
-        pWaveform.reset(new M7::TriFoldWaveform);
-        break;
-      case M7::OscillatorWaveform::DoublePulse:
-        pWaveform.reset(new M7::DoublePulseWaveform);
-        break;
-        //case M7::OscillatorWaveform::TriClip__obsolete:
-        //case M7::OscillatorWaveform::VarTriangle:
-        //	pWaveform.reset(new M7::VarTriWaveform);
-        //	break;
-      case M7::OscillatorWaveform::WhiteNoiseSH:
-      {
-        freq = 8;  // 1.0f / 12; // white noise waveforms just have 1 sample level per cycle and always start at 0.
-        auto p = new M7::WhiteNoiseWaveform;
-        p->mCurrentLevel = p->mCurrentSample = M7::math::randN11();
-        pWaveform.reset(p);
-        break;
-      }
-    }
-
+    std::unique_ptr<M7::OscillatorCore> pWaveform;
+    
     float innerHeight = bb.GetHeight() - 4;
-
-    // freq & samplerate should be set such that we have `width` samples per 1 cycle.
-    // samples per cycle = srate / freq
-    pWaveform->SetParams(freq, 0, waveshapeA01, waveshapeB01, bb.GetWidth(), M7::OscillatorIntention::LFO);
 
     ImVec2 outerTL = bb.Min;  // ImGui::GetCursorPos();
     ImVec2 outerBR = {outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight()};
+
+    // calc frequency to put 1 cycle in width.
+    // width is bb.GetWidth() pixels.
+    // samplerate is Helpers::CurrentSampleRateF
+    float freqHz = Helpers::CurrentSampleRateF / bb.GetWidth();
+    waveform = (M7::OscillatorWaveform)M7::math::ClampI((int)waveform, 0, (int)M7::OscillatorWaveform::Count - 1);
+
+    pWaveform.reset(M7::InstantiateWaveformCore(waveform));
+
+    // freq & samplerate should be set such that we have `width` samples per 1 cycle.
+    // samples per cycle = srate / freq
+    pWaveform->SetKRateParams(waveshapeA01, waveshapeB01, freqHz, false, 1);
 
     auto drawList = ImGui::GetWindowDrawList();
 
@@ -2378,23 +2316,16 @@ public:
                       2.0f);  // center line
     float nminY = 50.f;
     float nmaxY = -50.f;
-    float ominY = 50.f;
-    float omaxY = -50.f;
     for (size_t iSample = 0; iSample < bb.GetWidth(); ++iSample)
     {
-      pWaveform->OSC_ADVANCE(1, 0);
-      float sample = pWaveform->NaiveSample(M7::math::fract(float(iSample) / bb.GetWidth() + phaseOffsetN11));
+      auto result = pWaveform->renderSampleAndAdvance(phaseOffsetN11);
+      auto sample = result.amplitude;
 
       if (sample < nminY)
         nminY = sample;
       if (sample > nmaxY)
         nmaxY = sample;
 
-      sample = (sample + pWaveform->mDCOffset) * pWaveform->mScale;
-      if (sample < ominY)
-        ominY = sample;
-      if (sample > omaxY)
-        omaxY = sample;
       drawList->AddLine({outerTL.x + iSample, centerY},
                         {outerTL.x + iSample, sampleToY(sample)},
                         ImGui::GetColorU32(ImGuiCol_PlotHistogram),
@@ -2413,14 +2344,14 @@ public:
 
     {
       auto str1 = std::format("nrg:[{:.2f},{:.2f}]", nminY, nmaxY);
-      auto str2 = std::format("dc :{:.2f}", pWaveform->mDCOffset);
-      auto str3 = std::format("amp:{:.2f}", pWaveform->mScale);
-      auto str4 = std::format("org:[{:.2f},{:.2f}]", ominY, omaxY);
+      //auto str2 = std::format("dc :{:.2f}", pWaveform->mDCOffset);
+      //auto str3 = std::format("amp:{:.2f}", pWaveform->mScale);
+      //auto str4 = std::format("org:[{:.2f},{:.2f}]", ominY, omaxY);
 
       DrawShadowText(str1, {bb.Min.x, bb.Min.y + 12});
-      DrawShadowText(str2, {bb.Min.x, bb.Min.y + 24});
-      DrawShadowText(str3, {bb.Min.x, bb.Min.y + 36});
-      DrawShadowText(str4, {bb.Min.x, bb.Min.y + 48});
+      //DrawShadowText(str4, {bb.Min.x, bb.Min.y + 24});
+      //DrawShadowText(str2, {bb.Min.x, bb.Min.y + 24});
+      //DrawShadowText(str3, {bb.Min.x, bb.Min.y + 36});
     }
 
     DrawShadowText(gWaveformCaptions[(int)waveform], bb.Min);

@@ -15,7 +15,38 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
+    {
+      switch (w)
+      {
+        default:
+        case OscillatorWaveform::Sine:
+          return new SineCore();
+
+        case OscillatorWaveform::SawNaive:
+          return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
+        case OscillatorWaveform::SawBlep1:
+          return new SawCore<PolyBlepBlampExecutor1, OscillatorWaveform::SawBlep1>();
+        case OscillatorWaveform::SawBlep2:
+          return new SawCore<PolyBlepBlampExecutor2, OscillatorWaveform::SawBlep2>();
+
+        case OscillatorWaveform::PulseNaive:
+          return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
+        case OscillatorWaveform::PulseBlep1:
+          return new PWMCoreT<PolyBlepBlampExecutor1, OscillatorWaveform::PulseBlep1>();
+        case OscillatorWaveform::PulseBlep2:
+          return new PWMCoreT<PolyBlepBlampExecutor2, OscillatorWaveform::PulseBlep2>();
+
+        case OscillatorWaveform::TriNaive:
+          return new TriTruncCore<NullBlepBlampExecutor, OscillatorWaveform::TriNaive>();
+        case OscillatorWaveform::TriBlep1:
+          return new TriTruncCore<PolyBlepBlampExecutor1, OscillatorWaveform::TriBlep1>();
+        case OscillatorWaveform::TriBlep2:
+          return new TriTruncCore<PolyBlepBlampExecutor2, OscillatorWaveform::TriBlep2>();
+      }
+    }
+    
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct KRateRecalculator
 {
   // when 0, run.
@@ -151,39 +182,10 @@ public:
     {
       return;
     }
-    switch (w)
-    {
-      case OscillatorWaveform::SineClip:
-      case OscillatorWaveform::SineHarmTrunc:
-      case OscillatorWaveform::SineRectified:
-      case OscillatorWaveform::SinePhaseDist:
-        mCore = std::make_unique<SineCore>();
-        break;
-      case OscillatorWaveform::SawClip:
-      case OscillatorWaveform::StaircaseSaw:
-        mCore = std::make_unique<SawCore>();
-        break;
-      case OscillatorWaveform::TriTrunc:
-      case OscillatorWaveform::TriSquare:
-      case OscillatorWaveform::TriFold:
-        mCore = std::make_unique<TriTruncCore>();
-        break;
-      case OscillatorWaveform::Pulse:
-      case OscillatorWaveform::PulseTristate:
-      case OscillatorWaveform::DoublePulse:
-        mCore = std::make_unique<PWMCore>();
-        break;
-      case OscillatorWaveform::VarTrapezoid:
-        //mCore = std::make_unique<VarTrapCore>();
-        break;
-      case OscillatorWaveform::WhiteNoiseSH:
-        //mCore = std::make_unique<WhiteNoiseSHCore>();
-        break;
-      default:
-        mCore = std::make_unique<SineCore>();
-        break;
-    }
 
+    auto* p = InstantiateWaveformCore(w);
+
+    mCore.reset(p);
     mCore->SetCorrectionFactor(mCorrectionFactor);
   }
 

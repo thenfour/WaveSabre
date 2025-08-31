@@ -138,24 +138,24 @@ void renderManualTestsUI()
   //oscNode.mInv = blepScale;
   oscNode.SetCorrectionFactor(blepScale);
 
-  static M7::OscillatorWaveform wf = M7::OscillatorWaveform::SawClip;// = synth.mParams.GetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform);
-  SelectEnumButtonArray(
-      "waveform",
-      wf,
-      std::array<SelectEnumButtonArrayItem<M7::OscillatorWaveform>, 4>
-      {
-          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Sine", .value = M7::OscillatorWaveform::SineClip },
-          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Saw", .value = M7::OscillatorWaveform::SawClip },
-          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Pulse", .value = M7::OscillatorWaveform::Pulse },
-          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Tri", .value = M7::OscillatorWaveform::TriTrunc },
-      });
+  static M7::OscillatorWaveform wf = M7::OscillatorWaveform::
+      PulseNaive;  // = synth.mParams.GetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform);
+  static uint64_t kC = 0x123456789abcdef;
+
+  OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
+  ImGui::SameLine();
+  ::MulDiv(kC, 1, 1);
+  ImGui::SetNextItemWidth(120);
+  ImGui::Combo("waveformShape", (int*)&wf, gWaveformCaptions, (int)M7::OscillatorWaveform::Count);
+
   synth.mParams.SetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform, wf);
 
   static bool showLollipops = true;
   static bool showStems = true;
   static bool showLines = true;
 
-  ButtonArray<3>({
+  ImGui::SameLine();
+  ButtonArray<3>("waveformOptions", {
       MakeButtonSpec("Lollipops", &showLollipops),
       MakeButtonSpec("Stems", &showStems),
       MakeButtonSpec("Lines", &showLines),
@@ -174,14 +174,13 @@ void renderManualTestsUI()
 
   for (int i = 0; i < sampleCount; ++i)
   {
-    auto r = oscNode.RenderSampleForAudioAndAdvancePhase(
-        64,                                // midi note
-        1.f,                               // freq detune MUL
-        0.0f,                              // fm scale
-        synth.mParams,                     // param accessor
-        otherSignals,                      // other osc signals
-        0,                                 // this osc index
-        M7::math::DecibelsToLinear(volDb)  // amp env linear
+    auto r = oscNode.RenderSampleForAudioAndAdvancePhase(64,                                // midi note
+                                                         1.f,                               // freq detune MUL
+                                                         0.0f,                              // fm scale
+                                                         synth.mParams,                     // param accessor
+                                                         otherSignals,                      // other osc signals
+                                                         0,                                 // this osc index
+                                                         M7::math::DecibelsToLinear(volDb)  // amp env linear
     );
     // collect more detailed info.
     samples[i].sample = oscNode.mLastSample;

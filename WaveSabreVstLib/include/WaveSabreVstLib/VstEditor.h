@@ -436,10 +436,11 @@ public:
     M7::QuickParam p{GetEffectX()->getParameter((VstInt32)paramID)};
     auto friendlyVal = p.GetEnumValue<Tenum>();  // ParamToEnum(paramValue, elementCount);
         // //::WaveSabreCore::Helpers::ParamToStateVariableFilterType(paramValue);
-    int enumIndex = (int)friendlyVal;
+    //int enumIndex = (int)friendlyVal;
+    int enumIndex = M7::math::ClampI((int)friendlyVal, 0, (int)elementCount - 1);
 
-    CCASSERT(enumIndex >= 0);
-    CCASSERT(enumIndex < elementCount);
+    //CCASSERT(enumIndex >= 0);
+    //CCASSERT(enumIndex < elementCount);
 
     const char* elem_name = "ERROR";
 

@@ -123,8 +123,8 @@ struct HardSyncPhaseAccumulator
   void setParams(float mainHz, bool hardSyncEnable, float syncHz)
   {
     // if hardsync is enabled, slave freq is sync freq, else slave freq = main freq.
-    mMaster.setFrequencyHz(hardSyncEnable ? syncHz : mainHz);
-    mSlave.setFrequencyHz(mainHz);
+    mMaster.setFrequencyHz(mainHz);
+    mSlave.setFrequencyHz(hardSyncEnable ? syncHz : mainHz);
   }
 
   void setPhase01(double phase01)
@@ -211,6 +211,7 @@ struct CoreSample
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct OscillatorCore
 {
+public:
   HardSyncPhaseAccumulator mPhaseAcc;
   float mWaveshapeA = 0.0f;
   float mWaveshapeB = 0.0f;
@@ -271,7 +272,7 @@ public:
 // example of simplest core: a sine wave; no band limiting supported
 struct SineCore : public OscillatorCore
 {
-  SineCore() : OscillatorCore(OscillatorWaveform::SineClip)
+  SineCore() : OscillatorCore(OscillatorWaveform::Sine)
   {
   }
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override

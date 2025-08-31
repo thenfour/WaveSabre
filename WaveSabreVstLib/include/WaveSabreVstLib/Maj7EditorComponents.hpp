@@ -125,13 +125,13 @@ inline ButtonArrayButtonSpec MakeButtonSpec(const char* label,
 }
 
 template <size_t N>
-inline void ButtonArray(const std::array<ButtonArrayButtonSpec, N>& x)
+inline void ButtonArray(const char *id, const std::array<ButtonArrayButtonSpec, N>& x)
 {
   ImGuiScope ims;
   ims.PushStyleVar(ImGuiStyleVar_ItemSpacing, {2, 0});
   ims.PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
-  ImGuiGroupScope grp;
+  ImGuiGroupScope grp{id};
 
   for (size_t i = 0; i < N; ++i)
   {
