@@ -439,6 +439,8 @@ public:
     //int enumIndex = (int)friendlyVal;
     int enumIndex = M7::math::ClampI((int)friendlyVal, 0, (int)elementCount - 1);
 
+    // if something crazy like max enum values change, this can occur. if we crash here then there's no way
+    // to call SetDefaults; so don't assert -- aim to clean up and let the user recover gracefully.
     //CCASSERT(enumIndex >= 0);
     //CCASSERT(enumIndex < elementCount);
 

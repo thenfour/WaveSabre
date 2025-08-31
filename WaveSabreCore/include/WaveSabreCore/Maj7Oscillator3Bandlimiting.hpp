@@ -82,12 +82,13 @@ struct CumShape
       const double eRender = e.phase01;
       // distance from start of render window to edge, in [0,1)
       const double d = ForwardDistance01(phiStartRender01, eRender);
-      if (d >= pathDelta)
-        continue;  // edge lies outside the specified window
+
+      static constexpr double kTol = 1e-8;
+
+      if (d + kTol >= pathDelta)
+        continue;  // push exact end-of-window edges to next sample
 
       double u = alpha + d / deltaTotal;  // whenInSample01 in [0,1)
-      if (u >= 1.0)
-        u = std::nextafter(1.0, 0.0);  // avoid hitting exactly 1.0; this should maybe never happen?
       onEdge(u, e.dAmp, e.dSlope);
     }
   }
@@ -113,7 +114,7 @@ struct IBlepExecutor
 struct PolyBlepBlampExecutor1 : IBlepExecutor
 {
   template <typename T>
-  static inline T BlepBefore(T x) // before discontinuity
+  static inline T BlepBefore(T x)  // before discontinuity
   {
     static_assert(std::is_floating_point<T>::value, "requires a floating point type");
     return x * x;
@@ -135,7 +136,7 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
   }
 
   template <typename T>
-  static inline T BlampBefore(T x) // before discontinuity
+  static inline T BlampBefore(T x)  // before discontinuity
   {
     static_assert(std::is_floating_point<T>::value, "requires a floating point type");
     static constexpr T OneThird = T{1} / T{3};
@@ -150,7 +151,7 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
     x = x - 1;
     return NegOneThird * x * x * x;
   }
-  
+
   static inline void AddPolyBLAMP(float u, float dSlope, double& now, double& next)
   {
     float t = 1.0f - static_cast<float>(u);
@@ -159,8 +160,8 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
   }
 
   // Spill buffers (carry-over tails)
-  double mNow = 0.0;    // applies to *this* sample
-  double mNext = 0.0;   // applies to next sample
+  double mNow = 0.0;   // applies to *this* sample
+  double mNext = 0.0;  // applies to next sample
 
   double mSampleWindowSizeInPhase01 = 0.0;  // == step.phaseDelta01PerSample
 
@@ -178,12 +179,12 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
   {
     if (dAmp != 0.0f)
     {
-      AddPolyBLEP((float)u, dAmp, mNow, mNext); // impl todo
+      AddPolyBLEP((float)u, dAmp, mNow, mNext);  // impl todo
     }
     if (dSlopePerPhase != 0.0f)
     {
       const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
-      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext);// impl todo
+      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext);  // impl todo
     }
   }
 
@@ -193,108 +194,171 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
   }
 };
 
-
-struct PolyBlepBlampExecutor2 : IBlepExecutor
-{
-  // t = fraction AFTER the edge within the current sample, t = 1 - u, u in [0,1)
-  // BLEP: current + next
-  static inline float BlepAfter(float t)
-  {  // current sample
-    const float t2 = t * t;
-    return t * t2 - 0.5f * t2 * t2;  // t^3 - 1/2 t^4
-  }
-  static inline float BlepBefore(float t)
-  {  // next sample
-    const float mt = 1.0f - t;
-    const float mt2 = mt * mt;
-    return -(mt * mt2) + 0.5f * mt2 * mt2;  // -(1-t)^3 + 1/2 (1-t)^4
-  }
-
-  static inline void AddPolyBLEP(float u, float dAmp, double& now, double& next)
-  {
-    const float t = 1.0f - static_cast<float>(u);
-    now += dAmp * BlepAfter(t);
-    next += dAmp * BlepBefore(t);
-  }
-
-  // BLAMP: current + next + next+1 (for slope jumps)
-  static inline float BlampAfter(float t)
-  {  // current sample
-    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
-    return (-d5) * (1.0f / 40.0f) + d4 * (1.0f / 24.0f) + d3 * (1.0f / 12.0f) + d2 * (1.0f / 12.0f) +
-           d * (1.0f / 24.0f) + (1.0f / 120.0f);
-  }
-  static inline float BlampBefore_1(float t)
-  {  // next sample
-    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
-    (void)d3;
-    return d5 * (1.0f / 40.0f) - d4 * (1.0f / 12.0f) + d2 * (1.0f / 3.0f) - d * (1.0f / 2.0f) + (7.0f / 30.0f);
-  }
-  static inline float BlampBefore_2(float t)
-  {  // next+1 sample
-    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
-    return (-d5) * (1.0f / 120.0f) + d4 * (1.0f / 24.0f) - d3 * (1.0f / 12.0f) + d2 * (1.0f / 12.0f) -
-           d * (1.0f / 24.0f) + (1.0f / 120.0f);
-  }
-
-  static inline void AddPolyBLAMP(float u, float dSlope, double& now, double& next, double& next2)
-  {
-    float t = 1.0f - static_cast<float>(u);
-    now += dSlope * BlampAfter(t);
-    next += dSlope * BlampBefore_1(t);
-    next2 += dSlope * BlampBefore_2(t);
-  }
-
-  // Spill buffers (carry-over tails)
-  double mNow = 0.0;    // applies to *this* sample
-  double mNext = 0.0;   // applies to next sample
-  double mNext2 = 0.0;  // applies to next+1 sample (BLAMP only)
-
-  double mSampleWindowSizeInPhase01 = 0.0;  // == step.phaseDelta01PerSample
-
-  // for debugging only
-  double mCorrectionAmt = 1;
-
-  void OpenSample(double sampleWindowSizeInPhase01) override
-  {
-    mSampleWindowSizeInPhase01 = sampleWindowSizeInPhase01;
-
-    // Bring down tails
-    mNow = mNext;
-    mNext = mNext2;
-    mNext2 = 0.0;
-  }
-
-  // u is whenInSample01 ∈ [0,1)
-  void AccumulateEdge(double u, float dAmp, float dSlopePerPhase) override
-  {
-    if (dAmp != 0.0f)
-    {
-      AddPolyBLEP((float)u, dAmp, mNow, mNext);
-    }
-    if (dSlopePerPhase != 0.0f)
-    {
-      const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
-      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext, mNext2);
-    }
-  }
-
-  std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude) override
-  {
-    return {mNow, naiveAmplitude + mNow * mCorrectionAmt};
-  }
-};
+//
+//struct PolyBlepBlampExecutor2 : IBlepExecutor
+//{
+//  // t = fraction AFTER the edge within the current sample, t = 1 - u, u in [0,1)
+//  // BLEP: current + next
+//  static inline float BlepAfter(float t)
+//  {  // current sample
+//    const float t2 = t * t;
+//    return t * t2 - 0.5f * t2 * t2;  // t^3 - 1/2 t^4
+//  }
+//  static inline float BlepBefore(float t)
+//  {  // next sample
+//    const float mt = 1.0f - t;
+//    const float mt2 = mt * mt;
+//    return -(mt * mt2) + 0.5f * mt2 * mt2;  // -(1-t)^3 + 1/2 (1-t)^4
+//  }
+//
+//  static inline void AddPolyBLEP(float u, float dAmp, double& now, double& next)
+//  {
+//    const float t = 1.0f - static_cast<float>(u);
+//    now += dAmp * BlepAfter(t);
+//    next += dAmp * BlepBefore(t);
+//  }
+//
+//  // BLAMP: current + next + next+1 (for slope jumps)
+//  static inline float BlampAfter(float t)
+//  {  // current sample
+//    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
+//    return (-d5) * (1.0f / 40.0f) + d4 * (1.0f / 24.0f) + d3 * (1.0f / 12.0f) + d2 * (1.0f / 12.0f) +
+//           d * (1.0f / 24.0f) + (1.0f / 120.0f);
+//  }
+//  static inline float BlampBefore_1(float t)
+//  {  // next sample
+//    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
+//    (void)d3;
+//    return d5 * (1.0f / 40.0f) - d4 * (1.0f / 12.0f) + d2 * (1.0f / 3.0f) - d * (1.0f / 2.0f) + (7.0f / 30.0f);
+//  }
+//  static inline float BlampBefore_2(float t)
+//  {  // next+1 sample
+//    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
+//    return (-d5) * (1.0f / 120.0f) + d4 * (1.0f / 24.0f) - d3 * (1.0f / 12.0f) + d2 * (1.0f / 12.0f) -
+//           d * (1.0f / 24.0f) + (1.0f / 120.0f);
+//  }
+//
+//  static inline void AddPolyBLAMP(float u, float dSlope, double& now, double& next, double& next2)
+//  {
+//    float t = 1.0f - static_cast<float>(u);
+//    now += dSlope * BlampAfter(t);
+//    next += dSlope * BlampBefore_1(t);
+//    next2 += dSlope * BlampBefore_2(t);
+//  }
+//
+//  // Spill buffers (carry-over tails)
+//  double mNow = 0.0;    // applies to *this* sample
+//  double mNext = 0.0;   // applies to next sample
+//  double mNext2 = 0.0;  // applies to next+1 sample (BLAMP only)
+//
+//  double mSampleWindowSizeInPhase01 = 0.0;  // == step.phaseDelta01PerSample
+//
+//  // for debugging only
+//  double mCorrectionAmt = 1;
+//
+//  void OpenSample(double sampleWindowSizeInPhase01) override
+//  {
+//    mSampleWindowSizeInPhase01 = sampleWindowSizeInPhase01;
+//
+//    // Bring down tails
+//    mNow = mNext;
+//    mNext = mNext2;
+//    mNext2 = 0.0;
+//  }
+//
+//  // u is whenInSample01 ∈ [0,1)
+//  void AccumulateEdge(double u, float dAmp, float dSlopePerPhase) override
+//  {
+//    if (dAmp != 0.0f)
+//    {
+//      AddPolyBLEP((float)u, dAmp, mNow, mNext);
+//    }
+//    if (dSlopePerPhase != 0.0f)
+//    {
+//      const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
+//      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext, mNext2);
+//    }
+//  }
+//
+//  std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude) override
+//  {
+//    return {mNow, naiveAmplitude + mNow * mCorrectionAmt};
+//  }
+//};
+//
+//
+//struct PolyBlepBlampExecutor3 : IBlepExecutor
+//{
+//  static inline void AddPolyBLEP(float u, float dAmp, double& now, double& next)
+//  {
+//    //u = 1.0f - u;
+//    const float u2 = u * u;
+//    // current sample
+//    now += dAmp * (u - 0.5f * u2 - 0.5f);
+//    // next sample
+//    next += dAmp * (0.5f * u2);
+//  }
+//
+//  static inline void AddPolyBLAMP(float u, float dSlopePerSample, double& now, double& next, double& next2)
+//  {
+//    //u = 1.0f - u;
+//    const float u2 = u * u;
+//    const float u3 = u2 * u;
+//    // current sample
+//    now += dSlopePerSample * ((1.0f / 6.0f) * u3 - 0.5f * u2 + 0.5f * u - (1.0f / 6.0f));
+//    // next sample
+//    next += dSlopePerSample * (0.5f * u2 - 0.5f * u + (1.0f / 6.0f));
+//    // next+1 sample
+//    next2 += dSlopePerSample * (-(1.0f / 6.0f) * u3);
+//  }
+//
+//  // Spill buffers (carry-over tails)
+//  double mNow = 0.0;    // applies to *this* sample
+//  double mNext = 0.0;   // applies to next sample
+//  double mNext2 = 0.0;  // applies to next+1 sample (BLAMP only)
+//
+//  double mSampleWindowSizeInPhase01 = 0.0;  // == step.phaseDelta01PerSample
+//
+//  // for debugging only
+//  double mCorrectionAmt = 1;
+//
+//  void OpenSample(double sampleWindowSizeInPhase01) override
+//  {
+//    mSampleWindowSizeInPhase01 = sampleWindowSizeInPhase01;
+//
+//    // Bring down tails
+//    mNow = mNext;
+//    mNext = mNext2;
+//    mNext2 = 0.0;
+//  }
+//
+//  // u is whenInSample01 ∈ [0,1)
+//  void AccumulateEdge(double u, float dAmp, float dSlopePerPhase) override
+//  {
+//    if (dAmp != 0.0f)
+//    {
+//      AddPolyBLEP((float)u, dAmp, mNow, mNext);
+//    }
+//    if (dSlopePerPhase != 0.0f)
+//    {
+//      const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
+//      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext, mNext2);
+//    }
+//  }
+//
+//  std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude) override
+//  {
+//    return {mNow, naiveAmplitude + mNow * mCorrectionAmt};
+//  }
+//};
+//
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct NullBlepBlampExecutor : IBlepExecutor
 {
-  void OpenSample(double /*sampleWindowSizeInPhase01*/) override
-  {
-  }
+  void OpenSample(double /*sampleWindowSizeInPhase01*/) override {}
   // u is whenInSample01 ∈ [0,1)
-  void AccumulateEdge(double /*u*/, float /*dAmp*/, float /*dSlopePerPhase*/) override
-  {
-  }
+  void AccumulateEdge(double /*u*/, float /*dAmp*/, float /*dSlopePerPhase*/) override {}
   std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude) override
   {
     return {0.0, naiveAmplitude};
@@ -314,7 +378,7 @@ struct NullBlepBlampExecutor : IBlepExecutor
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TBlepExecutor, OscillatorWaveform waveformType>
+template <typename TBlepExecutor, OscillatorWaveform waveformType>
 struct BandLimitedOscillatorCore : public OscillatorCore
 {
 protected:
@@ -428,7 +492,7 @@ public:
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The idea here is to describe the waveform as a series of segments. The band limited parent class should
 // be able to use this description to render the waveform with proper bandlimiting.
-template<typename TBlepExecutor, OscillatorWaveform Twf>
+template <typename TBlepExecutor, OscillatorWaveform Twf>
 struct PWMCoreT : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
 {
   using Base = BandLimitedOscillatorCore<TBlepExecutor, Twf>;
@@ -456,7 +520,7 @@ struct PWMCoreT : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TBlepExecutor, OscillatorWaveform Twf>
+template <typename TBlepExecutor, OscillatorWaveform Twf>
 struct SawCore : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
 {
   using Base = BandLimitedOscillatorCore<TBlepExecutor, Twf>;
@@ -476,7 +540,7 @@ struct SawCore : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-template<typename TBlepExecutor, OscillatorWaveform Twf>
+template <typename TBlepExecutor, OscillatorWaveform Twf>
 struct TriTruncCore : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
 {
   using Base = BandLimitedOscillatorCore<TBlepExecutor, Twf>;

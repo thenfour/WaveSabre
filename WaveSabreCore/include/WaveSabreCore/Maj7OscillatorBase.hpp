@@ -83,15 +83,21 @@ struct ISoundSourceDevice
 enum class OscillatorWaveform : uint8_t
 {
   Sine,
+
   PulseNaive,
   PulseBlep1,
-  PulseBlep2,
+  //PulseBlep2,
+  //PulseBlep3,
+
   SawNaive,
   SawBlep1,
-  SawBlep2,
+  //SawBlep2,
+  //SawBlep3,
+
   TriNaive,
   TriBlep1,
-  TriBlep2,
+  //TriBlep2,
+  //TriBlep3,
 
   //Pulse,
   //PulseTristate,
@@ -121,12 +127,15 @@ enum class OscillatorWaveform : uint8_t
   "PulseNaive",\
   "PulseBlep1",\
   "PulseBlep2",\
+  "PulseBlep3",\
   "SawNaive",\
   "SawBlep1",\
   "SawBlep2",\
+  "SawBlep3",\
   "TriNaive",\
   "TriBlep1",\
   "TriBlep2",\
+  "TriBlep3",\
   }
 // clang-format on
 
