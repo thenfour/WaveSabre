@@ -105,12 +105,22 @@ void renderManualTestsUI()
   KnobN11("blepscale", &blepScale, 0, 0);
   oscNode.mInv = blepScale;
 
+  static M7::OscillatorWaveform wf = M7::OscillatorWaveform::SawClip;// = synth.mParams.GetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform);
+  SelectEnumButtonArray(
+      "waveform",
+      wf,
+      std::array<SelectEnumButtonArrayItem<M7::OscillatorWaveform>, 3>
+      {
+          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Sine", .value = M7::OscillatorWaveform::SineClip },
+          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Saw", .value = M7::OscillatorWaveform::SawClip },
+          SelectEnumButtonArrayItem<M7::OscillatorWaveform> { .caption = "Pulse", .value = M7::OscillatorWaveform::Pulse },
+      });
+  synth.mParams.SetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform, wf);
 
   static bool showLollipops = true;
   static bool showStems = true;
   static bool showLines = true;
-  //static bool invertBleps = false;
-  ImGui::SameLine();
+
   ButtonArray<3>({
       MakeButtonSpec("Lollipops", &showLollipops),
       MakeButtonSpec("Stems", &showStems),

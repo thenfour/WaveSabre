@@ -13,8 +13,8 @@
 #include <WaveSabreCore.h>
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 #include <WaveSabreVstLib/ImGuiUtils.hpp>
+#include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 
 namespace WaveSabreVstLib
 {
@@ -75,7 +75,7 @@ void KnobN11(const char* label, float* v, float defaultValN11 = 0, float centerV
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void KnobScaled(const char* label, float* v, float vmin, float vmax, float defaultVal = 0, float centerVal = 0)
 {
-  WaveSabreVstLib::ScaledFloatConverter conv{ vmin, vmax };
+  WaveSabreVstLib::ScaledFloatConverter conv{vmin, vmax};
 
   M7::QuickParam p;
   p.SetScaledValue(vmin, vmax, defaultVal);
@@ -173,5 +173,104 @@ void KnobVolume(const char* label,
   *db = pa.GetDecibels(0, cfg);
 }
 
-}  // namespace WaveSabreVstLib
+template <typename TEnum>
+struct SelectEnumButtonArrayItem
+{
+  const char* caption;
+  TEnum value;
+};
 
+
+template <typename Tenum, size_t Tcount>
+void SelectEnumButtonArray(const char* ctrlLabel,
+                           Tenum& value,
+                           const std::array<SelectEnumButtonArrayItem<Tenum>, Tcount>& items,
+                           bool horiz = true,
+                           float buttonWidth = 0,
+                           int spacing = 0,
+                           int columns = 0)
+{
+  const char* defaultSelectedColor = "4400aa";
+  const char* defaultNotSelectedColor = "222222";
+  const char* defaultSelectedHoveredColor = "8800ff";
+  const char* defaultNotSelectedHoveredColor = "222299";
+
+  auto coalesce = [](const char* a, const char* b)
+  {
+    return !!a ? a : b;
+  };
+
+  //M7::real_t tempVal = value;
+  //M7::ParamAccessor pa{&tempVal, 0};
+  //auto selectedVal = pa.GetEnumValue<Tenum>(0);
+
+  ImGui::PushID(ctrlLabel);
+
+  ImGui::BeginGroup();
+
+  ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
+  ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+  int column = 0;
+  for (size_t i = 0; i < Tcount; i++)
+  {
+    auto& cfg = items[i];
+    const bool is_selected = (value == cfg.value);
+    int colorsPushed = 0;
+
+    if (is_selected)
+    {
+      ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(defaultSelectedColor));
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive,
+                            (ImVec4)ColorFromHTML(defaultSelectedColor));
+      colorsPushed += 2;
+    }
+    else
+    {
+      ImGui::PushStyleColor(ImGuiCol_Button,
+                            (ImVec4)ColorFromHTML(defaultNotSelectedColor));
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive,
+                            (ImVec4)ColorFromHTML(defaultNotSelectedColor));
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
+                            (ImVec4)ColorFromHTML(
+                                defaultNotSelectedHoveredColor));
+      colorsPushed += 3;
+    }
+
+    if (horiz && column != 0)
+    {
+      ImGui::SameLine(0, (float)spacing);
+    }
+    else if (spacing != 0)
+    {
+      ImGui::Dummy({1.0f, (float)spacing});
+    }
+
+    if (cfg.caption)
+    {
+      if (ImGui::Button(cfg.caption, ImVec2{buttonWidth, 0}))
+      {
+        value = cfg.value;
+      }
+    }
+    else
+    {
+      float height = ImGui::GetTextLineHeightWithSpacing();
+      ImGui::Dummy(ImVec2{buttonWidth, height});
+    }
+
+    column = (column + 1);
+    if (columns)
+      column %= columns;
+
+    ImGui::PopStyleColor(colorsPushed);
+  }
+
+  ImGui::PopStyleVar(2);  // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+
+  ImGui::EndGroup();
+  ImGui::PopID();
+}
+
+
+}  // namespace WaveSabreVstLib

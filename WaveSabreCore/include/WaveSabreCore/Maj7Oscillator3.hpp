@@ -8,16 +8,13 @@
 #include <vector>
 
 #include "Maj7Basic.hpp"
-#include "Maj7Oscillator3Base.hpp"
 #include "Maj7Oscillator3Bandlimiting.hpp"
-
+#include "Maj7Oscillator3Base.hpp"
 
 namespace WaveSabreCore
 {
 namespace M7
 {
-
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct KRateRecalculator
 {
@@ -62,7 +59,9 @@ public:
       , mpOscDevice(pOscDevice)
       , mIntention(intention)
   {
-      mCore = std::make_unique<PWMCore>();
+    mCore = std::make_unique<SineCore>();
+    //mCore = std::make_unique<SawCore>();
+    //mCore = std::make_unique<PWMCore>();
   }
 
   // used by LFOs to just hard-set the phase. usually NOP
@@ -136,6 +135,46 @@ public:
                                                                        ? (int)OscParamIndexOffsets::Waveform
                                                                        : (int)LFOParamIndexOffsets::Waveform);
     //mpSlaveWave = mpWaveforms[math::ClampI((int)w, 0, (int)OscillatorWaveform::Count - 1)];
+  }
+
+  void SetWaveformShape(OscillatorWaveform w)
+  {
+    if (mCore->mWaveformType == w)
+    {
+      return;
+    }
+    switch (w)
+    {
+      case OscillatorWaveform::SineClip:
+      case OscillatorWaveform::SineHarmTrunc:
+      case OscillatorWaveform::SineRectified:
+      case OscillatorWaveform::SinePhaseDist:
+        mCore = std::make_unique<SineCore>();
+        break;
+      case OscillatorWaveform::SawClip:
+      case OscillatorWaveform::StaircaseSaw:
+        mCore = std::make_unique<SawCore>();
+        break;
+      case OscillatorWaveform::TriTrunc:
+      case OscillatorWaveform::TriSquare:
+      case OscillatorWaveform::TriFold:
+        mCore = std::make_unique<TriTruncCore>();
+        break;
+      case OscillatorWaveform::Pulse:
+      case OscillatorWaveform::PulseTristate:
+      case OscillatorWaveform::DoublePulse:
+        mCore = std::make_unique<PWMCore>();
+        break;
+      case OscillatorWaveform::VarTrapezoid:
+        //mCore = std::make_unique<VarTrapCore>();
+        break;
+      case OscillatorWaveform::WhiteNoiseSH:
+        //mCore = std::make_unique<WhiteNoiseSHCore>();
+        break;
+      default:
+        mCore = std::make_unique<SineCore>();
+        break;
+    }
   }
 
   float RenderSampleForAudioAndAdvancePhase(real_t midiNote,
@@ -223,6 +262,8 @@ public:
             syncFreq = std::max(syncFreq, 0.0001f);
           }
 
+          SetWaveformShape(params.GetEnumValue<OscillatorWaveform>(OscParamIndexOffsets::Waveform));
+
           mCore->SetKRateParams(waveshapeA, waveshapeB, freq, syncEnable, syncFreq);
         });
 
@@ -275,6 +316,8 @@ public:
                                                          freqModVal);
           // 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
           freq = std::max(freq, 0.001f);
+
+          SetWaveformShape(mpOscDevice->mParams.GetEnumValue<OscillatorWaveform>(LFOParamIndexOffsets::Waveform));
 
           float waveshapeA = mpOscDevice->mParams.Get01Value(LFOParamIndexOffsets::WaveshapeA, waveShapeAModVal);
           float waveshapeB = mpOscDevice->mParams.Get01Value(LFOParamIndexOffsets::WaveshapeB, waveShapeBModVal);

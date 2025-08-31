@@ -211,7 +211,15 @@ struct OscillatorCore
   HardSyncPhaseAccumulator mPhaseAcc;
   float mWaveshapeA = 0.0f;
   float mWaveshapeB = 0.0f;
+  OscillatorWaveform mWaveformType;
 
+protected:
+  OscillatorCore(OscillatorWaveform waveformType)
+      : mWaveformType(waveformType)
+  {
+  }
+
+public:
   void SetKRateParams(float shapeA, float shapeB, float mainFreqHz, bool enableHardSync, float syncFreqHz)
   {
     mWaveshapeA = shapeA;
@@ -255,6 +263,9 @@ struct OscillatorCore
 // example of simplest core: a sine wave; no band limiting supported
 struct SineCore : public OscillatorCore
 {
+  SineCore() : OscillatorCore(OscillatorWaveform::SineClip)
+  {
+  }
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const auto step = mPhaseAcc.advanceOneSample();
