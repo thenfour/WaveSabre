@@ -103,9 +103,8 @@ public:
   ImGuiTabSelectionHelper mFilterTabSelHelper;
   ImGuiTabSelectionHelper mModulationTabSelHelper;
 
-
   Maj7Editor(AudioEffect* audioEffect)
-      : VstEditor(audioEffect, 1120, 984)
+      : VstEditor(audioEffect, 1180, 984)
       , mpMaj7VST((Maj7Vst*)audioEffect)
       , pMaj7(((Maj7Vst*)audioEffect)->GetMaj7())
   {

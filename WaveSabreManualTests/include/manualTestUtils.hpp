@@ -105,7 +105,7 @@ void KnobScaled(const char* label, float* v, float vmin, float vmax, float defau
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void KnobFilterFrequency(const char* label, float* hz, float defaultValHz, float centerValHz)
+void KnobFilterFrequency(const char* label, float* hz, float defaultValHz, float centerValHz, std::function<bool()>&& getKT)
 {
   const auto& cfg = M7::gFilterFreqConfig;
   M7::QuickParam param;
@@ -117,7 +117,7 @@ void KnobFilterFrequency(const char* label, float* hz, float defaultValHz, float
   param.SetFrequencyAssumingNoKeytracking(cfg, *hz);
   float tempVal = param.GetRawValue();
 
-  static WaveSabreVstLib::Maj7FrequencyConverter conv{cfg, -1};
+  static WaveSabreVstLib::Maj7FrequencyConverter conv{cfg, std::move(getKT)};
 
   ImGuiKnobs::Knob(label,
                    &tempVal,
@@ -221,19 +221,14 @@ void SelectEnumButtonArray(const char* ctrlLabel,
     if (is_selected)
     {
       ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(defaultSelectedColor));
-      ImGui::PushStyleColor(ImGuiCol_ButtonActive,
-                            (ImVec4)ColorFromHTML(defaultSelectedColor));
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(defaultSelectedColor));
       colorsPushed += 2;
     }
     else
     {
-      ImGui::PushStyleColor(ImGuiCol_Button,
-                            (ImVec4)ColorFromHTML(defaultNotSelectedColor));
-      ImGui::PushStyleColor(ImGuiCol_ButtonActive,
-                            (ImVec4)ColorFromHTML(defaultNotSelectedColor));
-      ImGui::PushStyleColor(ImGuiCol_ButtonHovered,
-                            (ImVec4)ColorFromHTML(
-                                defaultNotSelectedHoveredColor));
+      ImGui::PushStyleColor(ImGuiCol_Button, (ImVec4)ColorFromHTML(defaultNotSelectedColor));
+      ImGui::PushStyleColor(ImGuiCol_ButtonActive, (ImVec4)ColorFromHTML(defaultNotSelectedColor));
+      ImGui::PushStyleColor(ImGuiCol_ButtonHovered, (ImVec4)ColorFromHTML(defaultNotSelectedHoveredColor));
       colorsPushed += 3;
     }
 

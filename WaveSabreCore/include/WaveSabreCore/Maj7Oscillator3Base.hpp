@@ -43,7 +43,6 @@ struct PhaseAdvance
   InSamplePhaseEvent events[2];
   int eventCount = 0;
 
-
   float ComputeFrequencyHz() const
   {
     return static_cast<float>(lengthInPhase01 * Helpers::CurrentSampleRateF);
@@ -58,6 +57,9 @@ struct PhaseAccumulator
 private:
   double mPhase01 = 0.0f;                // current phase [0,1)
   double mPhaseDeltaPerSample01 = 0.0f;  // [0,1)
+
+  // only for debugging:
+  double mFrequencyHz = 0;
 
 public:
   void setPhase01(double phase01)
@@ -80,6 +82,7 @@ public:
   void setFrequencyHz(float hz, float offset = 0)
   {
     mPhaseDeltaPerSample01 = std::max(hz * Helpers::CurrentSampleRateRecipF, 0.0f) + offset;
+    mFrequencyHz = hz;
   }
 
   // Advance one sample, wrapping phase, emitting wrap events (no reset events are relevant at this level).
@@ -227,6 +230,10 @@ public:
     mPhaseAcc.setParams(mainFreqHz, enableHardSync, syncFreqHz);
     HandleParamsChanged();
   };
+
+  virtual void SetCorrectionFactor(float factor)
+  {
+  }
 
   // used by LFOs to just hard-set the phase. LFO phase, when "note restart" is disabled, is global, so
   // all individual voice LFOs should be in sync and act as if they're the same.

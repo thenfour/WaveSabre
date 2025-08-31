@@ -80,13 +80,13 @@ void renderManualTestsUI()
   M7::Maj7 synth;  // todo ...
   auto& oscNode = *synth.mMaj7Voice[0]->mpOscillatorNodes[0];
 
-  static float waveShapeA = 0.5f;
-  Knob01("waveshape A", &waveShapeA, 0.5f, 0.5f);
+  static float waveShapeA = 0;
+  KnobN11("waveshape A", &waveShapeA, 0, 0);
   synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeA, waveShapeA);
 
-  static float waveShapeB = 0.5f;
+  static float waveShapeB = 0;
   ImGui::SameLine();
-  Knob01("waveshape B", &waveShapeB, 0.5f, 0.5f);
+  KnobN11("waveshape B", &waveShapeB, 0, 0);
   synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeB, waveShapeB);
 
   static float phaseOffset = -0.64f;
@@ -94,11 +94,33 @@ void renderManualTestsUI()
   KnobN11("phase offset", &phaseOffset, 0, 0);
   synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1PhaseOffset, phaseOffset);
 
-  //static float freq = 12050;
-  ImGui::SameLine();
   static float freq01 = 0.4f;
-  Knob01("freq", &freq01, 0.4f, 0.4f);
+  ImGui::SameLine();
+  Knob01("freq", &freq01, 0.3f, 0.3f);
   synth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParam] = freq01;
+
+  static float freqkt = 1;
+  ImGui::SameLine();
+  Knob01("freq KT", &freqkt, 1, 1);
+  synth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParamKT] = freqkt;
+
+  static bool syncEnable = false;
+  ImGui::SameLine();
+  ImGui::Checkbox("sync", &syncEnable);
+  synth.mParams.SetBoolValue((int)M7::ParamIndices::Osc1SyncEnable, syncEnable);
+
+  // sync freq & KT
+
+  static float syncFreq01 = 0.4f;
+  ImGui::SameLine();
+  Knob01("syncFreq", &syncFreq01, 0.4f, 0.4f);
+  synth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequency] = syncFreq01;
+
+  static float syncFreqKT = 1;
+  ImGui::SameLine();
+  Knob01("syncFreqKT", &syncFreqKT, 1, 1);
+  synth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequencyKT] = syncFreqKT;
+
 
   static float volDb = 0;
   ImGui::SameLine();
@@ -113,7 +135,8 @@ void renderManualTestsUI()
 
   static float blepScale = 1;
   KnobN11("blepscale", &blepScale, 0, 0);
-  oscNode.mInv = blepScale;
+  //oscNode.mInv = blepScale;
+  oscNode.SetCorrectionFactor(blepScale);
 
   static M7::OscillatorWaveform wf = M7::OscillatorWaveform::SawClip;// = synth.mParams.GetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform);
   SelectEnumButtonArray(

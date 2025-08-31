@@ -890,7 +890,12 @@ public:
                                float centerValueParam01 = 0)
   {
     M7::real_t tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-    Maj7FrequencyConverter conv{cfg, ktParamID};
+    Maj7FrequencyConverter conv{cfg,
+                                [&]() -> bool
+                                {
+                                  M7::QuickParam ktp{GetEffectX()->getParameter((VstInt32)ktParamID)};
+                                  return ktp.GetBoolValue();
+                                }};
     if (ImGuiKnobs::Knob(label,
                          &tempVal,
                          0,
@@ -932,7 +937,13 @@ public:
     // float centerVal01 = p.GetFrequency(0, 0);
     tempVal = GetEffectX()->getParameter((VstInt32)paramID);
 
-    Maj7FrequencyConverter conv{cfg, ktParamID};
+    Maj7FrequencyConverter conv{cfg,
+                                [&]() -> bool
+                                {
+                                  M7::QuickParam ktp{GetEffectX()->getParameter((VstInt32)ktParamID)};
+                                  return ktp.GetBoolValue();
+                                }};
+
     if (ImGuiKnobs::Knob(label,
                          &tempVal,
                          0,

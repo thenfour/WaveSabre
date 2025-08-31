@@ -48,8 +48,10 @@ private:
   float mCurrentFrequencyHz = 0;
   float mFMFeedbackAmt = 0.0f;
 
+  float mCorrectionFactor = 1;
+
 public:
-  float mInv = 1;
+  //float mInv = 1;
 
   OscillatorNode(OscillatorDevice* pOscDevice,
                  OscillatorIntention intention,
@@ -74,6 +76,12 @@ public:
   float GetPhase01() const
   {
     return (float)mCore->mPhaseAcc.GetAudiblePhase01();
+  }
+  // used by debugging
+  void SetCorrectionFactor(float factor)
+  {
+      mCorrectionFactor = factor;
+    mCore->SetCorrectionFactor(factor);
   }
 
   // Returns the theoretical phase offset (not a live cursor).
@@ -175,6 +183,8 @@ public:
         mCore = std::make_unique<SineCore>();
         break;
     }
+
+    mCore->SetCorrectionFactor(mCorrectionFactor);
   }
 
   float RenderSampleForAudioAndAdvancePhase(real_t midiNote,
@@ -254,7 +264,7 @@ public:
           float syncFreq = 1;
           if (syncEnable)
           {
-            float syncFreq = params.GetFrequency(OscParamIndexOffsets::SyncFrequency,
+            syncFreq = params.GetFrequency(OscParamIndexOffsets::SyncFrequency,
                                                  OscParamIndexOffsets::SyncFrequencyKT,
                                                  gSyncFreqConfig,
                                                  noteHz,

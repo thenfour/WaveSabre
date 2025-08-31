@@ -313,29 +313,22 @@ class VstEditor;
 struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
 {
   float mBacking[2]{0, 0};  // freq, kt
-  VstInt32 mKTParamID;
+  //VstInt32 mKTParamID;
   M7::ParamAccessor mParams{mBacking, 0};
   const M7::FreqParamConfig mCfg;
+  std::function<bool()> mGetKeytracking;
 
-  Maj7FrequencyConverter(M7::FreqParamConfig cfg, VstInt32 ktParamID = -1 /*pass -1 if no KT*/)
+  Maj7FrequencyConverter(M7::FreqParamConfig cfg, std::function<bool()>&& getKeytracking)
       : mCfg(cfg)
-      , mKTParamID(ktParamID)
+      , mGetKeytracking(getKeytracking)
   {
   }
 
-  // returns whether keytracking is on
-  bool TouchKeytracking()
+  bool InvokeGetKeytracking()
   {
-    mBacking[1] = 0;
-    if (mKTParamID < 0)
-    {
-      return false;
-    }
-    //VstEditor* pThis = (VstEditor*)capture;
-    // Note: This will require VstEditor to be fully defined when used
-    // M7::QuickParam qp{pThis->GetEffectX()->getParameter(mKTParamID)};
-    // return qp.GetRawValue() > 0.0001f;
-    return false;  // Simplified for now to avoid circular dependency
+    if (mGetKeytracking)
+      return mGetKeytracking();
+    return false;
   }
 
   virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override
@@ -345,7 +338,7 @@ struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
 
     if (inputContinuity)
     {
-      if (!TouchKeytracking())
+      if (!InvokeGetKeytracking())
       {
         float hz = mParams.GetFrequency(0, 1, mCfg, 0, 0);
         return FloatToString(hz);
@@ -354,7 +347,7 @@ struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
       return FloatToString(mBacking[0] * 100);
     }
 
-    if (!TouchKeytracking())
+    if (!InvokeGetKeytracking())
     {
       float hz = mParams.GetFrequency(0, 1, mCfg, 0, 0);
       return FloatToString(hz, "Hz");
@@ -367,7 +360,7 @@ struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
   {
     try
     {
-      if (TouchKeytracking())
+      if (InvokeGetKeytracking())
       {
         return {std::stod(s) / 100, true};  // Hz directly.
       }

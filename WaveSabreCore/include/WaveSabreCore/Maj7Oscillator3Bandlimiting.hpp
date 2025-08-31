@@ -60,7 +60,7 @@ inline float BlampBefore_2(float t)
 
 inline void AddPolyBLAMP(float u, float dSlope, double& now, double& next, double& next2)
 {
-  const float t = 1.0f - static_cast<float>(u);
+  float t = 1.0f - static_cast<float>(u);
   now += dSlope * BlampAfter(t);
   next += dSlope * BlampBefore_1(t);
   next2 += dSlope * BlampBefore_2(t);
@@ -160,15 +160,16 @@ struct PolyBlepBlampExecutor
   double mNow = 0.0;    // applies to *this* sample
   double mNext = 0.0;   // applies to next sample
   double mNext2 = 0.0;  // applies to next+1 sample (BLAMP)
-  //
-  //// Not strictly needed by the split kernels, but we keep it if you ever
-  //// want to add dt-scaled variants; pass it from the caller per sample.
-  //double mSampleWindowSizeInPhase01 = 0.0;
 
+  double mSampleWindowSizeInPhase01 = 0.0;  // == step.phaseDelta01PerSample
+
+  // for debugging only
+  double mCorrectionAmt = 1;
 
   void OpenSample(double sampleWindowSizeInPhase01)
   {
-    //mSampleWindowSizeInPhase01 = sampleWindowSizeInPhase01;
+    mSampleWindowSizeInPhase01 = sampleWindowSizeInPhase01;
+
     // Bring down tails
     mNow = mNext;
     mNext = mNext2;
@@ -176,17 +177,20 @@ struct PolyBlepBlampExecutor
   }
 
   // u is whenInSample01 ∈ [0,1)
-  void AccumulateEdge(double u, float dAmp, float dSlope)
+  void AccumulateEdge(double u, float dAmp, float dSlopePerPhase)
   {
     if (dAmp != 0.0f)
       Bandlimit::AddPolyBLEP((float)u, dAmp, mNow, mNext);
-    if (dSlope != 0.0f)
-      Bandlimit::AddPolyBLAMP((float)u, dSlope, mNow, mNext, mNext2);
+    if (dSlopePerPhase != 0.0f)
+    {
+      const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
+      Bandlimit::AddPolyBLAMP((float)u, dSlope_perSample, mNow, mNext, mNext2);
+    }
   }
 
   std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude)
   {
-    return {mNow, naiveAmplitude + mNow};
+    return {mNow, naiveAmplitude + mNow * mCorrectionAmt};
   }
 };
 
@@ -216,13 +220,17 @@ public:
 
   virtual CumShape GetCumWaveDesc() = 0;
 
+  virtual void SetCorrectionFactor(float factor)
+  {
+    mHelper.mCorrectionAmt = factor;
+  }
+
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const PhaseAdvance step = mPhaseAcc.advanceOneSample();
     const CumShape cs = GetCumWaveDesc();
-    const auto sampleWindowSizeInPhase01 = step.lengthInPhase01;
 
-    mHelper.OpenSample(sampleWindowSizeInPhase01);
+    mHelper.OpenSample(step.lengthInPhase01);
 
     // Naive sample: evaluate at render-space begin-phase
     const double sampleStartInPhase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
@@ -231,8 +239,6 @@ public:
 
     auto addEdge = [&](double u, float dAmp, float dSlope)
     {
-      // convert u (in [0,1) sample units) to edgePosInSampleInPhase01 (in [0,1) phase units)
-      ///double edgePosInSampleInPhase01 = u * sampleWindowSizeInPhase01;
       mHelper.AccumulateEdge(u, dAmp, dSlope);
     };
 
@@ -248,6 +254,8 @@ public:
         break;  // at most one reset per sample by design
       }
     }
+
+    const auto sampleWindowSizeInPhase01 = step.lengthInPhase01;
 
     if (!hasReset)
     {
