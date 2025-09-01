@@ -3,16 +3,100 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
+#include <format>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "Maj7Basic.hpp"
+#include <WaveSabreCore/Maj7Oscillator.hpp>
 
 namespace WaveSabreCore
 {
 namespace M7
 {
+//#define ENABLE_OSC_LOG
+
+#ifdef ENABLE_OSC_LOG
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct OscLog
+{
+  std::string mBuffer;
+  size_t mIndent = 0;
+  bool mEnabled = true;
+
+  void IncreaseIndent()
+  {
+    mIndent++;
+  }
+  void DecreaseIndent()
+  {
+    if (mIndent > 0)
+      mIndent--;
+  }
+  void Log(const std::string& msg)
+  {
+    std::string indent(mIndent * 2, ' ');
+    mBuffer += indent + msg + "\n";
+  }
+  void Clear()
+  {
+    mBuffer.clear();
+    mIndent = 0;
+  }
+
+  void SetEnabled(bool enabled)
+  {
+    mEnabled = enabled;
+  }
+
+  struct EnabledScope
+  {
+    OscLog& mLog;
+    bool mPrev;
+    EnabledScope(OscLog& log, bool enabled)
+        : mLog(log)
+        , mPrev(log.mEnabled)
+    {
+      mLog.SetEnabled(enabled);
+    }
+    ~EnabledScope()
+    {
+      mLog.SetEnabled(mPrev);
+    }
+  };
+
+  EnabledScope EnabledBlock(bool en)
+  {
+    return EnabledScope(*this, en);
+  }
+
+  struct IndentScope
+  {
+    OscLog& mLog;
+    IndentScope(OscLog& log, const std::string& msg)
+        : mLog(log)
+    {
+      mLog.Log("{ " + msg);
+      mLog.IncreaseIndent();
+    }
+    ~IndentScope()
+    {
+      mLog.DecreaseIndent();
+      mLog.Log("}");
+    }
+  };
+
+  IndentScope IndentBlock(const std::string& msg)
+  {
+    return IndentScope(*this, msg);
+  }
+};
+
+extern M7::OscLog gOscLog;
+
+#endif  // ENABLE_OSC_LOG
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 enum class PhaseEventKind
 {
@@ -43,6 +127,33 @@ struct PhaseAdvance
   InSamplePhaseEvent events[2];
   int eventCount = 0;
 
+  //std::optional<InSamplePhaseEvent> GetWrapEvent() const {
+  //    for (int i = 0; i < eventCount; ++i) {
+  //    if (events[i].kind == PhaseEventKind::Wrap) {
+  //      return events[i];
+  //    }
+  //  }
+  //    return std::nullopt;
+  //}
+
+  std::tuple<std::optional<InSamplePhaseEvent>, std::optional<InSamplePhaseEvent>> GetWrapAndSyncEvents() const
+  {
+    std::optional<InSamplePhaseEvent> wrapEvent;
+    std::optional<InSamplePhaseEvent> syncEvent;
+    for (int i = 0; i < eventCount; ++i)
+    {
+      if (events[i].kind == PhaseEventKind::Wrap)
+      {
+        wrapEvent = events[i];
+      }
+      else if (events[i].kind == PhaseEventKind::Reset)
+      {
+        syncEvent = events[i];
+      }
+    }
+    return {wrapEvent, syncEvent};
+  }
+
   float ComputeFrequencyHz() const
   {
     return static_cast<float>(lengthInPhase01 * Helpers::CurrentSampleRateF);
@@ -60,8 +171,14 @@ private:
 
   // only for debugging:
   double mFrequencyHz = 0;
+  std::string mDebugName;
 
 public:
+  PhaseAccumulator(const std::string& debugName)
+      : mDebugName(debugName)
+  {
+  }
+
   void setPhase01(double phase01)
   {
     mPhase01 = math::wrap01(phase01);
@@ -88,20 +205,35 @@ public:
   // Advance one sample, wrapping phase, emitting wrap events (no reset events are relevant at this level).
   PhaseAdvance advanceOneSample()
   {
+#ifdef ENABLE_OSC_LOG
+    auto ls = M7::gOscLog.IndentBlock("PhaseAccumulator " + mDebugName + " advanceOneSample()");
+#endif  // ENABLE_OSC_LOG
     PhaseAdvance out{};
     out.phaseBegin01 = mPhase01;
     out.lengthInPhase01 = mPhaseDeltaPerSample01;
 
     double next = mPhase01 + mPhaseDeltaPerSample01;
 
+#ifdef ENABLE_OSC_LOG
+    M7::gOscLog.Log(std::format(
+        "From {:.3f} + {:.3f} = {:.3f}", (float)out.phaseBegin01, (float)(out.lengthInPhase01), (float)next));
+#endif  // ENABLE_OSC_LOG
+
     // At most one natural wrap per sample (your stated constraint)
     if (next >= 1.0)
     {
-      // Where inside this sample the wrap happens
-      double wrapAt01 = (1.0 - mPhase01) / std::max(mPhaseDeltaPerSample01, 1e-12);
-      wrapAt01 = std::clamp(wrapAt01, 0.0, 1.0 - std::numeric_limits<double>::epsilon());
+      // Where inside this sample the wrap happens.
+      // 1 = where the wrap is
+      // 1 - mPhase01 = how much phase is left until wrap (distance from beginning of sample to wrap)
+      // /phaseDelta converts from phase to sample.
+      double wrapAt01 = (1.0 - mPhase01) / mPhaseDeltaPerSample01;
 
-      out.events[out.eventCount++] = InSamplePhaseEvent{.whenInSample01 = wrapAt01, .kind = PhaseEventKind::Wrap};
+#ifdef ENABLE_OSC_LOG
+      M7::gOscLog.Log(std::format("Cycle wrap @ {:.3f} % through sample", (float)wrapAt01));
+#endif  // ENABLE_OSC_LOG
+
+      out.eventCount = 1;
+      out.events[0] = InSamplePhaseEvent{.whenInSample01 = wrapAt01, .kind = PhaseEventKind::Wrap};
 
       // Continue after wrap
       next -= 1.0;
@@ -117,12 +249,14 @@ public:
 // connects 2 phase accumulators to track master / slave for hard sync.
 struct HardSyncPhaseAccumulator
 {
-  PhaseAccumulator mMaster;
-  PhaseAccumulator mSlave;  // the audible oscillator phase
+  PhaseAccumulator mMaster{"MasterPhase"};
+  PhaseAccumulator mSlave{"SlavePhase"};
+  bool mHardSyncEnabled = false;
 
   void setParams(float mainHz, bool hardSyncEnable, float syncHz)
   {
     // if hardsync is enabled, slave freq is sync freq, else slave freq = main freq.
+    mHardSyncEnabled = hardSyncEnable;
     mMaster.setFrequencyHz(mainHz);
     mSlave.setFrequencyHz(hardSyncEnable ? syncHz : mainHz);
   }
@@ -133,7 +267,8 @@ struct HardSyncPhaseAccumulator
     mSlave.setPhase01(phase01);
   }
 
-  // used only by vst editor.
+  // used by vst editor to show LFO animation
+  // used by band limiting when shape is dirty, to begin walking a new shape from the same phase.
   float GetAudiblePhase01() const
   {
     return (float)mSlave.getPhase01();
@@ -154,7 +289,7 @@ struct HardSyncPhaseAccumulator
     // If master wrapped inside this sample, slave gets a Reset at that time
     bool masterWrapped = (m.eventCount > 0 && m.events[0].kind == PhaseEventKind::Wrap);
 
-    if (!masterWrapped)
+    if (!mHardSyncEnabled || !masterWrapped)
     {
       // No reset: just return the slave’s step (possibly with its own Wrap)
       return s;
@@ -176,20 +311,27 @@ struct HardSyncPhaseAccumulator
       out.events[0] = s.events[0];
       out.events[1] = InSamplePhaseEvent{.whenInSample01 = tReset, .kind = PhaseEventKind::Reset};
       out.eventCount = 2;
+
+      #ifdef ENABLE_OSC_LOG
+      gOscLog.Log(std::format("Events: Cycle wrap then SyncReset @ {:.3f} in sample", (float)tReset));
+      #endif // ENABLE_OSC_LOG
     }
     else
     {
-      // if wrapped after reset, ignore it (because the phase gets reset to 0 and the wrap is no longer valid)
+      // if wrapped after reset, ignore the wrap (because the phase gets reset to 0 and the wrap is no longer valid)
+#ifdef ENABLE_OSC_LOG
+      gOscLog.Log(std::format("Events: SyncReset @ {:.3f} in sample", (float)tReset));
+#endif  // ENABLE_OSC_LOG
       out.events[0] = InSamplePhaseEvent{.whenInSample01 = tReset, .kind = PhaseEventKind::Reset};
       out.eventCount = 1;
     }
 
     // Recompute the end phase after reset:
-    // - phase grows from s.phaseBegin01 up to reset (tR), then jumps to 0,
-    // - then advances the remaining (1 - tR) fraction at the same delta.
+    // - phase grows from s.phaseBegin01 up to reset (tReset), then jumps to 0,
+    // - then advances the remaining (1 - tReset) fraction at the same delta.
     const double delta = s.lengthInPhase01;
     const double afterResetAdvance = (1.0 - tReset) * delta;
-    out.phaseEnd01 = math::wrap01(afterResetAdvance);  // starts at 0 after reset
+    out.phaseEnd01 = afterResetAdvance;  //math::wrap01(afterResetAdvance);  // starts at 0 after reset
 
     // Commit slave’s internal phase to the recomputed end
     mSlave.setPhase01(out.phaseEnd01);
@@ -206,6 +348,7 @@ struct CoreSample
   float naive = 0.0f;         // the naive sample value (without bandlimiting)
   float correction = 0.0f;    // the bandlimiting correction to add to the naive value
   PhaseAdvance phaseAdvance;  // phase kinematics for this sample
+  std::string log;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,9 +375,7 @@ public:
     HandleParamsChanged();
   };
 
-  virtual void SetCorrectionFactor(float factor)
-  {
-  }
+  virtual void SetCorrectionFactor(float factor) {}
 
   // used by LFOs to just hard-set the phase. LFO phase, when "note restart" is disabled, is global, so
   // all individual voice LFOs should be in sync and act as if they're the same.
@@ -244,8 +385,10 @@ public:
     mPhaseAcc.SynchronizeWith(src.mPhaseAcc);
   };
 
-  virtual void RestartDueToNoteOn() {
+  virtual void RestartDueToNoteOn()
+  {
     // set phase to 0 (because the oscillator's "phase offset" is performed via audioRatePhaseOffset in renderSampleAndAdvance.
+    mPhaseAcc.setPhase01(0);
   };
 
   // allows cores to react to param changes
@@ -264,15 +407,14 @@ public:
   // in-sample event times remain the same relative to the window—only their phase locations shift.
   // so we can just shift phaseBegin01 and phaseEnd01 by the offset when you evaluate the shape, keeping the logic simple.
   virtual CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) = 0;
-
-  // if necessary, provide utility methods to keep cores clean, tight, and minimal.
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // example of simplest core: a sine wave; no band limiting supported
 struct SineCore : public OscillatorCore
 {
-  SineCore() : OscillatorCore(OscillatorWaveform::Sine)
+  SineCore()
+      : OscillatorCore(OscillatorWaveform::Sine)
   {
   }
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override

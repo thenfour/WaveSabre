@@ -9,90 +9,12 @@
 
 #include "Maj7Basic.hpp"
 #include "Maj7Oscillator3Base.hpp"
+#include "Maj7Oscillator3Shape.hpp"
 
 namespace WaveSabreCore
 {
 namespace M7
 {
-
-// line-based waveform segment boundary description
-struct SegBoundary
-{
-  double phase01;
-  float dAmp;
-  float
-      dSlope;  // slope is dy/dx where x is phase in [0,1) (saw wave slope = 2 because it goes from -1 to +1 in one cycle = 2/1 = 2)
-};
-
-// line-based waveform shape description expressed in deltas
-struct CumShape
-{
-  float mAmpAt0;    // PRE edge value at 0 (must be consistent with the end of the wave cycle as defined by edges)
-  float mSlopeAt0;  // PRE edge slope at 0 (must be consistent with the end of the wave cycle as defined by edges)
-  std::vector<SegBoundary> mEdges;
-
-  // todo: precalc absolute edge values for lerp eval?
-
-  // Evaluate naive amplitude and slope at canonical phase p ∈ [0,1)
-  inline std::pair<float, float> EvalAmpSlopeAt(double sampleInPhase01) const
-  {
-    float amp = mAmpAt0;  // post-edge value at 0
-    float slope = mSlopeAt0;
-    double prev = 0.0;
-
-    for (const auto& e : mEdges)
-    {
-      if (sampleInPhase01 < e.phase01)
-      {
-        amp += slope * float(sampleInPhase01 - prev);
-        return {amp, slope};
-      }
-      amp += slope * float(e.phase01 - prev);
-      amp += e.dAmp;
-      slope += e.dSlope;
-      prev = e.phase01;
-    }
-
-    amp += slope * float(sampleInPhase01 - prev);
-    return {amp, slope};
-  }
-
-  // phase distance from "from" to "to", wrapping around 1.0.
-  // IOW, how far do you have to go forward from "from" to reach "to";
-  // this can never be more than 1.0.
-  static inline double ForwardDistance01(double from, double to)
-  {
-    return (to >= from) ? (to - from) : (1.0 - from + to);
-  }
-
-  // Visit all edges that lie on the path starting at phiStartRender01, advancing by pathDelta.
-  template <class F>
-  inline void VisitEdgesOnPath(double phiStartRender01,  // start of the render window, in phase units [0,1)
-                               double pathDelta,         // distance of the path to traverse, in phase units [0,1)
-                               double alpha,             // whenInSample01 at start of path [0,1)
-                               double deltaTotal,        // total phase delta of the sample [0,1)
-                               F&& onEdge                // void(double whenInSample01, float dAmp, float dSlope)
-  ) const
-  {
-    if (pathDelta <= 0.0 || deltaTotal <= 0.0)
-      return;
-
-    for (const auto& e : mEdges)
-    {
-      const double eRender = e.phase01;
-      // distance from start of render window to edge, in [0,1)
-      const double d = ForwardDistance01(phiStartRender01, eRender);
-
-      static constexpr double kTol = 1e-8;
-
-      if (d + kTol >= pathDelta)
-        continue;  // push exact end-of-window edges to next sample
-
-      double u = alpha + d / deltaTotal;  // whenInSample01 in [0,1)
-      onEdge(u, e.dAmp, e.dSlope);
-    }
-  }
-};
 
 struct IBlepExecutor
 {
@@ -104,7 +26,15 @@ struct IBlepExecutor
 
   // Accumulate a discontinuity edge that lies within the current sample.
   // u is whenInSample01 ∈ [0,1)
-  virtual void AccumulateEdge(double u, float dAmp, float dSlopePerPhase) = 0;
+  virtual void AccumulateEdge(double edgePosInSample01,
+                              float dAmp,
+                              float dSlopePerPhase
+  //double sampleLengthInPhase01,
+#ifdef ENABLE_OSC_LOG
+                              ,
+                              std::string reason
+#endif  // ENABLE_OSC_LOG
+                              ) = 0;
 
   // Close the current sample and get the correction to apply to the naive amplitude.
   // returns {blepCorrection, naiveAmplitude + blepCorrection}
@@ -130,9 +60,31 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
 
   static inline void AddPolyBLEP(float u, float dAmp, double& now, double& next)
   {
-    const float t = 1.0f - static_cast<float>(u);
-    now += dAmp * BlepBefore(t);
-    next += dAmp * BlepAfter(t);
+    float uo = u;
+    u = 1.0f - static_cast<float>(u);
+    auto blepBefore = BlepBefore(u);
+    auto blepAfter = BlepAfter(u);
+#ifdef ENABLE_OSC_LOG
+    gOscLog.Log(std::format(" -> blepnow({:.3f} {:.3f}) = {:.3f} * scale:{:.3f} = {:.3f} + now{:.3f} = {:.3f}",
+                            uo,
+                            u,
+                            blepBefore,
+                            dAmp,
+                            blepBefore * dAmp,
+                            now,
+                            now + blepBefore * dAmp));
+    gOscLog.Log(std::format(" -> blepnext({:.3f} : {:.3f}) = {:.3f} * scale:{:.3f} = {:.3f} + now{:.3f} = {:.3f}",
+                            uo,
+                            u,
+                            blepAfter,
+                            dAmp,
+                            blepAfter * dAmp,
+                            next,
+                            next + blepAfter * dAmp));
+#endif  // ENABLE_OSC_LOG
+
+    now += dAmp * blepBefore;
+    next += dAmp * BlepAfter(u);
   }
 
   template <typename T>
@@ -154,9 +106,25 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
 
   static inline void AddPolyBLAMP(float u, float dSlope, double& now, double& next)
   {
-    float t = 1.0f - static_cast<float>(u);
-    now += dSlope * BlampBefore(t);
-    next += dSlope * BlampAfter(t);
+    u = 1.0f - static_cast<float>(u);
+    auto blampBefore = BlampBefore(u);
+    auto blampAfter = BlampAfter(u);
+#ifdef ENABLE_OSC_LOG
+    gOscLog.Log(std::format(" -> blampnow :{:.3f} * scale:{:.3f} = {:.3f} + now{:.3f} = {:.3f}",
+                            blampBefore,
+                            dSlope,
+                            blampBefore * dSlope,
+                            now,
+                            now + blampBefore * dSlope));
+    gOscLog.Log(std::format(" -> blampnext:{:.3f} * scale:{:.3f} = {:.3f} + now{:.3f} = {:.3f}",
+                            blampAfter,
+                            dSlope,
+                            blampAfter * dSlope,
+                            next,
+                            next + blampAfter * dSlope));
+#endif  // ENABLE_OSC_LOG
+    now += dSlope * blampBefore;
+    next += dSlope * blampAfter;
   }
 
   // Spill buffers (carry-over tails)
@@ -175,16 +143,32 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
   }
 
   // u is whenInSample01 ∈ [0,1)
-  void AccumulateEdge(double u, float dAmp, float dSlopePerPhase) override
+  void AccumulateEdge(double edgePosInSample01,
+                      float dAmp,
+                      float dSlopePerPhase
+#ifdef ENABLE_OSC_LOG
+                      ,
+                      std::string reason
+#endif  // ENABLE_OSC_LOG
+                      ) override
   {
+    //const double u = edgePosInSample01;  // when in this sample [0,1)
     if (dAmp != 0.0f)
     {
-      AddPolyBLEP((float)u, dAmp, mNow, mNext);  // impl todo
+#ifdef ENABLE_OSC_LOG
+      gOscLog.Log(std::format(
+          "add BLEP @ u={:.3f} dAmp={:.3f} dSlope={:.3f} ({})", edgePosInSample01, dAmp, dSlopePerPhase, reason));
+#endif                                                           // ENABLE_OSC_LOG
+      AddPolyBLEP((float)edgePosInSample01, dAmp, mNow, mNext);  // impl todo
     }
     if (dSlopePerPhase != 0.0f)
     {
+#ifdef ENABLE_OSC_LOG
+      gOscLog.Log(std::format(
+          "add BLAMP @ u={:.3f} dAmp={:.3f} dSlope={:.3f} ({})", edgePosInSample01, dAmp, dSlopePerPhase, reason));
+#endif  // ENABLE_OSC_LOG
       const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
-      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext);  // impl todo
+      AddPolyBLAMP((float)edgePosInSample01, (float)dSlope_perSample, mNow, mNext);  // impl todo
     }
   }
 
@@ -194,188 +178,26 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
   }
 };
 
-//
-//struct PolyBlepBlampExecutor2 : IBlepExecutor
-//{
-//  // t = fraction AFTER the edge within the current sample, t = 1 - u, u in [0,1)
-//  // BLEP: current + next
-//  static inline float BlepAfter(float t)
-//  {  // current sample
-//    const float t2 = t * t;
-//    return t * t2 - 0.5f * t2 * t2;  // t^3 - 1/2 t^4
-//  }
-//  static inline float BlepBefore(float t)
-//  {  // next sample
-//    const float mt = 1.0f - t;
-//    const float mt2 = mt * mt;
-//    return -(mt * mt2) + 0.5f * mt2 * mt2;  // -(1-t)^3 + 1/2 (1-t)^4
-//  }
-//
-//  static inline void AddPolyBLEP(float u, float dAmp, double& now, double& next)
-//  {
-//    const float t = 1.0f - static_cast<float>(u);
-//    now += dAmp * BlepAfter(t);
-//    next += dAmp * BlepBefore(t);
-//  }
-//
-//  // BLAMP: current + next + next+1 (for slope jumps)
-//  static inline float BlampAfter(float t)
-//  {  // current sample
-//    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
-//    return (-d5) * (1.0f / 40.0f) + d4 * (1.0f / 24.0f) + d3 * (1.0f / 12.0f) + d2 * (1.0f / 12.0f) +
-//           d * (1.0f / 24.0f) + (1.0f / 120.0f);
-//  }
-//  static inline float BlampBefore_1(float t)
-//  {  // next sample
-//    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
-//    (void)d3;
-//    return d5 * (1.0f / 40.0f) - d4 * (1.0f / 12.0f) + d2 * (1.0f / 3.0f) - d * (1.0f / 2.0f) + (7.0f / 30.0f);
-//  }
-//  static inline float BlampBefore_2(float t)
-//  {  // next+1 sample
-//    const float d = t, d2 = d * d, d3 = d2 * d, d4 = d3 * d, d5 = d4 * d;
-//    return (-d5) * (1.0f / 120.0f) + d4 * (1.0f / 24.0f) - d3 * (1.0f / 12.0f) + d2 * (1.0f / 12.0f) -
-//           d * (1.0f / 24.0f) + (1.0f / 120.0f);
-//  }
-//
-//  static inline void AddPolyBLAMP(float u, float dSlope, double& now, double& next, double& next2)
-//  {
-//    float t = 1.0f - static_cast<float>(u);
-//    now += dSlope * BlampAfter(t);
-//    next += dSlope * BlampBefore_1(t);
-//    next2 += dSlope * BlampBefore_2(t);
-//  }
-//
-//  // Spill buffers (carry-over tails)
-//  double mNow = 0.0;    // applies to *this* sample
-//  double mNext = 0.0;   // applies to next sample
-//  double mNext2 = 0.0;  // applies to next+1 sample (BLAMP only)
-//
-//  double mSampleWindowSizeInPhase01 = 0.0;  // == step.phaseDelta01PerSample
-//
-//  // for debugging only
-//  double mCorrectionAmt = 1;
-//
-//  void OpenSample(double sampleWindowSizeInPhase01) override
-//  {
-//    mSampleWindowSizeInPhase01 = sampleWindowSizeInPhase01;
-//
-//    // Bring down tails
-//    mNow = mNext;
-//    mNext = mNext2;
-//    mNext2 = 0.0;
-//  }
-//
-//  // u is whenInSample01 ∈ [0,1)
-//  void AccumulateEdge(double u, float dAmp, float dSlopePerPhase) override
-//  {
-//    if (dAmp != 0.0f)
-//    {
-//      AddPolyBLEP((float)u, dAmp, mNow, mNext);
-//    }
-//    if (dSlopePerPhase != 0.0f)
-//    {
-//      const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
-//      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext, mNext2);
-//    }
-//  }
-//
-//  std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude) override
-//  {
-//    return {mNow, naiveAmplitude + mNow * mCorrectionAmt};
-//  }
-//};
-//
-//
-//struct PolyBlepBlampExecutor3 : IBlepExecutor
-//{
-//  static inline void AddPolyBLEP(float u, float dAmp, double& now, double& next)
-//  {
-//    //u = 1.0f - u;
-//    const float u2 = u * u;
-//    // current sample
-//    now += dAmp * (u - 0.5f * u2 - 0.5f);
-//    // next sample
-//    next += dAmp * (0.5f * u2);
-//  }
-//
-//  static inline void AddPolyBLAMP(float u, float dSlopePerSample, double& now, double& next, double& next2)
-//  {
-//    //u = 1.0f - u;
-//    const float u2 = u * u;
-//    const float u3 = u2 * u;
-//    // current sample
-//    now += dSlopePerSample * ((1.0f / 6.0f) * u3 - 0.5f * u2 + 0.5f * u - (1.0f / 6.0f));
-//    // next sample
-//    next += dSlopePerSample * (0.5f * u2 - 0.5f * u + (1.0f / 6.0f));
-//    // next+1 sample
-//    next2 += dSlopePerSample * (-(1.0f / 6.0f) * u3);
-//  }
-//
-//  // Spill buffers (carry-over tails)
-//  double mNow = 0.0;    // applies to *this* sample
-//  double mNext = 0.0;   // applies to next sample
-//  double mNext2 = 0.0;  // applies to next+1 sample (BLAMP only)
-//
-//  double mSampleWindowSizeInPhase01 = 0.0;  // == step.phaseDelta01PerSample
-//
-//  // for debugging only
-//  double mCorrectionAmt = 1;
-//
-//  void OpenSample(double sampleWindowSizeInPhase01) override
-//  {
-//    mSampleWindowSizeInPhase01 = sampleWindowSizeInPhase01;
-//
-//    // Bring down tails
-//    mNow = mNext;
-//    mNext = mNext2;
-//    mNext2 = 0.0;
-//  }
-//
-//  // u is whenInSample01 ∈ [0,1)
-//  void AccumulateEdge(double u, float dAmp, float dSlopePerPhase) override
-//  {
-//    if (dAmp != 0.0f)
-//    {
-//      AddPolyBLEP((float)u, dAmp, mNow, mNext);
-//    }
-//    if (dSlopePerPhase != 0.0f)
-//    {
-//      const double dSlope_perSample = dSlopePerPhase * mSampleWindowSizeInPhase01;
-//      AddPolyBLAMP((float)u, (float)dSlope_perSample, mNow, mNext, mNext2);
-//    }
-//  }
-//
-//  std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude) override
-//  {
-//    return {mNow, naiveAmplitude + mNow * mCorrectionAmt};
-//  }
-//};
-//
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct NullBlepBlampExecutor : IBlepExecutor
 {
   void OpenSample(double /*sampleWindowSizeInPhase01*/) override {}
   // u is whenInSample01 ∈ [0,1)
-  void AccumulateEdge(double /*u*/, float /*dAmp*/, float /*dSlopePerPhase*/) override {}
+  virtual void AccumulateEdge(double edgePosInSample01,
+                              float dAmp,
+                              float dSlopePerPhase
+#ifdef ENABLE_OSC_LOG
+                              ,
+                              std::string reason
+#endif  // ENABLE_OSC_LOG
+                              ) override
+  {
+  }
   std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude) override
   {
     return {0.0, naiveAmplitude};
   }
 };
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 template <typename TBlepExecutor, OscillatorWaveform waveformType>
@@ -392,8 +214,14 @@ public:
   static_assert(std::is_base_of<IBlepExecutor, TBlepExecutor>::value, "TBlepExecutor must implement IBlepExecutor");
   TBlepExecutor mHelper;
   float mCorrectionAmt;  // debugging only
+  bool mSkipZeroEdgeOnce = false;
 
-  virtual CumShape GetCumWaveDesc() = 0;
+  bool mWalkerInitialized = false;
+  bool mShapeDirty = true;
+  WVShape mShape;
+  WVShape::Walker mWalker;
+
+  virtual WVShape GetWaveDesc() = 0;
 
   virtual void SetCorrectionFactor(float factor) override
   {
@@ -403,89 +231,122 @@ public:
   void HandleParamsChanged() override
   {
     SetCorrectionFactor(mWaveshapeB);
+    if (mShapeDirty)
+    {
+      mShape = GetWaveDesc();
+      if (!mWalkerInitialized)
+      {
+        mWalkerInitialized = true;
+        mWalker = mShape.MakeWalker(0);
+      }
+      mShapeDirty = false;
+    }
   }
 
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
-    const PhaseAdvance step = mPhaseAcc.advanceOneSample();
-    const CumShape cs = GetCumWaveDesc();
+    audioRatePhaseOffset = math::wrap01(audioRatePhaseOffset);
 
+    const PhaseAdvance step = mPhaseAcc.advanceOneSample();
+    //const WVShape ws = GetWaveDesc();
     mHelper.OpenSample(step.lengthInPhase01);
 
-    // Naive sample: evaluate at render-space begin-phase
     const double sampleStartInPhase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
-    const auto [amp0, /*slope0*/ _] = cs.EvalAmpSlopeAt(sampleStartInPhase01);
+    mWalker.JumpToPhase(
+        sampleStartInPhase01);  // instead of trying to keep it synchronized with note ons etc; it's safe to do it here. mostly a NOP but will catch externally modified phase changes.
+    const auto [amp0, naiveSlope] = mShape.EvalAmpSlopeAt(sampleStartInPhase01);
     const float naive = amp0;
 
-    auto addEdge = [&](double u, float dAmp, float dSlope)
+#ifdef ENABLE_OSC_LOG
+    gOscLog.Log(std::format("Let's render a sample"));
+
+    gOscLog.Log(std::format("Ph {:.3f} -> {:.3f} (dist {:.3f})",
+                            step.phaseBegin01,
+                            (step.phaseBegin01 + step.lengthInPhase01),
+                            step.lengthInPhase01));
+    gOscLog.Log(std::format("Naive amplitude: {:.3f}", naive));
+#endif  // ENABLE_OSC_LOG
+
+    auto handleEncounteredEdge = [&](size_t segmentIndex,
+                                     const WVSegment& edge,
+                                     float preEdgeAmp,
+                                     float preEdgeSlope,
+                                     float postEdgeAmp,
+                                     float postEdgeSlope,
+                                     double distFromPathStartToEdgeInPhase01
+#ifdef ENABLE_OSC_LOG
+                                     ,
+                                     std::string reason
+#endif  // ENABLE_OSC_LOG
+                                 )
     {
-      mHelper.AccumulateEdge(u, dAmp, dSlope);
+      auto edgePosInSample01 = distFromPathStartToEdgeInPhase01 / step.lengthInPhase01;
+
+      // track for calculating deltas. Now, these must be theoretical values, not sampled values.
+      // for example a saw's BLEP scale is 2.0f, but if you use running sample values you don't ever actually reach Y values which differ by 2.0f.
+      // HOWEVER if you do a sync restart mid-cycle / mid-segment, then we are synthesizing an edge
+      // and it can be calculated by sampling
+      const float dAmp = postEdgeAmp - preEdgeAmp;
+      const float dSlope = postEdgeSlope - preEdgeSlope;
+
+      if (math::FloatEquals(dAmp + dSlope, 0))
+        return;
+
+      mHelper.AccumulateEdge(edgePosInSample01,
+                             dAmp,
+                             dSlope
+#ifdef ENABLE_OSC_LOG
+                             ,
+                             reason
+#endif  // ENABLE_OSC_LOG
+      );
     };
 
-    // Check for an in-sample hard-sync reset
-    bool hasReset = false;
-    double resetPosInSample01 = 0.0;  // when in this sample a reset happens [0,1)
-    for (int i = 0; i < step.eventCount; ++i)
-    {
-      if (step.events[i].kind == PhaseEventKind::Reset)
-      {
-        hasReset = true;
-        resetPosInSample01 = step.events[i].whenInSample01;
-        break;  // at most one reset per sample by design
-      }
-    }
+    const auto [wrapEvent, syncEvent] = step.GetWrapAndSyncEvents();
 
     const auto sampleWindowSizeInPhase01 = step.lengthInPhase01;
-
-    if (!hasReset)
+    if (!syncEvent.has_value())
     {
       // Single continuous path: start at phi0Render, advance by delta
-      cs.VisitEdgesOnPath(sampleStartInPhase01,       // path begin
-                          sampleWindowSizeInPhase01,  // path length
-                          0.0,                        // whenInSample01 at start of path = beginning of sample
-                          sampleWindowSizeInPhase01,  // total delta = full sample
-                          addEdge);
+      mWalker.Step(sampleWindowSizeInPhase01, handleEncounteredEdge);
     }
     else
     {
-      // 1) Pre-reset path: [0 .. tReset)
-      const double preResetLengthInPhase01 = resetPosInSample01 *
+      const auto& resetEvent = syncEvent.value();
+      // Pre-reset path: [0 .. tReset)
+#ifdef ENABLE_OSC_LOG
+      M7::gOscLog.Log(std::format("visit pre-sync-reset window"));
+#endif  // ENABLE_OSC_LOG
+      const double preResetLengthInPhase01 = resetEvent.whenInSample01 *
                                              sampleWindowSizeInPhase01;  // distance from start to reset, in phase units
-      cs.VisitEdgesOnPath(sampleStartInPhase01,                          // path begin
-                          preResetLengthInPhase01,                       // path length = distance from start to reset
-                          0.0,                        // whenInSample01 at start of path = beginning of sample
-                          sampleWindowSizeInPhase01,  // total delta = full sample
-                          addEdge);
 
-      // 2) Insert BLEP/BLAMP at the reset instant for the *teleport* to phase 0
-      const double resetPosInPhase01 = math::wrap01(sampleStartInPhase01 +
-                                                    preResetLengthInPhase01);  // just before reset
-      const auto [ampBefore, slopeBefore] = cs.EvalAmpSlopeAt(resetPosInPhase01);
+      mWalker.Step(preResetLengthInPhase01, handleEncounteredEdge);
 
-      // after reset, we're at phase 0 + phase offset.
-      const auto [ampAfter, slopeAfter] = cs.EvalAmpSlopeAt(math::wrap01(audioRatePhaseOffset));  // 0+ with offset
+      mWalker.JumpToPhase(audioRatePhaseOffset);  // reset to phase 0 + offset
 
-      const float dAmp = ampAfter - ampBefore;
-      const float dSlope = slopeAfter - slopeBefore;
-
-      addEdge(resetPosInSample01, dAmp, dSlope);
-
-      // 3) Post-reset path: [tR .. 1)
+      // Post-reset path: [tR .. 1)
+#ifdef ENABLE_OSC_LOG
+      M7::gOscLog.Log(std::format("visit post-sync-reset window"));
+#endif                                                              // ENABLE_OSC_LOG
+      const double resetPosInSample01 = resetEvent.whenInSample01;  // when in this sample [0,1)
       const double postResetLengthInPhase01 = (1.0 - resetPosInSample01) * sampleWindowSizeInPhase01;
-      const double phiAfterResetRender = math::wrap01(audioRatePhaseOffset);  // start at 0+ (render space)
-      cs.VisitEdgesOnPath(phiAfterResetRender,                                // path begin = 0+ with offset
-                          postResetLengthInPhase01,   // path length = distance from reset to end of sample
-                          resetPosInSample01,         // whenInSample01 at start of path = reset time
-                          sampleWindowSizeInPhase01,  // total delta = full sample
-                          addEdge);
+      mWalker.Step(postResetLengthInPhase01, handleEncounteredEdge);
+      //mShape.VisitEdgesAlongPath(audioRatePhaseOffset,      // path begin = 0+ with offset
+      //                       postResetLengthInPhase01,  // path length = distance from reset to end of sample
+      //                       handleEncounteredEdge);
     }
 
     const auto [correction, amplitude] = mHelper.CloseSampleAndGetCorrection(naive);
 
-    return CoreSample{.amplitude = (float)amplitude,
-                      .naive = naive,
-                      .correction = (float)correction,  //
-                      .phaseAdvance = step};
+    return CoreSample{
+        .amplitude = (float)amplitude,
+        .naive = naive,
+        .correction = (float)correction,  //
+        .phaseAdvance = step,
+#ifdef ENABLE_OSC_LOG
+        .log = gOscLog.mBuffer,  //
+#endif                           // ENABLE_OSC_LOG
+    };
   }
 };
 
@@ -506,16 +367,17 @@ struct PWMCoreT : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
   void HandleParamsChanged() override
   {
     mDutyCycle01 = std::clamp(this->mWaveshapeA, 0.001f, 0.999f);
+    Base::mShapeDirty = true;
     Base::HandleParamsChanged();
   }
 
-  CumShape GetCumWaveDesc() override
+  virtual WVShape GetWaveDesc() override
   {
-    CumShape cs{.mAmpAt0 = -1, .mSlopeAt0 = 0};
-    cs.mEdges.reserve(2);
-    cs.mEdges.push_back(SegBoundary{.phase01 = 0.0, .dAmp = +2.0f, .dSlope = 0.0f});
-    cs.mEdges.push_back(SegBoundary{.phase01 = mDutyCycle01, .dAmp = -2.0f, .dSlope = 0.0f});
-    return cs;
+    return WVShape{
+        .mSegments = {
+            WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = mDutyCycle01, .beginAmp = -1.0f, .slope = 0},
+            WVSegment{.beginPhase01 = mDutyCycle01, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = 0},
+        }};
   }
 };
 
@@ -529,13 +391,11 @@ struct SawCore : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
   {
   }
 
-
-  CumShape GetCumWaveDesc() override
+  virtual WVShape GetWaveDesc() override
   {
-    CumShape cs{.mAmpAt0 = 1, .mSlopeAt0 = 2};
-    cs.mEdges.reserve(1);
-    cs.mEdges.push_back(SegBoundary{.phase01 = 0.0, .dAmp = -2.0f, .dSlope = 0});
-    return cs;
+    return WVShape{.mSegments = {
+                       WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
+                   }};
   }
 };
 
@@ -548,13 +408,13 @@ struct TriTruncCore : public BandLimitedOscillatorCore<TBlepExecutor, Twf>
       : Base(1)
   {
   }
-  CumShape GetCumWaveDesc() override
+
+  virtual WVShape GetWaveDesc() override
   {
-    CumShape cs{.mAmpAt0 = -1, .mSlopeAt0 = -4};
-    cs.mEdges.reserve(1);
-    cs.mEdges.push_back(SegBoundary{.phase01 = 0.0, .dAmp = 0, .dSlope = +8});
-    cs.mEdges.push_back(SegBoundary{.phase01 = 0.5, .dAmp = 0, .dSlope = -8});
-    return cs;
+    return WVShape{.mSegments = {
+                       WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 0.5, .beginAmp = -1.0f, .slope = 4},
+                       WVSegment{.beginPhase01 = 0.5, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = -4},
+                   }};
   }
 };
 

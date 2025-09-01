@@ -701,6 +701,26 @@ bool DoesEncounter(double t1, double t2, float x);
              * Converts a linear value to decibels.  Returns <= aMinDecibels if the linear
              * value is 0.
              */
+
+
+// On a modular line with value [0,1),
+// and start, length define a segment along the line; [start, start+length)
+// return true if x falls on the segment.
+inline bool DoesEncounter2(double start, double length, float xf)
+{
+    // Handle degenerate lengths quickly
+    if (!(length > 0.0)) return false;   // also makes NaN -> false
+    if (length >= 1.0)   return true;
+
+    // x relative to start, wrapped into [0,1)
+    double d = static_cast<double>(xf) - start;
+    d += (d < 0.0);  // branchless: adds 1.0 if negative
+
+    // Half-open membership test
+    return d < length;
+}
+
+
 float LinearToDecibels(float aLinearValue, float aMinDecibels = gMinGainDecibels);
 
 /**

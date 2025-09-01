@@ -42,15 +42,15 @@ struct WaveformViewConfig
 
 struct WFVSample
 {
-    M7::CoreSample sample;
+  M7::CoreSample sample;
   ImVec2 point;  // used internally
 };
 
 // Internal implementation shared by public overloads
-static inline void WaveformViewImpl(const char* id,
-                                    ImVec2 size,
-                                    std::vector<WFVSample>& samples,
-                                    const WaveformViewConfig& cfg)
+static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
+                                                        ImVec2 size,
+                                                        std::vector<WFVSample>& samples,
+                                                        const WaveformViewConfig& cfg)
 {
   using namespace WaveSabreCore;
 
@@ -60,7 +60,7 @@ static inline void WaveformViewImpl(const char* id,
   if (samples.empty())
   {
     ImGui::Dummy(size);
-    return;
+    return {};
   }
 
   // Compute bounds
@@ -132,6 +132,20 @@ static inline void WaveformViewImpl(const char* id,
     }
   }
 
+  // draw "out of range" background rects at the top (above +1 and below -1).
+  {
+    const float y1 = YForValue(1.0f);
+    if (y1 > bb.Min.y)
+    {
+      dl->AddRectFilled(ImVec2(bb.Min.x, bb.Min.y), ImVec2(bb.Max.x, y1), ColorFromHTML("443333", 0.5f));
+    }
+    const float yNeg1 = YForValue(-1.0f);
+    if (yNeg1 < bb.Max.y)
+    {
+      dl->AddRectFilled(ImVec2(bb.Min.x, yNeg1), ImVec2(bb.Max.x, bb.Max.y), ColorFromHTML("443333", 0.5f));
+    }
+  }
+
   // Baseline at 0 amplitude (may be outside if range doesn't include 0)
   const float baselineY = YForValue(0.0f);
   const bool baselineVisible = baselineY >= bb.Min.y && baselineY <= bb.Max.y;
@@ -171,7 +185,6 @@ static inline void WaveformViewImpl(const char* id,
     const float x0 = XForIndex((size_t)i);
     const float x1 = XForIndex(std::min((size_t)i + (size_t)offset, samples.size() - 1));
     dl->AddRectFilled(ImVec2(x0, bb.Min.y), ImVec2(x1, bb.Max.y), ColorFromHTML("444466", 0.3f));
-
   }
 
   // Connected base line
@@ -235,6 +248,50 @@ static inline void WaveformViewImpl(const char* id,
       {
         dl->AddCircleFilled(p, markerRadius, isHovered ? hlMarkerFill : markerFill, 8);
         dl->AddCircle(p, markerRadius, isHovered ? hlMarkerOutline : markerOutline, 8, 1.0f);
+
+        std::string str;
+        if (s.sample.correction > 1e-6)
+        {
+          str += ".corr";
+          dl->AddCircle(p, markerRadius + 2, ColorFromHTML("44ff44"), 8, 2.0f);
+        }
+        for (size_t i = 0; i < s.sample.phaseAdvance.eventCount; ++i)
+        {
+          const auto& e = s.sample.phaseAdvance.events[i];
+          if (e.kind == M7::PhaseEventKind::Wrap)
+          {
+            str += ".wrap";
+            dl->AddCircle(p, markerRadius + 4, ColorFromHTML("00ffff"), 8, 2.0f);
+          }
+          else if (e.kind == M7::PhaseEventKind::Reset)
+          {
+            str += ".sync";
+            dl->AddCircle(p, markerRadius + 6, ColorFromHTML("ff8800"), 8, 2.0f);
+          }
+        }
+
+        // draw the text above or below the circular marker.
+        // if the amplitude is positive, draw the indicator below the marker. If negative, draw above.
+        if (!str.empty())
+        {
+          ImVec2 textSize = ImGui::CalcTextSize(str.c_str());
+          ImVec2 textPos;
+          if (s.sample.amplitude >= 0.0f)
+          {
+            // below
+            textPos = ImVec2(p.x - textSize.x * 0.5f, p.y + markerRadius + 4);
+            if (textPos.y + textSize.y > bb.Max.y)
+              textPos.y = bb.Max.y - textSize.y;
+          }
+          else
+          {
+            // above
+            textPos = ImVec2(p.x - textSize.x * 0.5f, p.y - markerRadius - 4 - textSize.y);
+            if (textPos.y < bb.Min.y)
+              textPos.y = bb.Min.y;
+          }
+          dl->AddText(textPos, ColorFromHTML("ffffff"), str.c_str());
+        }
       }
     }
   }
@@ -258,34 +315,35 @@ static inline void WaveformViewImpl(const char* id,
   ImGui::Dummy(size);
 
   // Tooltip with XY details
-  if (ImGui::IsItemHovered())
+  //if (ImGui::IsItemHovered())
+  if (hoveredIdx >= 0)
   {
-    ImVec2 mouse = ImGui::GetIO().MousePos;
-    // Nearest sample index from mouse X
-    float xNorm = (mouse.x - bb.Min.x) / std::max(1.0f, (bb.Max.x - bb.Min.x));
-    xNorm = M7::math::clamp01(xNorm);
-    size_t i = (size_t)std::round(xNorm * (samples.size() - 1));
-    i = (size_t)std::min<size_t>(i, samples.size() - 1);
+    //ImVec2 mouse = ImGui::GetIO().MousePos;
+    //// Nearest sample index from mouse X
+    //float xNorm = (mouse.x - bb.Min.x) / std::max(1.0f, (bb.Max.x - bb.Min.x));
+    //xNorm = M7::math::clamp01(xNorm);
+    //size_t i = (size_t)std::round(xNorm * (samples.size() - 1));
+    //i = (size_t)std::min<size_t>(i, samples.size() - 1);
 
-    const auto& s = samples[i];
+    const auto& s = samples[hoveredIdx];
     const float vLin = s.sample.amplitude;
     const float vDb = M7::math::LinearToDecibels(std::max(std::abs(vLin), M7::gMinGainLinear));
     const float sampleRate = Helpers::CurrentSampleRateF;
-    const float tSec = sampleRate > 0.0f ? (float)i / sampleRate : 0.0f;
-    const float tMs = tSec * 1000.0f;
+    //const float tSec = sampleRate > 0.0f ? (float)hoveredIdx / sampleRate : 0.0f;
+    //const float tMs = tSec * 1000.0f;
     // Phase 0..1 (avoid hitting exactly 1.0 at the end)
-    const float phase = (float)i / (float)samples.size();
+    //const float phase = (float)hoveredIdx / (float)samples.size();
 
     ImGui::BeginTooltip();
-    ImGui::Text("Sample: %u", (unsigned)i);
-    ImGui::Text("Time: %.4f s (%.2f ms)", tSec, tMs);
-    ImGui::Text("Phase: %.4f", phase);
-    ImGui::Separator();
+    ImGui::Text("Sample: %u", (unsigned)hoveredIdx);
+    //ImGui::Text("Time: %.4f s (%.2f ms)", tSec, tMs);
     ImGui::Text("Amplitude: %.6f lin", vLin);
-    ImGui::Text("Amplitude: %.2f dB", vDb);
+    //ImGui::Text("Phase: %.4f", phase);
+    //    ImGui::Separator();
+    //ImGui::Text("Amplitude: %.2f dB", vDb);
     ImGui::Separator();
     ImGui::Text("Naive: %.3f", s.sample.naive);
-    ImGui::Text("Correction: %.3f dB", s.sample.correction);
+    ImGui::Text("Correction: %.3f", s.sample.correction);
     ImGui::Text("Frequency: %.3f Hz", s.sample.phaseAdvance.ComputeFrequencyHz());
     ImGui::Separator();
     for (int i = 0; i < s.sample.phaseAdvance.eventCount; ++i)
@@ -295,7 +353,11 @@ static inline void WaveformViewImpl(const char* id,
       ImGui::Text("Event %d: %s at %.3f", i, kindStr, e.whenInSample01);
     }
     ImGui::EndTooltip();
+
+    return s;
   }
+
+  return {};
 }
 
 //// renders a bordered lollipop plot, with connected lines.

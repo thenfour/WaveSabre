@@ -94,7 +94,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
                              100,
                              100,
                              1280,
-                             800,
+                             1200,
                              NULL,
                              NULL,
                              wc.hInstance,
@@ -122,6 +122,8 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
   ImGui_ImplDX9_Init(g_pd3dDevice);
 
   InitWaveSabre();
+
+  WaveSabreVstLib::Maj7ManualTestState state;
 
   // Main loop
   bool done = false;
@@ -154,7 +156,10 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
     ImGui_ImplWin32_NewFrame();
     ImGui::NewFrame();
 
-    WaveSabreVstLib::renderManualTestsUI();
+    {
+      auto psynth = std::make_unique<WaveSabreVstLib::Maj7SynthWrapper>();
+      WaveSabreVstLib::renderManualTestsUI(*psynth.get(), state);
+    }
 
     ImGui::EndFrame();
     g_pd3dDevice->SetRenderState(D3DRS_ZENABLE, FALSE);

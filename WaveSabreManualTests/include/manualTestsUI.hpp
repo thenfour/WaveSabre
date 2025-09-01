@@ -55,11 +55,53 @@
 //}  // namespace M7
 //}  // namespace WaveSabreCore
 
+
 namespace WaveSabreVstLib
 {
-void renderManualTestsUI()
+
+struct Maj7ManualTestState
+{
+  float phaseOffset = 0;
+  float freq01 = 0.372f;
+  float freqkt = 1;
+  bool syncEnable = false;
+  float syncFreq01 = 0.40f;
+  float syncFreqKT = 1;
+  float volDb = 0;
+  float secondsToShow = 0.01f;
+  bool showLollipops = true;
+  bool showStems = true;
+  bool showLines = false;
+  M7::OscillatorWaveform wf = M7::OscillatorWaveform::SawBlep1;
+  float waveShapeA = 0;
+  float waveShapeB = 1;
+};
+
+struct Maj7SynthWrapper
+{
+  M7::Maj7 mSynth;
+  M7::OscillatorNode& mOscNode = *mSynth.mMaj7Voice[0]->mpOscillatorNodes[0];
+
+  Maj7SynthWrapper()
+  {
+    Helpers::SetSampleRate(4000);
+  }
+};
+
+// read-only, multi-line, scrollable
+void ImGuiLogWindow(const std::string& text, ImVec2 size)
+{
+  ImGui::BeginChild("logwindow", size, true, ImGuiWindowFlags_HorizontalScrollbar);
+  ImGui::TextUnformatted(text.c_str());
+  if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY())
+    ImGui::SetScrollHereY(1.0f);
+  ImGui::EndChild();
+}
+
+void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
 {
   auto& io = ImGui::GetIO();
+  OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
 
   ImGui::SetNextWindowPos(ImVec2{0, 0});
   ImGui::SetNextWindowSize(io.DisplaySize);
@@ -75,94 +117,66 @@ void renderManualTestsUI()
     ImGui::EndMenuBar();
   }
 
-  Helpers::SetSampleRate(4410);
+  KnobN11("waveshape A", &state.waveShapeA, 0, 0);
+  synth.mSynth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeA, state.waveShapeA);
 
-  M7::Maj7 synth;  // todo ...
-  auto& oscNode = *synth.mMaj7Voice[0]->mpOscillatorNodes[0];
-
-  static float waveShapeA = 0;
-  KnobN11("waveshape A", &waveShapeA, 0, 0);
-  synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeA, waveShapeA);
-
-  static float waveShapeB = 0;
   ImGui::SameLine();
-  KnobN11("waveshape B", &waveShapeB, 0, 0);
-  synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeB, waveShapeB);
+  KnobN11("waveshape B", &state.waveShapeB, 0, 0);
+  synth.mSynth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeB, state.waveShapeB);
 
-  static float phaseOffset = -0.64f;
   ImGui::SameLine();
-  KnobN11("phase offset", &phaseOffset, 0, 0);
-  synth.mParams.SetN11Value((int)M7::ParamIndices::Osc1PhaseOffset, phaseOffset);
+  KnobN11("phase offset", &state.phaseOffset, 0, 0);
+  synth.mSynth.mParams.SetN11Value((int)M7::ParamIndices::Osc1PhaseOffset, state.phaseOffset);
 
-  static float freq01 = 0.4f;
   ImGui::SameLine();
-  Knob01("freq", &freq01, 0.3f, 0.3f);
-  synth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParam] = freq01;
+  Knob01("freq", &state.freq01, 0.3f, 0.3f);
+  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParam] = state.freq01;
 
-  static float freqkt = 1;
   ImGui::SameLine();
-  Knob01("freq KT", &freqkt, 1, 1);
-  synth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParamKT] = freqkt;
+  Knob01("freq KT", &state.freqkt, 1, 1);
+  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParamKT] = state.freqkt;
 
-  static bool syncEnable = false;
   ImGui::SameLine();
-  ImGui::Checkbox("sync", &syncEnable);
-  synth.mParams.SetBoolValue((int)M7::ParamIndices::Osc1SyncEnable, syncEnable);
+  ImGui::Checkbox("sync", &state.syncEnable);
+  synth.mSynth.mParams.SetBoolValue((int)M7::ParamIndices::Osc1SyncEnable, state.syncEnable);
 
   // sync freq & KT
 
-  static float syncFreq01 = 0.4f;
   ImGui::SameLine();
-  Knob01("syncFreq", &syncFreq01, 0.4f, 0.4f);
-  synth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequency] = syncFreq01;
+  Knob01("syncFreq", &state.syncFreq01, 0.4f, 0.4f);
+  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequency] = state.syncFreq01;
 
-  static float syncFreqKT = 1;
   ImGui::SameLine();
-  Knob01("syncFreqKT", &syncFreqKT, 1, 1);
-  synth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequencyKT] = syncFreqKT;
+  Knob01("syncFreqKT", &state.syncFreqKT, 1, 1);
+  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequencyKT] = state.syncFreqKT;
 
 
-  static float volDb = 0;
   ImGui::SameLine();
-  KnobVolume("volume", &volDb, M7::gVolumeCfg12db);
+  KnobVolume("volume", &state.volDb, M7::gVolumeCfg12db);
 
   float otherSignals[M7::gOscillatorCount - 1] = {0};
 
   // let's show a full 1.5 cycles of the wave.
-  static float secondsToShow = 0.01f;
   ImGui::SameLine();
-  KnobScaled("seconds", &secondsToShow, 0.001f, 0.2f);
+  KnobScaled("seconds", &state.secondsToShow, 0.001f, 0.2f);
 
-  static float blepScale = 1;
-  KnobN11("blepscale", &blepScale, 0, 0);
-  //oscNode.mInv = blepScale;
-  oscNode.SetCorrectionFactor(blepScale);
-
-  static M7::OscillatorWaveform wf = M7::OscillatorWaveform::
-      PulseNaive;  // = synth.mParams.GetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform);
-  static uint64_t kC = 0x123456789abcdef;
-
-  OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
   ImGui::SameLine();
-  ::MulDiv(kC, 1, 1);
   ImGui::SetNextItemWidth(120);
-  ImGui::Combo("waveformShape", (int*)&wf, gWaveformCaptions, (int)M7::OscillatorWaveform::Count);
+  ImGui::Combo("waveformShape", (int*)&state.wf, gWaveformCaptions, (int)M7::OscillatorWaveform::Count);
 
-  synth.mParams.SetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform, wf);
+  synth.mSynth.mParams.SetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform, state.wf);
 
-  static bool showLollipops = true;
-  static bool showStems = true;
-  static bool showLines = true;
 
   ImGui::SameLine();
-  ButtonArray<3>("waveformOptions", {
-      MakeButtonSpec("Lollipops", &showLollipops),
-      MakeButtonSpec("Stems", &showStems),
-      MakeButtonSpec("Lines", &showLines),
-      //MakeButtonSpec("Invert Bleps", &invertBleps),
-  });
+  ButtonArray<3>("waveformOptions",
+                 {
+                     MakeButtonSpec("Lollipops", &state.showLollipops),
+                     MakeButtonSpec("Stems", &state.showStems),
+                     MakeButtonSpec("Lines", &state.showLines),
+                     //MakeButtonSpec("Invert Bleps", &invertBleps),
+                 });
 
-  int sampleCount = (int)(Helpers::CurrentSampleRateF * secondsToShow);
+  int sampleCount = (int)(Helpers::CurrentSampleRateF * state.secondsToShow);
   static std::vector<WFVSample> samples;
 
   if (samples.size() != sampleCount)
@@ -170,38 +184,71 @@ void renderManualTestsUI()
     samples.resize(sampleCount);
   }
 
-  oscNode.NoteOn(false);
-
-  for (int i = 0; i < sampleCount; ++i)
   {
-    auto r = oscNode.RenderSampleForAudioAndAdvancePhase(64,                                // midi note
-                                                         1.f,                               // freq detune MUL
-                                                         0.0f,                              // fm scale
-                                                         synth.mParams,                     // param accessor
-                                                         otherSignals,                      // other osc signals
-                                                         0,                                 // this osc index
-                                                         M7::math::DecibelsToLinear(volDb)  // amp env linear
-    );
-    // collect more detailed info.
-    samples[i].sample = oscNode.mLastSample;
+#ifdef ENABLE_OSC_LOG
+    auto logscope = M7::gOscLog.IndentBlock("ImGuiFrame render");
+#endif  // ENABLE_OSC_LOG
+    synth.mOscNode.NoteOn(false);
+
+    for (int i = 0; i < sampleCount; ++i)
+    {
+#ifdef ENABLE_OSC_LOG
+      M7::gOscLog.Clear();
+#endif  // ENABLE_OSC_LOG
+
+      auto r = synth.mOscNode.RenderSampleForAudioAndAdvancePhase(64,                    // midi note
+                                                                  1.f,                   // freq detune MUL
+                                                                  0.0f,                  // fm scale
+                                                                  synth.mSynth.mParams,  // param accessor
+                                                                  otherSignals,          // other osc signals
+                                                                  0,                     // this osc index
+                                                                  M7::math::DecibelsToLinear(
+                                                                      state.volDb)  // amp env linear
+      );
+
+      samples[i].sample = synth.mOscNode.mLastSample;
+
+      // collect more detailed info.
+#ifdef ENABLE_OSC_LOG
+      M7::gOscLog.Log(std::format("Naive: {:.3f}", synth.mOscNode.mLastSample.naive));
+      M7::gOscLog.Log(std::format("Correction: {:.3f}", synth.mOscNode.mLastSample.correction));
+      M7::gOscLog.Log(std::format("Amplitude: {:.3f}", synth.mOscNode.mLastSample.amplitude));
+      samples[i].sample.log = M7::gOscLog.mBuffer;
+#endif  // ENABLE_OSC_LOG
+    }
+
+    std::vector<float> referenceLines = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
+
+    ImGui::Text("Frequency: %.3f Hz", samples.empty() ? 0.0f : samples[0].sample.phaseAdvance.ComputeFrequencyHz());
+
+    auto hoveredSample = WaveformViewImpl("wf",
+                                          {io.DisplaySize.x - 20, 600},
+                                          samples,
+                                          {
+                                              .referenceYValues = &referenceLines,
+                                              .showLollipops = state.showLollipops,
+                                              .showStems = state.showStems,
+                                              .showLines = state.showLines,
+                                              .autoRangeY = false,
+                                              .yMin = -2.0f,
+                                              .yMax = 2.0f,
+                                          });
+
+    std::string logContents;
+    if (hoveredSample.has_value())
+    {
+      logContents = hoveredSample->sample.log;
+    }
+
+    // when the user uses a "copy" key combo (ctrl+c, ctrl+ins), copy the log text to clipboard
+    if (ImGui::IsWindowFocused() && (ImGui::IsKeyDown(ImGuiKey_LeftCtrl) || ImGui::IsKeyDown(ImGuiKey_RightCtrl)) &&
+        (ImGui::IsKeyPressed(ImGuiKey_C) || ImGui::IsKeyPressed(ImGuiKey_Insert)))
+    {
+      ImGui::SetClipboardText(logContents.c_str());
+    }
+
+    ImGuiLogWindow(logContents, ImVec2{io.DisplaySize.x - 20, 400});
   }
-
-  std::vector<float> referenceLines = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
-
-  ImGui::Text("Frequency: %.3f Hz", samples.empty() ? 0.0f : samples[0].sample.phaseAdvance.ComputeFrequencyHz());
-
-  WaveformViewImpl("wf",
-                   {io.DisplaySize.x - 20, 600},
-                   samples,
-                   {
-                       .referenceYValues = &referenceLines,
-                       .showLollipops = showLollipops,
-                       .showStems = showStems,
-                       .showLines = showLines,
-                       .autoRangeY = false,
-                       .yMin = -2.0f,
-                       .yMax = 2.0f,
-                   });
 
   ImGui::End();
 }

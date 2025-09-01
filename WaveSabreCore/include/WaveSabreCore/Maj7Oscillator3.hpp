@@ -15,44 +15,44 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-    inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
-    {
-      switch (w)
-      {
-        default:
-        case OscillatorWaveform::Sine:
-          return new SineCore();
+inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
+{
+  switch (w)
+  {
+    default:
+    case OscillatorWaveform::Sine:
+      return new SineCore();
 
-        case OscillatorWaveform::SawNaive:
-          return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
-        case OscillatorWaveform::SawBlep1:
-          return new SawCore<PolyBlepBlampExecutor1, OscillatorWaveform::SawBlep1>();
-        //case OscillatorWaveform::SawBlep2:
-        //  return new SawCore<PolyBlepBlampExecutor2, OscillatorWaveform::SawBlep2>();
-        //case OscillatorWaveform::SawBlep3:
-        //  return new SawCore<PolyBlepBlampExecutor3, OscillatorWaveform::SawBlep3>();
+    case OscillatorWaveform::SawNaive:
+      return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
+    case OscillatorWaveform::SawBlep1:
+      return new SawCore<PolyBlepBlampExecutor1, OscillatorWaveform::SawBlep1>();
+      //case OscillatorWaveform::SawBlep2:
+      //  return new SawCore<PolyBlepBlampExecutor2, OscillatorWaveform::SawBlep2>();
+      //case OscillatorWaveform::SawBlep3:
+      //  return new SawCore<PolyBlepBlampExecutor3, OscillatorWaveform::SawBlep3>();
 
-        case OscillatorWaveform::PulseNaive:
-          return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
-        case OscillatorWaveform::PulseBlep1:
-          return new PWMCoreT<PolyBlepBlampExecutor1, OscillatorWaveform::PulseBlep1>();
-        //case OscillatorWaveform::PulseBlep2:
-        //  return new PWMCoreT<PolyBlepBlampExecutor2, OscillatorWaveform::PulseBlep2>();
-        //case OscillatorWaveform::PulseBlep3:
-        //  return new PWMCoreT<PolyBlepBlampExecutor3, OscillatorWaveform::PulseBlep3>();
+    case OscillatorWaveform::PulseNaive:
+      return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
+    case OscillatorWaveform::PulseBlep1:
+      return new PWMCoreT<PolyBlepBlampExecutor1, OscillatorWaveform::PulseBlep1>();
+      //case OscillatorWaveform::PulseBlep2:
+      //  return new PWMCoreT<PolyBlepBlampExecutor2, OscillatorWaveform::PulseBlep2>();
+      //case OscillatorWaveform::PulseBlep3:
+      //  return new PWMCoreT<PolyBlepBlampExecutor3, OscillatorWaveform::PulseBlep3>();
 
-        case OscillatorWaveform::TriNaive:
-          return new TriTruncCore<NullBlepBlampExecutor, OscillatorWaveform::TriNaive>();
-        case OscillatorWaveform::TriBlep1:
-          return new TriTruncCore<PolyBlepBlampExecutor1, OscillatorWaveform::TriBlep1>();
-        //case OscillatorWaveform::TriBlep2:
-        //  return new TriTruncCore<PolyBlepBlampExecutor2, OscillatorWaveform::TriBlep2>();
-        //case OscillatorWaveform::TriBlep3:
-        //  return new TriTruncCore<PolyBlepBlampExecutor3, OscillatorWaveform::TriBlep3>();
-      }
-    }
-    
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    case OscillatorWaveform::TriNaive:
+      return new TriTruncCore<NullBlepBlampExecutor, OscillatorWaveform::TriNaive>();
+    case OscillatorWaveform::TriBlep1:
+      return new TriTruncCore<PolyBlepBlampExecutor1, OscillatorWaveform::TriBlep1>();
+      //case OscillatorWaveform::TriBlep2:
+      //  return new TriTruncCore<PolyBlepBlampExecutor2, OscillatorWaveform::TriBlep2>();
+      //case OscillatorWaveform::TriBlep3:
+      //  return new TriTruncCore<PolyBlepBlampExecutor3, OscillatorWaveform::TriBlep3>();
+  }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct KRateRecalculator
 {
   // when 0, run.
@@ -117,7 +117,7 @@ public:
   // used by debugging
   void SetCorrectionFactor(float factor)
   {
-      mCorrectionFactor = factor;
+    mCorrectionFactor = factor;
     mCore->SetCorrectionFactor(factor);
   }
 
@@ -273,10 +273,10 @@ public:
           if (syncEnable)
           {
             syncFreq = params.GetFrequency(OscParamIndexOffsets::SyncFrequency,
-                                                 OscParamIndexOffsets::SyncFrequencyKT,
-                                                 gSyncFreqConfig,
-                                                 noteHz,
-                                                 syncFreqModVal);
+                                           OscParamIndexOffsets::SyncFrequencyKT,
+                                           gSyncFreqConfig,
+                                           noteHz,
+                                           syncFreqModVal);
             syncFreq = std::max(syncFreq, 0.0001f);
           }
 
@@ -318,6 +318,9 @@ public:
   // forceSilence skips rendering the wave but still advances phase
   float RenderSampleForLFOAndAdvancePhase(bool forceSilence)
   {
+#ifdef ENABLE_OSC_LOG
+    auto ens = gOscLog.EnabledBlock(false);
+#endif  // ENABLE_OSC_LOG
     auto modDestBaseId = mpSrcDevice->mModDestBaseID;
 
     mKRateRecalc.visit(
@@ -342,17 +345,19 @@ public:
           mCore->SetKRateParams(waveshapeA, waveshapeB, freq, false, 1);
         });
 
-    const auto outp = mCore->renderSampleAndAdvance(GetPhaseOffset());
-    mLastSample = outp;
+    // uncomment for prod
+    //const auto outp = mCore->renderSampleAndAdvance(GetPhaseOffset());
+    //mLastSample = outp;
 
-    if (forceSilence)
-    {
-      mPreviousSample = 0.0f;
-      return 0.0f;
-    }
+    //if (forceSilence)
+    //{
+    //  mPreviousSample = 0.0f;
+    //  return 0.0f;
+    //}
 
-    mPreviousSample = outp.amplitude;
-    return outp.amplitude;
+    //mPreviousSample = outp.amplitude;
+    //return outp.amplitude;
+    return {};
   }
 
 };  // OscillatorNode

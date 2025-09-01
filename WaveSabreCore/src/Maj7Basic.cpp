@@ -1,5 +1,6 @@
 
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/Maj7Oscillator3Base.hpp>
 
 namespace WaveSabreCore
 {
@@ -35,6 +36,11 @@ QualitySetting GetQualitySetting()
 }
 
 bool gAlwaysTrue = true;
+
+
+#ifdef ENABLE_OSC_LOG
+M7::OscLog gOscLog;
+#endif // ENABLE_OSC_LOG
 
 namespace math
 {
