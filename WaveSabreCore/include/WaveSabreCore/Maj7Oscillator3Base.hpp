@@ -15,7 +15,7 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-//#define ENABLE_OSC_LOG
+#define ENABLE_OSC_LOG
 
 #ifdef ENABLE_OSC_LOG
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -180,37 +180,9 @@ public:
 
   void setFrequencyHz(float hz, float offset = 0)
   {
-    mPhaseDeltaPerSample01 = std::max(hz * Helpers::CurrentSampleRateRecipF, 0.0f) + offset;
+    mPhaseDeltaPerSample01 = std::max(hz * Helpers::CurrentSampleRateRecipF + offset, 0.0f);
     mFrequencyHz = hz;
   }
-
-  // allows advancing partial samples. Returns advance info scaled to a sample window (not phaseDelta).
-  // but there's no concept of a sample boundary here.
-  //PhaseAdvance advanceArbitrary(double phaseDelta01, double audioRatePhaseOffset)
-  //{
-  //  const double phaseBeginEval = math::wrap01(mPhase01 + audioRatePhaseOffset);
-  //  const double endPhaseEval = phaseBeginEval + phaseDelta01;
-
-  //  PhaseAdvance out{
-  //      .phaseBegin01 = phaseBeginEval,
-  //      .phaseEnd01 = math::wrap01(endPhaseEval),
-  //      .lengthInPhase01 = phaseDelta01,
-  //  };
-
-  //  mPhase01 = math::wrap01(mPhase01 + phaseDelta01);
-  //  //double endPhase = out.phaseBegin01 + phaseDelta01;
-
-  //  if (endPhaseEval >= 1.0)
-  //  {
-  //    // Where inside this sample the wrap happens.
-  //    double remainingPhaseToWrap = 1.0 - out.phaseBegin01;                       // 1.0 = where the wrap is
-  //    double wrapWhenInSample01 = remainingPhaseToWrap / mPhaseDeltaPerSample01;  // converts from phase to sample.
-  //    out.eventCount = 1;
-  //    out.events[0] = InSamplePhaseEvent{.whenInSample01 = wrapWhenInSample01, .kind = PhaseEventKind::Wrap};
-  //  }
-
-  //  return out;
-  //}
 
   PhaseAdvance advanceArbitrary(double phaseDelta01, double audioRatePhaseOffset)
   {
@@ -221,11 +193,15 @@ public:
     out.phaseBegin01 = phaseBeginEval;
     out.lengthInPhase01 = phaseDelta01;
 
-    if (endPhaseEval >= 1.0 && mPhaseDeltaPerSample01 > 0.0)
+    if (endPhaseEval >= 1.0)
     {
       double t = (1.0 - phaseBeginEval) / mPhaseDeltaPerSample01;  // fraction of full sample
-      t = std::min(std::nextafter(1.0, 0.0), std::max(0.0, t));
-      out.events[out.eventCount++] = InSamplePhaseEvent{t, PhaseEventKind::Wrap};
+      // this can occur at the very end of the sample, meaning t can reach 1.0.
+      // TODO: decide how to handle. for now let the next sample handle it @ u=0.
+      if (t < 1)
+      {
+        out.events[out.eventCount++] = InSamplePhaseEvent{t, PhaseEventKind::Wrap};
+      }
     }
 
     out.phaseEnd01 = math::wrap01(endPhaseEval);
@@ -320,6 +296,7 @@ struct HardSyncPhaseAccumulator
     out.events[out.eventCount++] = InSamplePhaseEvent{m.events[0].whenInSample01, PhaseEventKind::Reset};
 
     // --------------- evaluate the remaining post-reset window
+    mSlave.setPhase01(0);
     const auto postResetAdv = mSlave.advanceArbitrary(postResetPhaseDelta, audoRatePhaseOffset);
     if (postResetAdv.eventCount > 0)
     {
@@ -327,11 +304,16 @@ struct HardSyncPhaseAccumulator
       // scenario #6: wrap + reset + wrap
       // convert the wrap event position from post-reset-window to full sample window
       const double wrapInSample01 = preResetInSample01 + postResetAdv.events[0].whenInSample01;
-      out.events[out.eventCount++] = InSamplePhaseEvent{.whenInSample01 = wrapInSample01, .kind = PhaseEventKind::Wrap};
+      if (wrapInSample01 < 1.0)  // expect always true
+      {
+        out.events[out.eventCount++] = InSamplePhaseEvent{.whenInSample01 = wrapInSample01,
+                                                          .kind = PhaseEventKind::Wrap};
+      }
     }
 
     out.lengthInPhase01 = mSlave.getPhaseDeltaPerSample01();  // but full sample length
-    out.phaseEnd01 = math::wrap01(out.phaseBegin01 + out.lengthInPhase01);
+    //out.phaseEnd01 = math::wrap01(out.phaseBegin01 + out.lengthInPhase01);
+    out.phaseEnd01 = math::wrap01(math::wrap01(audoRatePhaseOffset) + postResetPhaseDelta);
 
     return out;
   }

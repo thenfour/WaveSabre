@@ -108,41 +108,131 @@ struct SineCore : public OscillatorCore
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct BlepExecutor
+{
+  template <typename T>
+  static inline T BlepBefore(T x)  // before discontinuity
+  {
+    static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+    return x * x;
+  }
+
+  template <typename T>
+  static inline T BlepAfter(T x)
+  {
+    static_assert(std::is_floating_point<T>::value, "requires a floating point type");
+    x = 1 - x;
+    return -x * x;
+  }
+
+  // correction spill
+  double mNow = 0.0;   // applies to *this* sample
+  double mNext = 0.0;  // applies to next sample
+
+  void OpenSample()
+  {
+    mNow = mNext;
+    mNext = 0;
+  }
+
+  inline void AddPolyBLEP(float u, float dAmp)
+  {
+    float uo = u;
+    u = 1.0f - static_cast<float>(u);
+    auto blepBefore = BlepBefore(u);
+    auto blepAfter = BlepAfter(u);
+#ifdef ENABLE_OSC_LOG
+    gOscLog.Log(std::format(" -> blepnow({:.3f} {:.3f}) = {:.3f} * scale:{:.3f} = {:.3f} + now{:.3f} = {:.3f}",
+                            uo,
+                            u,
+                            blepBefore,
+                            dAmp,
+                            blepBefore * dAmp,
+                            mNow,
+                            mNow + blepBefore * dAmp));
+    gOscLog.Log(std::format(" -> blepnext({:.3f} : {:.3f}) = {:.3f} * scale:{:.3f} = {:.3f} + now{:.3f} = {:.3f}",
+                            uo,
+                            u,
+                            blepAfter,
+                            dAmp,
+                            blepAfter * dAmp,
+                            mNext,
+                            mNext + blepAfter * dAmp));
+#endif  // ENABLE_OSC_LOG
+
+    mNow += dAmp * blepBefore;
+    mNext += dAmp * BlepAfter(u);
+  }
+
+
+  // u is whenInSample01 ∈ [0,1)
+  void AccumulateEdge(double edgePosInSample01, float dAmp)
+  {
+    if (dAmp != 0.0f)
+    {
+      AddPolyBLEP((float)edgePosInSample01, dAmp);
+
+      //  
+      //  
+      //  
+      //  float u = 1.0f - static_cast<float>(edgePosInSample01);
+      //mNow += dAmp * BlepBefore(u);
+      //mNext += dAmp * BlepAfter(u);
+    }
+  }
+
+  std::tuple<double, double> CloseSampleAndGetCorrection(double naiveAmplitude)
+  {
+    return {mNow, naiveAmplitude + mNow};
+  }
+};
+
 struct ArtisnalSawCore : public OscillatorCore
 {
   ArtisnalSawCore()
       : OscillatorCore(OscillatorWaveform::SawArtisnal)
   {
-    mShape = WVShape{.mSegments = {
-                         WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
-                     }};
   }
-  PolyBlepBlampExecutor1 mHelper;
-  WVShape mShape;
+  BlepExecutor mHelper;
+
+  float EvalNaiveSawAtPhase(double phase01)
+  {
+    return (float)(-1.0 + 2.0 * phase01);
+  }
+
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const auto step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
-    mHelper.OpenSample(step.lengthInPhase01);
-    const auto [naive, naiveSlope] = mShape.EvalAmpSlopeAt(step.phaseBegin01);
 
-    // walk intra-sample segments and handle discontinuities (edges) encountered
-    float preEdgeAmp = naive;
-    float preEdgeSlope = naiveSlope;
-    for (size_t iEvent = 0; iEvent < step.eventCount; ++iEvent)
+    mHelper.OpenSample();
+    const auto naive = EvalNaiveSawAtPhase(step.phaseBegin01);
+
+    // cursor over the sample fraction and evaluation phase
+    double fPrev = 0.0;                    // previous event time in sample[0,1)
+    double phaseEval = step.phaseBegin01;  // eval phase at fPrev
+
+    for (size_t i = 0; i < step.eventCount; ++i)
     {
-      auto& e = step.events[iEvent];
-      // for sawtooth, wrap and reset are similar. with the arate phase offset, the jump is not always exactly -2.0f
-      // and must be calculated always.
+      const auto& e = step.events[i];
+      const double deltaInSample01 = e.whenInSample01 - fPrev;
+
+      // advance within the current segment (no resets until we hit the event)
+      phaseEval = (phaseEval + deltaInSample01 * step.lengthInPhase01); // do not wrap! we need to catch 1
+
       if (e.kind == PhaseEventKind::Wrap || e.kind == PhaseEventKind::Reset)
       {
-        const double postEventPhase01 = math::wrap01(audioRatePhaseOffset);
-        const auto [postEventAmp, postEventSlope] = mShape.EvalAmpSlopeAt(postEventPhase01);
-        mHelper.AccumulateEdge(
-            e.whenInSample01,
-            postEventAmp - preEdgeAmp, postEventSlope - preEdgeSlope);
-        preEdgeAmp = postEventAmp;
-        preEdgeSlope = postEventSlope;
+        const float preAmp = EvalNaiveSawAtPhase(phaseEval);                  // just BEFORE the edge
+        const double postPhase = math::wrap01(double(audioRatePhaseOffset));  // AFTER the edge (phase reset)
+        const float postAmp = EvalNaiveSawAtPhase(postPhase);
+        const float dAmp = postAmp - preAmp;
+
+        mHelper.AccumulateEdge(e.whenInSample01, dAmp);
+
+        // after the edge, the phase resets to 0 (+ offset), continue from there
+        phaseEval = postPhase;
       }
+
+      fPrev = e.whenInSample01;
     }
 
     const auto [correction, amplitude] = mHelper.CloseSampleAndGetCorrection(naive);
