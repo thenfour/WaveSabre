@@ -93,6 +93,7 @@ enum class OscillatorWaveform : uint8_t
   SawNaive,
   SawBlep1,
   SawArtisnal,
+  SawBasic,
   //SawBlep2,
   //SawBlep3,
 
@@ -133,6 +134,7 @@ enum class OscillatorWaveform : uint8_t
   "SawNaive",\
   "SawBlep1",\
   "SawArtisnal",\
+  "SawBasic",\
   "TriNaive",\
   "TriBlep1",\
   "TriArtisnal",\

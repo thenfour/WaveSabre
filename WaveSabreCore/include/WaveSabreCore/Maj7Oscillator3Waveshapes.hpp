@@ -172,9 +172,9 @@ struct BlepExecutor
     {
       AddPolyBLEP((float)edgePosInSample01, dAmp);
 
-      //  
-      //  
-      //  
+      //
+      //
+      //
       //  float u = 1.0f - static_cast<float>(edgePosInSample01);
       //mNow += dAmp * BlepBefore(u);
       //mNext += dAmp * BlepAfter(u);
@@ -187,6 +187,7 @@ struct BlepExecutor
   }
 };
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct ArtisnalSawCore : public OscillatorCore
 {
   ArtisnalSawCore()
@@ -203,6 +204,7 @@ struct ArtisnalSawCore : public OscillatorCore
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const auto step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
+    std::vector<EdgeEvent> edgeEvents;
 
     mHelper.OpenSample();
     const auto naive = EvalNaiveSawAtPhase(step.phaseBegin01);
@@ -217,16 +219,45 @@ struct ArtisnalSawCore : public OscillatorCore
       const double deltaInSample01 = e.whenInSample01 - fPrev;
 
       // advance within the current segment (no resets until we hit the event)
-      phaseEval = (phaseEval + deltaInSample01 * step.lengthInPhase01); // do not wrap! we need to catch 1
+      phaseEval = (phaseEval + audioRatePhaseOffset +
+                   deltaInSample01 * step.lengthInPhase01);  // do not wrap! we need to catch 1
 
       if (e.kind == PhaseEventKind::Wrap || e.kind == PhaseEventKind::Reset)
       {
-        const float preAmp = EvalNaiveSawAtPhase(phaseEval);                  // just BEFORE the edge
-        const double postPhase = math::wrap01(double(audioRatePhaseOffset));  // AFTER the edge (phase reset)
+        const float preAmp = EvalNaiveSawAtPhase(phaseEval);  // just BEFORE the edge
+        const double postPhase = math::wrap01(
+            double(audioRatePhaseOffset));  // AFTER the edge, not the end of sample (0) (phase reset)
         const float postAmp = EvalNaiveSawAtPhase(postPhase);
         const float dAmp = postAmp - preAmp;
+        if (!math::FloatEquals(dAmp, -2.f))
+        {
+          MulDiv(1, 1, 1);
+        }
+
+#ifdef ENABLE_OSC_LOG
+        gOscLog.Log(std::format("Saw {} @ u={:.3f} phase={:.3f} pre:{:.3f} -> post:{:.3f} dAmp={:.3f}",
+                                (e.kind == PhaseEventKind::Wrap) ? "wrap" : "reset",
+                                e.whenInSample01,
+                                phaseEval,
+                                preAmp,
+                                postAmp,
+                                dAmp));
+        edgeEvents.push_back(EdgeEvent{
+            .reason = e.kind,
+            .atPhase01 = (float)phaseEval,
+            .whenInSample01 = (float)e.whenInSample01,
+            .preEdgeAmp = preAmp,
+            .postEdgeAmp = postAmp,
+            .dAmp = dAmp,
+            .preEdgeSlope = +2.0f,
+            .postEdgeSlope = +2.0f,
+            .dSlope = 0.0f,
+
+        });
+#endif  // ENABLE_OSC_LOG
 
         mHelper.AccumulateEdge(e.whenInSample01, dAmp);
+
 
         // after the edge, the phase resets to 0 (+ offset), continue from there
         phaseEval = postPhase;
@@ -241,6 +272,72 @@ struct ArtisnalSawCore : public OscillatorCore
         .amplitude = (float)amplitude,
         .naive = naive,
         .correction = (float)correction,  //
+        .phaseAdvance = step,
+#ifdef ENABLE_OSC_LOG
+        .log = gOscLog.mBuffer,  //
+#endif                           // ENABLE_OSC_LOG
+    };
+  }
+};
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct BasicSawCore : public OscillatorCore
+{
+  BasicSawCore()
+      : OscillatorCore(OscillatorWaveform::SawBasic)
+  {
+  }
+
+  // t = phase in [0,1), dt = phase increment per sample in [0,1)
+  // around the saw discontinuity, this returns the correction value.
+  inline double poly_blep_saw(double t, double dt)
+  {
+    // t in [0,1), dt in (0,1)
+    if (t < dt)
+    {
+      t /= dt;  // 0..1
+      // t + t - t^2 - 1  ==  2t - t^2 - 1
+      return t + t - t * t - 1.0;
+    }
+    else if (t > 1.0 - dt)
+    {
+      t = (t - 1.0) / dt;  // -1..0
+      // t^2 + 2t + 1  ==  (t + 1)^2
+      return t * t + t + t + 1.0;
+    }
+    return 0.0;
+  }
+
+  inline float bl_saw_sample(double phase, double dt)
+  {
+    double v = 2.0 * phase - 1.0;   // naive ramp
+    v -= poly_blep_saw(phase, dt);  // polyBLEP correction
+    return (float)v;
+  }
+
+  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+  {
+    const auto step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
+    const double dt = step.lengthInPhase01;  // per-sample phase increment
+    const double phase = step.phaseBegin01;  // evaluation phase at sample start
+
+    float y = bl_saw_sample(phase, dt);
+
+    for (int i = 0; i < step.eventCount; ++i)
+    {
+      const auto& e = step.events[i];
+      if (e.kind == PhaseEventKind::Reset)
+      {
+        // Phase at the *start* of this sample when the reset edge belongs to it.
+        // For a mid-sample reset we’re in the "tail" branch (t > 1-dt).
+        // Using the current-sample evaluation phase here works well in practice:
+        y -= (float)poly_blep_saw(phase, dt);
+      }
+    }
+    return CoreSample{
+        .amplitude = (float)y,
+        .naive = y,
+        .correction = (float)0,  //
         .phaseAdvance = step,
 #ifdef ENABLE_OSC_LOG
         .log = gOscLog.mBuffer,  //

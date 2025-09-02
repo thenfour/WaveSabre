@@ -30,6 +30,8 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new SawCore<PolyBlepBlampExecutor1, OscillatorWaveform::SawBlep1>();
     case OscillatorWaveform::SawArtisnal:
       return new ArtisnalSawCore();
+    case OscillatorWaveform::SawBasic:
+      return new BasicSawCore();
 
     case OscillatorWaveform::PulseNaive:
       return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
