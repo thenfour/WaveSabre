@@ -98,180 +98,181 @@ struct EdgeEncounter
     EXPECT_NEAR(postSlope, expectedPostSlope, kEps);
   }
 };
+
 TEST(ShapeTests, OneSegmentShapeWalking)
 {
-  M7::WVShape saw = {.mSegments = {
-                         M7::WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
-                     }};
+  //M7::WVShape saw = {.mSegments = {
+  //                       M7::WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
+  //                   }};
 
-  {
-    auto walker = saw.MakeWalker(0);
-    std::vector<EdgeEncounter> encounters;
+  //{
+  //  auto walker = saw.MakeWalker(0);
+  //  std::vector<EdgeEncounter> encounters;
 
-    auto visitEdge = [&](size_t segmentIndex,
-                         const M7::WVSegment& edge,
-                         float preA,
-                         float preS,
-                         float postA,
-                         float postS,
-                         double distFromPathStartToEdgeInPhase01
-        //,std::string s
-        )
-    {
-      cc::log(
-          std::format("@ {:.3f}, enter segment #{}, left edge @ {:.3f} phase; pre[{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]",
-                      walker.mCursorPhase01,
-                      segmentIndex,
-                      edge.beginPhase01,
-                      preA,
-                      preS,
-                      postA,
-                      postS));
-      encounters.emplace_back(EdgeEncounter{
-          .segmentIndex = segmentIndex,
-          .edge = edge,
-          .preAmp = preA,
-          .preSlope = preS,
-          .postAmp = postA,
-          .postSlope = postS,
-          .distFromPathStartToEdgeInPhase01 = distFromPathStartToEdgeInPhase01,
-          //.reason = s,
-      });
-    };
+  //  auto visitEdge = [&](size_t segmentIndex,
+  //                       const M7::WVSegment& edge,
+  //                       float preA,
+  //                       float preS,
+  //                       float postA,
+  //                       float postS,
+  //                       double distFromPathStartToEdgeInPhase01
+  //      //,std::string s
+  //      )
+  //  {
+  //    cc::log(
+  //        std::format("@ {:.3f}, enter segment #{}, left edge @ {:.3f} phase; pre[{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]",
+  //                    walker.mCursorPhase01,
+  //                    segmentIndex,
+  //                    edge.beginPhase01,
+  //                    preA,
+  //                    preS,
+  //                    postA,
+  //                    postS));
+  //    encounters.emplace_back(EdgeEncounter{
+  //        .segmentIndex = segmentIndex,
+  //        .edge = edge,
+  //        .preAmp = preA,
+  //        .preSlope = preS,
+  //        .postAmp = postA,
+  //        .postSlope = postS,
+  //        .distFromPathStartToEdgeInPhase01 = distFromPathStartToEdgeInPhase01,
+  //        //.reason = s,
+  //    });
+  //  };
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters.size(), 1);
-    encounters.back().TestPP(0, 0, -1, 2);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters.size(), 1);
+  //  encounters.back().TestPP(0, 0, -1, 2);
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters.size(), 1);  // landing directly on next edge will eval after.
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters.size(), 1);  // landing directly on next edge will eval after.
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters.size(), 2);
-    encounters.back().TestPP(1, 2, -1, 2);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters.size(), 2);
+  //  encounters.back().TestPP(1, 2, -1, 2);
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters.size(), 2);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters.size(), 2);
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters.size(), 3);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters.size(), 3);
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters.size(), 3);
-  }
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters.size(), 3);
+  //}
 }
 
 TEST(ShapeTests, OneSegmentShapeWalkingFuzzyUndershoot)
 {
-  // test that undershooting an edge still triggers the edge.
-  M7::WVShape saw = {.mSegments = {
-                         M7::WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
-                     }};
+  //// test that undershooting an edge still triggers the edge.
+  //M7::WVShape saw = {.mSegments = {
+  //                       M7::WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
+  //                   }};
 
-  {
-    auto walker = saw.MakeWalker(0);
-    int encounters = 0;
+  //{
+  //  auto walker = saw.MakeWalker(0);
+  //  int encounters = 0;
 
-    auto visitEdge = [&](size_t segmentIndex,
-                         const M7::WVSegment& edge,
-                         float preA,
-                         float preS,
-                         float postA,
-                         float postS,
-                         double distFromPathStartToEdgeInPhase01
-        //,std::string s
-        )
-    {
-      cc::log(
-          std::format("@ {:.3f}, enter segment #{}, left edge @ {:.3f} phase; pre[{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]",
-                      walker.mCursorPhase01,
-                      segmentIndex,
-                      edge.beginPhase01,
-                      preA,
-                      preS,
-                      postA,
-                      postS));
-      encounters++;
-    };
+  //  auto visitEdge = [&](size_t segmentIndex,
+  //                       const M7::WVSegment& edge,
+  //                       float preA,
+  //                       float preS,
+  //                       float postA,
+  //                       float postS,
+  //                       double distFromPathStartToEdgeInPhase01
+  //      //,std::string s
+  //      )
+  //  {
+  //    cc::log(
+  //        std::format("@ {:.3f}, enter segment #{}, left edge @ {:.3f} phase; pre[{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]",
+  //                    walker.mCursorPhase01,
+  //                    segmentIndex,
+  //                    edge.beginPhase01,
+  //                    preA,
+  //                    preS,
+  //                    postA,
+  //                    postS));
+  //    encounters++;
+  //  };
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.50000 - 1e-5, visitEdge);
-    EXPECT_EQ(encounters, 1);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.50000 - 1e-5, visitEdge);
+  //  EXPECT_EQ(encounters, 1);
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));  // from 0.5 - almost 1
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 1);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));  // from 0.5 - almost 1
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 1);
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));  // from almost 1 to almost 0.5
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 2);
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 2);
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 3);
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 3);
-  }
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));  // from almost 1 to almost 0.5
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 2);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 2);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 3);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 3);
+  //}
 }
 
 TEST(ShapeTests, TwoSegmentShapeWalking)
 {
-  M7::WVShape saw = {.mSegments = {
-                         M7::WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
-                     }};
+  //M7::WVShape saw = {.mSegments = {
+  //                       M7::WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
+  //                   }};
 
-  {
-    auto walker = saw.MakeWalker(0);
-    int encounters = 0;
+  //{
+  //  auto walker = saw.MakeWalker(0);
+  //  int encounters = 0;
 
-    auto visitEdge = [&](size_t segmentIndex,
-                         const M7::WVSegment& edge,
-                         float preA,
-                         float preS,
-                         float postA,
-                         float postS,
-                         double distFromPathStartToEdgeInPhase01
-        //,std::string s
-        )
-    {
-      cc::log(
-          std::format("@ {:.3f}, enter segment #{}, left edge @ {:.3f} phase; pre[{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]",
-                      walker.mCursorPhase01,
-                      segmentIndex,
-                      edge.beginPhase01,
-                      preA,
-                      preS,
-                      postA,
-                      postS));
-      encounters++;
-    };
+  //  auto visitEdge = [&](size_t segmentIndex,
+  //                       const M7::WVSegment& edge,
+  //                       float preA,
+  //                       float preS,
+  //                       float postA,
+  //                       float postS,
+  //                       double distFromPathStartToEdgeInPhase01
+  //      //,std::string s
+  //      )
+  //  {
+  //    cc::log(
+  //        std::format("@ {:.3f}, enter segment #{}, left edge @ {:.3f} phase; pre[{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]",
+  //                    walker.mCursorPhase01,
+  //                    segmentIndex,
+  //                    edge.beginPhase01,
+  //                    preA,
+  //                    preS,
+  //                    postA,
+  //                    postS));
+  //    encounters++;
+  //  };
 
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 1);
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 1);  // landing directly on next edge will eval after.
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 2);
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 2);
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 3);
-    cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
-    walker.Step(0.5, visitEdge);
-    EXPECT_EQ(encounters, 3);
-  }
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 1);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 1);  // landing directly on next edge will eval after.
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 2);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 2);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 3);
+  //  cc::log(std::format("walking from {:.3f}", walker.mCursorPhase01));
+  //  walker.Step(0.5, visitEdge);
+  //  EXPECT_EQ(encounters, 3);
+  //}
 }

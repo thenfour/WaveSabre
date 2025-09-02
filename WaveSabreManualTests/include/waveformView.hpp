@@ -34,6 +34,8 @@ struct WaveformViewConfig
   bool showLollipops = true;  // whether to draw circular markers at each sample point
   bool showStems = false;     // whether to draw vertical lines from baseline to each sample point
   bool showLines = true;      // whether to draw a connected line through the sample points
+  bool showExtDots = true;
+  bool showEdgeEventLines = true;
 
   bool autoRangeY = true;  // whether to auto-range the Y axis to fit the data (overrides yMin/yMax if true)
   float yMin = -1.0f;
@@ -243,21 +245,40 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
                     isHovered ? hlStemThickness : stemThickness);
       }
 
+      if (cfg.showEdgeEventLines)
+      {
+        for (size_t iEdgeEvent = 0; iEdgeEvent < s.sample.edgeEvents.size(); ++iEdgeEvent)
+        {
+          const auto& e = s.sample.edgeEvents[iEdgeEvent];
+          // draw a dot at the event location. e.whenInSample01 is [0,1) within the sample window.
+          const float ex = M7::math::lerp(XForIndex(i), XForIndex(i + 1), e.whenInSample01);
+          const float ey = YForValue(s.sample.naive);
+          ImU32 ec = ColorFromHTML("aa44aa", 0.5f);
+          // vertical line as well.
+          dl->AddLine(ImVec2(ex, baselineY), ImVec2(ex, ey), ec, 1.0f);
+          dl->AddCircleFilled(ImVec2(ex, ey), 3, ec, 8);
+          dl->AddCircleFilled(ImVec2(ex, baselineY), 3, ec, 8);
+        }
+      }
+
       // marker
       if (cfg.showLollipops)
       {
         dl->AddCircleFilled(p, markerRadius, isHovered ? hlMarkerFill : markerFill, 8);
         dl->AddCircle(p, markerRadius, isHovered ? hlMarkerOutline : markerOutline, 8, 1.0f);
+      }
 
+      if (cfg.showExtDots)
+      {
         std::string str;
         if (s.sample.correction > 1e-6)
         {
           str += ".corr";
           dl->AddCircle(p, markerRadius + 2, ColorFromHTML("44ff44"), 8, 2.0f);
         }
-        for (size_t i = 0; i < s.sample.phaseAdvance.eventCount; ++i)
+        for (size_t iEvent = 0; iEvent < s.sample.phaseAdvance.eventCount; ++iEvent)
         {
-          const auto& e = s.sample.phaseAdvance.events[i];
+          const auto& e = s.sample.phaseAdvance.events[iEvent];
           if (e.kind == M7::PhaseEventKind::Wrap)
           {
             str += ".wrap";

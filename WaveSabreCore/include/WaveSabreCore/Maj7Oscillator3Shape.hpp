@@ -24,6 +24,11 @@ struct WVSegment
   // slope is dy/dx where x is phase in [0,1) (saw wave slope = 2 because it goes from -1 to +1 in one cycle = 2/1 = 2)
   float slope = 0;
 
+  double LengthInPhase01() const
+  {
+    return endPhaseIncluding1 - beginPhase01;
+  }
+
   // evaluate the amplitude and slope at the given absolute cycle phase (not relative to segment)
   inline std::pair<float, float> EvalAmpSlopeAtPhase(double sampleInPhase01) const
   {
@@ -59,7 +64,11 @@ struct WVShape
     // cursor phase is moved first; when a new segment is entered, this is updated.
     double mSegmentRemainingPhase = 0;  // distance from cursor to the end of the current segment, in phase units
     int mSegIndex = -1;
-    //WVSegment mCurrentSegment;
+    WVSegment mLastRunningSegment;
+
+    bool mQueuedEdgeOnNextStep = false;
+    float mQueuedEdgePreAmp = 0;
+    float mQueuedEdgePreSlope = 0;
 
     Walker() = default;
 
@@ -70,16 +79,53 @@ struct WVShape
       mSegIndex = -1;
     }
 
-    void JumpToPhase(double newPhase01)
+    // jumps to the given phase, and emits an edge event if this is a discontinuity.
+    template <class F>
+    void JumpToPhase(double newPhase01, F&& visitEdge, double distFromPathStartToEdgeInPhase01)
     {
-      // jump to phase as gracefully as possible.
-      // this can happen for any reason, including just correcting for drift, so don't reset any state.
-      // if the new cursor is very far out of the current segment though, then record the current amp/slope as pre-edge values,
-      // and reset the segment so it gets re-evaluated and  the appropriate edge is visited.
+      if (math::FloatEquals(newPhase01, mCursorPhase01))
+        return;
+
+      // note: you can jump to the same segment you're already in.
+      if (mSegIndex < 0)
+        return;
+
+      const auto [preA, preS] = mLastRunningSegment.EvalAmpSlopeAtPhase(mCursorPhase01);
+
       mCursorPhase01 = math::wrap01(newPhase01);
+      auto ht = mpParent->GetSegmentForPhase(newPhase01);
+
+      // if you jump to exactly the left edge of a segment, don't emit edge; it will be emitted on the next step.
+      // normally that's detected via mSegmentRemainingPhase, but we can't just set that because it would falsely act
+      // as if the segment completed.
+      if (ht.distanceFromLeftEdgeToX < 1e-6)
+      {
+        mQueuedEdgeOnNextStep = true;
+        mQueuedEdgePreAmp = preA;
+        mQueuedEdgePreSlope = preS;
+        return;
+      }
+
+      // jumping to the middle of a segment.
+      mSegIndex = (int)ht.segmentIndex;
+      mLastRunningSegment = mpParent->mSegments[mSegIndex];
+      mSegmentRemainingPhase = mLastRunningSegment.LengthInPhase01() -
+                               ht.distanceFromLeftEdgeToX;
+      const auto [newAmp, newSlope] = mLastRunningSegment.EvalAmpSlopeAtPhase(mCursorPhase01);
+
+#ifdef ENABLE_OSC_LOG
+      gOscLog.Log(std::format("JumpToPhase({}, tosegmentid {}, cursorPhase {:.3f})", newPhase01, mSegIndex, mCursorPhase01));
+      gOscLog.Log(std::format("  [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]", preA, preS, newAmp, newSlope));
+
+      // distFromPathStartToEdgeInPhase01 is meaningless here; there's no path.
+      visitEdge(PhaseEventKind::Unknown, mSegIndex, mLastRunningSegment, preA, preS, newAmp, newSlope, distFromPathStartToEdgeInPhase01, "JumpToPhase");
+#else
+      visitEdge(PhaseEventKind::Unknown, mSegIndex, mLastRunningSegment, preA, preS, newAmp, newSlope, distFromPathStartToEdgeInPhase01);
+#endif  // ENABLE_OSC_LOG
     }
 
     // visitEdge = void(
+    //   PhaseEventKind phaseEventReason,
     //   size_t segmentIndex,
     //   WVSegment segmentsLeftEdge,
     //   float preEdgeAmp,
@@ -95,7 +141,7 @@ struct WVShape
       double remainingInPath = stepSizePhase01;
       double travelled = 0.0;
 
-      // enters the given segment index; assumes it's within range but range+1 is ok (wraps to 0).
+      // enters the given segment index, at the beginning of the segment; assumes it's within range but range+1 is ok (wraps to 0).
       // visits the left edge of that segment.
       auto enterSegment = [&](int segIndex, double segmentPhaseAlreadyTraversed, const std::string& reason)
       {
@@ -108,9 +154,8 @@ struct WVShape
         float preS = 0;
         if (mSegIndex >= 0)
         {
-          const auto& currentSegment = mpParent->mSegments[mSegIndex];
-          double phaseAtEndOfPrevSegment = currentSegment.endPhaseIncluding1 - mSegmentRemainingPhase;
-          const auto [a, s] = currentSegment.EvalAmpSlopeAtPhase(phaseAtEndOfPrevSegment);
+          double phaseAtEndOfPrevSegment = mLastRunningSegment.endPhaseIncluding1 - mSegmentRemainingPhase;
+          const auto [a, s] = mLastRunningSegment.EvalAmpSlopeAtPhase(phaseAtEndOfPrevSegment);
           preA = a;
           preS = s;
         }
@@ -121,18 +166,17 @@ struct WVShape
         if (segIndex >= mpParent->mSegments.size())
           segIndex = 0;
         mSegIndex = segIndex;
-        const auto& currentSegment = mpParent->mSegments[mSegIndex];
-        //mCurrentSegment = mpParent->mSegments[segIndex];
-        mSegmentRemainingPhase = currentSegment.endPhaseIncluding1 - currentSegment.beginPhase01 -
+        mLastRunningSegment = mpParent->mSegments[mSegIndex];
+        mSegmentRemainingPhase = mLastRunningSegment.LengthInPhase01() -
                                  segmentPhaseAlreadyTraversed;
-        const auto [newAmp, newSlope] = currentSegment.EvalAmpSlopeAtPhase(mCursorPhase01);
+        const auto [newAmp, newSlope] = mLastRunningSegment.EvalAmpSlopeAtPhase(mCursorPhase01);
 
 #ifdef ENABLE_OSC_LOG
         gOscLog.Log(std::format("enterSegment({}, cursorPhase {:.3f}, reason={})", segIndex, mCursorPhase01, reason));
         gOscLog.Log(std::format("  [{:.3f}, {:.3f}] -> [{:.3f}, {:.3f}]", preA, preS, newAmp, newSlope));
-        visitEdge(segIndex, currentSegment, preA, preS, newAmp, newSlope, travelled, reason);
+        visitEdge(PhaseEventKind::Unknown, segIndex, mLastRunningSegment, preA, preS, newAmp, newSlope, travelled, reason);
 #else
-        visitEdge(segIndex, currentSegment, preA, preS, newAmp, newSlope, travelled);
+        visitEdge(PhaseEventKind::Unknown, segIndex, mLastRunningSegment, preA, preS, newAmp, newSlope, travelled);
 #endif  // ENABLE_OSC_LOG
       };
 

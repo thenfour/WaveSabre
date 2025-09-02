@@ -27,7 +27,7 @@ static constexpr float gPITimes2 = gPI * 2;
 static constexpr float gPIHalf = gPI * 0.5f;
 static constexpr float gSqrt2 = 1.41421356237f;
 static constexpr float gSqrt2Recip = 0.70710678118f;
-static constexpr float FloatEpsilon = 0.000001f;
+static constexpr float FloatEpsilon = 1e-6f;
 
 INLINE real_t floor(real_t x)
 {

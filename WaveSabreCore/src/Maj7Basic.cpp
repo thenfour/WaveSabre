@@ -68,11 +68,11 @@ namespace math
 //gPow2_N16_16_LUT{ gLutSize1D }
 
 //{}
-
-bool FloatEquals(real_t f1, real_t f2, real_t eps)
-{
-  return std::abs(f1 - f2) < eps;
-}
+//
+//bool FloatEquals(real_t f1, real_t f2, real_t eps)
+//{
+//  return std::abs(f1 - f2) < eps;
+//}
 
 //bool FloatLessThanOrEquals(real_t lhs, real_t rhs, real_t eps)
 //{

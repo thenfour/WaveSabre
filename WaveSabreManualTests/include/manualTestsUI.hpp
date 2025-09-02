@@ -72,7 +72,9 @@ struct Maj7ManualTestState
   bool showLollipops = true;
   bool showStems = true;
   bool showLines = false;
-  M7::OscillatorWaveform wf = M7::OscillatorWaveform::SawBlep1;
+  bool showExtDots = true;
+  bool showEdgeEventLines = true;
+  M7::OscillatorWaveform wf = M7::OscillatorWaveform::SawArtisnal;
   float waveShapeA = 0;
   float waveShapeB = 1;
 };
@@ -168,11 +170,13 @@ void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
 
 
   ImGui::SameLine();
-  ButtonArray<3>("waveformOptions",
+  ButtonArray<5>("waveformOptions",
                  {
                      MakeButtonSpec("Lollipops", &state.showLollipops),
                      MakeButtonSpec("Stems", &state.showStems),
                      MakeButtonSpec("Lines", &state.showLines),
+                     MakeButtonSpec("ExtDots", &state.showExtDots),
+                     MakeButtonSpec("EventLines", &state.showEdgeEventLines),
                      //MakeButtonSpec("Invert Bleps", &invertBleps),
                  });
 
@@ -229,6 +233,8 @@ void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
                                               .showLollipops = state.showLollipops,
                                               .showStems = state.showStems,
                                               .showLines = state.showLines,
+                                              .showExtDots = state.showExtDots,
+                                              .showEdgeEventLines = state.showEdgeEventLines,
                                               .autoRangeY = false,
                                               .yMin = -2.0f,
                                               .yMax = 2.0f,

@@ -274,13 +274,16 @@ struct FloatPair
 
 
 template <typename T, typename... Deps>
-class Memo {
+class Memo
+{
 public:
   // usage: get([&]{ return compute(); }, dep1, dep2, ...)
   template <typename F>
-  const T& get(F&& compute, const Deps&... deps) {
+  const T& get(F&& compute, const Deps&... deps)
+  {
     std::tuple<Deps...> newDeps{deps...};
-    if (!value_ || !depsEqual(newDeps)) {
+    if (!value_ || !depsEqual(newDeps))
+    {
       value_.emplace(std::invoke(std::forward<F>(compute)));
       deps_ = std::move(newDeps);
     }
@@ -288,9 +291,15 @@ public:
   }
 
   // Force recompute on next call.
-  void invalidate() { value_.reset(); }
+  void invalidate()
+  {
+    value_.reset();
+  }
 
-  bool hasValue() const noexcept { return value_.has_value(); }
+  bool hasValue() const noexcept
+  {
+    return value_.has_value();
+  }
 
 private:
   // equality helpers
@@ -308,13 +317,18 @@ private:
   //  return std::abs(a - b) <= static_cast<long double>(eps) * scale;
   //}
   template <class U>
-  static bool eq(const U& a, const U& b) { return a == b; }
+  static bool eq(const U& a, const U& b)
+  {
+    return a == b;
+  }
 
   template <std::size_t... I>
-  bool depsEqualImpl(const std::tuple<Deps...>& nd, std::index_sequence<I...>) const {
+  bool depsEqualImpl(const std::tuple<Deps...>& nd, std::index_sequence<I...>) const
+  {
     return (eq(std::get<I>(deps_), std::get<I>(nd)) && ...);
   }
-  bool depsEqual(const std::tuple<Deps...>& nd) const {
+  bool depsEqual(const std::tuple<Deps...>& nd) const
+  {
     return depsEqualImpl(nd, std::index_sequence_for<Deps...>{});
   }
 
@@ -552,7 +566,16 @@ namespace math
 //    return x;
 //}
 
-bool FloatEquals(real_t f1, real_t f2, real_t eps = FloatEpsilon);
+//bool FloatEquals(real_t f1, real_t f2, real_t eps = FloatEpsilon);
+
+
+template <typename T>
+inline bool FloatEquals(T f1, T f2, T eps = T{FloatEpsilon})
+{
+  //return f1 == f2 || std::abs(f1 - f2) < eps;
+  return std::abs(f1 - f2) < eps;
+}
+
 
 //bool FloatLessThanOrEquals(real_t lhs, real_t rhs, real_t eps = FloatEpsilon);
 
@@ -708,16 +731,18 @@ bool DoesEncounter(double t1, double t2, float x);
 // return true if x falls on the segment.
 inline bool DoesEncounter2(double start, double length, float xf)
 {
-    // Handle degenerate lengths quickly
-    if (!(length > 0.0)) return false;   // also makes NaN -> false
-    if (length >= 1.0)   return true;
+  // Handle degenerate lengths quickly
+  if (!(length > 0.0))
+    return false;  // also makes NaN -> false
+  if (length >= 1.0)
+    return true;
 
-    // x relative to start, wrapped into [0,1)
-    double d = static_cast<double>(xf) - start;
-    d += (d < 0.0);  // branchless: adds 1.0 if negative
+  // x relative to start, wrapped into [0,1)
+  double d = static_cast<double>(xf) - start;
+  d += (d < 0.0);  // branchless: adds 1.0 if negative
 
-    // Half-open membership test
-    return d < length;
+  // Half-open membership test
+  return d < length;
 }
 
 
@@ -837,9 +862,6 @@ void CalculateMuteSolo(bool (&mutes)[NBands], bool (&solos)[NBands], bool (&outp
 //  return NegOneThird * x * x * x;
 //}
 //
-
-
-
 
 
 // for detune & unisono, based on enabled oscillators etc, distribute a [-1,1] value among many items.
@@ -1149,14 +1171,14 @@ struct Deserializer
   //    return ret;
   //}
 
-//  uint32_t ReadUInt32();
-uint32_t ReadUInt32();
+  //  uint32_t ReadUInt32();
+  uint32_t ReadUInt32();
 
-//  uint32_t ReadVarUInt32();
-uint32_t ReadVarUInt32();
+  //  uint32_t ReadVarUInt32();
+  uint32_t ReadVarUInt32();
 
-//  float ReadFloat();
-float ReadFloat();
+  //  float ReadFloat();
+  float ReadFloat();
   double ReadDouble();
   // returns a new cursor in the out buffer
   void ReadBuffer(void* out, size_t numbytes);
@@ -1926,7 +1948,7 @@ enum class ParamIndices : uint16_t
       {"AE1dlt"},  {"AE1att"},  {"AE1atc"},  {"AE1ht"},   {"AE1dt"},   {"AE1dc"},   {"AE1sl"},   {"AE1rt"},            \
       {"AE1tc"},   {"AE1rst"},  {"AE1mode"}, {"O2En"},    {"O2Vol"},   {"O2Pan"},   {"O2KRmin"}, {"O2KRmax"},          \
       {"O2Wave"},  {"O2ShpA"},  {"O2ShpB"},  {"O2PRst"},  {"O2Poff"},  {"O2Scen"},  {"O2ScFq"},  {"O2ScKt"},           \
-      {"O2Fq"},    {"O2FqKt"},  {"O2Semi"},  {"O2Fine"},  {"O2Mul"},   {"O2FMFb"},  {"AE2dlt"},  {"AE2att"},            \
+      {"O2Fq"},    {"O2FqKt"},  {"O2Semi"},  {"O2Fine"},  {"O2Mul"},   {"O2FMFb"},  {"AE2dlt"},  {"AE2att"},           \
       {"AE2atc"},  {"AE2ht"},   {"AE2dt"},   {"AE2dc"},   {"AE2sl"},   {"AE2rt"},   {"AE2tc"},   {"AE2rst"},           \
       {"AE2mode"}, {"O3En"},    {"O3Vol"},   {"O3Pan"},   {"O3KRmin"}, {"O3KRmax"}, {"O3Wave"},  {"O3ShpA"},           \
       {"O3ShpB"},  {"O3PRst"},  {"O3Poff"},  {"O3Scen"},  {"O3ScFq"},  {"O3ScKt"},  {"O3Fq"},    {"O3FqKt"},           \
@@ -1936,12 +1958,12 @@ enum class ParamIndices : uint16_t
       {"O4Poff"},  {"O4Scen"},  {"O4ScFq"},  {"O4ScKt"},  {"O4Fq"},    {"O4FqKt"},  {"O4Semi"},  {"O4Fine"},           \
       {"O4Mul"},   {"O4FMFb"},  {"AE4dlt"},  {"AE4att"},  {"AE4atc"},  {"AE4ht"},   {"AE4dt"},   {"AE4dc"},            \
       {"AE4sl"},   {"AE4rt"},   {"AE4tc"},   {"AE4rst"},  {"AE4mode"}, {"E1dlt"},   {"E1att"},   {"E1atc"},            \
-      {"E1ht"},    {"E1dt"},    {"E1dc"},    {"E1sl"},    {"E1rt"},    {"E1tc"},    {"E1rst"},   {"E1mode"},          \
+      {"E1ht"},    {"E1dt"},    {"E1dc"},    {"E1sl"},    {"E1rt"},    {"E1tc"},    {"E1rst"},   {"E1mode"},           \
       {"E2dlt"},   {"E2att"},   {"E2atc"},   {"E2ht"},    {"E2dt"},    {"E2dc"},    {"E2sl"},    {"E2rt"},             \
-      {"E2tc"},    {"E2rst"},   {"E2mode"},  {"LFO1wav"}, {"LFO1shA"},{"LFO1shB"},{"LFO1rst"}, {"LFO1ph"},           \
-      {"LFO1bas"}, {"LFO1fr"},  {"LFO1lp"},  {"LFO2wav"}, {"LFO2shA"},{"LFO2shB"},{"LFO2rst"}, {"LFO2ph"},           \
-      {"LFO2bas"}, {"LFO2fr"},  {"LFO2lp"},  {"LFO3wav"}, {"LFO3shA"},{"LFO3shB"},{"LFO3rst"}, {"LFO3ph"},           \
-      {"LFO3bas"}, {"LFO3fr"},  {"LFO3lp"},  {"LFO4wav"}, {"LFO4shA"},{"LFO4shB"},{"LFO4rst"}, {"LFO4ph"},           \
+      {"E2tc"},    {"E2rst"},   {"E2mode"},  {"LFO1wav"}, {"LFO1shA"}, {"LFO1shB"}, {"LFO1rst"}, {"LFO1ph"},           \
+      {"LFO1bas"}, {"LFO1fr"},  {"LFO1lp"},  {"LFO2wav"}, {"LFO2shA"}, {"LFO2shB"}, {"LFO2rst"}, {"LFO2ph"},           \
+      {"LFO2bas"}, {"LFO2fr"},  {"LFO2lp"},  {"LFO3wav"}, {"LFO3shA"}, {"LFO3shB"}, {"LFO3rst"}, {"LFO3ph"},           \
+      {"LFO3bas"}, {"LFO3fr"},  {"LFO3lp"},  {"LFO4wav"}, {"LFO4shA"}, {"LFO4shB"}, {"LFO4rst"}, {"LFO4ph"},           \
       {"LFO4bas"}, {"LFO4fr"},  {"LFO4lp"},  {"F1En"},    {"F1Type"},  {"F1Q"},     {"F1Freq"},  {"F1FKT"},            \
       {"F2En"},    {"F2Type"},  {"F2Q"},     {"F2Freq"},  {"F2FKT"},   {"M1en"},    {"M1src"},   {"M1dest1"},          \
       {"M1dest2"}, {"M1dest3"}, {"M1dest4"}, {"M1curv"},  {"M1scl1"},  {"M1scl2"},  {"M1scl3"},  {"M1scl4"},           \
@@ -1950,54 +1972,55 @@ enum class ParamIndices : uint16_t
       {"M2scl2"},  {"M2scl3"},  {"M2scl4"},  {"M2Aen"},   {"M2Asrc"},  {"M2Aatt"},  {"M2Acrv"},  {"M2rngA"},           \
       {"M2rngB"},  {"M2rngXA"}, {"M2rngXB"}, {"M3en"},    {"M3src"},   {"M3dest1"}, {"M3dest2"}, {"M3dest3"},          \
       {"M3dest4"}, {"M3curv"},  {"M3scl1"},  {"M3scl2"},  {"M3scl3"},  {"M3scl4"},  {"M3Aen"},   {"M3Asrc"},           \
-      {"M3Aatt"},  {"M3Acrv"},  {"M3rngA"},  {"M3rngB"},  {"M3rngXA"}, {"M3rngXB"}, {"M4en"},    {"M4src"},   {"M4dest1"}, {"M4dest2"}, {"M4dest3"}, {"M4dest4"},          \
-      {"M4curv"},  {"M4scl1"},  {"M4scl2"},  {"M4scl3"},  {"M4scl4"},  {"M4Aen"},   {"M4Asrc"},  {"M4Aatt"},           \
-      {"M4Acrv"},  {"M4rngA"},  {"M4rngB"},  {"M4rngXA"}, {"M4rngXB"}, {"M5en"},    {"M5src"},   {"M5dest1"},          \
-      {"M5dest2"}, {"M5dest3"}, {"M5dest4"}, {"M5curv"},  {"M5scl1"},  {"M5scl2"},  {"M5scl3"},  {"M5scl4"},           \
-      {"M5Aen"},   {"M5Asrc"},  {"M5Aatt"},  {"M5Acrv"},  {"M5rngA"},  {"M5rngB"},  {"M5rngXA"}, {"M5rngXB"},          \
-      {"M6en"},    {"M6src"},   {"M6dest1"}, {"M6dest2"}, {"M6dest3"}, {"M6dest4"}, {"M6curv"},  {"M6scl1"},           \
-      {"M6scl2"},  {"M6scl3"},  {"M6scl4"},  {"M6Aen"},   {"M6Asrc"},  {"M6Aatt"},  {"M6Acrv"},  {"M6rngA"},           \
-      {"M6rngB"},  {"M6rngXA"}, {"M6rngXB"}, {"M7en"},    {"M7src"},   {"M7dest1"}, {"M7dest2"}, {"M7dest3"},          \
-      {"M7dest4"}, {"M7curv"},  {"M7scl1"},  {"M7scl2"},  {"M7scl3"},  {"M7scl4"},  {"M7Aen"},   {"M7Asrc"},           \
-      {"M7Aatt"},  {"M7Acrv"},  {"M7rngA"},  {"M7rngB"},  {"M7rngXA"}, {"M7rngXB"}, {"M8en"},    {"M8src"},            \
-      {"M8dest1"}, {"M8dest2"}, {"M8dest3"}, {"M8dest4"}, {"M8curv"},  {"M8scl1"},  {"M8scl2"},  {"M8scl3"},           \
-      {"M8scl4"},  {"M8Aen"},   {"M8Asrc"},  {"M8Aatt"},  {"M8Acrv"},  {"M8rngA"},  {"M8rngB"},  {"M8rngXA"},          \
-      {"M8rngXB"}, {"M9en"},    {"M9src"},   {"M9dest1"}, {"M9dest2"}, {"M9dest3"}, {"M9dest4"}, {"M9curv"},           \
-      {"M9scl1"},  {"M9scl2"},  {"M9scl3"},  {"M9scl4"},  {"M9Aen"},   {"M9Asrc"},  {"M9Aatt"},  {"M9Acrv"},           \
-      {"M9rngA"},  {"M9rngB"},  {"M9rngXA"}, {"M9rngXB"}, {"M10en"},   {"M10src"},  {"M10dst1"}, {"M10dst2"},          \
-      {"M10dst3"}, {"M10dst4"}, {"M10curv"}, {"M10scl1"}, {"M10scl2"}, {"M10scl3"}, {"M10scl4"}, {"M10Aen"},           \
-      {"M10Asrc"}, {"M10Aatt"}, {"M10Acrv"}, {"M10rgA"},  {"M10rgB"},  {"M10rgXA"}, {"M10rgXB"}, {"M11en"},            \
-      {"M11src"},  {"M11dst1"}, {"M11dst2"}, {"M11dst3"}, {"M11dst4"}, {"M11curv"}, {"M11scl1"}, {"M11scl2"},          \
-      {"M11scl3"}, {"M11scl4"}, {"M11Aen"},  {"M11Asrc"}, {"M11Aatt"}, {"M11Acrv"}, {"M11rgA"},  {"M11rgB"},           \
-      {"M11rgXA"}, {"M11rgXB"}, {"M12en"},   {"M12src"},  {"M12dst1"}, {"M12dst2"}, {"M12dst3"}, {"M12dst4"},          \
-      {"M12curv"}, {"M12scl1"}, {"M12scl2"}, {"M12scl3"}, {"M12scl4"}, {"M12Aen"},  {"M12Asrc"}, {"M12Aatt"},          \
-      {"M12Acrv"}, {"M12rgA"},  {"M12rgB"},  {"M12rgXA"}, {"M12rgXB"}, {"M13en"},   {"M13src"},  {"M13dst1"},          \
-      {"M13dst2"}, {"M13dst3"}, {"M13dst4"}, {"M13curv"}, {"M13scl1"}, {"M13scl2"}, {"M13scl3"}, {"M13scl4"},          \
-      {"M13Aen"},  {"M13Asrc"}, {"M13Aatt"}, {"M13Acrv"}, {"M13rgA"},  {"M13rgB"},  {"M13rgXA"}, {"M13rgXB"},          \
-      {"M14en"},   {"M14src"},  {"M14dst1"}, {"M14dst2"}, {"M14dst3"}, {"M14dst4"}, {"M14curv"}, {"M14scl1"},          \
-      {"M14scl2"}, {"M14scl3"}, {"M14scl4"}, {"M14Aen"},  {"M14Asrc"}, {"M14Aatt"}, {"M14Acrv"}, {"M14rgA"},           \
-      {"M14rgB"},  {"M14rgXA"}, {"M14rgXB"}, {"M15en"},   {"M15src"},  {"M15dst1"}, {"M15dst2"}, {"M15dst3"},          \
-      {"M15dst4"}, {"M15curv"}, {"M15scl1"}, {"M15scl2"}, {"M15scl3"}, {"M15scl4"}, {"M15Aen"},  {"M15Asrc"},          \
-      {"M15Aatt"}, {"M15Acrv"}, {"M15rgA"},  {"M15rgB"},  {"M15rgXA"}, {"M15rgXB"}, {"M16en"},   {"M16src"},           \
-      {"M16dst1"}, {"M16dst2"}, {"M16dst3"}, {"M16dst4"}, {"M16curv"}, {"M16scl1"}, {"M16scl2"}, {"M16scl3"},          \
-      {"M16scl4"}, {"M16Aen"},  {"M16Asrc"}, {"M16Aatt"}, {"M16Acrv"}, {"M16rgA"},  {"M16rgB"},  {"M16rgXA"},          \
-      {"M16rgXB"}, {"M17en"},   {"M17src"},  {"M17dst1"}, {"M17dst2"}, {"M17dst3"}, {"M17dst4"}, {"M17curv"},          \
-      {"M17scl1"}, {"M17scl2"}, {"M17scl3"}, {"M17scl4"}, {"M17Aen"},  {"M17Asrc"}, {"M17Aatt"}, {"M17Acrv"},          \
-      {"M17rgA"},  {"M17rgB"},  {"M17rgXA"}, {"M17rgXB"}, {"M18en"},   {"M18src"},  {"M18dst1"}, {"M18dst2"},          \
-      {"M18dst3"}, {"M18dst4"}, {"M18curv"}, {"M18scl1"}, {"M18scl2"}, {"M18scl3"}, {"M18scl4"}, {"M18Aen"},           \
-      {"M18Asrc"}, {"M18Aatt"}, {"M18Acrv"}, {"M18rgA"},  {"M18rgB"},  {"M18rgXA"}, {"M18rgXB"}, {"S1En"},    {"S1Vol"},   \
-      {"S1Pan"},   {"S1KRmin"}, {"S1KRmax"}, {"S1base"},  {"S1LTrig"}, {"S1Rev"},   {"S1src"},   {"S1gmidx"},          \
-      {"S1strt"},  {"S1LMode"}, {"S1LSrc"},  {"S1Lbeg"},  {"S1Llen"},  {"S1TunS"},  {"S1TunF"},  {"S1Frq"},            \
-      {"S1FrqKT"}, {"S1Intrp"}, {"S1RelX"},  {"S1Dly"},   {"S1Edlt"},  {"S1Eatt"},  {"S1Eatc"},  {"S1Eht"},            \
-      {"S1Edt"},   {"S1Edc"},   {"S1Esl"},   {"S1Ert"},   {"S1Etc"},   {"S1Erst"},  {"S1Emode"}, {"S2En"},    {"S2Pan"},   \
-      {"S2Vol"},   {"S2KRmin"}, {"S2KRmax"}, {"S2base"},  {"S2LTrig"}, {"S2Rev"},   {"S2src"},   {"S2gmidx"},          \
-      {"S2strt"},  {"S2LMode"}, {"S2LSrc"},  {"S2Lbeg"},  {"S2Llen"},  {"S2TunS"},  {"S2TunF"},  {"S2Frq"},            \
-      {"S2FrqKT"}, {"S2Intrp"}, {"S2RelX"},  {"S2Dly"},   {"S2Edlt"},  {"S2Eatt"},  {"S2Eatc"},  {"S2Eht"},            \
-      {"S2Edt"},   {"S2Edc"},   {"S2Esl"},   {"S2Ert"},   {"S2Etc"},   {"S2Erst"},  {"S2Emode"}, {"S3En"},    {"S3Vol"},   \
-      {"S3Pan"},   {"S3KRmin"}, {"S3KRmax"}, {"S3base"},  {"S3LTrig"}, {"S3Rev"},   {"S3src"},   {"S3gmidx"},          \
-      {"S3strt"},  {"S3LMode"}, {"S3LSrc"},  {"S3Lbeg"},  {"S3Llen"},  {"S3TunS"},  {"S3TunF"},  {"S3Frq"},            \
-      {"S3FrqKT"}, {"S3Intrp"}, {"S3RelX"},  {"S3Dly"},   {"S3Edlt"},  {"S3Eatt"},  {"S3Eatc"},  {"S3Eht"},            \
-      {"S3Edt"},   {"S3Edc"},   {"S3Esl"},   {"S3Ert"},   {"S3Etc"},   {"S3Erst"},  {"S3Emode"}, {"S4En"},    {"S4Vol"},   \
+      {"M3Aatt"},  {"M3Acrv"},  {"M3rngA"},  {"M3rngB"},  {"M3rngXA"}, {"M3rngXB"}, {"M4en"},    {"M4src"},            \
+      {"M4dest1"}, {"M4dest2"}, {"M4dest3"}, {"M4dest4"}, {"M4curv"},  {"M4scl1"},  {"M4scl2"},  {"M4scl3"},           \
+      {"M4scl4"},  {"M4Aen"},   {"M4Asrc"},  {"M4Aatt"},  {"M4Acrv"},  {"M4rngA"},  {"M4rngB"},  {"M4rngXA"},          \
+      {"M4rngXB"}, {"M5en"},    {"M5src"},   {"M5dest1"}, {"M5dest2"}, {"M5dest3"}, {"M5dest4"}, {"M5curv"},           \
+      {"M5scl1"},  {"M5scl2"},  {"M5scl3"},  {"M5scl4"},  {"M5Aen"},   {"M5Asrc"},  {"M5Aatt"},  {"M5Acrv"},           \
+      {"M5rngA"},  {"M5rngB"},  {"M5rngXA"}, {"M5rngXB"}, {"M6en"},    {"M6src"},   {"M6dest1"}, {"M6dest2"},          \
+      {"M6dest3"}, {"M6dest4"}, {"M6curv"},  {"M6scl1"},  {"M6scl2"},  {"M6scl3"},  {"M6scl4"},  {"M6Aen"},            \
+      {"M6Asrc"},  {"M6Aatt"},  {"M6Acrv"},  {"M6rngA"},  {"M6rngB"},  {"M6rngXA"}, {"M6rngXB"}, {"M7en"},             \
+      {"M7src"},   {"M7dest1"}, {"M7dest2"}, {"M7dest3"}, {"M7dest4"}, {"M7curv"},  {"M7scl1"},  {"M7scl2"},           \
+      {"M7scl3"},  {"M7scl4"},  {"M7Aen"},   {"M7Asrc"},  {"M7Aatt"},  {"M7Acrv"},  {"M7rngA"},  {"M7rngB"},           \
+      {"M7rngXA"}, {"M7rngXB"}, {"M8en"},    {"M8src"},   {"M8dest1"}, {"M8dest2"}, {"M8dest3"}, {"M8dest4"},          \
+      {"M8curv"},  {"M8scl1"},  {"M8scl2"},  {"M8scl3"},  {"M8scl4"},  {"M8Aen"},   {"M8Asrc"},  {"M8Aatt"},           \
+      {"M8Acrv"},  {"M8rngA"},  {"M8rngB"},  {"M8rngXA"}, {"M8rngXB"}, {"M9en"},    {"M9src"},   {"M9dest1"},          \
+      {"M9dest2"}, {"M9dest3"}, {"M9dest4"}, {"M9curv"},  {"M9scl1"},  {"M9scl2"},  {"M9scl3"},  {"M9scl4"},           \
+      {"M9Aen"},   {"M9Asrc"},  {"M9Aatt"},  {"M9Acrv"},  {"M9rngA"},  {"M9rngB"},  {"M9rngXA"}, {"M9rngXB"},          \
+      {"M10en"},   {"M10src"},  {"M10dst1"}, {"M10dst2"}, {"M10dst3"}, {"M10dst4"}, {"M10curv"}, {"M10scl1"},          \
+      {"M10scl2"}, {"M10scl3"}, {"M10scl4"}, {"M10Aen"},  {"M10Asrc"}, {"M10Aatt"}, {"M10Acrv"}, {"M10rgA"},           \
+      {"M10rgB"},  {"M10rgXA"}, {"M10rgXB"}, {"M11en"},   {"M11src"},  {"M11dst1"}, {"M11dst2"}, {"M11dst3"},          \
+      {"M11dst4"}, {"M11curv"}, {"M11scl1"}, {"M11scl2"}, {"M11scl3"}, {"M11scl4"}, {"M11Aen"},  {"M11Asrc"},          \
+      {"M11Aatt"}, {"M11Acrv"}, {"M11rgA"},  {"M11rgB"},  {"M11rgXA"}, {"M11rgXB"}, {"M12en"},   {"M12src"},           \
+      {"M12dst1"}, {"M12dst2"}, {"M12dst3"}, {"M12dst4"}, {"M12curv"}, {"M12scl1"}, {"M12scl2"}, {"M12scl3"},          \
+      {"M12scl4"}, {"M12Aen"},  {"M12Asrc"}, {"M12Aatt"}, {"M12Acrv"}, {"M12rgA"},  {"M12rgB"},  {"M12rgXA"},          \
+      {"M12rgXB"}, {"M13en"},   {"M13src"},  {"M13dst1"}, {"M13dst2"}, {"M13dst3"}, {"M13dst4"}, {"M13curv"},          \
+      {"M13scl1"}, {"M13scl2"}, {"M13scl3"}, {"M13scl4"}, {"M13Aen"},  {"M13Asrc"}, {"M13Aatt"}, {"M13Acrv"},          \
+      {"M13rgA"},  {"M13rgB"},  {"M13rgXA"}, {"M13rgXB"}, {"M14en"},   {"M14src"},  {"M14dst1"}, {"M14dst2"},          \
+      {"M14dst3"}, {"M14dst4"}, {"M14curv"}, {"M14scl1"}, {"M14scl2"}, {"M14scl3"}, {"M14scl4"}, {"M14Aen"},           \
+      {"M14Asrc"}, {"M14Aatt"}, {"M14Acrv"}, {"M14rgA"},  {"M14rgB"},  {"M14rgXA"}, {"M14rgXB"}, {"M15en"},            \
+      {"M15src"},  {"M15dst1"}, {"M15dst2"}, {"M15dst3"}, {"M15dst4"}, {"M15curv"}, {"M15scl1"}, {"M15scl2"},          \
+      {"M15scl3"}, {"M15scl4"}, {"M15Aen"},  {"M15Asrc"}, {"M15Aatt"}, {"M15Acrv"}, {"M15rgA"},  {"M15rgB"},           \
+      {"M15rgXA"}, {"M15rgXB"}, {"M16en"},   {"M16src"},  {"M16dst1"}, {"M16dst2"}, {"M16dst3"}, {"M16dst4"},          \
+      {"M16curv"}, {"M16scl1"}, {"M16scl2"}, {"M16scl3"}, {"M16scl4"}, {"M16Aen"},  {"M16Asrc"}, {"M16Aatt"},          \
+      {"M16Acrv"}, {"M16rgA"},  {"M16rgB"},  {"M16rgXA"}, {"M16rgXB"}, {"M17en"},   {"M17src"},  {"M17dst1"},          \
+      {"M17dst2"}, {"M17dst3"}, {"M17dst4"}, {"M17curv"}, {"M17scl1"}, {"M17scl2"}, {"M17scl3"}, {"M17scl4"},          \
+      {"M17Aen"},  {"M17Asrc"}, {"M17Aatt"}, {"M17Acrv"}, {"M17rgA"},  {"M17rgB"},  {"M17rgXA"}, {"M17rgXB"},          \
+      {"M18en"},   {"M18src"},  {"M18dst1"}, {"M18dst2"}, {"M18dst3"}, {"M18dst4"}, {"M18curv"}, {"M18scl1"},          \
+      {"M18scl2"}, {"M18scl3"}, {"M18scl4"}, {"M18Aen"},  {"M18Asrc"}, {"M18Aatt"}, {"M18Acrv"}, {"M18rgA"},           \
+      {"M18rgB"},  {"M18rgXA"}, {"M18rgXB"}, {"S1En"},    {"S1Vol"},   {"S1Pan"},   {"S1KRmin"}, {"S1KRmax"},          \
+      {"S1base"},  {"S1LTrig"}, {"S1Rev"},   {"S1src"},   {"S1gmidx"}, {"S1strt"},  {"S1LMode"}, {"S1LSrc"},           \
+      {"S1Lbeg"},  {"S1Llen"},  {"S1TunS"},  {"S1TunF"},  {"S1Frq"},   {"S1FrqKT"}, {"S1Intrp"}, {"S1RelX"},           \
+      {"S1Dly"},   {"S1Edlt"},  {"S1Eatt"},  {"S1Eatc"},  {"S1Eht"},   {"S1Edt"},   {"S1Edc"},   {"S1Esl"},            \
+      {"S1Ert"},   {"S1Etc"},   {"S1Erst"},  {"S1Emode"}, {"S2En"},    {"S2Pan"},   {"S2Vol"},   {"S2KRmin"},          \
+      {"S2KRmax"}, {"S2base"},  {"S2LTrig"}, {"S2Rev"},   {"S2src"},   {"S2gmidx"}, {"S2strt"},  {"S2LMode"},          \
+      {"S2LSrc"},  {"S2Lbeg"},  {"S2Llen"},  {"S2TunS"},  {"S2TunF"},  {"S2Frq"},   {"S2FrqKT"}, {"S2Intrp"},          \
+      {"S2RelX"},  {"S2Dly"},   {"S2Edlt"},  {"S2Eatt"},  {"S2Eatc"},  {"S2Eht"},   {"S2Edt"},   {"S2Edc"},            \
+      {"S2Esl"},   {"S2Ert"},   {"S2Etc"},   {"S2Erst"},  {"S2Emode"}, {"S3En"},    {"S3Vol"},   {"S3Pan"},            \
+      {"S3KRmin"}, {"S3KRmax"}, {"S3base"},  {"S3LTrig"}, {"S3Rev"},   {"S3src"},   {"S3gmidx"}, {"S3strt"},           \
+      {"S3LMode"}, {"S3LSrc"},  {"S3Lbeg"},  {"S3Llen"},  {"S3TunS"},  {"S3TunF"},  {"S3Frq"},   {"S3FrqKT"},          \
+      {"S3Intrp"}, {"S3RelX"},  {"S3Dly"},   {"S3Edlt"},  {"S3Eatt"},  {"S3Eatc"},  {"S3Eht"},   {"S3Edt"},            \
+      {"S3Edc"},   {"S3Esl"},   {"S3Ert"},   {"S3Etc"},   {"S3Erst"},  {"S3Emode"}, {"S4En"},    {"S4Vol"},            \
       {"S4Pan"},   {"S4KRmin"}, {"S4KRmax"}, {"S4base"},  {"S4LTrig"}, {"S4Rev"},   {"S4src"},   {"S4gmidx"},          \
       {"S4strt"},  {"S4LMode"}, {"S4LSrc"},  {"S4Lbeg"},  {"S4Llen"},  {"S4TunS"},  {"S4TunF"},  {"S4Frq"},            \
       {"S4FrqKT"}, {"S4Intrp"}, {"S4RelX"},  {"S4Dly"},   {"S4Edlt"},  {"S4Eatt"},  {"S4Eatc"},  {"S4Eht"},            \

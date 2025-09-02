@@ -101,7 +101,8 @@ extern M7::OscLog gOscLog;
 enum class PhaseEventKind
 {
   Wrap,
-  Reset
+  Reset,
+  Unknown,
 };
 
 struct InSamplePhaseEvent
@@ -121,45 +122,21 @@ struct PhaseAdvance
   // sample window size, in phase units (this is phaseEnd01 - phaseBegin01, wrapped to [0,1) )
   double lengthInPhase01 = 0.0f;
 
-  // In-sample events (at most: one wrap + one external reset).
-  // more than 1 of either kind of event implies frequencies above Nyquist so it's not supported and expect artifacts.
-  // Events are sorted by time.
-  InSamplePhaseEvent events[2];
+  // there are a limited number of scenarios that can happen.
+  // 1. nothing
+  // 2. wrap
+  // 3. reset
+  // 4. reset + wrap
+  // 5. wrap + reset
+  // 6. wrap + reset + wrap; this can only happen if your arate phase offset is near the end of the cycle.
+  InSamplePhaseEvent events[3];
   int eventCount = 0;
-
-  //std::optional<InSamplePhaseEvent> GetWrapEvent() const {
-  //    for (int i = 0; i < eventCount; ++i) {
-  //    if (events[i].kind == PhaseEventKind::Wrap) {
-  //      return events[i];
-  //    }
-  //  }
-  //    return std::nullopt;
-  //}
-
-  std::tuple<std::optional<InSamplePhaseEvent>, std::optional<InSamplePhaseEvent>> GetWrapAndSyncEvents() const
-  {
-    std::optional<InSamplePhaseEvent> wrapEvent;
-    std::optional<InSamplePhaseEvent> syncEvent;
-    for (int i = 0; i < eventCount; ++i)
-    {
-      if (events[i].kind == PhaseEventKind::Wrap)
-      {
-        wrapEvent = events[i];
-      }
-      else if (events[i].kind == PhaseEventKind::Reset)
-      {
-        syncEvent = events[i];
-      }
-    }
-    return {wrapEvent, syncEvent};
-  }
 
   float ComputeFrequencyHz() const
   {
     return static_cast<float>(lengthInPhase01 * Helpers::CurrentSampleRateF);
   }
 };
-
 
 // handles advancing phase based on frequency.
 // never outputs reset events.
@@ -190,6 +167,11 @@ public:
     return mPhase01;
   }
 
+  double getPhaseDeltaPerSample01() const
+  {
+    return mPhaseDeltaPerSample01;
+  }
+
   void SynchronizeWith(const PhaseAccumulator& src)
   {
     mPhase01 = src.mPhase01;
@@ -202,53 +184,72 @@ public:
     mFrequencyHz = hz;
   }
 
-  // Advance one sample, wrapping phase, emitting wrap events (no reset events are relevant at this level).
-  PhaseAdvance advanceOneSample()
+  // allows advancing partial samples. Returns advance info scaled to a sample window (not phaseDelta).
+  // but there's no concept of a sample boundary here.
+  //PhaseAdvance advanceArbitrary(double phaseDelta01, double audioRatePhaseOffset)
+  //{
+  //  const double phaseBeginEval = math::wrap01(mPhase01 + audioRatePhaseOffset);
+  //  const double endPhaseEval = phaseBeginEval + phaseDelta01;
+
+  //  PhaseAdvance out{
+  //      .phaseBegin01 = phaseBeginEval,
+  //      .phaseEnd01 = math::wrap01(endPhaseEval),
+  //      .lengthInPhase01 = phaseDelta01,
+  //  };
+
+  //  mPhase01 = math::wrap01(mPhase01 + phaseDelta01);
+  //  //double endPhase = out.phaseBegin01 + phaseDelta01;
+
+  //  if (endPhaseEval >= 1.0)
+  //  {
+  //    // Where inside this sample the wrap happens.
+  //    double remainingPhaseToWrap = 1.0 - out.phaseBegin01;                       // 1.0 = where the wrap is
+  //    double wrapWhenInSample01 = remainingPhaseToWrap / mPhaseDeltaPerSample01;  // converts from phase to sample.
+  //    out.eventCount = 1;
+  //    out.events[0] = InSamplePhaseEvent{.whenInSample01 = wrapWhenInSample01, .kind = PhaseEventKind::Wrap};
+  //  }
+
+  //  return out;
+  //}
+
+  PhaseAdvance advanceArbitrary(double phaseDelta01, double audioRatePhaseOffset)
   {
-#ifdef ENABLE_OSC_LOG
-    auto ls = M7::gOscLog.IndentBlock("PhaseAccumulator " + mDebugName + " advanceOneSample()");
-#endif  // ENABLE_OSC_LOG
     PhaseAdvance out{};
-    out.phaseBegin01 = mPhase01;
-    out.lengthInPhase01 = mPhaseDeltaPerSample01;
+    const double phaseBeginEval = math::wrap01(mPhase01 + audioRatePhaseOffset);
+    const double endPhaseEval = phaseBeginEval + phaseDelta01;
 
-    double next = mPhase01 + mPhaseDeltaPerSample01;
+    out.phaseBegin01 = phaseBeginEval;
+    out.lengthInPhase01 = phaseDelta01;
 
-#ifdef ENABLE_OSC_LOG
-    M7::gOscLog.Log(std::format(
-        "From {:.3f} + {:.3f} = {:.3f}", (float)out.phaseBegin01, (float)(out.lengthInPhase01), (float)next));
-#endif  // ENABLE_OSC_LOG
-
-    // At most one natural wrap per sample (your stated constraint)
-    if (next >= 1.0)
+    if (endPhaseEval >= 1.0 && mPhaseDeltaPerSample01 > 0.0)
     {
-      // Where inside this sample the wrap happens.
-      // 1 = where the wrap is
-      // 1 - mPhase01 = how much phase is left until wrap (distance from beginning of sample to wrap)
-      // /phaseDelta converts from phase to sample.
-      double wrapAt01 = (1.0 - mPhase01) / mPhaseDeltaPerSample01;
-
-#ifdef ENABLE_OSC_LOG
-      M7::gOscLog.Log(std::format("Cycle wrap @ {:.3f} % through sample", (float)wrapAt01));
-#endif  // ENABLE_OSC_LOG
-
-      out.eventCount = 1;
-      out.events[0] = InSamplePhaseEvent{.whenInSample01 = wrapAt01, .kind = PhaseEventKind::Wrap};
-
-      // Continue after wrap
-      next -= 1.0;
+      double t = (1.0 - phaseBeginEval) / mPhaseDeltaPerSample01;  // fraction of full sample
+      t = std::min(std::nextafter(1.0, 0.0), std::max(0.0, t));
+      out.events[out.eventCount++] = InSamplePhaseEvent{t, PhaseEventKind::Wrap};
     }
 
-    out.phaseEnd01 = math::wrap01(next);
-    mPhase01 = out.phaseEnd01;  // commit
+    out.phaseEnd01 = math::wrap01(endPhaseEval);
 
+    // advance internal state WITHOUT offset
+    mPhase01 = math::wrap01(mPhase01 + phaseDelta01);
     return out;
+  }
+
+  // Advance one sample, wrapping phase, emitting wrap events (no reset events are relevant at this level).
+  // audioRatePhaseOffset = phase offset to apply.
+  PhaseAdvance advanceOneSample(double audioRatePhaseOffset)
+  {
+    return advanceArbitrary(mPhaseDeltaPerSample01, audioRatePhaseOffset);
   }
 };
 
 // connects 2 phase accumulators to track master / slave for hard sync.
 struct HardSyncPhaseAccumulator
 {
+  // better name alternatives:
+  // source / target
+  // main / sync
+  // pitch / shape
   PhaseAccumulator mMaster{"MasterPhase"};
   PhaseAccumulator mSlave{"SlavePhase"};
   bool mHardSyncEnabled = false;
@@ -261,17 +262,15 @@ struct HardSyncPhaseAccumulator
     mSlave.setFrequencyHz(hardSyncEnable ? syncHz : mainHz);
   }
 
+  double GetAudiblePhase01() const
+  {
+    return mSlave.getPhase01();
+  }
+
   void setPhase01(double phase01)
   {
     mMaster.setPhase01(phase01);
     mSlave.setPhase01(phase01);
-  }
-
-  // used by vst editor to show LFO animation
-  // used by band limiting when shape is dirty, to begin walking a new shape from the same phase.
-  float GetAudiblePhase01() const
-  {
-    return (float)mSlave.getPhase01();
   }
 
   void SynchronizeWith(const HardSyncPhaseAccumulator& src)
@@ -280,74 +279,88 @@ struct HardSyncPhaseAccumulator
     mSlave.SynchronizeWith(src.mSlave);
   }
 
-  PhaseAdvance advanceOneSample()
+  // Advances one sample, collecting phase events along the way.
+  PhaseAdvance advanceOneSample(double audoRatePhaseOffset)
   {
-    // Advance both; then synthesize the *slave*'s PhaseAdvance with an optional in-sample reset
-    PhaseAdvance m = mMaster.advanceOneSample();
-    PhaseAdvance s = mSlave.advanceOneSample();
-
-    // If master wrapped inside this sample, slave gets a Reset at that time
-    bool masterWrapped = (m.eventCount > 0 && m.events[0].kind == PhaseEventKind::Wrap);
-
-    if (!mHardSyncEnabled || !masterWrapped)
+    if (!mHardSyncEnabled)
     {
-      // No reset: just return the slave’s step (possibly with its own Wrap)
+      PhaseAdvance s = mSlave.advanceOneSample(audoRatePhaseOffset);
       return s;
     }
 
-    // Compute slave's end-phase if it is reset at t = tR within the sample
-    const double tReset = m.events[0].whenInSample01;  // [0,1)
+    // possible scenarios:
+    // 1. nothing
+    // 2. wrap
+    // 3. reset
+    // 4. reset + wrap
+    // 5. wrap + reset
+    // 6. wrap + reset + wrap; this can only happen if your arate phase offset is near the end of the cycle.
 
-    PhaseAdvance out = s;  // start from slave’s kinematics
-
-    // Insert Reset event (and possibly also keep a natural slave wrap if it occurred before the reset)
-    InSamplePhaseEvent tmpEvents[2];
-
-    // keep events in chronological order; there are only 2 cases: wrap happened before reset, or not.
-    // assumes max 1 event
-    // assumes it's a wrap if it exists
-    if (s.eventCount > 0 && s.events[0].whenInSample01 < tReset)
+    PhaseAdvance m = mMaster.advanceOneSample(0);
+    if (m.eventCount == 0)
     {
-      out.events[0] = s.events[0];
-      out.events[1] = InSamplePhaseEvent{.whenInSample01 = tReset, .kind = PhaseEventKind::Reset};
-      out.eventCount = 2;
-
-      #ifdef ENABLE_OSC_LOG
-      gOscLog.Log(std::format("Events: Cycle wrap then SyncReset @ {:.3f} in sample", (float)tReset));
-      #endif // ENABLE_OSC_LOG
-    }
-    else
-    {
-      // if wrapped after reset, ignore the wrap (because the phase gets reset to 0 and the wrap is no longer valid)
-#ifdef ENABLE_OSC_LOG
-      gOscLog.Log(std::format("Events: SyncReset @ {:.3f} in sample", (float)tReset));
-#endif  // ENABLE_OSC_LOG
-      out.events[0] = InSamplePhaseEvent{.whenInSample01 = tReset, .kind = PhaseEventKind::Reset};
-      out.eventCount = 1;
+      // No reset: return the slave step (possibly with its own Wrap)...
+      // scenarios #1 and #2.
+      PhaseAdvance s = mSlave.advanceOneSample(audoRatePhaseOffset);
+      return s;
     }
 
-    // Recompute the end phase after reset:
-    // - phase grows from s.phaseBegin01 up to reset (tReset), then jumps to 0,
-    // - then advances the remaining (1 - tReset) fraction at the same delta.
-    const double delta = s.lengthInPhase01;
-    const double afterResetAdvance = (1.0 - tReset) * delta;
-    out.phaseEnd01 = afterResetAdvance;  //math::wrap01(afterResetAdvance);  // starts at 0 after reset
+    // hard sync event occurred.
 
-    // Commit slave’s internal phase to the recomputed end
-    mSlave.setPhase01(out.phaseEnd01);
+    // --------------- advance slave up to the reset point
+    const double preResetInSample01 = m.events[0].whenInSample01;  // [0,1)
+    const double postResetInSample01 = 1.0 - preResetInSample01;
+    const double preResetPhaseDelta = preResetInSample01 * mSlave.getPhaseDeltaPerSample01();
+    const double postResetPhaseDelta = postResetInSample01 * mSlave.getPhaseDeltaPerSample01();
+    const PhaseAdvance preResetAdv = mSlave.advanceArbitrary(preResetPhaseDelta, audoRatePhaseOffset);
+    PhaseAdvance out = preResetAdv;  // start from slave's kinematics
+
+    // for #5 and #6, the first wrap event is already there.
+    // add the reset event
+    out.events[out.eventCount++] = InSamplePhaseEvent{m.events[0].whenInSample01, PhaseEventKind::Reset};
+
+    // --------------- evaluate the remaining post-reset window
+    const auto postResetAdv = mSlave.advanceArbitrary(postResetPhaseDelta, audoRatePhaseOffset);
+    if (postResetAdv.eventCount > 0)
+    {
+      // scenario #4: reset + wrap
+      // scenario #6: wrap + reset + wrap
+      // convert the wrap event position from post-reset-window to full sample window
+      const double wrapInSample01 = preResetInSample01 + postResetAdv.events[0].whenInSample01;
+      out.events[out.eventCount++] = InSamplePhaseEvent{.whenInSample01 = wrapInSample01, .kind = PhaseEventKind::Wrap};
+    }
+
+    out.lengthInPhase01 = mSlave.getPhaseDeltaPerSample01();  // but full sample length
+    out.phaseEnd01 = math::wrap01(out.phaseBegin01 + out.lengthInPhase01);
 
     return out;
   }
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct EdgeEvent
+{
+  PhaseEventKind reason = PhaseEventKind::Unknown;
+  float atPhase01 = 0.0f;       // phase location of the edge [0,1)
+  float whenInSample01 = 0.0f;  // when in the current sample [0,1)
+
+  float preEdgeAmp = 0.0f;   // amplitude just before the edge
+  float postEdgeAmp = 0.0f;  // amplitude just after the edge
+  float dAmp = 0.0f;         // post - pre
+
+  float preEdgeSlope = 0.0f;   // slope just before the edge (per phase)
+  float postEdgeSlope = 0.0f;  // slope just after the edge (per phase)
+  float dSlope = 0.0f;         // post - pre
+};
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct CoreSample
 {
   float amplitude = 0.0f;  // the final sample value (with bandlimiting applied if applicable)
 
-  float naive = 0.0f;         // the naive sample value (without bandlimiting)
-  float correction = 0.0f;    // the bandlimiting correction to add to the naive value
-  PhaseAdvance phaseAdvance;  // phase kinematics for this sample
+  float naive = 0.0f;                 // the naive sample value (without bandlimiting)
+  float correction = 0.0f;            // the bandlimiting correction to add to the naive value
+  PhaseAdvance phaseAdvance;          // phase kinematics for this sample
+  std::vector<EdgeEvent> edgeEvents;  // discontinuity events that happened during this sample
   std::string log;
 };
 
@@ -407,28 +420,6 @@ public:
   // in-sample event times remain the same relative to the window—only their phase locations shift.
   // so we can just shift phaseBegin01 and phaseEnd01 by the offset when you evaluate the shape, keeping the logic simple.
   virtual CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) = 0;
-};
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// example of simplest core: a sine wave; no band limiting supported
-struct SineCore : public OscillatorCore
-{
-  SineCore()
-      : OscillatorCore(OscillatorWaveform::Sine)
-  {
-  }
-  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-  {
-    const auto step = mPhaseAcc.advanceOneSample();
-    const double renderPhase = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
-    float y = math::sin(math::gPITimes2 * (float)renderPhase);
-    return {
-        .amplitude = y,
-        .naive = y,
-        .correction = 0.0f,
-        .phaseAdvance = step,
-    };
-  }
 };
 
 }  // namespace M7

@@ -86,16 +86,19 @@ enum class OscillatorWaveform : uint8_t
 
   PulseNaive,
   PulseBlep1,
+  PulseArtisnal,
   //PulseBlep2,
   //PulseBlep3,
 
   SawNaive,
   SawBlep1,
+  SawArtisnal,
   //SawBlep2,
   //SawBlep3,
 
   TriNaive,
   TriBlep1,
+  TriArtisnal,
   //TriBlep2,
   //TriBlep3,
 
@@ -126,10 +129,13 @@ enum class OscillatorWaveform : uint8_t
   "Sine",\
   "PulseNaive",\
   "PulseBlep1",\
+  "PulseArtisnal",\
   "SawNaive",\
   "SawBlep1",\
+  "SawArtisnal",\
   "TriNaive",\
   "TriBlep1",\
+  "TriArtisnal",\
   }
 // clang-format on
 

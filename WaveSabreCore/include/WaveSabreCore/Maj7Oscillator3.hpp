@@ -10,6 +10,7 @@
 #include "Maj7Basic.hpp"
 #include "Maj7Oscillator3Bandlimiting.hpp"
 #include "Maj7Oscillator3Base.hpp"
+#include "Maj7Oscillator3Waveshapes.hpp"
 
 namespace WaveSabreCore
 {
@@ -27,6 +28,8 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
     case OscillatorWaveform::SawBlep1:
       return new SawCore<PolyBlepBlampExecutor1, OscillatorWaveform::SawBlep1>();
+    case OscillatorWaveform::SawArtisnal:
+      return new ArtisnalSawCore();
       //case OscillatorWaveform::SawBlep2:
       //  return new SawCore<PolyBlepBlampExecutor2, OscillatorWaveform::SawBlep2>();
       //case OscillatorWaveform::SawBlep3:
