@@ -23,7 +23,7 @@ struct PhaseStep
   double dt;            // per-sample phase advance in phase units, ∈ [0,1)
   bool hasReset;        // master wrapped inside this sample?
   double resetAlpha01;  // when in this sample the reset occurs, ∈ [0,1) (valid if hasReset)
-  double phaseEnd01;    // slave phase at sample end (no offset), ∈ [0,1)
+  //double phaseEnd01;    // slave phase at sample end (no offset), ∈ [0,1)
 };
 
 // Simple accumulator: no offset, no wrap events
@@ -55,7 +55,7 @@ struct PhaseAccumulator
     const double begin = mPhase01;
     const double end = math::wrap01(begin + mDelta);
     mPhase01 = end;
-    return {begin, mDelta, false, 0.0, end};
+    return {begin, mDelta, false, 0.0};//, end};
   }
 
   // advance with an externally provided reset alpha (0..1); updates internal phase
@@ -66,7 +66,10 @@ struct PhaseAccumulator
     // post segment after reset: (1 - alpha01) * dt
     const double end = math::wrap01((1.0 - alpha01) * mDelta);
     mPhase01 = end;
-    return {begin, mDelta, true, alpha01, end};
+    return
+    {
+      begin, mDelta, true, alpha01
+    }  ;//, end};
   }
 };
 
@@ -125,22 +128,6 @@ struct HardSyncPhase
 // dAmp = postAmp - preAmp, dSlope = postSlope - preSlope (slope is dy/dphase).
 namespace SplitKernels
 {
-//// AA correction polynomial to be added THIS sample.
-//template<typename T>
-//static inline T BlepBefore(T x)
-//{
-//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-//  return x * x;
-//}
-//// AA correction polynomial to be added NEXT sample.
-//template<typename T>
-//static inline T BlepAfter(T x)
-//{
-//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-//  x = 1 - x;
-//  return -x * x;
-//}
-
 // * 0.5 for canonical polyBLEP normalization (ΔA * .5), to return correction for 1 unit.
 // since delta Y is max 2 (-1 to +1), poly_blep has to halve it for the function to work.
 static inline void add_blep(double alpha, double dAmp, double& now, double& next)
@@ -151,31 +138,6 @@ static inline void add_blep(double alpha, double dAmp, double& now, double& next
   next += halfDAmp * (-(alpha * alpha));
 }
 
-//static inline void add_blamp(double alpha, double dSlope, double dt, double& now, double& next)
-//{
-//  const double u = 1.0 - alpha;
-//  // BLAMP must scale with dt (kernel width) for correct magnitude.
-//  now += (dSlope * dt * .5) * BlampBefore(u);  // current sample (tail)
-//  next += (dSlope * dt * .5) * BlampAfter(u);  // next sample (head)
-//}
-
-//template <typename T>
-//static inline T BlampBefore(T x)
-//{
-//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-//  static constexpr T OneThird = T{1} / T{3};
-//  return x * x * x * OneThird;
-//}
-//
-//template <typename T>
-//static inline T BlampAfter(T x)
-//{
-//  static_assert(std::is_floating_point<T>::value, "requires a floating point type");
-//  static constexpr T NegOneThird = T{-1} / T{3};
-//  x = x - 1;
-//  return NegOneThird * x * x * x;
-//}
-
 static inline void add_blamp(double alpha, double dSlope, double dt, double& now, double& next)
 {
   static constexpr double OneThird = 1.0 / 3.0;
@@ -185,23 +147,7 @@ static inline void add_blamp(double alpha, double dSlope, double dt, double& now
   const double um1 = u - 1.0;
   next += outputScale * -OneThird * um1 * um1 * um1;
 }
-
-//static inline void add_blamp(double alpha, double dSlope, double dt, double& now, double& next)
-//{
-//  const double u = 1.0 - alpha;
-//  const double tail = dt * (-(1.0 / 3.0) * alpha * alpha * alpha + 0.5 * alpha * alpha + (1.0 / 6.0));
-//  const double head = dt * ((1.0 / 3.0) * u * u * u - 0.5 * u * u + (1.0 / 6.0));
-//  now += dSlope * .5 * tail;
-//  next += dSlope * .5 * head;
-//}
-
-
 };  // namespace SplitKernels
-
-//// -------------- split kernels (current "tail" + next "head")
-//struct SplitKernels
-//{
-//};
 
 struct CorrectionSpill
 {

@@ -88,14 +88,14 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     case OscillatorWaveform::ShapeCoreStreamingTri2:
       return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriGenerator);
 
-    case OscillatorWaveform::SawNaive:
-      return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
+    //case OscillatorWaveform::SawNaive:
+    //  return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
 
-    case OscillatorWaveform::PulseNaive:
-      return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
+    //case OscillatorWaveform::PulseNaive:
+    //  return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
 
-    case OscillatorWaveform::TriNaive:
-      return new TriTruncCore<NullBlepBlampExecutor, OscillatorWaveform::TriNaive>();
+    //case OscillatorWaveform::TriNaive:
+    //  return new TriTruncCore<NullBlepBlampExecutor, OscillatorWaveform::TriNaive>();
   }
 }
 
@@ -393,18 +393,17 @@ public:
         });
 
     // uncomment for prod
-    //const auto outp = mCore->renderSampleAndAdvance(GetPhaseOffset());
-    //mLastSample = outp;
+    const auto outp = mCore->renderSampleAndAdvance(GetPhaseOffset());
+    mLastSample = outp;
 
-    //if (forceSilence)
-    //{
-    //  mPreviousSample = 0.0f;
-    //  return 0.0f;
-    //}
+    if (forceSilence)
+    {
+      mPreviousSample = 0.0f;
+      return 0.0f;
+    }
 
-    //mPreviousSample = outp.amplitude;
-    //return outp.amplitude;
-    return {};
+    mPreviousSample = outp.amplitude;
+    return outp.amplitude;
   }
 
 };  // OscillatorNode
