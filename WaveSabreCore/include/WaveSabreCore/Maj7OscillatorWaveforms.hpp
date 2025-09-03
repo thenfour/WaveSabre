@@ -217,6 +217,15 @@
 //  static constexpr float mT3 = 0.5f;
 //  float mT4 = 0;
 //
+// edges:
+// shapeA is -1 to 1
+// 0
+// mt2: abs(shapeA) * .5 (so shape determines width of high state)
+// mt3 is always 0.5
+// mt4 is 0.5 + mt2
+// so main duty cycle is always 50%
+// and shape param determines the width of the non-0 state.
+// this is actually 4 states (high, 0, low, 0)
 //  virtual void AfterSetParams() override
 //  {
 //    mShapeA = std::abs(mShapeA * 2 - 1);  // create reflection to make bipolar

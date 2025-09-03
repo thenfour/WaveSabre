@@ -60,6 +60,9 @@ TEST(ShapeTests, TriangleShapeEval)
   auto testEval = [&](double phase01, float expectedAmp, float expectedSlope)
   {
     auto [amp, slope] = triangle.EvalAmpSlopeAt(phase01);
+    auto msg = std::format("testing @ {:.3f}. expect=[{:.3f}, {:.3f}]; actual=[{:.3f}, {:.3f}]", phase01, expectedAmp, expectedSlope, amp, slope);
+    std::cout << msg << std::endl;
+    ::OutputDebugStringA((msg + "\n").c_str());
     EXPECT_NEAR(amp, expectedAmp, kEps) << " at phase " << phase01;
     EXPECT_NEAR(slope, expectedSlope, kEps) << " at phase " << phase01;
   };

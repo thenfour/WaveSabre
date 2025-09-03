@@ -17,6 +17,52 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+namespace M7Osc4
+{
+struct SawGenerator : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float /*shapeB*/) const override
+  {
+    return MakeSawShape();
+  }
+};
+struct TriGenerator : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float /*shapeB*/) const override
+  {
+    return MakeTriangleShape();
+  }
+};
+struct PulseGenerator : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float /*shapeB*/) const override
+  {
+    return MakePulseShape(shapeA);
+  }
+};
+
+struct TriPulseGenerator1 : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float shapeB) const override
+  {
+    return MakeTriStatePulseShape3(shapeA, shapeB);
+  }
+};
+
+struct TriPulseGenerator2 : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float shapeB) const override
+  {
+    // shapeA = pulse width (0..1)
+    // shapeB defines the low & high duty cycles. when shapeB = 0.5, both are 0.5. when shapeB = 0, low=0, high=1; when shapeB=1, low=1, high=0
+    double lowDuty01 = shapeB;
+    double highDuty01 = 1.0 - shapeB;
+    return MakeTriStatePulseShape4(shapeA, lowDuty01, highDuty01);
+  }
+};
+
+}  // namespace M7Osc4
+
 inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
 {
   switch (w)
@@ -24,12 +70,12 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     default:
     case OscillatorWaveform::Sine:
       return new SineCore();
-    //case OscillatorWaveform::ShapeCoreStreamingSaw:
-    //  return new ShapeCoreStreaming(w, MakeSawShape());
-    //case OscillatorWaveform::ShapeCoreStreamingPulse:
-    //  return new ShapeCoreStreaming(w, MakePulseShape(0.5f));
-    //case OscillatorWaveform::ShapeCoreStreamingTri:
-    //  return new ShapeCoreStreaming(w, MakeTriangleShape());
+      //case OscillatorWaveform::ShapeCoreStreamingSaw:
+      //  return new ShapeCoreStreaming(w, MakeSawShape());
+      //case OscillatorWaveform::ShapeCoreStreamingPulse:
+      //  return new ShapeCoreStreaming(w, MakePulseShape(0.5f));
+      //case OscillatorWaveform::ShapeCoreStreamingTri:
+      //  return new ShapeCoreStreaming(w, MakeTriangleShape());
 
     case OscillatorWaveform::ShapeCoreStreamingSaw2:
       return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::SawGenerator);
