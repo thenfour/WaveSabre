@@ -67,6 +67,69 @@ struct WVShape
   }
 };
 
+// -------------- segment walker (wrapless inside each segment; wraps across 1→0 naturally)
+struct SegmentWalker
+{
+  const WVShape& shape;
+  double phase0;  // absolute phase at subwindow start (no wrap)
+  double dt;      // full-sample dt
+  double winLen;  // subwindow length as fraction of the sample ∈ [0,1]
+  float amp0, slope0;
+
+  static SegmentWalker Begin(const WVShape& sh, double phaseBegin, double dtSample)
+  {
+    auto [a, s] = sh.EvalAmpSlopeAt(phaseBegin);
+    return {sh, phaseBegin, dtSample, 1.0, a, s};
+  }
+  void ResetSubwindow(double newPhase, double newLen)
+  {
+    phase0 = newPhase;
+    winLen = newLen;
+    auto [a, s] = shape.EvalAmpSlopeAt(newPhase);
+    amp0 = a;
+    slope0 = s;
+  }
+
+  template <class F>  // F(alpha, dAmp, dSlope)
+  void VisitEdges(F&& onEdge)
+  {
+    double consumed = 0.0;
+    double curPhase = phase0;
+    float curAmp = amp0;
+    float curSlope = slope0;
+
+    while (consumed < winLen)
+    {
+      const WVSegment& seg = shape.FindSegment(curPhase);
+      const double edgePhi = (seg.endPhaseIncluding1 >= 1.0) ? 1.0 : seg.endPhaseIncluding1;
+
+      const double dPhaseToEdge = edgePhi - curPhase;
+      const double alpha = dPhaseToEdge / dt;  // portion of the *full* sample; may exceed remaining
+
+      if (alpha <= (winLen - consumed) && alpha >= 0.0)
+      {
+        const double preAlpha = alpha;
+        const double preAmp = curAmp + float(preAlpha * dt) * curSlope;
+        const float preSlope = curSlope;
+
+        const double postPhase = (edgePhi >= 1.0) ? 0.0 : edgePhi;
+        const auto [postAmp, postSlope] = shape.EvalAmpSlopeAt(postPhase);
+
+        onEdge(consumed + preAlpha, double(postAmp) - double(preAmp), double(postSlope) - double(preSlope));
+
+        // step across the edge
+        consumed += preAlpha;
+        curPhase = postPhase;
+        curAmp = postAmp;
+        curSlope = postSlope;
+      }
+      else
+        break;
+    }
+  }
+};
+
+
 }  // namespace M7
 
 }  // namespace WaveSabreCore

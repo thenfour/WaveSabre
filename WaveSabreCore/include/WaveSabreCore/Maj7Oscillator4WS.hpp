@@ -62,79 +62,16 @@ struct CorrectionSpill
   }
 };
 
-// -------------- segment walker (wrapless inside each segment; wraps across 1→0 naturally)
-struct SegmentWalker
-{
-  const WVShape& shape;
-  double phase0;  // absolute phase at subwindow start (no wrap)
-  double dt;      // full-sample dt
-  double winLen;  // subwindow length as fraction of the sample ∈ [0,1]
-  float amp0, slope0;
-
-  static SegmentWalker Begin(const WVShape& sh, double phaseBegin, double dtSample)
-  {
-    auto [a, s] = sh.EvalAmpSlopeAt(phaseBegin);
-    return {sh, phaseBegin, dtSample, 1.0, a, s};
-  }
-  void ResetSubwindow(double newPhase, double newLen)
-  {
-    phase0 = newPhase;
-    winLen = newLen;
-    auto [a, s] = shape.EvalAmpSlopeAt(newPhase);
-    amp0 = a;
-    slope0 = s;
-  }
-
-  template <class F>  // F(alpha, dAmp, dSlope)
-  void VisitEdges(F&& onEdge)
-  {
-    double consumed = 0.0;
-    double curPhase = phase0;
-    float curAmp = amp0;
-    float curSlope = slope0;
-
-    while (consumed < winLen)
-    {
-      const WVSegment& seg = shape.FindSegment(curPhase);
-      const double edgePhi = (seg.endPhaseIncluding1 >= 1.0) ? 1.0 : seg.endPhaseIncluding1;
-
-      const double dPhaseToEdge = edgePhi - curPhase;
-      const double alpha = dPhaseToEdge / dt;  // portion of the *full* sample; may exceed remaining
-
-      if (alpha <= (winLen - consumed) && alpha >= 0.0)
-      {
-        const double preAlpha = alpha;
-        const double preAmp = curAmp + float(preAlpha * dt) * curSlope;
-        const float preSlope = curSlope;
-
-        const double postPhase = (edgePhi >= 1.0) ? 0.0 : edgePhi;
-        const auto [postAmp, postSlope] = shape.EvalAmpSlopeAt(postPhase);
-
-        onEdge(consumed + preAlpha, double(postAmp) - double(preAmp), double(postSlope) - double(preSlope));
-
-        // step across the edge
-        consumed += preAlpha;
-        curPhase = postPhase;
-        curAmp = postAmp;
-        curSlope = postSlope;
-      }
-      else
-        break;
-    }
-  }
-};
 
 struct IShapeGenerator
 {
   virtual WVShape GetShape(float shapeA, float shapeB) const = 0;
 };
 
-// -------------- the core
 struct ShapeCoreStreaming : public OscillatorCore
 {
   std::unique_ptr<IShapeGenerator> mShapeGen;
   WVShape mShape;
-  HardSyncPhase mPh;  // accumulators; no offset inside
   CorrectionSpill mSpill;
 
   ShapeCoreStreaming(OscillatorWaveform w, IShapeGenerator* shapeGen)
@@ -143,32 +80,14 @@ struct ShapeCoreStreaming : public OscillatorCore
   {
   }
 
-  void SetKRateParams(float shapeA, float shapeB, float mainFreqHz, bool enableHardSync, float syncFreqHz) override
+  void HandleParamsChanged() override
   {
-    mWaveshapeA = shapeA;
-    mWaveshapeB = shapeB;
-    mPh.setParams(mainFreqHz, enableHardSync, syncFreqHz);
     mShape = mShapeGen->GetShape(mWaveshapeA, mWaveshapeB);
-    HandleParamsChanged();
   };
-
-  // used by LFOs to just hard-set the phase. LFO phase, when "note restart" is disabled, is global, so
-  // all individual voice LFOs should be in sync and act as if they're the same.
-  // Everything after the 1st call will effectively be a NOP, so no special bandlimiting or processing necessary.
-  virtual void ForcefullySynchronizePhase(const OscillatorCore& src) override {
-    //mPh.SynchronizeWith(src.mPh);
-  };
-
-  virtual void RestartDueToNoteOn() override
-  {
-    // set phase to 0 (because the oscillator's "phase offset" is performed via audioRatePhaseOffset in renderSampleAndAdvance.
-    mPh.setPhase01(0);
-  };
-
 
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
-    const PhaseStep step = mPh.advanceOneSample();  // no offset here
+    const PhaseStep step = mPhaseAcc.advanceOneSample();  // no offset here
     const double dt = step.dt;
     const double phase = step.phaseBegin01;
 

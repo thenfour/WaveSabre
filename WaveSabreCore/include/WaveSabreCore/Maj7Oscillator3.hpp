@@ -68,8 +68,15 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
   switch (w)
   {
     default:
-    case OscillatorWaveform::Sine:
-      return new SineCore();
+    case OscillatorWaveform::SineDCClip:
+      return new SineCoreExt<SineCoreExtVariant::DCClip>(OscillatorWaveform::SineDCClip);
+    case OscillatorWaveform::SineClipSqueeze:
+      return new SineCoreExt<SineCoreExtVariant::ClipSilence>(OscillatorWaveform::SineClipSqueeze);
+
+    case OscillatorWaveform::SineHarmDCClip:
+      return new SineCoreExt<SineCoreExtVariant::ClipHarm>(OscillatorWaveform::SineHarmDCClip);
+    case OscillatorWaveform::SineHarmClipSqueeze:
+      return new SineCoreExt<SineCoreExtVariant::HarmSilence>(OscillatorWaveform::SineHarmClipSqueeze);
 
     case OscillatorWaveform::ShapeCoreStreamingSaw2:
       return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::SawGenerator);
@@ -130,7 +137,7 @@ public:
       , mpOscDevice(pOscDevice)
       , mIntention(intention)
   {
-    mCore = std::make_unique<SineCore>();
+    mCore = std::make_unique<SineCore<false>>(OscillatorWaveform::SineDCClip);
     //mCore = std::make_unique<SawCore>();
     //mCore = std::make_unique<PWMCore>();
   }

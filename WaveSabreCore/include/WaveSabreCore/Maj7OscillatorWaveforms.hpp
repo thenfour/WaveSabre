@@ -49,31 +49,6 @@
 //};
 //
 ///////////////////////////////////////////////////////////////////////////////
-//struct PulsePWMWaveform : IOscillatorWaveform
-//{
-//  virtual float NaiveSample(float phase01) override
-//  {
-//    return phase01 < mShapeA ? -1.0f : 1.0f;
-//  }
-//
-//  virtual float NaiveSampleSlope(float phase01) override
-//  {
-//    return 0;
-//  }
-//
-//  virtual void AfterSetParams() override
-//  {
-//    mShapeA = math::lerp(0.98f, .02f, mShapeA);
-//  }
-//
-//  virtual void Visit(double newPhase, float samples, float samplesTillNextSample) override
-//  {
-//    OSC_ACCUMULATE_BLEP(newPhase, 0, -1, samples, samplesTillNextSample);
-//    OSC_ACCUMULATE_BLEP(newPhase, mShapeA, 1, samples, samplesTillNextSample);
-//  }
-//};
-//
-///////////////////////////////////////////////////////////////////////////////
 //struct SineHarmTruncWaveform : IOscillatorWaveform
 //{
 //  // returns Y value at specified phase. instance / stateless.

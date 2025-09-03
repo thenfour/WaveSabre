@@ -82,51 +82,29 @@ struct ISoundSourceDevice
 
 enum class OscillatorWaveform : uint8_t
 {
-  Sine,
-  //ShapeCoreStreamingSaw,
-  //ShapeCoreStreamingPulse,
-  //ShapeCoreStreamingTri,
+  SineDCClip,
+  SineClipSqueeze,
+  SineHarmDCClip,
+  SineHarmClipSqueeze,
 
   ShapeCoreStreamingSaw2,
   ShapeCoreStreamingPulse2,
-  ShapeCoreStreamingTriPulse1,
-  ShapeCoreStreamingTriPulse2,
+  ShapeCoreStreamingTriPulse1,  // 3-state pulse
+  ShapeCoreStreamingTriPulse2,  // 4-state pulse
   ShapeCoreStreamingTri2,
 
-  PulseNaive,
-  //PulseBlep1,
-  //PulseArtisnal,
-  //PulseBlep2,
-  //PulseBlep3,
-
+  PulseNaive,  // todo!
   SawNaive,
-  //SawBlep1,
-  //SawArtisnal,
-  //SawBasic,
-  //SawShape4,
-  //SawBlep2,
-  //SawBlep3,
-
   TriNaive,
-  //TriBlep1,
-  //TriArtisnal,
-  //TriBlep2,
-  //TriBlep3,
 
-  //Pulse,
-  //PulseTristate,
-  //SawClip,
-  //SineClip,
-  //SineHarmTrunc,
-  //TriSquare,
-  //TriTrunc,
-  //VarTrapezoid,
-  //WhiteNoiseSH,
-  //SineRectified,
-  //SinePhaseDist,
-  //StaircaseSaw,
-  //TriFold,
-  //DoublePulse,
+  // saw - tri - trunc (param1: saw-tri-revsaw mix, param2: trunc amount)
+  // square - tri - trunc (param1: square-tri mix, param2: trunc amount, which is just empty space at end of cycle)
+
+  // noise types:
+  // - white noise + filtering (tilt / hp / bp / lp...) -- consider that one filter that continuously morphs between lp -> hp
+  // - sample & hold noise (slew rate + jitter) (band-limit)
+  // - grain: freq: grain size, jitter, shape seed?
+  // - particle: impulses; freq: rate, shape: decay / rise, length, amplitude variation (bandlimit)
   Count,
 
   DefaultForAudio = SawNaive,
@@ -137,11 +115,14 @@ enum class OscillatorWaveform : uint8_t
 #define OSCILLATOR_WAVEFORM_CAPTIONS(symbolName)                                                                       \
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count]                   \
   {                                                                                                                    \
-  "Sine",\
+  "Sine DC Clip",\
+  "Sine Clip Squeez",\
+  "Sine Harm DC Clip",\
+  "Sine Harm Clip Squeez",\
   "SSS_Saw-2",\
-  "SSS_pulse-2",\
-  "SSS_tri-pulse-1",\
-  "SSS_tri-pulse-2",\
+  "pulse-2",\
+  "pulse 3",\
+  "pulse 4",\
   "SSS_tri-2",\
   "PulseNaive",\
   "SawNaive",\
