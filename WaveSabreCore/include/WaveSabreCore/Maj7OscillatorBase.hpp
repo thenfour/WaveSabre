@@ -83,6 +83,9 @@ struct ISoundSourceDevice
 enum class OscillatorWaveform : uint8_t
 {
   Sine,
+  ShapeCoreStreamingSaw,
+  ShapeCoreStreamingPulse,
+  ShapeCoreStreamingTri,
 
   PulseNaive,
   PulseBlep1,
@@ -94,6 +97,7 @@ enum class OscillatorWaveform : uint8_t
   SawBlep1,
   SawArtisnal,
   SawBasic,
+  SawShape4,
   //SawBlep2,
   //SawBlep3,
 
@@ -128,6 +132,9 @@ enum class OscillatorWaveform : uint8_t
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count]                   \
   {                                                                                                                    \
   "Sine",\
+  "SSS_Saw",\
+  "SSS_pulse",\
+  "SSS_tri",\
   "PulseNaive",\
   "PulseBlep1",\
   "PulseArtisnal",\
@@ -135,6 +142,7 @@ enum class OscillatorWaveform : uint8_t
   "SawBlep1",\
   "SawArtisnal",\
   "SawBasic",\
+  "SawShape4",\
   "TriNaive",\
   "TriBlep1",\
   "TriArtisnal",\

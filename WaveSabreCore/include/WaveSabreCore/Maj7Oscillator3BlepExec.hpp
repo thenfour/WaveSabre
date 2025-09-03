@@ -84,7 +84,7 @@ struct PolyBlepBlampExecutor1 : IBlepExecutor
 #endif  // ENABLE_OSC_LOG
 
     now += dAmp * blepBefore;
-    next += dAmp * BlepAfter(u);
+    next += dAmp * blepAfter;
   }
 
   template <typename T>

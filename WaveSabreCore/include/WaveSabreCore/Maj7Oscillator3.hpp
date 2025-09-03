@@ -23,6 +23,12 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     default:
     case OscillatorWaveform::Sine:
       return new SineCore();
+    case OscillatorWaveform::ShapeCoreStreamingSaw:
+      return new ShapeCoreStreaming(w, MakeSawShape());
+    case OscillatorWaveform::ShapeCoreStreamingPulse:
+      return new ShapeCoreStreaming(w, MakePulseShape(0.5f));
+    case OscillatorWaveform::ShapeCoreStreamingTri:
+      return new ShapeCoreStreaming(w, MakeTriangleShape());
 
     case OscillatorWaveform::SawNaive:
       return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
@@ -32,6 +38,8 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new ArtisnalSawCore();
     case OscillatorWaveform::SawBasic:
       return new BasicSawCore();
+    case OscillatorWaveform::SawShape4:
+      return new ShapeCore();
 
     case OscillatorWaveform::PulseNaive:
       return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
