@@ -11,6 +11,7 @@
 #include "Maj7Oscillator3Bandlimiting.hpp"
 #include "Maj7Oscillator3Base.hpp"
 #include "Maj7Oscillator3Waveshapes.hpp"
+#include "Maj7Oscillator4WS.hpp"
 
 namespace WaveSabreCore
 {
@@ -29,6 +30,13 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new ShapeCoreStreaming(w, MakePulseShape(0.5f));
     case OscillatorWaveform::ShapeCoreStreamingTri:
       return new ShapeCoreStreaming(w, MakeTriangleShape());
+
+    case OscillatorWaveform::ShapeCoreStreamingSaw2:
+      return new M7Osc4::ShapeCoreStreaming(w, MakeSawShape());
+    case OscillatorWaveform::ShapeCoreStreamingPulse2:
+      return new M7Osc4::ShapeCoreStreaming(w, MakePulseShape(0.5f));
+    case OscillatorWaveform::ShapeCoreStreamingTri2:
+      return new M7Osc4::ShapeCoreStreaming(w, MakeTriangleShape());
 
     case OscillatorWaveform::SawNaive:
       return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();

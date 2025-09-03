@@ -243,6 +243,14 @@ struct WVShape
     return {};
   }
 
+  // find segment at phase:
+  WVSegment FindSegment(double sampleInPhase01) const
+  {
+    sampleInPhase01 = math::wrap01(sampleInPhase01);
+    auto segHit = GetSegmentForPhase(sampleInPhase01);
+    return *segHit.leftEdge;
+  }
+
   inline std::pair<float, float> EvalAmpSlopeAt(double sampleInPhase01) const
   {
     sampleInPhase01 = math::wrap01(

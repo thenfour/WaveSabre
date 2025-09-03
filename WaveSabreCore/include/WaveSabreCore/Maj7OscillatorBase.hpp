@@ -87,6 +87,10 @@ enum class OscillatorWaveform : uint8_t
   ShapeCoreStreamingPulse,
   ShapeCoreStreamingTri,
 
+  ShapeCoreStreamingSaw2,
+  ShapeCoreStreamingPulse2,
+  ShapeCoreStreamingTri2,
+
   PulseNaive,
   PulseBlep1,
   PulseArtisnal,
@@ -135,6 +139,9 @@ enum class OscillatorWaveform : uint8_t
   "SSS_Saw",\
   "SSS_pulse",\
   "SSS_tri",\
+  "SSS_Saw-2",\
+  "SSS_pulse-2",\
+  "SSS_tri-2",\
   "PulseNaive",\
   "PulseBlep1",\
   "PulseArtisnal",\

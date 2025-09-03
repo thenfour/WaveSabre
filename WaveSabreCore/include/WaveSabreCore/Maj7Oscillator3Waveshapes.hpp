@@ -617,55 +617,55 @@ struct ShapeCore : public OscillatorCore
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 //
-//struct SplitKernels
-//{
-//  // BLEP (step) split. alpha = event time in current sample, ∈ [0,1)
-//  // u = remaining fraction after the edge within this sample = 1 - alpha
-//  // Coefficient uses 0.5 * dAmp to match the standard per-sample polyBLEP normalization.
-//  static inline void add_blep(double alpha, double dAmp, double& now, double& next)
-//  {
-//    const double u = 1.0 - alpha;
-//    dAmp *= 0.5;
-//    now += dAmp * (u * u);
-//    next += dAmp * (-(alpha * alpha));  // -(1-u)^2 == -alpha^2
-//  }
-//
-//  // BLAMP (slope kink) split. Scales with dt (kernel width).
-//  // Tail (current) is a polynomial in alpha; head (next) in u = 1 - alpha.
-//  static inline void add_blamp(double alpha, double dSlope, double dt, double& now, double& next)
-//  {
-//    const double u = 1.0 - alpha;
-//
-//    // Tail (current sample):  dt * ( -1/3 α^3 + 1/2 α^2 + 1/6 )
-//    const double tail = dt * (-(1.0 / 3.0) * alpha * alpha * alpha + 0.5 * alpha * alpha + (1.0 / 6.0));
-//
-//    // Head (next sample):     dt * ( +1/3 u^3    - 1/2 u^2    + 1/6 )
-//    const double head = dt * ((1.0 / 3.0) * u * u * u - 0.5 * u * u + (1.0 / 6.0));
-//
-//    now += dSlope * tail;
-//    next += dSlope * head;
-//  }
-//};
+struct SplitKernels
+{
+  // BLEP (step) split. alpha = event time in current sample, ∈ [0,1)
+  // u = remaining fraction after the edge within this sample = 1 - alpha
+  // Coefficient uses 0.5 * dAmp to match the standard per-sample polyBLEP normalization.
+  static inline void add_blep(double alpha, double dAmp, double& now, double& next)
+  {
+    const double u = 1.0 - alpha;
+    dAmp *= 0.5;
+    now += dAmp * (u * u);
+    next += dAmp * (-(alpha * alpha));  // -(1-u)^2 == -alpha^2
+  }
+
+  // BLAMP (slope kink) split. Scales with dt (kernel width).
+  // Tail (current) is a polynomial in alpha; head (next) in u = 1 - alpha.
+  static inline void add_blamp(double alpha, double dSlope, double dt, double& now, double& next)
+  {
+    const double u = 1.0 - alpha;
+
+    // Tail (current sample):  dt * ( -1/3 α^3 + 1/2 α^2 + 1/6 )
+    const double tail = dt * (-(1.0 / 3.0) * alpha * alpha * alpha + 0.5 * alpha * alpha + (1.0 / 6.0));
+
+    // Head (next sample):     dt * ( +1/3 u^3    - 1/2 u^2    + 1/6 )
+    const double head = dt * ((1.0 / 3.0) * u * u * u - 0.5 * u * u + (1.0 / 6.0));
+
+    now += dSlope * tail;
+    next += dSlope * head;
+  }
+};
 
 //
-//struct CorrectionSpill
-//{
-//  double now = 0.0;   // added to this sample
-//  double next = 0.0;  // carried to next sample
-//
-//  inline void open_sample()
-//  {
-//    now = next;
-//    next = 0.0;
-//  }
-//  inline void add_edge(double alpha, double dAmp, double dSlope, double dt)
-//  {
-//    if (dAmp != 0.0)
-//      SplitKernels::add_blep(alpha, dAmp, now, next);
-//    if (dSlope != 0.0)
-//      SplitKernels::add_blamp(alpha, dSlope, dt, now, next);
-//  }
-//};
+struct CorrectionSpill
+{
+  double mNow = 0.0;   // added to this sample
+  double mNext = 0.0;  // carried to next sample
+
+  inline void OpenSample(double dt)
+  {
+    mNow = mNext;
+    mNext = 0.0;
+  }
+  inline void AccumulateEdge(double alpha, double dAmp, double dSlope, double dt)
+  {
+    if (dAmp != 0.0)
+      SplitKernels::add_blep(alpha, dAmp, mNow, mNext);
+    if (dSlope != 0.0)
+      SplitKernels::add_blamp(alpha, dSlope, dt, mNow, mNext);
+  }
+};
 
 
 // i am pretty sure this is the closest yet, but it's still not perfect.
@@ -694,7 +694,7 @@ struct BlepExecutor2
   {
     float uo = u;
     u = 1.0f - static_cast<float>(u);
-    u *= mSampleWindowSizeInPhase01;
+    u *= (float)mSampleWindowSizeInPhase01;
     auto blepBefore = BlepBefore(u);
     auto blepAfter = BlepAfter(u);
 #ifdef ENABLE_OSC_LOG
@@ -784,7 +784,7 @@ struct BlepExecutor2
                       ,
                       std::string reason
 #endif  // ENABLE_OSC_LOG
-                      )
+  )
   {
     //const double u = edgePosInSample01;  // when in this sample [0,1)
     if (dAmp != 0.0f)
@@ -898,8 +898,8 @@ struct SegmentWalker
 struct ShapeCoreStreaming : public OscillatorCore
 {
   WVShape mShape;
-  //CorrectionSpill mSpill;
-  BlepExecutor2 mBLHelper;
+  CorrectionSpill mBLHelper;
+  //BlepExecutor2 mBLHelper;
 
   ShapeCoreStreaming(OscillatorWaveform wf, const WVShape& shape)
       : OscillatorCore(wf)
@@ -907,18 +907,143 @@ struct ShapeCoreStreaming : public OscillatorCore
   {
   }
 
+  //CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+  //{
+  //  // don't pass offset into advanceOneSample. this offset is a "rendering offset",
+  //  // but phase advance is about advancing a sample and getting an execution plan. that includes resets & wraps within the sample.
+  //  // rendering the waveform is OUR concern which is where the offset matters.
+  //  const PhaseAdvance step = mPhaseAcc.advanceOneSample(0);
+  //  const double dt = step.lengthInPhase01;  // phase width per sample
+  //  const double phase = step.phaseBegin01;  // eval phase at sample start
+
+  //  //mSpill.open_sample();
+  //  mBLHelper.OpenSample(dt);
+
+  //  // alpha = event time in current sample, ∈ [0,1)
+  //  const auto accumulateEdge = [&](double alpha)
+  //  {
+  //    // the "phase before wrap" is tricky. if phase offset is 0, it's just 1.0.
+  //    // but with phase offset, it's 1.0 + offset, which may wrap around. but we still want to catch 1.0 exactly.
+  //    // so with pre-reset-phase, it's [0,1], but with post-reset-phase it's [0,1). weird.
+  //    //
+  //    // also important: pre and post phase NEED to both account for the offset in the same way.
+  //    // `phase` bakes the offset in, but the reset
+  //    const double prePh = phase + alpha * dt;                   // just before wrap
+  //    const double postPh = math::wrap01(audioRatePhaseOffset);  // 0 + offset
+  //    const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
+  //    const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
+  //    mBLHelper.AccumulateEdge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
+  //  };
+
+  //  // Naive sample from current phase
+  //  const auto [ampNaive, slopeNaive] = mShape.EvalAmpSlopeAt(phase);
+  //  double y = (double)ampNaive + mBLHelper.mNow;  // add spills from prior edges
+
+  //  // ---- Pre-reset subwindow (or full window if no reset)
+  //  double preLen = 1.0;  // default full window
+  //  double postLen = 0.0;
+  //  if (step.eventCount && step.events[0].kind == PhaseEventKind::Reset)
+  //  {
+  //    preLen = step.events[0].whenInSample01;
+  //    postLen = 1.0 - preLen;
+  //  }
+
+  //  SegmentWalker w = SegmentWalker::Begin(mShape, phase + audioRatePhaseOffset, dt);
+
+  //  // Visit shape edges before reset (kinks/steps inside the window)
+  //  if (preLen > 0.0)
+  //  {
+  //    w.windowLen = preLen;
+  //    w.VisitShapeEdges(
+  //        [&](double alpha, double dA, double dS)
+  //        {
+  //          mBLHelper.AccumulateEdge(alpha, dA, dS, dt);
+  //        });
+
+  //    // Handle WRAP if it occurs in this pre window (from step events)
+  //    for (int i = 0; i < step.eventCount; ++i)
+  //      if (step.events[i].kind == PhaseEventKind::Wrap && step.events[i].whenInSample01 <= preLen)
+  //      {
+  //        accumulateEdge(step.events[i].whenInSample01);
+  //      }
+  //  }
+
+  //  // ---- Reset event (if any): treat as dynamic edge at its alpha
+  //  if (postLen > 0.0)
+  //  {
+  //    const double alpha = step.events[0].whenInSample01;
+  //    accumulateEdge(alpha);
+  //    const double postPh = math::wrap01(audioRatePhaseOffset);  // 0 + offset
+
+  //    // ---- Post-reset subwindow: continue walking shape from postPh
+  //    w.ResetSubwindow(postPh, postLen);
+  //    w.VisitShapeEdges(
+  //        [&](double alphaLocal, double dA, double dS)
+  //        {
+  //          // alpha for the full sample window:
+  //          const double alphaFull = alpha + alphaLocal;  // alpha was the reset time
+  //          mBLHelper.AccumulateEdge(alphaFull, dA, dS, dt);
+  //        });
+
+  //    // Also consider WRAP inside post window, if present
+  //    for (int i = 0; i < step.eventCount; ++i)
+  //      if (step.events[i].kind == PhaseEventKind::Wrap && step.events[i].whenInSample01 > alpha)
+  //      {
+  //        const double alphaFull = step.events[i].whenInSample01;
+  //        const double prePh2 = postPh + (alphaFull - alpha) * dt;
+  //        const double postPh2 = math::wrap01(audioRatePhaseOffset);  // 0 + offset
+  //        const auto [a0, s0] = mShape.EvalAmpSlopeAt(prePh2);
+  //        const auto [a1, s1] = mShape.EvalAmpSlopeAt(postPh2);
+  //        mBLHelper.AccumulateEdge(alphaFull, double(a1) - double(a0), double(s1) - double(s0), dt);
+  //      }
+  //  }
+
+  //  // Final corrected output for this sample
+  //  y = (double)ampNaive + mBLHelper.mNow;
+
+  //  return CoreSample{
+  //      .amplitude = (float)y,
+  //      .naive = (float)ampNaive,
+  //      .correction = (float)mBLHelper.mNow,
+  //      .phaseAdvance = step,
+  //  };
+  //}
+
+
+
+// concepts:
+// - phase advance should not account for offset.
+// - totally ignore phase wrap events; wrapping is handled by the shape walker.
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
-    const PhaseAdvance step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
+    // don't pass offset into advanceOneSample. this offset is a "rendering offset",
+    // but phase advance is about advancing a sample and getting an execution plan. that includes resets & wraps within the sample.
+    // rendering the waveform is OUR concern which is where the offset matters.
+    const PhaseAdvance step = mPhaseAcc.advanceOneSample(0);
     const double dt = step.lengthInPhase01;  // phase width per sample
     const double phase = step.phaseBegin01;  // eval phase at sample start
 
     //mSpill.open_sample();
     mBLHelper.OpenSample(dt);
 
+    // alpha = event time in current sample, ∈ [0,1)
+    const auto accumulateEdge = [&](double alpha)
+    {
+      // the "phase before wrap" is tricky. if phase offset is 0, it's just 1.0.
+      // but with phase offset, it's 1.0 + offset, which may wrap around. but we still want to catch 1.0 exactly.
+      // so with pre-reset-phase, it's [0,1], but with post-reset-phase it's [0,1). weird.
+      //
+      // also important: pre and post phase NEED to both account for the offset in the same way.
+      // `phase` bakes the offset in, but the reset
+      const double prePh = math::wrap01(audioRatePhaseOffset + phase + alpha * dt);                   // just before wrap
+      const double postPh = math::wrap01(audioRatePhaseOffset);  // 0 + offset
+      const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
+      const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
+      mBLHelper.AccumulateEdge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
+    };
+
     // Naive sample from current phase
     const auto [ampNaive, slopeNaive] = mShape.EvalAmpSlopeAt(phase);
-    //double y = (double)ampNaive + mSpill.now;  // add spills from prior edges
     double y = (double)ampNaive + mBLHelper.mNow;  // add spills from prior edges
 
     // ---- Pre-reset subwindow (or full window if no reset)
@@ -930,7 +1055,7 @@ struct ShapeCoreStreaming : public OscillatorCore
       postLen = 1.0 - preLen;
     }
 
-    SegmentWalker w = SegmentWalker::Begin(mShape, phase, dt);
+    SegmentWalker w = SegmentWalker::Begin(mShape, phase + audioRatePhaseOffset, dt);
 
     // Visit shape edges before reset (kinks/steps inside the window)
     if (preLen > 0.0)
@@ -939,21 +1064,14 @@ struct ShapeCoreStreaming : public OscillatorCore
       w.VisitShapeEdges(
           [&](double alpha, double dA, double dS)
           {
-            //mSpill.add_edge(alpha, dA, dS, dt);
-            mBLHelper.AccumulateEdge(alpha, dA, dS);
+            mBLHelper.AccumulateEdge(alpha, dA, dS, dt);
           });
 
       // Handle WRAP if it occurs in this pre window (from step events)
       for (int i = 0; i < step.eventCount; ++i)
         if (step.events[i].kind == PhaseEventKind::Wrap && step.events[i].whenInSample01 <= preLen)
         {
-          const double alpha = step.events[i].whenInSample01;
-          const double prePh = phase + alpha * dt;                           // just before wrap
-          const double postPh = math::wrap01(audioRatePhaseOffset + 1.0);  // 0 + offset
-          const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
-          const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
-          //mSpill.add_edge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
-          mBLHelper.AccumulateEdge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre));
+          accumulateEdge(step.events[i].whenInSample01);
         }
     }
 
@@ -961,14 +1079,8 @@ struct ShapeCoreStreaming : public OscillatorCore
     if (postLen > 0.0)
     {
       const double alpha = step.events[0].whenInSample01;
-      const double prePh = phase + alpha * dt;
-      const double postPh = std::fmod(audioRatePhaseOffset + 1.0, 1.0);  // after reset: 0+offset
-
-      const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
-      const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
-
-      //mSpill.add_edge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
-      mBLHelper.AccumulateEdge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre));
+      accumulateEdge(alpha);
+      const double postPh = math::wrap01(audioRatePhaseOffset);  // 0 + offset
 
       // ---- Post-reset subwindow: continue walking shape from postPh
       w.ResetSubwindow(postPh, postLen);
@@ -977,8 +1089,7 @@ struct ShapeCoreStreaming : public OscillatorCore
           {
             // alpha for the full sample window:
             const double alphaFull = alpha + alphaLocal;  // alpha was the reset time
-            //mSpill.add_edge(alphaFull, dA, dS, dt);
-            mBLHelper.AccumulateEdge(alphaFull, dA, dS);
+            mBLHelper.AccumulateEdge(alphaFull, dA, dS, dt);
           });
 
       // Also consider WRAP inside post window, if present
@@ -986,27 +1097,26 @@ struct ShapeCoreStreaming : public OscillatorCore
         if (step.events[i].kind == PhaseEventKind::Wrap && step.events[i].whenInSample01 > alpha)
         {
           const double alphaFull = step.events[i].whenInSample01;
-          const double prePh2 = postPh + (alphaFull - alpha) * dt;
-          const double postPh2 = std::fmod(audioRatePhaseOffset + 1.0, 1.0);
+          const double prePh2 = math::wrap01(audioRatePhaseOffset + postPh + (alphaFull - alpha) * dt);
+          const double postPh2 = math::wrap01(audioRatePhaseOffset);  // 0 + offset
           const auto [a0, s0] = mShape.EvalAmpSlopeAt(prePh2);
           const auto [a1, s1] = mShape.EvalAmpSlopeAt(postPh2);
-          //mSpill.add_edge(alphaFull, double(a1) - double(a0), double(s1) - double(s0), dt);
-          mBLHelper.AccumulateEdge(alphaFull, double(a1) - double(a0), double(s1) - double(s0));
+          mBLHelper.AccumulateEdge(alphaFull, double(a1) - double(a0), double(s1) - double(s0), dt);
         }
     }
 
     // Final corrected output for this sample
-    //y = (double)ampNaive + mSpill.now;
     y = (double)ampNaive + mBLHelper.mNow;
 
     return CoreSample{
         .amplitude = (float)y,
         .naive = (float)ampNaive,
-        //.correction = (float)mSpill.now,
         .correction = (float)mBLHelper.mNow,
         .phaseAdvance = step,
     };
   }
+
+
 };
 
 

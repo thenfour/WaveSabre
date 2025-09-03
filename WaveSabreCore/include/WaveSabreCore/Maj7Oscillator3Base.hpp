@@ -362,7 +362,7 @@ protected:
   }
 
 public:
-  void SetKRateParams(float shapeA, float shapeB, float mainFreqHz, bool enableHardSync, float syncFreqHz)
+  virtual void SetKRateParams(float shapeA, float shapeB, float mainFreqHz, bool enableHardSync, float syncFreqHz)
   {
     mWaveshapeA = shapeA;
     mWaveshapeB = shapeB;
@@ -375,7 +375,7 @@ public:
   // used by LFOs to just hard-set the phase. LFO phase, when "note restart" is disabled, is global, so
   // all individual voice LFOs should be in sync and act as if they're the same.
   // Everything after the 1st call will effectively be a NOP, so no special bandlimiting or processing necessary.
-  void ForcefullySynchronizePhase(const OscillatorCore& src)
+  virtual void ForcefullySynchronizePhase(const OscillatorCore& src)
   {
     mPhaseAcc.SynchronizeWith(src.mPhaseAcc);
   };
