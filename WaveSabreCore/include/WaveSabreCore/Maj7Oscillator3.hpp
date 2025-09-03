@@ -70,12 +70,6 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     default:
     case OscillatorWaveform::Sine:
       return new SineCore();
-      //case OscillatorWaveform::ShapeCoreStreamingSaw:
-      //  return new ShapeCoreStreaming(w, MakeSawShape());
-      //case OscillatorWaveform::ShapeCoreStreamingPulse:
-      //  return new ShapeCoreStreaming(w, MakePulseShape(0.5f));
-      //case OscillatorWaveform::ShapeCoreStreamingTri:
-      //  return new ShapeCoreStreaming(w, MakeTriangleShape());
 
     case OscillatorWaveform::ShapeCoreStreamingSaw2:
       return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::SawGenerator);
@@ -87,15 +81,6 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriPulseGenerator2);
     case OscillatorWaveform::ShapeCoreStreamingTri2:
       return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriGenerator);
-
-    //case OscillatorWaveform::SawNaive:
-    //  return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
-
-    //case OscillatorWaveform::PulseNaive:
-    //  return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
-
-    //case OscillatorWaveform::TriNaive:
-    //  return new TriTruncCore<NullBlepBlampExecutor, OscillatorWaveform::TriNaive>();
   }
 }
 
@@ -159,7 +144,7 @@ public:
   // used only by vst editor.
   float GetPhase01() const
   {
-    return (float)mCore->mPhaseAcc.GetAudiblePhase01();
+    return (float)mCore->mPhaseAcc.slave.getPhase01();
   }
   // used by debugging
   void SetCorrectionFactor(float factor)

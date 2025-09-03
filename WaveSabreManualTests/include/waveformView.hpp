@@ -245,6 +245,7 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
                     isHovered ? hlStemThickness : stemThickness);
       }
 
+#if 0
       if (cfg.showEdgeEventLines)
       {
         for (size_t iEdgeEvent = 0; iEdgeEvent < s.sample.edgeEvents.size(); ++iEdgeEvent)
@@ -260,7 +261,7 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
           dl->AddCircleFilled(ImVec2(ex, baselineY), 3, ec, 8);
         }
       }
-
+#endif
       // marker
       if (cfg.showLollipops)
       {
@@ -276,6 +277,7 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
           str += ".corr";
           dl->AddCircle(p, markerRadius + 2, ColorFromHTML("44ff44"), 8, 2.0f);
         }
+#if 0
         for (size_t iEvent = 0; iEvent < s.sample.phaseAdvance.eventCount; ++iEvent)
         {
           const auto& e = s.sample.phaseAdvance.events[iEvent];
@@ -290,6 +292,7 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
             dl->AddCircle(p, markerRadius + 6, ColorFromHTML("ff8800"), 8, 2.0f);
           }
         }
+#endif
 
         // draw the text above or below the circular marker.
         // if the amplitude is positive, draw the indicator below the marker. If negative, draw above.
@@ -365,14 +368,16 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
     ImGui::Separator();
     ImGui::Text("Naive: %.3f", s.sample.naive);
     ImGui::Text("Correction: %.3f", s.sample.correction);
-    ImGui::Text("Frequency: %.3f Hz", s.sample.phaseAdvance.ComputeFrequencyHz());
+    //ImGui::Text("Frequency: %.3f Hz", s.sample.phaseAdvance.ComputeFrequencyHz());
     ImGui::Separator();
+#if 0
     for (int i = 0; i < s.sample.phaseAdvance.eventCount; ++i)
     {
       const auto& e = s.sample.phaseAdvance.events[i];
       const char* kindStr = (e.kind == M7::PhaseEventKind::Wrap) ? "Wrap" : "Reset";
       ImGui::Text("Event %d: %s at %.3f", i, kindStr, e.whenInSample01);
     }
+#endif
     ImGui::EndTooltip();
 
     return s;

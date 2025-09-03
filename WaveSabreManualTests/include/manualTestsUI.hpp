@@ -223,7 +223,7 @@ void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
 
     std::vector<float> referenceLines = {-1.0f, -0.5f, 0.0f, 0.5f, 1.0f};
 
-    ImGui::Text("Frequency: %.3f Hz", samples.empty() ? 0.0f : samples[0].sample.phaseAdvance.ComputeFrequencyHz());
+    //ImGui::Text("Frequency: %.3f Hz", samples.empty() ? 0.0f : samples[0].sample.phaseAdvance.ComputeFrequencyHz());
 
     auto hoveredSample = WaveformViewImpl("wf",
                                           {io.DisplaySize.x - 20, 600},
