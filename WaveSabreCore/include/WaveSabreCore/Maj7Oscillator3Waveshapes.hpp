@@ -38,6 +38,50 @@ static inline WVShape MakePulseShape(double dutyCycle01)
                  }};
 }
 
+// three state pulse: low, high, 0
+// segment 0: low
+// segment 1: high
+// segment 2: 0
+static inline WVShape MakeTriStatePulseShape3(double masterDutyCycle01, double subDuty01)
+{
+  masterDutyCycle01 = std::clamp(masterDutyCycle01, 0.002, 0.998);  // we need slightly more space for the transitions
+
+  // scale low duty to the master duty cycle
+  auto lowDutyPhase = std::clamp(subDuty01 * masterDutyCycle01, 0.0, masterDutyCycle01 - 0.001);
+  auto highDutyPhase = masterDutyCycle01 - lowDutyPhase;
+
+  return WVShape{.mSegments = {
+      WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = lowDutyPhase, .beginAmp = -1.0f, .slope = 0},
+                     WVSegment{.beginPhase01 = lowDutyPhase, .endPhaseIncluding1 = masterDutyCycle01, .beginAmp = 1.0f, .slope = 0},
+          WVSegment{.beginPhase01 = masterDutyCycle01, .endPhaseIncluding1 = 1.0, .beginAmp = 0.f, .slope = 0},
+                 }};
+}
+
+
+// four state pulse: low, mid, high, mid
+// segment 0: low
+// segment 1: mid (transition up)
+// segment 2: high (@ duty cycle)
+// segment 3: mid (transition down)
+// one way to think of the segment lengths is that this is a pulse wave within a pulse wave.
+static inline WVShape MakeTriStatePulseShape4(double masterDutyCycle01, double lowDuty01, double highDuty01)
+{
+  masterDutyCycle01 = std::clamp(masterDutyCycle01, 0.002, 0.998);  // we need slightly more space for the transitions
+
+  // scale low duty to the master duty cycle
+  auto lowDutyPhase = std::clamp(lowDuty01 * masterDutyCycle01, 0.0, masterDutyCycle01 - 0.001);
+  // scale high duty to the master duty cycle
+  auto mainSeg2 = 1.0 - masterDutyCycle01; // length of the high segment area
+  auto highDutyPhase = std::clamp(highDuty01 * mainSeg2, 0.0, mainSeg2 - 0.001);
+
+  return WVShape{.mSegments = {
+                     WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = lowDutyPhase, .beginAmp = -1.0f, .slope = 0},
+                     WVSegment{.beginPhase01 = lowDutyPhase, .endPhaseIncluding1 = masterDutyCycle01, .beginAmp = 0.f, .slope = 0},
+                     WVSegment{.beginPhase01 = masterDutyCycle01, .endPhaseIncluding1 = masterDutyCycle01 + highDutyPhase, .beginAmp = 1.0f, .slope = 0},
+                     WVSegment{.beginPhase01 = masterDutyCycle01 + highDutyPhase, .endPhaseIncluding1 = 1.0, .beginAmp = .0f, .slope = 0},
+                 }};
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // The idea here is to describe the waveform as a series of segments. The band limited parent class should
 // be able to use this description to render the waveform with proper bandlimiting.
@@ -210,399 +254,399 @@ struct BlepExecutor
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct ArtisnalSawCore : public OscillatorCore
-{
-  ArtisnalSawCore()
-      : OscillatorCore(OscillatorWaveform::SawArtisnal)
-  {
-  }
-  BlepExecutor mHelper;
-
-  float EvalNaiveSawAtPhase(double phase01)
-  {
-    return (float)(-1.0 + 2.0 * phase01);
-  }
-
-  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-  {
-    const auto step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
-    std::vector<EdgeEvent> edgeEvents;
-
-    mHelper.OpenSample();
-    const auto naive = EvalNaiveSawAtPhase(step.phaseBegin01);
-
-    // cursor over the sample fraction and evaluation phase
-    double fPrev = 0.0;                    // previous event time in sample[0,1)
-    double phaseEval = step.phaseBegin01;  // eval phase at fPrev
-
-    for (size_t i = 0; i < step.eventCount; ++i)
-    {
-      const auto& e = step.events[i];
-      const double deltaInSample01 = e.whenInSample01 - fPrev;
-
-      // advance within the current segment (no resets until we hit the event)
-      phaseEval = (phaseEval + audioRatePhaseOffset +
-                   deltaInSample01 * step.lengthInPhase01);  // do not wrap! we need to catch 1
-
-      if (e.kind == PhaseEventKind::Wrap || e.kind == PhaseEventKind::Reset)
-      {
-        const float preAmp = EvalNaiveSawAtPhase(phaseEval);  // just BEFORE the edge
-        const double postPhase = math::wrap01(
-            double(audioRatePhaseOffset));  // AFTER the edge, not the end of sample (0) (phase reset)
-        const float postAmp = EvalNaiveSawAtPhase(postPhase);
-        const float dAmp = postAmp - preAmp;
-        if (!math::FloatEquals(dAmp, -2.f))
-        {
-          MulDiv(1, 1, 1);
-        }
-
-#ifdef ENABLE_OSC_LOG
-        gOscLog.Log(std::format("Saw {} @ u={:.3f} phase={:.3f} pre:{:.3f} -> post:{:.3f} dAmp={:.3f}",
-                                (e.kind == PhaseEventKind::Wrap) ? "wrap" : "reset",
-                                e.whenInSample01,
-                                phaseEval,
-                                preAmp,
-                                postAmp,
-                                dAmp));
-        edgeEvents.push_back(EdgeEvent{
-            .reason = e.kind,
-            .atPhase01 = (float)phaseEval,
-            .whenInSample01 = (float)e.whenInSample01,
-            .preEdgeAmp = preAmp,
-            .postEdgeAmp = postAmp,
-            .dAmp = dAmp,
-            .preEdgeSlope = +2.0f,
-            .postEdgeSlope = +2.0f,
-            .dSlope = 0.0f,
-
-        });
-#endif  // ENABLE_OSC_LOG
-
-        mHelper.AccumulateEdge(e.whenInSample01, dAmp);
-
-
-        // after the edge, the phase resets to 0 (+ offset), continue from there
-        phaseEval = postPhase;
-      }
-
-      fPrev = e.whenInSample01;
-    }
-
-    const auto [correction, amplitude] = mHelper.CloseSampleAndGetCorrection(naive);
-
-    return CoreSample{
-        .amplitude = (float)amplitude,
-        .naive = naive,
-        .correction = (float)correction,  //
-        .phaseAdvance = step,
-#ifdef ENABLE_OSC_LOG
-        .log = gOscLog.mBuffer,  //
-#endif                           // ENABLE_OSC_LOG
-    };
-  }
-};
-
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct BasicSawCore : public OscillatorCore
-{
-  BasicSawCore()
-      : OscillatorCore(OscillatorWaveform::SawBasic)
-  {
-  }
-
-  // t = phase in [0,1), dt = phase increment per sample in [0,1)
-  // around the saw discontinuity, this returns the correction value.
-  inline double poly_blep_saw(double t, double dt)
-  {
-    // t in [0,1), dt in (0,1)
-    if (t < dt)
-    {
-      t /= dt;  // 0..1
-      // t + t - t^2 - 1  ==  2t - t^2 - 1
-      return t + t - t * t - 1.0;
-    }
-    else if (t > 1.0 - dt)
-    {
-      t = (t - 1.0) / dt;  // -1..0
-      // t^2 + 2t + 1  ==  (t + 1)^2
-      return t * t + t + t + 1.0;
-    }
-    return 0.0;
-  }
-
-  inline float bl_saw_sample(double phase, double dt)
-  {
-    double v = 2.0 * phase - 1.0;   // naive ramp
-    v -= poly_blep_saw(phase, dt);  // polyBLEP correction
-    return (float)v;
-  }
-
-  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-  {
-    const auto step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
-    const double dt = step.lengthInPhase01;  // per-sample phase increment
-    const double phase = step.phaseBegin01;  // evaluation phase at sample start
-
-    float y = bl_saw_sample(phase, dt);
-
-    for (int i = 0; i < step.eventCount; ++i)
-    {
-      const auto& e = step.events[i];
-      if (e.kind == PhaseEventKind::Reset)
-      {
-        // Phase at the *start* of this sample when the reset edge belongs to it.
-        // For a mid-sample reset we’re in the "tail" branch (t > 1-dt).
-        // Using the current-sample evaluation phase here works well in practice:
-        y -= (float)poly_blep_saw(phase, dt);
-      }
-    }
-    return CoreSample{
-        .amplitude = (float)y,
-        .naive = y,
-        .correction = (float)0,  //
-        .phaseAdvance = step,
-#ifdef ENABLE_OSC_LOG
-        .log = gOscLog.mBuffer,  //
-#endif                           // ENABLE_OSC_LOG
-    };
-  }
-};
-
-
-// A precomputed waveform edge: junction from seg[i] (left) to seg[i+1] (right),
-// including the wrap i = last → 0 at phase 0.
-struct WVEdge
-{
-  double phase01;  // absolute edge phase in [0,1), wrap edge is 0
-  float dAmp;      // post - pre  (amplitude step)
-  float dSlope;    // slope_after - slope_before  (slope jump)
-};
-
-// Build edges (including wrap)
-inline std::vector<WVEdge> BuildEdges(const WVShape& shape)
-{
-  std::vector<WVEdge> out;
-  const size_t n = shape.mSegments.size();
-  if (n == 0)
-    return out;
-
-  out.reserve(n);
-  for (size_t i = 0; i < n; ++i)
-  {
-    const auto& left = shape.mSegments[i];
-    const auto& right = shape.mSegments[(i + 1) % n];
-
-    // Edge phase is the *begin* of the right segment; wrap edge is 0
-    const double edgePhase = (i + 1 < n) ? right.beginPhase01 : 0.0;
-
-    // Amp just before edge (end of left), and just after edge (start of right)
-    const double leftEndPhase = left.endPhaseIncluding1;  // no wrapping here
-    const float ampL = left.beginAmp + left.slope * float(leftEndPhase - left.beginPhase01);
-    const float ampR = right.beginAmp;  // at begin of right
-
-    const float dA = ampR - ampL;
-    const float dS = right.slope - left.slope;
-
-    out.push_back(WVEdge{edgePhase, dA, dS});
-  }
-  return out;
-}
-
-
-struct ShapeCore : public OscillatorCore
-{
-  WVShape mShape;
-  std::vector<WVEdge> mEdges;  // precomputed from mShape
-
-  // t = phase in [0,1), dt = per-sample phase increment in (0,1)
-  // Returns zero unless t is within dt of an edge.
-  inline double poly_blep(double t, double dt)
-  {
-    if (t < dt)
-    {
-      t /= dt;                     // 0..1
-      return t + t - t * t - 1.0;  // 2t - t^2 - 1
-    }
-    else if (t > 1.0 - dt)
-    {
-      t = (t - 1.0) / dt;          // -1..0
-      return t * t + t + t + 1.0;  // (t+1)^2
-    }
-    return 0.0;
-  }
-
-  // polyBLAMP: kernel for slope-discontinuity (kink) anti-aliasing.
-  // This is the integrated form used for triangles, etc.
-  // It is also zero unless t is within dt of an edge.
-  inline double poly_blamp(double t, double dt)
-  {
-    if (t < dt)
-    {
-      t /= dt;  // 0..1
-      // t^3/3 - t^2/2 + 1/6   (written in a numerically-friendly grouped form)
-      return t * t * (t * (1.0 / 3.0) - 0.5) + (1.0 / 6.0);
-    }
-    else if (t > 1.0 - dt)
-    {
-      t = (t - 1.0) / dt;  // -1..0
-      // t^3/3 + t^2/2 + 1/6
-      return t * t * (t * (1.0 / 3.0) + 0.5) + (1.0 / 6.0);
-    }
-    return 0.0;
-  }
-
-  ShapeCore()
-      : OscillatorCore(OscillatorWaveform::SawShape4)
-  {
-    // saw
-    //mShape = WVShape{.mSegments = {
-    //                 WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
-    //             }};
-
-    // triangle
-    mShape = WVShape{.mSegments = {
-                         WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 0.5, .beginAmp = -1.0f, .slope = 4},
-                         WVSegment{.beginPhase01 = 0.5, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = -4},
-                     }};
-
-    // pwm
-    //mShape = WVShape{
-    //    .mSegments = {
-    //        WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = mDutyCycle01, .beginAmp = -1.0f, .slope = 0},
-    //        WVSegment{.beginPhase01 = mDutyCycle01, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = 0},
-    //    }};
-
-    mEdges = BuildEdges(mShape);
-  }
-
-  double mDutyCycle01 = 0.5f;  // 0..1
-
-  void HandleParamsChanged() override
-  {
-    //mDutyCycle01 = std::clamp(this->mWaveshapeA, 0.001f, 0.999f);
-
-    //mShape = WVShape{
-    //    .mSegments = {
-    //        WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = mDutyCycle01, .beginAmp = -1.0f, .slope = 0},
-    //        WVSegment{.beginPhase01 = mDutyCycle01, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = 0},
-    //    }};
-
-    //mEdges = BuildEdges(mShape);
-  }
-
-  struct PendingEdge
-  {
-    double phase01;  // absolute edge phase in [0,1), e.g. post-reset phase = wrap(offset)
-    double dAmp;     // post - pre at the reset instant
-    double dSlope;   // slope_after - slope_before at the reset instant
-    int ttl = 2;     // apply tail now and head next sample; then expire
-  };
-
-  std::vector<PendingEdge> mPending;  // in your ShapeCore/OscillatorCore
-  inline double apply_edge_corr(double phase, double dt, double edgePhi, double dAmp, double dSlope)
-  {
-    // relative position of current sample start vs. the edge center
-    const double tRel = math::wrap01(phase - edgePhi);  // ∈ [0,1)
-    // step + slope-kink kernels
-    double c = 0.0;
-    if (dAmp != 0.0)
-      c += 0.5 * dAmp * poly_blep(tRel, dt);
-    if (dSlope != 0.0)
-      c += dSlope * dt * poly_blamp(tRel, dt);
-    return c;
-  }
-  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-  {
-    const PhaseAdvance step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
-    const double dt = step.lengthInPhase01;
-    const double phase = step.phaseBegin01;
-
-    // 1) naive sample
-    const auto [ampNaive, slopeNaive] = mShape.EvalAmpSlopeAt(phase);
-    double y = (double)ampNaive;
-    double corr = 0.0;
-
-    // 2) apply any PENDING dynamic edges (from previous sample’s resets)
-    //    (this gives you the "head" portion automatically)
-    for (auto& pe : mPending)
-    {
-      const double c = apply_edge_corr(phase, dt, pe.phase01, pe.dAmp, pe.dSlope);
-      y += c;
-      corr += c;
-    }
-
-    // 3) STATIC edges from the shape (junctions + natural wrap at φ=0)
-    //    BUT: suppress any static edge whose φ matches a pending dynamic edge φ,
-    //    to avoid using pre-baked deltas when a reset replaced that edge this cycle.
-    auto is_suppressed = [&](double staticPhi)
-    {
-      for (const auto& pe : mPending)
-        if (std::abs(staticPhi - pe.phase01) < 1e-12)
-          return true;  // tiny tol, no epsilon games elsewhere
-      return false;
-    };
-
-    for (const WVEdge& e : mEdges)
-    {
-      if (is_suppressed(e.phase01))
-        continue;  // dynamic edge owns this φ this cycle
-      const double c = apply_edge_corr(phase, dt, e.phase01, (double)e.dAmp, (double)e.dSlope);
-      y += c;
-      corr += c;
-    }
-
-    // 4) Handle RESET events occurring inside THIS sample:
-    //    create a dynamic edge with the TRUE (dAmp,dSlope) at the reset,
-    //    and apply its "tail" immediately by calling apply_edge_corr once now.
-    for (int i = 0; i < step.eventCount; ++i)
-    {
-      const auto& ev = step.events[i];
-      if (ev.kind != PhaseEventKind::Reset)
-        continue;
-
-      const double alpha = ev.whenInSample01;                    // 0..1 (fraction into this sample)
-      const double prePh = phase + alpha * dt;                   // just BEFORE reset (no wrap)
-      const double postPh = math::wrap01(audioRatePhaseOffset);  // AFTER reset (phase = 0+offset)
-
-      const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
-      const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
-
-      PendingEdge pe{
-          .phase01 = postPh,                               // edge is centered at the post-reset phase
-          .dAmp = (double)ampPost - (double)ampPre,        // true step
-          .dSlope = (double)slopePost - (double)slopePre,  // true slope jump
-          .ttl = 2,
-      };
-
-      // Tail correction belongs to THIS sample as well:
-      const double cTail = apply_edge_corr(phase, dt, pe.phase01, pe.dAmp, pe.dSlope);
-      y += cTail;
-      corr += cTail;
-
-      // Queue edge so that the HEAD fires next sample with the same (dAmp,dSlope)
-      mPending.push_back(pe);
-    }
-
-    // 5) Age out pending edges (after two samples they’re guaranteed zero)
-    //    Do it AFTER we computed this sample so they persist into the next.
-    for (auto& pe : mPending)
-      --pe.ttl;
-    mPending.erase(std::remove_if(mPending.begin(),
-                                  mPending.end(),
-                                  [](const PendingEdge& p)
-                                  {
-                                    return p.ttl <= 0;
-                                  }),
-                   mPending.end());
-
-    return CoreSample{
-        .amplitude = (float)y,
-        .naive = (float)ampNaive,
-        .correction = (float)corr,
-        .phaseAdvance = step,
-    };
-  }
-};
+//struct ArtisnalSawCore : public OscillatorCore
+//{
+//  ArtisnalSawCore()
+//      : OscillatorCore(OscillatorWaveform::SawArtisnal)
+//  {
+//  }
+//  BlepExecutor mHelper;
+//
+//  float EvalNaiveSawAtPhase(double phase01)
+//  {
+//    return (float)(-1.0 + 2.0 * phase01);
+//  }
+//
+//  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+//  {
+//    const auto step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
+//    std::vector<EdgeEvent> edgeEvents;
+//
+//    mHelper.OpenSample();
+//    const auto naive = EvalNaiveSawAtPhase(step.phaseBegin01);
+//
+//    // cursor over the sample fraction and evaluation phase
+//    double fPrev = 0.0;                    // previous event time in sample[0,1)
+//    double phaseEval = step.phaseBegin01;  // eval phase at fPrev
+//
+//    for (size_t i = 0; i < step.eventCount; ++i)
+//    {
+//      const auto& e = step.events[i];
+//      const double deltaInSample01 = e.whenInSample01 - fPrev;
+//
+//      // advance within the current segment (no resets until we hit the event)
+//      phaseEval = (phaseEval + audioRatePhaseOffset +
+//                   deltaInSample01 * step.lengthInPhase01);  // do not wrap! we need to catch 1
+//
+//      if (e.kind == PhaseEventKind::Wrap || e.kind == PhaseEventKind::Reset)
+//      {
+//        const float preAmp = EvalNaiveSawAtPhase(phaseEval);  // just BEFORE the edge
+//        const double postPhase = math::wrap01(
+//            double(audioRatePhaseOffset));  // AFTER the edge, not the end of sample (0) (phase reset)
+//        const float postAmp = EvalNaiveSawAtPhase(postPhase);
+//        const float dAmp = postAmp - preAmp;
+//        if (!math::FloatEquals(dAmp, -2.f))
+//        {
+//          MulDiv(1, 1, 1);
+//        }
+//
+//#ifdef ENABLE_OSC_LOG
+//        gOscLog.Log(std::format("Saw {} @ u={:.3f} phase={:.3f} pre:{:.3f} -> post:{:.3f} dAmp={:.3f}",
+//                                (e.kind == PhaseEventKind::Wrap) ? "wrap" : "reset",
+//                                e.whenInSample01,
+//                                phaseEval,
+//                                preAmp,
+//                                postAmp,
+//                                dAmp));
+//        edgeEvents.push_back(EdgeEvent{
+//            .reason = e.kind,
+//            .atPhase01 = (float)phaseEval,
+//            .whenInSample01 = (float)e.whenInSample01,
+//            .preEdgeAmp = preAmp,
+//            .postEdgeAmp = postAmp,
+//            .dAmp = dAmp,
+//            .preEdgeSlope = +2.0f,
+//            .postEdgeSlope = +2.0f,
+//            .dSlope = 0.0f,
+//
+//        });
+//#endif  // ENABLE_OSC_LOG
+//
+//        mHelper.AccumulateEdge(e.whenInSample01, dAmp);
+//
+//
+//        // after the edge, the phase resets to 0 (+ offset), continue from there
+//        phaseEval = postPhase;
+//      }
+//
+//      fPrev = e.whenInSample01;
+//    }
+//
+//    const auto [correction, amplitude] = mHelper.CloseSampleAndGetCorrection(naive);
+//
+//    return CoreSample{
+//        .amplitude = (float)amplitude,
+//        .naive = naive,
+//        .correction = (float)correction,  //
+//        .phaseAdvance = step,
+//#ifdef ENABLE_OSC_LOG
+//        .log = gOscLog.mBuffer,  //
+//#endif                           // ENABLE_OSC_LOG
+//    };
+//  }
+//};
+//
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//struct BasicSawCore : public OscillatorCore
+//{
+//  BasicSawCore()
+//      : OscillatorCore(OscillatorWaveform::SawBasic)
+//  {
+//  }
+//
+//  // t = phase in [0,1), dt = phase increment per sample in [0,1)
+//  // around the saw discontinuity, this returns the correction value.
+//  inline double poly_blep_saw(double t, double dt)
+//  {
+//    // t in [0,1), dt in (0,1)
+//    if (t < dt)
+//    {
+//      t /= dt;  // 0..1
+//      // t + t - t^2 - 1  ==  2t - t^2 - 1
+//      return t + t - t * t - 1.0;
+//    }
+//    else if (t > 1.0 - dt)
+//    {
+//      t = (t - 1.0) / dt;  // -1..0
+//      // t^2 + 2t + 1  ==  (t + 1)^2
+//      return t * t + t + t + 1.0;
+//    }
+//    return 0.0;
+//  }
+//
+//  inline float bl_saw_sample(double phase, double dt)
+//  {
+//    double v = 2.0 * phase - 1.0;   // naive ramp
+//    v -= poly_blep_saw(phase, dt);  // polyBLEP correction
+//    return (float)v;
+//  }
+//
+//  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+//  {
+//    const auto step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
+//    const double dt = step.lengthInPhase01;  // per-sample phase increment
+//    const double phase = step.phaseBegin01;  // evaluation phase at sample start
+//
+//    float y = bl_saw_sample(phase, dt);
+//
+//    for (int i = 0; i < step.eventCount; ++i)
+//    {
+//      const auto& e = step.events[i];
+//      if (e.kind == PhaseEventKind::Reset)
+//      {
+//        // Phase at the *start* of this sample when the reset edge belongs to it.
+//        // For a mid-sample reset we’re in the "tail" branch (t > 1-dt).
+//        // Using the current-sample evaluation phase here works well in practice:
+//        y -= (float)poly_blep_saw(phase, dt);
+//      }
+//    }
+//    return CoreSample{
+//        .amplitude = (float)y,
+//        .naive = y,
+//        .correction = (float)0,  //
+//        .phaseAdvance = step,
+//#ifdef ENABLE_OSC_LOG
+//        .log = gOscLog.mBuffer,  //
+//#endif                           // ENABLE_OSC_LOG
+//    };
+//  }
+//};
+//
+//
+//// A precomputed waveform edge: junction from seg[i] (left) to seg[i+1] (right),
+//// including the wrap i = last → 0 at phase 0.
+//struct WVEdge
+//{
+//  double phase01;  // absolute edge phase in [0,1), wrap edge is 0
+//  float dAmp;      // post - pre  (amplitude step)
+//  float dSlope;    // slope_after - slope_before  (slope jump)
+//};
+//
+//// Build edges (including wrap)
+//inline std::vector<WVEdge> BuildEdges(const WVShape& shape)
+//{
+//  std::vector<WVEdge> out;
+//  const size_t n = shape.mSegments.size();
+//  if (n == 0)
+//    return out;
+//
+//  out.reserve(n);
+//  for (size_t i = 0; i < n; ++i)
+//  {
+//    const auto& left = shape.mSegments[i];
+//    const auto& right = shape.mSegments[(i + 1) % n];
+//
+//    // Edge phase is the *begin* of the right segment; wrap edge is 0
+//    const double edgePhase = (i + 1 < n) ? right.beginPhase01 : 0.0;
+//
+//    // Amp just before edge (end of left), and just after edge (start of right)
+//    const double leftEndPhase = left.endPhaseIncluding1;  // no wrapping here
+//    const float ampL = left.beginAmp + left.slope * float(leftEndPhase - left.beginPhase01);
+//    const float ampR = right.beginAmp;  // at begin of right
+//
+//    const float dA = ampR - ampL;
+//    const float dS = right.slope - left.slope;
+//
+//    out.push_back(WVEdge{edgePhase, dA, dS});
+//  }
+//  return out;
+//}
+//
+//
+//struct ShapeCore : public OscillatorCore
+//{
+//  WVShape mShape;
+//  std::vector<WVEdge> mEdges;  // precomputed from mShape
+//
+//  // t = phase in [0,1), dt = per-sample phase increment in (0,1)
+//  // Returns zero unless t is within dt of an edge.
+//  inline double poly_blep(double t, double dt)
+//  {
+//    if (t < dt)
+//    {
+//      t /= dt;                     // 0..1
+//      return t + t - t * t - 1.0;  // 2t - t^2 - 1
+//    }
+//    else if (t > 1.0 - dt)
+//    {
+//      t = (t - 1.0) / dt;          // -1..0
+//      return t * t + t + t + 1.0;  // (t+1)^2
+//    }
+//    return 0.0;
+//  }
+//
+//  // polyBLAMP: kernel for slope-discontinuity (kink) anti-aliasing.
+//  // This is the integrated form used for triangles, etc.
+//  // It is also zero unless t is within dt of an edge.
+//  inline double poly_blamp(double t, double dt)
+//  {
+//    if (t < dt)
+//    {
+//      t /= dt;  // 0..1
+//      // t^3/3 - t^2/2 + 1/6   (written in a numerically-friendly grouped form)
+//      return t * t * (t * (1.0 / 3.0) - 0.5) + (1.0 / 6.0);
+//    }
+//    else if (t > 1.0 - dt)
+//    {
+//      t = (t - 1.0) / dt;  // -1..0
+//      // t^3/3 + t^2/2 + 1/6
+//      return t * t * (t * (1.0 / 3.0) + 0.5) + (1.0 / 6.0);
+//    }
+//    return 0.0;
+//  }
+//
+//  ShapeCore()
+//      : OscillatorCore(OscillatorWaveform::SawShape4)
+//  {
+//    // saw
+//    //mShape = WVShape{.mSegments = {
+//    //                 WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 1, .beginAmp = -1.0f, .slope = +2.0f},
+//    //             }};
+//
+//    // triangle
+//    mShape = WVShape{.mSegments = {
+//                         WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 0.5, .beginAmp = -1.0f, .slope = 4},
+//                         WVSegment{.beginPhase01 = 0.5, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = -4},
+//                     }};
+//
+//    // pwm
+//    //mShape = WVShape{
+//    //    .mSegments = {
+//    //        WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = mDutyCycle01, .beginAmp = -1.0f, .slope = 0},
+//    //        WVSegment{.beginPhase01 = mDutyCycle01, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = 0},
+//    //    }};
+//
+//    mEdges = BuildEdges(mShape);
+//  }
+//
+//  double mDutyCycle01 = 0.5f;  // 0..1
+//
+//  void HandleParamsChanged() override
+//  {
+//    //mDutyCycle01 = std::clamp(this->mWaveshapeA, 0.001f, 0.999f);
+//
+//    //mShape = WVShape{
+//    //    .mSegments = {
+//    //        WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = mDutyCycle01, .beginAmp = -1.0f, .slope = 0},
+//    //        WVSegment{.beginPhase01 = mDutyCycle01, .endPhaseIncluding1 = 1.0, .beginAmp = 1.0f, .slope = 0},
+//    //    }};
+//
+//    //mEdges = BuildEdges(mShape);
+//  }
+//
+//  struct PendingEdge
+//  {
+//    double phase01;  // absolute edge phase in [0,1), e.g. post-reset phase = wrap(offset)
+//    double dAmp;     // post - pre at the reset instant
+//    double dSlope;   // slope_after - slope_before at the reset instant
+//    int ttl = 2;     // apply tail now and head next sample; then expire
+//  };
+//
+//  std::vector<PendingEdge> mPending;  // in your ShapeCore/OscillatorCore
+//  inline double apply_edge_corr(double phase, double dt, double edgePhi, double dAmp, double dSlope)
+//  {
+//    // relative position of current sample start vs. the edge center
+//    const double tRel = math::wrap01(phase - edgePhi);  // ∈ [0,1)
+//    // step + slope-kink kernels
+//    double c = 0.0;
+//    if (dAmp != 0.0)
+//      c += 0.5 * dAmp * poly_blep(tRel, dt);
+//    if (dSlope != 0.0)
+//      c += dSlope * dt * poly_blamp(tRel, dt);
+//    return c;
+//  }
+//  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+//  {
+//    const PhaseAdvance step = mPhaseAcc.advanceOneSample(audioRatePhaseOffset);
+//    const double dt = step.lengthInPhase01;
+//    const double phase = step.phaseBegin01;
+//
+//    // 1) naive sample
+//    const auto [ampNaive, slopeNaive] = mShape.EvalAmpSlopeAt(phase);
+//    double y = (double)ampNaive;
+//    double corr = 0.0;
+//
+//    // 2) apply any PENDING dynamic edges (from previous sample’s resets)
+//    //    (this gives you the "head" portion automatically)
+//    for (auto& pe : mPending)
+//    {
+//      const double c = apply_edge_corr(phase, dt, pe.phase01, pe.dAmp, pe.dSlope);
+//      y += c;
+//      corr += c;
+//    }
+//
+//    // 3) STATIC edges from the shape (junctions + natural wrap at φ=0)
+//    //    BUT: suppress any static edge whose φ matches a pending dynamic edge φ,
+//    //    to avoid using pre-baked deltas when a reset replaced that edge this cycle.
+//    auto is_suppressed = [&](double staticPhi)
+//    {
+//      for (const auto& pe : mPending)
+//        if (std::abs(staticPhi - pe.phase01) < 1e-12)
+//          return true;  // tiny tol, no epsilon games elsewhere
+//      return false;
+//    };
+//
+//    for (const WVEdge& e : mEdges)
+//    {
+//      if (is_suppressed(e.phase01))
+//        continue;  // dynamic edge owns this φ this cycle
+//      const double c = apply_edge_corr(phase, dt, e.phase01, (double)e.dAmp, (double)e.dSlope);
+//      y += c;
+//      corr += c;
+//    }
+//
+//    // 4) Handle RESET events occurring inside THIS sample:
+//    //    create a dynamic edge with the TRUE (dAmp,dSlope) at the reset,
+//    //    and apply its "tail" immediately by calling apply_edge_corr once now.
+//    for (int i = 0; i < step.eventCount; ++i)
+//    {
+//      const auto& ev = step.events[i];
+//      if (ev.kind != PhaseEventKind::Reset)
+//        continue;
+//
+//      const double alpha = ev.whenInSample01;                    // 0..1 (fraction into this sample)
+//      const double prePh = phase + alpha * dt;                   // just BEFORE reset (no wrap)
+//      const double postPh = math::wrap01(audioRatePhaseOffset);  // AFTER reset (phase = 0+offset)
+//
+//      const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
+//      const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
+//
+//      PendingEdge pe{
+//          .phase01 = postPh,                               // edge is centered at the post-reset phase
+//          .dAmp = (double)ampPost - (double)ampPre,        // true step
+//          .dSlope = (double)slopePost - (double)slopePre,  // true slope jump
+//          .ttl = 2,
+//      };
+//
+//      // Tail correction belongs to THIS sample as well:
+//      const double cTail = apply_edge_corr(phase, dt, pe.phase01, pe.dAmp, pe.dSlope);
+//      y += cTail;
+//      corr += cTail;
+//
+//      // Queue edge so that the HEAD fires next sample with the same (dAmp,dSlope)
+//      mPending.push_back(pe);
+//    }
+//
+//    // 5) Age out pending edges (after two samples they’re guaranteed zero)
+//    //    Do it AFTER we computed this sample so they persist into the next.
+//    for (auto& pe : mPending)
+//      --pe.ttl;
+//    mPending.erase(std::remove_if(mPending.begin(),
+//                                  mPending.end(),
+//                                  [](const PendingEdge& p)
+//                                  {
+//                                    return p.ttl <= 0;
+//                                  }),
+//                   mPending.end());
+//
+//    return CoreSample{
+//        .amplitude = (float)y,
+//        .naive = (float)ampNaive,
+//        .correction = (float)corr,
+//        .phaseAdvance = step,
+//    };
+//  }
+//};
 
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1010,10 +1054,9 @@ struct ShapeCoreStreaming : public OscillatorCore
   //}
 
 
-
-// concepts:
-// - phase advance should not account for offset.
-// - totally ignore phase wrap events; wrapping is handled by the shape walker.
+  // concepts:
+  // - phase advance should not account for offset.
+  // - totally ignore phase wrap events; wrapping is handled by the shape walker.
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     // don't pass offset into advanceOneSample. this offset is a "rendering offset",
@@ -1035,8 +1078,8 @@ struct ShapeCoreStreaming : public OscillatorCore
       //
       // also important: pre and post phase NEED to both account for the offset in the same way.
       // `phase` bakes the offset in, but the reset
-      const double prePh = math::wrap01(audioRatePhaseOffset + phase + alpha * dt);                   // just before wrap
-      const double postPh = math::wrap01(audioRatePhaseOffset);  // 0 + offset
+      const double prePh = math::wrap01(audioRatePhaseOffset + phase + alpha * dt);  // just before wrap
+      const double postPh = math::wrap01(audioRatePhaseOffset);                      // 0 + offset
       const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
       const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
       mBLHelper.AccumulateEdge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
@@ -1115,8 +1158,6 @@ struct ShapeCoreStreaming : public OscillatorCore
         .phaseAdvance = step,
     };
   }
-
-
 };
 
 

@@ -83,31 +83,33 @@ struct ISoundSourceDevice
 enum class OscillatorWaveform : uint8_t
 {
   Sine,
-  ShapeCoreStreamingSaw,
-  ShapeCoreStreamingPulse,
-  ShapeCoreStreamingTri,
+  //ShapeCoreStreamingSaw,
+  //ShapeCoreStreamingPulse,
+  //ShapeCoreStreamingTri,
 
   ShapeCoreStreamingSaw2,
   ShapeCoreStreamingPulse2,
+  ShapeCoreStreamingTriPulse1,
+  ShapeCoreStreamingTriPulse2,
   ShapeCoreStreamingTri2,
 
   PulseNaive,
-  PulseBlep1,
-  PulseArtisnal,
+  //PulseBlep1,
+  //PulseArtisnal,
   //PulseBlep2,
   //PulseBlep3,
 
   SawNaive,
-  SawBlep1,
-  SawArtisnal,
-  SawBasic,
-  SawShape4,
+  //SawBlep1,
+  //SawArtisnal,
+  //SawBasic,
+  //SawShape4,
   //SawBlep2,
   //SawBlep3,
 
   TriNaive,
-  TriBlep1,
-  TriArtisnal,
+  //TriBlep1,
+  //TriArtisnal,
   //TriBlep2,
   //TriBlep3,
 
@@ -136,23 +138,14 @@ enum class OscillatorWaveform : uint8_t
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count]                   \
   {                                                                                                                    \
   "Sine",\
-  "SSS_Saw",\
-  "SSS_pulse",\
-  "SSS_tri",\
   "SSS_Saw-2",\
   "SSS_pulse-2",\
+  "SSS_tri-pulse-1",\
+  "SSS_tri-pulse-2",\
   "SSS_tri-2",\
   "PulseNaive",\
-  "PulseBlep1",\
-  "PulseArtisnal",\
   "SawNaive",\
-  "SawBlep1",\
-  "SawArtisnal",\
-  "SawBasic",\
-  "SawShape4",\
   "TriNaive",\
-  "TriBlep1",\
-  "TriArtisnal",\
   }
 // clang-format on
 

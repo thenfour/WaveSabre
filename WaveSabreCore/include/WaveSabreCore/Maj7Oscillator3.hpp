@@ -24,40 +24,32 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     default:
     case OscillatorWaveform::Sine:
       return new SineCore();
-    case OscillatorWaveform::ShapeCoreStreamingSaw:
-      return new ShapeCoreStreaming(w, MakeSawShape());
-    case OscillatorWaveform::ShapeCoreStreamingPulse:
-      return new ShapeCoreStreaming(w, MakePulseShape(0.5f));
-    case OscillatorWaveform::ShapeCoreStreamingTri:
-      return new ShapeCoreStreaming(w, MakeTriangleShape());
+    //case OscillatorWaveform::ShapeCoreStreamingSaw:
+    //  return new ShapeCoreStreaming(w, MakeSawShape());
+    //case OscillatorWaveform::ShapeCoreStreamingPulse:
+    //  return new ShapeCoreStreaming(w, MakePulseShape(0.5f));
+    //case OscillatorWaveform::ShapeCoreStreamingTri:
+    //  return new ShapeCoreStreaming(w, MakeTriangleShape());
 
     case OscillatorWaveform::ShapeCoreStreamingSaw2:
-      return new M7Osc4::ShapeCoreStreaming(w, MakeSawShape());
+      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::SawGenerator);
     case OscillatorWaveform::ShapeCoreStreamingPulse2:
-      return new M7Osc4::ShapeCoreStreaming(w, MakePulseShape(0.5f));
+      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::PulseGenerator);
+    case OscillatorWaveform::ShapeCoreStreamingTriPulse1:
+      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriPulseGenerator1);
+    case OscillatorWaveform::ShapeCoreStreamingTriPulse2:
+      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriPulseGenerator2);
     case OscillatorWaveform::ShapeCoreStreamingTri2:
-      return new M7Osc4::ShapeCoreStreaming(w, MakeTriangleShape());
+      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriGenerator);
 
     case OscillatorWaveform::SawNaive:
       return new SawCore<NullBlepBlampExecutor, OscillatorWaveform::SawNaive>();
-    case OscillatorWaveform::SawBlep1:
-      return new SawCore<PolyBlepBlampExecutor1, OscillatorWaveform::SawBlep1>();
-    case OscillatorWaveform::SawArtisnal:
-      return new ArtisnalSawCore();
-    case OscillatorWaveform::SawBasic:
-      return new BasicSawCore();
-    case OscillatorWaveform::SawShape4:
-      return new ShapeCore();
 
     case OscillatorWaveform::PulseNaive:
       return new PWMCoreT<NullBlepBlampExecutor, OscillatorWaveform::PulseNaive>();
-    case OscillatorWaveform::PulseBlep1:
-      return new PWMCoreT<PolyBlepBlampExecutor1, OscillatorWaveform::PulseBlep1>();
 
     case OscillatorWaveform::TriNaive:
       return new TriTruncCore<NullBlepBlampExecutor, OscillatorWaveform::TriNaive>();
-    case OscillatorWaveform::TriBlep1:
-      return new TriTruncCore<PolyBlepBlampExecutor1, OscillatorWaveform::TriBlep1>();
   }
 }
 

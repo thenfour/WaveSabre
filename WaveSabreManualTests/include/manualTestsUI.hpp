@@ -74,7 +74,7 @@ struct Maj7ManualTestState
   bool showLines = false;
   bool showExtDots = true;
   bool showEdgeEventLines = true;
-  M7::OscillatorWaveform wf = M7::OscillatorWaveform::SawArtisnal;
+  M7::OscillatorWaveform wf = M7::OscillatorWaveform::ShapeCoreStreamingSaw2;
   float waveShapeA = 0;
   float waveShapeB = 1;
 };
