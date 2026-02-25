@@ -139,15 +139,14 @@ struct Maj7WidthEditor : public VstEditor
 		ImGui::EndGroup();
 
 		// Final Output Section with Tooltips
-		ImGui::BeginGroup();
+		{
+			ImGuiGroupScope _grp;
 
-		Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
+			Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
 
-		ImGui::SameLine();
-		Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
-		ImGui::EndGroup();
-
-		ImGui::EndGroup();
+			ImGui::SameLine();
+			Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain, "Output", WaveSabreCore::Maj7Width::gVolumeCfg, 0, {});
+		}
 
 		static const std::vector<VUMeterTick> tickSet = {
 				{-3.0f, "3db"},
@@ -201,49 +200,51 @@ struct Maj7WidthEditor : public VstEditor
 		// Frequency analysis visualization (when enabled)
 
 		// Frequency Analysis Controls
-		ImGui::BeginGroup();
-		bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
-		if (!frequencyAnalysisEnabled) {
-			mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
-			mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
-		}
-
-		// FFT overlay toggles and scale selection
 		{
-			ImGui::Separator();
-			ImGui::Text("Freq overlays:");
-			// Input Mid (dB)
-			ToggleButton(&mShowInputMid, "In M", {}, ButtonColorSpec{kInputMidFftColor});
-			if (ImGui::IsItemHovered()) {
-				ImGui::BeginTooltip(); ImGui::Text("Input mid / center channel");
-				ImGui::EndTooltip();
+			ImGuiGroupScope _grp;
+			bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
+			if (!frequencyAnalysisEnabled) {
+				mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
+				mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
 			}
-			ImGui::SameLine();
-			// Input Side (dB)
-			ToggleButton(&mShowInputSide, "In S", {}, ButtonColorSpec{ kInputSideFftColor });
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Side"); ImGui::EndTooltip(); }
-			ImGui::SameLine();
-			// Input Width (linear width)
-			ToggleButton(&mShowInputWidth, "In W", {}, ButtonColorSpec{ kInputWidthFftColor });
-			if (ImGui::IsItemHovered()) {
-				ImGui::BeginTooltip(); ImGui::Text("Input Width (normalized side)");
-				ImGui::EndTooltip();
-			}
-			ImGui::SameLine(0, 20);
-			// Output Mid (dB)
-			ToggleButton(&mShowOutputMid, "Out M", {}, ButtonColorSpec{ kOutputMidFftColor });
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Mid/center"); ImGui::EndTooltip(); }
-			ImGui::SameLine();
-			// Output Side (dB)
-			ToggleButton(&mShowOutputSide, "Out S", {}, ButtonColorSpec{ kOutputSideFftColor });
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Side"); ImGui::EndTooltip(); }
-			ImGui::SameLine();
-			// Output Width (linear width)
-			ToggleButton(&mShowOutputWidth, "Out W", {}, ButtonColorSpec{ kOutputWidthFftColor });
-			if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Width (normalized side)"); ImGui::EndTooltip(); }
-		}
 
-		RenderFrequencyAnalysis();
+			// FFT overlay toggles and scale selection
+			{
+				ImGui::Separator();
+				ImGui::Text("Freq overlays:");
+				// Input Mid (dB)
+				ToggleButton(&mShowInputMid, "In M", {}, ButtonColorSpec{kInputMidFftColor});
+				if (ImGui::IsItemHovered()) {
+					ImGui::BeginTooltip(); ImGui::Text("Input mid / center channel");
+					ImGui::EndTooltip();
+				}
+				ImGui::SameLine();
+				// Input Side (dB)
+				ToggleButton(&mShowInputSide, "In S", {}, ButtonColorSpec{ kInputSideFftColor });
+				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Side"); ImGui::EndTooltip(); }
+				ImGui::SameLine();
+				// Input Width (linear width)
+				ToggleButton(&mShowInputWidth, "In W", {}, ButtonColorSpec{ kInputWidthFftColor });
+				if (ImGui::IsItemHovered()) {
+					ImGui::BeginTooltip(); ImGui::Text("Input Width (normalized side)");
+					ImGui::EndTooltip();
+				}
+				ImGui::SameLine(0, 20);
+				// Output Mid (dB)
+				ToggleButton(&mShowOutputMid, "Out M", {}, ButtonColorSpec{ kOutputMidFftColor });
+				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Mid/center"); ImGui::EndTooltip(); }
+				ImGui::SameLine();
+				// Output Side (dB)
+				ToggleButton(&mShowOutputSide, "Out S", {}, ButtonColorSpec{ kOutputSideFftColor });
+				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Side"); ImGui::EndTooltip(); }
+				ImGui::SameLine();
+				// Output Width (linear width)
+				ToggleButton(&mShowOutputWidth, "Out W", {}, ButtonColorSpec{ kOutputWidthFftColor });
+				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Width (normalized side)"); ImGui::EndTooltip(); }
+			}
+
+			RenderFrequencyAnalysis();
+		}
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 	}

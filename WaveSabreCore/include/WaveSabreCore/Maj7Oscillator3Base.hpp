@@ -104,7 +104,6 @@ struct PhaseStep
   double dt;            // per-sample phase advance in phase units, ∈ [0,1)
   bool hasReset;        // master wrapped inside this sample?
   double resetAlpha01;  // when in this sample the reset occurs, ∈ [0,1) (valid if hasReset)
-  //double phaseEnd01;    // slave phase at sample end (no offset), ∈ [0,1)
 };
 
 // Simple accumulator: no offset, no wrap events
@@ -157,6 +156,15 @@ struct PhaseAccumulator
     {
       begin, mDelta, true, alpha01
     }  ;//, end};
+  }
+
+  // for high rate frequencies, may wrap more than once per sample.
+  size_t advanceOneSampleReturningWrapsCrossed() {
+      const double begin = mPhase01;
+    const double end = begin + mDelta;
+    size_t nWraps = (size_t)end; // how many times we crossed 1.0
+    mPhase01 = math::wrap01(end);
+    return nWraps;
   }
 };
 
@@ -233,6 +241,9 @@ public:
   HardSyncPhase mPhaseAcc;
   float mWaveshapeA = 0.0f;
   float mWaveshapeB = 0.0f;
+  float mMainFrequencyHz = 0;
+  float mSyncFrequencyHz = 0;
+  bool mHardSyncEnabled = false;
   OscillatorWaveform mWaveformType;
 
 protected:
@@ -246,6 +257,9 @@ public:
   {
     mWaveshapeA = shapeA;
     mWaveshapeB = shapeB;
+    mMainFrequencyHz = mainFreqHz;
+    mSyncFrequencyHz = syncFreqHz;
+    mHardSyncEnabled = enableHardSync;
     mPhaseAcc.setParams(mainFreqHz, enableHardSync, syncFreqHz);
     HandleParamsChanged();
   };
