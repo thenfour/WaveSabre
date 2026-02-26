@@ -94,14 +94,14 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     case OscillatorWaveform::FoldedTriangle:
       return new FoldedSine(true, OscillatorWaveform::FoldedTriangle);
 
-    case OscillatorWaveform::Noise1:
-      return new SAHNoiseCore(OscillatorWaveform::Noise1);
-    case OscillatorWaveform::Noise2:
-      return new ParticleNoiseCore(OscillatorWaveform::Noise2);
+    case OscillatorWaveform::Noise_SaH_LP:
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_LP, SAHNoiseCore::ControlStyle::LP_Jitter);
+    case OscillatorWaveform::Noise_SaH_HP:
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP, SAHNoiseCore::ControlStyle::HP_Jitter);
     case OscillatorWaveform::Noise3:
-      return new GrainNoiseCore(OscillatorWaveform::Noise3);
+      return new SilenceOsc(OscillatorWaveform::Noise3);
     case OscillatorWaveform::Noise4:
-      return new ShapeNoiseCore(OscillatorWaveform::Noise4);
+      return new SilenceOsc(OscillatorWaveform::Noise4);
     case OscillatorWaveform::Noise5:
       return new SilenceOsc(OscillatorWaveform::Noise5);
     case OscillatorWaveform::Noise6:

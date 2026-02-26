@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "BandSplitter.hpp"
+#include "BiquadFilter.h"
 #include "LinkwitzRileyFilter.hpp"
 #include "Maj7Basic.hpp"
 #include "Maj7Oscillator3Base.hpp"
@@ -15,26 +16,30 @@
 #include "Maj7Oscillator4WS.hpp"
 #include "SVFilter.hpp"
 
+
 namespace WaveSabreCore
 {
 namespace M7
 {
-  static inline WVSegment SegmentFromEndpoints(double beginPhase01, double endPhaseIncluding1, float beginAmp, float endAmp)
-  {
-    double dPhase = endPhaseIncluding1 - beginPhase01;
-    if (dPhase <= 0)
-      dPhase += 1.0;  // wrap around
+static inline WVSegment SegmentFromEndpoints(double beginPhase01,
+                                             double endPhaseIncluding1,
+                                             float beginAmp,
+                                             float endAmp)
+{
+  double dPhase = endPhaseIncluding1 - beginPhase01;
+  if (dPhase <= 0)
+    dPhase += 1.0;  // wrap around
 
-    float slope = (endAmp - beginAmp) / float(dPhase);
-    return WVSegment{beginPhase01, endPhaseIncluding1, beginAmp, slope};
-  }
+  float slope = (endAmp - beginAmp) / float(dPhase);
+  return WVSegment{beginPhase01, endPhaseIncluding1, beginAmp, slope};
+}
 // idleLow01 = amount of wave cycle spent holding at -1 at the beginning of the cycle (0..1)
 // rampUp01 = amount of wave cycle spent ramping up from -1 to +1 (0..1)
 // idleHigh01 = amount of wave cycle spent holding at +1
 // rampDown01 = amount of wave cycle spent ramping down from +1 to -1 (0..1)
 // the 4 stages are expected to add up to 1.
 static inline WVShape MakeTrapezoidShape1(float idleLow01, float rampUp01, float idleHigh01, float rampDown01)
-{ 
+{
   return WVShape{.mSegments = {
                      SegmentFromEndpoints(0.0, idleLow01, -1.0f, -1.0f),
                      SegmentFromEndpoints(idleLow01, idleLow01 + rampUp01, -1.0f, +1.0f),
@@ -49,10 +54,10 @@ static inline WVShape MakeSawShape(float idleParam01, float rampUpDownParam01)
   // when idleParam01 = 0.5 (center), then there should be no idle.
   // idleParam < 0.5 -> more idle at low level; idleParam > 0.5 -> more idle at high level
   // idleParam = 0 -> idleLow01 = 1, idleHigh01 = 0; idleParam = 1 -> idleLow01 = 0, idleHigh01 = 1
-  float idleLow01 = std::clamp((0.5f - idleParam01) * 2, 0.0f, 0.995f); // allow 0 duration
-  float idleHigh01 = std::clamp((idleParam01 - 0.5f) * 2, 0.0f, 0.995f); // allow 0 duration
+  float idleLow01 = std::clamp((0.5f - idleParam01) * 2, 0.0f, 0.995f);   // allow 0 duration
+  float idleHigh01 = std::clamp((idleParam01 - 0.5f) * 2, 0.0f, 0.995f);  // allow 0 duration
 
-  float remaining = 1.0f - idleLow01 - idleHigh01; // remaining cycle portion for the ramps
+  float remaining = 1.0f - idleLow01 - idleHigh01;  // remaining cycle portion for the ramps
 
   // rampUpDownParam01 = saw -> tri map. 0 = saw (full stage = ramp up); 1 = triangle (50% ramp up, 50% ramp down)
   float rampUp01 = rampUpDownParam01 * remaining;
@@ -132,9 +137,7 @@ struct SilenceOsc : public OscillatorCore
   {
   }
 
-  void HandleParamsChanged() override
-  {
-  };
+  void HandleParamsChanged() override {};
 
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
@@ -351,11 +354,19 @@ struct FoldedSine : public OscillatorCore
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct SAHNoiseCore : public OscillatorCore
 {
+  // how waveshape params map to sound control.
+  enum class ControlStyle
+  {
+    HP_Jitter,  // A = high pass freq; B = jitter amount
+    LP_Jitter,  // A = low pass freq; B = jitter amount
+  };
+
   // Param B: Jitter amount in [0,1]
   float mJitter01 = 0.0f;
+  ControlStyle mControlStyle;
 
   // Jitter range in phase units (fraction of a cycle)
-  static constexpr double kJitterMaxPhase = 0.45;  // ±45% of a cycle at B=1
+  static constexpr double kJitterMaxPhase = 0.45;  // +-45% of a cycle at B=1
 
   // Internal clock phasor and current cycle length (in phase units)
   double mClockPhase01 = 0.0;    // advances by dt each sample
@@ -364,17 +375,18 @@ struct SAHNoiseCore : public OscillatorCore
   // Output state: held value between steps
   float mHeld = 0.0f;
 
-  // BLEP spill
   M7Osc4::CorrectionSpill mSpill;
 
-  SAHNoiseCore(OscillatorWaveform waveformType)
+  BiquadFilter mFilter;
+
+  SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
       : OscillatorCore(waveformType)
+      , mControlStyle(controlStyle)
   {
   }
 
   void HandleParamsChanged() override
   {
-    // Map your UI param: A unused (slew removed), B = jitter 0..1
     mJitter01 = std::clamp(mWaveshapeB, 0.0f, 1.0f);
   }
 
@@ -400,13 +412,13 @@ struct SAHNoiseCore : public OscillatorCore
       mHeld = math::randN11();  // start value
     }
 
-    // 1) Open BLEP spill for THIS sample
+    //  Open BLEP spill for THIS sample
     mSpill.open_sample();
 
-    // 2) SNAPSHOT the held value at the **start** of the sample
+    //  SNAPSHOT the held value at the **start** of the sample
     const float heldAtStart = mHeld;
 
-    // 3) March through possible intra-sample events
+    //  March through possible intra-sample events
     double remaining = dt;
     double consumed = 0.0;
 
@@ -441,8 +453,18 @@ struct SAHNoiseCore : public OscillatorCore
       schedule_next_cycle_length();
     }
 
-    // 4) Output = value at sample **start** + now-tap
-    const float y = heldAtStart + (float)mSpill.now;
+    //  Output = value at sample **start** + now-tap
+    float y = heldAtStart + (float)mSpill.now;
+
+    // apply filter.
+    ParamAccessor pa{&mWaveshapeA, 0};
+    float cutoff = pa.GetFrequency(0, 0, gFilterFreqConfig, mMainFrequencyHz, 0);
+    mFilter.SetParams((mControlStyle == ControlStyle::HP_Jitter) ? BiquadFilterType::Highpass
+                                                                 : BiquadFilterType::Lowpass,
+                      cutoff,
+                      0.707f,
+                      0.0f);
+    y = mFilter.ProcessSample(y);
 
     return CoreSample{
         .amplitude = y,

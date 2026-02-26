@@ -81,6 +81,21 @@ namespace WaveSabreCore
 			b1 = -(1.0f + cosw0);
 			b0 = b2 = b1 * -0.5f;
 			break;
+		case BiquadFilterType::Bandpass:
+			b0 = alpha;
+			b1 = 0.0f;
+			b2 = -alpha;
+			break;
+		case BiquadFilterType::Notch:
+			b0 = 1.0f;
+			b1 = -2.0f * cosw0;
+			b2 = 1.0f;
+			break;
+		case BiquadFilterType::Allpass:
+			b0 = 1.0f - alpha;
+			b1 = -2.0f * cosw0;
+			b2 = 1.0f + alpha;
+			break;
 		case BiquadFilterType::Peak:
 		{
 			a0 = 1.0f + (alpha / A);

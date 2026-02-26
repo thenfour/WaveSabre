@@ -11,6 +11,9 @@ namespace WaveSabreCore
 	{
 		Lowpass,
 		Highpass,
+		Bandpass,
+		Notch,
+		Allpass,
 		Peak,
 		HighShelf,
 		LowShelf,
