@@ -350,7 +350,6 @@ struct FoldedSine : public OscillatorCore
   }
 };
 
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct SAHNoiseCore : public OscillatorCore
 {
@@ -377,11 +376,12 @@ struct SAHNoiseCore : public OscillatorCore
 
   M7Osc4::CorrectionSpill mSpill;
 
-  BiquadFilter mFilter;
+  CascadedBiquadFilter mFilter;
 
-  SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
+  SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle, size_t biquadStages)
       : OscillatorCore(waveformType)
       , mControlStyle(controlStyle)
+      , mFilter(biquadStages)
   {
   }
 
@@ -486,43 +486,12 @@ struct WhiteNoiseFilteredCore : public OscillatorCore
   };
 
   ControlStyle mControlStyle;
-  BiquadFilter mFilter;
+  CascadedBiquadFilter mFilter;
 
-  static float GetCompensationGainLinearBP(float cutoffHz, float q)
-  {
-    const float fRef = 1000.0f;  // reference frequency where gain is ~1
-    const float qRef = 0.707f;
-    // clamping is already done upstream. save binary size.
-    //const float safeCutoff = std::max(32.0f, cutoffHz);
-    //const float safeQ = std::max(0.01f, q);
-    float g = math::sqrt(fRef / cutoffHz) * math::sqrt(q / qRef);
-    g = math::clamp(g, 0.25f, 8.0f);
-    return g;
-  }
-
-  static float GetCompensationGainLinearLP(float cutoffHz)
-  {
-    const float fRef = 1000.0f;  // reference frequency where gain is ~1
-    //const float safeCutoff = std::max(32.0f, cutoffHz);
-    float g = math::sqrt(fRef / cutoffHz);
-    g = math::clamp(g, 0.25f, 8.0f);
-    return g;
-  }
-
-  static float GetCompensationGainLinearHP(float cutoffHz)
-  {
-    const float nyquistHz = 0.5f * Helpers::CurrentSampleRateF;
-    const float fRef = 1000.0f;
-    const float refRemaining = std::max(10.0f, nyquistHz - fRef);
-    const float remaining = std::max(10.0f, nyquistHz - cutoffHz);
-    float g = math::sqrt(refRemaining / remaining);
-    g = math::clamp(g, 0.25f, 8.0f);
-    return g;
-  }
-
-  WhiteNoiseFilteredCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
+  WhiteNoiseFilteredCore(OscillatorWaveform waveformType, ControlStyle controlStyle, size_t biquadStages)
       : OscillatorCore(waveformType)
       , mControlStyle(controlStyle)
+      , mFilter(biquadStages)
   {
   }
 
@@ -559,20 +528,7 @@ struct WhiteNoiseFilteredCore : public OscillatorCore
     mFilter.SetParams(bt, cutoffHz, q, 0.0f);
 
     float y = mFilter.ProcessSample(white);
-
-    switch (mControlStyle)
-    {
-      case ControlStyle::LP_Q:
-        y *= GetCompensationGainLinearLP(cutoffHz);
-        break;
-      case ControlStyle::HP_Q:
-        y *= GetCompensationGainLinearHP(cutoffHz);
-        break;
-      case ControlStyle::BP_Q:
-      default:
-        y *= GetCompensationGainLinearBP(cutoffHz, q);
-        break;
-    }
+    y *= mFilter.GetCompensationGainLinear();
 
     return CoreSample{
         .amplitude = math::clampN11(y),
@@ -585,7 +541,7 @@ struct WhiteNoiseFilteredCore : public OscillatorCore
   void RestartDueToNoteOn() override
   {
     OscillatorCore::RestartDueToNoteOn();
-    mFilter.Reset();
+    //mFilter.Reset(); don't think this is actually necessary; think about portamento etc.
   }
 };
 

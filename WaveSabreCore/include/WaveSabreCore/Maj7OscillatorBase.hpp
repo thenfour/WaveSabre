@@ -100,14 +100,21 @@ enum class OscillatorWaveform : uint8_t
   FoldedSine,
   FoldedTriangle,
 
-  Noise_SaH_LP,
-  Noise_SaH_HP,
+  Noise_SaH_LP2,
+  Noise_SaH_HP2,
+  Noise_SaH_LP4,
+  Noise_SaH_HP4,
   Noise3,
   Noise4,
   Noise5,
   Noise6,
   Noise7,
   Noise8,
+
+  Noise9,
+  Noise10,
+  Noise11,
+  Noise12,
 
   Count,
 
@@ -137,14 +144,20 @@ enum class OscillatorWaveform : uint8_t
   "SS Tri-Square",\
   "Folded Sine",\
   "Folded Tri",\
-  "Noise_SaH_LP",\
-  "Noise_SaH_HP",\
+  "Noise_SaH_LP2",\
+  "Noise_SaH_HP2",\
+  "Noise_SaH_LP4",\
+  "Noise_SaH_HP4",\
   "Noise White+BP2",\
   "Noise White+LP2",\
   "Noise White+HP2",\
   "Noise 6",\
   "Noise 7",\
   "Noise 8",\
+  "Noise 9",\
+  "Noise 10",\
+  "Noise 11",\
+  "Noise 12",\
   }
 // clang-format on
 

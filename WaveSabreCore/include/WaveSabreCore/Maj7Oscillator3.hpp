@@ -94,22 +94,26 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     case OscillatorWaveform::FoldedTriangle:
       return new FoldedSine(true, OscillatorWaveform::FoldedTriangle);
 
-    case OscillatorWaveform::Noise_SaH_LP:
-      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_LP, SAHNoiseCore::ControlStyle::LP_Jitter);
-    case OscillatorWaveform::Noise_SaH_HP:
-      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP, SAHNoiseCore::ControlStyle::HP_Jitter);
+    case OscillatorWaveform::Noise_SaH_LP2:
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_LP2, SAHNoiseCore::ControlStyle::LP_Jitter, 1);
+    case OscillatorWaveform::Noise_SaH_HP2:
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP2, SAHNoiseCore::ControlStyle::HP_Jitter, 1);
+    case OscillatorWaveform::Noise_SaH_LP4:
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_LP4, SAHNoiseCore::ControlStyle::LP_Jitter, 2);
+    case OscillatorWaveform::Noise_SaH_HP4:
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP4, SAHNoiseCore::ControlStyle::HP_Jitter, 2);
     case OscillatorWaveform::Noise3:
-      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise3, WhiteNoiseFilteredCore::ControlStyle::BP_Q);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise3, WhiteNoiseFilteredCore::ControlStyle::BP_Q, 1);
     case OscillatorWaveform::Noise4:
-      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise4, WhiteNoiseFilteredCore::ControlStyle::LP_Q);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise4, WhiteNoiseFilteredCore::ControlStyle::LP_Q, 1);
     case OscillatorWaveform::Noise5:
-      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise5, WhiteNoiseFilteredCore::ControlStyle::HP_Q);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise5, WhiteNoiseFilteredCore::ControlStyle::HP_Q, 1);
     case OscillatorWaveform::Noise6:
-      return new SilenceOsc(OscillatorWaveform::Noise6);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise6, WhiteNoiseFilteredCore::ControlStyle::BP_Q, 2);
     case OscillatorWaveform::Noise7:
-      return new SilenceOsc(OscillatorWaveform::Noise7);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise7, WhiteNoiseFilteredCore::ControlStyle::LP_Q, 2);
     case OscillatorWaveform::Noise8:
-      return new SilenceOsc(OscillatorWaveform::Noise8);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise8, WhiteNoiseFilteredCore::ControlStyle::HP_Q, 2);
   }
 }
 
