@@ -457,14 +457,16 @@ struct SAHNoiseCore : public OscillatorCore
     float y = heldAtStart + (float)mSpill.now;
 
     // apply filter.
+    float params[2] = {mWaveshapeA, 1}; // [0] is cutoff freq; [1] is key-tracking. we hard-code it so the filter tracks your note.
     ParamAccessor pa{&mWaveshapeA, 0};
-    float cutoff = pa.GetFrequency(0, 0, gFilterFreqConfig, mMainFrequencyHz, 0);
+    float cutoff = pa.GetFrequency(0, 1, gFilterFreqConfig, mMainFrequencyHz, 0);
     mFilter.SetParams((mControlStyle == ControlStyle::HP_Jitter) ? BiquadFilterType::Highpass
                                                                  : BiquadFilterType::Lowpass,
                       cutoff,
                       0.707f,
                       0.0f);
     y = mFilter.ProcessSample(y);
+    y *= mFilter.GetCompensationGainLinear();
 
     return CoreSample{
         .amplitude = y,
@@ -504,8 +506,9 @@ struct WhiteNoiseFilteredCore : public OscillatorCore
     const auto step = mPhaseAcc.advanceOneSample();
     const float white = math::randN11();
 
+    float params[2] = {mWaveshapeA, 1}; // [0] is cutoff freq; [1] is key-tracking. we hard-code it so the filter tracks your note.
     ParamAccessor pa{&mWaveshapeA, 0};
-    const float cutoffHz = pa.GetFrequency(0, 0, gFilterFreqConfig, mMainFrequencyHz, 0);
+    const float cutoffHz = pa.GetFrequency(0, 1, gFilterFreqConfig, mMainFrequencyHz, 0);
 
     ParamAccessor paQ{&mWaveshapeB, 0};
     const float q = paQ.GetDivCurvedValue(0, gBiquadFilterQCfg_Steep, 0);
@@ -544,6 +547,8 @@ struct WhiteNoiseFilteredCore : public OscillatorCore
     //mFilter.Reset(); don't think this is actually necessary; think about portamento etc.
   }
 };
+
+
 
 }  // namespace M7
 

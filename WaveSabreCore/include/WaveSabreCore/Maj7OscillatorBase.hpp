@@ -100,13 +100,8 @@ enum class OscillatorWaveform : uint8_t
   FoldedSine,
   FoldedTriangle,
 
-  Noise_SaH_LP2,
-  Noise_SaH_HP2,
   Noise_SaH_LP4,
   Noise_SaH_HP4,
-  Noise_White_BP2,
-  Noise_White_LP2,
-  Noise_White_HP2,
   Noise_White_BP4,
   Noise_White_LP4,
   Noise_White_HP4,
@@ -146,13 +141,8 @@ enum class OscillatorWaveform : uint8_t
   "SS Tri-Square",\
   "Folded Sine",\
   "Folded Tri",\
-  "Noise_SaH_LP2",\
-  "Noise_SaH_HP2",\
   "Noise_SaH_LP4",\
   "Noise_SaH_HP4",\
-  "Noise White+BP2",\
-  "Noise White+LP2",\
-  "Noise White+HP2",\
   "Noise White+BP4",\
   "Noise White+LP4",\
   "Noise White+HP4",\
