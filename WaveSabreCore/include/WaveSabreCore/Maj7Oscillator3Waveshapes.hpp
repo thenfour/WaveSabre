@@ -123,6 +123,31 @@ static inline WVShape MakeTriStatePulseShape4(double masterDutyCycle01, double l
       }};
 }
 
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct SilenceOsc : public OscillatorCore
+{
+  SilenceOsc(OscillatorWaveform waveform)
+      : OscillatorCore(waveform)
+  {
+  }
+
+  void HandleParamsChanged() override
+  {
+  };
+
+  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+  {
+    const PhaseStep step = mPhaseAcc.advanceOneSample();
+
+    return CoreSample{
+        .amplitude = 0,
+        .phaseAdvance = step,
+    };
+  }
+};
+
+
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // you can use 2 params at a time, but this supports 4.
 // - DC asymmetry
@@ -232,8 +257,6 @@ struct SineCoreExt : public OscillatorCore
       // which equals 0.75*sin(theta) - 0.375*sin(2*theta)
       float yH;
       {
-        // choose whichever is cheaper on your platform:
-
         // (A) window form (needs cos)
         //float c = std::cos(theta);
         //yH = 1.5f * s * (0.5f - 0.5f * c);
@@ -258,6 +281,67 @@ struct SineCoreExt : public OscillatorCore
         .amplitude = out,
         .naive = out,
         .correction = 0.0f,
+        .phaseAdvance = step,
+    };
+  }
+};
+
+
+struct FoldedSine : public OscillatorCore
+{
+  FoldedSine(bool triangle, OscillatorWaveform waveformType)
+      : OscillatorCore(waveformType)
+      , mTriangle(triangle)
+  {
+  }
+
+  float mDrive = 1.0f;  // >= 1.0
+  float mBias = 0.0f;   // DC offset before folding
+  const float mTriangle;
+
+  void HandleParamsChanged() override
+  {
+    mDrive = 1.0f + 10.0f * mWaveshapeA;
+
+    // B: symmetry/bias 0..1 -> -1..1; actually in theory -2..2 is usable to catch ALL signal.
+    mBias = (mWaveshapeB - 0.5f) * 4.0f;
+  }
+
+  static inline float fold_reflect(float x)
+  {
+    const float threshold = 1;
+    const float ax = std::fabs(x);
+    const float per = 2 * threshold;
+    float m = std::fmod(ax, per);
+    if (m < 0.0f)
+      m += per;
+
+    const float r = (m <= threshold) ? m : (per - m);
+    return std::copysign(r, x);
+  }
+
+  inline float sampleWaveform(float phase01)
+  {
+    if (mTriangle)
+    {
+      return math::naiveTriangle01(phase01);
+    }
+    // sine
+    return math::sin(math::gPITimes2 * phase01);
+  }
+
+  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+  {
+    const PhaseStep step = mPhaseAcc.advanceOneSample();
+
+    const double phase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
+    const float s = sampleWaveform(phase01);  // math::sin(math::gPITimes2 * float(phase01));
+
+    const float driven = mDrive * s + mBias;
+    float y = fold_reflect(driven);
+
+    return CoreSample{
+        .amplitude = y,
         .phaseAdvance = step,
     };
   }
@@ -364,433 +448,6 @@ struct SAHNoiseCore : public OscillatorCore
         .amplitude = y,
         .naive = heldAtStart,  // optional: expose pre-correction
         .correction = (float)mSpill.now,
-        .phaseAdvance = step,
-    };
-  }
-};
-
-
-// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// // Assumes you already have: add_blep(double alpha01, double dAmp, double& now, double& next)
-// //
-// //struct CorrectionSpill {
-// //  double now  = 0.0;  // THIS sample
-// //  double next = 0.0;  // NEXT sample
-// //  inline void open_sample() { now = next; next = 0.0; }
-// //};
-
-// struct GaussianNoise
-// {
-//   // Gaussian RNG (Box-Muller)
-//   uint32_t mRng = 0x853C49E6748FEA9Bull & 0xffffffffu;
-//   inline uint32_t rng_u32()
-//   {
-//     uint32_t x = mRng;
-//     x ^= x << 13;
-//     x ^= x >> 17;
-//     x ^= x << 5;
-//     mRng = (x != 0 ? x : 0xA3C59AC3u);
-//     return mRng;
-//   }
-//   inline double rng01()
-//   {
-//     return (double)rng_u32() * (1.0 / 4294967295.0);  // [0,1]
-//   }
-//   inline double rng_pm1()
-//   {
-//     return 2.0 * rng01() - 1.0;  // [-1,1]
-//   }
-//   inline double rng_gauss()
-//   {                                        // Box-Muller (one sample)
-//     double u1 = std::max(rng01(), 1e-12);  // avoid log(0)
-//     double u2 = rng01();
-//     return std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * math::gPITimes2 * u2);  // mean 0, var 1
-//   }
-// };
-
-// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// struct ParticleNoiseCore : public OscillatorCore
-// {
-//   // --- Params (map these from your UI / mWaveshapeA/B/C) ---
-//   // A: density per cycle (events/cycle), log-mapped
-//   // B: decay time (ms) for each micro-pulse
-//   // C: amp scale (0..1), overall particle strength
-//   float mDensity01 = 0.5f;  // 0..1 -> ~[0.01 .. 50] events/cycle
-//   float mDecay01 = 0.3f;    // 0..1 -> ~[1ms .. 300ms]
-//   //float mAmp01     = 0.5f;   // 0..1 gain on particle amplitude
-
-//   // --- Derived (k-rate) ---
-//   double mLambdaPhase = 1.0;  // events per phase unit (per cycle)
-//   double mTauSec = 0.050;     // seconds
-//   double mA_one = 0.0;        // per-sample decay factor a = exp(-Ts/tau)
-
-//   // --- Event scheduler (phase domain) ---
-//   double mPhaseToNext = 1.0;  // remaining phase until next event
-
-//   // --- Signal state (value at sample boundaries, pre-correction) ---
-//   double mState = 0.0;  // sum of active exponential pulses at sample start
-
-//   // --- BLEP spill ---
-//   M7Osc4::CorrectionSpill mSpill;
-
-//   // --- RNG (xorshift32) ---
-//   uint32_t mRng = 0x853C49E6748FEA9Bull & 0xffffffffu;
-//   inline uint32_t rng_u32()
-//   {
-//     uint32_t x = mRng;
-//     x ^= x << 13;
-//     x ^= x >> 17;
-//     x ^= x << 5;
-//     mRng = (x != 0 ? x : 0xA3C59AC3u);
-//     return mRng;
-//   }
-//   inline double rng01()
-//   {
-//     return (double)rng_u32() * (1.0 / 4294967295.0);  // [0,1]
-//   }
-//   inline double rng_pm1()
-//   {
-//     return 2.0 * rng01() - 1.0;  // [-1,1]
-//   }
-//   inline double rng_gauss()
-//   {                                        // Box-Muller (one sample)
-//     double u1 = std::max(rng01(), 1e-12);  // avoid log(0)
-//     double u2 = rng01();
-//     return std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * math::gPITimes2 * u2);  // mean 0, var 1
-//   }
-//   inline double exp_interarrival_phase(double lambdaPhase)
-//   {
-//     // Draw exponential in phase units with mean 1/lambda
-//     // If lambda ~ 0, return a very large number.
-//     if (lambdaPhase <= 1e-9)
-//       return 1e9;
-//     double u = std::max(rng01(), 1e-12);
-//     return -std::log(u) / lambdaPhase;
-//   }
-
-//   ParticleNoiseCore(OscillatorWaveform wf)
-//       : OscillatorCore(wf)
-//   {
-//   }
-
-//   void HandleParamsChanged() override
-//   {
-//     // Map UI -> engine
-//     // Density: log sweep ~ [0.01 .. 50] events per cycle
-//     const double dMin = 0.01, dMax = 50.0;
-//     mDensity01 = std::clamp(mWaveshapeA, 0.0f, 1.0f);
-//     mLambdaPhase = dMin * std::pow(dMax / dMin, (double)mDensity01);
-
-//     // Decay time: 1ms .. 300ms (exp mapping is nicer)
-//     mDecay01 = std::clamp(mWaveshapeB, 0.0f, 1.0f);
-//     const double tMin = 0.001, tMax = 0.300;
-//     mTauSec = tMin * std::pow(tMax / tMin, (double)mDecay01);
-
-//     // Amp scale 0..1 maps linearly
-//     //mAmp01 = std::clamp(mWaveshapeC, 0.0f, 1.0f);
-
-//     // Per-sample one-pole coefficient for continuous-time decay
-//     const double Ts = 1.0 / std::max(1.0f, Helpers::CurrentSampleRateF);
-//     mA_one = std::exp(-Ts / std::max(1e-6, mTauSec));
-//   }
-
-//   // Re-seed the scheduler if needed (call on note-on)
-//   inline void Reset()
-//   {
-//     mState = 0.0;
-//     mSpill.now = mSpill.next = 0.0;
-//     mPhaseToNext = exp_interarrival_phase(mLambdaPhase);
-//   }
-
-//   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
-//   {
-//     const auto step = mPhaseAcc.advanceOneSample();
-//     const double dt_phase = step.dt;  // phase advanced this sample (∈ (0,1))
-
-//     // First-run lazy init
-//     if (mPhaseToNext > 1e8)
-//     {
-//       mPhaseToNext = exp_interarrival_phase(mLambdaPhase);
-//     }
-
-//     // Open BLEP spill for this sample and snapshot start-state
-//     mSpill.open_sample();
-//     double yStart = mState;
-
-//     // For physically-correct intra-sample decay, we need fractional powers of 'a'
-//     // Over a fraction 'g' of one sample, decay factor is a_one^g
-//     auto a_pow = [&](double g) -> double
-//     {
-//       if (g <= 0.0)
-//         return 1.0;
-//       return std::exp(std::log(std::max(1e-12, mA_one)) * g);
-//     };
-
-//     // March through intra-sample events (could be >1)
-//     double remaining = dt_phase;
-//     double consumed = 0.0;
-//     double ySeg = yStart;  // evolve state continuously within the sample
-
-//     while (remaining >= mPhaseToNext)
-//     {
-//       // fraction of this sample until the event
-//       const double alpha = (dt_phase > 0.0) ? (consumed + mPhaseToNext) / dt_phase : 0.0;
-
-//       // Decay the running state up to the event time
-//       const double g_to_edge = (dt_phase > 0.0) ? (mPhaseToNext / dt_phase) : 0.0;  // fraction of one sample
-//       ySeg *= a_pow(g_to_edge);
-
-//       // Draw particle amplitude (Gaussian sounds great; scale by mAmp01)
-//       const double amp = rng_gauss();
-
-//       // Bandlimit the step at the onset (value discontinuity of size 'amp')
-//       //add_blep(alpha, amp, mSpill.now, mSpill.next);
-//       mSpill.add_edge(alpha, amp, 0, dt_phase);
-
-//       // Apply the instantaneous step to the continuous state for subsequent segments
-//       ySeg += amp;
-
-//       // Consume this event and schedule the next
-//       remaining -= mPhaseToNext;
-//       consumed += mPhaseToNext;
-//       mPhaseToNext = exp_interarrival_phase(mLambdaPhase);
-//     }
-
-//     // Decay the remainder of the sample to compute end-of-sample state
-//     const double g_tail = (dt_phase > 0.0) ? (remaining / dt_phase) : 0.0;
-//     ySeg *= a_pow(g_tail);
-//     mState = ySeg;              // next sample starts here
-//     mPhaseToNext -= remaining;  // reduce time-to-next by what we just advanced
-
-//     // Output = value at sample start + BLEP tail(s)
-//     const float y = (float)(yStart + mSpill.now);
-
-//     return CoreSample{
-//         .amplitude = y,
-//         .naive = (float)yStart,
-//         .correction = (float)mSpill.now,
-//         .phaseAdvance = step,
-//     };
-//   }
-// };
-
-// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// struct GrainNoiseCore : public OscillatorCore
-// {
-//   PhaseAccumulator mRefreshPhase;       // for every cycle of this phase, we "refresh" 1 sample of the noise buffer.
-//   size_t mBufferAllocated = 0;          // how many samples mBuffer can hold.
-//   size_t mBufferElementsPopulated = 0;  // how many samples in mBuffer have been populated with noise.
-//   std::unique_ptr<float[]> mBuffer;
-//   GaussianNoise mNoiseGen;
-
-//   GrainNoiseCore(OscillatorWaveform wf)
-//       : OscillatorCore(wf)
-//   {
-//   }
-
-//   void HandleParamsChanged() override
-//   {
-//     // waveshape A = mWaveshapeA
-//     //mVariancePerCycle = math::clamp01(mWaveshapeA);
-//     float freqRatio = math::lerp(0.01f, 50.0f, math::clamp01(mWaveshapeA));
-//     mRefreshPhase.setFrequencyHz(mMainFrequencyHz * freqRatio);
-//   }
-
-//   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
-//   {
-//     const auto step = mPhaseAcc.advanceOneSample();
-//     if (mMainFrequencyHz < 1e-3f || mMainFrequencyHz > Helpers::CurrentSampleRate * 0.5f)
-//     {
-//       return CoreSample{
-//           .amplitude = 0.0f,
-//           .phaseAdvance = step,
-//       };
-//     }
-
-//     // 1. calculate # of samples in one cycle
-//     const double cycleDurationSec = 1.0 / std::max(1.0f, mMainFrequencyHz);
-//     const size_t samplesPerCycle = (size_t)std::ceil(cycleDurationSec * Helpers::CurrentSampleRateF);
-
-//     // 2. ensure buffer is big enough, retaining existing data if possible
-//     if (mBufferAllocated < samplesPerCycle)
-//     {
-//       // allocate a new buffer
-//       std::unique_ptr<float[]> newBuffer = std::make_unique<float[]>(samplesPerCycle);
-//       // copy existing data if possible
-//       if (mBuffer)
-//       {
-//         size_t toCopy = std::min(mBufferElementsPopulated, samplesPerCycle);
-//         std::memcpy(newBuffer.get(), mBuffer.get(), toCopy * sizeof(float));
-//         mBufferElementsPopulated = toCopy;
-//       }
-//       mBuffer = std::move(newBuffer);
-//       mBufferAllocated = samplesPerCycle;
-//     }
-
-//     // 3. popluate uninitialized samples
-//     for (size_t i = mBufferElementsPopulated; i < samplesPerCycle; ++i)
-//     {
-//       mBuffer[i] = (float)mNoiseGen.rng_gauss();
-//     }
-
-//     // 4. "refresh" a portion of the buffer (samplesPerCycle * mVariancePerCycle) with new noise
-//     // in order to accomplish this, we will shift the buffer left by that amount, and then fill the right side with new noise
-//     size_t toRefresh = mRefreshPhase.advanceOneSampleReturningWrapsCrossed();
-//     if (toRefresh > 0)
-//     {
-//       // shift left
-//       size_t toKeep = samplesPerCycle - toRefresh;
-//       if (toKeep > 0)
-//       {
-//         std::memmove(mBuffer.get(), mBuffer.get() + toRefresh, toKeep * sizeof(float));
-//       }
-//       // fill right side with new noise
-//       for (size_t i = toKeep; i < samplesPerCycle; ++i)
-//       {
-//         mBuffer[i] = (float)mNoiseGen.rng_gauss();
-//       }
-//       mBufferElementsPopulated = samplesPerCycle;
-//     }
-
-//     // take the sample at the current phase position
-//     const size_t index = (size_t)(step.phaseBegin01 * samplesPerCycle) % samplesPerCycle;
-//     const float y = mBuffer[index];
-
-//     return CoreSample{
-//         .amplitude = y,
-//         .phaseAdvance = step,
-//     };
-//   }
-// };
-
-
-// //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// // multiplies white noise by a shape
-// struct ShapeNoisePulseGenerator : public M7Osc4::IShapeGenerator
-// {
-//   WVShape GetShape(float shapeA, float /*shapeB*/) const override
-//   {
-//     return MakeTriangleShape();
-//     //return MakePulseShape(shapeA);
-//   }
-// };
-
-// struct ShapeNoiseCore : public OscillatorCore
-// {
-//   using CorrectionSpill = M7Osc4::CorrectionSpill;
-//   using IShapeGenerator = M7Osc4::IShapeGenerator;
-//   std::unique_ptr<IShapeGenerator> mShapeGen;
-//   WVShape mShape;
-//   GaussianNoise mNoiseGen;
-
-//   ShapeNoiseCore(OscillatorWaveform wf)
-//       : OscillatorCore(wf)
-//       , mShapeGen(new ShapeNoisePulseGenerator)
-//   {
-//   }
-
-//   void HandleParamsChanged() override
-//   {
-//     mShape = mShapeGen->GetShape(mWaveshapeA, mWaveshapeB);
-//   };
-
-//   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-//   {
-//     const PhaseStep step = mPhaseAcc.advanceOneSample();  // no offset here
-//     const double dt = step.dt;
-//     const double phase = step.phaseBegin01;
-
-//     // naive (evaluation) uses offset
-//     const double evalPhase = math::wrap01(phase + audioRatePhaseOffset);
-//     const auto [ampNaive, slopeNaive] = mShape.EvalAmpSlopeAt(evalPhase);
-//     double y = (double)(ampNaive * .5 + .5) * mNoiseGen.rng_gauss();
-
-//     return CoreSample{
-//         .amplitude = (float)y,
-//         .phaseAdvance = {/* if you still want to return step info, adapt here */},
-//     };
-//   }
-// };
-
-struct SilenceOsc : public OscillatorCore
-{
-  SilenceOsc(OscillatorWaveform waveform)
-      : OscillatorCore(waveform)
-  {
-  }
-
-  void HandleParamsChanged() override
-  {
-  };
-
-  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-  {
-    const PhaseStep step = mPhaseAcc.advanceOneSample();
-
-    return CoreSample{
-        .amplitude = 0,
-        .phaseAdvance = step,
-    };
-  }
-};
-
-
-
-struct FoldedSine : public OscillatorCore
-{
-  FoldedSine(bool triangle, OscillatorWaveform waveformType)
-      : OscillatorCore(waveformType)
-      , mTriangle(triangle)
-  {
-  }
-
-  float mDrive = 1.0f;  // >= 1.0
-  float mBias = 0.0f;   // DC offset before folding
-  const float mTriangle;
-
-  void HandleParamsChanged() override
-  {
-    mDrive = 1.0f + 10.0f * mWaveshapeA;
-
-    // B: symmetry/bias 0..1 -> -1..1; actually in theory -2..2 is usable to catch ALL signal.
-    mBias = (mWaveshapeB - 0.5f) * 4.0f;
-  }
-
-  static inline float fold_reflect(float x)
-  {
-    const float threshold = 1;
-    const float ax = std::fabs(x);
-    const float per = 2 * threshold;
-    float m = std::fmod(ax, per);
-    if (m < 0.0f)
-      m += per;
-
-    const float r = (m <= threshold) ? m : (per - m);
-    return std::copysign(r, x);
-  }
-
-  inline float sampleWaveform(float phase01)
-  {
-    if (mTriangle)
-    {
-      return math::naiveTriangle01(phase01);
-    }
-    // sine
-    return math::sin(math::gPITimes2 * phase01);
-  }
-
-  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-  {
-    const PhaseStep step = mPhaseAcc.advanceOneSample();
-
-    const double phase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
-    const float s = sampleWaveform(phase01);  // math::sin(math::gPITimes2 * float(phase01));
-
-    const float driven = mDrive * s + mBias;
-    float y = fold_reflect(driven);
-
-    return CoreSample{
-        .amplitude = y,
         .phaseAdvance = step,
     };
   }
