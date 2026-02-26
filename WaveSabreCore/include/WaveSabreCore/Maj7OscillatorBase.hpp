@@ -146,7 +146,7 @@ enum class OscillatorWaveform : uint8_t
   "Noise White+BP4",\
   "Noise White+LP4",\
   "Noise White+HP4",\
-  "Noise 9",\
+  "Noise Grain Evolve",\
   "Noise 10",\
   "Noise 11",\
   "Noise 12",\

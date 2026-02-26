@@ -104,6 +104,8 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise_White_LP4, WhiteNoiseFilteredCore::ControlStyle::LP_Q, 2);
     case OscillatorWaveform::Noise_White_HP4:
       return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise_White_HP4, WhiteNoiseFilteredCore::ControlStyle::HP_Q, 2);
+    case OscillatorWaveform::Noise9:
+      return new EvolvingGrainNoiseCore(OscillatorWaveform::Noise9);
   }
 }
 
