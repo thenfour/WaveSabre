@@ -551,109 +551,124 @@ struct WhiteNoiseFilteredCore : public OscillatorCore
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct EvolvingGrainNoiseCore : public OscillatorCore
 {
-  float mGrainSize01 = 0.5f;      // shapeA
-  float mMutationRate01 = 0.0f;   // shapeB
-  size_t mGrainSizeSamples = 256;
-  std::vector<float> mGrain;
-  bool mInitialized = false;
+   // UI-ish params (0..1)
+   float mGrainSize01     = 0.5f; // shapeA
+   float mMutationRate01  = 0.0f; // shapeB
 
-  EvolvingGrainNoiseCore(OscillatorWaveform waveformType)
+   // Grain size in samples (actual used length)
+   size_t mGrainSizeSamples = 256;
+
+   // Fixed-size buffer instead of std::vector
+   static constexpr size_t kMinGrainSizeSamples = 8;
+   static constexpr size_t kMaxGrainSizeSamples = 4096;
+   float mGrain[kMaxGrainSizeSamples]{};
+
+   bool  mGrainValid   = false;   // whether mGrain[..mGrainSizeSamples) is initialized
+   bool  mInitialized  = false;
+
+   EvolvingGrainNoiseCore(OscillatorWaveform waveformType)
       : OscillatorCore(waveformType)
-  {
-  }
+   {
+   }
 
-  inline size_t ComputeGrainSizeSamples() const
-  {
-    const float minSize = 8.0f;
-    const float maxSize = 4096.0f;
-    const float sizeF = minSize * std::pow(maxSize / minSize, mGrainSize01);
-    return (size_t)std::clamp((int)std::lround(sizeF), 8, 4096);
-  }
+   inline size_t ComputeGrainSizeSamples() const
+   {
+      // Map 0..1 → [minSize, maxSize] exponentially
+      const float minSize = float(kMinGrainSizeSamples);
+      const float maxSize = float(kMaxGrainSizeSamples);
+      const float sizeF   = minSize * math::pow(maxSize / minSize, mGrainSize01);
+      const int   sizeI   = math::round<int>(sizeF);
+      return (size_t)math::ClampI(sizeI, (int)kMinGrainSizeSamples, (int)kMaxGrainSizeSamples);
+   }
 
-  inline void EnsureGrainAllocated()
-  {
-    const size_t targetSize = ComputeGrainSizeSamples();
-    if (targetSize == mGrainSizeSamples && !mGrain.empty())
-      return;
+   inline void EnsureGrainAllocated()
+   {
+      const size_t targetSize = ComputeGrainSizeSamples();
 
-    mGrainSizeSamples = targetSize;
-    mGrain.resize(mGrainSizeSamples);
-    for (size_t i = 0; i < mGrainSizeSamples; ++i)
-    {
-      mGrain[i] = math::randN11();
-    }
-  }
+      // If size unchanged and we already have valid content, nothing to do
+      if (targetSize == mGrainSizeSamples && mGrainValid)
+         return;
 
-  inline void MutateGrainCycle()
-  {
-    if (mGrain.empty())
-      return;
+      mGrainSizeSamples = targetSize;
 
-    const size_t mutateCount = (size_t)std::clamp(
-        (int)std::lround(mMutationRate01 * (float)mGrainSizeSamples),
-        0,
-        (int)mGrainSizeSamples);
+      // Fill the active portion of the fixed buffer with noise
+      for (size_t i = 0; i < mGrainSizeSamples; ++i)
+      {
+         mGrain[i] = math::randN11(); // [-1,1]
+      }
 
-    for (size_t i = 0; i < mutateCount; ++i)
-    {
-      const size_t index = (size_t)(math::rand01() * (double)mGrainSizeSamples) % mGrainSizeSamples;
-      mGrain[index] = math::randN11();
-    }
-  }
+      mGrainValid = true;
+   }
 
-  void HandleParamsChanged() override
-  {
-    mGrainSize01 = std::clamp(mWaveshapeA, 0.0f, 1.0f);
-    mMutationRate01 = std::clamp(mWaveshapeB, 0.0f, 1.0f);
-    EnsureGrainAllocated();
-  }
+   inline void MutateGrainCycle()
+   {
+      if (!mGrainValid || mGrainSizeSamples == 0)
+         return;
 
-  CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
-  {
-    const auto step = mPhaseAcc.advanceOneSample();
+      const float targetCountF = mMutationRate01 * float(mGrainSizeSamples);
+      const int   targetCountI = math::round<int>(targetCountF);
 
-    if (!mInitialized)
-    {
-      mInitialized = true;
+      const size_t mutateCount = (size_t)math::ClampI(targetCountI, 0, (int)mGrainSizeSamples);
+
+      for (size_t i = 0; i < mutateCount; ++i)
+      {
+         // Random index in [0, mGrainSizeSamples)
+         const size_t index =
+            (size_t)(math::rand01() * double(mGrainSizeSamples)) % mGrainSizeSamples;
+
+         mGrain[index] = math::randN11();
+      }
+   }
+
+   void HandleParamsChanged() override
+   {
+      mGrainSize01    = mWaveshapeA;
+      mMutationRate01 = mWaveshapeB;
+
       EnsureGrainAllocated();
-      MutateGrainCycle();
-    }
+   }
 
-    if (mGrain.empty())
-    {
+   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
+   {
+      const auto step = mPhaseAcc.advanceOneSample();
+
+      if (!mInitialized)
+      {
+         mInitialized = true;
+         mGrainValid  = false;      // force re-init
+         EnsureGrainAllocated();
+         MutateGrainCycle();
+      }
+
+      // assert grain valid & has samples.
+
+      const size_t index =
+         (size_t)(step.phaseBegin01 * mGrainSizeSamples) % mGrainSizeSamples;
+
+      const float y = mGrain[index];
+
+      const bool completedCycle = step.hasReset || (step.phaseBegin01 + step.dt >= 1.0f);
+      if (completedCycle)
+      {
+         MutateGrainCycle();
+      }
+
       return CoreSample{
-          .amplitude = 0.0f,
-          .phaseAdvance = step,
+         .amplitude    = y,
+         .naive        = y,
+         .correction   = 0.0f,
+         .phaseAdvance = step,
       };
-    }
+   }
 
-    const size_t index = (size_t)(step.phaseBegin01 * (double)mGrainSizeSamples) % mGrainSizeSamples;
-    const float y = mGrain[index];
-
-    const bool completedCycle = step.hasReset || (step.phaseBegin01 + step.dt >= 1.0);
-    if (completedCycle)
-    {
-      MutateGrainCycle();
-    }
-
-    return CoreSample{
-        .amplitude = y,
-        .naive = y,
-        .correction = 0.0f,
-        .phaseAdvance = step,
-    };
-  }
-
-  void RestartDueToNoteOn() override
-  {
-    OscillatorCore::RestartDueToNoteOn();
-    mInitialized = false;
-  }
+   void RestartDueToNoteOn() override
+   {
+      OscillatorCore::RestartDueToNoteOn();
+      mInitialized = false;
+      // optional: you can also clear mGrainValid if you want fresh random grain per note
+      // mGrainValid = false;
+   }
 };
-
-
-
-
 
 }  // namespace M7
 

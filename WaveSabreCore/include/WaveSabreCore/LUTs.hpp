@@ -599,6 +599,12 @@ INLINE real_t naiveTriangle01(real_t x01)
   return x01 * 4 - 4; // over .75,1, *4 gives -1..0 (ramp up)
 }
 
+template<typename T>
+INLINE T round(float x)
+{
+  return (T)(x + 0.5f);
+}
+
 }  // namespace math
 
 
