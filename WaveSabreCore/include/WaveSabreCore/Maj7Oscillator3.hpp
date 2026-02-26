@@ -99,11 +99,11 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     case OscillatorWaveform::Noise_SaH_HP:
       return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP, SAHNoiseCore::ControlStyle::HP_Jitter);
     case OscillatorWaveform::Noise3:
-      return new SilenceOsc(OscillatorWaveform::Noise3);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise3, WhiteNoiseFilteredCore::ControlStyle::BP_Q);
     case OscillatorWaveform::Noise4:
-      return new SilenceOsc(OscillatorWaveform::Noise4);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise4, WhiteNoiseFilteredCore::ControlStyle::LP_Q);
     case OscillatorWaveform::Noise5:
-      return new SilenceOsc(OscillatorWaveform::Noise5);
+      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise5, WhiteNoiseFilteredCore::ControlStyle::HP_Q);
     case OscillatorWaveform::Noise6:
       return new SilenceOsc(OscillatorWaveform::Noise6);
     case OscillatorWaveform::Noise7:

@@ -475,6 +475,74 @@ struct SAHNoiseCore : public OscillatorCore
   }
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct WhiteNoiseFilteredCore : public OscillatorCore
+{
+  enum class ControlStyle
+  {
+    BP_Q,  // A = cutoff, B = Q
+    LP_Q,  // A = cutoff, B = Q
+    HP_Q,  // A = cutoff, B = Q
+  };
+
+  ControlStyle mControlStyle;
+  BiquadFilter mFilter;
+
+  WhiteNoiseFilteredCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
+      : OscillatorCore(waveformType)
+      , mControlStyle(controlStyle)
+  {
+  }
+
+  void HandleParamsChanged() override
+  {
+  }
+
+  CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
+  {
+    const auto step = mPhaseAcc.advanceOneSample();
+    const float white = math::randN11();
+
+    ParamAccessor pa{&mWaveshapeA, 0};
+    const float cutoffHz = pa.GetFrequency(0, 0, gFilterFreqConfig, mMainFrequencyHz, 0);
+
+    ParamAccessor paQ{&mWaveshapeB, 0};
+    const float q = paQ.GetDivCurvedValue(0, gBiquadFilterQCfg, 0);
+
+    BiquadFilterType bt = BiquadFilterType::Bandpass;
+    switch (mControlStyle)
+    {
+      case ControlStyle::LP_Q:
+        bt = BiquadFilterType::Lowpass;
+        break;
+      case ControlStyle::HP_Q:
+        bt = BiquadFilterType::Highpass;
+        break;
+      case ControlStyle::BP_Q:
+      default:
+        bt = BiquadFilterType::Bandpass;
+        break;
+    }
+
+    mFilter.SetParams(bt, cutoffHz, q, 0.0f);
+
+    const float y = mFilter.ProcessSample(white);
+
+    return CoreSample{
+        .amplitude = y,
+        .naive = white,
+        .correction = 0.0f,
+        .phaseAdvance = step,
+    };
+  }
+
+  void RestartDueToNoteOn() override
+  {
+    OscillatorCore::RestartDueToNoteOn();
+    mFilter.Reset();
+  }
+};
+
 }  // namespace M7
 
 }  // namespace WaveSabreCore
