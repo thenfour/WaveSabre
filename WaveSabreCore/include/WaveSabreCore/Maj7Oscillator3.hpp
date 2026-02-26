@@ -21,9 +21,9 @@ namespace M7Osc4
 {
 struct SawGenerator : public IShapeGenerator
 {
-  WVShape GetShape(float shapeA, float /*shapeB*/) const override
+  WVShape GetShape(float shapeA, float shapeB) const override
   {
-    return MakeSawShape();
+    return MakeSawShape(shapeA, shapeB);
   }
 };
 struct TriGenerator : public IShapeGenerator
@@ -78,16 +78,38 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     case OscillatorWaveform::SineHarmClipSqueeze:
       return new SineCoreExt<SineCoreExtVariant::HarmSilence>(OscillatorWaveform::SineHarmClipSqueeze);
 
-    case OscillatorWaveform::ShapeCoreStreamingSaw2:
-      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::SawGenerator);
-    case OscillatorWaveform::ShapeCoreStreamingPulse2:
-      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::PulseGenerator);
-    case OscillatorWaveform::ShapeCoreStreamingTriPulse1:
-      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriPulseGenerator1);
-    case OscillatorWaveform::ShapeCoreStreamingTriPulse2:
-      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriPulseGenerator2);
-    case OscillatorWaveform::ShapeCoreStreamingTri2:
-      return new M7Osc4::ShapeCoreStreaming(w, new M7Osc4::TriGenerator);
+    case OscillatorWaveform::ShapeCoreSawTri:
+      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep,  new M7Osc4::SawGenerator);
+    case OscillatorWaveform::ShapeCoreSawPulse2:
+      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::PulseGenerator);
+    case OscillatorWaveform::ShapeCoreSawPulse3:
+      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::TriPulseGenerator1);
+    case OscillatorWaveform::ShapeCoreSawPulse4:
+      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::TriPulseGenerator2);
+    case OscillatorWaveform::ShapeCoreSawTriSquare:
+      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::TriGenerator);
+
+    case OscillatorWaveform::FoldedSine:
+      return new FoldedSine(false, OscillatorWaveform::FoldedSine);
+    case OscillatorWaveform::FoldedTriangle:
+      return new FoldedSine(true, OscillatorWaveform::FoldedTriangle);
+
+    case OscillatorWaveform::Noise1:
+      return new SAHNoiseCore(OscillatorWaveform::Noise1);
+    case OscillatorWaveform::Noise2:
+      return new ParticleNoiseCore(OscillatorWaveform::Noise2);
+    case OscillatorWaveform::Noise3:
+      return new GrainNoiseCore(OscillatorWaveform::Noise3);
+    case OscillatorWaveform::Noise4:
+      return new ShapeNoiseCore(OscillatorWaveform::Noise4);
+    case OscillatorWaveform::Noise5:
+      return new SilenceOsc(OscillatorWaveform::Noise5);
+    case OscillatorWaveform::Noise6:
+      return new SilenceOsc(OscillatorWaveform::Noise6);
+    case OscillatorWaveform::Noise7:
+      return new SilenceOsc(OscillatorWaveform::Noise7);
+    case OscillatorWaveform::Noise8:
+      return new SilenceOsc(OscillatorWaveform::Noise8);
   }
 }
 
@@ -137,7 +159,7 @@ public:
       , mpOscDevice(pOscDevice)
       , mIntention(intention)
   {
-    mCore = std::make_unique<SineCore<false>>(OscillatorWaveform::SineDCClip);
+    mCore = std::make_unique<SineCoreExt<SineCoreExtVariant::DCClip>>(OscillatorWaveform::SineDCClip);
     //mCore = std::make_unique<SawCore>();
     //mCore = std::make_unique<PWMCore>();
   }

@@ -1,5 +1,5 @@
-
 // "Designing Software Synthesizer Plug-Ins in C++" // https://willpirkle.com
+// this is NOT a completely general-purpose one-pole filter; it's designed to be used as a building block for the Moog ladder filter
 
 #pragma once
 
@@ -93,6 +93,7 @@ namespace WaveSabreCore
             void Recalc()
             {
                 // NB: LFOs use this filter so the cutoff should support VERY low frequencies with precision. fortunately single poles are fine with that.
+                // TPT (topology-preserving transform) 1-pole integrator formula
                 real2 cutoff = math::clamp(m_cutoffHz, 0, 20000);
                 real2 wd = math::gPI * cutoff;
                 real2 T = Helpers::CurrentSampleRateRecipF;

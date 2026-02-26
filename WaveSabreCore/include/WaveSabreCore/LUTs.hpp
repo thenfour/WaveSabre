@@ -134,6 +134,16 @@ INLINE double wrap01(double x)
   return fract(x);
 }
 
+INLINE float quantize(float x, float step)
+{
+  return math::floor(x / step) * step;
+}
+
+INLINE double quantize(double x, double step)
+{
+  return math::floord(x / step) * step;
+}
+
 INLINE float map(float inp, float inp_min, float inp_max, float out_min, float out_max)
 {
   float t = lerp_rev(inp_min, inp_max, inp);
@@ -576,6 +586,17 @@ INLINE real_t tanh(real_t x)
 INLINE real_t modCurve_xN11_kN11(real_t x, real_t k)
 {
   return gLuts->gCurveLUT.Invoke(x, k);
+}
+
+// naive triangle outputting [-1,1]; period over [0,1).
+INLINE real_t naiveTriangle01(real_t x01)
+{
+  x01 = fract(x01);
+  if (x01 < 0.25f)
+    return x01 * 4; // over 0,.25, *4 gives 0..1 (ramp up)
+  if (x01 < 0.75f)
+    return 2 - x01 * 4; // over .25,.75, *4 gives 1..-1, and 2- that gives 1..-1 (ramp down)
+  return x01 * 4 - 4; // over .75,1, *4 gives -1..0 (ramp up)
 }
 
 }  // namespace math

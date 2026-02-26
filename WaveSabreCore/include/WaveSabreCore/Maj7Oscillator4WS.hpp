@@ -18,12 +18,12 @@ namespace M7
 namespace M7Osc4
 {
 
-// alpha ∈ [0,1): time of the edge within the current sample.
+// alpha [0,1): time of the edge within the current sample.
 // u = 1 - alpha = remaining fraction of the sample after the edge.
 // dAmp = postAmp - preAmp, dSlope = postSlope - preSlope (slope is dy/dphase).
 namespace SplitKernels
 {
-// * 0.5 for canonical polyBLEP normalization (ΔA * .5), to return correction for 1 unit.
+// * 0.5 for canonical polyBLEP normalization (dA * .5), to return correction for 1 unit.
 // since delta Y is max 2 (-1 to +1), poly_blep has to halve it for the function to work.
 static inline void add_blep(double alpha, double dAmp, double& now, double& next)
 {
@@ -68,15 +68,23 @@ struct IShapeGenerator
   virtual WVShape GetShape(float shapeA, float shapeB) const = 0;
 };
 
+enum class AntiAliasingOption
+{
+  PolyBlep = 0,
+  None,
+};
+
 struct ShapeCoreStreaming : public OscillatorCore
 {
   std::unique_ptr<IShapeGenerator> mShapeGen;
   WVShape mShape;
   CorrectionSpill mSpill;
+  AntiAliasingOption mAaOpt;
 
-  ShapeCoreStreaming(OscillatorWaveform w, IShapeGenerator* shapeGen)
+  ShapeCoreStreaming(OscillatorWaveform w, AntiAliasingOption aaOpt, IShapeGenerator* shapeGen)
       : OscillatorCore(w)
       , mShapeGen(shapeGen)
+      , mAaOpt(aaOpt)
   {
   }
 
@@ -103,7 +111,7 @@ struct ShapeCoreStreaming : public OscillatorCore
     double preLen = step.hasReset ? step.resetAlpha01 : 1.0;
     double postLen = step.hasReset ? (1.0 - step.resetAlpha01) : 0.0;
 
-    // ---- pre-reset window: walk shape edges starting at evalPhase
+    // pre-reset window: walk shape edges starting at evalPhase
     SegmentWalker w = SegmentWalker::Begin(mShape, evalPhase, dt);
     if (preLen > 0.0)
     {
@@ -115,7 +123,7 @@ struct ShapeCoreStreaming : public OscillatorCore
           });
     }
 
-    // ---- dynamic Reset (if any): synthesize edge with exact deltas at the event
+    // dynamic Reset: synthesize edge with exact deltas at the event
     if (step.hasReset)
     {
       const double alpha = step.resetAlpha01;
@@ -127,7 +135,7 @@ struct ShapeCoreStreaming : public OscillatorCore
 
       mSpill.add_edge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
 
-      // ---- post-reset window: continue walking from postPh
+      // post-reset window: continue walking from postPh
       if (postLen > 0.0)
       {
         w.ResetSubwindow(postPh, postLen);
@@ -140,17 +148,20 @@ struct ShapeCoreStreaming : public OscillatorCore
       }
     }
 
-    y = (double)ampNaive + mSpill.now;
     corr = mSpill.now;
+    //y = (double)ampNaive + mSpill.now;
 
     return CoreSample{
-        .amplitude = (float)y,
+        .amplitude = (mAaOpt == AntiAliasingOption::PolyBlep ? float((double)ampNaive + mSpill.now) : ampNaive),
         .naive = (float)ampNaive,
         .correction = (float)corr,
-        .phaseAdvance = {/* if you still want to return step info, adapt here */},
+        .phaseAdvance = {/* if needed */},
     };
   }
 };
+
+
+
 
 
 }  // namespace M7Osc4
