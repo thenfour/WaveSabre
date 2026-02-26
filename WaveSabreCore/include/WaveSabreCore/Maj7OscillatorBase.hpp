@@ -139,9 +139,9 @@ enum class OscillatorWaveform : uint8_t
   "Folded Tri",\
   "Noise_SaH_LP",\
   "Noise_SaH_HP",\
-  "Noise 3",\
-  "Noise 4",\
-  "Noise 5",\
+  "Noise White+BP2",\
+  "Noise White+LP2",\
+  "Noise White+HP2",\
   "Noise 6",\
   "Noise 7",\
   "Noise 8",\
