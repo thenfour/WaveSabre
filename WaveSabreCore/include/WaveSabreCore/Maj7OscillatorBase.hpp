@@ -104,17 +104,19 @@ enum class OscillatorWaveform : uint8_t
   Noise_SaH_HP2,
   Noise_SaH_LP4,
   Noise_SaH_HP4,
-  Noise3,
-  Noise4,
-  Noise5,
-  Noise6,
-  Noise7,
-  Noise8,
+  Noise_White_BP2,
+  Noise_White_LP2,
+  Noise_White_HP2,
+  Noise_White_BP4,
+  Noise_White_LP4,
+  Noise_White_HP4,
 
   Noise9,
   Noise10,
   Noise11,
   Noise12,
+  Noise13,
+  Noise14,
 
   Count,
 
@@ -151,13 +153,15 @@ enum class OscillatorWaveform : uint8_t
   "Noise White+BP2",\
   "Noise White+LP2",\
   "Noise White+HP2",\
-  "Noise 6",\
-  "Noise 7",\
-  "Noise 8",\
+  "Noise White+BP4",\
+  "Noise White+LP4",\
+  "Noise White+HP4",\
   "Noise 9",\
   "Noise 10",\
   "Noise 11",\
   "Noise 12",\
+  "Noise 13",\
+  "Noise 14",\
   }
 // clang-format on
 
