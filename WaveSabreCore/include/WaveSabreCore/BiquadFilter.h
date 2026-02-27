@@ -151,60 +151,9 @@ public:
     this->mConfig = src.mConfig;
   }
 
-  // Compute average |H(e^jw)|^2 across frequency for a biquad
-  // H(z) = (b0 + b1 z^-1 + b2 z^-2) / (1 + a1 z^-1 + a2 z^-2)
-  //
-  // Note: uses linear frequency bins. For �perceptual� matching you could use log bins,
-  // but for *energy* in a discrete-time system, linear bins are the right default.
-  float AvgMag2() const
+  float GetCompensationGainLinear() const
   {
-    // constexpr int N = 128;  // 64..256 is typical; cost is tiny at param-change rate.
-    // double sum = 0.0;
-
-    // for (int k = 0; k < N; ++k)
-    // {
-    //   // Midpoint sampling avoids w=0 and w=pi exactly
-    //   double w = M_PI * (k + 0.5) / N;
-    //   double c1 = math::cos(w), s1 = math::sin(w);
-    //   double c2 = math::cos(2 * w), s2 = math::sin(2 * w);
-
-    //   // z^-1 = e^{-jw} = c1 - j s1
-    //   // z^-2 = e^{-j2w} = c2 - j s2
-    //   // num = b0 + b1 z^-1 + b2 z^-2
-    //   double num_re = b0 + b1 * c1 + b2 * c2;
-    //   double num_im = -b1 * s1 - b2 * s2;
-
-    //   // den = 1 + a1 z^-1 + a2 z^-2
-    //   double den_re = 1.0 + a1 * c1 + a2 * c2;
-    //   double den_im = -a1 * s1 - a2 * s2;
-
-    //   double num_mag2 = num_re * num_re + num_im * num_im;
-    //   double den_mag2 = den_re * den_re + den_im * den_im;
-
-    //   // avoid divide-by-zero in pathological cases
-    //   double mag2 = (den_mag2 > 1e-18) ? (num_mag2 / den_mag2) : 0.0;
-    //   sum += mag2;
-    // }
-
-    // return (float)(sum / N);
-  }
-
-  // Gain to achieve a target RMS for a given input noise distribution.
-  // If your white noise is uniform in [-1,1], var = 1/3.
-  // If it�s normal(0,1), var = 1.
-  // If it�s uniform in [-0.5,0.5], var = 1/12, etc.
-  // inputVariance:
-  //      uniform u ∈ [-1,1]: var = 1/3
-  //uniform u ∈ [-0.5,0.5]: var = 1/12
-  //Gaussian N(0,1): var = 1
-  float GetCompensationGainLinear(float inputVariance = float(1.0 / 3.0), float targetRms = 1.0f) const
-  {
-    float avgMag2 = AvgMag2();
-    float outVar = inputVariance * avgMag2;
-    float targetVar = targetRms * targetRms;
-
-    float g = (outVar > 1e-20f) ? std::sqrt(targetVar / outVar) : 0.0f;
-    return g;
+	// TODO: implement.
   }
 
   // Returns linear magnitude at a frequency in Hz using current normalized coefficients
@@ -267,13 +216,7 @@ public:
   }
   float GetCompensationGainLinear() const
   {
-    // float g = 1.0f;
-    // for (size_t i = 0; i < mNStages; ++i)
-    // {
-    //   g *= mFilters[i].GetCompensationGainLinear();
-    // }
-    // return g;
-	return 1;
+	// TODO: implement.
   }
 };  // class CascadedBiquadFilter
 }  // namespace WaveSabreCore
