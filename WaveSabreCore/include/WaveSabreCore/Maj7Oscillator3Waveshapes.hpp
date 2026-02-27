@@ -197,7 +197,7 @@ struct SineCoreExt : public OscillatorCore
       case SineCoreExtVariant::DCClip:
       {
         mA = mWaveshapeB * 2 - 1;
-        mB =mWaveshapeA;
+        mB = mWaveshapeA;
         break;
       }
       case SineCoreExtVariant::ClipSilence:
@@ -382,6 +382,14 @@ struct SAHNoiseCore : public OscillatorCore
   void HandleParamsChanged() override
   {
     mJitter01 = math::clamp01(mWaveshapeB);
+    static constexpr float kFixedQ = 0.707f;
+
+    mFilter.SetParams(2,
+                      (mControlStyle == ControlStyle::HP_Jitter) ? BiquadFilterType::Highpass
+                                                                 : BiquadFilterType::Lowpass,
+                      this->GetFrequency(mWaveshapeA),
+                      kFixedQ,
+                      0.0f);
   }
 
 
@@ -396,7 +404,6 @@ struct SAHNoiseCore : public OscillatorCore
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
   {
-    static constexpr float kFixedQ = 0.707f;
     const auto step = mPhaseAcc.advanceOneSample();
     const double dt = step.dt;
 
@@ -450,15 +457,7 @@ struct SAHNoiseCore : public OscillatorCore
 
     //  Output = value at sample **start** + now-tap
     float y = heldAtStart + (float)mSpill.now;
-
-    mFilter.SetParams(2,
-                      (mControlStyle == ControlStyle::HP_Jitter) ? BiquadFilterType::Highpass
-                                                                 : BiquadFilterType::Lowpass,
-                      this->GetFrequency(mWaveshapeA),
-                      kFixedQ,
-                      0.0f);
     y = mFilter.ProcessSample(y);
-    y *= mFilter.GetCompensationGainLinear();
 
     return CoreSample{
         .amplitude = y,
@@ -595,20 +594,22 @@ struct WhiteNoiseCore2 : public OscillatorCore
   //static constexpr float kFilterQ = 0.707f;
   // note: impulses are always 1 sample. And impulses are allowed to be adjascent.
   // the only thing that makes this "grain" is that
-  float mProbability01 = 0.2f;  // default 20% impulse.
-  float mAmpExtent01 =
-      1.0f;  // minimum amplitude of impulses. when 0, impulses are allowed to be -1..+1. When 0.5, impulses can be +-(0.5..1). when 1.0, impulses are always +-1.
+  float mProbability01 = 0;
+  // it's tempting to do gain compensation. when heavy filtering and sweeping probability, you're just changing the signal level.
+  // but cant do this in a generalized way; it will only cause clipping.
   float mDutyCycle01 =
       0.5f;  // how much of the cycle is spent on noise vs. silence. after this point in the cycle, output forced to 0.
   CascadedBiquadFilter mFilter;
 
   enum class ControlStyle
   {
-    Prob_Amp,   // A = probability, B = amp extent
     Prob_Duty,  // A = probability, B = duty cycle
     Prob_LP,    // A = probability, B = Q (note frequency is the cutoff)
-    Prob_HP,    // A = probability, B = Q (note frequency is the cutoff)
-    Prob_BP,       // A = probability, B = Q (note frequency is the cutoff)
+    //Prob_HP,    // A = probability, B = Q (note frequency is the cutoff)
+    Prob_BP,    // A = probability, B = Q (note frequency is the cutoff)
+    Duty_LP,
+    //Duty_HP,
+    Duty_BP,
   };
 
   ControlStyle mControlStyle;
@@ -623,42 +624,51 @@ struct WhiteNoiseCore2 : public OscillatorCore
   void HandleParamsChanged() override
   {
     mWaveshapeA = math::clamp01(mWaveshapeA);
-        mProbability01 = mWaveshapeA * mWaveshapeA;  // curve for better control at low vals.
+    mProbability01 = mWaveshapeA * mWaveshapeA;  // curve for better control at low vals.
 
-        mWaveshapeB = math::clamp01(mWaveshapeB);
+    mWaveshapeB = math::clamp01(mWaveshapeB);
     mDutyCycle01 = 1.0f;
-    mFilter.Disable();
-    mAmpExtent01 = 1.0f;
-
-    auto filterType = BiquadFilterType::Lowpass;  // default, may be overridden below
-    switch (mControlStyle) {
-      case ControlStyle::Prob_HP:
-        filterType = BiquadFilterType::Highpass;
-        break;
-      case ControlStyle::Prob_BP:
-        filterType = BiquadFilterType::Bandpass;
-        break;
-    }
+    //mAmpExtent01 = 1.0f;
 
     switch (mControlStyle)
     {
-      case ControlStyle::Prob_Amp:
-        mAmpExtent01 = mWaveshapeB;
-        break;
-
       case ControlStyle::Prob_Duty:
         mDutyCycle01 = mWaveshapeB;
         break;
 
-        default:
+      default:
       case ControlStyle::Prob_LP:
-      case ControlStyle::Prob_HP:
+      //case ControlStyle::Prob_HP:
       case ControlStyle::Prob_BP:
+        break;
+      case ControlStyle::Duty_LP:
+      //case ControlStyle::Duty_HP:
+      case ControlStyle::Duty_BP:
       {
-        ParamAccessor pa {  &mWaveshapeB, 0 };
+        mProbability01 = 0.5f; // fixed default.
+        mDutyCycle01 = mWaveshapeA;
+        break;
+      }
+    }
+
+    auto filterType = BiquadFilterType::Lowpass;  // default, may be overridden below
+
+    switch (mControlStyle)
+    {
+      default:
+          mFilter.Disable();
+          break;
+      case ControlStyle::Prob_BP:
+      case ControlStyle::Duty_BP:
+        filterType = BiquadFilterType::Bandpass;
+      case ControlStyle::Prob_LP:
+      //case ControlStyle::Prob_HP:
+      case ControlStyle::Duty_LP:
+      //case ControlStyle::Duty_HP:
+      {
+        ParamAccessor pa{&mWaveshapeB, 0};
         float q = pa.GetDivCurvedValue(0, gBiquadFilterQCfg);
-        mFilter.SetParams(2, filterType,
-                          this->mMainFrequencyHz, q, 0.0f);
+        mFilter.SetParams(2, filterType, this->mMainFrequencyHz, q, 0.0f);
         break;
       }
     }
@@ -672,14 +682,11 @@ struct WhiteNoiseCore2 : public OscillatorCore
     const bool inDutyWindow = step.phaseBegin01 < mDutyCycle01;
     if (inDutyWindow && math::rand01() < mProbability01)
     {
-      const float minAbs = math::clamp01(mAmpExtent01);
-      const float absAmp = minAbs + (1.0f - minAbs) * math::rand01();
       const float sign = (math::rand01() < 0.5f) ? -1.0f : 1.0f;
-      y = sign * absAmp;
+      y = sign;
     }
 
     y = mFilter.ProcessSample(y);
-    y *= mFilter.GetCompensationGainLinear();
 
     return CoreSample{
         .amplitude = y,

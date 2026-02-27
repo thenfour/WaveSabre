@@ -61,7 +61,7 @@ public:
       const auto &f = mFilters[filterIdx];
       if (!f.filter) continue;
       
-      float freq = f.filter->freq;
+      float freq = f.filter->freqHz();
       float magLin = f.filter->GetMagnitudeAtFrequency(freq);
       float magdB = M7::math::LinearToDecibels(magLin);
 
@@ -110,7 +110,7 @@ public:
         
         if (filter.HandleChangeQ) {
           // Get current Q value from the filter
-          float currentQ = filter.filter ? filter.filter->q : 1.0f;
+          float currentQ = filter.filter ? filter.filter->Q() : 1.0f;
           
           // Apply wheel delta to Q with reasonable scaling and limits
           float qDelta = mouseWheel * 0.1f; // Fine control

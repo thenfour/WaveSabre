@@ -125,15 +125,16 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP4, SAHNoiseCore::ControlStyle::HP_Jitter);
 
     case OscillatorWaveform::Noise_White_ProbDuty:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbDuty, WhiteNoiseCore2::ControlStyle::Prob_Amp);
-    case OscillatorWaveform::Noise_White_ProbAmp:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbAmp, WhiteNoiseCore2::ControlStyle::Prob_Duty);
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbDuty, WhiteNoiseCore2::ControlStyle::Prob_Duty);
     case OscillatorWaveform::Noise_White_ProbLP:
       return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbLP, WhiteNoiseCore2::ControlStyle::Prob_LP);
-    case OscillatorWaveform::Noise_White_ProbHP:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbHP, WhiteNoiseCore2::ControlStyle::Prob_HP);
     case OscillatorWaveform::Noise_White_ProbBP:
       return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbBP, WhiteNoiseCore2::ControlStyle::Prob_BP);
+
+      case OscillatorWaveform::Noise_White_DutyLP:
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_DutyLP, WhiteNoiseCore2::ControlStyle::Duty_LP);
+    case OscillatorWaveform::Noise_White_DutyBP:
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_DutyBP, WhiteNoiseCore2::ControlStyle::Duty_BP);
   }
 }
 

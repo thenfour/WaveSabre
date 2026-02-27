@@ -81,6 +81,14 @@ struct BiquadConfig
   {
 	return mW0;
   }
+  
+  float Q() const {
+    return this->q;
+  }
+  float FreqHz() const
+  {
+    return this->freq;
+  }
 
 private:
   BiquadFilterType type;
@@ -111,6 +119,14 @@ public:
   void SetParams(BiquadFilterType type, float freq, float q, float gain)
   {
     mConfig.SetParams(type, freq, q, gain);
+  }
+
+  float Q() const {
+    return mConfig.Q();
+  }
+  float freqHz() const
+  {
+    return mConfig.FreqHz();
   }
 
   // IFilter
@@ -150,10 +166,10 @@ public:
   {
     this->mConfig = src.mConfig;
   }
-
-  float GetCompensationGainLinear() const
+  
+  const BiquadConfig& GetConfig() const
   {
-	// TODO: implement.
+    return mConfig;
   }
 
   // Returns linear magnitude at a frequency in Hz using current normalized coefficients
@@ -170,6 +186,7 @@ class CascadedBiquadFilter
   // 4 stage = 48db/oct.
   BiquadFilter mFilters[4];
   size_t mNStages;
+  float mGainCompensationLinear;
 
 public:
   explicit CascadedBiquadFilter(size_t nStages = 0)
@@ -181,6 +198,7 @@ public:
   void Disable()
   {
     mNStages = 0;
+	mGainCompensationLinear = 1;
   }
 
   void SetParams(int nStages, BiquadFilterType type, float freq, float q, float gain)
@@ -197,7 +215,10 @@ public:
     {
       mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
     }
+
+	mGainCompensationLinear = CalculateCompensationGainLinear();
   }
+
   float ProcessSample(float x)
   {
     float y = x;
@@ -205,8 +226,9 @@ public:
     {
       y = mFilters[i].ProcessSample(y);
     }
-    return y;
+    return y * mGainCompensationLinear;
   }
+
   void Reset()
   {
     for (size_t i = 0; i < mNStages; ++i)
@@ -214,9 +236,99 @@ public:
       mFilters[i].Reset();
     }
   }
-  float GetCompensationGainLinear() const
+
+  float CalculateCompensationGainLinear() const
   {
-	// TODO: implement.
+    if (mNStages == 0)
+      return 1.0f;
+
+    constexpr float kEpsilon = 1e-10f;
+    constexpr int kNFreqBins = 32;
+    constexpr int kImpulseTaps = 256;
+
+	float sumMag2 = 0.0;
+    for (int k = 0; k < kNFreqBins; ++k)
+    {
+      const float w = M7::math::gPI * (k + 0.5f) / kNFreqBins;
+      const float c1 = M7::math::cos(w);
+      const float s1 = M7::math::sin(w);
+      const float c2 = M7::math::cos(2 * w);
+      const float s2 = M7::math::sin(2 * w);
+
+      float cascadeMag2 = 1;
+      for (size_t i = 0; i < mNStages; ++i)
+      {
+        const auto& cfg = mFilters[i].GetConfig();
+        const float b0 = cfg.normB0();
+        const float b1 = cfg.normB1();
+        const float b2 = cfg.normB2();
+        const float a1 = cfg.normA1();
+        const float a2 = cfg.normA2();
+
+        const float numRe = b0 + b1 * c1 + b2 * c2;
+        const float numIm = -b1 * s1 - b2 * s2;
+        const float denRe = 1 + a1 * c1 + a2 * c2;
+        const float denIm = -a1 * s1 - a2 * s2;
+        const float numMag2 = numRe * numRe + numIm * numIm;
+        const float denMag2 = denRe * denRe + denIm * denIm;
+        cascadeMag2 *= (denMag2 > kEpsilon) ? (numMag2 / denMag2) : 0.0f;
+      }
+      sumMag2 += cascadeMag2;
+    }
+
+    const float avgMag2 = sumMag2 / kNFreqBins;
+    const float inputVariance = 1.0f / 3.0f;
+    const float sigmaOut = M7::math::sqrt((inputVariance * avgMag2 > kEpsilon) ? (inputVariance * avgMag2) : kEpsilon);
+    //const float peakFactor = M7::math::sqrt(2.0f * (float)M7::math::CrtLog(1024.0));
+    // empirically determined factor to get close to -0.1dBFS peaks with white noise input. not exact because the noise is not perfectly white, and the filter response is not perfectly flat in passband.
+    constexpr float peakFactor =
+        3.0f;
+    const float gPeak = 1.0f / (peakFactor * sigmaOut);
+
+    float x1[4] = {0, 0, 0, 0};
+    float x2[4] = {0, 0, 0, 0};
+    float y1[4] = {0, 0, 0, 0};
+    float y2[4] = {0, 0, 0, 0};
+    float l1 = 0.0f;
+    int tinyTail = 0;
+
+        const auto& cfg = mFilters[0].GetConfig();
+        const float b0 = cfg.normB0();
+        const float b1 = cfg.normB1();
+        const float b2 = cfg.normB2();
+        const float a1 = cfg.normA1();
+        const float a2 = cfg.normA2();
+
+    for (int n = 0; n < kImpulseTaps; ++n)
+    {
+      float stageIn = (n == 0) ? 1.0f : 0.0f;
+      for (size_t i = 0; i < mNStages; ++i)
+      {
+        const float y = b0 * stageIn + b1 * x1[i] + b2 * x2[i] - a1 * y1[i] - a2 * y2[i];
+        x2[i] = x1[i];
+        x1[i] = stageIn;
+        y2[i] = y1[i];
+        y1[i] = y;
+        stageIn = y;
+      }
+
+      l1 += std::abs(stageIn);
+
+      if (std::abs(stageIn) < kEpsilon)
+      {
+        tinyTail++;
+        if (tinyTail > 128)
+          break;
+      }
+      else
+      {
+        tinyTail = 0;
+      }
+    }
+
+    const float gSafe = 1.0f / ((l1 > kEpsilon) ? l1 : kEpsilon);
+    const float g = (gPeak < gSafe) ? gPeak : gSafe;
+    return M7::math::clamp(g, 0.0f, 16.0f);
   }
 };  // class CascadedBiquadFilter
 }  // namespace WaveSabreCore

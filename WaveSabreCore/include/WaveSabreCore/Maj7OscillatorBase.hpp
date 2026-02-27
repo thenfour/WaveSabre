@@ -109,10 +109,10 @@ enum class OscillatorWaveform : uint8_t
   Noise_SaH_HP4,
 
   Noise_White_ProbDuty,
-  Noise_White_ProbAmp,
   Noise_White_ProbLP,
-  Noise_White_ProbHP,
   Noise_White_ProbBP,
+  Noise_White_DutyLP,
+  Noise_White_DutyBP,
 
   Count,
 
@@ -148,10 +148,10 @@ enum class OscillatorWaveform : uint8_t
   "Noise_SaH_LP4",\
   "Noise_SaH_HP4",\
   "Noise White Prob+Duty",\
-  "Noise White Prob+Amp",\
   "Noise White Prob+LP",\
-  "Noise White Prob+HP",\
   "Noise White Prob+BP",\
+  "Noise White Duty+LP",\
+  "Noise White Duty+BP",\
   }
 // clang-format on
 

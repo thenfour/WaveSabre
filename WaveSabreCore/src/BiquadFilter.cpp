@@ -143,10 +143,10 @@ float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
   const auto& w = mConfig.w0();
 
   const float cw = M7::math::cos(w);
-  const float c2w = M7::math::cos(2.0 * w);
+  const float c2w = M7::math::cos(2 * w);
 
-  const float num = b0 * b0 + b1 * b1 + b2 * b2 + 2.0 * (b0 * b1 + b1 * b2) * cw + 2.0 * b0 * b2 * c2w;
-  const float den = 1.0 + a1 * a1 + a2 * a2 + 2.0 * (a1 + a1 * a2) * cw + 2.0 * a2 * c2w;
+  const float num = b0 * b0 + b1 * b1 + b2 * b2 + 2 * (b0 * b1 + b1 * b2) * cw + 2 * b0 * b2 * c2w;
+  const float den = 1 + a1 * a1 + a2 * a2 + 2 * (a1 + a1 * a2) * cw + 2 * a2 * c2w;
 
   return (M7::math::sqrt(num / den));
 }
