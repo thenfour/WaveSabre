@@ -1240,18 +1240,23 @@ public:
                     enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeB,
                     enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset,
                     nullptr);
+
+        M7::QuickParam waveformParam{
+          GetEffectX()->getParameter((VstInt32)(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform))};
+        auto waveformUiStyle = GetWaveformUiStyle(waveformParam.GetEnumValue<M7::OscillatorWaveform>());
+
       ImGui::SameLine();
       Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeA,
-                            "shapeA",
-                            0.5f,
-                            0.5f,
+                  waveformUiStyle.shapeALabel,
+                  waveformUiStyle.defaultWaveshapeA,
+                  waveformUiStyle.defaultWaveshapeA,
                             0,
                             lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeA));
       ImGui::SameLine();
       Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeB,
-                            "shapeB",
-                            0.5f,
-                            0.5f,
+                  waveformUiStyle.shapeBLabel,
+                  waveformUiStyle.defaultWaveshapeB,
+                  waveformUiStyle.defaultWaveshapeB,
                             0,
                             lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeB));
 
@@ -2268,6 +2273,13 @@ public:
     }
   }
 
+  const M7::OscillatorWaveformUiStyle& GetWaveformUiStyle(M7::OscillatorWaveform waveform) const
+  {
+    OSCILLATOR_WAVEFORM_UI_STYLES(gWaveformUiStyles);
+    int idx = M7::math::ClampI((int)waveform, 0, (int)M7::OscillatorWaveform::Count - 1);
+    return gWaveformUiStyles[idx];
+  }
+
   void WaveformGraphic(M7::OscillatorWaveform waveform,
                        float waveshapeA01,
                        float waveshapeB01,
@@ -2310,6 +2322,9 @@ public:
 
     ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f);  // background
     drawList->PushClipRect(bb.Min, bb.Max, true);
+    auto waveformUiStyle = GetWaveformUiStyle(waveform);
+    ImU32 waveformColor = ColorFromHTML(waveformUiStyle.foregroundColorHtml);
+
     float centerY = sampleToY(0);
     drawList->AddLine({outerTL.x, centerY},
                       {outerBR.x, centerY},
@@ -2329,7 +2344,7 @@ public:
 
       drawList->AddLine({outerTL.x + iSample, centerY},
                         {outerTL.x + iSample, sampleToY(sample)},
-                        ImGui::GetColorU32(ImGuiCol_PlotHistogram),
+                        waveformColor,
                         1);
     }
 
@@ -2345,12 +2360,12 @@ public:
     drawList->PopClipRect();
 
     {
-      auto str1 = std::format("nrg:[{:.2f},{:.2f}]", nminY, nmaxY);
+      //auto str1 = std::format("nrg:[{:.2f},{:.2f}]", nminY, nmaxY);
       //auto str2 = std::format("dc :{:.2f}", pWaveform->mDCOffset);
       //auto str3 = std::format("amp:{:.2f}", pWaveform->mScale);
       //auto str4 = std::format("org:[{:.2f},{:.2f}]", ominY, omaxY);
 
-      DrawShadowText(str1, {bb.Min.x, bb.Min.y + 12});
+      //DrawShadowText(str1, {bb.Min.x, bb.Min.y + 12});
       //DrawShadowText(str4, {bb.Min.x, bb.Min.y + 24});
       //DrawShadowText(str2, {bb.Min.x, bb.Min.y + 24});
       //DrawShadowText(str3, {bb.Min.x, bb.Min.y + 36});
@@ -2406,9 +2421,10 @@ public:
 
     if (isSelected)
     {
+      auto waveformUiStyle = GetWaveformUiStyle(waveform);
       ImGui::GetWindowDrawList()->AddRect(bb.Min,
                                           bb.Max,
-                                          ImGui::GetColorU32(ImGuiCol_PlotHistogram),
+                  ColorFromHTML(waveformUiStyle.foregroundColorHtml),
                                           3.0f,
                                           0,
                                           2.0f);

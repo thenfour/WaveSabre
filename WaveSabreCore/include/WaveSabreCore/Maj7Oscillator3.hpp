@@ -55,9 +55,9 @@ struct TriPulseGenerator2 : public IShapeGenerator
   {
     // shapeA = pulse width (0..1)
     // shapeB defines the low & high duty cycles. when shapeB = 0.5, both are 0.5. when shapeB = 0, low=0, high=1; when shapeB=1, low=1, high=0
-    double lowDuty01 = shapeB;
-    double highDuty01 = 1.0 - shapeB;
-    return MakeTriStatePulseShape4(shapeA, lowDuty01, highDuty01);
+    double lowDuty01 = shapeA;
+    double highDuty01 = 1.0 - shapeA;
+    return MakeTriStatePulseShape4(shapeB, lowDuty01, highDuty01);
   }
 };
 

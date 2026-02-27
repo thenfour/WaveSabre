@@ -125,6 +125,16 @@ enum class OscillatorWaveform : uint8_t
 // - enum class OscillatorWaveform
 // - InstantiateWaveformCore(OscillatorWaveform
 // - #define OSCILLATOR_WAVEFORM_CAPTIONS
+// - #define OSCILLATOR_WAVEFORM_UI_STYLES
+
+struct OscillatorWaveformUiStyle
+{
+  const char* shapeALabel;
+  const char* shapeBLabel;
+  float defaultWaveshapeA;
+  float defaultWaveshapeB;
+  const char* foregroundColorHtml;
+};
 
 // size-optimize using macro
 // clang-format off
@@ -133,7 +143,7 @@ enum class OscillatorWaveform : uint8_t
   {                                                                                                                    \
   "Sine DC Clip",\
   "Sine Clip Squeez",\
-  "Sine Harm DC Clip",\
+  "Sine Harm Clip",\
   "Sine Harm Clip Squeez",\
   "SS Saw-Tri",\
   "SS pulse 2 stage",\
@@ -152,6 +162,32 @@ enum class OscillatorWaveform : uint8_t
   "Noise White Prob+BP",\
   "Noise White Duty+LP",\
   "Noise White Duty+BP",\
+  }
+
+#define OSCILLATOR_WAVEFORM_UI_STYLES(symbolName)                                                                      \
+  static constexpr ::WaveSabreCore::M7::OscillatorWaveformUiStyle symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count] \
+  {                                                                                                                    \
+  {"Clip",   "DC",      0.50f, 0.50f, "#66ccff"},\
+  {"Clip",   "Duty", 0.50f, 0.50f, "#66ccff"},\
+  {"Clip",   "Harm",      0.00f, 0.50f, "#44bbff"},\
+  {"Duty",   "Harm", 0.00f, 0.50f, "#44bbff"},\
+  {"Idle", "Tri-Saw",  0.50f, 0.50f, "#ffaa33"},\
+  {"Duty", "--",  0.50f, 0.50f, "#ffaa33"},\
+  {"Duty", "Sym",  2.f/3.f, 0.50f, "#ffaa33"},\
+  {"Duty", "Sym",  0.50f, 0.50f, "#ffaa33"},\
+  {"ShapeA", "ShapeB",  0.50f, 0.50f, "#ffaa33"},\
+  {"ShapeA", "ShapeB",  0.50f, 0.50f, "#ffaa33"},\
+  {"ShapeA", "ShapeB",  0.50f, 0.50f, "#ffaa33"},\
+  {"Fold",   "Bias",    0.00f, 0.50f, "#ff9966"},\
+  {"Fold",   "Bias",    0.00f, 0.50f, "#ff9966"},\
+  {"Grain",  "Mutate",  0.35f, 0.15f, "#b388ff"},\
+  {"LP Cut", "Jitter",  0.30f, 0, "#7d7dff"},\
+  {"HP Cut", "Jitter",  0.30f, 0, "#7d7dff"},\
+  {"Prob",   "Duty",    0.35f, 0.50f, "#55dd88"},\
+  {"Prob",   "LP Q",  0.35f, 0.60f, "#55dd88"},\
+  {"Prob",   "BP Q",    0.35f, 0.35f, "#55dd88"},\
+  {"Duty",   "LP Q",  0.50f, 0.60f, "#55dd88"},\
+  {"Duty",   "BP Q",    0.50f, 0.35f, "#55dd88"},\
   }
 // clang-format on
 
