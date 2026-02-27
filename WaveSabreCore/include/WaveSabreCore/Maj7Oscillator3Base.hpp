@@ -141,7 +141,7 @@ struct PhaseAccumulator
     const double begin = mPhase01;
     const double end = math::wrap01(begin + mDelta);
     mPhase01 = end;
-    return {begin, mDelta, false, 0.0};//, end};
+    return {begin, mDelta, false, 0.0};  //, end};
   }
 
   // advance with an externally provided reset alpha (0..1); updates internal phase
@@ -152,17 +152,15 @@ struct PhaseAccumulator
     // post segment after reset: (1 - alpha01) * dt
     const double end = math::wrap01((1.0 - alpha01) * mDelta);
     mPhase01 = end;
-    return
-    {
-      begin, mDelta, true, alpha01
-    }  ;//, end};
+    return {begin, mDelta, true, alpha01};  //, end};
   }
 
   // for high rate frequencies, may wrap more than once per sample.
-  size_t advanceOneSampleReturningWrapsCrossed() {
-      const double begin = mPhase01;
+  size_t advanceOneSampleReturningWrapsCrossed()
+  {
+    const double begin = mPhase01;
     const double end = begin + mDelta;
-    size_t nWraps = (size_t)end; // how many times we crossed 1.0
+    size_t nWraps = (size_t)end;  // how many times we crossed 1.0
     mPhase01 = math::wrap01(end);
     return nWraps;
   }
@@ -228,9 +226,9 @@ struct CoreSample
 {
   float amplitude = 0.0f;  // the final sample value (with bandlimiting applied if applicable)
 
-  float naive = 0.0f;                 // the naive sample value (without bandlimiting)
-  float correction = 0.0f;            // the bandlimiting correction to add to the naive value
-  PhaseStep phaseAdvance;          // phase kinematics for this sample
+  float naive = 0.0f;       // the naive sample value (without bandlimiting)
+  float correction = 0.0f;  // the bandlimiting correction to add to the naive value
+  PhaseStep phaseAdvance;   // phase kinematics for this sample
   std::string log;
 };
 
@@ -255,8 +253,8 @@ protected:
 public:
   virtual void SetKRateParams(float shapeA, float shapeB, float mainFreqHz, bool enableHardSync, float syncFreqHz)
   {
-    mWaveshapeA = shapeA;
-    mWaveshapeB = shapeB;
+    mWaveshapeA = math::clamp01(shapeA);
+    mWaveshapeB = math::clamp01(shapeB);
     mMainFrequencyHz = mainFreqHz;
     mSyncFrequencyHz = syncFreqHz;
     mHardSyncEnabled = enableHardSync;
@@ -280,7 +278,8 @@ public:
     mPhaseAcc.setPhase01(0);
   };
 
-  // allows cores to react to param changes
+  // allows cores to react to param changes.
+  // k-rate modulation is already applied. so mMainFrequency is what's being heard. mWaveshapeA/B are also after k-rate modulation.
   virtual void HandleParamsChanged() {}
 
   // Render the current sample, and advance phase by 1 sample.
@@ -296,6 +295,15 @@ public:
   // in-sample event times remain the same relative to the window—only their phase locations shift.
   // so we can just shift phaseBegin01 and phaseEnd01 by the offset when you evaluate the shape, keeping the logic simple.
   virtual CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) = 0;
+
+  // helper for frequency params.
+  float GetFrequency(float param01) const
+  {
+    float params[2] = {param01,
+                       1};  // [0] is cutoff freq; [1] is key-tracking. we hard-code it so the filter tracks your note.
+    ParamAccessor pa{params, 0};
+    return pa.GetFrequency(0, 1, gFilterFreqConfig, mMainFrequencyHz, 0);
+  }
 };
 
 }  // namespace M7

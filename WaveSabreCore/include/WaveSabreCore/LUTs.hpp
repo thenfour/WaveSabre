@@ -605,6 +605,14 @@ INLINE T round(float x)
   return (T)(x + 0.5f);
 }
 
+INLINE float fmod(float x, float q) {
+    return ::fmodf(x, q);
+}
+
+INLINE double fmodd(double x, double q) {
+    return ::fmod(x, q);
+}
+
 }  // namespace math
 
 

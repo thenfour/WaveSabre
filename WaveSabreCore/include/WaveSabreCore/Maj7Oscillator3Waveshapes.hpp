@@ -54,8 +54,8 @@ static inline WVShape MakeSawShape(float idleParam01, float rampUpDownParam01)
   // when idleParam01 = 0.5 (center), then there should be no idle.
   // idleParam < 0.5 -> more idle at low level; idleParam > 0.5 -> more idle at high level
   // idleParam = 0 -> idleLow01 = 1, idleHigh01 = 0; idleParam = 1 -> idleLow01 = 0, idleHigh01 = 1
-  float idleLow01 = std::clamp((0.5f - idleParam01) * 2, 0.0f, 0.995f);   // allow 0 duration
-  float idleHigh01 = std::clamp((idleParam01 - 0.5f) * 2, 0.0f, 0.995f);  // allow 0 duration
+  float idleLow01 = math::clamp((0.5f - idleParam01) * 2, 0.0f, 0.995f);   // allow 0 duration
+  float idleHigh01 = math::clamp((idleParam01 - 0.5f) * 2, 0.0f, 0.995f);  // allow 0 duration
 
   float remaining = 1.0f - idleLow01 - idleHigh01;  // remaining cycle portion for the ramps
 
@@ -71,8 +71,8 @@ static inline WVShape MakeTriangleShape()
 }
 static inline WVShape MakePulseShape(double dutyCycle01)
 {
-  dutyCycle01 = std::clamp(dutyCycle01, 0.005, 0.995);
-  return MakeTrapezoidShape1(dutyCycle01, 0.0f, 1.0f - dutyCycle01, 0.0f);
+  dutyCycle01 = math::clamp(dutyCycle01, 0.005, 0.995);
+  return MakeTrapezoidShape1(float(dutyCycle01), 0.0f, 1.0f - float(dutyCycle01), 0.0f);
 }
 
 // three state pulse: low, high, 0
@@ -81,10 +81,10 @@ static inline WVShape MakePulseShape(double dutyCycle01)
 // segment 2: 0
 static inline WVShape MakeTriStatePulseShape3(double masterDutyCycle01, double subDuty01)
 {
-  masterDutyCycle01 = std::clamp(masterDutyCycle01, 0.002, 0.998);  // we need slightly more space for the transitions
+  masterDutyCycle01 = math::clamp(masterDutyCycle01, 0.002, 0.998);  // we need slightly more space for the transitions
 
   // scale low duty to the master duty cycle
-  auto lowDutyPhase = std::clamp(subDuty01 * masterDutyCycle01, 0.0, masterDutyCycle01 - 0.001);
+  auto lowDutyPhase = math::clamp(subDuty01 * masterDutyCycle01, 0.0, masterDutyCycle01 - 0.001);
   auto highDutyPhase = masterDutyCycle01 - lowDutyPhase;
 
   return WVShape{
@@ -105,13 +105,13 @@ static inline WVShape MakeTriStatePulseShape3(double masterDutyCycle01, double s
 // one way to think of the segment lengths is that this is a pulse wave within a pulse wave.
 static inline WVShape MakeTriStatePulseShape4(double masterDutyCycle01, double lowDuty01, double highDuty01)
 {
-  masterDutyCycle01 = std::clamp(masterDutyCycle01, 0.002, 0.998);  // we need slightly more space for the transitions
+  masterDutyCycle01 = math::clamp(masterDutyCycle01, 0.002, 0.998);  // we need slightly more space for the transitions
 
   // scale low duty to the master duty cycle
-  auto lowDutyPhase = std::clamp(lowDuty01 * masterDutyCycle01, 0.0, masterDutyCycle01 - 0.001);
+  auto lowDutyPhase = math::clamp(lowDuty01 * masterDutyCycle01, 0.0, masterDutyCycle01 - 0.001);
   // scale high duty to the master duty cycle
   auto mainSeg2 = 1.0 - masterDutyCycle01;  // length of the high segment area
-  auto highDutyPhase = std::clamp(highDuty01 * mainSeg2, 0.0, mainSeg2 - 0.001);
+  auto highDutyPhase = math::clamp(highDuty01 * mainSeg2, 0.0, mainSeg2 - 0.001);
 
   return WVShape{
       .mSegments = {
@@ -164,20 +164,25 @@ enum class SineCoreExtVariant
   ClipHarm,
   HarmSilence,
 };
-template <SineCoreExtVariant Variant>
+//template <SineCoreExtVariant Variant>
 struct SineCoreExt : public OscillatorCore
 {
   // A: dc asym (-1..+1), B: clip (0..1), C: silence frac (0..1), H: harmonic blend (0..1)
-  float mA = 0.0f, mB = 0.0f, mC = 0.0f, mH = 0.0f;
+  float mA = 0.0f;
+  float mB = 0.0f;
+  float mC = 0.0f;
+  float mH = 0.0f;
 
   // Derived for clipping
   float mClipThreshold = 1.0f;
   float mClipGain = 1.0f;
   bool mSquareMode = false;
   static constexpr float kSquareEps = 1e-4f;
+  const SineCoreExtVariant mVariant;
 
-  SineCoreExt(OscillatorWaveform wf)
+  SineCoreExt(OscillatorWaveform wf, SineCoreExtVariant variant)
       : OscillatorCore(wf)
+      , mVariant(variant)
   {
   }
 
@@ -187,30 +192,30 @@ struct SineCoreExt : public OscillatorCore
     mB = 0;
     mC = 0;
     mH = 0;
-    switch (Variant)
+    switch (mVariant)
     {
       case SineCoreExtVariant::DCClip:
       {
-        mA = math::clampN11(mWaveshapeB * 2 - 1);
-        mB = math::clamp01(mWaveshapeA);
+        mA = mWaveshapeB * 2 - 1;
+        mB =mWaveshapeA;
         break;
       }
       case SineCoreExtVariant::ClipSilence:
       {
-        mB = std::abs(mWaveshapeA);
-        mC = std::abs(mWaveshapeB);
+        mB = mWaveshapeA;
+        mC = mWaveshapeB;
         break;
       }
       case SineCoreExtVariant::ClipHarm:
       {
-        mB = std::abs(mWaveshapeA);
-        mH = math::clamp01(mWaveshapeB);
+        mB = mWaveshapeA;
+        mH = mWaveshapeB;
         break;
       }
       case SineCoreExtVariant::HarmSilence:
       {
-        mC = math::clamp01(mWaveshapeA);
-        mH = math::clamp01(mWaveshapeB);
+        mC = mWaveshapeA;
+        mH = mWaveshapeB;
         break;
       }
     }
@@ -224,7 +229,7 @@ struct SineCoreExt : public OscillatorCore
     else
     {
       mSquareMode = false;
-      mClipThreshold = std::clamp(1.0f - mB, 1e-6f, 1.0f);
+      mClipThreshold = math::clamp(1.0f - mB, 1e-6f, 1.0f);
       mClipGain = 1.0f / mClipThreshold;
     }
   }
@@ -233,7 +238,7 @@ struct SineCoreExt : public OscillatorCore
   {
     if (mSquareMode)
       return (x > 0.0f) ? 1.0f : (x < 0.0f ? -1.0f : 0.0f);
-    const float y = std::clamp(x, -mClipThreshold, +mClipThreshold);
+    const float y = math::clamp(x, -mClipThreshold, +mClipThreshold);
     return y * mClipGain;
   }
 
@@ -249,25 +254,14 @@ struct SineCoreExt : public OscillatorCore
     if (mC < 1.0f && p < actW)
     {
       // Compress the active part to [0,1), then apply offset and get angle
-      const double phi = std::fmod((p / actW) + off, 1.0);
+      const double phi = math::fmodd((p / actW) + off, 1.0);
       const float theta = float(phi * math::gPITimes2);
 
       // Base sine
-      float s = std::sin(theta);
+      float s = math::sin(theta);
 
-      // Harmonic-blended variant:
-      //   y_h = 1.5 * s * (0.5 - 0.5*cos(theta))   (your original)
-      // which equals 0.75*sin(theta) - 0.375*sin(2*theta)
-      float yH;
-      {
-        // (A) window form (needs cos)
-        //float c = std::cos(theta);
-        //yH = 1.5f * s * (0.5f - 0.5f * c);
-
-        // // (B) identity form (needs sin 2θ)
-        float s2 = std::sin(2.0f * theta);
-        yH = 0.75f * s - 0.375f * s2;
-      }
+      float s2 = math::sin(2.0f * theta);
+      float yH = 0.75f * s - 0.375f * s2;
 
       // Blend: H=0 → pure sine, H=1 → windowed/harmonic version
       float yPreClip = s * (1.0f - mH) + yH * mH;
@@ -290,9 +284,9 @@ struct SineCoreExt : public OscillatorCore
 };
 
 
-struct FoldedSine : public OscillatorCore
+struct FoldedCore : public OscillatorCore
 {
-  FoldedSine(bool triangle, OscillatorWaveform waveformType)
+  FoldedCore(bool triangle, OscillatorWaveform waveformType)
       : OscillatorCore(waveformType)
       , mTriangle(triangle)
   {
@@ -313,9 +307,9 @@ struct FoldedSine : public OscillatorCore
   static inline float fold_reflect(float x)
   {
     const float threshold = 1;
-    const float ax = std::fabs(x);
+    const float ax = std::abs(x);
     const float per = 2 * threshold;
-    float m = std::fmod(ax, per);
+    float m = math::fmod(ax, per);
     if (m < 0.0f)
       m += per;
 
@@ -338,7 +332,7 @@ struct FoldedSine : public OscillatorCore
     const PhaseStep step = mPhaseAcc.advanceOneSample();
 
     const double phase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
-    const float s = sampleWaveform(phase01);  // math::sin(math::gPITimes2 * float(phase01));
+    const float s = sampleWaveform((float)phase01);  // math::sin(math::gPITimes2 * float(phase01));
 
     const float driven = mDrive * s + mBias;
     float y = fold_reflect(driven);
@@ -378,16 +372,16 @@ struct SAHNoiseCore : public OscillatorCore
 
   CascadedBiquadFilter mFilter;
 
-  SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle, size_t biquadStages)
+  SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
       : OscillatorCore(waveformType)
       , mControlStyle(controlStyle)
-      , mFilter(biquadStages)
+      , mFilter(2)
   {
   }
 
   void HandleParamsChanged() override
   {
-    mJitter01 = std::clamp(mWaveshapeB, 0.0f, 1.0f);
+    mJitter01 = math::clamp01(mWaveshapeB);
   }
 
 
@@ -402,6 +396,7 @@ struct SAHNoiseCore : public OscillatorCore
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
   {
+    static constexpr float kFixedQ = 0.707f;
     const auto step = mPhaseAcc.advanceOneSample();
     const double dt = step.dt;
 
@@ -433,7 +428,7 @@ struct SAHNoiseCore : public OscillatorCore
       }
 
       // Edge happens inside this sample
-      const double alphaFull = (dt > 0.0) ? std::clamp((consumed + toEdge) / dt, 0.0, 1.0) : 0.0;
+      const double alphaFull = (dt > 0.0) ? math::clamp01((consumed + toEdge) / dt) : 0.0;
 
       // Compute new target and true step size from the **current** held value
       const float newTarget = math::randN11();
@@ -456,14 +451,11 @@ struct SAHNoiseCore : public OscillatorCore
     //  Output = value at sample **start** + now-tap
     float y = heldAtStart + (float)mSpill.now;
 
-    // apply filter.
-    float params[2] = {mWaveshapeA, 1}; // [0] is cutoff freq; [1] is key-tracking. we hard-code it so the filter tracks your note.
-    ParamAccessor pa{&mWaveshapeA, 0};
-    float cutoff = pa.GetFrequency(0, 1, gFilterFreqConfig, mMainFrequencyHz, 0);
-    mFilter.SetParams((mControlStyle == ControlStyle::HP_Jitter) ? BiquadFilterType::Highpass
+    mFilter.SetParams(2,
+                      (mControlStyle == ControlStyle::HP_Jitter) ? BiquadFilterType::Highpass
                                                                  : BiquadFilterType::Lowpass,
-                      cutoff,
-                      0.707f,
+                      this->GetFrequency(mWaveshapeA),
+                      kFixedQ,
                       0.0f);
     y = mFilter.ProcessSample(y);
     y *= mFilter.GetCompensationGainLinear();
@@ -478,64 +470,111 @@ struct SAHNoiseCore : public OscillatorCore
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct WhiteNoiseFilteredCore : public OscillatorCore
+struct EvolvingGrainNoiseCore : public OscillatorCore
 {
-  enum class ControlStyle
-  {
-    BP_Q,  // A = cutoff, B = Q
-    LP_Q,  // A = cutoff, B = Q
-    HP_Q,  // A = cutoff, B = Q
-  };
+  // UI-ish params (0..1)
+  float mGrainSize01 = 0.5f;     // shapeA
+  float mMutationRate01 = 0.0f;  // shapeB
 
-  ControlStyle mControlStyle;
-  CascadedBiquadFilter mFilter;
+  // Grain size in samples (actual used length)
+  size_t mGrainSizeSamples = 256;
 
-  WhiteNoiseFilteredCore(OscillatorWaveform waveformType, ControlStyle controlStyle, size_t biquadStages)
+  // Fixed-size buffer instead of std::vector
+  static constexpr size_t kMinGrainSizeSamples = 8;
+  static constexpr size_t kMaxGrainSizeSamples = 4096;
+  float mGrain[kMaxGrainSizeSamples]{};
+
+  bool mGrainValid = false;  // whether mGrain[..mGrainSizeSamples) is initialized
+  bool mInitialized = false;
+
+  EvolvingGrainNoiseCore(OscillatorWaveform waveformType)
       : OscillatorCore(waveformType)
-      , mControlStyle(controlStyle)
-      , mFilter(biquadStages)
   {
+  }
+
+  inline size_t ComputeGrainSizeSamples() const
+  {
+    // Map 0..1 → [minSize, maxSize] exponentially
+    const float minSize = float(kMinGrainSizeSamples);
+    const float maxSize = float(kMaxGrainSizeSamples);
+    const float sizeF = minSize * math::pow(maxSize / minSize, mGrainSize01);
+    const int sizeI = math::round<int>(sizeF);
+    return (size_t)math::ClampI(sizeI, (int)kMinGrainSizeSamples, (int)kMaxGrainSizeSamples);
+  }
+
+  inline void EnsureGrainAllocated()
+  {
+    const size_t targetSize = ComputeGrainSizeSamples();
+
+    // If size unchanged and we already have valid content, nothing to do
+    if (targetSize == mGrainSizeSamples && mGrainValid)
+      return;
+
+    mGrainSizeSamples = targetSize;
+
+    // Fill the active portion of the fixed buffer with noise
+    for (size_t i = 0; i < mGrainSizeSamples; ++i)
+    {
+      mGrain[i] = math::randN11();  // [-1,1]
+    }
+
+    mGrainValid = true;
+  }
+
+  inline void MutateGrainCycle()
+  {
+    if (!mGrainValid || mGrainSizeSamples == 0)
+      return;
+
+    const float targetCountF = mMutationRate01 * float(mGrainSizeSamples);
+    const int targetCountI = math::round<int>(targetCountF);
+
+    const size_t mutateCount = (size_t)math::ClampI(targetCountI, 0, (int)mGrainSizeSamples);
+
+    for (size_t i = 0; i < mutateCount; ++i)
+    {
+      // Random index in [0, mGrainSizeSamples)
+      const size_t index = (size_t)(math::rand01() * double(mGrainSizeSamples)) % mGrainSizeSamples;
+
+      mGrain[index] = math::randN11();
+    }
   }
 
   void HandleParamsChanged() override
   {
+    mGrainSize01 = mWaveshapeA;
+    mMutationRate01 = mWaveshapeB;
+
+    EnsureGrainAllocated();
   }
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
   {
     const auto step = mPhaseAcc.advanceOneSample();
-    const float white = math::randN11();
 
-    float params[2] = {mWaveshapeA, 1}; // [0] is cutoff freq; [1] is key-tracking. we hard-code it so the filter tracks your note.
-    ParamAccessor pa{&mWaveshapeA, 0};
-    const float cutoffHz = pa.GetFrequency(0, 1, gFilterFreqConfig, mMainFrequencyHz, 0);
-
-    ParamAccessor paQ{&mWaveshapeB, 0};
-    const float q = paQ.GetDivCurvedValue(0, gBiquadFilterQCfg_Steep, 0);
-
-    BiquadFilterType bt = BiquadFilterType::Bandpass;
-    switch (mControlStyle)
+    if (!mInitialized)
     {
-      case ControlStyle::LP_Q:
-        bt = BiquadFilterType::Lowpass;
-        break;
-      case ControlStyle::HP_Q:
-        bt = BiquadFilterType::Highpass;
-        break;
-      case ControlStyle::BP_Q:
-      default:
-        bt = BiquadFilterType::Bandpass;
-        break;
+      mInitialized = true;
+      mGrainValid = false;  // force re-init
+      EnsureGrainAllocated();
+      MutateGrainCycle();
     }
 
-    mFilter.SetParams(bt, cutoffHz, q, 0.0f);
+    // assert grain valid & has samples.
 
-    float y = mFilter.ProcessSample(white);
-    y *= mFilter.GetCompensationGainLinear();
+    const size_t index = (size_t)(step.phaseBegin01 * mGrainSizeSamples) % mGrainSizeSamples;
+
+    const float y = mGrain[index];
+
+    const bool completedCycle = step.hasReset || (step.phaseBegin01 + step.dt >= 1.0f);
+    if (completedCycle)
+    {
+      MutateGrainCycle();
+    }
 
     return CoreSample{
-        .amplitude = math::clampN11(y),
-        .naive = white,
+        .amplitude = y,
+        .naive = y,
         .correction = 0.0f,
         .phaseAdvance = step,
     };
@@ -544,131 +583,119 @@ struct WhiteNoiseFilteredCore : public OscillatorCore
   void RestartDueToNoteOn() override
   {
     OscillatorCore::RestartDueToNoteOn();
-    //mFilter.Reset(); don't think this is actually necessary; think about portamento etc.
+    mInitialized = false;
+    // for fresh random grain per note
+    // mGrainValid = false;
   }
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-struct EvolvingGrainNoiseCore : public OscillatorCore
+struct WhiteNoiseCore2 : public OscillatorCore
 {
-   // UI-ish params (0..1)
-   float mGrainSize01     = 0.5f; // shapeA
-   float mMutationRate01  = 0.0f; // shapeB
+  //static constexpr float kFilterQ = 0.707f;
+  // note: impulses are always 1 sample. And impulses are allowed to be adjascent.
+  // the only thing that makes this "grain" is that
+  float mProbability01 = 0.2f;  // default 20% impulse.
+  float mAmpExtent01 =
+      1.0f;  // minimum amplitude of impulses. when 0, impulses are allowed to be -1..+1. When 0.5, impulses can be +-(0.5..1). when 1.0, impulses are always +-1.
+  float mDutyCycle01 =
+      0.5f;  // how much of the cycle is spent on noise vs. silence. after this point in the cycle, output forced to 0.
+  CascadedBiquadFilter mFilter;
 
-   // Grain size in samples (actual used length)
-   size_t mGrainSizeSamples = 256;
+  enum class ControlStyle
+  {
+    Prob_Amp,   // A = probability, B = amp extent
+    Prob_Duty,  // A = probability, B = duty cycle
+    Prob_LP,    // A = probability, B = Q (note frequency is the cutoff)
+    Prob_HP,    // A = probability, B = Q (note frequency is the cutoff)
+    Prob_BP,       // A = probability, B = Q (note frequency is the cutoff)
+  };
 
-   // Fixed-size buffer instead of std::vector
-   static constexpr size_t kMinGrainSizeSamples = 8;
-   static constexpr size_t kMaxGrainSizeSamples = 4096;
-   float mGrain[kMaxGrainSizeSamples]{};
+  ControlStyle mControlStyle;
 
-   bool  mGrainValid   = false;   // whether mGrain[..mGrainSizeSamples) is initialized
-   bool  mInitialized  = false;
-
-   EvolvingGrainNoiseCore(OscillatorWaveform waveformType)
+  WhiteNoiseCore2(OscillatorWaveform waveformType, ControlStyle controlStyle)
       : OscillatorCore(waveformType)
-   {
-   }
+      , mFilter(2)
+      , mControlStyle(controlStyle)
+  {
+  }
 
-   inline size_t ComputeGrainSizeSamples() const
-   {
-      // Map 0..1 → [minSize, maxSize] exponentially
-      const float minSize = float(kMinGrainSizeSamples);
-      const float maxSize = float(kMaxGrainSizeSamples);
-      const float sizeF   = minSize * math::pow(maxSize / minSize, mGrainSize01);
-      const int   sizeI   = math::round<int>(sizeF);
-      return (size_t)math::ClampI(sizeI, (int)kMinGrainSizeSamples, (int)kMaxGrainSizeSamples);
-   }
+  void HandleParamsChanged() override
+  {
+    mWaveshapeA = math::clamp01(mWaveshapeA);
+        mProbability01 = mWaveshapeA * mWaveshapeA;  // curve for better control at low vals.
 
-   inline void EnsureGrainAllocated()
-   {
-      const size_t targetSize = ComputeGrainSizeSamples();
+        mWaveshapeB = math::clamp01(mWaveshapeB);
+    mDutyCycle01 = 1.0f;
+    mFilter.Disable();
+    mAmpExtent01 = 1.0f;
 
-      // If size unchanged and we already have valid content, nothing to do
-      if (targetSize == mGrainSizeSamples && mGrainValid)
-         return;
+    auto filterType = BiquadFilterType::Lowpass;  // default, may be overridden below
+    switch (mControlStyle) {
+      case ControlStyle::Prob_HP:
+        filterType = BiquadFilterType::Highpass;
+        break;
+      case ControlStyle::Prob_BP:
+        filterType = BiquadFilterType::Bandpass;
+        break;
+    }
 
-      mGrainSizeSamples = targetSize;
+    switch (mControlStyle)
+    {
+      case ControlStyle::Prob_Amp:
+        mAmpExtent01 = mWaveshapeB;
+        break;
 
-      // Fill the active portion of the fixed buffer with noise
-      for (size_t i = 0; i < mGrainSizeSamples; ++i)
+      case ControlStyle::Prob_Duty:
+        mDutyCycle01 = mWaveshapeB;
+        break;
+
+        default:
+      case ControlStyle::Prob_LP:
+      case ControlStyle::Prob_HP:
+      case ControlStyle::Prob_BP:
       {
-         mGrain[i] = math::randN11(); // [-1,1]
+        ParamAccessor pa {  &mWaveshapeB, 0 };
+        float q = pa.GetDivCurvedValue(0, gBiquadFilterQCfg);
+        mFilter.SetParams(2, filterType,
+                          this->mMainFrequencyHz, q, 0.0f);
+        break;
       }
+    }
+  }
 
-      mGrainValid = true;
-   }
+  CoreSample renderSampleAndAdvance(float) override
+  {
+    const auto step = mPhaseAcc.advanceOneSample();
+    float y = 0.0f;
 
-   inline void MutateGrainCycle()
-   {
-      if (!mGrainValid || mGrainSizeSamples == 0)
-         return;
+    const bool inDutyWindow = step.phaseBegin01 < mDutyCycle01;
+    if (inDutyWindow && math::rand01() < mProbability01)
+    {
+      const float minAbs = math::clamp01(mAmpExtent01);
+      const float absAmp = minAbs + (1.0f - minAbs) * math::rand01();
+      const float sign = (math::rand01() < 0.5f) ? -1.0f : 1.0f;
+      y = sign * absAmp;
+    }
 
-      const float targetCountF = mMutationRate01 * float(mGrainSizeSamples);
-      const int   targetCountI = math::round<int>(targetCountF);
+    y = mFilter.ProcessSample(y);
+    y *= mFilter.GetCompensationGainLinear();
 
-      const size_t mutateCount = (size_t)math::ClampI(targetCountI, 0, (int)mGrainSizeSamples);
+    return CoreSample{
+        .amplitude = y,
+        .naive = y,
+        .correction = 0.0f,
+        .phaseAdvance = step,
+    };
+  }
 
-      for (size_t i = 0; i < mutateCount; ++i)
-      {
-         // Random index in [0, mGrainSizeSamples)
-         const size_t index =
-            (size_t)(math::rand01() * double(mGrainSizeSamples)) % mGrainSizeSamples;
-
-         mGrain[index] = math::randN11();
-      }
-   }
-
-   void HandleParamsChanged() override
-   {
-      mGrainSize01    = mWaveshapeA;
-      mMutationRate01 = mWaveshapeB;
-
-      EnsureGrainAllocated();
-   }
-
-   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
-   {
-      const auto step = mPhaseAcc.advanceOneSample();
-
-      if (!mInitialized)
-      {
-         mInitialized = true;
-         mGrainValid  = false;      // force re-init
-         EnsureGrainAllocated();
-         MutateGrainCycle();
-      }
-
-      // assert grain valid & has samples.
-
-      const size_t index =
-         (size_t)(step.phaseBegin01 * mGrainSizeSamples) % mGrainSizeSamples;
-
-      const float y = mGrain[index];
-
-      const bool completedCycle = step.hasReset || (step.phaseBegin01 + step.dt >= 1.0f);
-      if (completedCycle)
-      {
-         MutateGrainCycle();
-      }
-
-      return CoreSample{
-         .amplitude    = y,
-         .naive        = y,
-         .correction   = 0.0f,
-         .phaseAdvance = step,
-      };
-   }
-
-   void RestartDueToNoteOn() override
-   {
-      OscillatorCore::RestartDueToNoteOn();
-      mInitialized = false;
-      // optional: you can also clear mGrainValid if you want fresh random grain per note
-      // mGrainValid = false;
-   }
+  void RestartDueToNoteOn() override
+  {
+    OscillatorCore::RestartDueToNoteOn();
+    mFilter.Reset();
+  }
 };
+
 
 }  // namespace M7
 

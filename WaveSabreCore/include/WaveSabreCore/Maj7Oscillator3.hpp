@@ -61,6 +61,24 @@ struct TriPulseGenerator2 : public IShapeGenerator
   }
 };
 
+struct Trap1Generator : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float shapeB) const override
+  {
+      // trap is 4 stages: -1, ramp up, +1, ramp down.
+    // shapeA controls the amount of idle (flat) vs ramp. when shapeA=0, it's all ramp (triangle). when shapeA=1, it's all idle (square).
+    return MakePulseShape(shapeA);
+  }
+};
+
+struct Trap2Generator  : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float /*shapeB*/) const override
+  {
+    return MakePulseShape(shapeA);
+  }
+};
+
 }  // namespace M7Osc4
 
 inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
@@ -69,14 +87,14 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
   {
     default:
     case OscillatorWaveform::SineDCClip:
-      return new SineCoreExt<SineCoreExtVariant::DCClip>(OscillatorWaveform::SineDCClip);
+      return new SineCoreExt(OscillatorWaveform::SineDCClip, SineCoreExtVariant::DCClip);
     case OscillatorWaveform::SineClipSqueeze:
-      return new SineCoreExt<SineCoreExtVariant::ClipSilence>(OscillatorWaveform::SineClipSqueeze);
+      return new SineCoreExt(OscillatorWaveform::SineClipSqueeze, SineCoreExtVariant::ClipSilence);
 
     case OscillatorWaveform::SineHarmDCClip:
-      return new SineCoreExt<SineCoreExtVariant::ClipHarm>(OscillatorWaveform::SineHarmDCClip);
+      return new SineCoreExt(OscillatorWaveform::SineHarmDCClip,  SineCoreExtVariant::ClipHarm);
     case OscillatorWaveform::SineHarmClipSqueeze:
-      return new SineCoreExt<SineCoreExtVariant::HarmSilence>(OscillatorWaveform::SineHarmClipSqueeze);
+      return new SineCoreExt(OscillatorWaveform::SineHarmClipSqueeze, SineCoreExtVariant::HarmSilence);
 
     case OscillatorWaveform::ShapeCoreSawTri:
       return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep,  new M7Osc4::SawGenerator);
@@ -89,23 +107,33 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
     case OscillatorWaveform::ShapeCoreSawTriSquare:
       return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::TriGenerator);
 
+    case OscillatorWaveform::ShapeCoreTrap1:
+      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::Trap1Generator);
+    case OscillatorWaveform::ShapeCoreTrap2:
+      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::Trap2Generator);
+
     case OscillatorWaveform::FoldedSine:
-      return new FoldedSine(false, OscillatorWaveform::FoldedSine);
+      return new FoldedCore(false, OscillatorWaveform::FoldedSine);
     case OscillatorWaveform::FoldedTriangle:
-      return new FoldedSine(true, OscillatorWaveform::FoldedTriangle);
+      return new FoldedCore(true, OscillatorWaveform::FoldedTriangle);
+    case OscillatorWaveform::EvolvingGrainNoise:
+      return new EvolvingGrainNoiseCore(OscillatorWaveform::EvolvingGrainNoise);
 
     case OscillatorWaveform::Noise_SaH_LP4:
-      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_LP4, SAHNoiseCore::ControlStyle::LP_Jitter, 2);
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_LP4, SAHNoiseCore::ControlStyle::LP_Jitter);
     case OscillatorWaveform::Noise_SaH_HP4:
-      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP4, SAHNoiseCore::ControlStyle::HP_Jitter, 2);
-    case OscillatorWaveform::Noise_White_BP4:
-      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise_White_BP4, WhiteNoiseFilteredCore::ControlStyle::BP_Q, 2);
-    case OscillatorWaveform::Noise_White_LP4:
-      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise_White_LP4, WhiteNoiseFilteredCore::ControlStyle::LP_Q, 2);
-    case OscillatorWaveform::Noise_White_HP4:
-      return new WhiteNoiseFilteredCore(OscillatorWaveform::Noise_White_HP4, WhiteNoiseFilteredCore::ControlStyle::HP_Q, 2);
-    case OscillatorWaveform::Noise9:
-      return new EvolvingGrainNoiseCore(OscillatorWaveform::Noise9);
+      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP4, SAHNoiseCore::ControlStyle::HP_Jitter);
+
+    case OscillatorWaveform::Noise_White_ProbDuty:
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbDuty, WhiteNoiseCore2::ControlStyle::Prob_Amp);
+    case OscillatorWaveform::Noise_White_ProbAmp:
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbAmp, WhiteNoiseCore2::ControlStyle::Prob_Duty);
+    case OscillatorWaveform::Noise_White_ProbLP:
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbLP, WhiteNoiseCore2::ControlStyle::Prob_LP);
+    case OscillatorWaveform::Noise_White_ProbHP:
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbHP, WhiteNoiseCore2::ControlStyle::Prob_HP);
+    case OscillatorWaveform::Noise_White_ProbBP:
+      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbBP, WhiteNoiseCore2::ControlStyle::Prob_BP);
   }
 }
 
@@ -155,9 +183,7 @@ public:
       , mpOscDevice(pOscDevice)
       , mIntention(intention)
   {
-    mCore = std::make_unique<SineCoreExt<SineCoreExtVariant::DCClip>>(OscillatorWaveform::SineDCClip);
-    //mCore = std::make_unique<SawCore>();
-    //mCore = std::make_unique<PWMCore>();
+    mCore = std::make_unique<SineCoreExt>(OscillatorWaveform::SineDCClip, SineCoreExtVariant::DCClip);
   }
 
   // used by LFOs to just hard-set the phase. usually NOP

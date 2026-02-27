@@ -97,21 +97,22 @@ enum class OscillatorWaveform : uint8_t
   ShapeCoreSawPulse4,  // 4-state pulse
   ShapeCoreSawTriSquare,
 
+  ShapeCoreTrap1,
+  ShapeCoreTrap2,
+
   FoldedSine,
   FoldedTriangle,
 
+  EvolvingGrainNoise,
+
   Noise_SaH_LP4,
   Noise_SaH_HP4,
-  Noise_White_BP4,
-  Noise_White_LP4,
-  Noise_White_HP4,
 
-  Noise9,
-  Noise10,
-  Noise11,
-  Noise12,
-  Noise13,
-  Noise14,
+  Noise_White_ProbDuty,
+  Noise_White_ProbAmp,
+  Noise_White_ProbLP,
+  Noise_White_ProbHP,
+  Noise_White_ProbBP,
 
   Count,
 
@@ -139,19 +140,18 @@ enum class OscillatorWaveform : uint8_t
   "SS pulse 3 stage",\
   "SS pulse 4 stage",\
   "SS Tri-Square",\
+  "SS trap 1",\
+  "SS trap 2",\
   "Folded Sine",\
   "Folded Tri",\
+  "Noise Grain Evolve",\
   "Noise_SaH_LP4",\
   "Noise_SaH_HP4",\
-  "Noise White+BP4",\
-  "Noise White+LP4",\
-  "Noise White+HP4",\
-  "Noise Grain Evolve",\
-  "Noise 10",\
-  "Noise 11",\
-  "Noise 12",\
-  "Noise 13",\
-  "Noise 14",\
+  "Noise White Prob+Duty",\
+  "Noise White Prob+Amp",\
+  "Noise White Prob+LP",\
+  "Noise White Prob+HP",\
+  "Noise White Prob+BP",\
   }
 // clang-format on
 
