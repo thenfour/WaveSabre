@@ -81,8 +81,12 @@ struct Trap2Generator  : public IShapeGenerator
 
 }  // namespace M7Osc4
 
-inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
+inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorIntention intention)
 {
+  const M7Osc4::AntiAliasingOption aaOpt = (intention == OscillatorIntention::LFO) 
+    ? M7Osc4::AntiAliasingOption::None 
+    : M7Osc4::AntiAliasingOption::PolyBlep;
+
   switch (w)
   {
     default:
@@ -97,20 +101,20 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w)
       return new SineCoreExt(OscillatorWaveform::SineHarmClipSqueeze, SineCoreExtVariant::HarmSilence);
 
     case OscillatorWaveform::ShapeCoreSawTri:
-      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep,  new M7Osc4::SawGenerator);
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::SawGenerator);
     case OscillatorWaveform::ShapeCoreSawPulse2:
-      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::PulseGenerator);
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::PulseGenerator);
     case OscillatorWaveform::ShapeCoreSawPulse3:
-      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::TriPulseGenerator1);
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator1);
     case OscillatorWaveform::ShapeCoreSawPulse4:
-      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::TriPulseGenerator2);
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator2);
     case OscillatorWaveform::ShapeCoreSawTriSquare:
-      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::TriGenerator);
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
 
     case OscillatorWaveform::ShapeCoreTrap1:
-      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::Trap1Generator);
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::Trap1Generator);
     case OscillatorWaveform::ShapeCoreTrap2:
-      return new M7Osc4::ShapeCoreStreaming(w, M7Osc4::AntiAliasingOption::PolyBlep, new M7Osc4::Trap2Generator);
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::Trap2Generator);
 
     case OscillatorWaveform::FoldedSine:
       return new FoldedCore(false, OscillatorWaveform::FoldedSine);
@@ -273,7 +277,7 @@ public:
       return;
     }
 
-    auto* p = InstantiateWaveformCore(w);
+    auto* p = InstantiateWaveformCore(w, mIntention);
 
     mCore.reset(p);
     mCore->SetCorrectionFactor(mCorrectionFactor);

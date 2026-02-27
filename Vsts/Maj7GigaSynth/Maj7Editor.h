@@ -2289,7 +2289,7 @@ public:
     float freqHz = Helpers::CurrentSampleRateF / bb.GetWidth();
     waveform = (M7::OscillatorWaveform)M7::math::ClampI((int)waveform, 0, (int)M7::OscillatorWaveform::Count - 1);
 
-    pWaveform.reset(M7::InstantiateWaveformCore(waveform));
+    pWaveform.reset(M7::InstantiateWaveformCore(waveform, WaveSabreCore::M7::OscillatorIntention::LFO));
 
     // freq & samplerate should be set such that we have `width` samples per 1 cycle.
     // samples per cycle = srate / freq
@@ -2309,6 +2309,7 @@ public:
     };
 
     ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f);  // background
+    drawList->PushClipRect(bb.Min, bb.Max, true);
     float centerY = sampleToY(0);
     drawList->AddLine({outerTL.x, centerY},
                       {outerBR.x, centerY},
@@ -2341,6 +2342,7 @@ public:
                         ColorFromHTML("#ff0000"),
                         2.0f);  // center line
     }
+    drawList->PopClipRect();
 
     {
       auto str1 = std::format("nrg:[{:.2f},{:.2f}]", nminY, nmaxY);
@@ -2381,7 +2383,8 @@ public:
                       float waveshapeA01,
                       float waveshapeB01,
                       float phaseOffsetN11,
-                      float* phaseCursor)
+                      float* phaseCursor,
+                      bool isSelected = false)
   {
     id += 10;  // &= 0x8000; // just to comply with ImGui expectations of IDs never being 0.
     ImGuiButtonFlags flags = 0;
@@ -2400,6 +2403,16 @@ public:
     bool hovered, held;
 
     WaveformGraphic(waveform, waveshapeA01, waveshapeB01, phaseOffsetN11, bb, phaseCursor);
+
+    if (isSelected)
+    {
+      ImGui::GetWindowDrawList()->AddRect(bb.Min,
+                                          bb.Max,
+                                          ImGui::GetColorU32(ImGuiCol_PlotHistogram),
+                                          3.0f,
+                                          0,
+                                          2.0f);
+    }
 
     bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
 
@@ -2425,18 +2438,34 @@ public:
     M7::QuickParam phaseOffsetParam{GetEffectX()->getParameter((VstInt32)phaseOffsetParamID)};
     float phaseOffsetN11 = phaseOffsetParam.GetN11Value();
 
-    if (WaveformButton(waveformParamID, selectedWaveform, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor))
+    if (WaveformButton(
+            waveformParamID, selectedWaveform, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor, true))
     {
       ImGui::OpenPopup("selectWaveformPopup");
     }
     ImGui::SameLine();
     if (ImGui::BeginPopup("selectWaveformPopup"))
     {
+      const float buttonWidth = 150.0f + ImGui::GetStyle().FramePadding.x * 2.0f;
+      const float spacingX = ImGui::GetStyle().ItemSpacing.x;
+      const int columns = 3;//std::max(1, (int)((ImGui::GetContentRegionAvail().x + spacingX) / (buttonWidth + spacingX)));
+
       for (int n = 0; n < (int)M7::OscillatorWaveform::Count; n++)
       {
         M7::OscillatorWaveform wf = (M7::OscillatorWaveform)n;
+        if (n > 0 && (n % columns) != 0)
+        {
+          ImGui::SameLine();
+        }
+
         ImGui::PushID(n);
-        if (WaveformButton(n, wf, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor))
+        if (WaveformButton(n,
+                           wf,
+                           waveshapeA01,
+                           waveshapeB01,
+                           phaseOffsetN11,
+                           phaseCursor,
+                           wf == selectedWaveform))
         {
           //float t;
           //M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count);
