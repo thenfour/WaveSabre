@@ -1355,8 +1355,24 @@ public:
                   waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset,
                   &phaseCursor);
 
+    M7::QuickParam waveformParam{
+      GetEffectX()->getParameter((VstInt32)(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform))};
+    auto waveformUiStyle = GetWaveformUiStyle(waveformParam.GetEnumValue<M7::OscillatorWaveform>());
+
     ImGui::SameLine();
-    WSImGuiParamKnob(waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeA, "Shape");
+    Maj7ImGuiParamFloat01(waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeA,
+                waveformUiStyle.shapeALabel,
+                waveformUiStyle.defaultWaveshapeA,
+                waveformUiStyle.defaultWaveshapeA,
+                0,
+                lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeA));
+    ImGui::SameLine();
+    Maj7ImGuiParamFloat01(waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeB,
+                waveformUiStyle.shapeBLabel,
+                waveformUiStyle.defaultWaveshapeB,
+                waveformUiStyle.defaultWaveshapeB,
+                0,
+                lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeB));
     // TODO: in the future,
     //ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
     ImGui::SameLine();
