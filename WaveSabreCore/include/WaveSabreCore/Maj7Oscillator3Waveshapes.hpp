@@ -65,9 +65,30 @@ static inline WVShape MakeSawShape(float idleParam01, float rampUpDownParam01)
   return MakeTrapezoidShape1(idleLow01, rampUp01, idleHigh01, rampDown01);
 }
 
-static inline WVShape MakeTriangleShape()
+// duty controls the balance between idle & tri/square shape.
+// - at duty 0 = , the whole cycle is the tri-square.
+// - at duty 1, the whole cycle is idle.
+// tri-square shape controls idle time at high state.
+// - when shape=0, the shape portion is a triangle (ramp up - ramp down with no idle at high state).
+// - when shape=1, it's a square; the whole shape is idle at high state.
+static inline WVShape MakeTriSquareShape(float duty01, float triSquare01)
 {
-  return MakeTrapezoidShape1(0.0f, 0.5f, 0.0f, 0.5f);
+  duty01 = math::clamp01(duty01);
+  triSquare01 = math::clamp01(triSquare01);
+
+  // duty controls how much of the cycle is idle at low level.
+  const float idleLow01 = duty01;
+  const float active01 = 1.0f - idleLow01;
+
+  // triSquare controls how much of the active portion is held high:
+  // 0 -> triangle (no high hold), 1 -> square (all high hold).
+  const float idleHigh01 = active01 * triSquare01;
+  const float ramps01Raw = active01 - idleHigh01;
+  const float ramps01 = (ramps01Raw > 0.0f) ? ramps01Raw : 0.0f;
+  const float rampUp01 = ramps01 * 0.5f;
+  const float rampDown01 = ramps01 * 0.5f;
+
+  return MakeTrapezoidShape1(idleLow01, rampUp01, idleHigh01, rampDown01);
 }
 static inline WVShape MakePulseShape(double dutyCycle01)
 {

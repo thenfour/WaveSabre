@@ -97,9 +97,6 @@ enum class OscillatorWaveform : uint8_t
   ShapeCoreSawPulse4,  // 4-state pulse
   ShapeCoreSawTriSquare,
 
-  ShapeCoreTrap1,
-  ShapeCoreTrap2,
-
   FoldedSine,
   FoldedTriangle,
 
@@ -150,8 +147,6 @@ struct OscillatorWaveformUiStyle
   "SS pulse 3 stage",\
   "SS pulse 4 stage",\
   "SS Tri-Square",\
-  "SS trap 1",\
-  "SS trap 2",\
   "Folded Sine",\
   "Folded Tri",\
   "Noise Grain Evolve",\
@@ -175,9 +170,7 @@ struct OscillatorWaveformUiStyle
   {"Duty", "--",  0.50f, 0.50f, "#ffaa33"},\
   {"Duty", "Sym",  2.f/3.f, 0.50f, "#ffaa33"},\
   {"Duty", "Sym",  0.50f, 0.50f, "#ffaa33"},\
-  {"ShapeA", "ShapeB",  0.50f, 0.50f, "#ffaa33"},\
-  {"ShapeA", "ShapeB",  0.50f, 0.50f, "#ffaa33"},\
-  {"ShapeA", "ShapeB",  0.50f, 0.50f, "#ffaa33"},\
+  {"Duty", "Tri-Square",  0.50f, 0.50f, "#ffaa33"},\
   {"Fold",   "Bias",    0.00f, 0.50f, "#ff9966"},\
   {"Fold",   "Bias",    0.00f, 0.50f, "#ff9966"},\
   {"Grain",  "Mutate",  0.35f, 0.15f, "#b388ff"},\

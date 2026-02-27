@@ -28,9 +28,9 @@ struct SawGenerator : public IShapeGenerator
 };
 struct TriGenerator : public IShapeGenerator
 {
-  WVShape GetShape(float shapeA, float /*shapeB*/) const override
+  WVShape GetShape(float shapeA, float shapeB) const override
   {
-    return MakeTriangleShape();
+    return MakeTriSquareShape(shapeA, shapeB);
   }
 };
 struct PulseGenerator : public IShapeGenerator
@@ -58,24 +58,6 @@ struct TriPulseGenerator2 : public IShapeGenerator
     double lowDuty01 = shapeA;
     double highDuty01 = 1.0 - shapeA;
     return MakeTriStatePulseShape4(shapeB, lowDuty01, highDuty01);
-  }
-};
-
-struct Trap1Generator : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float shapeB) const override
-  {
-      // trap is 4 stages: -1, ramp up, +1, ramp down.
-    // shapeA controls the amount of idle (flat) vs ramp. when shapeA=0, it's all ramp (triangle). when shapeA=1, it's all idle (square).
-    return MakePulseShape(shapeA);
-  }
-};
-
-struct Trap2Generator  : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float /*shapeB*/) const override
-  {
-    return MakePulseShape(shapeA);
   }
 };
 
@@ -110,11 +92,6 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator2);
     case OscillatorWaveform::ShapeCoreSawTriSquare:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
-
-    case OscillatorWaveform::ShapeCoreTrap1:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::Trap1Generator);
-    case OscillatorWaveform::ShapeCoreTrap2:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::Trap2Generator);
 
     case OscillatorWaveform::FoldedSine:
       return new FoldedCore(false, OscillatorWaveform::FoldedSine);
