@@ -93,7 +93,14 @@ enum class FilterResponse
 
 struct IFilter
 {
-  virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, real cutoffHz, real Qdb) = 0;
+  virtual void SetParams(FilterCircuit circuit,
+                         FilterSlope slope,
+                         FilterResponse response,
+                         real cutoffHz,
+                         // NB: this must be a 0-1 param value, because different filters interpret "resonance" differently.
+                         // it's NOT the same as Q.
+                         real reso01
+                        ) = 0;
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) = 0;
   virtual real ProcessSample(real x) = 0;
   virtual real GetMagnitudeAtFrequency(real freqHz) const = 0;
@@ -102,7 +109,13 @@ struct IFilter
 
 struct NullFilter : IFilter
 {
-  virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, real cutoffHz, real Qdb) override {}
+  virtual void SetParams(FilterCircuit circuit,
+                         FilterSlope slope,
+                         FilterResponse response,
+                         real cutoffHz,
+                         real reso01) override
+  {
+  }
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override { return true; }
   virtual real ProcessSample(real x) override
   {

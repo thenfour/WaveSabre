@@ -12,7 +12,11 @@ namespace WaveSabreCore
     {
         struct MoogOnePoleFilter : public IFilter
         {
-            virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, float cutoffHz, float Qdb) override
+                        virtual void SetParams(FilterCircuit circuit,
+                                                                     FilterSlope slope,
+                                                                     FilterResponse response,
+                                                                     float cutoffHz,
+                                                                     float reso01) override
             {
                 if (!DoesSupport(circuit, slope, response))
                 {

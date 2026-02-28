@@ -13,7 +13,7 @@ struct ButterworthFilter : IFilter
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real Qdb) override
+                         real reso01) override
   {
     //
   }

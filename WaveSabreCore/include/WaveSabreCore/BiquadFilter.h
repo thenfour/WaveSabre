@@ -15,7 +15,7 @@ namespace M7
 // POD.
 struct BiquadConfig
 {
-  // q is ~0 to ~12 (or higher if you want; in db)
+  // q is linear Q (typically ~0.2 to ~12)
   void SetBiquadParams(FilterResponse type, float freq, float q, float gain);
 
   const float& normA0() const
@@ -206,7 +206,7 @@ public:
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real Qdb) override
+                         real reso01) override
   {
     // convert slope to n stages.
     int nStages = (int)slope - 1;
@@ -214,7 +214,8 @@ public:
     static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
     static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
 
-    SetBiquadParams(nStages, response, cutoffHz, Qdb, 0);
+    const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
+    SetBiquadParams(nStages, response, cutoffHz, q, 0);
   }
 
   // IFilter

@@ -619,13 +619,14 @@ struct SAHNoiseCore : public OscillatorCore
   {
     mJitter01 = math::clamp01(mWaveshapeB);
     static constexpr float kFixedQ = 0.7071f;
+    const float fixedReso01 = gBiquadFilterQCfg.ValueToParam01(kFixedQ);
 
     mFilter.SetParams(FilterCircuit::Biquad,
                       FilterSlope::Slope24dbOct, // 2 stage.
                       (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
                                                                  : FilterResponse::Lowpass,
                       this->GetFrequency(mWaveshapeA),
-                      kFixedQ);
+                      fixedReso01);
   }
 
 
@@ -902,9 +903,8 @@ struct WhiteNoiseCore2 : public OscillatorCore
       case ControlStyle::Duty_LP:
         //case ControlStyle::Duty_HP:
         {
-          ParamAccessor pa{&mWaveshapeB, 0};
-          float q = pa.GetDivCurvedValue(0, gBiquadFilterQCfg);
-          mFilter.SetParams(FilterCircuit::Biquad, FilterSlope::Slope24dbOct, filterType, this->mMainFrequencyHz, q);
+          mFilter.SetParams(
+              FilterCircuit::Biquad, FilterSlope::Slope24dbOct, filterType, this->mMainFrequencyHz, mWaveshapeB);
           break;
         }
     }

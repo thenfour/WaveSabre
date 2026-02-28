@@ -26,7 +26,7 @@ struct FilterNode
 
   IFilter* mSelectedFilter = &mNullFilter;
 
-  void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, float cutoffHz, float qdb)
+  void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, float cutoffHz, float reso01)
   {
     // select filter & set type
     IFilter* nextFilter = nullptr;
@@ -55,12 +55,12 @@ struct FilterNode
         nextFilter = &mMoog;
         break;
     }
-    mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, qdb);
     if (mSelectedFilter != nextFilter)
     {
+      nextFilter->Reset();
       mSelectedFilter = nextFilter;
-      mSelectedFilter->Reset();
     }
+    mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, reso01);
   }
 
   float ProcessSample(float inputSample)
@@ -114,10 +114,9 @@ struct FilterAuxNode  // : IAuxEffect
     mnSampleCount = (mnSampleCount + 1) & recalcMask;
     if (calc)
     {
-      auto Q = mParams.GetDivCurvedValue(FilterParamIndexOffsets::Q,
-                                         gBiquadFilterQCfg,
-                                         mModMatrix->GetDestinationValue((int)mModDestBase +
-                                                                         (int)FilterAuxModDestOffsets::Q));
+      auto reso01 = mParams.Get01Value(FilterParamIndexOffsets::Q,
+                                       mModMatrix->GetDestinationValue((int)mModDestBase +
+                                                                       (int)FilterAuxModDestOffsets::Q));
 
       mFilter.SetParams(
           mFilterCircuit,
@@ -128,7 +127,7 @@ struct FilterAuxNode  // : IAuxEffect
                                gFilterFreqConfig,
                                mNoteHz,
                                mModMatrix->GetDestinationValue((int)mModDestBase + (int)FilterAuxModDestOffsets::Freq)),
-          Q);
+                          reso01);
     }
 
     return mFilter.ProcessSample(inputSample);
