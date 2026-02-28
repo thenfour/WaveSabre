@@ -255,7 +255,7 @@ public:
 
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response)
   {
-  if (circuit != FilterCircuit::Biquad && circuit != FilterCircuit::Butterworth)
+  if (circuit != FilterCircuit::Biquad)
 	  return false;
 	if (slope < FilterSlope::Slope12dbOct || slope > FilterSlope::Slope96dbOct)
 	  return false;

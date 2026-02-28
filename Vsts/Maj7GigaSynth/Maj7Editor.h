@@ -49,6 +49,23 @@ class Maj7Editor : public VstEditor
   std::vector<WaveformPreviewCacheEntry> mWaveformPreviewCache;
   size_t mWaveformPreviewCacheEvictIndex = 0;
 
+  struct FilterPreviewCacheEntry
+  {
+    int filterIndex = -1;
+    int width = 0;
+    int height = 0;
+    M7::FilterCircuit circuit = M7::FilterCircuit::Disabled;
+    M7::FilterSlope slope = M7::FilterSlope::Slope6dbOct;
+    M7::FilterResponse response = M7::FilterResponse::Lowpass;
+    float cutoffHz = 0.0f;
+    float reso01 = 0.0f;
+    std::vector<float> y01;
+  };
+
+  static constexpr size_t gFilterPreviewCacheMaxEntries = 16;
+  std::vector<FilterPreviewCacheEntry> mFilterPreviewCache;
+  size_t mFilterPreviewCacheEvictIndex = 0;
+
 public:
   struct RenderContext
   {
@@ -2289,6 +2306,8 @@ public:
       M7::FilterCircuit selectedCircuit = filterCircuitParam.GetEnumValue<M7::FilterCircuit>();
       M7::FilterSlope selectedSlope = filterSlopeParam.GetEnumValue<M7::FilterSlope>();
       M7::FilterResponse selectedResponse = filterResponseParam.GetEnumValue<M7::FilterResponse>();
+      const float selectedCutoffHz = filter.mParams.GetFrequency(M7::FilterParamIndexOffsets::Freq, M7::gFilterFreqConfig);
+      const float selectedReso01 = filter.mParams.Get01Value(M7::FilterParamIndexOffsets::Q);
 
       auto applySelection = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
       {
@@ -2385,10 +2404,19 @@ public:
           ImRect bb(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
           auto* dl = ImGui::GetWindowDrawList();
           dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
+          auto& filterPreview = GetOrBuildFilterPreviewCache(ifilter,
+                                                             std::max(8, (int)bb.GetWidth() - 8),
+                                                             std::max(8, (int)bb.GetHeight() - 8),
+                                                             selectedCircuit,
+                                                             selectedSlope,
+                                                             selectedResponse,
+                                                             selectedCutoffHz,
+                                                             selectedReso01);
+          DrawFilterPreview(bb, filterPreview);
           DrawShadowText(std::string(labelForCircuit(selectedCircuit)), ImVec2(bb.Min.x + 6, bb.Min.y + 3));
-          DrawShadowText(std::string("Slope ") + labelForSlope(selectedSlope) + " dB",
-                         ImVec2(bb.Min.x + 6, bb.Min.y + 20));
-          DrawShadowText(std::string(labelForResponse(selectedResponse)), ImVec2(bb.Min.x + 6, bb.Min.y + 40));
+          // DrawShadowText(std::string("Slope ") + labelForSlope(selectedSlope) + " dB",
+          //                ImVec2(bb.Min.x + 6, bb.Min.y + 20));
+          // DrawShadowText(std::string(labelForResponse(selectedResponse)), ImVec2(bb.Min.x + 6, bb.Min.y + 40));
           ImGui::PopID();
 
           ImGui::SameLine();
@@ -2580,6 +2608,159 @@ public:
     return entry.waveform == waveform && entry.width == width && entry.height == height &&
            entry.waveshapeA01 == waveshapeA01 && entry.waveshapeB01 == waveshapeB01 &&
            entry.phaseOffsetN11 == phaseOffsetN11;
+  }
+
+  static bool FilterPreviewCacheMatches(const FilterPreviewCacheEntry& entry,
+                                        int filterIndex,
+                                        int width,
+                                        int height,
+                                        M7::FilterCircuit circuit,
+                                        M7::FilterSlope slope,
+                                        M7::FilterResponse response,
+                                        float cutoffHz,
+                                        float reso01)
+  {
+    return entry.filterIndex == filterIndex && entry.width == width && entry.height == height &&
+           entry.circuit == circuit && entry.slope == slope && entry.response == response &&
+           entry.cutoffHz == cutoffHz && entry.reso01 == reso01;
+  }
+
+  FilterPreviewCacheEntry& GetOrBuildFilterPreviewCache(int filterIndex,
+                                                        int width,
+                                                        int height,
+                                                        M7::FilterCircuit circuit,
+                                                        M7::FilterSlope slope,
+                                                        M7::FilterResponse response,
+                                                        float cutoffHz,
+                                                        float reso01)
+  {
+    for (auto& entry : mFilterPreviewCache)
+    {
+      if (FilterPreviewCacheMatches(entry, filterIndex, width, height, circuit, slope, response, cutoffHz, reso01))
+      {
+        return entry;
+      }
+    }
+
+    FilterPreviewCacheEntry newEntry;
+    newEntry.filterIndex = filterIndex;
+    newEntry.width = width;
+    newEntry.height = height;
+    newEntry.circuit = circuit;
+    newEntry.slope = slope;
+    newEntry.response = response;
+    newEntry.cutoffHz = cutoffHz;
+    newEntry.reso01 = reso01;
+    newEntry.y01.resize((size_t)std::max(1, width));
+
+    if (circuit == M7::FilterCircuit::Disabled)
+    {
+      std::fill(newEntry.y01.begin(), newEntry.y01.end(), 0.55f);
+    }
+    else
+    {
+      M7::NullFilter nullFilter;
+      M7::MoogOnePoleFilter onePole;
+      M7::CascadedBiquadFilter biquad;
+      M7::ButterworthFilter butter;
+      M7::MoogLadderFilter moog;
+      M7::K35Filter k35;
+      M7::DiodeFilter diode;
+
+      M7::IFilter* f = &nullFilter;
+      switch (circuit)
+      {
+        case M7::FilterCircuit::OnePole:
+          f = &onePole;
+          break;
+        case M7::FilterCircuit::Biquad:
+          f = &biquad;
+          break;
+        case M7::FilterCircuit::Butterworth:
+          f = &butter;
+          break;
+        case M7::FilterCircuit::Moog:
+          f = &moog;
+          break;
+        case M7::FilterCircuit::K35:
+          f = &k35;
+          break;
+        case M7::FilterCircuit::Diode:
+          f = &diode;
+          break;
+        default:
+          f = &nullFilter;
+          break;
+      }
+
+      const float safeCutoff = M7::math::clamp(cutoffHz, 20.0f, 20000.0f);
+      const float safeReso = M7::math::clamp01(reso01);
+      f->SetParams(circuit, slope, response, safeCutoff, safeReso);
+
+      static constexpr float kMinFreq = 20.0f;
+      static constexpr float kMaxFreq = 20000.0f;
+      static constexpr float kFreqRatio = kMaxFreq / kMinFreq;
+      static constexpr float kMinDb = -36.0f;
+      static constexpr float kMaxDb = 12.0f;
+
+      const int sampleCount = (int)newEntry.y01.size();
+      for (int i = 0; i < sampleCount; ++i)
+      {
+        const float t = (sampleCount <= 1) ? 0.0f : ((float)i / (float)(sampleCount - 1));
+        const float freq = kMinFreq * M7::math::pow(kFreqRatio, t);
+        const float mag = std::max(1e-6f, f->GetMagnitudeAtFrequency(freq));
+        const float db = M7::math::clamp(20.0f * M7::math::log10(mag), kMinDb, kMaxDb);
+        const float yNorm = 1.0f - M7::math::clamp01(M7::math::lerp_rev(kMinDb, kMaxDb, db));
+        newEntry.y01[(size_t)i] = yNorm;
+      }
+    }
+
+    if (mFilterPreviewCache.size() < gFilterPreviewCacheMaxEntries)
+    {
+      mFilterPreviewCache.push_back(std::move(newEntry));
+      return mFilterPreviewCache.back();
+    }
+
+    auto& evictTarget = mFilterPreviewCache[mFilterPreviewCacheEvictIndex];
+    evictTarget = std::move(newEntry);
+    mFilterPreviewCacheEvictIndex = (mFilterPreviewCacheEvictIndex + 1) % gFilterPreviewCacheMaxEntries;
+    return evictTarget;
+  }
+
+  void DrawFilterPreview(const ImRect& bb, const FilterPreviewCacheEntry& cache)
+  {
+    if (cache.y01.empty())
+      return;
+
+    auto* drawList = ImGui::GetWindowDrawList();
+    const float left = bb.Min.x + 4.0f;
+    const float right = bb.Max.x - 4.0f;
+    const float top = bb.Min.y + 4.0f;
+    const float bottom = bb.Max.y - 4.0f;
+    const float width = right - left;
+    const float height = bottom - top;
+    if (width <= 1.0f || height <= 1.0f)
+      return;
+
+    drawList->PushClipRect(bb.Min, bb.Max, true);
+    ImU32 curveColor = ColorFromHTML("99bbd9", 0.45f);
+    ImVec2 prev{};
+    bool hasPrev = false;
+    const int n = (int)cache.y01.size();
+    for (int i = 0; i < n; ++i)
+    {
+      const float t = (n <= 1) ? 0.0f : ((float)i / (float)(n - 1));
+      const float x = left + width * t;
+      const float y = top + height * cache.y01[(size_t)i];
+      ImVec2 cur{x, y};
+      if (hasPrev)
+      {
+        drawList->AddLine(prev, cur, curveColor, 1.5f);
+      }
+      prev = cur;
+      hasPrev = true;
+    }
+    drawList->PopClipRect();
   }
 
   WaveformPreviewCacheEntry& GetOrBuildWaveformPreviewCache(M7::OscillatorWaveform waveform,

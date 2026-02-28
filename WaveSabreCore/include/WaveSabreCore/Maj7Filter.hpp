@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Filters/FilterDiode.hpp"
+#include "Filters/FilterButterworth.hpp"
 #include "Filters/FilterK35.hpp"
 #include "Filters/FilterMoog.hpp"
 #include "Filters/FilterOnePole.hpp"
@@ -19,7 +20,7 @@ struct FilterNode
   NullFilter mNullFilter;
   MoogOnePoleFilter mOnePole;
   CascadedBiquadFilter mBiquad;
-  CascadedBiquadFilter mButterworth;  // placeholder.
+  ButterworthFilter mButterworth;
   DiodeFilter mDiode;
   K35Filter mK35;
   MoogLadderFilter mMoog;
