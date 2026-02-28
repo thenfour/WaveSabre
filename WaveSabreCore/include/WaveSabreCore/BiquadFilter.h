@@ -152,6 +152,12 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 class CascadedBiquadFilter : public IFilter
 {
+  enum class QStrategy
+  {
+    UserResonance,
+    Butterworth,
+  };
+
   static constexpr size_t kMaxStages = 8;
   // 0 stage = bypass
   // 1 stage's slope = 12db/oct.
@@ -161,6 +167,16 @@ class CascadedBiquadFilter : public IFilter
   BiquadFilter mFilters[kMaxStages];
   size_t mNStages;
   float mGainCompensationLinear;
+
+  static inline float ButterworthQForSection(int sectionIndex, int nStages)
+  {
+    const int N = nStages * 2;  // filter order
+    const float k = (float)(sectionIndex + 1);
+    const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
+    const float c = math::cos(angle);
+    const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
+    return 1.0f / denom;
+  }
 
 public:
   explicit CascadedBiquadFilter()
@@ -174,7 +190,13 @@ public:
     mGainCompensationLinear = 1;
   }
 
-  void SetBiquadParams(int nStages, FilterResponse response, float cutoffHz, float q, float gain)
+  void SetBiquadParams(int nStages,
+                       FilterResponse response,
+                       float cutoffHz,
+                       float q,
+                       float gain,
+                       QStrategy qStrategy,
+                       bool applyGainCompensation)
   {
     CCASSERT(nStages >= 0 && nStages <= kMaxStages);
 
@@ -192,14 +214,25 @@ public:
     if (nStages == 0)
       return;
 
-    // Compute coefficients once, then copy to remaining stages.
-    mFilters[0].SetBiquadParams(response, cutoffHz, q, q);
-    for (size_t i = 1; i < nStages; ++i)
+    if (qStrategy == QStrategy::UserResonance)
     {
-      mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
+      // Compute coefficients once, then copy to remaining stages.
+      mFilters[0].SetBiquadParams(response, cutoffHz, q, q);
+      for (size_t i = 1; i < nStages; ++i)
+      {
+        mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
+      }
+    }
+    else
+    {
+      for (int i = 0; i < nStages; ++i)
+      {
+        const float sectionQ = ButterworthQForSection(i, nStages);
+        mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, 0.0f);
+      }
     }
 
-    mGainCompensationLinear = CalculateCompensationGainLinear();
+    mGainCompensationLinear = applyGainCompensation ? CalculateCompensationGainLinear() : 1.0f;
   }
 
   virtual void SetParams(FilterCircuit circuit,
@@ -214,8 +247,15 @@ public:
     static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
     static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
 
-    const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
-    SetBiquadParams(nStages, response, cutoffHz, q, 0);
+    if (circuit == FilterCircuit::Butterworth)
+    {
+      SetBiquadParams(nStages, response, cutoffHz, 0, 0, QStrategy::Butterworth, false);
+    }
+    else
+    {
+      const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
+      SetBiquadParams(nStages, response, cutoffHz, q, 0, QStrategy::UserResonance, true);
+    }
   }
 
   // IFilter
@@ -255,12 +295,13 @@ public:
 
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response)
   {
-  if (circuit != FilterCircuit::Biquad)
-	  return false;
-	if (slope < FilterSlope::Slope12dbOct || slope > FilterSlope::Slope96dbOct)
-	  return false;
-	// supports all responses.
-	return true;
+    if (circuit != FilterCircuit::Biquad && circuit != FilterCircuit::Butterworth)
+      return false;
+    if (slope < FilterSlope::Slope12dbOct || slope > FilterSlope::Slope96dbOct)
+      return false;
+    if (circuit == FilterCircuit::Butterworth)
+      return response == FilterResponse::Lowpass || response == FilterResponse::Highpass;
+    return true;
   }
 
 

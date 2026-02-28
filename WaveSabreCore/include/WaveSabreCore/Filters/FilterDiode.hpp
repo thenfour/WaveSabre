@@ -11,7 +11,10 @@ namespace M7
 {
 struct DiodeFilter : IFilter
 {
-  MoogOnePoleFilter mLPF[4];
+  MoogOnePoleFilter mLPF1;
+  MoogOnePoleFilter mLPF2;
+  MoogOnePoleFilter mLPF3;
+  MoogOnePoleFilter mLPF4;
 
   FilterSlope mSlope = (FilterSlope)-1;
   FilterResponse mResponse = (FilterResponse)-1;
@@ -20,36 +23,70 @@ struct DiodeFilter : IFilter
   real2 mReso01 = 0.0f;
 
   real2 mK = 0.0f;
-  real2 mAlpha0 = 1.0f;
+  real2 mGamma = 0.0f;
+  real2 mSg1 = 0.0f;
+  real2 mSg2 = 0.0f;
+  real2 mSg3 = 0.0f;
+  real2 mSg4 = 0.0f;
+
+  inline void ConfigureOnePolesForLowpass(real2 cutoff)
+  {
+    mLPF1.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Lowpass, cutoff, 0);
+    mLPF2.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Lowpass, cutoff, 0);
+    mLPF3.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Lowpass, cutoff, 0);
+    mLPF4.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Lowpass, cutoff, 0);
+  }
 
   inline void Recalc()
   {
     const real2 cutoff = math::clamp(mCutoffHz, 20.0f, 20000.0f);
     const real2 g = math::tan(cutoff * math::gPI * Helpers::CurrentSampleRateRecipF);
-    const real2 oneOver1plusg = real2(1) / (g + 1);
-    const real2 G = g * oneOver1plusg;
+    const real2 G4 = real2(0.5f) * g / (real2(1) + g);
+    const real2 G3 = real2(0.5f) * g / (real2(1) + g - real2(0.5f) * g * G4);
+    const real2 G2 = real2(0.5f) * g / (real2(1) + g - real2(0.5f) * g * G3);
+    const real2 G1 = g / (real2(1) + g - g * G2);
 
-    const real2 g0 = real2(1);
-    const real2 g1 = G;
-    const real2 g2 = G;
-    const real2 g3 = G;
+    mGamma = G4 * G3 * G2 * G1;
+    mSg1 = G4 * G3 * G2;
+    mSg2 = G4 * G3;
+    mSg3 = G4;
+    mSg4 = real2(1);
 
-    const real2 gamma = g0 * g1 * g2 * g3;
+    const real2 G = g / (real2(1) + g);
 
-    mLPF[3].m_alpha = G;
-    mLPF[3].m_beta = oneOver1plusg;
+    ConfigureOnePolesForLowpass(cutoff);
 
-    mLPF[2].m_alpha = G;
-    mLPF[2].m_beta = G * oneOver1plusg;
+    mLPF1.m_alpha = G;
+    mLPF2.m_alpha = G;
+    mLPF3.m_alpha = G;
+    mLPF4.m_alpha = G;
 
-    mLPF[1].m_alpha = G;
-    mLPF[1].m_beta = G * G * oneOver1plusg;
+    mLPF1.m_beta = real2(1) / (real2(1) + g - g * G2);
+    mLPF2.m_beta = real2(1) / (real2(1) + g - real2(0.5f) * g * G3);
+    mLPF3.m_beta = real2(1) / (real2(1) + g - real2(0.5f) * g * G4);
+    mLPF4.m_beta = real2(1) / (real2(1) + g);
 
-    mLPF[0].m_alpha = G;
-    mLPF[0].m_beta = G * G * G * oneOver1plusg;
+    mLPF1.m_delta = g;
+    mLPF2.m_delta = real2(0.5f) * g;
+    mLPF3.m_delta = real2(0.5f) * g;
+    mLPF4.m_delta = 0;
+
+    mLPF1.m_gamma = real2(1) + G1 * G2;
+    mLPF2.m_gamma = real2(1) + G2 * G3;
+    mLPF3.m_gamma = real2(1) + G3 * G4;
+    mLPF4.m_gamma = real2(1);
+
+    mLPF1.m_epsilon = G2;
+    mLPF2.m_epsilon = G3;
+    mLPF3.m_epsilon = G4;
+    mLPF4.m_epsilon = 0;
+
+    mLPF1.m_a_0 = real2(1);
+    mLPF2.m_a_0 = real2(0.5f);
+    mLPF3.m_a_0 = real2(0.5f);
+    mLPF4.m_a_0 = real2(0.5f);
 
     mK = math::clamp01(mReso01) * 16.0f;
-    mAlpha0 = real2(1) / (real2(1) + mK * gamma);
   }
 
   virtual void SetParams(FilterCircuit circuit,
@@ -75,37 +112,32 @@ struct DiodeFilter : IFilter
       return false;
     if (slope != FilterSlope::Slope24dbOct && slope != FilterSlope::Slope48dbOct)
       return false;
-    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass &&
-        response != FilterResponse::Bandpass)
+    if (response != FilterResponse::Lowpass)
       return false;
     return true;
   }
 
   inline real ProcessCore(real x)
   {
-    const real2 s1 = mLPF[0].getFeedbackOutputL();
-    const real2 s2 = mLPF[1].getFeedbackOutputL();
-    const real2 s3 = mLPF[2].getFeedbackOutputL();
-    const real2 s4 = mLPF[3].getFeedbackOutputL();
+    mLPF4.m_feedbackL = 0;
+    mLPF3.m_feedbackL = mLPF4.getFeedbackOutputL();
+    mLPF2.m_feedbackL = mLPF3.getFeedbackOutputL();
+    mLPF1.m_feedbackL = mLPF2.getFeedbackOutputL();
 
-    const real2 sigma = s1 + s2 + s3 + s4;
-    real2 u = (x - mK * sigma) * mAlpha0;
-    // if you want to add saturation, do it here and before each filter stage.
-    real2 y1 = mLPF[0].ProcessSample((float)u);
-    real2 y2 = mLPF[1].ProcessSample((float)y1);
-    real2 y3 = mLPF[2].ProcessSample((float)y2);
-    real2 y4 = mLPF[3].ProcessSample((float)y3);
+    const real2 sigma = mSg1 * mLPF1.getFeedbackOutputL() + mSg2 * mLPF2.getFeedbackOutputL() +
+                        mSg3 * mLPF3.getFeedbackOutputL() + mSg4 * mLPF4.getFeedbackOutputL();
 
-    switch (mResponse)
-    {
-      default:
-      case FilterResponse::Lowpass:
-        return (real)y4;
-      case FilterResponse::Highpass:
-        return (real)(x - real2(4) * y1 + real2(6) * y2 - real2(4) * y3 + y4);
-      case FilterResponse::Bandpass:
-        return (real)(real2(4) * (y1 - real2(3) * y2 + real2(3) * y3 - y4));
-    }
+    const real2 kModded = math::clamp(mK, real2(0), real2(16));
+
+    x *= real2(1) + real2(0.3f) * kModded;
+    x = (x - kModded * sigma) / (real2(1) + kModded * mGamma);
+
+    x = mLPF1.ProcessSample((float)x);
+    x = mLPF2.ProcessSample((float)x);
+    x = mLPF3.ProcessSample((float)x);
+    x = mLPF4.ProcessSample((float)x);
+
+    return x;
   }
 
   virtual real ProcessSample(real x) override
@@ -143,10 +175,10 @@ struct DiodeFilter : IFilter
 
   virtual void Reset() override
   {
-    for (auto& s : mLPF)
-    {
-      s.Reset();
-    }
+    mLPF1.Reset();
+    mLPF2.Reset();
+    mLPF3.Reset();
+    mLPF4.Reset();
   }
 }; // class DiodeFilter
 }  // namespace M7

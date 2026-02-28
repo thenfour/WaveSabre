@@ -11,7 +11,10 @@ namespace M7
 {
 struct K35Filter : IFilter
 {
-  MoogOnePoleFilter mLPF[2];
+  MoogOnePoleFilter mLPF1;
+  MoogOnePoleFilter mLPF2;
+  MoogOnePoleFilter mHPF1;
+  MoogOnePoleFilter mHPF2;
 
   FilterSlope mSlope = (FilterSlope)-1;
   FilterResponse mResponse = (FilterResponse)-1;
@@ -19,27 +22,66 @@ struct K35Filter : IFilter
   real2 mCutoffHz = 1000.0f;
   real2 mReso01 = 0.0f;
 
-  real2 mK = 0.0f;
-  real2 mAlpha0 = 1.0f;
-  real2 mGamma = 0.0f;
+  real2 mK = 0.01f;
+  real2 mAlpha = 1.0f;
+
+  inline void ConfigureOnePolesForCurrentResponse(real2 cutoff)
+  {
+    mLPF1.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Lowpass, cutoff, 0);
+    mLPF2.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Lowpass, cutoff, 0);
+    mHPF1.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Highpass, cutoff, 0);
+    mHPF2.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Highpass, cutoff, 0);
+
+    auto resetOnePoleScalars = [](MoogOnePoleFilter& f)
+    {
+      f.m_delta = 0;
+      f.m_gamma = 1;
+      f.m_epsilon = 0;
+      f.m_a_0 = 1;
+      f.m_feedbackL = 0;
+    };
+
+    resetOnePoleScalars(mLPF1);
+    resetOnePoleScalars(mLPF2);
+    resetOnePoleScalars(mHPF1);
+    resetOnePoleScalars(mHPF2);
+  }
 
   inline void Recalc()
   {
     const real2 cutoff = math::clamp(mCutoffHz, 20.0f, 20000.0f);
     const real2 g = math::tan(cutoff * math::gPI * Helpers::CurrentSampleRateRecipF);
-    const real2 oneOver1plusg = real2(1) / (g + 1);
-    const real2 G = g * oneOver1plusg;
+    const real2 G = g / (real2(1) + g);
 
-    mGamma = G * G;
+    ConfigureOnePolesForCurrentResponse(cutoff);
 
-    mLPF[1].m_alpha = G;
-    mLPF[1].m_beta = oneOver1plusg;
+    mLPF1.m_alpha = G;
+    mLPF2.m_alpha = G;
+    mHPF1.m_alpha = G;
+    mHPF2.m_alpha = G;
 
-    mLPF[0].m_alpha = G;
-    mLPF[0].m_beta = G * oneOver1plusg;
+    mK = math::clamp(mReso01 * real2(1.95f) + real2(0.01f), real2(0.01f), real2(1.96f));
 
-    mK = math::clamp01(mReso01) * 3.6f;
-    mAlpha0 = real2(1) / (real2(1) + mK * mGamma);
+    const real2 denom = real2(1) - mK * G + mK * G * G;
+    const real2 absDenom = (denom < real2(0)) ? -denom : denom;
+    const real2 safeDenom = (absDenom < real2(1e-9f)) ? real2(1e-9f) : denom;
+    mAlpha = real2(1) / safeDenom;
+
+    mLPF1.m_beta = 0;
+    mLPF2.m_beta = 0;
+    mHPF1.m_beta = 0;
+    mHPF2.m_beta = 0;
+
+    if (mResponse == FilterResponse::Highpass)
+    {
+      mHPF2.m_beta = -G / (real2(1) + g);
+      mLPF1.m_beta = real2(1) / (real2(1) + g);
+    }
+    else
+    {
+      mLPF2.m_beta = (mK - mK * G) / (real2(1) + g);
+      mHPF1.m_beta = -real2(1) / (real2(1) + g);
+    }
   }
 
   virtual void SetParams(FilterCircuit circuit,
@@ -65,30 +107,35 @@ struct K35Filter : IFilter
       return false;
     if (slope != FilterSlope::Slope12dbOct && slope != FilterSlope::Slope24dbOct)
       return false;
-    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass &&
-        response != FilterResponse::Bandpass)
+    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass)
       return false;
     return true;
   }
 
   inline real ProcessCore(real x)
   {
-    real2 sigma = mLPF[0].getFeedbackOutputL() + mLPF[1].getFeedbackOutputL();
-    real2 u = (x - mK * sigma) * mAlpha0;
-
-    real2 s1 = mLPF[0].ProcessSample((float)u);
-    real2 s2 = mLPF[1].ProcessSample((float)s1);
-
-    switch (mResponse)
+    real2 y = 0;
+    if (mResponse == FilterResponse::Highpass)
     {
-      default:
-      case FilterResponse::Lowpass:
-        return (real)s2;
-      case FilterResponse::Highpass:
-        return (real)(x - real2(2) * s1 + s2);
-      case FilterResponse::Bandpass:
-        return (real)(real2(2) * (s1 - s2));
+      real2 y1 = mHPF1.ProcessSample(x);
+      const real2 s35 = mHPF2.getFeedbackOutputL() + mLPF1.getFeedbackOutputL();
+      const real2 u = mAlpha * (y1 + s35);
+
+      y = mK * u;
+      const real2 h2 = mHPF2.ProcessSample((float)y);
+      mLPF1.ProcessSample((float)h2);
     }
+    else
+    {
+      real2 y1 = mLPF1.ProcessSample(x);
+      const real2 s35 = mLPF2.getFeedbackOutputL() + mHPF1.getFeedbackOutputL();
+      const real2 u = mAlpha * (y1 + s35);
+
+      y = mK * mLPF2.ProcessSample((float)u);
+      mHPF1.ProcessSample((float)y);
+    }
+
+    return (real)(y / mK);
   }
 
   virtual real ProcessSample(real x) override
@@ -126,10 +173,10 @@ struct K35Filter : IFilter
 
   virtual void Reset() override
   {
-    for (auto& s : mLPF)
-    {
-      s.Reset();
-    }
+    mLPF1.Reset();
+    mLPF2.Reset();
+    mHPF1.Reset();
+    mHPF2.Reset();
   }
 }; // class K35Filter
 }  // namespace M7
