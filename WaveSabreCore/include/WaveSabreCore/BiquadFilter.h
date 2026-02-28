@@ -310,10 +310,10 @@ public:
     constexpr float peakFactor = 3.0f;
     const float gPeak = 1.0f / (peakFactor * sigmaOut);
 
-    float x1[4] = {0, 0, 0, 0};
-    float x2[4] = {0, 0, 0, 0};
-    float y1[4] = {0, 0, 0, 0};
-    float y2[4] = {0, 0, 0, 0};
+    float x1[kMaxStages] = {0};
+    float x2[kMaxStages] = {0};
+    float y1[kMaxStages] = {0};
+    float y2[kMaxStages] = {0};
     float l1 = 0.0f;
     int tinyTail = 0;
 

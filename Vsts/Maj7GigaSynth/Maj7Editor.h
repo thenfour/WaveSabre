@@ -2369,14 +2369,15 @@ public:
 
       ImGui::PushID(ifilter + 9000);
       {
-        const ImVec2 selectorSize = ImVec2(150.0f, 80.0f);
+        const ImVec2 selectorSize = ImVec2(133.0f, 60.0f);
         bool openPopup = false;
+        const bool popupAllowed = (selectedCircuit != M7::FilterCircuit::Disabled);
 
         {
           ImGuiGroupScope groupScopeSel;
           ImGui::PushID("FilterSelectorMain");
           ImGui::Button("##filtermain", selectorSize);
-          if (ImGui::IsItemClicked())
+          if (popupAllowed && ImGui::IsItemClicked())
           {
             openPopup = true;
           }
@@ -2384,9 +2385,10 @@ public:
           ImRect bb(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
           auto* dl = ImGui::GetWindowDrawList();
           dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
-          DrawShadowText(std::string(labelForCircuit(selectedCircuit)), bb.Min + ImVec2(6, 3));
-          DrawShadowText(std::string("Slope ") + labelForSlope(selectedSlope) + " dB", bb.Min + ImVec2(6, 20));
-          DrawShadowText(std::string(labelForResponse(selectedResponse)), bb.Min + ImVec2(6, 40));
+          DrawShadowText(std::string(labelForCircuit(selectedCircuit)), ImVec2(bb.Min.x + 6, bb.Min.y + 3));
+          DrawShadowText(std::string("Slope ") + labelForSlope(selectedSlope) + " dB",
+                         ImVec2(bb.Min.x + 6, bb.Min.y + 20));
+          DrawShadowText(std::string(labelForResponse(selectedResponse)), ImVec2(bb.Min.x + 6, bb.Min.y + 40));
           ImGui::PopID();
 
           ImGui::SameLine();
@@ -2416,10 +2418,12 @@ public:
 
         if (ImGui::BeginPopup("selectFilterPopup"))
         {
-          for (size_t i = 0; i < std::size(kCircuitOrder); ++i)
+          for (size_t i = 1; i < std::size(kCircuitOrder); ++i)
           {
             if (i > 0)
               ImGui::SameLine();
+
+            ImGui::PushID((int)i);
 
             bool selected = (selectedCircuit == kCircuitOrder[i]);
             if (selected)
@@ -2461,58 +2465,75 @@ public:
             {
               ImGui::PopStyleColor(3);
             }
+
+            ImGui::PopID();
           }
 
           ImGui::Separator();
 
-          ImGui::TextUnformatted("      Slopes (dB/oct)");
-          ImGui::SameLine();
-          for (size_t i = 0; i < std::size(kSlopeOrder); ++i)
+          const int nCols = 1 + (int)std::size(kSlopeOrder);
+          if (ImGui::BeginTable("##filterGrid", nCols, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV))
           {
-            if (i > 0)
-              ImGui::SameLine();
-            ImGui::TextUnformatted(kSlopeLabels[i]);
-          }
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::TextUnformatted("Resp\\Slope");
 
-          for (size_t ir = 0; ir < std::size(kResponseOrder); ++ir)
-          {
-            ImGui::TextUnformatted(kResponseLabels[ir]);
-            ImGui::SameLine();
             for (size_t is = 0; is < std::size(kSlopeOrder); ++is)
             {
-              if (is > 0)
-                ImGui::SameLine();
-
-              const auto slope = kSlopeOrder[is];
-              const auto response = kResponseOrder[ir];
-              const bool supported = isSupported(selectedCircuit, slope, response);
-              const bool selected = supported && (selectedSlope == slope) && (selectedResponse == response);
-
-              if (!supported)
-              {
-                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f);
-                ImGui::Button("-", ImVec2(28, 0));
-                ImGui::PopStyleVar();
-                continue;
-              }
-
-              if (selected)
-              {
-                ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("447744").Value);
-                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorFromHTML("558855").Value);
-                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorFromHTML("558855").Value);
-              }
-
-              if (ImGui::Button("o", ImVec2(28, 0)))
-              {
-                applySelection(selectedCircuit, slope, response);
-              }
-
-              if (selected)
-              {
-                ImGui::PopStyleColor(3);
-              }
+              ImGui::TableSetColumnIndex((int)is + 1);
+              ImGui::TextUnformatted(kSlopeLabels[is]);
             }
+
+            for (size_t ir = 0; ir < std::size(kResponseOrder); ++ir)
+            {
+              ImGui::PushID((int)(ir + 100));
+              ImGui::TableNextRow();
+              ImGui::TableSetColumnIndex(0);
+              ImGui::TextUnformatted(kResponseLabels[ir]);
+
+              for (size_t is = 0; is < std::size(kSlopeOrder); ++is)
+              {
+                ImGui::PushID((int)(is + 1000));
+                ImGui::TableSetColumnIndex((int)is + 1);
+
+                const auto slope = kSlopeOrder[is];
+                const auto response = kResponseOrder[ir];
+                const bool supported = isSupported(selectedCircuit, slope, response);
+                const bool selected = supported && (selectedSlope == slope) && (selectedResponse == response);
+
+                if (!supported)
+                {
+                  ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f);
+                  ImGui::Button("-##unsupported", ImVec2(28, 0));
+                  ImGui::PopStyleVar();
+                  ImGui::PopID();
+                  continue;
+                }
+
+                if (selected)
+                {
+                  ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("447744").Value);
+                  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorFromHTML("558855").Value);
+                  ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorFromHTML("558855").Value);
+                }
+
+                if (ImGui::Button("o##choice", ImVec2(28, 0)))
+                {
+                  applySelection(selectedCircuit, slope, response);
+                }
+
+                if (selected)
+                {
+                  ImGui::PopStyleColor(3);
+                }
+
+                ImGui::PopID();
+              }
+
+              ImGui::PopID();
+            }
+
+            ImGui::EndTable();
           }
 
           ImGui::EndPopup();
