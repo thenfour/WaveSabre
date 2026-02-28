@@ -3,14 +3,11 @@
 
 #include "Device.h"
 #include "Maj7Basic.hpp"
+#include "Maj7SaturationBase.hpp"
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 #include <vector>
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
-//#define MAJ7SAT_ENABLE_RARE_MODELS
-//#define MAJ7SAT_ENABLE_ANALOG
-//#define MAJ7SAT_ENABLE_MIDSIDE
 
 namespace WaveSabreCore
 {
@@ -26,10 +23,7 @@ namespace WaveSabreCore
 		//static constexpr float CalcDivK(float alpha) {
 		//	return 2.0f * alpha / (1.0f - alpha);
 		//}
-		// for the div style shaping, `k+1` also happens to represent the slope
-		static constexpr float gK41 = 1.38983050847f; // CalcDivK(0.41f)
-		static constexpr float gK63 = 3.40540540541f;
-		static constexpr float gK85 = 11.3333333333f;
+		using SatBase = M7::Maj7SaturationBase;
 
 		static constexpr float gAnalogMaxLin = 2;
 
@@ -39,117 +33,9 @@ namespace WaveSabreCore
 			Count__,
 		};
 
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
-		enum class Model : uint8_t {
-			Thru,
-			SineClip,
-			DivClipSoft,
-			TanhClip,
-			DivClipMedium,
-			DivClipHard,
-			HardClip,
-			TanhFold,
-			TanhSinFold,
-			SinFold,
-			LinearFold,
-			Count__,
-		};
+		using Model = SatBase::Model;
 
-
-#define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
-			"Thru", \
-		"SineClip", \
-		"DivClipSoft", \
-			"TanhClip", \
-			"DivClipMedium", \
-			"DivClipHard", \
-			"HardClip", \
-			"TanhFold", \
-			"TanhSinFold", \
-			"SinFold", \
-			"LinearFold", \
-		}
-
-		// helps unify the sound of them. nothing magic here just values that seemed to work.
-		// the method is to just keep a fundamental frequency constant, and let the harmonics add.
-		// so using a fft meter to match a sine wave fundamental level.
-		static constexpr float ModelPregain[(size_t)Model::Count__] = {
-			1, // thru,
-			0.71f, // sinclip
-			0.69f, // div 41
-			0.62f, // tanh clip
-			0.47f, // DivClipMedium,
-			0.21f, // DivClipHard,
-			1, // HardClip,
-			0.41f,// TanhFold,
-			0.56f,// TanhSinFold,
-			0.71f,// SinFold,
-			1, // LinearFold,
-		};
-
-		// to calculate the slope...
-		//z = 0.000001;
-		//alpha = .85;
-		//calcslope =(shape_ws1(z,alpha) - shape_ws1(0,alpha)) / z;
-		//calcslope =(shape_sinclip(z) - shape_sinclip(-z)) / (2*z);
-		//calcslope =(shape_tanh(z) - shape_tanh(0)) / z;
-		//calcslope =(shape_hardclip(z) - shape_hardclip(0)) / z;
-		static constexpr float ModelNaturalSlopes[(size_t)Model::Count__] = {
-			1, // thru,
-			M7::math::gPIHalf, // sinclip
-			gK41 + 1, // div 41
-			2, // tanh clip
-			gK63 + 1, // DivClipMedium,
-			gK85 + 1, // DivClipHard,
-			1, // HardClip,
-			M7::math::gPI,// TanhFold, <-- really?
-			M7::math::gPI * 3.0f / 4.0f,// TanhSinFold,
-			M7::math::gPIHalf,// SinFold,
-			1, // LinearFold,
-		};
-
-
-#else // MAJ7SAT_ENABLE_RARE_MODELS
-		enum class Model : uint8_t {
-			Thru,
-			TanhClip,
-			DivClipHard,
-			Count__,
-		};
-
-
-#define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Sat::Model::Count__] { \
-			"Thru", \
-			"TanhClip", \
-			"DivClipHard", \
-		}
-
-
-		// helps unify the sound of them. nothing magic here just values that seemed to work.
-		// the method is to just keep a fundamental frequency constant, and let the harmonics add.
-		// so using a fft meter to match a sine wave fundamental level.
-		static constexpr float ModelPregain[(size_t)Model::Count__] = {
-			1, // thru,
-			0.62f, // tanh clip
-			0.21f, // DivClipHard,
-		};
-
-		// to calculate the slope...
-		//z = 0.000001;
-		//alpha = .85;
-		//calcslope =(shape_ws1(z,alpha) - shape_ws1(0,alpha)) / z;
-		//calcslope =(shape_sinclip(z) - shape_sinclip(-z)) / (2*z);
-		//calcslope =(shape_tanh(z) - shape_tanh(0)) / z;
-		//calcslope =(shape_hardclip(z) - shape_hardclip(0)) / z;
-		static constexpr float ModelNaturalSlopes[(size_t)Model::Count__] = {
-			1, // thru,
-			2, // tanh clip
-			gK85 + 1, // DivClipHard,
-		};
-
-
-
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
+#define MAJ7SAT_MODEL_CAPTIONS(symbolName) static constexpr auto& symbolName = ::WaveSabreCore::M7::Maj7SaturationBase::ModelCaptions
 
 		enum class ParamIndices
 		{
@@ -167,7 +53,7 @@ namespace WaveSabreCore
 			ACompensationGain,
 			AOutputGain,
 			AThreshold,
-			//AEvenHarmonics,
+			AEvenHarmonics,
 			ADryWet,
 			AEnable,
 
@@ -177,7 +63,7 @@ namespace WaveSabreCore
 			BCompensationGain,
 			BOutputGain,
 			BThreshold,
-			//BEvenHarmonics,
+			BEvenHarmonics,
 			BDryWet,
 			BEnable,
 
@@ -187,7 +73,7 @@ namespace WaveSabreCore
 			CCompensationGain,
 			COutputGain,
 			CThreshold,
-			//CEvenHarmonics,
+			CEvenHarmonics,
 			CDryWet,
 			CEnable,
 
@@ -206,6 +92,7 @@ namespace WaveSabreCore
 		{"0CmpGain"}, /* CompensationGain */ \
 		{"0OutGain"}, /* CompensationGain */ \
 		{"0Thresh"}, /* Threshold */ \
+		{"0Analog"}, /* analog */ \
 		{"0DryWet"}, /* DryWet */ \
 		{"0Enable"}, /* */\
 		{"1Model"}, /* Model */ \
@@ -213,6 +100,7 @@ namespace WaveSabreCore
 		{"1CmpGain"}, /* CompensationGain */ \
 		{"1OutGain"}, /* CompensationGain */ \
 		{"1Thresh"}, /* Threshold */ \
+		{"1Analog"}, /* analog */ \
 		{"1DryWet"}, /* DryWet */ \
 		{"1Enable"}, /* */\
 		{"2Model"}, /* Model */ \
@@ -220,11 +108,12 @@ namespace WaveSabreCore
 		{"2CmpGain"}, /* CompensationGain */ \
 		{"2OutGain"}, /* CompensationGain */ \
 		{"2Thresh"}, /* Threshold */ \
+		{"2Analog"}, /* analog */ \
 		{"2DryWet"}, /* DryWet */ \
 		{"2Enable"}, /* */\
 }
 
-		static_assert((int)ParamIndices::NumParams == 26, "param count probably changed and this needs to be regenerated.");
+		static_assert((int)ParamIndices::NumParams == 29, "param count probably changed and this needs to be regenerated.");
 		static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		  8230, // InpGain = 0.25115966796875
 		  13557, // xAFreq = 0.4137503504753112793
@@ -238,6 +127,7 @@ namespace WaveSabreCore
 		  16422, // 0CmpGain = 0.50115966796875
 		  16422, // 0OutGain = 0.50115966796875
 		  20675, // 0Thresh = 0.630950927734375
+        0,      // 0Analog = 0
 		  32767, // 0DryWet = 0.999969482421875
 		  24, // 0OutSig = 0.00074110669083893299103
 		  24, // 1Model = 0.000732421875
@@ -245,6 +135,7 @@ namespace WaveSabreCore
 		  16422, // 1CmpGain = 0.50115966796875
 		  16422, // 1OutGain = 0.50115966796875
 		  20675, // 1Thresh = 0.630950927734375
+        0,      // 1Analog = 0
 		  32767, // 1DryWet = 0.999969482421875
 		  8, // 1OutSig = 0.0002470355830155313015
 		  24, // 2Model = 0.000732421875
@@ -252,6 +143,7 @@ namespace WaveSabreCore
 		  16422, // 2CmpGain = 0.50115966796875
 		  16422, // 2OutGain = 0.50115966796875
 		  20675, // 2Thresh = 0.630950927734375
+        0,      // 2Analog = 0
 		  32767, // 2DryWet = 0.999969482421875
 		  24, // 2OutSig = 0.00074110669083893299103
 		};
@@ -268,7 +160,7 @@ namespace WaveSabreCore
 				CompensationGain,
 				OutputGain,
 				Threshold,
-				//EvenHarmonics,
+				EvenHarmonics,
 				DryWet,
 				EnableEffect,
 			};
@@ -349,158 +241,51 @@ namespace WaveSabreCore
 				mPanN11 = mParams.GetN11Value(BandParam::Pan, 0);
 #endif//#define MAJ7SAT_ENABLE_MIDSIDE
 
-				static constexpr float dck = 1.5f; // this controls how extreme the compensation is. this feels about right.
-				//but in theory it depends on the input signal; some plugins do auto gain compensation by comparing RMS... i'm not doing that.
-				mAutoDriveCompensation = 1.0f / (1.0f + dck * M7::math::log10(std::max(1.0f, mDriveLin))); // log base e? or 10?
+				// this controls how extreme the compensation is; extracted to shared saturation base.
+				mAutoDriveCompensation = M7::Maj7SaturationBase::CalcAutoDriveCompensation(mDriveLin);
 
-				mCorrSlope = M7::math::lerp(ModelNaturalSlopes[(int)mModel], 1, mThresholdLin);
-			}
-
-			// Patrice Tarrabia and Bram de Jong (supposedly? can't find it anywhere)
-			// but it's very simple and works very well, sounds good, has a shape parameter
-			static float shape_div(float sample, float k)
-			{
-				return (1.0f + k) * sample / (1.0f + k * sample);
-			}
-
-			static float shape_sinclip(float s)
-			{
-				return M7::math::sin(M7::math::gPIHalf * M7::math::clamp01(s));
-			}
-
-			static float shape_tanhclip(float in)
-			{
-				return M7::math::tanh(in * 2);
-			}
-
-			// hard-clipping at 1 doesn't make sense because it renders threshold pointless.
-			// hard-clipping at 0.5 does a good job of keeping loudness the same and also giving meaning to threshold.
-			static float shape_hardclip(float in)
-			{
-				return std::min(in, 0.5f);
-			}
-
-			static float shape_sinfold(float in)
-			{
-				return M7::math::sin(M7::math::gPIHalf * in);
-			}
-
-			static float shape_tanhfold(float in)
-			{
-				return M7::math::tanh(2 * M7::math::sin(in * M7::math::gPIHalf));
-			}
-
-			// this is a sharp "naive" linear folding shape. i find it funny, because
-			// 1. even though it's just "linear", it means having to use a triangle wave to fold it back and forth, which is more code than sine()
-			// 2. even though it's more directly related to the incoming wave, it sounds very noisy and harsh compared to other folding shapes.
-			static float shape_trifold(float s)
-			{
-				s = .25f * s - .25f;
-				float b = M7::math::floor(s);
-				s = std::abs(2 * (s - b - .5f));
-				s = 2 * s - 1;
-				return s;
-			}
-
-			static float shape_tanhSinFold(float in)
-			{
-				return M7::math::tanh(1.5f * M7::math::sin(in * M7::math::gPIHalf));
-			}
-
-			// performs the saturation, used for VST GUI as well.
-			float transfer(float s) const {
-				// calculating a diff signal has some quirks. if you just do wet-dry, you'll find that it's not so helpful,
-				// mostly because we do a lot of gain application.
-				// The dry signal is just before this function is called. so keep track of all these gain applications so we can undo it for a better diff.
-
-				float g = 1;
-				if (s < 0) {
-					g = -1;
-					s = -s;// work only in positive pole for shaping.
-				}
-
-				// at thresh=1, no shaping occurs and slope is 1 (linear).
-				// at thresh=0, the whole curve is shaped so gets the natural slope of the model = pi/2.
-				s *= mCorrSlope;
-
-				if (s > mThresholdLin) {
-					// we will be shaping the area above thresh, so map (thresh,1) to (0,1)
-					s = M7::math::map(s, mThresholdLin, 1, 0, 1);
-					//s -= mThresholdLin;
-					//s /= (1.0f - mThresholdLin);
-
-					s /= ModelNaturalSlopes[(int)mModel];
-
-					// perform shaping
-					//float s_preshape = s;
-					switch (mModel) {
-					default:
-					case Model::Thru:
-						break;// nop
-					case Model::TanhClip:
-						s = shape_tanhclip(s);
-						break;
-					case Model::DivClipHard:
-						s = shape_div(s, gK85);
-						break;
-#ifdef MAJ7SAT_ENABLE_RARE_MODELS
-					case Model::SineClip:
-						s = shape_sinclip(s);
-						break;
-					case Model::DivClipSoft:
-						s = shape_div(s, gK41);
-						break;
-					case Model::HardClip:
-						s = shape_hardclip(s);
-						break;
-					case Model::TanhFold:
-						s = shape_tanhfold(s);
-						break;
-					case Model::TanhSinFold:
-						s = shape_tanhSinFold(s);
-						break;
-					case Model::SinFold:
-						s = shape_sinfold(s);
-						break;
-					case Model::LinearFold:
-						s = shape_trifold(s);
-						break;
-					case Model::DivClipMedium:
-						s = shape_div(s, gK63);
-						break;
-#endif // MAJ7SAT_ENABLE_RARE_MODELS
-					}
-					//satAmount = s - s_preshape;
-
-					// now map back (0,1) to (thresh,1).
-					s = M7::math::lerp(mThresholdLin, 1, s);
-					//s *= (1.0f - mThresholdLin);
-					//s += mThresholdLin;
-				}
-				//else {
-				//	diffSignal = 0;
-				//}
-
-				s *= g; // re add the sign bit.
-				return s;
+				mCorrSlope = M7::math::lerp(SatBase::ModelNaturalSlopes[(int)mModel], 1, mThresholdLin);
 			}
 
 			float distort(float s, size_t chanIndex)
 			{
-				s = transfer(s);
+				s = SatBase::DistortSample(
+					s,
+					chanIndex,
+					mModel,
+					mThresholdLin,
+					mCorrSlope,
+					mAutoDriveCompensation
 #ifdef MAJ7SAT_ENABLE_ANALOG
-				float analog = s * s - .5f;
-				analog = mDC[chanIndex].ProcessSample(analog);
-				analog = M7::math::clamp01(analog);// must clip, otherwise values can be huge if s happened to be > 1
-				analog *= mEvenHarmonicsGainLin;
-				s += analog;
-#endif // MAJ7SAT_ENABLE_ANALOG
-
-				s *= mAutoDriveCompensation;
+					,
+					mDC,
+					mEvenHarmonicsGainLin
+#endif
+				);
 				s *= mCompensationGain;
-
 				return s;
 			}
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			// transfer function for VST display purposes.
+			float transfer(float s)
+			{
+				return SatBase::DistortSample(
+					s,
+					0, // chan index doesn't matter for transfer function since it's just for display.
+					mModel,
+					mThresholdLin,
+					mCorrSlope,
+					mAutoDriveCompensation
+#ifdef MAJ7SAT_ENABLE_ANALOG
+					,
+					nullptr,
+					0
+#endif
+				);
+			}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 
 			M7::FloatPair ProcessSample(float s0, float s1, float masterDryWet
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -543,7 +328,7 @@ namespace WaveSabreCore
 					for (int i = 0; i < 2; ++i) {
 						float& s = *(sa + i);
 
-						s *= ModelPregain[(int)mModel];
+						//s *= SatBase::ModelPregain[(int)mModel];
 						s *= mDriveLin;
 						s = distort(s, i);
 
