@@ -6,8 +6,9 @@
 #include <fstream>
 #include <iostream>
 
-#include <mmreg.h>
+#include <mmreg.h> // must be before MSAcm.h
 #include <MSAcm.h>
+
 
 #pragma comment(lib, "shlwapi.lib")
 
@@ -1241,22 +1242,22 @@ public:
                     enabledParamID + (int)M7::OscParamIndexOffsets::PhaseOffset,
                     nullptr);
 
-        M7::QuickParam waveformParam{
+      M7::QuickParam waveformParam{
           GetEffectX()->getParameter((VstInt32)(enabledParamID + (int)M7::OscParamIndexOffsets::Waveform))};
-        auto waveformUiStyle = GetWaveformUiStyle(waveformParam.GetEnumValue<M7::OscillatorWaveform>());
+      auto waveformUiStyle = GetWaveformUiStyle(waveformParam.GetEnumValue<M7::OscillatorWaveform>());
 
       ImGui::SameLine();
       Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeA,
-                  waveformUiStyle.shapeALabel,
-                  waveformUiStyle.defaultWaveshapeA,
-                  waveformUiStyle.defaultWaveshapeA,
+                            waveformUiStyle.shapeALabel,
+                            waveformUiStyle.defaultWaveshapeA,
+                            waveformUiStyle.defaultWaveshapeA,
                             0,
                             lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeA));
       ImGui::SameLine();
       Maj7ImGuiParamFloat01(enabledParamID + (int)M7::OscParamIndexOffsets::WaveshapeB,
-                  waveformUiStyle.shapeBLabel,
-                  waveformUiStyle.defaultWaveshapeB,
-                  waveformUiStyle.defaultWaveshapeB,
+                            waveformUiStyle.shapeBLabel,
+                            waveformUiStyle.defaultWaveshapeB,
+                            waveformUiStyle.defaultWaveshapeB,
                             0,
                             lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeB));
 
@@ -1356,23 +1357,23 @@ public:
                   &phaseCursor);
 
     M7::QuickParam waveformParam{
-      GetEffectX()->getParameter((VstInt32)(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform))};
+        GetEffectX()->getParameter((VstInt32)(waveformParamID + (int)M7::LFOParamIndexOffsets::Waveform))};
     auto waveformUiStyle = GetWaveformUiStyle(waveformParam.GetEnumValue<M7::OscillatorWaveform>());
 
     ImGui::SameLine();
     Maj7ImGuiParamFloat01(waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeA,
-                waveformUiStyle.shapeALabel,
-                waveformUiStyle.defaultWaveshapeA,
-                waveformUiStyle.defaultWaveshapeA,
-                0,
-                lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeA));
+                          waveformUiStyle.shapeALabel,
+                          waveformUiStyle.defaultWaveshapeA,
+                          waveformUiStyle.defaultWaveshapeA,
+                          0,
+                          lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeA));
     ImGui::SameLine();
     Maj7ImGuiParamFloat01(waveformParamID + (int)M7::LFOParamIndexOffsets::WaveshapeB,
-                waveformUiStyle.shapeBLabel,
-                waveformUiStyle.defaultWaveshapeB,
-                waveformUiStyle.defaultWaveshapeB,
-                0,
-                lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeB));
+                          waveformUiStyle.shapeBLabel,
+                          waveformUiStyle.defaultWaveshapeB,
+                          waveformUiStyle.defaultWaveshapeB,
+                          0,
+                          lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeB));
     // TODO: in the future,
     //ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
     ImGui::SameLine();
@@ -2305,7 +2306,7 @@ public:
   {
     OSCILLATOR_WAVEFORM_UI_STYLES(gWaveformCaptions);
     std::unique_ptr<M7::OscillatorCore> pWaveform;
-    
+
     float innerHeight = bb.GetHeight() - 4;
 
     ImVec2 outerTL = bb.Min;  // ImGui::GetCursorPos();
@@ -2358,10 +2359,7 @@ public:
       if (sample > nmaxY)
         nmaxY = sample;
 
-      drawList->AddLine({outerTL.x + iSample, centerY},
-                        {outerTL.x + iSample, sampleToY(sample)},
-                        waveformColor,
-                        1);
+      drawList->AddLine({outerTL.x + iSample, centerY}, {outerTL.x + iSample, sampleToY(sample)}, waveformColor, 1);
     }
 
     if (cursorPhase != nullptr)
@@ -2438,12 +2436,8 @@ public:
     if (isSelected)
     {
       auto waveformUiStyle = GetWaveformUiStyle(waveform);
-      ImGui::GetWindowDrawList()->AddRect(bb.Min,
-                                          bb.Max,
-                  ColorFromHTML(waveformUiStyle.foregroundColorHtml),
-                                          3.0f,
-                                          0,
-                                          2.0f);
+      ImGui::GetWindowDrawList()->AddRect(
+          bb.Min, bb.Max, ColorFromHTML(waveformUiStyle.foregroundColorHtml), 3.0f, 0, 2.0f);
     }
 
     bool pressed = ImGui::ButtonBehavior(bb, id, &hovered, &held, flags);
@@ -2470,12 +2464,47 @@ public:
     M7::QuickParam phaseOffsetParam{GetEffectX()->getParameter((VstInt32)phaseOffsetParamID)};
     float phaseOffsetN11 = phaseOffsetParam.GetN11Value();
 
-    if (WaveformButton(
-            waveformParamID, selectedWaveform, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor, true))
+    auto setWaveformByIndex = [&](int index)
     {
-      ImGui::OpenPopup("selectWaveformPopup");
+      const int waveformCount = (int)M7::OscillatorWaveform::Count;
+      if (waveformCount <= 0)
+        return;
+      while (index < 0)
+        index += waveformCount;
+      while (index >= waveformCount)
+        index -= waveformCount;
+      M7::QuickParam t{};
+      GetEffectX()->setParameter(waveformParamID, t.SetEnumValue((M7::OscillatorWaveform)index));
+      selectedWaveform = (M7::OscillatorWaveform)index;
+    };
+
+    {
+      ImGuiGroupScope groupScopeWF;
+
+      if (WaveformButton(
+              waveformParamID, selectedWaveform, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor, true))
+      {
+        ImGui::OpenPopup("selectWaveformPopup");
+      }
+      ImGui::SameLine();
+
+      {
+        ImGuiGroupScope groupScopeSmallButtons;
+        ImGui::PushID(waveformParamID);
+        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3, 0));
+        if (ImGui::SmallButton("+"))
+        {
+          setWaveformByIndex((int)selectedWaveform + 1);
+        }
+        if (ImGui::SmallButton("-"))
+        {
+          setWaveformByIndex((int)selectedWaveform - 1);
+        }
+        ImGui::PopStyleVar();
+        ImGui::PopID();
+      }
     }
-    ImGui::SameLine();
+
     if (ImGui::BeginPopup("selectWaveformPopup"))
     {
       for (int n = 0; n < (int)M7::OscillatorWaveform::Count; n++)
@@ -2488,13 +2517,7 @@ public:
         }
 
         ImGui::PushID(n);
-        if (WaveformButton(n,
-                           wf,
-                           waveshapeA01,
-                           waveshapeB01,
-                           phaseOffsetN11,
-                           phaseCursor,
-                           wf == selectedWaveform))
+        if (WaveformButton(n, wf, waveshapeA01, waveshapeB01, phaseOffsetN11, phaseCursor, wf == selectedWaveform))
         {
           //float t;
           //M7::EnumParam<M7::OscillatorWaveform> tp(t, M7::OscillatorWaveform::Count);

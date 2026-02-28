@@ -758,6 +758,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
     }
 
     y = mFilter.ProcessSample(y);
+    y = math::clampN11(y); // filters make this unpredictable so clamp to conform to oscillator's expected output
 
     return CoreSample{
         .amplitude = y,

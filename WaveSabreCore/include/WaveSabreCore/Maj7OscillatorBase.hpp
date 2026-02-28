@@ -167,7 +167,7 @@ struct OscillatorWaveformUiStyle
   {true,  "Noise Grain Evolve",      "Grain",  "Mutate",     0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
   {false, "Noise_SaH_LP4",           "LP Cut", "Jitter",     0.80f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
   {false, "Noise_SaH_HP4",           "HP Cut", "Jitter",     0.20f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
-  {true,  "Noise White Prob+Duty",   "Prob",   "Duty",       0.35f,   0.50f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {true,  "Noise White Prob+Duty",   "Prob",   "Duty",       0.35f,   0.25f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
   {false, "Noise White Prob+LP",     "Prob",   "LP Q",       0.35f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
   {false, "Noise White Prob+BP",     "Prob",   "BP Q",       0.35f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
   {false, "Noise White Duty+LP",     "Duty",   "LP Q",       0.50f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
