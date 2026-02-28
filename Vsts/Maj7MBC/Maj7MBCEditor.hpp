@@ -238,7 +238,11 @@ struct Maj7MBCEditor : public VstEditor
           ImGui::SameLine(0, 120);
           Maj7ImGuiParamVolume(param(BandParam::InputGain), "Input", M7::gVolumeCfg24db, 0, {});
           //ImGui::SameLine(); Maj7ImGuiParamVolume(param(BandParam::Drive), "Drive", M7::gVolumeCfg36db, 0, {});
-          ImGui::SameLine();
+
+
+          // SATURATION STAGE
+          //ImGui::SameLine();
+
           Maj7ImGuiParamScaledFloat(param(BandParam::Drive), "Drive(dB)", 0, 30, 0, 0, 0, {});
           // show tooltip for drive.
           if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
@@ -256,6 +260,9 @@ struct Maj7MBCEditor : public VstEditor
                                   M7::Maj7SaturationBase::Model::TanhClip,
                                   satModelNames,
                                   110);
+
+          ImGui::SameLine();
+          Maj7ImGuiParamVolume(param(BandParam::SaturationThreshold), "SatThr", M7::gUnityVolumeCfg, 0, {});
 
           ImGui::SameLine();
           Maj7ImGuiParamScaledFloat(param(BandParam::SaturationEvenHarmonics), "Analog", 0, 2, 0, 0, 0, {});

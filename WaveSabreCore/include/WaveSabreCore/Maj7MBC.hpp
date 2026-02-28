@@ -63,6 +63,7 @@ struct Maj7MBC : public Device
     ALowPassQ,           // default 0.2
     ADrive,
     ASaturationModel,
+    ASaturationThreshold,
     ASaturationEvenHarmonics,
     AMidSideMix,
     APan,
@@ -84,6 +85,7 @@ struct Maj7MBC : public Device
     BLowPassQ,           // default 0.2
     BDrive,
     BSaturationModel,
+    BSaturationThreshold,
     BEvenHarmonics,
     BMidSideMix,
     BPan,
@@ -105,6 +107,7 @@ struct Maj7MBC : public Device
     CLowPassQ,           // default 0.2
     CDrive,
     CSaturationModel,
+    CSaturationThreshold,
     CEvenHarmonics,
     CMidSideMix,
     CPan,
@@ -141,6 +144,7 @@ struct Maj7MBC : public Device
     {"ALPQ"},\
     {"ADrive"}, \
     {"ASatMod"}, \
+    {"ASatThr"}, \
     {"AAnalog"},\
     {"AWidth"},\
     {"APan"},\
@@ -161,6 +165,7 @@ struct Maj7MBC : public Device
     {"BLPQ"},\
     {"BDrive"},\
     {"BSatMod"}, \
+    {"BSatThr"}, \
     {"BAnalog"},\
     {"BWidth"}, \
     {"BPan"}, \
@@ -181,6 +186,7 @@ struct Maj7MBC : public Device
     {"CLPQ"},\
     {"CDrive"},\
     {"CSatMod"}, \
+    {"CSatThr"}, \
     {"CAnalog"},\
     {"CWidth"}, \
     {"CPan"}, \
@@ -188,7 +194,7 @@ struct Maj7MBC : public Device
   }
   // clang-format on
 
-  static_assert((int)ParamIndices::NumParams == 69, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 72, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       8230,   // InGain = 0.25115966796875
       0,      // channel mode
@@ -215,6 +221,7 @@ struct Maj7MBC : public Device
       14563,  // ALPQ = 0.444427490234375
       0,      // ADrive = 0.125885009765625
       0,
+      32767,
       0,
       32767,  // ADryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
@@ -235,6 +242,7 @@ struct Maj7MBC : public Device
       14563,  // BLPQ = 0.444427490234375
       0,      // BDrive = 0.125885009765625
       0,
+      32767,
       0,
       32767,  // BDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
@@ -255,6 +263,7 @@ struct Maj7MBC : public Device
       14563,  // CLPQ = 0.444427490234375
       0,      // CDrive = 0.125885009765625
       0,
+      32767,
       0,
       32767,  // CDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
@@ -283,6 +292,7 @@ struct Maj7MBC : public Device
       LowPassQ,
       Drive,
       SaturationModel,
+      SaturationThreshold,
       SaturationEvenHarmonics,
       DryWet,
       MidSideMix,
@@ -341,14 +351,17 @@ struct Maj7MBC : public Device
       mEnable = mParams.GetBoolValue(BandParam::Enable);
       mDriveLin = M7::math::DecibelsToLinear(mParams.GetScaledRealValue(BandParam::Drive, 0, 30, 0));
       mSaturationModel = mParams.GetEnumValue<M7::Maj7SaturationBase::Model>(BandParam::SaturationModel);
+      mSaturationThresholdLin = mParams.GetLinearVolume(BandParam::SaturationThreshold, M7::gUnityVolumeCfg);
+      mSaturationThresholdLin = M7::math::clamp(mSaturationThresholdLin, 0.0f, 0.99f);
       mSaturationEvenHarmonics = mParams.GetScaledRealValue(BandParam::SaturationEvenHarmonics, 0, 2, 0);
       mInputGainLin = mParams.GetLinearVolume(BandParam::InputGain, M7::gVolumeCfg24db);
       mOutputGainLin = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg24db);
       mDryWetMix = mParams.Get01Value(BandParam::DryWet);
 
       mDriveGainCompensationFact = M7::Maj7SaturationBase::CalcAutoDriveCompensation(mDriveLin);
-      mSaturationThresholdLin = 0.0f;
-      mSaturationCorrSlope = M7::Maj7SaturationBase::ModelNaturalSlopes[(int)mSaturationModel];
+      mSaturationCorrSlope = M7::math::lerp(M7::Maj7SaturationBase::ModelNaturalSlopes[(int)mSaturationModel],
+                    1.0f,
+                    mSaturationThresholdLin);
 
       // cache imaging params
       mMidSideMixN11 = mParams.GetN11Value(BandParam::MidSideMix, 0);

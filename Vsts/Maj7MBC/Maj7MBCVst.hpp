@@ -161,6 +161,7 @@ public:
 		  p.SetRawVal(Param::DryWet, defaults.GetRawVal(Param::DryWet));
 		  p.SetRawVal(Param::Drive, defaults.GetRawVal(Param::Drive));
 			p.SetRawVal(Param::SaturationModel, defaults.GetRawVal(Param::SaturationModel));
+			p.SetRawVal(Param::SaturationThreshold, defaults.GetRawVal(Param::SaturationThreshold));
 			p.SetRawVal(Param::SaturationEvenHarmonics, defaults.GetRawVal(Param::SaturationEvenHarmonics));
 		  p.SetRawVal(Param::MidSideMix, defaults.GetRawVal(Param::MidSideMix));
 		  p.SetRawVal(Param::Pan, defaults.GetRawVal(Param::Pan));
