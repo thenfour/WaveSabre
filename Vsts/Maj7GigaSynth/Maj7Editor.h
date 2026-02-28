@@ -32,6 +32,23 @@ class Maj7Editor : public VstEditor
   bool mShowingGmDlsList = false;
   char mGmDlsFilter[100] = {0};
 
+  struct WaveformPreviewCacheEntry
+  {
+    M7::OscillatorWaveform waveform = M7::OscillatorWaveform::DefaultForAudio;
+    int width = 0;
+    int height = 0;
+    float waveshapeA01 = 0.0f;
+    float waveshapeB01 = 0.0f;
+    float phaseOffsetN11 = 0.0f;
+    std::vector<float> samples;
+    float minY = 0.0f;
+    float maxY = 0.0f;
+  };
+
+  static constexpr size_t gWaveformPreviewCacheMaxEntries = 64;
+  std::vector<WaveformPreviewCacheEntry> mWaveformPreviewCache;
+  size_t mWaveformPreviewCacheEvictIndex = 0;
+
 public:
   struct RenderContext
   {
@@ -2297,6 +2314,74 @@ public:
     return gWaveformUiStyles[idx];
   }
 
+  static bool WaveformPreviewCacheMatches(const WaveformPreviewCacheEntry& entry,
+                                          M7::OscillatorWaveform waveform,
+                                          int width,
+                                          int height,
+                                          float waveshapeA01,
+                                          float waveshapeB01,
+                                          float phaseOffsetN11)
+  {
+    return entry.waveform == waveform && entry.width == width && entry.height == height &&
+           entry.waveshapeA01 == waveshapeA01 && entry.waveshapeB01 == waveshapeB01 &&
+           entry.phaseOffsetN11 == phaseOffsetN11;
+  }
+
+  WaveformPreviewCacheEntry& GetOrBuildWaveformPreviewCache(M7::OscillatorWaveform waveform,
+                                                            int width,
+                                                            int height,
+                                                            float waveshapeA01,
+                                                            float waveshapeB01,
+                                                            float phaseOffsetN11)
+  {
+    for (auto& entry : mWaveformPreviewCache)
+    {
+      if (WaveformPreviewCacheMatches(entry, waveform, width, height, waveshapeA01, waveshapeB01, phaseOffsetN11))
+      {
+        return entry;
+      }
+    }
+
+    WaveformPreviewCacheEntry newEntry;
+    newEntry.waveform = waveform;
+    newEntry.width = width;
+    newEntry.height = height;
+    newEntry.waveshapeA01 = waveshapeA01;
+    newEntry.waveshapeB01 = waveshapeB01;
+    newEntry.phaseOffsetN11 = phaseOffsetN11;
+    newEntry.samples.resize((size_t)width);
+    newEntry.minY = 50.0f;
+    newEntry.maxY = -50.0f;
+
+    std::unique_ptr<M7::OscillatorCore> waveformCore;
+    waveformCore.reset(M7::InstantiateWaveformCore(waveform, WaveSabreCore::M7::OscillatorIntention::LFO));
+
+    const float freqHz = Helpers::CurrentSampleRateF / (float)width;
+    waveformCore->SetKRateParams(waveshapeA01, waveshapeB01, freqHz, false, 1);
+
+    for (int sampleIndex = 0; sampleIndex < width; ++sampleIndex)
+    {
+      const auto result = waveformCore->renderSampleAndAdvance(phaseOffsetN11);
+      const float sample = result.amplitude;
+      newEntry.samples[(size_t)sampleIndex] = sample;
+      if (sample < newEntry.minY)
+        newEntry.minY = sample;
+      if (sample > newEntry.maxY)
+        newEntry.maxY = sample;
+    }
+
+    if (mWaveformPreviewCache.size() < gWaveformPreviewCacheMaxEntries)
+    {
+      mWaveformPreviewCache.push_back(std::move(newEntry));
+      return mWaveformPreviewCache.back();
+    }
+
+    auto& evictTarget = mWaveformPreviewCache[mWaveformPreviewCacheEvictIndex];
+    evictTarget = std::move(newEntry);
+    mWaveformPreviewCacheEvictIndex = (mWaveformPreviewCacheEvictIndex + 1) % gWaveformPreviewCacheMaxEntries;
+    return evictTarget;
+  }
+
   void WaveformGraphic(M7::OscillatorWaveform waveform,
                        float waveshapeA01,
                        float waveshapeB01,
@@ -2305,24 +2390,16 @@ public:
                        float* cursorPhase)
   {
     OSCILLATOR_WAVEFORM_UI_STYLES(gWaveformCaptions);
-    std::unique_ptr<M7::OscillatorCore> pWaveform;
 
     float innerHeight = bb.GetHeight() - 4;
 
     ImVec2 outerTL = bb.Min;  // ImGui::GetCursorPos();
     ImVec2 outerBR = {outerTL.x + bb.GetWidth(), outerTL.y + bb.GetHeight()};
 
-    // calc frequency to put 1 cycle in width.
-    // width is bb.GetWidth() pixels.
-    // samplerate is Helpers::CurrentSampleRateF
-    float freqHz = Helpers::CurrentSampleRateF / bb.GetWidth();
+    const int sampleCount = std::max(1, (int)bb.GetWidth());
     waveform = (M7::OscillatorWaveform)M7::math::ClampI((int)waveform, 0, (int)M7::OscillatorWaveform::Count - 1);
-
-    pWaveform.reset(M7::InstantiateWaveformCore(waveform, WaveSabreCore::M7::OscillatorIntention::LFO));
-
-    // freq & samplerate should be set such that we have `width` samples per 1 cycle.
-    // samples per cycle = srate / freq
-    pWaveform->SetKRateParams(waveshapeA01, waveshapeB01, freqHz, false, 1);
+    auto& cachedPreview =
+      GetOrBuildWaveformPreviewCache(waveform, sampleCount, (int)bb.GetHeight(), waveshapeA01, waveshapeB01, phaseOffsetN11);
 
     auto drawList = ImGui::GetWindowDrawList();
 
@@ -2347,17 +2424,9 @@ public:
                       {outerBR.x, centerY},
                       ImGui::GetColorU32(ImGuiCol_PlotLines),
                       2.0f);  // center line
-    float nminY = 50.f;
-    float nmaxY = -50.f;
-    for (size_t iSample = 0; iSample < bb.GetWidth(); ++iSample)
+    for (int iSample = 0; iSample < sampleCount; ++iSample)
     {
-      auto result = pWaveform->renderSampleAndAdvance(phaseOffsetN11);
-      auto sample = result.amplitude;
-
-      if (sample < nminY)
-        nminY = sample;
-      if (sample > nmaxY)
-        nmaxY = sample;
+      const float sample = cachedPreview.samples[(size_t)iSample];
 
       drawList->AddLine({outerTL.x + iSample, centerY}, {outerTL.x + iSample, sampleToY(sample)}, waveformColor, 1);
     }
@@ -2374,7 +2443,7 @@ public:
     drawList->PopClipRect();
 
     {
-      //auto str1 = std::format("nrg:[{:.2f},{:.2f}]", nminY, nmaxY);
+      //auto str1 = std::format("nrg:[{:.2f},{:.2f}]", cachedPreview.minY, cachedPreview.maxY);
       //auto str2 = std::format("dc :{:.2f}", pWaveform->mDCOffset);
       //auto str3 = std::format("amp:{:.2f}", pWaveform->mScale);
       //auto str4 = std::format("org:[{:.2f},{:.2f}]", ominY, omaxY);
