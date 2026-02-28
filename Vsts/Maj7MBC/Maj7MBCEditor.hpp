@@ -248,6 +248,24 @@ struct Maj7MBCEditor : public VstEditor
             ImGui::EndTooltip();
           }
 
+          static constexpr auto& satModelNames = M7::Maj7SaturationBase::ModelCaptions;
+          ImGui::SameLine();
+          Maj7ImGuiParamEnumCombo(param(BandParam::SaturationModel),
+                                  "SatModel",
+                                  (int)M7::Maj7SaturationBase::Model::Count__,
+                                  M7::Maj7SaturationBase::Model::TanhClip,
+                                  satModelNames,
+                                  110);
+
+          ImGui::SameLine();
+          Maj7ImGuiParamScaledFloat(param(BandParam::SaturationEvenHarmonics), "Analog", 0, 2, 0, 0, 0, {});
+          if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+          {
+            ImGui::BeginTooltip();
+            ImGui::TextUnformatted("Adds even-harmonic coloration in the saturation stage");
+            ImGui::EndTooltip();
+          }
+
           ImGui::SameLine();
           Maj7ImGuiParamVolume(param(BandParam::OutputGain), "Makeup", M7::gVolumeCfg24db, 0, {});
           ImGui::SameLine();

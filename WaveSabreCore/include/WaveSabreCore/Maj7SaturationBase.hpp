@@ -156,6 +156,48 @@ struct Maj7SaturationBase
 		return 1.0f / (1.0f + dck * M7::math::log10(std::max(1.0f, driveLin)));
 	}
 
+	// Returns soft-clipped sample with optional attenuation metric used by some visualizers.
+	// Attenuation is only reduced when the input exceeds the effective clip region.
+	static float SoftClipSine(float s, float thresh, float outputGain, float* attenuationOut = nullptr)
+	{
+		thresh = M7::math::clamp(thresh, 0.01f, 0.99f);
+
+		float sign = 1.0f;
+		if (s < 0)
+		{
+			sign = -1.0f;
+			s = -s;
+		}
+
+		float atten = 1.0f;
+		static constexpr float naturalSlope = M7::math::gPIHalf;
+		const float corrSlope = M7::math::lerp(naturalSlope, 1.0f, thresh);
+
+		s *= corrSlope;
+		if (s > thresh)
+		{
+			s = M7::math::lerp_rev(thresh, 1.0f, s);
+			s /= naturalSlope;
+			if (s > 1.0f)
+			{
+				atten = std::min(0.95f, (1.0f / s));
+				s = 1.0f;
+			}
+			else
+			{
+				s = ShapeSinClip(s);
+			}
+			s = M7::math::lerp(thresh, 1.0f, s);
+		}
+
+		if (attenuationOut)
+		{
+			*attenuationOut = atten;
+		}
+
+		return s * sign * outputGain;
+	}
+
 	static float Transfer(float s, Model model, float thresholdLin, float corrSlope)
 	{
 		float g = 1;

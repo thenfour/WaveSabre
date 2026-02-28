@@ -3,6 +3,7 @@
 #include "Device.h"
 #include "Maj7Basic.hpp"
 #include "Maj7Comp.hpp"
+#include "Maj7SaturationBase.hpp"
 #include <WaveSabreCore/BandSplitter.hpp>
 #include <WaveSabreCore/FFTAnalysis.hpp>
 
@@ -61,6 +62,8 @@ struct Maj7MBC : public Device
     ALowPassFrequency,   // biquad freq
     ALowPassQ,           // default 0.2
     ADrive,
+    ASaturationModel,
+    ASaturationEvenHarmonics,
     AMidSideMix,
     APan,
     ADryWet,
@@ -80,6 +83,8 @@ struct Maj7MBC : public Device
     BLowPassFrequency,   // biquad freq
     BLowPassQ,           // default 0.2
     BDrive,
+    BSaturationModel,
+    BEvenHarmonics,
     BMidSideMix,
     BPan,
     BDryWet,
@@ -99,6 +104,8 @@ struct Maj7MBC : public Device
     CLowPassFrequency,   // biquad freq
     CLowPassQ,           // default 0.2
     CDrive,
+    CSaturationModel,
+    CEvenHarmonics,
     CMidSideMix,
     CPan,
     CDryWet,
@@ -133,6 +140,8 @@ struct Maj7MBC : public Device
     {"ALPF"},\
     {"ALPQ"},\
     {"ADrive"}, \
+    {"ASatMod"}, \
+    {"AAnalog"},\
     {"AWidth"},\
     {"APan"},\
     {"ADryWet"},\
@@ -151,6 +160,8 @@ struct Maj7MBC : public Device
     {"BLPF"},\
     {"BLPQ"},\
     {"BDrive"},\
+    {"BSatMod"}, \
+    {"BAnalog"},\
     {"BWidth"}, \
     {"BPan"}, \
     {"BDryWet"},\
@@ -169,13 +180,15 @@ struct Maj7MBC : public Device
     {"CLPF"},\
     {"CLPQ"},\
     {"CDrive"},\
+    {"CSatMod"}, \
+    {"CAnalog"},\
     {"CWidth"}, \
     {"CPan"}, \
     {"CDryWet"}, \
   }
   // clang-format on
 
-  static_assert((int)ParamIndices::NumParams == 63, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 69, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       8230,   // InGain = 0.25115966796875
       0,      // channel mode
@@ -201,6 +214,8 @@ struct Maj7MBC : public Device
       32767,  // ALPF = 0
       14563,  // ALPQ = 0.444427490234375
       0,      // ADrive = 0.125885009765625
+      0,
+      0,
       32767,  // ADryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
@@ -219,6 +234,8 @@ struct Maj7MBC : public Device
       32767,  // BLPF = 0
       14563,  // BLPQ = 0.444427490234375
       0,      // BDrive = 0.125885009765625
+      0,
+      0,
       32767,  // BDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
@@ -237,6 +254,8 @@ struct Maj7MBC : public Device
       32767,  // CLPF = 0
       14563,  // CLPQ = 0.444427490234375
       0,      // CDrive = 0.125885009765625
+      0,
+      0,
       32767,  // CDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
@@ -263,6 +282,8 @@ struct Maj7MBC : public Device
       LowPassFrequency,
       LowPassQ,
       Drive,
+      SaturationModel,
+      SaturationEvenHarmonics,
       DryWet,
       MidSideMix,
       Pan,
@@ -277,9 +298,16 @@ struct Maj7MBC : public Device
     bool mEnable;
     float mDriveLin;
     float mDriveGainCompensationFact;
+    M7::Maj7SaturationBase::Model mSaturationModel = M7::Maj7SaturationBase::Model::Thru;
+    float mSaturationEvenHarmonics = 0.0f;
+    float mSaturationCorrSlope = 1.0f;
+    float mSaturationThresholdLin = 0.0f;
     float mInputGainLin;
     float mOutputGainLin;
     float mDryWetMix;
+  #ifdef MAJ7SAT_ENABLE_ANALOG
+    M7::DCFilter mSaturationDC[2];
+  #endif
     // cached imaging params
     float mMidSideMixN11 = 0.0f;  // -1..+1
     M7::FloatPair mPanGains{1.0f, 1.0f};
@@ -312,12 +340,15 @@ struct Maj7MBC : public Device
     {
       mEnable = mParams.GetBoolValue(BandParam::Enable);
       mDriveLin = M7::math::DecibelsToLinear(mParams.GetScaledRealValue(BandParam::Drive, 0, 30, 0));
+      mSaturationModel = mParams.GetEnumValue<M7::Maj7SaturationBase::Model>(BandParam::SaturationModel);
+      mSaturationEvenHarmonics = mParams.GetScaledRealValue(BandParam::SaturationEvenHarmonics, 0, 2, 0);
       mInputGainLin = mParams.GetLinearVolume(BandParam::InputGain, M7::gVolumeCfg24db);
       mOutputGainLin = mParams.GetLinearVolume(BandParam::OutputGain, M7::gVolumeCfg24db);
       mDryWetMix = mParams.Get01Value(BandParam::DryWet);
 
-      // tanh gain compensation is not perfect, but experimentally this works quite well.
-      mDriveGainCompensationFact = M7::math::CalcTanhGainCompensation(mDriveLin);
+      mDriveGainCompensationFact = M7::Maj7SaturationBase::CalcAutoDriveCompensation(mDriveLin);
+      mSaturationThresholdLin = 0.0f;
+      mSaturationCorrSlope = M7::Maj7SaturationBase::ModelNaturalSlopes[(int)mSaturationModel];
 
       // cache imaging params
       mMidSideMixN11 = mParams.GetN11Value(BandParam::MidSideMix, 0);
@@ -355,11 +386,30 @@ struct Maj7MBC : public Device
           float inpAudio = input.x[ich] * mInputGainLin;
           float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
           float wetSignal = mComp[ich].ProcessSample(inpAudio, detector);
-          if (mDriveLin > 1)
+
+          const bool doSaturation =
+              (mDriveLin > 1.0f) ||
+              (mSaturationModel != M7::Maj7SaturationBase::Model::Thru) ||
+              (mSaturationEvenHarmonics > 0.0f);
+
+          if (doSaturation)
           {
-            wetSignal = M7::math::tanh(mDriveLin * wetSignal);
+            wetSignal *= mDriveLin;
+            wetSignal = M7::Maj7SaturationBase::DistortSample(
+                wetSignal,
+                ich,
+                mSaturationModel,
+                mSaturationThresholdLin,
+                mSaturationCorrSlope,
+                mDriveGainCompensationFact
+#ifdef MAJ7SAT_ENABLE_ANALOG
+                ,
+                mSaturationDC,
+                mSaturationEvenHarmonics
+#endif
+            );
           }
-          wetSignal *= mOutputGainLin * mDriveGainCompensationFact;
+          wetSignal *= mOutputGainLin;
 
           // Apply dry/wet mix
           float finalSignal = M7::math::lerp(inpAudio, wetSignal, mDryWetMix);
@@ -473,50 +523,18 @@ struct Maj7MBC : public Device
   // NOTE: clip amount is 0 for anything below clipping level, even though shaping actually does mess with amplitudes.
   // the visualizations just don't care about that area though; users only care about how much is being clipped.
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  static M7::FloatPair Softclip(float s, float thresh, float outputGain){
+  static M7::FloatPair Softclip(float s, float thresh, float outputGain)
+  {
+    float atten = 1.0f;
+    const float y = M7::Maj7SaturationBase::SoftClipSine(s, thresh, outputGain, &atten);
+    return {y, atten};
+  }
 #else
   static float Softclip(float s, float thresh, float outputGain)
   {
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT                                                                            \
-    // thresh of 1 (unity gain) means hard clipping. 0.99 is something like 0.001dB so this is an optimal way to approximate hard clipping
-      // and a thresh of 0 would cause our attenuation calc to fail.
-      thresh = M7::math::clamp(thresh, 0.01f, 0.99f);
-  if (s < 0)
-  {
-    s = -s;
-    outputGain = -outputGain;
+    return M7::Maj7SaturationBase::SoftClipSine(s, thresh, outputGain);
   }
-  static constexpr float naturalSlope = M7::math::gPIHalf;
-  float corrSlope = M7::math::lerp(naturalSlope, 1, thresh);
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  float atten = 1;
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-  s *= corrSlope;
-  if (s > thresh)
-  {
-    s = M7::math::lerp_rev(thresh, 1, s);  // pull down above thresh range to 0,1
-    s /= naturalSlope;
-    if (s > 1)
-    {
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-      atten = (1.0f / s);
-      // we are clipping. for analysis purposes, make it CLEAR.
-      atten = std::min(0.95f, atten);  // this means attenuation is MINIMUM reported as .5dB
-#endif                                 // SELECTABLE_OUTPUT_STREAM_SUPPORT
-      s = 1;
-    }
-    else
-    {
-      s = M7::math::sin(s * M7::math::gPIHalf);
-    }
-    s = M7::math::lerp(thresh, 1, s);
-  }
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  return {s * outputGain, atten};  // readd sign bit
-#else
-    return s * outputGain;  // readd sign bit
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-}
 
 virtual void
 Run(float** inputs, float** outputs, int numSamples) override
