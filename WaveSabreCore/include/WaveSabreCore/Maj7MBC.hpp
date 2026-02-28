@@ -220,9 +220,9 @@ struct Maj7MBC : public Device
       32767,  // ALPF = 0
       14563,  // ALPQ = 0.444427490234375
       0,      // ADrive = 0.125885009765625
-      0,
-      32767,
-      0,
+  89, // BSatMod = 0.002717391354963183403
+  20675, // BSatThr = 0.63095736503601074219
+  2260, // BAnalog = 0.068999998271465301514
       32767,  // ADryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
@@ -241,9 +241,9 @@ struct Maj7MBC : public Device
       32767,  // BLPF = 0
       14563,  // BLPQ = 0.444427490234375
       0,      // BDrive = 0.125885009765625
-      0,
-      32767,
-      0,
+  89, // BSatMod = 0.002717391354963183403
+  20675, // BSatThr = 0.63095736503601074219
+  2260, // BAnalog = 0.068999998271465301514
       32767,  // BDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
@@ -262,9 +262,9 @@ struct Maj7MBC : public Device
       32767,  // CLPF = 0
       14563,  // CLPQ = 0.444427490234375
       0,      // CDrive = 0.125885009765625
-      0,
-      32767,
-      0,
+  89, // BSatMod = 0.002717391354963183403
+  20675, // BSatThr = 0.63095736503601074219
+  2260, // BAnalog = 0.068999998271465301514
       32767,  // CDryWet = 0.999969482421875
       16384,  // AMidSideMix = 0.5
       16384,  // APan = 0.5
@@ -522,6 +522,11 @@ struct Maj7MBC : public Device
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   {
     LoadDefaults();
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    // Keep FFT visualization active while reducing analysis CPU cost.
+    mInputSpectrum.SetInputDecimationFactor(2);
+    mOutputSpectrum.SetInputDecimationFactor(2);
+#endif
   }
 
   virtual void OnParamsChanged() override

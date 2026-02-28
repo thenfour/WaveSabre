@@ -172,7 +172,11 @@ void MonoFFTAnalysis::ProcessSample(float sample)
   // Add sample to circular buffer
   mInputBuffer[mInputIndex] = sample;
 
-  mInputIndex = (mInputIndex + 1) % mFFTSizeInt;
+  ++mInputIndex;
+  if (mInputIndex >= mFFTSizeInt)
+  {
+    mInputIndex = 0;
+  }
   --mSamplesUntilProcess;
 
   if (mSamplesUntilProcess <= 0)
@@ -181,10 +185,16 @@ void MonoFFTAnalysis::ProcessSample(float sample)
     mSamplesUntilProcess = mFFTSizeInt / mOverlapFactor;
 
     // Copy data to FFT buffer in correct order (oldest first)
-    for (int i = 0; i < mFFTSizeInt; ++i)
+    int dstIndex = 0;
+
+    for (int srcIndex = mInputIndex; srcIndex < mFFTSizeInt; ++srcIndex, ++dstIndex)
     {
-      int srcIndex = (mInputIndex + i) % mFFTSizeInt;
-      mFFTBuffer[i] = std::complex<float>(mInputBuffer[srcIndex] * mWindow[i], 0.0f);
+      mFFTBuffer[dstIndex] = std::complex<float>(mInputBuffer[srcIndex] * mWindow[dstIndex], 0.0f);
+    }
+
+    for (int srcIndex = 0; srcIndex < mInputIndex; ++srcIndex, ++dstIndex)
+    {
+      mFFTBuffer[dstIndex] = std::complex<float>(mInputBuffer[srcIndex] * mWindow[dstIndex], 0.0f);
     }
 
     // Perform FFT and compute spectrum
@@ -234,6 +244,8 @@ void MonoFFTAnalysis::Reset()
 SmoothedStereoFFT::SmoothedStereoFFT()
     : mFFTAnalysis()
     , mSamplesPerFFTUpdate(512)      // initial default; will be updated below
+  , mInputDecimationFactor(1)
+  , mInputDecimationCounter(0)
     , mCurrentHoldTimeMs(0.0f)       // Default hold time
     , mCurrentFalloffTimeMs(200.0f)  // Default falloff time
 {
@@ -275,7 +287,15 @@ void SmoothedStereoFFT::SetFalloffRate(float falloffTimeMs)
 void SmoothedStereoFFT::SetFFTUpdateRate(int fftSize, int overlapFactor)
 {
   // Calculate how many samples occur between FFT updates
-  mSamplesPerFFTUpdate = (overlapFactor > 0) ? (fftSize / overlapFactor) : fftSize;
+  const int baseUpdate = (overlapFactor > 0) ? (fftSize / overlapFactor) : fftSize;
+  mSamplesPerFFTUpdate = std::max(1, baseUpdate * mInputDecimationFactor);
+}
+
+void SmoothedStereoFFT::SetInputDecimationFactor(int factor)
+{
+  mInputDecimationFactor = std::max(1, std::min(16, factor));
+  mInputDecimationCounter = 0;
+  SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
 }
 
 void SmoothedStereoFFT::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum)
@@ -314,6 +334,16 @@ void SmoothedStereoFFT::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpect
 
 void SmoothedStereoFFT::ProcessSamples(float leftSample, float rightSample)
 {
+  if (mInputDecimationFactor > 1)
+  {
+    ++mInputDecimationCounter;
+    if (mInputDecimationCounter < mInputDecimationFactor)
+    {
+      return;
+    }
+    mInputDecimationCounter = 0;
+  }
+
   // Feed samples to the owned FFTAnalysis
   mFFTAnalysis.ProcessSamples(leftSample, rightSample);
 
@@ -359,6 +389,7 @@ void SmoothedStereoFFT::Reset()
     detector.Reset();  // Use the built-in Reset() method
   }
   mFFTAnalysis.Reset();
+  mInputDecimationCounter = 0;
   mHasNewOutput.store(false, std::memory_order_release);
 }
 

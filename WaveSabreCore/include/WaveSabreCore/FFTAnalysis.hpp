@@ -214,6 +214,8 @@ namespace WaveSabreCore
         std::atomic<bool> mHasNewOutput{false};
 
         int mSamplesPerFFTUpdate; // How many samples between FFT updates (e.g., 512)
+                int mInputDecimationFactor; // 1 = no decimation, 2 = every other sample, etc.
+                int mInputDecimationCounter;
 
         // Track current settings to avoid overwriting each other
         float mCurrentHoldTimeMs;
@@ -231,12 +233,14 @@ namespace WaveSabreCore
         void SetWindowType(MonoFFTAnalysis::WindowType windowType) { mFFTAnalysis.SetWindowType(windowType); }
         void SetFFTSmoothing(float smoothing) { mFFTAnalysis.SetSmoothingFactor(smoothing); }
         void SetOverlapFactor(int factor) { mFFTAnalysis.SetOverlapFactor(factor); SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), factor); }
+        void SetInputDecimationFactor(int factor);
         // Proxy getters for UI
         MonoFFTAnalysis::WindowType GetWindowType() const { return mFFTAnalysis.GetWindowType(); }
         MonoFFTAnalysis::FFTSize GetFFTSize() const { return mFFTAnalysis.GetFFTSize(); }
         int GetFFTSizeInt() const { return mFFTAnalysis.GetFFTSizeInt(); }
         float GetFFTSmoothing() const { return mFFTAnalysis.GetSmoothingFactor(); }
         int GetOverlapFactor() const { return mFFTAnalysis.GetOverlapFactor(); }
+        int GetInputDecimationFactor() const { return mInputDecimationFactor; }
 
         // Configure display behavior
         void SetPeakHoldTime(float holdTimeMs);

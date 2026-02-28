@@ -61,7 +61,7 @@ struct Maj7MBCEditor : public VstEditor
   VstSerializableBoolParamRef mShowFftDiffFlatParam{"ShowFftDiffFlat", mShowFftDiffFlat};
 
   Maj7MBCEditor(AudioEffect* audioEffect)
-      : VstEditor(audioEffect, 1150, 950)
+      : VstEditor(audioEffect, 1150, 1000)
       , mpMaj7MBCVst((Maj7MBCVst*)audioEffect)
   {
     mpMaj7MBC = ((Maj7MBCVst*)audioEffect)->GetMaj7MBC();
@@ -257,12 +257,12 @@ struct Maj7MBCEditor : public VstEditor
           Maj7ImGuiParamEnumCombo(param(BandParam::SaturationModel),
                                   "SatModel",
                                   (int)M7::Maj7SaturationBase::Model::Count__,
-                                  M7::Maj7SaturationBase::Model::TanhClip,
+                                  M7::Maj7SaturationBase::Model::DivClipHard,
                                   satModelNames,
                                   110);
 
           ImGui::SameLine();
-          Maj7ImGuiParamVolume(param(BandParam::SaturationThreshold), "SatThr", M7::gUnityVolumeCfg, 0, {});
+          Maj7ImGuiParamVolume(param(BandParam::SaturationThreshold), "SatThr", M7::gUnityVolumeCfg, -8, {});
 
           ImGui::SameLine();
           Maj7ImGuiParamScaledFloat(param(BandParam::SaturationEvenHarmonics), "Analog", 0, 2, 0, 0, 0, {});
