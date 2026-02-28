@@ -2187,8 +2187,6 @@ public:
 
     if (WSBeginTabItemWithSel(labelID, ifilter, mFilterTabSelHelper))
     {
-      static constexpr char const* const filterModelCaptions[] = FILTER_MODEL_CAPTIONS;
-
       auto lGetModInfo = [&](M7::FilterAuxModDestOffsets x)
       {
         return GetModInfo((M7::ModDestination)((int)filter.mModDestBase + (int)x));
@@ -2199,92 +2197,328 @@ public:
 
       ImGui::SameLine(0, 0);
 
-      //Maj7ImGuiParamEnumCombo(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "Type##filt", (int)M7::FilterModel::Count, M7::FilterModel::LP_Moog4, filterModelCaptions);
-      EnumMutexButtonArrayItem<M7::FilterModel> filterItems[] = {
-          {
-              "OFF",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::Disabled,
-          },
-          {
-              "/ 1Pole",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::HP_OnePole,
-          },
-          {
-              "/ Moog2",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::HP_Moog2,
-          },
-          {
-              "/ Moog4",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::HP_Moog4,
-          },
-          //{ "/ Biq", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::HP_Biquad, },
+      const int filterCircuitParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterCircuit);
+      const int filterSlopeParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterSlope);
+      const int filterResponseParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterResponse);
 
-          {nullptr},
-          {nullptr},
-          {
-              "^ Moog2",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::BP_Moog2,
-          },
-          {
-              "^ Moog4",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::BP_Moog4,
-          },
-          //{ nullptr },
-
-          {nullptr},
-          {
-              "\\ 1Pole",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::LP_OnePole,
-          },
-          {
-              "\\ Moog2",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::LP_Moog2,
-          },
-          {
-              "\\ Moog4",
-              nullptr,
-              nullptr,
-              nullptr,
-              nullptr,
-              M7::FilterModel::LP_Moog4,
-          },
-          //{ "\\ Biqu", nullptr, nullptr, nullptr, nullptr, M7::FilterModel::LP_Biquad, },
+      static constexpr M7::FilterCircuit kCircuitOrder[] = {
+          M7::FilterCircuit::Disabled,
+          M7::FilterCircuit::OnePole,
+          M7::FilterCircuit::Biquad,
+          M7::FilterCircuit::Butterworth,
+          M7::FilterCircuit::Moog,
+          M7::FilterCircuit::K35,
+          M7::FilterCircuit::Diode,
+      };
+      static constexpr const char* kCircuitLabels[] = {
+          "Off", "1Pole", "Biquad", "Butter", "Moog", "K35", "Diode",
       };
 
-      Maj7ImGuiParamEnumMutexButtonArray(
-          filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterType), "", 60, true, filterItems, 4, 4);
+      static constexpr M7::FilterSlope kSlopeOrder[] = {
+          M7::FilterSlope::Slope6dbOct,
+          M7::FilterSlope::Slope12dbOct,
+          M7::FilterSlope::Slope24dbOct,
+          M7::FilterSlope::Slope36dbOct,
+          M7::FilterSlope::Slope48dbOct,
+          M7::FilterSlope::Slope60dbOct,
+          M7::FilterSlope::Slope72dbOct,
+          M7::FilterSlope::Slope84dbOct,
+          M7::FilterSlope::Slope96dbOct,
+      };
+      static constexpr const char* kSlopeLabels[] = {
+          "6", "12", "24", "36", "48", "60", "72", "84", "96",
+      };
+
+      static constexpr M7::FilterResponse kResponseOrder[] = {
+          M7::FilterResponse::Lowpass,
+          M7::FilterResponse::LowShelf,
+          M7::FilterResponse::Bandpass,
+          M7::FilterResponse::Notch,
+          M7::FilterResponse::Allpass,
+          M7::FilterResponse::Peak,
+          M7::FilterResponse::HighShelf,
+          M7::FilterResponse::Highpass,
+      };
+      static constexpr const char* kResponseLabels[] = {
+          "\\ LP",
+           "  LS",
+           "| BP",
+           "- Nt",
+           "* AP",
+            "^ PK",
+            "  HS",
+          "/ HP",    
+      };
+
+      auto getCircuitFilter = [&](M7::FilterCircuit circuit) -> M7::IFilter*
+      {
+        switch (circuit)
+        {
+          default:
+          case M7::FilterCircuit::Disabled:
+            return &filter.mFilter.mNullFilter;
+          case M7::FilterCircuit::OnePole:
+            return &filter.mFilter.mOnePole;
+          case M7::FilterCircuit::Biquad:
+            return &filter.mFilter.mBiquad;
+          case M7::FilterCircuit::Butterworth:
+            return &filter.mFilter.mButterworth;
+          case M7::FilterCircuit::Moog:
+            return &filter.mFilter.mMoog;
+          case M7::FilterCircuit::K35:
+            return &filter.mFilter.mK35;
+          case M7::FilterCircuit::Diode:
+            return &filter.mFilter.mDiode;
+        }
+      };
+
+      auto isSupported = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
+      {
+        if (circuit == M7::FilterCircuit::Disabled)
+        {
+          return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
+        }
+        auto* fptr = getCircuitFilter(circuit);
+        return fptr && fptr->DoesSupport(circuit, slope, response);
+      };
+
+      M7::QuickParam filterCircuitParam{GetEffectX()->getParameter(filterCircuitParamID)};
+      M7::QuickParam filterSlopeParam{GetEffectX()->getParameter(filterSlopeParamID)};
+      M7::QuickParam filterResponseParam{GetEffectX()->getParameter(filterResponseParamID)};
+
+      M7::FilterCircuit selectedCircuit = filterCircuitParam.GetEnumValue<M7::FilterCircuit>();
+      M7::FilterSlope selectedSlope = filterSlopeParam.GetEnumValue<M7::FilterSlope>();
+      M7::FilterResponse selectedResponse = filterResponseParam.GetEnumValue<M7::FilterResponse>();
+
+      auto applySelection = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
+      {
+        M7::QuickParam qp{};
+        GetEffectX()->setParameter(filterCircuitParamID, qp.SetEnumValue(circuit));
+        GetEffectX()->setParameter(filterSlopeParamID, qp.SetEnumValue(slope));
+        GetEffectX()->setParameter(filterResponseParamID, qp.SetEnumValue(response));
+        selectedCircuit = circuit;
+        selectedSlope = slope;
+        selectedResponse = response;
+      };
+
+      struct FilterChoice
+      {
+        M7::FilterCircuit circuit;
+        M7::FilterSlope slope;
+        M7::FilterResponse response;
+      };
+
+      std::vector<FilterChoice> validChoices;
+      constexpr size_t kMaxChoices = size_t(M7::FilterCircuit::Count) * size_t(M7::FilterSlope::Count) * size_t(M7::FilterResponse::Count);
+      validChoices.reserve(kMaxChoices);
+      validChoices.push_back({M7::FilterCircuit::Disabled, M7::FilterSlope::Slope6dbOct, M7::FilterResponse::Lowpass});
+      for (auto c : kCircuitOrder)
+      {
+        if (c == M7::FilterCircuit::Disabled)
+          continue;
+        for (auto r : kResponseOrder)
+        {
+          for (auto s : kSlopeOrder)
+          {
+            if (isSupported(c, s, r))
+            {
+              validChoices.push_back({c, s, r});
+            }
+          }
+        }
+      }
+
+      auto findChoiceIndex = [&]() -> int
+      {
+        for (size_t i = 0; i < validChoices.size(); ++i)
+        {
+          const auto& v = validChoices[i];
+          if (v.circuit == selectedCircuit && v.slope == selectedSlope && v.response == selectedResponse)
+            return (int)i;
+        }
+        return 0;
+      };
+
+      auto labelForCircuit = [&](M7::FilterCircuit c) -> const char*
+      {
+        for (size_t i = 0; i < std::size(kCircuitOrder); ++i)
+        {
+          if (kCircuitOrder[i] == c)
+            return kCircuitLabels[i];
+        }
+        return "?";
+      };
+      auto labelForSlope = [&](M7::FilterSlope s) -> const char*
+      {
+        for (size_t i = 0; i < std::size(kSlopeOrder); ++i)
+        {
+          if (kSlopeOrder[i] == s)
+            return kSlopeLabels[i];
+        }
+        return "-";
+      };
+      auto labelForResponse = [&](M7::FilterResponse r) -> const char*
+      {
+        for (size_t i = 0; i < std::size(kResponseOrder); ++i)
+        {
+          if (kResponseOrder[i] == r)
+            return kResponseLabels[i];
+        }
+        return "-";
+      };
+
+      ImGui::PushID(ifilter + 9000);
+      {
+        const ImVec2 selectorSize = ImVec2(150.0f, 80.0f);
+        bool openPopup = false;
+
+        {
+          ImGuiGroupScope groupScopeSel;
+          ImGui::PushID("FilterSelectorMain");
+          ImGui::Button("##filtermain", selectorSize);
+          if (ImGui::IsItemClicked())
+          {
+            openPopup = true;
+          }
+
+          ImRect bb(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
+          auto* dl = ImGui::GetWindowDrawList();
+          dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
+          DrawShadowText(std::string(labelForCircuit(selectedCircuit)), bb.Min + ImVec2(6, 3));
+          DrawShadowText(std::string("Slope ") + labelForSlope(selectedSlope) + " dB", bb.Min + ImVec2(6, 20));
+          DrawShadowText(std::string(labelForResponse(selectedResponse)), bb.Min + ImVec2(6, 40));
+          ImGui::PopID();
+
+          ImGui::SameLine();
+          ImGuiGroupScope groupScopeSmallButtons;
+          ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3, 0));
+          if (ImGui::SmallButton("+"))
+          {
+            int idx = findChoiceIndex();
+            idx = (idx + 1) % (int)validChoices.size();
+            auto c = validChoices[(size_t)idx];
+            applySelection(c.circuit, c.slope, c.response);
+          }
+          if (ImGui::SmallButton("-"))
+          {
+            int idx = findChoiceIndex();
+            idx = (idx - 1 + (int)validChoices.size()) % (int)validChoices.size();
+            auto c = validChoices[(size_t)idx];
+            applySelection(c.circuit, c.slope, c.response);
+          }
+          ImGui::PopStyleVar();
+        }
+
+        if (openPopup)
+        {
+          ImGui::OpenPopup("selectFilterPopup");
+        }
+
+        if (ImGui::BeginPopup("selectFilterPopup"))
+        {
+          for (size_t i = 0; i < std::size(kCircuitOrder); ++i)
+          {
+            if (i > 0)
+              ImGui::SameLine();
+
+            bool selected = (selectedCircuit == kCircuitOrder[i]);
+            if (selected)
+            {
+              ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("446688").Value);
+              ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorFromHTML("557799").Value);
+              ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorFromHTML("557799").Value);
+            }
+
+            if (ImGui::Button(kCircuitLabels[i]))
+            {
+              selectedCircuit = kCircuitOrder[i];
+
+              bool matchedCurrent = isSupported(selectedCircuit, selectedSlope, selectedResponse);
+              if (!matchedCurrent)
+              {
+                bool found = false;
+                for (auto r : kResponseOrder)
+                {
+                  for (auto s : kSlopeOrder)
+                  {
+                    if (isSupported(selectedCircuit, s, r))
+                    {
+                      selectedSlope = s;
+                      selectedResponse = r;
+                      found = true;
+                      break;
+                    }
+                  }
+                  if (found)
+                    break;
+                }
+              }
+
+              applySelection(selectedCircuit, selectedSlope, selectedResponse);
+            }
+
+            if (selected)
+            {
+              ImGui::PopStyleColor(3);
+            }
+          }
+
+          ImGui::Separator();
+
+          ImGui::TextUnformatted("      Slopes (dB/oct)");
+          ImGui::SameLine();
+          for (size_t i = 0; i < std::size(kSlopeOrder); ++i)
+          {
+            if (i > 0)
+              ImGui::SameLine();
+            ImGui::TextUnformatted(kSlopeLabels[i]);
+          }
+
+          for (size_t ir = 0; ir < std::size(kResponseOrder); ++ir)
+          {
+            ImGui::TextUnformatted(kResponseLabels[ir]);
+            ImGui::SameLine();
+            for (size_t is = 0; is < std::size(kSlopeOrder); ++is)
+            {
+              if (is > 0)
+                ImGui::SameLine();
+
+              const auto slope = kSlopeOrder[is];
+              const auto response = kResponseOrder[ir];
+              const bool supported = isSupported(selectedCircuit, slope, response);
+              const bool selected = supported && (selectedSlope == slope) && (selectedResponse == response);
+
+              if (!supported)
+              {
+                ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f);
+                ImGui::Button("-", ImVec2(28, 0));
+                ImGui::PopStyleVar();
+                continue;
+              }
+
+              if (selected)
+              {
+                ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("447744").Value);
+                ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorFromHTML("558855").Value);
+                ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorFromHTML("558855").Value);
+              }
+
+              if (ImGui::Button("o", ImVec2(28, 0)))
+              {
+                applySelection(selectedCircuit, slope, response);
+              }
+
+              if (selected)
+              {
+                ImGui::PopStyleColor(3);
+              }
+            }
+          }
+
+          ImGui::EndPopup();
+        }
+      }
+      ImGui::PopID();
 
       Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq),
                               filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT),

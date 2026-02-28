@@ -50,6 +50,8 @@ enum class FilterCircuit
   Moog,
   K35,
   Diode,
+
+  Count,
 };
 
 // 0 = bypass,
@@ -71,6 +73,8 @@ enum class FilterSlope
   Slope72dbOct = 7,
   Slope84dbOct = 8,
   Slope96dbOct = 9, // 8 stages of biquad
+
+  Count,
 };
 
 enum class FilterResponse
@@ -83,6 +87,8 @@ enum class FilterResponse
   Peak,
   HighShelf,
   LowShelf,
+
+  Count,
 };
 
 struct IFilter
