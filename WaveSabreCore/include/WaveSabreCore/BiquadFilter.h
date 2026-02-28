@@ -167,6 +167,7 @@ class CascadedBiquadFilter : public IFilter
   BiquadFilter mFilters[kMaxStages];
   size_t mNStages;
   float mGainCompensationLinear;
+  float mEnableCompensationGain = false;
 
   static inline float ButterworthQForSection(int sectionIndex, int nStages)
   {
@@ -184,6 +185,11 @@ public:
   {
   }
 
+  void SetCompensationEnabled(bool enabled)
+  {
+	mEnableCompensationGain = enabled;
+  }
+
   void Disable()
   {
     mNStages = 0;
@@ -195,8 +201,7 @@ public:
                        float cutoffHz,
                        float q,
                        float gain,
-                       QStrategy qStrategy,
-                       bool applyGainCompensation)
+                       QStrategy qStrategy)
   {
     CCASSERT(nStages >= 0 && nStages <= kMaxStages);
 
@@ -232,7 +237,7 @@ public:
       }
     }
 
-    mGainCompensationLinear = applyGainCompensation ? CalculateCompensationGainLinear() : 1.0f;
+    mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
   }
 
   virtual void SetParams(FilterCircuit circuit,
@@ -249,12 +254,12 @@ public:
 
     if (circuit == FilterCircuit::Butterworth)
     {
-      SetBiquadParams(nStages, response, cutoffHz, 0, 0, QStrategy::Butterworth, false);
+      SetBiquadParams(nStages, response, cutoffHz, 0, 0, QStrategy::Butterworth);
     }
     else
     {
       const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
-      SetBiquadParams(nStages, response, cutoffHz, q, 0, QStrategy::UserResonance, true);
+      SetBiquadParams(nStages, response, cutoffHz, q, 0, QStrategy::UserResonance);
     }
   }
 

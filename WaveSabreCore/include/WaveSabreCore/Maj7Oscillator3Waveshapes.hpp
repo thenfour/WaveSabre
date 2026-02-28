@@ -613,6 +613,7 @@ struct SAHNoiseCore : public OscillatorCore
       , mControlStyle(controlStyle)
       , mFilter()
   {
+    mFilter.SetCompensationEnabled(true);
   }
 
   void HandleParamsChanged() override
@@ -856,6 +857,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
       , mFilter()
       , mControlStyle(controlStyle)
   {
+    mFilter.SetCompensationEnabled(true);
   }
 
   void HandleParamsChanged() override
