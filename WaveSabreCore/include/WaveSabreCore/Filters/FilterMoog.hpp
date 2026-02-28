@@ -13,14 +13,14 @@ namespace WaveSabreCore
         {
             // assumes that lpfs are initialized with LP
 
-            virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, real cutoffHz, real reso) override
+            virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, real cutoffHz, real Qdb) override
             {
-                if ((mSlope != slope) || (mResponse != response) || (cutoffHz != m_cutoffHz) || (reso != m_resonance)){
+                if ((mSlope != slope) || (mResponse != response) || (cutoffHz != m_cutoffHz) || (Qdb != m_Qdb)){
                     mSlope = slope;
                     mResponse = response;
                     m_cutoffHz = cutoffHz;
-                    m_resonance = reso;
-                    m_k = reso * real2(3.88);// this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
+                    m_Qdb = Qdb;
+                    m_k = Qdb * real2(3.88);// this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
                     Recalc();
                 }
             }
@@ -145,7 +145,7 @@ namespace WaveSabreCore
 
             // cached params
             real m_cutoffHz;// = 0;
-            real m_resonance;// = 0;// Real(-1); // cached resonance for knowing when recalc is not needed.
+            real m_Qdb;// = 0;// Real(-1); // cached Q for knowing when recalc is not needed.
         };
     } // namespace M7
 } // namespace WaveSabreCore

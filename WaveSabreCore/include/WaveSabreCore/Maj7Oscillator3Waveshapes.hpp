@@ -618,7 +618,7 @@ struct SAHNoiseCore : public OscillatorCore
   void HandleParamsChanged() override
   {
     mJitter01 = math::clamp01(mWaveshapeB);
-    static constexpr float kFixedQ = 0.707f;
+    static constexpr float kFixedQ = 0.7071f;
 
     mFilter.SetParams(FilterCircuit::Biquad,
                       FilterSlope::Slope24dbOct, // 2 stage.

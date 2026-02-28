@@ -15,7 +15,7 @@ struct DiodeFilter : IFilter
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real reso) override
+                         real Qdb) override
   {
     //
   }

@@ -26,7 +26,7 @@ struct FilterNode
 
   IFilter* mSelectedFilter = &mNullFilter;
 
-  void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, float cutoffHz, float resoParam01)
+  void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, float cutoffHz, float qdb)
   {
     // select filter & set type
     IFilter* nextFilter = nullptr;
@@ -55,7 +55,7 @@ struct FilterNode
         nextFilter = &mMoog;
         break;
     }
-    mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, resoParam01);
+    mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, qdb);
     if (mSelectedFilter != nextFilter)
     {
       mSelectedFilter->Reset();
@@ -114,8 +114,6 @@ struct FilterAuxNode  // : IAuxEffect
     mnSampleCount = (mnSampleCount + 1) & recalcMask;
     if (calc)
     {
-      //M7::ParamAccessor pa{&reso01, 0};
-      //float q = pa.GetDivCurvedValue(0, M7::gBiquadFilterQCfg, 0);
       auto Q = mParams.GetDivCurvedValue(FilterParamIndexOffsets::Q,
                                          gBiquadFilterQCfg,
                                          mModMatrix->GetDestinationValue((int)mModDestBase +
