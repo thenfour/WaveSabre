@@ -61,6 +61,31 @@ namespace WaveSabreCore
                 return float(hpf);
             }
 
+            virtual real GetMagnitudeAtFrequency(real freqHz) const override
+            {
+                const double clampedFreq = math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
+                const double w = math::gPITimes2d * clampedFreq * Helpers::CurrentSampleRateRecipF;
+                const double cw = std::cos(w);
+                const double sw = std::sin(w);
+
+                const double alpha = double(m_alpha);
+                const double p = 1.0 - alpha;
+                const double den2 = (1.0 - p * cw) * (1.0 - p * cw) + (p * sw) * (p * sw);
+                const double safeDen2 = (den2 > 1e-20) ? den2 : 1e-20;
+
+                const double hlpRe = alpha * (1.0 - p * cw) / safeDen2;
+                const double hlpIm = -alpha * p * sw / safeDen2;
+
+                if (mResponse == FilterResponse::Lowpass)
+                {
+                    return real(std::sqrt(hlpRe * hlpRe + hlpIm * hlpIm));
+                }
+
+                const double hhpRe = 1.0 - hlpRe;
+                const double hhpIm = -hlpIm;
+                return real(std::sqrt(hhpRe * hhpRe + hhpIm * hhpIm));
+            }
+
             // float ProcessSample(float xn, FilterType type, float cutoffHz) {
             //     SetParams(type, cutoffHz, 0);
             //     return ProcessSample(xn);

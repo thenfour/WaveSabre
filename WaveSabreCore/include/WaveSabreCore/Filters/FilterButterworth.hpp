@@ -25,6 +25,10 @@ struct ButterworthFilter : IFilter
   {
     return x;
   }
+  virtual real GetMagnitudeAtFrequency(real freqHz) const override
+  {
+    return 1.0f;
+  }
   virtual void Reset() override
   {
     //

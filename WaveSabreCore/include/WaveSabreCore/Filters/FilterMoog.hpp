@@ -38,6 +38,29 @@ namespace WaveSabreCore
                 return InlineProcessSample(x);
             }
 
+            virtual real GetMagnitudeAtFrequency(real freqHz) const override
+            {
+                const double clampedFreq = math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
+                const double w = math::gPITimes2d * clampedFreq * Helpers::CurrentSampleRateRecipF;
+
+                MoogLadderFilter copy = *this;
+                copy.Reset();
+
+                static constexpr int kImpulseTaps = 192;
+                double re = 0.0;
+                double im = 0.0;
+                for (int n = 0; n < kImpulseTaps; ++n)
+                {
+                    const float x = (n == 0) ? 1.0f : 0.0f;
+                    const double y = copy.ProcessSample(x);
+                    const double phase = w * double(n);
+                    re += y * std::cos(phase);
+                    im -= y * std::sin(phase);
+                }
+
+                return real(std::sqrt(re * re + im * im));
+            }
+
             virtual void Reset() override
             {
                 for (auto& lpf : m_LPF) {

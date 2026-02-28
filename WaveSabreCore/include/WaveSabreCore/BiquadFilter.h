@@ -228,6 +228,20 @@ public:
     return y * mGainCompensationLinear;
   }
 
+  virtual real GetMagnitudeAtFrequency(real freqHz) const override
+  {
+    if (mNStages == 0)
+      return 1.0f;
+
+    double mag = 1.0;
+    for (size_t i = 0; i < mNStages; ++i)
+    {
+      mag *= double(mFilters[i].GetMagnitudeAtFrequency((float)freqHz));
+    }
+    mag *= double(mGainCompensationLinear);
+    return (real)((mag > 0.0) ? mag : 0.0);
+  }
+
   // IFilter
   virtual void Reset() override
   {
@@ -240,7 +254,7 @@ public:
 
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response)
   {
-	if (circuit != FilterCircuit::Biquad)
+  if (circuit != FilterCircuit::Biquad && circuit != FilterCircuit::Butterworth)
 	  return false;
 	if (slope < FilterSlope::Slope12dbOct || slope > FilterSlope::Slope96dbOct)
 	  return false;
