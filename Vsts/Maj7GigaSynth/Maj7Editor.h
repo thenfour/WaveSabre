@@ -2303,7 +2303,7 @@ public:
                        ImRect bb,
                        float* cursorPhase)
   {
-    OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
+    OSCILLATOR_WAVEFORM_UI_STYLES(gWaveformCaptions);
     std::unique_ptr<M7::OscillatorCore> pWaveform;
     
     float innerHeight = bb.GetHeight() - 4;
@@ -2336,9 +2336,9 @@ public:
       return outerTL.x + M7::math::fract(phase) * bb.GetWidth();
     };
 
-    ImGui::RenderFrame(outerTL, outerBR, ImGui::GetColorU32(ImGuiCol_FrameBg), true, 3.0f);  // background
-    drawList->PushClipRect(bb.Min, bb.Max, true);
     auto waveformUiStyle = GetWaveformUiStyle(waveform);
+    ImGui::RenderFrame(outerTL, outerBR, ColorFromHTML(waveformUiStyle.backgroundColorHtml), true, 3.0f);  // background
+    drawList->PushClipRect(bb.Min, bb.Max, true);
     ImU32 waveformColor = ColorFromHTML(waveformUiStyle.foregroundColorHtml);
 
     float centerY = sampleToY(0);
@@ -2387,7 +2387,7 @@ public:
       //DrawShadowText(str3, {bb.Min.x, bb.Min.y + 36});
     }
 
-    DrawShadowText(gWaveformCaptions[(int)waveform], bb.Min);
+    DrawShadowText(gWaveformCaptions[(int)waveform].label, bb.Min);
   }
 
   void DrawShadowText(const std::string& text, const ImVec2& pos)
@@ -2457,7 +2457,7 @@ public:
                      int phaseOffsetParamID,
                      float* phaseCursor)
   {
-    OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
+    //OSCILLATOR_WAVEFORM_UI_STYLES(gWaveformCaptions);
 
     M7::QuickParam waveformParam{pMaj7->mParamCache[waveformParamID]};
 
@@ -2478,14 +2478,11 @@ public:
     ImGui::SameLine();
     if (ImGui::BeginPopup("selectWaveformPopup"))
     {
-      const float buttonWidth = 150.0f + ImGui::GetStyle().FramePadding.x * 2.0f;
-      const float spacingX = ImGui::GetStyle().ItemSpacing.x;
-      const int columns = 3;//std::max(1, (int)((ImGui::GetContentRegionAvail().x + spacingX) / (buttonWidth + spacingX)));
-
       for (int n = 0; n < (int)M7::OscillatorWaveform::Count; n++)
       {
         M7::OscillatorWaveform wf = (M7::OscillatorWaveform)n;
-        if (n > 0 && (n % columns) != 0)
+        auto wfUiStyle = GetWaveformUiStyle(wf);
+        if (n > 0 && !wfUiStyle.startNewRow)
         {
           ImGui::SameLine();
         }

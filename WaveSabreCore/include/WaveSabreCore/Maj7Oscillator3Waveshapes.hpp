@@ -307,19 +307,27 @@ struct SineCoreExt : public OscillatorCore
 
 struct FoldedCore : public OscillatorCore
 {
-  FoldedCore(bool triangle, OscillatorWaveform waveformType)
+  enum class Style
+  {
+    Sine_Fold_Bias,  // A = fold amount; B = bias
+    Tri_Fold_Bias,   // A = fold amount; B = bias
+    //TriSaw_Fold_Shape,  // A = fold amount; B = shape (tri-saw)
+  };
+
+  FoldedCore(OscillatorWaveform waveformType, Style style)
       : OscillatorCore(waveformType)
-      , mTriangle(triangle)
+      , mStyle(style)
   {
   }
 
   float mDrive = 1.0f;  // >= 1.0
   float mBias = 0.0f;   // DC offset before folding
-  const float mTriangle;
+  //float mTriSaw = 0;
+  Style mStyle;
 
   void HandleParamsChanged() override
   {
-    mDrive = 1.0f + 10.0f * mWaveshapeA;
+    mDrive = 1.0f + 15.0f * mWaveshapeA;  // 1 - 16x
 
     // B: symmetry/bias 0..1 -> -1..1; actually in theory -2..2 is usable to catch ALL signal.
     mBias = (mWaveshapeB - 0.5f) * 4.0f;
@@ -338,14 +346,56 @@ struct FoldedCore : public OscillatorCore
     return std::copysign(r, x);
   }
 
+  // naive triangle - saw shape, outputting [-1,1]; period over [0,1).
+  real_t naiveTri01(real_t x01)
+  {
+    x01 = math::fract(x01);
+    if (x01 < 0.25f)
+      return x01 * 4;  // over 0,.25, *4 gives 0..1 (ramp up)
+    if (x01 < 0.75f)
+      return 2 - x01 * 4;  // over .25,.75, *4 gives 1..-1, and 2- that gives 1..-1 (ramp down)
+    return x01 * 4 - 4;    // over .75,1, *4 gives -1..0 (ramp up)
+  }
+
+  // // triangle->saw morph, output [-1,+1], period over [0,1).
+  // real_t naiveTriSaw01(real_t x01, real_t triSawShape01)
+  // {
+  //   x01 = math::fract(x01);
+
+  //   // Clamp shape to [0,1]
+  //   const real_t s = math::clamp(triSawShape01, (real_t)0, (real_t)1);
+
+  //   // Rise portion length: 0.5 (triangle) -> 1.0 (pure rising saw)
+  //   const real_t riseLen = (real_t)0.5 + (real_t)0.5 * s;
+  //   const real_t fallLen = (real_t)1.0 - riseLen;
+
+  //   // Phase shift so that s=0 matches your existing waveform's phase:
+  //   // peak at 0.25, trough at 0.75, y(0)=0.
+  //   const real_t x = math::fract(x01 + (real_t)0.25);
+
+  //   // Canonical asymmetric triangle that goes -1 -> +1 over riseLen, then +1 -> -1 over fallLen.
+  //   if (x < riseLen)
+  //   {
+  //     // -1 .. +1
+  //     return (real_t)-1.0 + (real_t)2.0 * (x / riseLen);
+  //   }
+  //   else
+  //   {
+  //     // When fallLen goes to 0 (s -> 1), this branch is never taken (since riseLen -> 1).
+  //     // Still, guard against tiny fallLen for numerical safety.
+  //     const real_t denom = std::max(fallLen, (real_t)1e-12);
+  //     const real_t t = (x - riseLen) / denom;  // 0..1
+  //     return (real_t)1.0 - (real_t)2.0 * t;    // +1 .. -1
+  //   }
+  // }
+
   inline float sampleWaveform(float phase01)
   {
-    if (mTriangle)
+    if (mStyle == Style::Sine_Fold_Bias)
     {
-      return math::naiveTriangle01(phase01);
+      return math::sin(math::gPITimes2 * phase01);
     }
-    // sine
-    return math::sin(math::gPITimes2 * phase01);
+    return naiveTri01(phase01);
   }
 
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
@@ -627,7 +677,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
     Prob_Duty,  // A = probability, B = duty cycle
     Prob_LP,    // A = probability, B = Q (note frequency is the cutoff)
     //Prob_HP,    // A = probability, B = Q (note frequency is the cutoff)
-    Prob_BP,    // A = probability, B = Q (note frequency is the cutoff)
+    Prob_BP,  // A = probability, B = Q (note frequency is the cutoff)
     Duty_LP,
     //Duty_HP,
     Duty_BP,
@@ -666,7 +716,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
       //case ControlStyle::Duty_HP:
       case ControlStyle::Duty_BP:
       {
-        mProbability01 = 0.5f; // fixed default.
+        mProbability01 = 0.5f;  // fixed default.
         mDutyCycle01 = mWaveshapeA;
         break;
       }
@@ -677,21 +727,21 @@ struct WhiteNoiseCore2 : public OscillatorCore
     switch (mControlStyle)
     {
       default:
-          mFilter.Disable();
-          break;
+        mFilter.Disable();
+        break;
       case ControlStyle::Prob_BP:
       case ControlStyle::Duty_BP:
         filterType = BiquadFilterType::Bandpass;
       case ControlStyle::Prob_LP:
       //case ControlStyle::Prob_HP:
       case ControlStyle::Duty_LP:
-      //case ControlStyle::Duty_HP:
-      {
-        ParamAccessor pa{&mWaveshapeB, 0};
-        float q = pa.GetDivCurvedValue(0, gBiquadFilterQCfg);
-        mFilter.SetParams(2, filterType, this->mMainFrequencyHz, q, 0.0f);
-        break;
-      }
+        //case ControlStyle::Duty_HP:
+        {
+          ParamAccessor pa{&mWaveshapeB, 0};
+          float q = pa.GetDivCurvedValue(0, gBiquadFilterQCfg);
+          mFilter.SetParams(2, filterType, this->mMainFrequencyHz, q, 0.0f);
+          break;
+        }
     }
   }
 

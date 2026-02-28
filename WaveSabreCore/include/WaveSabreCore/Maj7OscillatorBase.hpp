@@ -99,6 +99,7 @@ enum class OscillatorWaveform : uint8_t
 
   FoldedSine,
   FoldedTriangle,
+  //FoldedTriSaw,
 
   EvolvingGrainNoise,
 
@@ -126,61 +127,51 @@ enum class OscillatorWaveform : uint8_t
 
 struct OscillatorWaveformUiStyle
 {
+  bool startNewRow;
+  const char* label;
   const char* shapeALabel;
   const char* shapeBLabel;
   float defaultWaveshapeA;
   float defaultWaveshapeB;
   const char* foregroundColorHtml;
+  const char* backgroundColorHtml;
 };
 
-// size-optimize using macro
-// clang-format off
-#define OSCILLATOR_WAVEFORM_CAPTIONS(symbolName)                                                                       \
-  static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count]                   \
-  {                                                                                                                    \
-  "Sine DC Clip",\
-  "Sine Clip Squeez",\
-  "Sine Harm Clip",\
-  "Sine Harm Clip Squeez",\
-  "SS Saw-Tri",\
-  "SS pulse 2 stage",\
-  "SS pulse 3 stage",\
-  "SS pulse 4 stage",\
-  "SS Tri-Square",\
-  "Folded Sine",\
-  "Folded Tri",\
-  "Noise Grain Evolve",\
-  "Noise_SaH_LP4",\
-  "Noise_SaH_HP4",\
-  "Noise White Prob+Duty",\
-  "Noise White Prob+LP",\
-  "Noise White Prob+BP",\
-  "Noise White Duty+LP",\
-  "Noise White Duty+BP",\
-  }
+#define SINE_COLOR_FG "#66ccff"
+#define SINE_COLOR_BG "#0a1a24"
+#define SHAPE_COLOR_FG "#ffaa33"
+#define SHAPE_COLOR_BG "#261a0a"
+#define FOLDED_COLOR_FG "#ff9966"
+#define FOLDED_COLOR_BG "#2a140d"
+#define NOISE_GRAIN_FG "#b388ff"
+#define NOISE_GRAIN_BG "#1a1226"
+#define NOISE_SAH_FG "#7d7dff"
+#define NOISE_SAH_BG "#111633"
+#define NOISE_WHITE_FG "#55dd88"
+#define NOISE_WHITE_BG "#102417"
 
 #define OSCILLATOR_WAVEFORM_UI_STYLES(symbolName)                                                                      \
   static constexpr ::WaveSabreCore::M7::OscillatorWaveformUiStyle symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count] \
   {                                                                                                                    \
-  {"Clip",   "DC",      0.50f, 0.50f, "#66ccff"},\
-  {"Clip",   "Duty", 0.50f, 0.50f, "#66ccff"},\
-  {"Clip",   "Harm",      0.00f, 0.50f, "#44bbff"},\
-  {"Duty",   "Harm", 0.00f, 0.50f, "#44bbff"},\
-  {"Idle", "Tri-Saw",  0.50f, 0.50f, "#ffaa33"},\
-  {"Duty", "--",  0.50f, 0.50f, "#ffaa33"},\
-  {"Duty", "Sym",  2.f/3.f, 0.50f, "#ffaa33"},\
-  {"Duty", "Sym",  0.50f, 0.50f, "#ffaa33"},\
-  {"Duty", "Tri-Square",  0.50f, 0.50f, "#ffaa33"},\
-  {"Fold",   "Bias",    0.00f, 0.50f, "#ff9966"},\
-  {"Fold",   "Bias",    0.00f, 0.50f, "#ff9966"},\
-  {"Grain",  "Mutate",  0.35f, 0.15f, "#b388ff"},\
-  {"LP Cut", "Jitter",  0.30f, 0, "#7d7dff"},\
-  {"HP Cut", "Jitter",  0.30f, 0, "#7d7dff"},\
-  {"Prob",   "Duty",    0.35f, 0.50f, "#55dd88"},\
-  {"Prob",   "LP Q",  0.35f, 0.60f, "#55dd88"},\
-  {"Prob",   "BP Q",    0.35f, 0.35f, "#55dd88"},\
-  {"Duty",   "LP Q",  0.50f, 0.60f, "#55dd88"},\
-  {"Duty",   "BP Q",    0.50f, 0.35f, "#55dd88"},\
+  {true,  "Sine DC Clip",            "Clip",   "DC",         0.0f,    0.0f,    SINE_COLOR_FG,        SINE_COLOR_BG},\
+  {false, "Sine Clip Squeez",        "Clip",   "Duty",       0.0f,    0.0f,    SINE_COLOR_FG,        SINE_COLOR_BG},\
+  {false, "Sine Harm Clip",          "Clip",   "Harm",       0.0f,    0.50f,   SINE_COLOR_FG,        SINE_COLOR_BG},\
+  {false, "Sine Harm Clip Squeez",   "Duty",   "Harm",       0.0f,    0.50f,   SINE_COLOR_FG,        SINE_COLOR_BG},\
+  {true,  "SS Saw-Tri",              "Duty",   "Tri-Saw",    0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, "SS pulse 2 stage",        "Duty",   "--",         0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, "SS pulse 3 stage",        "Duty",   "Sym",        2.f/3.f, 0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, "SS pulse 4 stage",        "Duty",   "Sym",        0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, "SS Tri-Square",           "Duty",   "Tri-Square", 0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {true,  "Folded Sine",             "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
+  {false, "Folded Tri",              "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
+  {true,  "Noise Grain Evolve",      "Grain",  "Mutate",     0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
+  {false, "Noise_SaH_LP4",           "LP Cut", "Jitter",     0.80f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
+  {false, "Noise_SaH_HP4",           "HP Cut", "Jitter",     0.20f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
+  {true,  "Noise White Prob+Duty",   "Prob",   "Duty",       0.35f,   0.50f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Prob+LP",     "Prob",   "LP Q",       0.35f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Prob+BP",     "Prob",   "BP Q",       0.35f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Duty+LP",     "Duty",   "LP Q",       0.50f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Duty+BP",     "Duty",   "BP Q",       0.50f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
   }
 // clang-format on
 

@@ -94,10 +94,11 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
 
     case OscillatorWaveform::FoldedSine:
-      return new FoldedCore(false, OscillatorWaveform::FoldedSine);
+      return new FoldedCore(OscillatorWaveform::FoldedSine, FoldedCore::Style::Sine_Fold_Bias);
     case OscillatorWaveform::FoldedTriangle:
-      return new FoldedCore(true, OscillatorWaveform::FoldedTriangle);
-    case OscillatorWaveform::EvolvingGrainNoise:
+      return new FoldedCore(OscillatorWaveform::FoldedTriangle, FoldedCore::Style::Tri_Fold_Bias);
+
+      case OscillatorWaveform::EvolvingGrainNoise:
       return new EvolvingGrainNoiseCore(OscillatorWaveform::EvolvingGrainNoise);
 
     case OscillatorWaveform::Noise_SaH_LP4:
