@@ -134,22 +134,26 @@ float BiquadFilter::ProcessSample(float input)
 
 float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
 {
+    // it is actually necessary to do this using `double`. otherwise the response curve looks awful.
   // Use normalized coefficients (a0 == 1)
-  const float& a0 = mConfig.normA0();
-  const float& a1 = mConfig.normA1();
-  const float& a2 = mConfig.normA2();
-  const float& b0 = mConfig.normB0();
-  const float& b1 = mConfig.normB1();
-  const float& b2 = mConfig.normB2();
-  const auto& w = mConfig.w0();
+  const double a1 = mConfig.normA1();
+  const double a2 = mConfig.normA2();
+  const double b0 = mConfig.normB0();
+  const double b1 = mConfig.normB1();
+  const double b2 = mConfig.normB2();
 
-  const float cw = M7::math::cos(w);
-  const float c2w = M7::math::cos(2 * w);
+  const double clampedFreqHz = M7::math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
+  const double w = M7::math::gPITimes2d * clampedFreqHz * Helpers::CurrentSampleRateRecipF;
 
-  const float num = b0 * b0 + b1 * b1 + b2 * b2 + 2 * (b0 * b1 + b1 * b2) * cw + 2 * b0 * b2 * c2w;
-  const float den = 1 + a1 * a1 + a2 * a2 + 2 * (a1 + a1 * a2) * cw + 2 * a2 * c2w;
+  const double cw = M7::math::CrtCos(w);
+  const double c2w = M7::math::CrtCos(2 * w);
 
-  return (M7::math::sqrt(num / den));
+  const double num = b0 * b0 + b1 * b1 + b2 * b2 + 2.0 * (b0 * b1 + b1 * b2) * cw + 2.0 * b0 * b2 * c2w;
+  const double den = 1.0 + a1 * a1 + a2 * a2 + 2.0 * (a1 + a1 * a2) * cw + 2.0 * a2 * c2w;
+
+  const double safeDen = (den > 1e-20) ? den : 1e-20;
+  const double ratio = num / safeDen;
+  return M7::math::sqrt(float((ratio > 0) ? ratio : 0));
 }
 }  // namespace M7
 }  // namespace WaveSabreCore

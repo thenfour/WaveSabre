@@ -36,7 +36,7 @@ class LevellerEditor : public VstEditor
 
 public:
 	LevellerEditor(AudioEffect* audioEffect)
-		: VstEditor(audioEffect, 900, 700),
+		: VstEditor(audioEffect, 1050, 700),
 		mpLevellerVST((LevellerVst*)audioEffect)//,
 	{
 		mpLeveller = (Leveller*)mpLevellerVST->getDevice(); // for some reason this doesn't work as initialization but has to be called in ctor body like this.
@@ -139,7 +139,7 @@ public:
 		float typeB = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Type);
 		M7::ParamAccessor typePA{ &typeB, 0 };
 		M7::FilterResponse type = typePA.GetEnumValue<M7::FilterResponse>(0);
-		ImGui::BeginDisabled(type == M7::FilterResponse::Highpass || type == M7::FilterResponse::Lowpass);
+		ImGui::BeginDisabled(type == M7::FilterResponse::Highpass || type == M7::FilterResponse::Lowpass|| type == M7::FilterResponse::Allpass|| type == M7::FilterResponse::Notch);
 		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)paramOffset + (int)Leveller::BandParamOffsets::Gain, "Gain(db)", -30.0f, 30.0f, 0, 0, 0, {});
 		ImGui::EndDisabled();
 		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", M7::gBiquadFilterQCfg, 1.00f, {});
