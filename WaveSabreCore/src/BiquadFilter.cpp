@@ -3,16 +3,17 @@
 #include <WaveSabreCore/Helpers.h>
 
 
-
 // this is an impl of the RBJ cookbook filters. (search term "Cookbook formulae for audio EQ biquad filter coefficients")
 
 namespace WaveSabreCore
 {
-void BiquadConfig::SetParams(BiquadFilterType type, float freq, float q, float gain)
+namespace M7
 {
-  if (type == this->type && freq == this->freq && this->q == q && this->gain == gain)
+void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, float q, float gain)
+{
+  if (response == this->response && freq == this->freq && this->q == q && this->gain == gain)
     return;
-  this->type = type;
+  this->response = response;
   this->freq = freq;
   this->q = q;
   this->gain = gain;
@@ -37,34 +38,34 @@ void BiquadConfig::SetParams(BiquadFilterType type, float freq, float q, float g
   a1 = cosw0 * -2;
   a0 = 1 + alpha;
   a2 = 1 - alpha;
-  switch (type)
+  switch (response)
   {
     default:
     // you may be tempted to try and unify these the same way as lowshelf / highshelf. but you don't gain anything (measured.)
-    case BiquadFilterType::Lowpass:
+    case FilterResponse::Lowpass:
       b1 = 1.0f - cosw0;
       b0 = b2 = b1 * 0.5f;
       break;
-    case BiquadFilterType::Highpass:
+    case FilterResponse::Highpass:
       b1 = -(1.0f + cosw0);
       b0 = b2 = b1 * -0.5f;
       break;
-    case BiquadFilterType::Bandpass:
+    case FilterResponse::Bandpass:
       b0 = alpha;
       b1 = 0.0f;
       b2 = -alpha;
       break;
-    case BiquadFilterType::Notch:
+    case FilterResponse::Notch:
       b0 = 1.0f;
       b1 = -2.0f * cosw0;
       b2 = 1.0f;
       break;
-    case BiquadFilterType::Allpass:
+    case FilterResponse::Allpass:
       b0 = 1.0f - alpha;
       b1 = -2.0f * cosw0;
       b2 = 1.0f + alpha;
       break;
-    case BiquadFilterType::Peak:
+    case FilterResponse::Peak:
     {
       a0 = 1.0f + (alpha / A);
       a2 = 1.0f - (alpha / A);
@@ -73,14 +74,14 @@ void BiquadConfig::SetParams(BiquadFilterType type, float freq, float q, float g
       b2 = 1.0f - alpha * A;
       break;
     }
-    case BiquadFilterType::LowShelf:
-    case BiquadFilterType::HighShelf:
+    case FilterResponse::LowShelf:
+    case FilterResponse::HighShelf:
     {
       float sqrtAtimesAlphaTimes2 = M7::math::sqrt(A) * 2 * alpha;
       float Ap1 = A + 1;
       float Am1 = A - 1;
       float two = 2;
-      if (type == BiquadFilterType::HighShelf)
+      if (response == FilterResponse::HighShelf)
       {
         two = -2;
         cosw0 = -cosw0;
@@ -150,4 +151,5 @@ float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
 
   return (M7::math::sqrt(num / den));
 }
+}  // namespace M7
 }  // namespace WaveSabreCore

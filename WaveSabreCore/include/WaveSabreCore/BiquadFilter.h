@@ -9,51 +9,18 @@
 
 namespace WaveSabreCore
 {
-enum class BiquadFilterType
+namespace M7
 {
-  Lowpass,
-  Highpass,
-  Bandpass,
-  Notch,
-  Allpass,
-  Peak,
-  HighShelf,
-  LowShelf,
-};
 
 // POD.
 struct BiquadConfig
 {
   // q is ~0 to ~12 (or higher if you want; in db)
-  void SetParams(BiquadFilterType type, float freq, float q, float gain);
-
-//   float& normA0()
-//   {
-//     return normCoeffs[0];
-//   }
-//   float& normA1()
-//   {
-//     return normCoeffs[1];
-//   }
-//   float& normA2()
-//   {
-//     return normCoeffs[2];
-//   }
-//   float& normB0()
-//   {
-//     return normCoeffs[3];
-//   }
-//   float& normB1()
-//   {
-//     return normCoeffs[4];
-//   }
-//   float& normB2()
-//   {
-//     return normCoeffs[5];
-//   }
+  void SetBiquadParams(FilterResponse type, float freq, float q, float gain);
 
   const float& normA0() const
   {
+    static_assert(std::is_trivially_copyable<BiquadConfig>::value, "BiquadConfig must be a POD struct");
     return normCoeffs[0];
   }
   const float& normA1() const
@@ -79,10 +46,11 @@ struct BiquadConfig
 
   const float& w0() const
   {
-	return mW0;
+    return mW0;
   }
-  
-  float Q() const {
+
+  float Q() const
+  {
     return this->q;
   }
   float FreqHz() const
@@ -91,7 +59,7 @@ struct BiquadConfig
   }
 
 private:
-  BiquadFilterType type;
+  FilterResponse response;
   float freq;
   float q;
   float gain;
@@ -107,7 +75,7 @@ private:
   float normCoeffs[6];
 };
 
-class BiquadFilter : public M7::IFilter
+class BiquadFilter  // : public IFilter
 {
   BiquadConfig mConfig;
   float lastInput, lastLastInput;
@@ -116,12 +84,13 @@ class BiquadFilter : public M7::IFilter
 public:
   BiquadFilter();
 
-  void SetParams(BiquadFilterType type, float freq, float q, float gain)
+  void SetBiquadParams(FilterResponse response, float freq, float q, float gain)
   {
-    mConfig.SetParams(type, freq, q, gain);
+    mConfig.SetBiquadParams(response, freq, q, gain);
   }
 
-  float Q() const {
+  float Q() const
+  {
     return mConfig.Q();
   }
   float freqHz() const
@@ -129,33 +98,34 @@ public:
     return mConfig.FreqHz();
   }
 
-  // IFilter
-  virtual void SetParams(M7::FilterType type, float cutoffHz, float reso01) override
-  {
-    BiquadFilterType bt;
-    switch (type)
-    {
-      case M7::FilterType::HP2:
-      case M7::FilterType::HP4:
-        bt = BiquadFilterType::Highpass;
-        break;
-      default:
-      case M7::FilterType::LP2:
-      case M7::FilterType::LP4:
-        bt = BiquadFilterType::Lowpass;
-        break;
-    }
+  //   void SetParams(FilterCircuit circuit,
+  //                          FilterSlope slope,
+  //                          FilterResponse response,
+  //                          float cutoffHz,
+  //                          float reso01) override
+  //   {
+  //     // M7::ParamAccessor pa{&reso01, 0};
+  //     // float q = pa.GetDivCurvedValue(0, M7::gBiquadFilterQCfg, 0);
 
-    M7::ParamAccessor pa{&reso01, 0};
-    float q = pa.GetDivCurvedValue(0, M7::gBiquadFilterQCfg, 0);
+  // 	//
 
-    SetParams(bt, cutoffHz, q, q);
-  }
-  // IFilter
-  virtual float ProcessSample(float x) override;
+  //     SetBiquadParams(response, cutoffHz, q, 0);
+  //   }
 
   // IFilter
-  virtual void Reset() override
+  //   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+  //   {
+  //     if (circuit != FilterCircuit::Biquad)
+  //       return false;
+  //     if (slope != FilterSlope::Slope12dbOct)
+  //       return false;
+  //     // supports all responses.
+  //     return true;
+  //   }
+
+  float ProcessSample(float x);
+
+  void Reset()
   {
     lastInput = lastLastInput = 0.0f;
     lastOutput = lastLastOutput = 0.0f;
@@ -166,7 +136,7 @@ public:
   {
     this->mConfig = src.mConfig;
   }
-  
+
   const BiquadConfig& GetConfig() const
   {
     return mConfig;
@@ -176,50 +146,79 @@ public:
   float GetMagnitudeAtFrequency(float freqHz) const;
 };
 
-
-class CascadedBiquadFilter
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+class CascadedBiquadFilter : public IFilter
 {
+  static constexpr size_t kMaxStages = 8;
   // 0 stage = bypass
   // 1 stage's slope = 12db/oct.
   // 2 stage = 24db/oct.
   // 3 stage = 36db/oct
   // 4 stage = 48db/oct.
-  BiquadFilter mFilters[4];
+  BiquadFilter mFilters[kMaxStages];
   size_t mNStages;
   float mGainCompensationLinear;
 
 public:
-  explicit CascadedBiquadFilter(size_t nStages = 0)
-      : mNStages(nStages)
+  explicit CascadedBiquadFilter()
+      : mNStages(0)
   {
-    CCASSERT(nStages >= 0 && nStages <= 4);
   }
 
   void Disable()
   {
     mNStages = 0;
-	mGainCompensationLinear = 1;
+    mGainCompensationLinear = 1;
   }
 
-  void SetParams(int nStages, BiquadFilterType type, float freq, float q, float gain)
+  void SetBiquadParams(int nStages, FilterResponse response, float cutoffHz, float q, float gain)
   {
-    CCASSERT(nStages >= 0 && nStages <= 4);
+    CCASSERT(nStages >= 0 && nStages <= kMaxStages);
+
+    // if nStages has increased since last call, we need to reset the new stages.
+    if (nStages > mNStages)
+    {
+      for (size_t i = mNStages; i < nStages; ++i)
+      {
+        mFilters[i].Reset();
+      }
+    }
+
     mNStages = nStages;
 
     if (nStages == 0)
       return;
 
     // Compute coefficients once, then copy to remaining stages.
-    mFilters[0].SetParams(type, freq, q, gain);
+    mFilters[0].SetBiquadParams(response, cutoffHz, q, q);
     for (size_t i = 1; i < nStages; ++i)
     {
       mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
     }
 
-	mGainCompensationLinear = CalculateCompensationGainLinear();
+    mGainCompensationLinear = CalculateCompensationGainLinear();
   }
 
-  float ProcessSample(float x)
+  virtual void SetParams(FilterCircuit circuit,
+                         FilterSlope slope,
+                         FilterResponse response,
+                         real cutoffHz,
+                         real Qdb) override
+  {
+    // convert slope to n stages.
+    int nStages = (int)slope - 1;
+    static_assert(((int)(FilterSlope::Slope12dbOct)-1) == 1, "filter slope enum values must match n stages + 1");
+    static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
+    static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
+
+    SetBiquadParams(nStages, response, cutoffHz, Qdb, 0);
+  }
+
+  // IFilter
+  virtual float ProcessSample(float x) override
   {
     float y = x;
     for (size_t i = 0; i < mNStages; ++i)
@@ -229,13 +228,26 @@ public:
     return y * mGainCompensationLinear;
   }
 
-  void Reset()
+  // IFilter
+  virtual void Reset() override
   {
     for (size_t i = 0; i < mNStages; ++i)
     {
       mFilters[i].Reset();
     }
   }
+
+
+  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response)
+  {
+	if (circuit != FilterCircuit::Biquad)
+	  return false;
+	if (slope < FilterSlope::Slope12dbOct || slope > FilterSlope::Slope96dbOct)
+	  return false;
+	// supports all responses.
+	return true;
+  }
+
 
   float CalculateCompensationGainLinear() const
   {
@@ -246,7 +258,7 @@ public:
     constexpr int kNFreqBins = 32;
     constexpr int kImpulseTaps = 256;
 
-	float sumMag2 = 0.0;
+    float sumMag2 = 0.0;
     for (int k = 0; k < kNFreqBins; ++k)
     {
       const float w = M7::math::gPI * (k + 0.5f) / kNFreqBins;
@@ -281,8 +293,7 @@ public:
     const float sigmaOut = M7::math::sqrt((inputVariance * avgMag2 > kEpsilon) ? (inputVariance * avgMag2) : kEpsilon);
     //const float peakFactor = M7::math::sqrt(2.0f * (float)M7::math::CrtLog(1024.0));
     // empirically determined factor to get close to -0.1dBFS peaks with white noise input. not exact because the noise is not perfectly white, and the filter response is not perfectly flat in passband.
-    constexpr float peakFactor =
-        3.0f;
+    constexpr float peakFactor = 3.0f;
     const float gPeak = 1.0f / (peakFactor * sigmaOut);
 
     float x1[4] = {0, 0, 0, 0};
@@ -292,12 +303,12 @@ public:
     float l1 = 0.0f;
     int tinyTail = 0;
 
-        const auto& cfg = mFilters[0].GetConfig();
-        const float b0 = cfg.normB0();
-        const float b1 = cfg.normB1();
-        const float b2 = cfg.normB2();
-        const float a1 = cfg.normA1();
-        const float a2 = cfg.normA2();
+    const auto& cfg = mFilters[0].GetConfig();
+    const float b0 = cfg.normB0();
+    const float b1 = cfg.normB1();
+    const float b2 = cfg.normB2();
+    const float a1 = cfg.normA1();
+    const float a2 = cfg.normA2();
 
     for (int n = 0; n < kImpulseTaps; ++n)
     {
@@ -331,6 +342,7 @@ public:
     return M7::math::clamp(g, 0.0f, 16.0f);
   }
 };  // class CascadedBiquadFilter
+}  // namespace M7
 }  // namespace WaveSabreCore
 
 

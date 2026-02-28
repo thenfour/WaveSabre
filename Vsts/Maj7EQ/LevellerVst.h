@@ -47,7 +47,7 @@ public:
 		M7::ParamAccessor p{ ((Leveller*)getDevice())->mParamCache, baseParam };
 		using Param = Leveller::BandParamOffsets;
 		OptimizeBoolParam(p, Param::Enable);
-		OptimizeEnumParam<BiquadFilterType>(p, Param::Type);
+		OptimizeEnumParam<M7::FilterResponse>(p, Param::Type);
 
 		if (!p.GetBoolValue(Param::Enable)) {
 			// effect not enabled; set defaults to params.

@@ -79,8 +79,8 @@ namespace WaveSabreCore
 		float mDiff;
 
 		Maj7CompFollower mFollower;
-		BiquadFilter mHighpassFilter;
-		BiquadFilter mLowpassFilter;
+		M7::BiquadFilter mHighpassFilter;
+		M7::BiquadFilter mLowpassFilter;
 
 		void SetParams(
 			//float inputGainLin,
@@ -106,8 +106,8 @@ namespace WaveSabreCore
 
 			mFollower.SetParams(attackMS, releaseMS);
 
-			mHighpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Highpass, highPassFreq, highPassQ, 0);
-			mLowpassFilter.SetParams(::WaveSabreCore::BiquadFilterType::Lowpass, lowPassFreq, lowPassQ, 0);
+			mHighpassFilter.SetBiquadParams(M7::FilterResponse::Highpass, highPassFreq, highPassQ, 0);
+			mLowpassFilter.SetBiquadParams(M7::FilterResponse::Lowpass, lowPassFreq, lowPassQ, 0);
 		}
 
 		// this function defines the transfer curve.

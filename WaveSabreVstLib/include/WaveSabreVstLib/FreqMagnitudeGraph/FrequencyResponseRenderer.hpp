@@ -28,7 +28,7 @@ namespace WaveSabreVstLib {
 
 struct FrequencyResponseRendererFilter {
   const char *thumbColor;
-  const BiquadFilter *filter;
+  const M7::BiquadFilter *filter;
   const char* label = nullptr;
   std::function<void(float freqHz, float gainDb, uintptr_t userData)> HandleChangeParam;
   std::function<void(float qValue, uintptr_t userData)> HandleChangeQ;

@@ -117,12 +117,14 @@ public:
 			const char* selectedHoveredColor = "8800ff";
 			const char* notSelectedHoveredColor = "222299";
 
-			Maj7ImGuiParamEnumMutexButtonArray<BiquadFilterType>((int)paramOffset + (int)Leveller::BandParamOffsets::Type, "type", 30, true, {
-				{ "HP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Highpass, },
-				{ "LS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::LowShelf, },
-				{ "PK", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Peak, },
-				{ "HS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::HighShelf, },
-				{ "LP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, BiquadFilterType::Lowpass, },
+			Maj7ImGuiParamEnumMutexButtonArray<M7::FilterResponse>((int)paramOffset + (int)Leveller::BandParamOffsets::Type, "type", 30, true, {
+				{ "HP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, M7::FilterResponse::Highpass, },
+				{ "LS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, M7::FilterResponse::LowShelf, },
+				{ "PK", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, M7::FilterResponse::Peak, },
+				{ "AP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, M7::FilterResponse::Allpass, },
+				{ "CUT", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, M7::FilterResponse::Notch, },
+				{ "HS", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, M7::FilterResponse::HighShelf, },
+				{ "LP", selectedColor, notSelectedColor, selectedHoveredColor, notSelectedHoveredColor, M7::FilterResponse::Lowpass, },
 				});
 		}
 
@@ -136,8 +138,8 @@ public:
 
 		float typeB = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Type);
 		M7::ParamAccessor typePA{ &typeB, 0 };
-		BiquadFilterType type = typePA.GetEnumValue< BiquadFilterType>(0);
-		ImGui::BeginDisabled(type == BiquadFilterType::Highpass || type == BiquadFilterType::Lowpass);
+		M7::FilterResponse type = typePA.GetEnumValue<M7::FilterResponse>(0);
+		ImGui::BeginDisabled(type == M7::FilterResponse::Highpass || type == M7::FilterResponse::Lowpass);
 		ImGui::SameLine(); Maj7ImGuiParamScaledFloat((int)paramOffset + (int)Leveller::BandParamOffsets::Gain, "Gain(db)", -30.0f, 30.0f, 0, 0, 0, {});
 		ImGui::EndDisabled();
 		ImGui::SameLine(); Maj7ImGuiDivCurvedParam((int)paramOffset + (int)Leveller::BandParamOffsets::Q, "Q", M7::gBiquadFilterQCfg, 1.00f, {});

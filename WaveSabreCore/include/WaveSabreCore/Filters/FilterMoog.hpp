@@ -13,15 +13,24 @@ namespace WaveSabreCore
         {
             // assumes that lpfs are initialized with LP
 
-            virtual void SetParams(FilterType type, real cutoffHz, real reso) override
+            virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, real cutoffHz, real reso) override
             {
-                if ((m_FilterType != type) || (cutoffHz != m_cutoffHz) || (reso != m_resonance)){
-                    m_FilterType = type;
+                if ((mSlope != slope) || (mResponse != response) || (cutoffHz != m_cutoffHz) || (reso != m_resonance)){
+                    mSlope = slope;
+                    mResponse = response;
                     m_cutoffHz = cutoffHz;
                     m_resonance = reso;
                     m_k = reso * real2(3.88);// this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
                     Recalc();
                 }
+            }
+
+            virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+            {
+                if (circuit != FilterCircuit::Moog) return false;
+                if (slope != FilterSlope::Slope24dbOct && slope != FilterSlope::Slope48dbOct) return false;
+                if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass && response != FilterResponse::Bandpass) return false;
+                return true;
             }
 
             virtual real ProcessSample(real x) override
@@ -47,20 +56,25 @@ namespace WaveSabreCore
                 real2 dLP[5];
                 dLP[0] = (xn - m_k * dSigma) * m_alpha_0;
 
-                static const int8_t letterVals[6][5] = {
+                static constexpr int8_t letterVals[6][5] = {
                     {0,0,1,0,0}, // lp2
                     {0,0,0,0,1}, // lp4
-                    {0,2,-2,0,0}, // bp2
-                    {0,0,4,-8,4}, // bp4
                     {1,-2,1,0,0}, // hp2
                     {1,-4,6,-4,1}, // hp4
+                    {0,2,-2,0,0}, // bp2
+                    {0,0,4,-8,4}, // bp4
                 };
+
+                static_assert((size_t)FilterResponse::Lowpass == 0, "filter type enum values must match letterVals table");
+                static_assert((size_t)FilterResponse::Highpass == 1, "filter type enum values must match letterVals table");
+                static_assert((size_t)FilterResponse::Bandpass == 2, "filter type enum values must match letterVals table");
+                size_t filterTypeIndex = (size_t)mResponse * 2 + ((mSlope == FilterSlope::Slope48dbOct) ? 1 : 0);
 
                 // --- cascade of 4 filters
                 real2 output = 0;
                 for (size_t i = 0; i <= 4; ++i) {
                     if (i < 4) dLP[i + 1] = real2(m_LPF[i].ProcessSample(float(dLP[i])));
-                    output += dLP[i] * letterVals[(size_t)m_FilterType][i];
+                    output += dLP[i] * letterVals[filterTypeIndex][i];
                 }
                 //output += dLP[4] * letterVals[(size_t)m_FilterType][4];
 
@@ -97,9 +111,11 @@ namespace WaveSabreCore
                 m_alpha_0 = real2(1) / (m_k * m_gamma + 1);
             }
 
-            OnePoleFilter m_LPF[4];
+            MoogOnePoleFilter m_LPF[4];
 
-            FilterType m_FilterType = (FilterType) - 1;// = FilterType::LP2; initialize to some invaliid value to force an initial recalc.
+            FilterSlope mSlope = (FilterSlope)-1; // = FilterSlope::Slope24dbOct; initialize to some invaliid value to force an initial recalc.
+            FilterResponse mResponse = (FilterResponse)-1; // = FilterResponse::Lowpass; initialize to some invaliid value to force an initial recalc.
+
             real2 m_alpha_0;// = 1; // see block diagram
             real2 m_k;/// = 0;       // K, set with Q
             real2 m_gamma;// = 0;       // see block diagram

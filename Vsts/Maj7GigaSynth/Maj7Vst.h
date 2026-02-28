@@ -691,10 +691,13 @@ public:
 	inline void OptimizeFilter(M7::FilterAuxNode& f)
 	{
 		OptimizeBoolParam(f.mParams, M7::FilterParamIndexOffsets::Enabled);
-		OptimizeEnumParam<M7::FilterModel>(f.mParams, M7::FilterParamIndexOffsets::FilterType);
+		OptimizeEnumParam<M7::FilterCircuit>(f.mParams, M7::FilterParamIndexOffsets::FilterCircuit);
+		OptimizeEnumParam<M7::FilterSlope>(f.mParams, M7::FilterParamIndexOffsets::FilterSlope);
+		OptimizeEnumParam<M7::FilterResponse>(f.mParams, M7::FilterParamIndexOffsets::FilterResponse);
+
 		bool enabled = f.mParams.GetBoolValue(M7::FilterParamIndexOffsets::Enabled);
-		M7::FilterModel model = f.mParams.GetEnumValue<M7::FilterModel>(M7::FilterParamIndexOffsets::FilterType);
-		if (!enabled || model == M7::FilterModel::Disabled) {
+		M7::FilterCircuit circuit = f.mParams.GetEnumValue<M7::FilterCircuit>(M7::FilterParamIndexOffsets::FilterCircuit);
+		if (!enabled || circuit == M7::FilterCircuit::Disabled) {
 			Copy16bitDefaults(f.mParams.GetOffsetParamCache(), M7::gDefaultFilterParams);
 			return;
 		}
@@ -921,7 +924,9 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults(FilterAuxNode* p)
 		{
 			p->mParams.SetBoolValue(FilterParamIndexOffsets::Enabled, false);
-			p->mParams.SetEnumValue<FilterModel>(FilterParamIndexOffsets::FilterType, FilterModel::LP_Moog4);
+			p->mParams.SetEnumValue<FilterCircuit>(FilterParamIndexOffsets::FilterCircuit, FilterCircuit::Moog); // LP MOOG 4
+			p->mParams.SetEnumValue<FilterSlope>(FilterParamIndexOffsets::FilterSlope, FilterSlope::Slope24dbOct);
+			p->mParams.SetEnumValue<FilterResponse>(FilterParamIndexOffsets::FilterResponse, FilterResponse::Lowpass);
 			p->mParams.Set01Val(FilterParamIndexOffsets::Freq, 0.3f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::FreqKT, 1.0f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::Q, 0.2f);

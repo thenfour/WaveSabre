@@ -52,7 +52,7 @@ namespace WaveSabreCore
 		  16422, // OutGain = 0.50118720531463623047
 		};
 
-		M7::OnePoleFilter mFilter;
+		M7::MoogOnePoleFilter mFilter;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		AnalysisStream mInputAnalysis[2];
@@ -91,7 +91,8 @@ namespace WaveSabreCore
 		virtual void Run(float** inputs, float** outputs, int numSamples) override
 		{
 			auto gains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
-			mFilter.SetParams(M7::FilterType::HP, mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig), 0);
+			mFilter.SetParams(M7::FilterCircuit::OnePole, M7::FilterSlope::Slope6dbOct,
+				M7::FilterResponse::Highpass, mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig), 0);
 			float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg) * M7::math::gPanCompensationGainLin;
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)

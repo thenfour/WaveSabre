@@ -1421,13 +1421,17 @@ enum class ParamIndices : uint16_t
   LFO4Sharpness,
 
   Filter1Enabled,
-  Filter1Type,  // filter type
+  Filter1Circuit,
+  Filter1Slope,
+  Filter1Response,
   Filter1Q,
   Filter1Freq,
   Filter1FreqKT,
 
   Filter2Enabled,
-  Filter2Type,  // filter type
+  Filter2Circuit,
+  Filter2Slope,
+  Filter2Response,
   Filter2Q,
   Filter2Freq,
   Filter2FreqKT,
@@ -2190,7 +2194,9 @@ enum class
     FilterParamIndexOffsets : uint8_t  // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
 {
   Enabled,
-  FilterType,  // filter type
+  FilterCircuit,  // filter type
+  FilterSlope,  // filter type
+  FilterResponse,  // filter type
   Q,           // param2: filter Q
   Freq,        // filter freq
   FreqKT,      // filter KT

@@ -1,0 +1,34 @@
+
+#pragma once
+
+#include "FilterOnePole.hpp"
+
+namespace WaveSabreCore
+{
+namespace M7
+{
+struct ButterworthFilter : IFilter
+{
+  virtual void SetParams(FilterCircuit circuit,
+                         FilterSlope slope,
+                         FilterResponse response,
+                         real cutoffHz,
+                         real reso) override
+  {
+    //
+  }
+  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+  {
+    return false;
+  }
+  virtual real ProcessSample(real x) override
+  {
+    return x;
+  }
+  virtual void Reset() override
+  {
+    //
+  }
+}; // class ButterworthFilter
+}  // namespace M7
+}  // namespace WaveSabreCore

@@ -127,10 +127,12 @@ namespace WaveSabreCore {
           512, // O1Mul = 0.015625
           0, // O1FMFb = 0
         };
-        static_assert((int)M7::FilterParamIndexOffsets::Count == 5, "param count probably changed and this needs to be regenerated.");
-        const int16_t gDefaultFilterParams[5] = {
+        static_assert((int)M7::FilterParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
+        const int16_t gDefaultFilterParams[7] = {
           0, // F1En = 0
-          153, // F1Type = 0.004669189453125
+          0, // F1Type = 0.004669189453125
+          0, // F1Type = 0.004669189453125
+          0, // F1Type = 0.004669189453125
           6553, // F1Q = 0.199981689453125
           9830, // F1Freq = 0.29998779296875
           32767, // F1FKT = 0.999969482421875

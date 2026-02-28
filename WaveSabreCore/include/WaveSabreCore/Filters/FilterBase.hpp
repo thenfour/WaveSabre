@@ -4,149 +4,105 @@
 
 #include "../Maj7Basic.hpp"
 
-//#include <cmath>
-//#include <algorithm>
-
 namespace WaveSabreCore
 {
-    namespace M7
-    {
-        using real = real_t;
-        template <typename T>
-        constexpr real Real(const T x)
-        {
-            return static_cast<real>(x);
-            //return {x};
-        };
-        constexpr real RealPI = real{ 3.14159265358979323846264338327950288f };
-        constexpr real PITimes2 = real{ 2.0f } *RealPI;
-        constexpr real Real0 = real{ 0.0f };
-        constexpr real Real1 = real{ 1.0f };
-        constexpr real Real2 = real{ 2.0f };
+namespace M7
+{
+using real = real_t;
+template <typename T>
+constexpr real Real(const T x)
+{
+  return static_cast<real>(x);
+  //return {x};
+};
+constexpr real RealPI = real{3.14159265358979323846264338327950288f};
+constexpr real PITimes2 = real{2.0f} * RealPI;
+constexpr real Real0 = real{0.0f};
+constexpr real Real1 = real{1.0f};
+constexpr real Real2 = real{2.0f};
 
-        //constexpr real SampleRate = real(44100.0f);
-        //constexpr real OneOverSampleRate = Real1 / Real(44100.0f);
+// because many filters use certain static multipliers (coefs) based on filter type,
+// these should be indexable. that's why LP and LP2 are the same value, so there's no "empty" items here. there is no
+// scenario where LP and LP2 are required to be distinctly separate underlying values.
+// enum class FilterType
+// {
+//     LP = 0, // interpreted as "any lp"
+//     LP2 = 0,
+//     LP4 = 1,
+//     LP8 = 2,
 
-        // overdrive amt can be between 0 and up, but practical range 0-1.5 or so.
-        //inline void applyOverdrive(real& pio_input, real m_overdrive, real p_tanh_factor)
-        //{
-        //    real overdrive_modded = m_overdrive;
-        //    overdrive_modded = overdrive_modded < Real0 ? Real0 : overdrive_modded;
-        //    if (overdrive_modded > Real(0.01) && overdrive_modded < Real1)
-        //    {
-        //        // interpolate here so we have possibility of pure linear Processing
-        //        pio_input = pio_input * (Real1 - overdrive_modded) + overdrive_modded * math::tanh(pio_input * p_tanh_factor);
-        //    }
-        //    else if (overdrive_modded >= Real1)
-        //    {
-        //        pio_input = math::tanh(overdrive_modded * pio_input * p_tanh_factor);
-        //    }
-        //}
+//     BP = 3, // interpreted as "any bp"
+//     BP2 =3,
+//     BP4 = 4,
+//     BP8 = 5,
 
-        //inline void applyOverdrive(real& L, real& R, real m_overdrive, real p_tanh_factor)
-        //{
-        //    real overdrive_modded = m_overdrive;
-        //    overdrive_modded = overdrive_modded < Real0 ? Real0 : overdrive_modded;
-        //    if (overdrive_modded > Real(0.01) && overdrive_modded < Real1)
-        //    {
-        //        // interpolate here so we have possibility of pure linear Processing
-        //        L = L * (Real1 - overdrive_modded) + overdrive_modded * fasttanh(L, p_tanh_factor);
-        //        R = R * (Real1 - overdrive_modded) + overdrive_modded * fasttanh(R, p_tanh_factor);
-        //    }
-        //    else if (overdrive_modded >= Real1)
-        //    {
-        //        L = fasttanh(overdrive_modded * L, p_tanh_factor);
-        //        R = fasttanh(overdrive_modded * R, p_tanh_factor);
-        //    }
-        //}
+//     HP = 6, // interpreted as "any hp"
+//     HP2 = 6,
+//     HP4 = 7,
+// };
 
+enum class FilterCircuit
+{
+  Disabled = 0,
+  OnePole,
+  Biquad,
+  Butterworth,
+  Moog,
+  K35,
+  Diode,
+};
 
-        // because many filters use certain static multipliers (coefs) based on filter type, 
-        // these should be indexable. that's why LP and LP2 are the same value, so there's no "empty" items here. there is no
-        // scenario where LP and LP2 are required to be distinctly separate underlying values.
-        enum class FilterType
-        {
-            LP = 0, // interpreted as "any lp"
-            LP2 = 0,
-            LP4 = 1,
-            BP = 2, // interpreted as "any bp"
-            BP2 =2,
-            BP4 = 3,
-            HP = 4, // interpreted as "any hp"
-            HP2 = 4,
-            HP4 = 5,
-        };
+// 0 = bypass,
+// 1 stage = 12db/oct.
+// 2 stage = 24
+// ...
+// 4 stage = 48db/oct.
+// ...
+// 8 stage = 96db/oct.
+enum class FilterSlope
+{
+  Flat = 0,
+  Slope6dbOct = 1,
+  Slope12dbOct = 2, // 1 stage of biquad
+  Slope24dbOct = 3,
+  Slope36dbOct = 4,
+  Slope48dbOct = 5,
+  Slope60dbOct = 6,
+  Slope72dbOct = 7,
+  Slope84dbOct = 8,
+  Slope96dbOct = 9, // 8 stages of biquad
+};
 
-        //// BINARY FLAGS
-        //enum class FilterCapabilities
-        //{
-        //    None = 0,
-        //    Cutoff = 1,
-        //    Resonance = 2,
-        //    Saturation = 4,
-        //};
+enum class FilterResponse
+{
+  Lowpass,
+  Highpass,
+  Bandpass,
+  Notch,
+  Allpass,
+  Peak,
+  HighShelf,
+  LowShelf,
+};
 
-        struct IFilter
-        {
-            //virtual void SetType(FilterType type) = 0;
-            //virtual FilterCapabilities GetCapabilities() = 0;
-            //virtual void SetCutoffFrequency(real hz) = 0;
-            //virtual void SetSaturation(real amt)
-            //{
-            //} // 0-1 range
-            //virtual void SetResonance(real amt)
-            //{
-            //}
-            virtual void SetParams(FilterType type, real cutoffHz, real reso) = 0;
+struct IFilter
+{
+  virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, real cutoffHz, real reso) = 0;
+  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) = 0;
+  virtual real ProcessSample(real x) = 0;
+  virtual void Reset() = 0;
+};
 
-            //virtual real GetGain01AtFrequency(real frequency) = 0;
+struct NullFilter : IFilter
+{
+  virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, real cutoffHz, real reso) override {}
+  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override { return true; }
+  virtual real ProcessSample(real x) override
+  {
+    return x;
+  }
+  virtual void Reset() override {}
+};
 
-            //virtual void ProcessInPlace(real* samples, size_t sampleCount) = 0;
-            virtual real ProcessSample(real x) = 0;
-            //virtual void ProcessInPlace(real* samplesL, real* samplesR, size_t sampleCount) = 0;
-            //virtual void ProcessSample(real& l, real& r) = 0;
-            virtual void Reset() = 0;
-        };
-
-        struct NullFilter : IFilter
-        {
-            //virtual void SetType(FilterType type) override
-            //{
-            //}
-            //virtual FilterCapabilities GetCapabilities() override
-            //{
-            //    return FilterCapabilities::None;
-            //}
-            //virtual void SetCutoffFrequency(real hz) override
-            //{
-            //}
-            virtual void SetParams(FilterType type, real cutoffHz, real reso) override
-            {
-            }
-            //virtual void ProcessInPlace(real* samples, size_t sampleCount) override
-            //{
-            //}
-            virtual real ProcessSample(real x) override
-            {
-                return x;
-            }
-            //virtual void ProcessInPlace(real* samplesL, real* samplesR, size_t sampleCount) override
-            //{
-            //}
-            //virtual void ProcessSample(real& l, real& r) override
-            //{
-            //}
-            virtual void Reset() override
-            {
-            }
-        };
-
-    } // namespace M7
-} // namespace WaveSabreCore
-
-
-
-
-
-
-
+}  // namespace M7
+}  // namespace WaveSabreCore

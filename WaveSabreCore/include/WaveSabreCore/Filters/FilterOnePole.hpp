@@ -10,33 +10,26 @@ namespace WaveSabreCore
 {
     namespace M7
     {
-        struct OnePoleFilter : public IFilter
+        struct MoogOnePoleFilter : public IFilter
         {
-            virtual void SetParams(FilterType type, float cutoffHz, float reso) override
+            virtual void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, float cutoffHz, float reso) override
             {
-                if ((m_FilterType == type) && (m_cutoffHz == cutoffHz))
+                if (!DoesSupport(circuit, slope, response))
                 {
                     return;
                 }
-                switch (type)
-                {
-                default:
-                //se FilterType::LP:
-                case FilterType::LP2:
-                case FilterType::LP4:
-                    m_FilterType = FilterType::LP2;
-                    //Recalc();
-                    break;
-                //se FilterType::HP:
-                case FilterType::HP2:
-                case FilterType::HP4:
-                    m_FilterType = FilterType::HP2;
-                    //Recalc();
-                    break;
-                }
 
+                mResponse = response;
                 m_cutoffHz = cutoffHz;
                 Recalc();
+            }
+
+            virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+            {
+                if (circuit != FilterCircuit::OnePole) return false;
+                if (slope != FilterSlope::Slope6dbOct) return false;
+                if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass) return false;
+                return true;
             }
 
             virtual void Reset() override
@@ -60,7 +53,7 @@ namespace WaveSabreCore
                 real2 lpf = vn + m_z_1L;
                 // update memory
                 m_z_1L = vn + lpf;
-                if (m_FilterType == FilterType::LP2)
+                if (mResponse == FilterResponse::Lowpass)
                 {
                     return float(lpf);
                 }
@@ -68,10 +61,10 @@ namespace WaveSabreCore
                 return float(hpf);
             }
 
-            float ProcessSample(float xn, FilterType type, float cutoffHz) {
-                SetParams(type, cutoffHz, 0);
-                return ProcessSample(xn);
-            }
+            // float ProcessSample(float xn, FilterType type, float cutoffHz) {
+            //     SetParams(type, cutoffHz, 0);
+            //     return ProcessSample(xn);
+            // }
 
             // all get written to directly by other filters; so yea.
             real2 m_alpha = 1; // Feed Forward coeff
@@ -84,8 +77,7 @@ namespace WaveSabreCore
 
         private:
 
-            // NOTE: it's important that this is set to LP by default; it's what the Moog filter expects.
-            FilterType m_FilterType = FilterType::LP2;
+            FilterResponse mResponse = FilterResponse::Lowpass;
             float m_cutoffHz = 10000;
 
             real2 m_z_1L = 0; // z-1 storage location, left/mono

@@ -83,14 +83,14 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
   {
     default:
     case OscillatorWaveform::SineDCClip:
-      return new SineCoreExt(OscillatorWaveform::SineDCClip, SineCoreExtVariant::DCClip);
+      return new SineCoreExt(w, SineCoreExtVariant::DCClip);
     case OscillatorWaveform::SineClipSqueeze:
-      return new SineCoreExt(OscillatorWaveform::SineClipSqueeze, SineCoreExtVariant::ClipSilence);
+      return new SineCoreExt(w, SineCoreExtVariant::ClipSilence);
 
     case OscillatorWaveform::SineHarmDCClip:
-      return new SineCoreExt(OscillatorWaveform::SineHarmDCClip,  SineCoreExtVariant::ClipHarm);
+      return new SineCoreExt(w,  SineCoreExtVariant::ClipHarm);
     case OscillatorWaveform::SineHarmClipSqueeze:
-      return new SineCoreExt(OscillatorWaveform::SineHarmClipSqueeze, SineCoreExtVariant::HarmSilence);
+      return new SineCoreExt(w, SineCoreExtVariant::HarmSilence);
 
     case OscillatorWaveform::ShapeCoreSawTri:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::SawGenerator);
@@ -104,31 +104,29 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
 
     case OscillatorWaveform::FoldedSine:
-      return new FoldedCore(OscillatorWaveform::FoldedSine, FoldedCore::Style::Sine_Fold_Bias);
+      return new FoldedSineCore(w);
     case OscillatorWaveform::FoldedTriangle:
-      return new FoldedCore(OscillatorWaveform::FoldedTriangle, FoldedCore::Style::Tri_Fold_Bias);
-    case OscillatorWaveform::FoldedTriBL:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::FoldedTriGenerator);
 
       case OscillatorWaveform::EvolvingGrainNoise:
-      return new EvolvingGrainNoiseCore(OscillatorWaveform::EvolvingGrainNoise);
+      return new EvolvingGrainNoiseCore(w);
 
     case OscillatorWaveform::Noise_SaH_LP4:
-      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_LP4, SAHNoiseCore::ControlStyle::LP_Jitter);
+      return new SAHNoiseCore(w, SAHNoiseCore::ControlStyle::LP_Jitter);
     case OscillatorWaveform::Noise_SaH_HP4:
-      return new SAHNoiseCore(OscillatorWaveform::Noise_SaH_HP4, SAHNoiseCore::ControlStyle::HP_Jitter);
+      return new SAHNoiseCore(w, SAHNoiseCore::ControlStyle::HP_Jitter);
 
     case OscillatorWaveform::Noise_White_ProbDuty:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbDuty, WhiteNoiseCore2::ControlStyle::Prob_Duty);
+      return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Prob_Duty);
     case OscillatorWaveform::Noise_White_ProbLP:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbLP, WhiteNoiseCore2::ControlStyle::Prob_LP);
+      return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Prob_LP);
     case OscillatorWaveform::Noise_White_ProbBP:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_ProbBP, WhiteNoiseCore2::ControlStyle::Prob_BP);
+      return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Prob_BP);
 
       case OscillatorWaveform::Noise_White_DutyLP:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_DutyLP, WhiteNoiseCore2::ControlStyle::Duty_LP);
+      return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_LP);
     case OscillatorWaveform::Noise_White_DutyBP:
-      return new WhiteNoiseCore2(OscillatorWaveform::Noise_White_DutyBP, WhiteNoiseCore2::ControlStyle::Duty_BP);
+      return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_BP);
   }
 }
 

@@ -611,7 +611,7 @@ struct SAHNoiseCore : public OscillatorCore
   SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
       : OscillatorCore(waveformType)
       , mControlStyle(controlStyle)
-      , mFilter(2)
+      , mFilter()
   {
   }
 
@@ -620,12 +620,12 @@ struct SAHNoiseCore : public OscillatorCore
     mJitter01 = math::clamp01(mWaveshapeB);
     static constexpr float kFixedQ = 0.707f;
 
-    mFilter.SetParams(2,
-                      (mControlStyle == ControlStyle::HP_Jitter) ? BiquadFilterType::Highpass
-                                                                 : BiquadFilterType::Lowpass,
+    mFilter.SetParams(FilterCircuit::Biquad,
+                      FilterSlope::Slope24dbOct, // 2 stage.
+                      (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
+                                                                 : FilterResponse::Lowpass,
                       this->GetFrequency(mWaveshapeA),
-                      kFixedQ,
-                      0.0f);
+                      kFixedQ);
   }
 
 
@@ -852,7 +852,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
 
   WhiteNoiseCore2(OscillatorWaveform waveformType, ControlStyle controlStyle)
       : OscillatorCore(waveformType)
-      , mFilter(2)
+      , mFilter()
       , mControlStyle(controlStyle)
   {
   }
@@ -887,7 +887,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
       }
     }
 
-    auto filterType = BiquadFilterType::Lowpass;  // default, may be overridden below
+    auto filterType = FilterResponse::Lowpass;  // default, may be overridden below
 
     switch (mControlStyle)
     {
@@ -896,7 +896,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
         break;
       case ControlStyle::Prob_BP:
       case ControlStyle::Duty_BP:
-        filterType = BiquadFilterType::Bandpass;
+        filterType = FilterResponse::Bandpass;
       case ControlStyle::Prob_LP:
       //case ControlStyle::Prob_HP:
       case ControlStyle::Duty_LP:
@@ -904,7 +904,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
         {
           ParamAccessor pa{&mWaveshapeB, 0};
           float q = pa.GetDivCurvedValue(0, gBiquadFilterQCfg);
-          mFilter.SetParams(2, filterType, this->mMainFrequencyHz, q, 0.0f);
+          mFilter.SetParams(FilterCircuit::Biquad, FilterSlope::Slope24dbOct, filterType, this->mMainFrequencyHz, q);
           break;
         }
     }

@@ -140,8 +140,8 @@ namespace WaveSabreCore
 			void RecalcFilters()
 			{
 				for (size_t i = 0; i < 2; ++i) {
-					mFilters[i].SetParams(
-						mParams.GetEnumValue<BiquadFilterType>(BandParamOffsets::Type),
+					mFilters[i].SetBiquadParams(
+						mParams.GetEnumValue<M7::FilterResponse>(BandParamOffsets::Type),
 						mParams.GetFrequency(BandParamOffsets::Freq, M7::gFilterFreqConfig),
 						mParams.GetDivCurvedValue(BandParamOffsets::Q, M7::gBiquadFilterQCfg),
 						mParams.GetScaledRealValue(BandParamOffsets::Gain, M7::gEqBandGainMin, M7::gEqBandGainMax, 0)
@@ -151,7 +151,7 @@ namespace WaveSabreCore
 
 			M7::ParamAccessor mParams;
 
-			BiquadFilter mFilters[2];
+			M7::BiquadFilter mFilters[2];
 		};
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT

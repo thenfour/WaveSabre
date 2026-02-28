@@ -13,8 +13,8 @@ struct DelayCore
 {
 private:
   DelayBuffer mBuffers[2];
-  BiquadFilter mLowCutFilter[2];
-  BiquadFilter mHighCutFilter[2];
+  M7::BiquadFilter mLowCutFilter[2];
+  M7::BiquadFilter mHighCutFilter[2];
   float mFeedbackDriveGainCompensationFact;
 
 public:
@@ -94,12 +94,12 @@ public:
 
     for (int i = 0; i < 2; i++)
     {
-      mLowCutFilter[i].SetParams(BiquadFilterType::Highpass,
+      mLowCutFilter[i].SetBiquadParams(M7::FilterResponse::Highpass,
                                  lowCutFreqHz,
                                  lowCutQ,
                                  0  // gain
       );
-      mHighCutFilter[i].SetParams(BiquadFilterType::Lowpass,
+      mHighCutFilter[i].SetBiquadParams(M7::FilterResponse::Lowpass,
                                   highCutFreqHz,
                                   highCutQ,
                                   0  // gain
