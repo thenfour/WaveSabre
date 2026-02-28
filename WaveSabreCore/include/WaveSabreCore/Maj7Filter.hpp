@@ -58,9 +58,9 @@ struct FilterNode
     mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, qdb);
     if (mSelectedFilter != nextFilter)
     {
+      mSelectedFilter = nextFilter;
       mSelectedFilter->Reset();
     }
-    mSelectedFilter = nextFilter;
   }
 
   float ProcessSample(float inputSample)
