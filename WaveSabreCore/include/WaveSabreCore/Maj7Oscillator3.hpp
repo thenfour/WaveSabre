@@ -61,6 +61,16 @@ struct TriPulseGenerator2 : public IShapeGenerator
   }
 };
 
+struct FoldedTriGenerator : public IShapeGenerator
+{
+  WVShape GetShape(float shapeA, float shapeB) const override
+  {
+    const float drive = 1.0f + 15.0f * math::clamp01(shapeA);
+    const float bias = (math::clamp01(shapeB) - 0.5f) * 4.0f;
+    return MakeFoldedTriangleShape(drive, bias);
+  }
+};
+
 }  // namespace M7Osc4
 
 inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorIntention intention)
@@ -97,6 +107,8 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new FoldedCore(OscillatorWaveform::FoldedSine, FoldedCore::Style::Sine_Fold_Bias);
     case OscillatorWaveform::FoldedTriangle:
       return new FoldedCore(OscillatorWaveform::FoldedTriangle, FoldedCore::Style::Tri_Fold_Bias);
+    case OscillatorWaveform::FoldedTriBL:
+      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::FoldedTriGenerator);
 
       case OscillatorWaveform::EvolvingGrainNoise:
       return new EvolvingGrainNoiseCore(OscillatorWaveform::EvolvingGrainNoise);

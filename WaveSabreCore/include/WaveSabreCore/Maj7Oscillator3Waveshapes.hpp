@@ -90,6 +90,120 @@ static inline WVShape MakeTriSquareShape(float duty01, float triSquare01)
 
   return MakeTrapezoidShape1(idleLow01, rampUp01, idleHigh01, rampDown01);
 }
+
+// Folded triangle built as piecewise-linear WVShape so ShapeCoreStreaming can apply BLEP/BLAMP.
+// shapeA controls fold drive (1..16), shapeB controls bias (-2..+2).
+static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
+{
+  drive = (drive < 1.0f) ? 1.0f : drive;
+
+  auto fold_reflect = [](float x)
+  {
+    const float threshold = 1.0f;
+    const float period = threshold * 2.0f;
+    const float ax = std::abs(x);
+    float m = math::fmod(ax, period);
+    if (m < 0.0f)
+      m += period;
+    const float r = (m <= threshold) ? m : (period - m);
+    return std::copysign(r, x);
+  };
+
+  struct TriBaseSeg
+  {
+    double p0 = 0.0;
+    double p1 = 0.0;
+    float slope = 0.0f;
+    float intercept = 0.0f;
+  };
+
+  // Tri over [0,1):
+  // [0,0.25): y=4p
+  // [0.25,0.75): y=2-4p
+  // [0.75,1): y=4p-4
+  const TriBaseSeg baseSegs[] = {
+      {0.0, 0.25, 4.0f, 0.0f},
+      {0.25, 0.75, -4.0f, 2.0f},
+      {0.75, 1.0, 4.0f, -4.0f},
+  };
+
+  std::vector<double> breakpoints;
+  breakpoints.reserve(64);
+  breakpoints.push_back(0.0);
+  breakpoints.push_back(0.25);
+  breakpoints.push_back(0.75);
+  breakpoints.push_back(1.0);
+
+  static constexpr double eps = 1e-8;
+
+  for (const auto& seg : baseSegs)
+  {
+    const float xSlope = drive * seg.slope;
+    const float xIntercept = drive * seg.intercept + bias;
+
+    const float x0 = xSlope * float(seg.p0) + xIntercept;
+    const float x1 = xSlope * float(seg.p1) + xIntercept;
+    const float xmin = (x0 < x1) ? x0 : x1;
+    const float xmax = (x0 > x1) ? x0 : x1;
+
+    const int nMin = (int)std::floor(xmin);
+    const int nMax = (int)std::ceil(xmax);
+    for (int n = nMin; n <= nMax; ++n)
+    {
+      const double p = (double(n) - double(xIntercept)) / double(xSlope);
+      if (p > seg.p0 + eps && p < seg.p1 - eps)
+      {
+        breakpoints.push_back(p);
+      }
+    }
+  }
+
+  std::sort(breakpoints.begin(), breakpoints.end());
+  breakpoints.erase(std::unique(breakpoints.begin(), breakpoints.end(),
+                                [](double a, double b) { return std::abs(a - b) <= 1e-7; }),
+                    breakpoints.end());
+
+  WVShape shape;
+  shape.mSegments.reserve(breakpoints.size());
+
+  for (size_t i = 0; i + 1 < breakpoints.size(); ++i)
+  {
+    const double p0 = breakpoints[i];
+    const double p1 = breakpoints[i + 1];
+    const double dp = p1 - p0;
+    if (dp <= eps)
+      continue;
+
+    float tri0 = 0.0f;
+    float tri1 = 0.0f;
+    if (p0 < 0.25)
+      tri0 = float(4.0 * p0);
+    else if (p0 < 0.75)
+      tri0 = float(2.0 - 4.0 * p0);
+    else
+      tri0 = float(4.0 * p0 - 4.0);
+
+    if (p1 <= 0.25)
+      tri1 = float(4.0 * p1);
+    else if (p1 <= 0.75)
+      tri1 = float(2.0 - 4.0 * p1);
+    else
+      tri1 = float(4.0 * p1 - 4.0);
+
+    const float y0 = fold_reflect(drive * tri0 + bias);
+    const float y1 = fold_reflect(drive * tri1 + bias);
+    const float slope = (y1 - y0) / float(dp);
+
+    shape.mSegments.push_back(WVSegment{p0, p1, y0, slope});
+  }
+
+  if (shape.mSegments.empty())
+  {
+    shape.mSegments.push_back(WVSegment{0.0, 1.0, 0.0f, 0.0f});
+  }
+
+  return shape;
+}
 static inline WVShape MakePulseShape(double dutyCycle01)
 {
   dutyCycle01 = math::clamp(dutyCycle01, 0.005, 0.995);
@@ -305,25 +419,127 @@ struct SineCoreExt : public OscillatorCore
 };
 
 
-struct FoldedCore : public OscillatorCore
-{
-  enum class Style
-  {
-    Sine_Fold_Bias,  // A = fold amount; B = bias
-    Tri_Fold_Bias,   // A = fold amount; B = bias
-    //TriSaw_Fold_Shape,  // A = fold amount; B = shape (tri-saw)
-  };
+// struct FoldedCore : public OscillatorCore
+// {
+//   enum class Style
+//   {
+//     Sine_Fold_Bias,  // A = fold amount; B = bias
+//     Tri_Fold_Bias,   // A = fold amount; B = bias
+//     //TriSaw_Fold_Shape,  // A = fold amount; B = shape (tri-saw)
+//   };
 
-  FoldedCore(OscillatorWaveform waveformType, Style style)
+//   FoldedCore(OscillatorWaveform waveformType, Style style)
+//       : OscillatorCore(waveformType)
+//       , mStyle(style)
+//   {
+//   }
+
+//   float mDrive = 1.0f;  // >= 1.0
+//   float mBias = 0.0f;   // DC offset before folding
+//   //float mTriSaw = 0;
+//   Style mStyle;
+
+//   void HandleParamsChanged() override
+//   {
+//     mDrive = 1.0f + 15.0f * mWaveshapeA;  // 1 - 16x
+
+//     // B: symmetry/bias 0..1 -> -1..1; actually in theory -2..2 is usable to catch ALL signal.
+//     mBias = (mWaveshapeB - 0.5f) * 4.0f;
+//   }
+
+//   static inline float fold_reflect(float x)
+//   {
+//     const float threshold = 1;
+//     const float ax = std::abs(x);
+//     const float per = 2 * threshold;
+//     float m = math::fmod(ax, per);
+//     if (m < 0.0f)
+//       m += per;
+
+//     const float r = (m <= threshold) ? m : (per - m);
+//     return std::copysign(r, x);
+//   }
+
+//   // naive triangle - saw shape, outputting [-1,1]; period over [0,1).
+//   real_t naiveTri01(real_t x01)
+//   {
+//     x01 = math::fract(x01);
+//     if (x01 < 0.25f)
+//       return x01 * 4;  // over 0,.25, *4 gives 0..1 (ramp up)
+//     if (x01 < 0.75f)
+//       return 2 - x01 * 4;  // over .25,.75, *4 gives 1..-1, and 2- that gives 1..-1 (ramp down)
+//     return x01 * 4 - 4;    // over .75,1, *4 gives -1..0 (ramp up)
+//   }
+
+//   // // triangle->saw morph, output [-1,+1], period over [0,1).
+//   // real_t naiveTriSaw01(real_t x01, real_t triSawShape01)
+//   // {
+//   //   x01 = math::fract(x01);
+
+//   //   // Clamp shape to [0,1]
+//   //   const real_t s = math::clamp(triSawShape01, (real_t)0, (real_t)1);
+
+//   //   // Rise portion length: 0.5 (triangle) -> 1.0 (pure rising saw)
+//   //   const real_t riseLen = (real_t)0.5 + (real_t)0.5 * s;
+//   //   const real_t fallLen = (real_t)1.0 - riseLen;
+
+//   //   // Phase shift so that s=0 matches your existing waveform's phase:
+//   //   // peak at 0.25, trough at 0.75, y(0)=0.
+//   //   const real_t x = math::fract(x01 + (real_t)0.25);
+
+//   //   // Canonical asymmetric triangle that goes -1 -> +1 over riseLen, then +1 -> -1 over fallLen.
+//   //   if (x < riseLen)
+//   //   {
+//   //     // -1 .. +1
+//   //     return (real_t)-1.0 + (real_t)2.0 * (x / riseLen);
+//   //   }
+//   //   else
+//   //   {
+//   //     // When fallLen goes to 0 (s -> 1), this branch is never taken (since riseLen -> 1).
+//   //     // Still, guard against tiny fallLen for numerical safety.
+//   //     const real_t denom = std::max(fallLen, (real_t)1e-12);
+//   //     const real_t t = (x - riseLen) / denom;  // 0..1
+//   //     return (real_t)1.0 - (real_t)2.0 * t;    // +1 .. -1
+//   //   }
+//   // }
+
+//   inline float sampleWaveform(float phase01)
+//   {
+//     if (mStyle == Style::Sine_Fold_Bias)
+//     {
+//       return math::sin(math::gPITimes2 * phase01);
+//     }
+//     return naiveTri01(phase01);
+//   }
+
+//   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+//   {
+//     const PhaseStep step = mPhaseAcc.advanceOneSample();
+
+//     const double phase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
+//     const float s = sampleWaveform((float)phase01);  // math::sin(math::gPITimes2 * float(phase01));
+
+//     const float driven = mDrive * s + mBias;
+//     float y = fold_reflect(driven);
+
+//     return CoreSample{
+//         .amplitude = y,
+//         .phaseAdvance = step,
+//     };
+//   }
+// };
+
+
+
+struct FoldedSineCore : public OscillatorCore
+{
+  FoldedSineCore(OscillatorWaveform waveformType)
       : OscillatorCore(waveformType)
-      , mStyle(style)
   {
   }
 
   float mDrive = 1.0f;  // >= 1.0
   float mBias = 0.0f;   // DC offset before folding
-  //float mTriSaw = 0;
-  Style mStyle;
 
   void HandleParamsChanged() override
   {
@@ -346,64 +562,12 @@ struct FoldedCore : public OscillatorCore
     return std::copysign(r, x);
   }
 
-  // naive triangle - saw shape, outputting [-1,1]; period over [0,1).
-  real_t naiveTri01(real_t x01)
-  {
-    x01 = math::fract(x01);
-    if (x01 < 0.25f)
-      return x01 * 4;  // over 0,.25, *4 gives 0..1 (ramp up)
-    if (x01 < 0.75f)
-      return 2 - x01 * 4;  // over .25,.75, *4 gives 1..-1, and 2- that gives 1..-1 (ramp down)
-    return x01 * 4 - 4;    // over .75,1, *4 gives -1..0 (ramp up)
-  }
-
-  // // triangle->saw morph, output [-1,+1], period over [0,1).
-  // real_t naiveTriSaw01(real_t x01, real_t triSawShape01)
-  // {
-  //   x01 = math::fract(x01);
-
-  //   // Clamp shape to [0,1]
-  //   const real_t s = math::clamp(triSawShape01, (real_t)0, (real_t)1);
-
-  //   // Rise portion length: 0.5 (triangle) -> 1.0 (pure rising saw)
-  //   const real_t riseLen = (real_t)0.5 + (real_t)0.5 * s;
-  //   const real_t fallLen = (real_t)1.0 - riseLen;
-
-  //   // Phase shift so that s=0 matches your existing waveform's phase:
-  //   // peak at 0.25, trough at 0.75, y(0)=0.
-  //   const real_t x = math::fract(x01 + (real_t)0.25);
-
-  //   // Canonical asymmetric triangle that goes -1 -> +1 over riseLen, then +1 -> -1 over fallLen.
-  //   if (x < riseLen)
-  //   {
-  //     // -1 .. +1
-  //     return (real_t)-1.0 + (real_t)2.0 * (x / riseLen);
-  //   }
-  //   else
-  //   {
-  //     // When fallLen goes to 0 (s -> 1), this branch is never taken (since riseLen -> 1).
-  //     // Still, guard against tiny fallLen for numerical safety.
-  //     const real_t denom = std::max(fallLen, (real_t)1e-12);
-  //     const real_t t = (x - riseLen) / denom;  // 0..1
-  //     return (real_t)1.0 - (real_t)2.0 * t;    // +1 .. -1
-  //   }
-  // }
-
-  inline float sampleWaveform(float phase01)
-  {
-    if (mStyle == Style::Sine_Fold_Bias)
-    {
-      return math::sin(math::gPITimes2 * phase01);
-    }
-    return naiveTri01(phase01);
-  }
-
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const PhaseStep step = mPhaseAcc.advanceOneSample();
 
     const double phase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
-    const float s = sampleWaveform((float)phase01);  // math::sin(math::gPITimes2 * float(phase01));
+    const float s = math::sin(math::gPITimes2 * float(phase01));
 
     const float driven = mDrive * s + mBias;
     float y = fold_reflect(driven);
@@ -414,6 +578,7 @@ struct FoldedCore : public OscillatorCore
     };
   }
 };
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct SAHNoiseCore : public OscillatorCore

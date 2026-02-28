@@ -99,7 +99,6 @@ enum class OscillatorWaveform : uint8_t
 
   FoldedSine,
   FoldedTriangle,
-  //FoldedTriSaw,
 
   EvolvingGrainNoise,
 
