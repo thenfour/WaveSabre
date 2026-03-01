@@ -14,11 +14,14 @@
 #undef ENABLE_DIODE_FILTER // is about ~350 bytes of compressed binary.
 #undef ENABLE_K35_FILTER // is about ~380 bytes of binary.
 #define ENABLE_BUTTERWORTH_FILTER // about 150 bytes of compressed binary.
+#undef ENABLE_NOTCH_FILTER
+#undef ENABLE_ALLPASS_FILTER
 
 // for sat / MBC saturation...
-#define MAJ7SAT_ENABLE_RARE_MODELS
+#undef MAJ7SAT_ENABLE_RARE_MODELS
 #define MAJ7SAT_ENABLE_ANALOG
 #undef MAJ7SAT_ENABLE_MIDSIDE
+
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM
 

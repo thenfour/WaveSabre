@@ -55,16 +55,20 @@ void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, float q,
       b1 = 0.0f;
       b2 = -alpha;
       break;
+#ifdef ENABLE_NOTCH_FILTER
     case FilterResponse::Notch:
       b0 = 1.0f;
       b1 = -2.0f * cosw0;
       b2 = 1.0f;
       break;
+#endif // ENABLE_NOTCH_FILTER
+#ifdef ENABLE_ALLPASS_FILTER
     case FilterResponse::Allpass:
       b0 = 1.0f - alpha;
       b1 = -2.0f * cosw0;
       b2 = 1.0f + alpha;
       break;
+#endif // ENABLE_ALLPASS_FILTER
     case FilterResponse::Peak:
     {
       a0 = 1.0f + (alpha / A);
@@ -263,12 +267,18 @@ float CascadedBiquadFilter::ProcessSample(float x)
 #ifdef ENABLE_BUTTERWORTH_FILTER
 float ButterworthQForSection(size_t sectionIndex, size_t nStages)
 {
+  // const float angle = (2 * sectionIndex + 1) * math::gPI / (nStages * 4);
+  // const float c2 = 2 * math::cos(angle);
+  // return 1.0f / c2;
+
   const size_t N = nStages * 2;  // filter order
   const float k = (float)(sectionIndex + 1);
   const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
   const float c = math::cos(angle);
-  const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
-  return 1.0f / denom;
+  return 1.0f / (2.0f * c);
+  //const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
+  //return 1.0f / denom;
+
 }
 #endif  // ENABLE_BUTTERWORTH_FILTER
 

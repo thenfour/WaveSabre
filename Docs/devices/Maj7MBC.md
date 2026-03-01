@@ -24,6 +24,16 @@ One of the ideas behind the Maj7 suite is that it will output a production-quali
 
 With the right set of features, we can try to cover the most ground.
 
+## Q: Why put saturation in the compressor, and not for example in the EQ
+
+It's true that it's maybe more ergonomic to do it in the EQ (think fab saturn workflow which can more easily feel like an EQ than a compressor).
+But it's a fairly loose argument; saturating also affects dynamics and you'll find yourself gain compensating for saturation
+and compression alike, more than EQ.
+
+I would prefer to add it both places, but if i had to choose one place, i'd put it in the compressor.
+
+The processing itself also more closely follows the flow of a compressor; for example if we add oversampling
+it's more likely to go to the compressor and saturator than the EQ.
 
 ## Features
 
@@ -253,7 +263,7 @@ They're not perfect, but they do the job.
 
 MBC contains all the parts of both a compressor and saturator. The multi-band processing and process flow make it very cheap to combine the two operations.
 
-The main saturation control is the "Drive" knob buried among the compressor controls.
+The main saturation control is the "Drive" knob buried among the compressor controls. Saturation model & even harmonic (analog) mix is also included.
 
 So the workflow for using this as a saturator are:
 
