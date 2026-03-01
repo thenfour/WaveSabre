@@ -31,42 +31,53 @@ void EnvelopeNode::AdvanceToStage(EnvelopeStage stage)
       mReleaseStagePos01 = 0;
       break;
     case EnvelopeStage::Delay:
-      if (GetTimeMs(EnvParamIndexOffsets::DelayTime, EnvModParamIndexOffsets::DelayTime) <= 0.0f)
+      if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::DelayTime,
+                                    gEnvTimeCfg,
+                                    mModMatrix.GetDestinationValue(mModDestBase +
+                                                                   (int)EnvModParamIndexOffsets::DelayTime)) <= 0)
       {
         AdvanceToStage(EnvelopeStage::Attack);
         return;
       }
       break;
     case EnvelopeStage::Attack:
-      if (GetTimeMs(EnvParamIndexOffsets::AttackTime, EnvModParamIndexOffsets::AttackTime) <= 0.0f)
+      if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::AttackTime,
+                                    gEnvTimeCfg,
+                                    mModMatrix.GetDestinationValue(mModDestBase +
+                                                                   (int)EnvModParamIndexOffsets::AttackTime)) <= 0)
       {
         AdvanceToStage(EnvelopeStage::Hold);
         return;
       }
-
       mAttackFromValue01 = mLastOutputLevel;  // usually 0
       break;
     case EnvelopeStage::Hold:
-      if (GetTimeMs(EnvParamIndexOffsets::HoldTime, EnvModParamIndexOffsets::HoldTime) <= 0.0f)
+      if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::HoldTime,
+                                    gEnvTimeCfg,
+                                    mModMatrix.GetDestinationValue(mModDestBase +
+                                                                   (int)EnvModParamIndexOffsets::HoldTime)) <= 0)
       {
         AdvanceToStage(EnvelopeStage::Decay);
         return;
       }
       break;
-
     case EnvelopeStage::Decay:
-      if (GetTimeMs(EnvParamIndexOffsets::DecayTime, EnvModParamIndexOffsets::DecayTime) <= 0.0f)
+      if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::DecayTime,
+                                    gEnvTimeCfg,
+                                    mModMatrix.GetDestinationValue(mModDestBase +
+                                                                   (int)EnvModParamIndexOffsets::DecayTime)) <= 0)
       {
         AdvanceToStage(mMode == EnvelopeMode::Sustain ? EnvelopeStage::Sustain : EnvelopeStage::ReleaseSilence);
         return;
       }
       break;
-
     case EnvelopeStage::Sustain:
       break;
-
     case EnvelopeStage::Release:
-      if (GetTimeMs(EnvParamIndexOffsets::ReleaseTime, EnvModParamIndexOffsets::ReleaseTime) <= 0.0f)
+      if (mParams.GetPowCurvedValue(EnvParamIndexOffsets::ReleaseTime,
+                                    gEnvTimeCfg,
+                                    mModMatrix.GetDestinationValue(mModDestBase +
+                                                                   (int)EnvModParamIndexOffsets::ReleaseTime)) <= 0)
       {
         AdvanceToStage(EnvelopeStage::ReleaseSilence);
         return;
@@ -74,7 +85,6 @@ void EnvelopeNode::AdvanceToStage(EnvelopeStage stage)
       // here we must determine the value to release from, based on existing stage.
       mReleaseFromValue01 = mLastOutputLevel;
       break;
-
     case EnvelopeStage::ReleaseSilence:
       break;
   }
@@ -108,12 +118,6 @@ void EnvelopeNode::noteOff()
 float EnvelopeNode::kill()
 {
   AdvanceToStage(EnvelopeStage::Idle);
-  //   mnSampleCount = 0;
-  //   mStage = EnvelopeStage::Idle;
-  //   mLastOutputLevel = 0;
-  //   mOutputDeltaPerSample = 0;
-  //   mStagePosIncPerSample = 0;
-  //   mAttackFromValue01 = 0;
   return 0;
 }
 
@@ -148,150 +152,90 @@ void EnvelopeNode::ProcessSampleFull()
       break;
     }
     case EnvelopeStage::Delay:
-      ret = ApplyCurve(EnvParamIndexOffsets::ReleaseCurve,
-                       EnvModParamIndexOffsets::ReleaseCurve,
-                       1.0f - mReleaseStagePos01) *
-            mReleaseFromValue01;
+    {
+      ret = mParams.ApplyCurveToValue(EnvParamIndexOffsets::ReleaseCurve,
+                                      1.0f - mReleaseStagePos01,
+                                      mModMatrix.GetDestinationValue(mModDestBase +
+                                                                     (int)EnvModParamIndexOffsets::ReleaseCurve));
+      ret = ret * mReleaseFromValue01;
       mReleaseStagePos01 += mReleaseStagePosIncPerSample * recalcPeriod;
       nextStage = EnvelopeStage::Attack;
-      break;
-
-      // case EnvelopeStage::Attack:
-      // {
-      //   ret = mParams.ApplyCurveToValue(EnvParamIndexOffsets::AttackCurve,
-      //                                   mStagePos01,
-      //                                   mModMatrix.GetDestinationValue(mModDestBase +
-      //                                                                  (int)EnvModParamIndexOffsets::AttackCurve));
-      //   ret = math::lerp(mAttackFromValue01, 1, ret);
-      //   nextStage = EnvelopeStage::Hold;
-      //   break;  // advance through stage.
-      // }
-      // case EnvelopeStage::Hold:
-      // {
-      //   ret = 1;
-      //   nextStage = EnvelopeStage::Decay;
-      //   break;  // advance through stage.
-      // }
-      // case EnvelopeStage::Decay:
-      // {
-      //   // 0-1 => 1 - sustainlevel
-      //   // curve contained within the stage, not the output 0-1 range.
-      //   float susLevel = 0;
-      //   nextStage = EnvelopeStage::ReleaseSilence;
-      //   if (mMode == EnvelopeMode::Sustain)
-      //   {
-      //     nextStage = EnvelopeStage::Sustain;
-      //     susLevel = mParams.Get01Value(EnvParamIndexOffsets::SustainLevel,
-      //                                   mModMatrix.GetDestinationValue(mModDestBase +
-      //                                                                  (int)EnvModParamIndexOffsets::SustainLevel));
-      //   }
-      //   float range = 1.0f - (susLevel);
-      //   ret = 1.0f - mParams.ApplyCurveToValue(EnvParamIndexOffsets::DecayCurve,
-      //                                          1.0f - mStagePos01,
-      //                                          mModMatrix.GetDestinationValue(mModDestBase +
-      //                                                                         (int)EnvModParamIndexOffsets::DecayCurve));
-      //   ret = 1.0f - range * ret;
-      //   break;  // advance through stage.
-      // }
-      // case EnvelopeStage::Sustain:
-      // {
-      //   if (mMode == EnvelopeMode::OneShot)
-      //   {
-      //     kill();
-      //     return;
-      //   }
-      //   float ret = mParams.Get01Value(EnvParamIndexOffsets::SustainLevel,
-      //                                  mModMatrix.GetDestinationValue(mModDestBase +
-      //                                                                 (int)EnvModParamIndexOffsets::SustainLevel));
-      //   mLastOutputLevel = ret;
-      //   return;
-      // }
-      // case EnvelopeStage::Release:
-      // {
-      //   if (mMode == EnvelopeMode::OneShot)
-      //   {
-      //     kill();
-      //     return;
-      //   }
-      //   // 0-1 => mReleaseFromValue01 - 0
-      //   // curve contained within the stage, not the output 0-1 range.
-      //   //ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01);
-      //   ret = mParams.ApplyCurveToValue(EnvParamIndexOffsets::ReleaseCurve,
-      //                                   1.0f - mStagePos01,
-      //                                   mModMatrix.GetDestinationValue(mModDestBase +
-      //                                                                  (int)EnvModParamIndexOffsets::ReleaseCurve));
-      //   ret = ret * mReleaseFromValue01;
-      //   nextStage = EnvelopeStage::ReleaseSilence;
-      //   break;  // advance through stage.
-      // }
-      // case EnvelopeStage::ReleaseSilence:
-      // {
-      //   nextStage = EnvelopeStage::Idle;
-      //   ret = 0;
-      //   break;
-      // }
-
-
+      break;  // advance through stage.
+    }
     case EnvelopeStage::Attack:
-      ret = ApplyCurve(EnvParamIndexOffsets::AttackCurve, EnvModParamIndexOffsets::AttackCurve, mStagePos01);
-      ret = math::lerp(mAttackFromValue01, 1.0f, ret);
+    {
+      ret = mParams.ApplyCurveToValue(EnvParamIndexOffsets::AttackCurve,
+                                      mStagePos01,
+                                      mModMatrix.GetDestinationValue(mModDestBase +
+                                                                     (int)EnvModParamIndexOffsets::AttackCurve));
+      ret = math::lerp(mAttackFromValue01, 1, ret);
       nextStage = EnvelopeStage::Hold;
-      break;
-
+      break;  // advance through stage.
+    }
     case EnvelopeStage::Hold:
-      ret = 1.0f;
+    {
+      ret = 1;
       nextStage = EnvelopeStage::Decay;
-      break;
-
+      break;  // advance through stage.
+    }
     case EnvelopeStage::Decay:
     {
       // 0-1 => 1 - sustainlevel
       // curve contained within the stage, not the output 0-1 range.
-      float susLevel = 0.0f;
+      float susLevel = 0;
       nextStage = EnvelopeStage::ReleaseSilence;
-
       if (mMode == EnvelopeMode::Sustain)
       {
         nextStage = EnvelopeStage::Sustain;
-        susLevel = Get01(EnvParamIndexOffsets::SustainLevel, EnvModParamIndexOffsets::SustainLevel);
+        susLevel = mParams.Get01Value(EnvParamIndexOffsets::SustainLevel,
+                                      mModMatrix.GetDestinationValue(mModDestBase +
+                                                                     (int)EnvModParamIndexOffsets::SustainLevel));
       }
-
-      const float range = 1.0f - susLevel;
-      const float curveVal = ApplyCurve(EnvParamIndexOffsets::DecayCurve,
-                                        EnvModParamIndexOffsets::DecayCurve,
-                                        1.0f - mStagePos01);
-
-      // original behavior: 1 - range * (1 - curveVal)
-      ret = 1.0f - range * (1.0f - curveVal);
-      break;
+      float range = 1.0f - (susLevel);
+      ret = 1.0f - mParams.ApplyCurveToValue(EnvParamIndexOffsets::DecayCurve,
+                                             1.0f - mStagePos01,
+                                             mModMatrix.GetDestinationValue(mModDestBase +
+                                                                            (int)EnvModParamIndexOffsets::DecayCurve));
+      ret = 1.0f - range * ret;
+      break;  // advance through stage.
     }
-
     case EnvelopeStage::Sustain:
+    {
       if (mMode == EnvelopeMode::OneShot)
       {
         kill();
         return;
       }
-      mLastOutputLevel = Get01(EnvParamIndexOffsets::SustainLevel, EnvModParamIndexOffsets::SustainLevel);
+      float ret = mParams.Get01Value(EnvParamIndexOffsets::SustainLevel,
+                                     mModMatrix.GetDestinationValue(mModDestBase +
+                                                                    (int)EnvModParamIndexOffsets::SustainLevel));
+      mLastOutputLevel = ret;
       return;
-
+    }
     case EnvelopeStage::Release:
+    {
+      if (mMode == EnvelopeMode::OneShot)
+      {
+        kill();
+        return;
+      }
       // 0-1 => mReleaseFromValue01 - 0
       // curve contained within the stage, not the output 0-1 range.
-      if (mMode == EnvelopeMode::OneShot)
-      {
-        kill();
-        return;
-      }
-      ret = ApplyCurve(EnvParamIndexOffsets::ReleaseCurve, EnvModParamIndexOffsets::ReleaseCurve, 1.0f - mStagePos01) *
-            mReleaseFromValue01;
+      //ret = mReleaseCurve.ApplyToValue(1.0f - mStagePos01);
+      ret = mParams.ApplyCurveToValue(EnvParamIndexOffsets::ReleaseCurve,
+                                      1.0f - mStagePos01,
+                                      mModMatrix.GetDestinationValue(mModDestBase +
+                                                                     (int)EnvModParamIndexOffsets::ReleaseCurve));
+      ret = ret * mReleaseFromValue01;
       nextStage = EnvelopeStage::ReleaseSilence;
-      break;
-
+      break;  // advance through stage.
+    }
     case EnvelopeStage::ReleaseSilence:
+    {
       nextStage = EnvelopeStage::Idle;
-      ret = 0.0f;
+      ret = 0;
       break;
+    }
   }
 
   mStagePos01 += mStagePosIncPerSample * recalcPeriod;
@@ -348,68 +292,50 @@ void EnvelopeNode::RecalcState()
       mFixedDelaySamplesRemaining = 3;
       return;
     case EnvelopeStage::Delay:
-      mStagePosIncPerSample = GetStageInc(EnvParamIndexOffsets::DelayTime, EnvModParamIndexOffsets::DelayTime);
-
-      mReleaseStagePosIncPerSample = math::CalculateInc01PerSampleForMS(
-          GetTimeMs(EnvParamIndexOffsets::ReleaseTime, EnvModParamIndexOffsets::ReleaseTime));
+    {
+      UpdateStagePosInc(EnvParamIndexOffsets::DelayTime, EnvModParamIndexOffsets::DelayTime);
+      mReleaseStagePosIncPerSample = math::CalculateInc01PerSampleForMS(mParams.GetPowCurvedValue(
+          EnvParamIndexOffsets::ReleaseTime,
+          gEnvTimeCfg,
+          mModMatrix.GetDestinationValue(mModDestBase + (int)EnvModParamIndexOffsets::ReleaseTime)));
       return;
-
+    }
     case EnvelopeStage::Attack:
-      mStagePosIncPerSample = GetStageInc(EnvParamIndexOffsets::AttackTime, EnvModParamIndexOffsets::AttackTime);
+    {
+      UpdateStagePosInc(EnvParamIndexOffsets::AttackTime, EnvModParamIndexOffsets::AttackTime);
       return;
-
+    }
     case EnvelopeStage::Hold:
-      mStagePosIncPerSample = GetStageInc(EnvParamIndexOffsets::HoldTime, EnvModParamIndexOffsets::HoldTime);
+    {
+      UpdateStagePosInc(EnvParamIndexOffsets::HoldTime, EnvModParamIndexOffsets::HoldTime);
       return;
-
+    }
     case EnvelopeStage::Decay:
-      mStagePosIncPerSample = GetStageInc(EnvParamIndexOffsets::DecayTime, EnvModParamIndexOffsets::DecayTime);
+    {
+      UpdateStagePosInc(EnvParamIndexOffsets::DecayTime, EnvModParamIndexOffsets::DecayTime);
       return;
-
+    }
     case EnvelopeStage::Sustain:
+    {
       return;
-
+    }
     case EnvelopeStage::Release:
-      mStagePosIncPerSample = GetStageInc(EnvParamIndexOffsets::ReleaseTime, EnvModParamIndexOffsets::ReleaseTime);
+    {
+      UpdateStagePosInc(EnvParamIndexOffsets::ReleaseTime, EnvModParamIndexOffsets::ReleaseTime);
       return;
-
+    }
     case EnvelopeStage::ReleaseSilence:
-      mLastOutputLevel = 0.0f;
-      mOutputDeltaPerSample = 0.0f;
+    {
+      mLastOutputLevel = 0;
+      mOutputDeltaPerSample = 0;
       mStagePosIncPerSample =
           1.0f /
           (10 *
            (GetModulationRecalcSampleMask() +
             1));  // last more than 2 recalc periods, in order for our zero to fully propagate, leaving no trailing crap around.
       return;
+    }
   }
-}
-
-// One place for: param + modDest -> ms
-float EnvelopeNode::GetTimeMs(EnvParamIndexOffsets paramOffset, EnvModParamIndexOffsets modOffset)
-{
-  return mParams.GetPowCurvedValue(paramOffset,
-                                   gEnvTimeCfg,
-                                   mModMatrix.GetDestinationValue(mModDestBase + (int)modOffset));
-}
-
-// One place for: param + modDest -> stagePosIncPerSample
-float EnvelopeNode::GetStageInc(EnvParamIndexOffsets paramOffset, EnvModParamIndexOffsets modOffset)
-{
-  const float ms = GetTimeMs(paramOffset, modOffset);
-  return math::CalculateInc01PerSampleForMS(ms);
-}
-
-// One place for: param + modDest + t -> curved value
-float EnvelopeNode::ApplyCurve(EnvParamIndexOffsets paramOffset, EnvModParamIndexOffsets modOffset, float t)
-{
-  return mParams.ApplyCurveToValue(paramOffset, t, mModMatrix.GetDestinationValue(mModDestBase + (int)modOffset));
-}
-
-// One place for: param + modDest -> 0..1 value
-float EnvelopeNode::Get01(EnvParamIndexOffsets paramOffset, EnvModParamIndexOffsets modOffset)
-{
-  return mParams.Get01Value(paramOffset, mModMatrix.GetDestinationValue(mModDestBase + (int)modOffset));
 }
 
 }  // namespace M7

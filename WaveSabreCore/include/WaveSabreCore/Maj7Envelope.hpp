@@ -86,11 +86,6 @@ private:
 
   // in monophonic situations, attack stage may not start from 0.
   real_t mAttackFromValue01 = 0;
-
-  NOINLINE float GetTimeMs(EnvParamIndexOffsets, EnvModParamIndexOffsets);
-  NOINLINE float GetStageInc(EnvParamIndexOffsets, EnvModParamIndexOffsets);
-  NOINLINE float ApplyCurve(EnvParamIndexOffsets, EnvModParamIndexOffsets, float t);
-  NOINLINE float Get01(EnvParamIndexOffsets, EnvModParamIndexOffsets);
 };
 
 }  // namespace M7
