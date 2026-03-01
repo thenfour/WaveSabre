@@ -10,7 +10,7 @@ if(MSVC)
 	
 	target_compile_options(WaveSabreExecutableMusicPlayer
 		PUBLIC $<$<CONFIG:MinSizeRel>:/GS- /GL /Gy /Zi /GR->  # /GL is whole program optimization and causes some issues sometimes.
-		PRIVATE $<$<CONFIG:MinSizeRel>:/Oi /fp:fast>) # explore /d2noftol3
+		PRIVATE $<$<CONFIG:MinSizeRel>:/Oi /fp:fast /d2noftol3>)
 
 	target_link_libraries(WaveSabreExecutableMusicPlayer $<$<CONFIG:MinSizeRel>:msvcrt>)
 	set_property(TARGET WaveSabreExecutableMusicPlayer APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL
