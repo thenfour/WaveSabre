@@ -3,6 +3,7 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7Oscillator3Base.hpp>
 #include <WaveSabreCore/Vector.hpp>
+#include "./Blep.hpp"
 
 namespace WaveSabreCore
 {
@@ -23,13 +24,7 @@ struct WVSegment
   }
 
   // evaluate the amplitude and slope at the given absolute cycle phase (not relative to segment)
-  inline DoublePair EvalAmpSlopeAtPhase(double sampleInPhase01) const
-  {
-    // do not wrap; allow evaluating outside segment
-    const double deltaPhase = sampleInPhase01 - beginPhase01;
-    const double amp = beginAmp + slope * deltaPhase;
-    return {amp, slope};
-  }
+  inline DoublePair EvalAmpSlopeAtPhase(double sampleInPhase01) const;
 };
 
 struct WVShape
@@ -37,31 +32,13 @@ struct WVShape
    Vector<WVSegment> mSegments;
 
   // find segment at phase:
-  WVSegment FindSegment(double sampleInPhase01) const
-  {
-    sampleInPhase01 = math::wrap01(sampleInPhase01);
-    // assumes segments are sorted by phase ascending
-    // assumes >= 1 segment.
-    for (size_t i = 0; i < mSegments.size(); ++i)
-    {
-      const auto& seg = mSegments[i];
-      if (sampleInPhase01 < seg.endPhaseIncluding1)
-      {
-        return seg;
-      }
-    }
-    // unreachable
-    return {};
-  }
+  WVSegment FindSegment(double sampleInPhase01) const;
 
-  inline DoublePair EvalAmpSlopeAt(double sampleInPhase01) const
-  {
-    auto seg = FindSegment(sampleInPhase01);
-    return seg.EvalAmpSlopeAtPhase(sampleInPhase01);
-  }
+  inline DoublePair EvalAmpSlopeAt(double sampleInPhase01) const;
 };
 
 // -------------- segment walker (wrapless inside each segment; wraps across 1→0 naturally)
+//using EdgeVisitor = void(double alpha, const DoublePair& dAmpSlope);
 struct SegmentWalker
 {
   const WVShape& shape;
@@ -71,58 +48,11 @@ struct SegmentWalker
   //float amp0, slope0;
   DoublePair ampSlope0;
 
-  static SegmentWalker Begin(const WVShape& sh, double phaseBegin, double dtSample)
-  {
-    auto p = sh.EvalAmpSlopeAt(phaseBegin);
-    return {sh, phaseBegin, dtSample, 1.0, p[0], p[1]};
-  }
-  void ResetSubwindow(double newPhase, double newLen)
-  {
-    phase0 = newPhase;
-    winLen = newLen;
-    auto p = shape.EvalAmpSlopeAt(newPhase);
-    ampSlope0 = p;
-  }
-
-  template <class F>  // F(alpha, dAmpSlope)
-  void VisitEdges(F&& onEdge)
-  {
-    double consumed = 0.0;
-    double curPhase = phase0;
-    //auto curAmpSlope = ampSlope0;
-    double curAmp = ampSlope0[0];
-    double curSlope = ampSlope0[1];
-
-    while (consumed < winLen)
-    {
-      const WVSegment& seg = shape.FindSegment(curPhase);
-      const double edgePhi = (seg.endPhaseIncluding1 >= 1.0) ? 1.0 : seg.endPhaseIncluding1;
-
-      const double dPhaseToEdge = edgePhi - curPhase;
-      const double alpha = dPhaseToEdge / dt;  // portion of the *full* sample; may exceed remaining
-
-      if (alpha <= (winLen - consumed) && alpha >= 0.0)
-      {
-        const double preAlpha = alpha;
-        const double preAmp = curAmp + (preAlpha * dt) * curSlope;
-        //const float preSlope = curSlope;
-        const DoublePair preAmpSlope = {preAmp, curSlope};
-
-        const double postPhase = (edgePhi >= 1) ? 0 : edgePhi;
-        const auto postAmpSlope = shape.EvalAmpSlopeAt(postPhase);
-
-        onEdge(consumed + preAlpha, postAmpSlope - preAmpSlope);
-
-        // step across the edge
-        consumed += preAlpha;
-        curPhase = postPhase;
-        curAmp = postAmpSlope[0];
-        curSlope = postAmpSlope[1];
-      }
-      else
-        break;
-    }
-  }
+  static SegmentWalker Begin(const WVShape& sh, double phaseBegin, double dtSample);
+  void ResetSubwindow(double newPhase, double newLen);
+  //template <class F>  // F(alpha, dAmpSlope)
+  //void VisitEdges(EdgeVisitor&& onEdge);
+  void VisitEdges2(double alphaOffset, CorrectionSpill& spill);
 };
 
 

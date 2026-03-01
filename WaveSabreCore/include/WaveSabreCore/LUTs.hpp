@@ -99,20 +99,11 @@ float lerp_rev(float v_min, float v_max, float v_val);
 float fract(float x);
 double fract(double x);
 #else
-NOINLINE float lerp(float a, float b, float t)
-{
-  return a * (1.0f - t) + b * t;
-}
-NOINLINE double lerpD(double a, double b, double t)
-{
-  return a * (1.0 - t) + b * t;
-}
+NOINLINE float lerp(float a, float b, float t);
+NOINLINE double lerpD(double a, double b, double t);
 NOINLINE float lerp_rev(float v_min,
                       float v_max,
-                      float v_val)  // inverse of lerp; returns 0-1 where t lies between a and b.
-{
-  return (v_val - v_min) / (v_max - v_min);
-}
+                      float v_val);
 INLINE float fract(float x)
 {
   // for negative values, fract works like,

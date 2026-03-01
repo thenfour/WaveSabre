@@ -491,7 +491,7 @@ struct SAHNoiseCore : public OscillatorCore
   // Output: held value between steps
   float mHeld = 0.0f;
 
-  M7Osc4::CorrectionSpill mSpill;
+  CorrectionSpill mSpill;
   CascadedBiquadFilter mFilter;
 
   SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
