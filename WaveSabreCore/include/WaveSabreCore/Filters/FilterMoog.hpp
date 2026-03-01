@@ -59,11 +59,11 @@ namespace WaveSabreCore
                     const float x = (n == 0) ? 1.0f : 0.0f;
                     const double y = copy.ProcessSample(x);
                     const double phase = w * double(n);
-                    re += y * std::cos(phase);
-                    im -= y * std::sin(phase);
+                    re += y * math::cos(phase);
+                    im -= y * math::sin(phase);
                 }
 
-                return real(std::sqrt(re * re + im * im));
+                return real(math::sqrt(re * re + im * im));
             }
 
             virtual void Reset() override

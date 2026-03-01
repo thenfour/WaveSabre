@@ -1,11 +1,6 @@
 ﻿#pragma once
 
-#include <algorithm>
-#include <cfloat>
-#include <cmath>
-#include <memory>
-#include <utility>
-#include <vector>
+#include <algorithm>  // for std::sort, std::unique
 
 #include "BandSplitter.hpp"
 #include "BiquadFilter.h"
@@ -15,7 +10,7 @@
 #include "Maj7Oscillator3Shape.hpp"
 #include "Maj7Oscillator4WS.hpp"
 #include "SVFilter.hpp"
-
+#include "Vector.hpp"
 
 namespace WaveSabreCore
 {
@@ -102,7 +97,7 @@ static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
     const float threshold = 1.0f;
     const float period = threshold * 2.0f;
     const float ax = std::abs(x);
-    float m = math::fmod(ax, period);
+    float m = math::fmodf(ax, period);
     if (m < 0.0f)
       m += period;
     const float r = (m <= threshold) ? m : (period - m);
@@ -127,7 +122,7 @@ static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
       {0.75, 1.0, 4.0f, -4.0f},
   };
 
-  std::vector<double> breakpoints;
+  Vector<double> breakpoints;
   breakpoints.reserve(64);
   breakpoints.push_back(0.0);
   breakpoints.push_back(0.25);
@@ -280,7 +275,7 @@ struct SilenceOsc : public OscillatorCore
 
     return CoreSample{
         .amplitude = 0,
-        .phaseAdvance = step,
+        //.phaseAdvance = step,
     };
   }
 };
@@ -411,9 +406,9 @@ struct SineCoreExt : public OscillatorCore
 
     return CoreSample{
         .amplitude = out,
-        .naive = out,
-        .correction = 0.0f,
-        .phaseAdvance = step,
+        //.naive = out,
+        //.correction = 0.0f,
+        //.phaseAdvance = step,
     };
   }
 };
@@ -554,7 +549,7 @@ struct FoldedSineCore : public OscillatorCore
     const float threshold = 1;
     const float ax = std::abs(x);
     const float per = 2 * threshold;
-    float m = math::fmod(ax, per);
+    float m = math::fmodf(ax, per);
     if (m < 0.0f)
       m += per;
 
@@ -574,7 +569,7 @@ struct FoldedSineCore : public OscillatorCore
 
     return CoreSample{
         .amplitude = y,
-        .phaseAdvance = step,
+        //.phaseAdvance = step,
     };
   }
 };
@@ -699,9 +694,9 @@ struct SAHNoiseCore : public OscillatorCore
 
     return CoreSample{
         .amplitude = y,
-        .naive = heldAtStart,  // optional: expose pre-correction
-        .correction = (float)mSpill.now,
-        .phaseAdvance = step,
+        //.naive = heldAtStart,  // optional: expose pre-correction
+        //.correction = (float)mSpill.now,
+        //.phaseAdvance = step,
     };
   }
 };
@@ -811,9 +806,9 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
 
     return CoreSample{
         .amplitude = y,
-        .naive = y,
-        .correction = 0.0f,
-        .phaseAdvance = step,
+        //.naive = y,
+        //.correction = 0.0f,
+        //.phaseAdvance = step,
     };
   }
 
@@ -929,9 +924,9 @@ struct WhiteNoiseCore2 : public OscillatorCore
 
     return CoreSample{
         .amplitude = y,
-        .naive = y,
-        .correction = 0.0f,
-        .phaseAdvance = step,
+        //.naive = y,
+        //.correction = 0.0f,
+        //.phaseAdvance = step,
     };
   }
 

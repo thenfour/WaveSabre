@@ -1,14 +1,6 @@
 ﻿#pragma once
 
-#include <algorithm>
-#include <cfloat>
-#include <cmath>
-#include <memory>
-#include <utility>
-#include <vector>
-
 #include "Maj7Basic.hpp"
-#include "Maj7Oscillator3Bandlimiting.hpp"
 #include "Maj7Oscillator3Base.hpp"
 #include "Maj7Oscillator3Waveshapes.hpp"
 #include "Maj7Oscillator4WS.hpp"

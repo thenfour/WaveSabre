@@ -47,9 +47,13 @@ INLINE float randN11()
 {
   return rand01() * 2 - 1;
 }
-INLINE real_t sqrt(real_t x)
+INLINE float sqrt(float x)
 {
   return (float)::sqrt((double)x);
+}
+INLINE double sqrt(double x)
+{
+  return (double)::sqrt((double)x);
 }
 INLINE constexpr float clamp(float x, float low, float hi)
 {
@@ -168,6 +172,7 @@ struct CrtFns
   double(__cdecl* crt_floor)(double);
   double(__cdecl* crt_log)(double);
   double(__cdecl* crt_pow)(double, double);
+  double(__cdecl* crt_fmodf)(double, double);
   double(__cdecl* crt_exp)(double);
 };
 
@@ -201,6 +206,11 @@ INLINE double CrtLog(double x)
 INLINE double CrtPow(double x, double y)
 {
   return gCrtFns->crt_pow(x, y);
+}
+
+INLINE double CrtFmodf(double x, double y)
+{
+  return gCrtFns->crt_fmodf(x, y);
 }
 
 // MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
@@ -568,14 +578,23 @@ INLINE float pow2_N16_16(float n)
 {
   return gLuts->gPow2_N16_16_LUT.Invoke(n);
 }
-INLINE real_t sin(real_t x)
+INLINE real_t sin(float x)
 {
   return gLuts->gSinLUT.Invoke(x);
 }
-INLINE real_t cos(real_t x)
+INLINE real_t cos(float x)
 {
   return gLuts->gCosLUT.Invoke(x);
 }
+INLINE real_t sin(double x)
+{
+  return gLuts->gSinLUT.Invoke(float(x));
+}
+INLINE real_t cos(double x)
+{
+  return gLuts->gCosLUT.Invoke(float(x));
+}
+
 // optimized LUT works for 0<=x<=1
 INLINE real_t sqrt01(real_t x)
 {
@@ -596,12 +615,12 @@ INLINE T round(float x)
   return (T)(x + 0.5f);
 }
 
-INLINE float fmod(float x, float q) {
-    return ::fmodf(x, q);
+INLINE float fmodf(float x, float q) {
+    return (float)CrtFmodf(double(x), double(q));
 }
 
 INLINE double fmodd(double x, double q) {
-    return ::fmod(x, q);
+    return CrtFmodf(x, q);
 }
 
 }  // namespace math

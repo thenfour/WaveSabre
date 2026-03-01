@@ -51,6 +51,7 @@ namespace WaveSabreCore
 				crt_floor(decltype(crt_floor)(GetCrtProc("floor"))),
 				crt_log(decltype(crt_log)(GetCrtProc("log"))),
 				crt_pow(decltype(crt_pow)(GetCrtProc("pow"))),
+				crt_fmodf(decltype(crt_fmodf)(GetCrtProc("fmodf"))),
 				crt_exp(decltype(crt_exp)(GetCrtProc("exp")))
 			{
 			}

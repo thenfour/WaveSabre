@@ -1,12 +1,5 @@
 ﻿#pragma once
 
-#include <algorithm>
-#include <cfloat>
-#include <cmath>
-#include <memory>
-#include <utility>
-#include <vector>
-
 #include "Maj7Basic.hpp"
 #include "Maj7Oscillator3Base.hpp"
 #include "Maj7Oscillator3Shape.hpp"
@@ -153,9 +146,9 @@ struct ShapeCoreStreaming : public OscillatorCore
 
     return CoreSample{
         .amplitude = (mAaOpt == AntiAliasingOption::PolyBlep ? float((double)ampNaive + mSpill.now) : ampNaive),
-        .naive = (float)ampNaive,
-        .correction = (float)corr,
-        .phaseAdvance = {/* if needed */},
+        //.naive = (float)ampNaive,
+        //.correction = (float)corr,
+        //.phaseAdvance = {/* if needed */},
     };
   }
 };

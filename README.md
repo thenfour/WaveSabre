@@ -37,9 +37,10 @@ It's quite robust and usable, however because it's a 1-man show, there's no anno
   * [Discord](https://discord.gg/kkf9gQfKAd)
   * [Twitter](https://twitter.com/tenfour2)
 
+## Size optimization
 
-
-## dev notes
+* SizeBench
+* Bloaty
 
 ### msvcrt / build-msvcrt
 

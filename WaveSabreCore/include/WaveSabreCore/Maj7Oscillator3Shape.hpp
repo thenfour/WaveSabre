@@ -1,15 +1,8 @@
 ﻿#pragma once
 
-#include <algorithm>
-#include <cfloat>
-#include <cmath>
-#include <memory>
-#include <utility>
-#include <vector>
-
 #include "Maj7Basic.hpp"
 #include "Maj7Oscillator3Base.hpp"
-#include "Maj7Oscillator3Shape.hpp"
+#include "Vector.hpp"
 
 namespace WaveSabreCore
 {
@@ -38,9 +31,10 @@ struct WVSegment
     return {amp, slope};
   }
 };
+
 struct WVShape
 {
-  std::vector<WVSegment> mSegments;
+   Vector<WVSegment> mSegments;
 
   // find segment at phase:
   WVSegment FindSegment(double sampleInPhase01) const

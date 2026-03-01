@@ -1,13 +1,13 @@
 #pragma once
 
 #include "Device.h"
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 #include <atomic>
 #include <cmath>
 #include <complex>
 #include <mutex>
 #include <vector>
-
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   #include "FFTAnalysis.hpp"
   #include "RMS.hpp"  // for base analysis stream stuff
@@ -405,7 +405,7 @@ struct StereoImagingAnalysisStream
       mFrequencyAnalyzer->ProcessMidSideSamples(static_cast<float>(mid), static_cast<float>(side));
     }
 
-    // Keep original gating – only update when mid peak is sufficiently strong
+    // Keep original gating ï¿½ only update when mid peak is sufficiently strong
     //const double instantWidth = StereoWidthUtil::InstantWidthFromPeaks(
     //    mMidLevelDetector.mCurrentPeak,
     //    mSideLevelDetector.mCurrentPeak

@@ -69,8 +69,8 @@ namespace WaveSabreCore
             {
                 const double clampedFreq = math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
                 const double w = math::gPITimes2d * clampedFreq * Helpers::CurrentSampleRateRecipF;
-                const double cw = std::cos(w);
-                const double sw = std::sin(w);
+                const double cw = math::cos(w);
+                const double sw = math::sin(w);
 
                 const double alpha = double(m_alpha);
                 const double p = 1.0 - alpha;
@@ -82,12 +82,12 @@ namespace WaveSabreCore
 
                 if (mResponse == FilterResponse::Lowpass)
                 {
-                    return real(std::sqrt(hlpRe * hlpRe + hlpIm * hlpIm));
+                    return real(math::sqrt(hlpRe * hlpRe + hlpIm * hlpIm));
                 }
 
                 const double hhpRe = 1.0 - hlpRe;
                 const double hhpIm = -hlpIm;
-                return real(std::sqrt(hhpRe * hhpRe + hhpIm * hhpIm));
+                return real(math::sqrt(hhpRe * hhpRe + hhpIm * hhpIm));
             }
 
             // float ProcessSample(float xn, FilterType type, float cutoffHz) {

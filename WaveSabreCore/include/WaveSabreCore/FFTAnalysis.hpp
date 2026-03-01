@@ -1,12 +1,12 @@
 #pragma once
 
 #include "Device.h"
-#include <vector>
-#include <complex>
-#include <cmath>
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+#include <vector>
+#include <complex>
+#include <cmath>
 #include "RMS.hpp"  // Include for PeakDetector
 
 namespace WaveSabreCore

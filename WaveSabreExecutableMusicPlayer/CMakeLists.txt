@@ -15,6 +15,8 @@ if(MSVC)
 	target_link_libraries(WaveSabreExecutableMusicPlayer $<$<CONFIG:MinSizeRel>:msvcrt>)
 	set_property(TARGET WaveSabreExecutableMusicPlayer APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL
 		" /NODEFAULTLIB /SAFESEH:NO /MANIFEST:NO /LTCG /OPT:REF /OPT:ICF /DYNAMICBASE:NO")
+	set_property(TARGET WaveSabreExecutableMusicPlayer APPEND_STRING PROPERTY LINK_FLAGS_RELWITHDEBINFO
+		" /INCREMENTAL:NO")
 
 	if(MSVC_VERSION GREATER 1900)
 		target_compile_definitions(WaveSabreExecutableMusicPlayer PRIVATE

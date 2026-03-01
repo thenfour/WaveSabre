@@ -1,5 +1,5 @@
 
-#include <string.h>
+//#include <string.h>
 
 #include <WaveSabreCore/GsmSample.h>
 #include "WaveSabreCore/Maj7Basic.hpp"

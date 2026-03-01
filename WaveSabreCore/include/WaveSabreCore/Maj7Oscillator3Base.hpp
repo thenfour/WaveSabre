@@ -1,13 +1,5 @@
 ﻿#pragma once
 
-#include <algorithm>
-#include <cfloat>
-#include <cmath>
-#include <format>
-#include <memory>
-#include <utility>
-#include <vector>
-
 #include "Maj7Basic.hpp"
 #include <WaveSabreCore/Maj7Oscillator.hpp>
 
@@ -225,11 +217,12 @@ struct HardSyncPhase
 struct CoreSample
 {
   float amplitude = 0.0f;  // the final sample value (with bandlimiting applied if applicable)
-
+#ifdef _DEBUG
   float naive = 0.0f;       // the naive sample value (without bandlimiting)
   float correction = 0.0f;  // the bandlimiting correction to add to the naive value
   PhaseStep phaseAdvance;   // phase kinematics for this sample
   std::string log;
+#endif
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
