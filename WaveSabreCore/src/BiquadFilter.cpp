@@ -169,8 +169,12 @@ void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
                                            FilterResponse response,
                                            float cutoffHz,
                                            float q,
-                                           float gain,
-                                           QStrategy qStrategy)
+                                           float gain
+#ifdef ENABLE_BUTTERWORTH_FILTER
+                                           ,
+                                           QStrategy qStrategy
+#endif  // ENABLE_BUTTERWORTH_FILTER
+)
 {
   CCASSERT(nStages >= 0 && nStages <= kMaxStages);
 
@@ -188,6 +192,7 @@ void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
   if (nStages == 0)
     return;
 
+#ifdef ENABLE_BUTTERWORTH_FILTER
   if (qStrategy == QStrategy::UserResonance)
   {
     // Compute coefficients once, then copy to remaining stages.
@@ -205,6 +210,12 @@ void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
       mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, 0.0f);
     }
   }
+#else   // ENABLE_BUTTERWORTH_FILTER
+  for (size_t i = 0; i < nStages; ++i)
+  {
+    mFilters[i].SetBiquadParams(response, cutoffHz, q, gain);
+  }
+#endif  // ENABLE_BUTTERWORTH_FILTER
 
   //mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
 }
@@ -221,6 +232,7 @@ void CascadedBiquadFilter::SetParams(FilterCircuit circuit,
   static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
   static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
 
+#ifdef ENABLE_BUTTERWORTH_FILTER
   if (circuit == FilterCircuit::Butterworth)
   {
     SetBiquadParams(nStages, response, cutoffHz, 0, 0, QStrategy::Butterworth);
@@ -230,6 +242,10 @@ void CascadedBiquadFilter::SetParams(FilterCircuit circuit,
     const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
     SetBiquadParams(nStages, response, cutoffHz, q, 0, QStrategy::UserResonance);
   }
+#else   // ENABLE_BUTTERWORTH_FILTER
+  const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
+  SetBiquadParams(nStages, response, cutoffHz, q, 0);
+#endif  // ENABLE_BUTTERWORTH_FILTER
 }
 
 // IFilter
@@ -244,6 +260,7 @@ float CascadedBiquadFilter::ProcessSample(float x)
 }
 
 
+#ifdef ENABLE_BUTTERWORTH_FILTER
 float ButterworthQForSection(size_t sectionIndex, size_t nStages)
 {
   const size_t N = nStages * 2;  // filter order
@@ -253,6 +270,7 @@ float ButterworthQForSection(size_t sectionIndex, size_t nStages)
   const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
   return 1.0f / denom;
 }
+#endif  // ENABLE_BUTTERWORTH_FILTER
 
 
 }  // namespace M7

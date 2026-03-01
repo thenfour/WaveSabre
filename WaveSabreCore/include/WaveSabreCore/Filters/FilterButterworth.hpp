@@ -8,6 +8,7 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+#ifdef ENABLE_BUTTERWORTH_FILTER
 struct ButterworthFilter : IFilter
 {
   CascadedBiquadFilter mCascade;
@@ -18,13 +19,13 @@ struct ButterworthFilter : IFilter
                          real cutoffHz,
                          real reso01) override
   {
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     if (!DoesSupport(circuit, slope, response))
     {
       mCascade.Disable();
       return;
     }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+  #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     mCascade.SetParams(FilterCircuit::Butterworth, slope, response, cutoffHz, reso01);
   }
 
@@ -33,7 +34,7 @@ struct ButterworthFilter : IFilter
     return mCascade.ProcessSample((float)x);
   }
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {
     return mCascade.GetMagnitudeAtFrequency(freqHz);
@@ -43,12 +44,17 @@ struct ButterworthFilter : IFilter
   {
     return mCascade.DoesSupport(FilterCircuit::Butterworth, slope, response);
   }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+  #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   virtual void Reset() override
   {
     mCascade.Reset();
   }
 };  // class ButterworthFilter
+
+#else   // ENABLE_BUTTERWORTH_FILTER
+using ButterworthFilter = CascadedBiquadFilter;  // placeholder, to avoid #ifdefs in the code that uses this.
+#endif  // ENABLE_BUTTERWORTH_FILTER
+
 }  // namespace M7
 }  // namespace WaveSabreCore

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.11)
 project("WaveSabre" LANGUAGES C CXX CSharp)
 
 # Explicit C++ standard for all targets
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 include(CTest) # provides BUILD_TESTING option and CTest integration

@@ -2,10 +2,11 @@
 #define __WAVESABRECORE_BIQUADFILTER_H__
 
 #include "LUTs.hpp"
+#include "Vector.hpp"
 #include "WaveSabreCore/Filters/FilterBase.hpp"
 #include "WaveSabreCore/Maj7Basic.hpp"
 #include "WaveSabreCore/Maj7ParamAccessor.hpp"
-#include "Vector.hpp"
+
 
 namespace WaveSabreCore
 {
@@ -128,17 +129,18 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef ENABLE_BUTTERWORTH_FILTER
 float ButterworthQForSection(size_t sectionIndex, size_t nStages);
+enum class QStrategy  // : uint8_t
+{
+  UserResonance,
+  Butterworth,
+};
+#endif  // ENABLE_BUTTERWORTH_FILTER
 
 class CascadedBiquadFilter : public IFilter
 {
-  enum class QStrategy// : uint8_t
-  {
-    UserResonance,
-    Butterworth,
-  };
-
-  static constexpr size_t kMaxStages = 8;
+  static constexpr size_t kMaxStages = kMaxBiquadStages;
   // 0 stage = bypass
   // 1 stage's slope = 12db/oct.
   // 2 stage = 24db/oct.
@@ -170,8 +172,11 @@ public:
                        FilterResponse response,
                        float cutoffHz,
                        float q,
-                       float gain,
-                       QStrategy qStrategy);
+                       float gain
+#ifdef ENABLE_BUTTERWORTH_FILTER
+                       , QStrategy qStrategy
+#endif  // ENABLE_BUTTERWORTH_FILTER
+                      );
 
   virtual void SetParams(FilterCircuit circuit,
                          FilterSlope slope,

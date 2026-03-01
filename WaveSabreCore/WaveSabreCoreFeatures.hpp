@@ -13,6 +13,7 @@
 
 #undef ENABLE_DIODE_FILTER // is about 3kb of binary.
 #undef ENABLE_K35_FILTER // is about 3kb of binary.
+#undef ENABLE_BUTTERWORTH_FILTER // about 150 bytes of compressed binary.
 
 // for sat / MBC saturation...
 #undef MAJ7SAT_ENABLE_RARE_MODELS
@@ -20,6 +21,11 @@
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM
+
+// 8 = 96db/oct
+// 4 = 48db/oct
+// this doesn't  really affect binary size. keep @ 8
+static constexpr size_t kMaxBiquadStages = 8;
 
 #define NOINLINE __declspec(noinline)
 
