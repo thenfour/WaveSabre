@@ -2,15 +2,16 @@
 
 #include <algorithm>  // for std::sort, std::unique
 
+#include "./Maj7Oscillator3Shape.hpp"
+#include "./Maj7Oscillator4WS.hpp"
 #include <WaveSabreCore/BandSplitter.hpp>
 #include <WaveSabreCore/BiquadFilter.h>
 #include <WaveSabreCore/LinkwitzRileyFilter.hpp>
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreCore/Maj7Oscillator3Base.hpp>
-#include "./Maj7Oscillator3Shape.hpp"
-#include "./Maj7Oscillator4WS.hpp"
 #include <WaveSabreCore/SVFilter.hpp>
 #include <WaveSabreCore/Vector.hpp>
+
 
 namespace WaveSabreCore
 {
@@ -154,8 +155,12 @@ static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
   }
 
   std::sort(breakpoints.begin(), breakpoints.end());
-  breakpoints.erase(std::unique(breakpoints.begin(), breakpoints.end(),
-                                [](double a, double b) { return std::abs(a - b) <= 1e-7; }),
+  breakpoints.erase(std::unique(breakpoints.begin(),
+                                breakpoints.end(),
+                                [](double a, double b)
+                                {
+                                  return std::abs(a - b) <= 1e-7;
+                                }),
                     breakpoints.end());
 
   WVShape shape;
@@ -461,11 +466,8 @@ struct FoldedSineCore : public OscillatorCore
   }
 };
 
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct SAHNoiseCore : public OscillatorCore
 {
-  // how waveshape params map to sound control.
   enum class ControlStyle
   {
     HP_Jitter,  // A = high pass freq; B = jitter amount
@@ -479,15 +481,14 @@ struct SAHNoiseCore : public OscillatorCore
   // Jitter range in phase units (fraction of a cycle)
   static constexpr double kJitterMaxPhase = 0.45;  // +-45% of a cycle at B=1
 
-  // Internal clock phasor and current cycle length (in phase units)
+  // Clock phasor and current cycle length (phase units)
   double mClockPhase01 = 0.0;    // advances by dt each sample
-  double mCycleThreshold = 1.0;  // = 1.0 + jitter per cycle
+  double mCycleThreshold = 0.0;  // <= 0.0 means "uninitialized"
 
-  // Output state: held value between steps
+  // Output: held value between steps
   float mHeld = 0.0f;
 
   M7Osc4::CorrectionSpill mSpill;
-
   CascadedBiquadFilter mFilter;
 
   SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
@@ -495,98 +496,88 @@ struct SAHNoiseCore : public OscillatorCore
       , mControlStyle(controlStyle)
       , mFilter()
   {
-    //mFilter.SetCompensationEnabled(true);
   }
 
   void HandleParamsChanged() override
   {
     mJitter01 = math::clamp01(mWaveshapeB);
+
     static constexpr float kFixedQ = 0.7071f;
     const float fixedReso01 = gBiquadFilterQCfg.ValueToParam01(kFixedQ);
+    const FilterResponse responseType = (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
+                                                                                   : FilterResponse::Lowpass;
 
     mFilter.SetParams(FilterCircuit::Biquad,
-                      FilterSlope::Slope24dbOct, // 2 stage.
-                      (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
-                                                                 : FilterResponse::Lowpass,
+                      FilterSlope::Slope24dbOct,  // 2 stage.
+                      responseType,
                       this->GetFrequency(mWaveshapeA),
                       fixedReso01);
   }
 
-
-  // Only sets the next cycle length (no target here).
   inline void schedule_next_cycle_length()
   {
-    const double J = (double)mJitter01 * kJitterMaxPhase;
+    // J in [0, kJitterMaxPhase]
+    const double J = double(mJitter01) * kJitterMaxPhase;
     const double jitter = J * math::randN11();  // [-J, +J]
-    mCycleThreshold = 1.0 + jitter;
+    mCycleThreshold = 1.0 + jitter;             // in [0.55, 1.45]
   }
-
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
   {
     const auto step = mPhaseAcc.advanceOneSample();
     const double dt = step.dt;
 
-    // First-time init
-    if (mClockPhase01 == 0.0 && mCycleThreshold == 1.0)
+    // First-time init (or explicit reset) when threshold <= 0
+    if (mCycleThreshold <= 0.0)
     {
       schedule_next_cycle_length();
       mHeld = math::randN11();  // start value
     }
 
-    //  Open BLEP spill for THIS sample
     mSpill.open_sample();
 
-    //  SNAPSHOT the held value at the **start** of the sample
+    // Snapshot held value at start of sample
     const float heldAtStart = mHeld;
 
-    //  March through possible intra-sample events
-    double remaining = dt;
-    double consumed = 0.0;
+    const double toEdge = mCycleThreshold - mClockPhase01;
 
-    while (true)
+    // With jitter in [-0.45, 0.45], threshold in [0.55, 1.45],
+    // and dt <= 0.5 (Nyquist), we can hit at most ONE edge in a sample.
+    if (dt >= toEdge)
     {
-      const double toEdge = mCycleThreshold - mClockPhase01;
+      // Edge occurs inside this sample
+      const double alpha = toEdge / dt;  // guaranteed in (0, 1] when dt > 0
 
-      if (remaining < toEdge)
-      {
-        mClockPhase01 += remaining;
-        break;
-      }
-
-      // Edge happens inside this sample
-      const double alphaFull = (dt > 0.0) ? math::clamp01((consumed + toEdge) / dt) : 0.0;
-
-      // Compute new target and true step size from the **current** held value
       const float newTarget = math::randN11();
-      const double dAmp = (double)newTarget - (double)mHeld;
+      const double dAmp = double(newTarget) - double(mHeld);
 
-      // Band-limit the step at alphaFull
-      //add_blep(alphaFull, dAmp, mSpill.now, mSpill.next);
-      mSpill.add_edge(alphaFull, dAmp, 0, dt);
+      // Band-limit the step at alpha
+      mSpill.add_edge(alpha, dAmp, 0, dt);
 
-      // Commit the step to state (affects later edges in THIS sample and the next sample)
+      // Commit the step
       mHeld = newTarget;
 
-      // Consume up to the edge, reset phasor, schedule next cycle length
-      remaining -= toEdge;
-      consumed += toEdge;
-      mClockPhase01 = 0.0;
+      // Advance phasor after edge
+      mClockPhase01 = dt - toEdge;
+
+      // Schedule next cycle
       schedule_next_cycle_length();
     }
+    else
+    {
+      // No edge this sample
+      mClockPhase01 += dt;
+    }
 
-    //  Output = value at sample **start** + now-tap
-    float y = heldAtStart + (float)mSpill.now;
+    float y = heldAtStart + float(mSpill.now);
     y = mFilter.ProcessSample(y);
 
     return CoreSample{
         .amplitude = y,
-        //.naive = heldAtStart,  // optional: expose pre-correction
-        //.correction = (float)mSpill.now,
-        //.phaseAdvance = step,
     };
   }
 };
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct EvolvingGrainNoiseCore : public OscillatorCore
@@ -722,7 +713,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
     }
 
     y = mFilter.ProcessSample(y);
-    y = math::clampN11(y); // filters make this unpredictable so clamp to conform to oscillator's expected output
+    y = math::clampN11(y);  // filters make this unpredictable so clamp to conform to oscillator's expected output
 
     return CoreSample{
         .amplitude = y,
