@@ -13,9 +13,9 @@ struct WVSegment
   double beginPhase01 = 0;
   double endPhaseIncluding1 = 0;  // exclusive (the idea is end is always > begin to make calculating length simple)
   // y value -1 to +1 nominal
-  float beginAmp = 0;
+  double beginAmp = 0;
   // slope is dy/dx where x is phase in [0,1) (saw wave slope = 2 because it goes from -1 to +1 in one cycle = 2/1 = 2)
-  float slope = 0;
+  double slope = 0;
 
   double LengthInPhase01() const
   {
@@ -23,11 +23,11 @@ struct WVSegment
   }
 
   // evaluate the amplitude and slope at the given absolute cycle phase (not relative to segment)
-  inline std::pair<float, float> EvalAmpSlopeAtPhase(double sampleInPhase01) const
+  inline DoublePair EvalAmpSlopeAtPhase(double sampleInPhase01) const
   {
     // do not wrap; allow evaluating outside segment
     const double deltaPhase = sampleInPhase01 - beginPhase01;
-    const float amp = beginAmp + slope * (float)deltaPhase;
+    const double amp = beginAmp + slope * deltaPhase;
     return {amp, slope};
   }
 };
@@ -54,7 +54,7 @@ struct WVShape
     return {};
   }
 
-  inline std::pair<float, float> EvalAmpSlopeAt(double sampleInPhase01) const
+  inline DoublePair EvalAmpSlopeAt(double sampleInPhase01) const
   {
     auto seg = FindSegment(sampleInPhase01);
     return seg.EvalAmpSlopeAtPhase(sampleInPhase01);
@@ -68,29 +68,30 @@ struct SegmentWalker
   double phase0;  // absolute phase at subwindow start (no wrap)
   double dt;      // full-sample dt
   double winLen;  // subwindow length as fraction of the sample ∈ [0,1]
-  float amp0, slope0;
+  //float amp0, slope0;
+  DoublePair ampSlope0;
 
   static SegmentWalker Begin(const WVShape& sh, double phaseBegin, double dtSample)
   {
-    auto [a, s] = sh.EvalAmpSlopeAt(phaseBegin);
-    return {sh, phaseBegin, dtSample, 1.0, a, s};
+    auto p = sh.EvalAmpSlopeAt(phaseBegin);
+    return {sh, phaseBegin, dtSample, 1.0, p[0], p[1]};
   }
   void ResetSubwindow(double newPhase, double newLen)
   {
     phase0 = newPhase;
     winLen = newLen;
-    auto [a, s] = shape.EvalAmpSlopeAt(newPhase);
-    amp0 = a;
-    slope0 = s;
+    auto p = shape.EvalAmpSlopeAt(newPhase);
+    ampSlope0 = p;
   }
 
-  template <class F>  // F(alpha, dAmp, dSlope)
+  template <class F>  // F(alpha, dAmpSlope)
   void VisitEdges(F&& onEdge)
   {
     double consumed = 0.0;
     double curPhase = phase0;
-    float curAmp = amp0;
-    float curSlope = slope0;
+    //auto curAmpSlope = ampSlope0;
+    double curAmp = ampSlope0[0];
+    double curSlope = ampSlope0[1];
 
     while (consumed < winLen)
     {
@@ -103,19 +104,20 @@ struct SegmentWalker
       if (alpha <= (winLen - consumed) && alpha >= 0.0)
       {
         const double preAlpha = alpha;
-        const double preAmp = curAmp + float(preAlpha * dt) * curSlope;
-        const float preSlope = curSlope;
+        const double preAmp = curAmp + (preAlpha * dt) * curSlope;
+        //const float preSlope = curSlope;
+        const DoublePair preAmpSlope = {preAmp, curSlope};
 
-        const double postPhase = (edgePhi >= 1.0) ? 0.0 : edgePhi;
-        const auto [postAmp, postSlope] = shape.EvalAmpSlopeAt(postPhase);
+        const double postPhase = (edgePhi >= 1) ? 0 : edgePhi;
+        const auto postAmpSlope = shape.EvalAmpSlopeAt(postPhase);
 
-        onEdge(consumed + preAlpha, double(postAmp) - double(preAmp), double(postSlope) - double(preSlope));
+        onEdge(consumed + preAlpha, postAmpSlope - preAmpSlope);
 
         // step across the edge
         consumed += preAlpha;
         curPhase = postPhase;
-        curAmp = postAmp;
-        curSlope = postSlope;
+        curAmp = postAmpSlope[0];
+        curSlope = postAmpSlope[1];
       }
       else
         break;

@@ -46,10 +46,12 @@ struct CorrectionSpill
     now = next;
     next = 0.0;
   }
-  inline void add_edge(double alpha, double dAmp, double dSlope, double dt)
+  inline void add_edge(double alpha, const DoublePair& dAmpSlope, double dt)
   {
+    auto dAmp = dAmpSlope[0];
     if (dAmp != 0.0)
       SplitKernels::add_blep(alpha, dAmp, now, next);
+    auto dSlope = dAmpSlope[1];
     if (dSlope != 0.0)
       SplitKernels::add_blamp(alpha, dSlope, dt, now, next);
   }
@@ -97,8 +99,13 @@ struct ShapeCoreStreaming : public OscillatorCore
 
     // naive (evaluation) uses offset
     const double evalPhase = math::wrap01(phase + audioRatePhaseOffset);
-    const auto [ampNaive, slopeNaive] = mShape.EvalAmpSlopeAt(evalPhase);
-    double y = (double)ampNaive + mSpill.now;
+    const auto p = mShape.EvalAmpSlopeAt(evalPhase);
+    if (mAaOpt == AntiAliasingOption::None) {
+      return CoreSample{
+          .amplitude = float(p[0]),
+      };
+    }
+    double y = (double)p[0] + mSpill.now;
     double corr = mSpill.now;
 
     // split the sample into pre/post reset windows (if any)
@@ -111,9 +118,9 @@ struct ShapeCoreStreaming : public OscillatorCore
     {
       w.winLen = preLen;
       w.VisitEdges(
-          [&](double alpha, double dA, double dS)
+          [&](double alpha, const DoublePair& dAS)
           {
-            mSpill.add_edge(alpha, dA, dS, dt);
+            mSpill.add_edge(alpha, dAS, dt);
           });
     }
 
@@ -124,20 +131,22 @@ struct ShapeCoreStreaming : public OscillatorCore
       const double prePh = evalPhase + alpha * dt;               // just BEFORE reset (no wrap)
       const double postPh = math::wrap01(audioRatePhaseOffset);  // AFTER reset (phase = 0 + offset)
 
-      const auto [ampPre, slopePre] = mShape.EvalAmpSlopeAt(prePh);
-      const auto [ampPost, slopePost] = mShape.EvalAmpSlopeAt(postPh);
+      const auto ppre = /*[ ampPre, slopePre ] =*/ mShape.EvalAmpSlopeAt(prePh);
+      const auto  ppost /* [ampPost, slopePost]*/ = mShape.EvalAmpSlopeAt(postPh);
 
-      mSpill.add_edge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
+      //mSpill.add_edge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
+      //mSpill.add_edge(alpha, double(ppost[0]) - double(ppre[0]), double(ppost[1]) - double(ppre[1]), dt);
+      mSpill.add_edge(alpha, ppost - ppost, dt);
 
       // post-reset window: continue walking from postPh
       if (postLen > 0.0)
       {
         w.ResetSubwindow(postPh, postLen);
         w.VisitEdges(
-            [&](double alphaLocal, double dA, double dS)
+            [&](double alphaLocal, const DoublePair& dAS)
             {
               const double alphaFull = alpha + alphaLocal;
-              mSpill.add_edge(alphaFull, dA, dS, dt);
+              mSpill.add_edge(alphaFull, dAS, dt);
             });
       }
     }
@@ -146,7 +155,7 @@ struct ShapeCoreStreaming : public OscillatorCore
     //y = (double)ampNaive + mSpill.now;
 
     return CoreSample{
-        .amplitude = (mAaOpt == AntiAliasingOption::PolyBlep ? float((double)ampNaive + mSpill.now) : ampNaive),
+        .amplitude = float((double)p[0] + mSpill.now),
         //.naive = (float)ampNaive,
         //.correction = (float)corr,
         //.phaseAdvance = {/* if needed */},

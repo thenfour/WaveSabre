@@ -555,7 +555,7 @@ struct SAHNoiseCore : public OscillatorCore
       const double dAmp = double(newTarget) - double(mHeld);
 
       // Band-limit the step at alpha
-      mSpill.add_edge(alpha, dAmp, 0, dt);
+      mSpill.add_edge(alpha, {dAmp, 0} , dt);
 
       // Commit the step
       mHeld = newTarget;
