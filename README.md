@@ -39,8 +39,11 @@ It's quite robust and usable, however because it's a 1-man show, there's no anno
 
 ## Size optimization
 
-* SizeBench
-* Bloaty
+* SizeBench is best.
+
+### notes:
+
+- `enum class ... : uint8_t` does not usually save space. code is spent on widening/narrowing args; storage padding is not that critical
 
 ### msvcrt / build-msvcrt
 

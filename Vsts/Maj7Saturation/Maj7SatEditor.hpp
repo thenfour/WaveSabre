@@ -8,12 +8,6 @@ using namespace WaveSabreCore;
 
 #include "Maj7SatVst.hpp"
 
-
-//#define MAJ7SAT_ENABLE_RARE_MODELS
-//#define MAJ7SAT_ENABLE_ANALOG
-//#define MAJ7SAT_ENABLE_MIDSIDE
-
-
 struct Maj7SatEditor : public VstEditor
 {
 	Maj7Sat* mpMaj7Sat;

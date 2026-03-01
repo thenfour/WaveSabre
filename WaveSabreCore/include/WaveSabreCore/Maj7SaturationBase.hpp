@@ -3,10 +3,6 @@
 #include "Maj7Basic.hpp"
 #include "DCFilter.hpp"
 
-#define MAJ7SAT_ENABLE_RARE_MODELS
-#define MAJ7SAT_ENABLE_ANALOG
-//#define MAJ7SAT_ENABLE_MIDSIDE
-
 namespace WaveSabreCore
 {
 namespace M7
@@ -216,9 +212,9 @@ struct Maj7SaturationBase
 
 			switch (model)
 			{
-			default:
 			case Model::Thru:
 				break;
+			default: // allow saturation even for unknown models; allows compat between versions when new models are added.
 			case Model::TanhClip:
 				s = ShapeTanhClip(s);
 				break;

@@ -11,6 +11,14 @@
 #undef ENABLE_DIODE_FILTER // is about 3kb of binary.
 #undef ENABLE_K35_FILTER // is about 3kb of binary.
 
+// for sat / MBC saturation...
+#undef MAJ7SAT_ENABLE_RARE_MODELS
+#define MAJ7SAT_ENABLE_ANALOG
+#undef MAJ7SAT_ENABLE_MIDSIDE
+
+#undef ENABLE_TRIANGLE_FOLD_WAVEFORM
+
+
 #define NOINLINE __declspec(noinline)
 
 #define INLINE inline

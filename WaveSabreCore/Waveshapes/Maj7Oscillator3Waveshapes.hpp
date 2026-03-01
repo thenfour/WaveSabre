@@ -87,6 +87,7 @@ static inline WVShape MakeTriSquareShape(float duty01, float triSquare01)
   return MakeTrapezoidShape1(idleLow01, rampUp01, idleHigh01, rampDown01);
 }
 
+#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
 // Folded triangle built as piecewise-linear WVShape so ShapeCoreStreaming can apply BLEP/BLAMP.
 // shapeA controls fold drive (1..16), shapeB controls bias (-2..+2).
 static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
@@ -204,6 +205,8 @@ static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
 
   return shape;
 }
+#endif // ENABLE_TRIANGLE_FOLD_WAVEFORM
+
 static inline WVShape MakePulseShape(double dutyCycle01)
 {
   dutyCycle01 = math::clamp(dutyCycle01, 0.005, 0.995);

@@ -132,7 +132,7 @@ float ButterworthQForSection(size_t sectionIndex, size_t nStages);
 
 class CascadedBiquadFilter : public IFilter
 {
-  enum class QStrategy
+  enum class QStrategy// : uint8_t
   {
     UserResonance,
     Butterworth,

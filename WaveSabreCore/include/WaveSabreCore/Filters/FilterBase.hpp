@@ -41,7 +41,7 @@ constexpr real Real2 = real{2.0f};
 //     HP4 = 7,
 // };
 
-enum class FilterCircuit
+enum class FilterCircuit// : uint8_t
 {
   Disabled = 0,
   OnePole,
@@ -61,7 +61,7 @@ enum class FilterCircuit
 // 4 stage = 48db/oct.
 // ...
 // 8 stage = 96db/oct.
-enum class FilterSlope
+enum class FilterSlope// : uint8_t
 {
   Flat = 0,
   Slope6dbOct = 1,
@@ -77,7 +77,7 @@ enum class FilterSlope
   Count,
 };
 
-enum class FilterResponse
+enum class FilterResponse// : uint8_t
 {
   Lowpass,
   Highpass,

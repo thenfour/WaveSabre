@@ -53,6 +53,7 @@ struct TriPulseGenerator2 : public IShapeGenerator
   }
 };
 
+#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
 struct FoldedTriGenerator : public IShapeGenerator
 {
   WVShape GetShape(float shapeA, float shapeB) const override
@@ -62,6 +63,7 @@ struct FoldedTriGenerator : public IShapeGenerator
     return MakeFoldedTriangleShape(drive, bias);
   }
 };
+#endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
 
 }  // namespace M7Osc4
 
@@ -98,7 +100,11 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
     case OscillatorWaveform::FoldedSine:
       return new FoldedSineCore(w);
     case OscillatorWaveform::FoldedTriangle:
+#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::FoldedTriGenerator);
+#else // ENABLE_TRIANGLE_FOLD_WAVEFORM
+      return new FoldedSineCore(w);
+#endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
 
       case OscillatorWaveform::EvolvingGrainNoise:
       return new EvolvingGrainNoiseCore(w);
