@@ -91,6 +91,7 @@ add_subdirectory(WaveSabrePlayerLib)
 # binaries
 add_subdirectory(WaveSabreStandAlonePlayer)
 add_subdirectory(WaveSabreExecutableMusicPlayer)
+add_subdirectory(Maj7ConsolePlayer)
 
 # VSTs
 set(VST_TARGETS "" CACHE INTERNAL "")
