@@ -257,7 +257,7 @@ struct ParamAccessor
   }
 
 
-  float GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;
+  NOINLINE float GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;
   template <typename Toffset>
   float GetDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float mod = 0) const
   {

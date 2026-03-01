@@ -4,6 +4,9 @@
 // originally for enabling output stream support for Maj7 (giga)synth. Quickly
 // became a general flag for anything that is not size-optimized.
 
+// note you can also use MIN_SIZE_REL,
+// defined for both MinSizeRel and MinSizeRelWithDebugInfo
+
 // compensation gain is interesting - it works pretty well, but there's actually no great way to do this at the oscillator
 // level. So while there may be some interesting use for it, it's not useful right now.
 #undef ENABLE_BIQUAD_COMPENSATION_GAIN
@@ -17,7 +20,6 @@
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM
-
 
 #define NOINLINE __declspec(noinline)
 

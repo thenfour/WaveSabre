@@ -43,11 +43,11 @@ struct EnvelopeNode
 
   float kill();
 
-  // used by debug displays
-  EnvelopeStage GetStage() const
-  {
-    return this->mStage;
-  }
+  // // used by debug displays
+  // EnvelopeStage GetStage() const
+  // {
+  //   return this->mStage;
+  // }
 
   bool IsPlaying() const
   {
