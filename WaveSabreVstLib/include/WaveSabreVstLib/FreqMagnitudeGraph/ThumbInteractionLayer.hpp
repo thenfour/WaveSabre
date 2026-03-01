@@ -97,7 +97,9 @@ public:
     bool mouseDown = ImGui::IsMouseDown(0);
     bool mouseReleased = ImGui::IsMouseReleased(0);
     bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
-    
+
+    using M7::Param01;
+
     // Check for mouse wheel events
     float mouseWheel = ImGui::GetIO().MouseWheel;
     
@@ -108,20 +110,17 @@ public:
         const auto& thumb = mThumbs[thumbIndex];
         const auto& filter = mFilters[thumb.filterIndex];
         
-        if (filter.HandleChangeQ) {
-          // Get current Q value from the filter
-          float currentQ = filter.filter ? filter.filter->Q() : 1.0f;
+        if (filter.HandleChangeReso01) {
+          // Get current reso value from the filter
+          auto currentReso = filter.filter ? filter.filter->reso01() : Param01{1.0f};
           
           // Apply wheel delta to Q with reasonable scaling and limits
-          float qDelta = mouseWheel * 0.1f; // Fine control
-          float newQ = currentQ * (1.0f + qDelta);
+          float delta = mouseWheel * 0.1f; // Fine control
+          float newReso = currentReso.value * (1.0f + delta);
           
-          // Clamp Q to reasonable limits (typical range for audio filters)
-          newQ = M7::math::clamp(newQ, 0.1f, 20.0f);
+          newReso = M7::math::clamp01(newReso);
           
-          // Call the Q parameter change handler
-          filter.HandleChangeQ(newQ, filter.userData);
-          
+          filter.HandleChangeReso01(Param01{newReso}, filter.userData);          
           return true; // Consumed the event
         }
       }
@@ -169,7 +168,7 @@ public:
         newGain = M7::math::clamp(newGain, coords.mDisplayMinDB, coords.mDisplayMaxDB);
         
         // Call the parameter change handler
-        filter.HandleChangeParam(newFreq, newGain, filter.userData);
+        filter.HandleChangeParam(newFreq, M7::Decibels{newGain}, filter.userData);
         
         return true;
       }

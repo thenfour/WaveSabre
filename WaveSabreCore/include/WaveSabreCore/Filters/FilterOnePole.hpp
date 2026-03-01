@@ -16,7 +16,7 @@ struct MoogOnePoleFilter : public IFilter
                          FilterSlope slope,
                          FilterResponse response,
                          float cutoffHz,
-                         float reso01) override
+                         Param01 reso01, real gainDb) override
   {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     if (!DoesSupport(circuit, slope, response))

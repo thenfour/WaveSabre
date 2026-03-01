@@ -505,8 +505,8 @@ struct SAHNoiseCore : public OscillatorCore
   {
     mJitter01 = math::clamp01(mWaveshapeB);
 
-    static constexpr float kFixedQ = 0.7071f;
-    const float fixedReso01 = gBiquadFilterQCfg.ValueToParam01(kFixedQ);
+    static constexpr float kFixedQ = 0.7071f; //db
+    const auto fixedReso01 = Param01{gBiquadFilterQCfg.ValueToParam01(kFixedQ)};
     const FilterResponse responseType = (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
                                                                                    : FilterResponse::Lowpass;
 
@@ -514,7 +514,8 @@ struct SAHNoiseCore : public OscillatorCore
                       FilterSlope::Slope24dbOct,  // 2 stage.
                       responseType,
                       this->GetFrequency(mWaveshapeA),
-                      fixedReso01);
+                      fixedReso01,
+                      0 /*gaindb*/);
   }
 
   inline void schedule_next_cycle_length()
@@ -696,8 +697,12 @@ struct WhiteNoiseCore2 : public OscillatorCore
       case ControlStyle::Duty_LP:
         //case ControlStyle::Duty_HP:
         {
-          mFilter.SetParams(
-              FilterCircuit::Biquad, FilterSlope::Slope24dbOct, filterType, this->mMainFrequencyHz, mWaveshapeB);
+          mFilter.SetParams(FilterCircuit::Biquad,
+                            FilterSlope::Slope24dbOct,
+                            filterType,
+                            this->mMainFrequencyHz,
+                            Param01{mWaveshapeB},
+                            0 /*gaindb*/);
           break;
         }
     }

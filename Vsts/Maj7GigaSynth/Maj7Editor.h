@@ -2218,86 +2218,34 @@ public:
       const int filterSlopeParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterSlope);
       const int filterResponseParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterResponse);
 
-      static constexpr M7::FilterCircuit kCircuitOrder[] = {
-          M7::FilterCircuit::Disabled,
-          M7::FilterCircuit::OnePole,
-          M7::FilterCircuit::Biquad,
-          M7::FilterCircuit::Butterworth,
-          M7::FilterCircuit::Moog,
-          M7::FilterCircuit::K35,
-          M7::FilterCircuit::Diode,
-      };
-      static constexpr const char* kCircuitLabels[] = {
-          "Off", "1Pole", "Biquad", "Butter", "Moog", "K35", "Diode",
-      };
-
-      static constexpr M7::FilterSlope kSlopeOrder[] = {
-          M7::FilterSlope::Slope6dbOct,
-          M7::FilterSlope::Slope12dbOct,
-          M7::FilterSlope::Slope24dbOct,
-          M7::FilterSlope::Slope36dbOct,
-          M7::FilterSlope::Slope48dbOct,
-          M7::FilterSlope::Slope60dbOct,
-          M7::FilterSlope::Slope72dbOct,
-          M7::FilterSlope::Slope84dbOct,
-          M7::FilterSlope::Slope96dbOct,
-      };
-      static constexpr const char* kSlopeLabels[] = {
-          "6", "12", "24", "36", "48", "60", "72", "84", "96",
-      };
-
-      static constexpr M7::FilterResponse kResponseOrder[] = {
-          M7::FilterResponse::Lowpass,
-          M7::FilterResponse::LowShelf,
-          M7::FilterResponse::Bandpass,
-          M7::FilterResponse::Notch,
-          M7::FilterResponse::Allpass,
-          M7::FilterResponse::Peak,
-          M7::FilterResponse::HighShelf,
-          M7::FilterResponse::Highpass,
-      };
-      static constexpr const char* kResponseLabels[] = {
-          "\\ LP",
-           "  LS",
-           "| BP",
-           "- Nt",
-           "* AP",
-            "^ PK",
-            "  HS",
-          "/ HP",    
-      };
-
-      auto getCircuitFilter = [&](M7::FilterCircuit circuit) -> M7::IFilter*
-      {
-        switch (circuit)
-        {
-          default:
-          case M7::FilterCircuit::Disabled:
-            return &filter.mFilter.mNullFilter;
-          case M7::FilterCircuit::OnePole:
-            return &filter.mFilter.mOnePole;
-          case M7::FilterCircuit::Biquad:
-            return &filter.mFilter.mBiquad;
-          case M7::FilterCircuit::Butterworth:
-            return &filter.mFilter.mButterworth;
-          case M7::FilterCircuit::Moog:
-            return &filter.mFilter.mMoog;
-          case M7::FilterCircuit::K35:
-            return &filter.mFilter.mK35;
-          case M7::FilterCircuit::Diode:
-            return &filter.mFilter.mDiode;
-        }
-      };
-
-      auto isSupported = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
-      {
-        if (circuit == M7::FilterCircuit::Disabled)
-        {
-          return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
-        }
-        auto* fptr = getCircuitFilter(circuit);
-        return fptr && fptr->DoesSupport(circuit, slope, response);
-      };
+      // auto isSupported = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
+      // {
+      //   switch (circuit)
+      //   {
+      //     case M7::FilterCircuit::Disabled:
+      //       return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
+      //     case M7::FilterCircuit::OnePole:
+      //       return slope == M7::FilterSlope::Slope6dbOct &&
+      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+      //     case M7::FilterCircuit::Biquad:
+      //       return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct;
+      //     case M7::FilterCircuit::Butterworth:
+      //       return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct &&
+      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+      //     case M7::FilterCircuit::Moog:
+      //       return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
+      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
+      //               response == M7::FilterResponse::Bandpass);
+      //     case M7::FilterCircuit::K35:
+      //       return (slope == M7::FilterSlope::Slope12dbOct || slope == M7::FilterSlope::Slope24dbOct) &&
+      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+      //     case M7::FilterCircuit::Diode:
+      //       return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
+      //              response == M7::FilterResponse::Lowpass;
+      //     default:
+      //       return false;
+      //   }
+      // };
 
       M7::QuickParam filterCircuitParam{GetEffectX()->getParameter(filterCircuitParamID)};
       M7::QuickParam filterSlopeParam{GetEffectX()->getParameter(filterSlopeParamID)};
@@ -2319,255 +2267,29 @@ public:
         selectedSlope = slope;
         selectedResponse = response;
       };
-
-      struct FilterChoice
-      {
-        M7::FilterCircuit circuit;
-        M7::FilterSlope slope;
-        M7::FilterResponse response;
-      };
-
-      std::vector<FilterChoice> validChoices;
-      constexpr size_t kMaxChoices = size_t(M7::FilterCircuit::Count) * size_t(M7::FilterSlope::Count) * size_t(M7::FilterResponse::Count);
-      validChoices.reserve(kMaxChoices);
-      validChoices.push_back({M7::FilterCircuit::Disabled, M7::FilterSlope::Slope6dbOct, M7::FilterResponse::Lowpass});
-      for (auto c : kCircuitOrder)
-      {
-        if (c == M7::FilterCircuit::Disabled)
-          continue;
-        for (auto r : kResponseOrder)
-        {
-          for (auto s : kSlopeOrder)
+      RenderFilterSelectionWidget(
+          labelID,
+          ifilter + 9000,
+          selectedCircuit,
+          selectedSlope,
+          selectedResponse,
+          WaveSabreCore::M7::DoesFilterSupport,
+          applySelection,
+          [&](const ImRect& bb)
           {
-            if (isSupported(c, s, r))
-            {
-              validChoices.push_back({c, s, r});
-            }
-          }
-        }
-      }
-
-      auto findChoiceIndex = [&]() -> int
-      {
-        for (size_t i = 0; i < validChoices.size(); ++i)
-        {
-          const auto& v = validChoices[i];
-          if (v.circuit == selectedCircuit && v.slope == selectedSlope && v.response == selectedResponse)
-            return (int)i;
-        }
-        return 0;
-      };
-
-      auto labelForCircuit = [&](M7::FilterCircuit c) -> const char*
-      {
-        for (size_t i = 0; i < std::size(kCircuitOrder); ++i)
-        {
-          if (kCircuitOrder[i] == c)
-            return kCircuitLabels[i];
-        }
-        return "?";
-      };
-      auto labelForSlope = [&](M7::FilterSlope s) -> const char*
-      {
-        for (size_t i = 0; i < std::size(kSlopeOrder); ++i)
-        {
-          if (kSlopeOrder[i] == s)
-            return kSlopeLabels[i];
-        }
-        return "-";
-      };
-      auto labelForResponse = [&](M7::FilterResponse r) -> const char*
-      {
-        for (size_t i = 0; i < std::size(kResponseOrder); ++i)
-        {
-          if (kResponseOrder[i] == r)
-            return kResponseLabels[i];
-        }
-        return "-";
-      };
-
-      ImGui::PushID(ifilter + 9000);
-      {
-        const ImVec2 selectorSize = ImVec2(133.0f, 60.0f);
-        bool openPopup = false;
-        const bool popupAllowed = (selectedCircuit != M7::FilterCircuit::Disabled);
-
-        {
-          ImGuiGroupScope groupScopeSel;
-          ImGui::PushID("FilterSelectorMain");
-          ImGui::Button("##filtermain", selectorSize);
-          if (popupAllowed && ImGui::IsItemClicked())
-          {
-            openPopup = true;
-          }
-
-          ImRect bb(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
-          auto* dl = ImGui::GetWindowDrawList();
-          dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
-          auto& filterPreview = GetOrBuildFilterPreviewCache(ifilter,
-                                                             std::max(8, (int)bb.GetWidth() - 8),
-                                                             std::max(8, (int)bb.GetHeight() - 8),
-                                                             selectedCircuit,
-                                                             selectedSlope,
-                                                             selectedResponse,
-                                                             selectedCutoffHz,
-                                                             selectedReso01);
-          DrawFilterPreview(bb, filterPreview);
-          DrawShadowText(std::string(labelForCircuit(selectedCircuit)), ImVec2(bb.Min.x + 6, bb.Min.y + 3));
-          // DrawShadowText(std::string("Slope ") + labelForSlope(selectedSlope) + " dB",
-          //                ImVec2(bb.Min.x + 6, bb.Min.y + 20));
-          // DrawShadowText(std::string(labelForResponse(selectedResponse)), ImVec2(bb.Min.x + 6, bb.Min.y + 40));
-          ImGui::PopID();
-
-          ImGui::SameLine();
-          ImGuiGroupScope groupScopeSmallButtons;
-          ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3, 0));
-          if (ImGui::SmallButton("+"))
-          {
-            int idx = findChoiceIndex();
-            idx = (idx + 1) % (int)validChoices.size();
-            auto c = validChoices[(size_t)idx];
-            applySelection(c.circuit, c.slope, c.response);
-          }
-          if (ImGui::SmallButton("-"))
-          {
-            int idx = findChoiceIndex();
-            idx = (idx - 1 + (int)validChoices.size()) % (int)validChoices.size();
-            auto c = validChoices[(size_t)idx];
-            applySelection(c.circuit, c.slope, c.response);
-          }
-          ImGui::PopStyleVar();
-        }
-
-        if (openPopup)
-        {
-          ImGui::OpenPopup("selectFilterPopup");
-        }
-
-        if (ImGui::BeginPopup("selectFilterPopup"))
-        {
-          for (size_t i = 1; i < std::size(kCircuitOrder); ++i)
-          {
-            if (i > 0)
-              ImGui::SameLine();
-
-            ImGui::PushID((int)i);
-
-            bool selected = (selectedCircuit == kCircuitOrder[i]);
-            if (selected)
-            {
-              ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("446688").Value);
-              ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorFromHTML("557799").Value);
-              ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorFromHTML("557799").Value);
-            }
-
-            if (ImGui::Button(kCircuitLabels[i]))
-            {
-              selectedCircuit = kCircuitOrder[i];
-
-              bool matchedCurrent = isSupported(selectedCircuit, selectedSlope, selectedResponse);
-              if (!matchedCurrent)
-              {
-                bool found = false;
-                for (auto r : kResponseOrder)
-                {
-                  for (auto s : kSlopeOrder)
-                  {
-                    if (isSupported(selectedCircuit, s, r))
-                    {
-                      selectedSlope = s;
-                      selectedResponse = r;
-                      found = true;
-                      break;
-                    }
-                  }
-                  if (found)
-                    break;
-                }
-              }
-
-              applySelection(selectedCircuit, selectedSlope, selectedResponse);
-            }
-
-            if (selected)
-            {
-              ImGui::PopStyleColor(3);
-            }
-
-            ImGui::PopID();
-          }
-
-          ImGui::Separator();
-
-          const int nCols = 1 + (int)std::size(kSlopeOrder);
-          if (ImGui::BeginTable("##filterGrid", nCols, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV))
-          {
-            ImGui::TableNextRow();
-            ImGui::TableSetColumnIndex(0);
-            ImGui::TextUnformatted("Resp\\Slope");
-
-            for (size_t is = 0; is < std::size(kSlopeOrder); ++is)
-            {
-              ImGui::TableSetColumnIndex((int)is + 1);
-              ImGui::TextUnformatted(kSlopeLabels[is]);
-            }
-
-            for (size_t ir = 0; ir < std::size(kResponseOrder); ++ir)
-            {
-              ImGui::PushID((int)(ir + 100));
-              ImGui::TableNextRow();
-              ImGui::TableSetColumnIndex(0);
-              ImGui::TextUnformatted(kResponseLabels[ir]);
-
-              for (size_t is = 0; is < std::size(kSlopeOrder); ++is)
-              {
-                ImGui::PushID((int)(is + 1000));
-                ImGui::TableSetColumnIndex((int)is + 1);
-
-                const auto slope = kSlopeOrder[is];
-                const auto response = kResponseOrder[ir];
-                const bool supported = isSupported(selectedCircuit, slope, response);
-                const bool selected = supported && (selectedSlope == slope) && (selectedResponse == response);
-
-                if (!supported)
-                {
-                  ImGui::PushStyleVar(ImGuiStyleVar_Alpha, 0.35f);
-                  ImGui::Button("-##unsupported", ImVec2(28, 0));
-                  ImGui::PopStyleVar();
-                  ImGui::PopID();
-                  continue;
-                }
-
-                if (selected)
-                {
-                  ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("447744").Value);
-                  ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorFromHTML("558855").Value);
-                  ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorFromHTML("558855").Value);
-                }
-
-                if (ImGui::Button("o##choice", ImVec2(28, 0)))
-                {
-                  applySelection(selectedCircuit, slope, response);
-                }
-
-                if (selected)
-                {
-                  ImGui::PopStyleColor(3);
-                }
-
-                ImGui::PopID();
-              }
-
-              ImGui::PopID();
-            }
-
-            ImGui::EndTable();
-          }
-
-          ImGui::EndPopup();
-        }
-      }
-      ImGui::PopID();
+            auto* dl = ImGui::GetWindowDrawList();
+            dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
+            const auto& filterPreview = GetOrBuildFilterPreviewCache(ifilter,
+                                                                      std::max(8, (int)bb.GetWidth() - 8),
+                                                                      std::max(8, (int)bb.GetHeight() - 8),
+                                                                      selectedCircuit,
+                                                                      selectedSlope,
+                                                                      selectedResponse,
+                                                                      selectedCutoffHz,
+                                                                      selectedReso01);
+            DrawFilterPreview(bb, filterPreview);
+            DrawShadowText(std::string(LabelForFilterCircuit(selectedCircuit)), ImVec2(bb.Min.x + 6, bb.Min.y + 3));
+          });
 
       Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq),
                               filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT),
@@ -2695,7 +2417,7 @@ public:
 
       const float safeCutoff = M7::math::clamp(cutoffHz, 20.0f, 20000.0f);
       const float safeReso = M7::math::clamp01(reso01);
-      f->SetParams(circuit, slope, response, safeCutoff, safeReso);
+      f->SetParams(circuit, slope, response, safeCutoff, M7::Param01{safeReso}, 0 /*gainDb*/);
 
       static constexpr float kMinFreq = 20.0f;
       static constexpr float kMaxFreq = 20000.0f;
@@ -2704,6 +2426,7 @@ public:
       static constexpr float kMaxDb = 12.0f;
 
       const int sampleCount = (int)newEntry.y01.size();
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       for (int i = 0; i < sampleCount; ++i)
       {
         const float t = (sampleCount <= 1) ? 0.0f : ((float)i / (float)(sampleCount - 1));
@@ -2713,6 +2436,9 @@ public:
         const float yNorm = 1.0f - M7::math::clamp01(M7::math::lerp_rev(kMinDb, kMaxDb, db));
         newEntry.y01[(size_t)i] = yNorm;
       }
+#else
+      std::fill(newEntry.y01.begin(), newEntry.y01.end(), 0.55f);
+#endif
     }
 
     if (mFilterPreviewCache.size() < gFilterPreviewCacheMaxEntries)

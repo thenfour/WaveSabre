@@ -206,9 +206,10 @@ struct Maj7Space : public Device
     mDelayCore.OnParamsChanged(leftBufferLengthMs,
                                rightBufferLengthMs,
                                mParams.GetFrequency(ParamIndices::DelayLowCutFreq, M7::gFilterFreqConfig),
-                               mParams.GetDivCurvedValue(ParamIndices::DelayLowCutQ, M7::gBiquadFilterQCfg),
+                               M7::Decibels{
+                                   mParams.GetDivCurvedValue(ParamIndices::DelayLowCutQ, M7::gBiquadFilterQCfg)},
                                mParams.GetFrequency(ParamIndices::DelayHighCutFreq, M7::gFilterFreqConfig),
-                               mParams.GetDivCurvedValue(ParamIndices::DelayHighCutQ, M7::gBiquadFilterQCfg));
+        M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::DelayHighCutQ, M7::gBiquadFilterQCfg)});
 
     // reverb params.
     mReverbCore.preDelayMS = mParams.GetScaledRealValue(ParamIndices::ReverbPreDelay,

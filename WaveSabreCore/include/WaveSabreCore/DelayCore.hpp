@@ -82,9 +82,9 @@ public:
   void OnParamsChanged(float leftBufferLengthMs,
                        float rightBufferLengthMs,
                        float lowCutFreqHz,
-                       float lowCutQ,
+                       M7::Decibels lowCutQ,
                        float highCutFreqHz,
-                       float highCutQ)
+                       M7::Decibels highCutQ)
   {
     mFeedbackDriveGainCompensationFact = M7::math::CalcTanhGainCompensation(mFeedbackDriveLin);
 

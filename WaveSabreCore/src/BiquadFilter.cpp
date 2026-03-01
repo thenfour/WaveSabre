@@ -9,7 +9,7 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, float q, float gain)
+void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, Decibels q, float gain)
 {
   if (response == this->response && freq == this->freq && this->q == q && this->gain == gain)
     return;
@@ -25,7 +25,7 @@ void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, float q,
   const float A = M7::math::DecibelsToLinear(gain);
 
   mW0 = M7::math::gPITimes2 * freq * Helpers::CurrentSampleRateRecipF;
-  const float alpha = M7::math::sin(mW0) / (q * 2);
+  const float alpha = M7::math::sin(mW0) / (q.value * 2);
   float cosw0 = M7::math::cos(mW0);
 
   float& a0 = this->coeffs[0];
@@ -172,8 +172,8 @@ float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
 void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
                                            FilterResponse response,
                                            float cutoffHz,
-                                           float q,
-                                           float gain
+                                           Decibels q,
+                                           float gainDb
 #ifdef ENABLE_BUTTERWORTH_FILTER
                                            ,
                                            QStrategy qStrategy
@@ -200,7 +200,7 @@ void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
   if (qStrategy == QStrategy::UserResonance)
   {
     // Compute coefficients once, then copy to remaining stages.
-    mFilters[0].SetBiquadParams(response, cutoffHz, q, q);
+    mFilters[0].SetBiquadParams(response, cutoffHz, q, gainDb);
     for (size_t i = 1; i < nStages; ++i)
     {
       mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
@@ -210,14 +210,14 @@ void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
   {
     for (size_t i = 0; i < nStages; ++i)
     {
-      const float sectionQ = ButterworthQForSection(i, nStages);
-      mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, 0.0f);
+      const auto sectionQ = ButterworthQForSection(i, nStages);
+      mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, gainDb);
     }
   }
 #else   // ENABLE_BUTTERWORTH_FILTER
   for (size_t i = 0; i < nStages; ++i)
   {
-    mFilters[i].SetBiquadParams(response, cutoffHz, q, gain);
+    mFilters[i].SetBiquadParams(response, cutoffHz, q, gainDb);
   }
 #endif  // ENABLE_BUTTERWORTH_FILTER
 
@@ -228,7 +228,7 @@ void CascadedBiquadFilter::SetParams(FilterCircuit circuit,
                                      FilterSlope slope,
                                      FilterResponse response,
                                      real cutoffHz,
-                                     real reso01)
+                                     Param01 reso01, real gainDb)
 {
   // convert slope to n stages.
   int nStages = (int)slope - 1;
@@ -239,16 +239,16 @@ void CascadedBiquadFilter::SetParams(FilterCircuit circuit,
 #ifdef ENABLE_BUTTERWORTH_FILTER
   if (circuit == FilterCircuit::Butterworth)
   {
-    SetBiquadParams(nStages, response, cutoffHz, 0, 0, QStrategy::Butterworth);
+    SetBiquadParams(nStages, response, cutoffHz, Decibels{0}, gainDb, QStrategy::Butterworth);
   }
   else
   {
-    const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
-    SetBiquadParams(nStages, response, cutoffHz, q, 0, QStrategy::UserResonance);
+    const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
+    SetBiquadParams(nStages, response, cutoffHz, q, gainDb, QStrategy::UserResonance);
   }
 #else   // ENABLE_BUTTERWORTH_FILTER
-  const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
-  SetBiquadParams(nStages, response, cutoffHz, q, 0);
+  const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
+  SetBiquadParams(nStages, response, cutoffHz, q, gainDb);
 #endif  // ENABLE_BUTTERWORTH_FILTER
 }
 
@@ -265,7 +265,7 @@ float CascadedBiquadFilter::ProcessSample(float x)
 
 
 #ifdef ENABLE_BUTTERWORTH_FILTER
-float ButterworthQForSection(size_t sectionIndex, size_t nStages)
+Decibels ButterworthQForSection(size_t sectionIndex, size_t nStages)
 {
   // const float angle = (2 * sectionIndex + 1) * math::gPI / (nStages * 4);
   // const float c2 = 2 * math::cos(angle);
@@ -275,7 +275,7 @@ float ButterworthQForSection(size_t sectionIndex, size_t nStages)
   const float k = (float)(sectionIndex + 1);
   const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
   const float c = math::cos(angle);
-  return 1.0f / (2.0f * c);
+  return Decibels{1.0f / (2.0f * c)};
   //const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
   //return 1.0f / denom;
 

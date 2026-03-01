@@ -127,9 +127,9 @@ struct Echo : public Device
     mCore.OnParamsChanged(leftBufferLengthMs,
                           rightBufferLengthMs,
                           mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig),
-                          mParams.GetDivCurvedValue(ParamIndices::LowCutQ, M7::gBiquadFilterQCfg),
+                          M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::LowCutQ, M7::gBiquadFilterQCfg)},
                           mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig),
-                          mParams.GetDivCurvedValue(ParamIndices::HighCutQ, M7::gBiquadFilterQCfg));
+                          M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::HighCutQ, M7::gBiquadFilterQCfg)});
   }
 };
 }  // namespace WaveSabreCore

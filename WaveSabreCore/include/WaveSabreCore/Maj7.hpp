@@ -786,7 +786,12 @@ struct Maj7 : public Maj7SynthDevice
                                                                  (int)lfo.mDevice.mDevice.mModDestBaseID +
                                                                  (int)LFOModParamIndexOffsets::Sharpness));
 
-        lfo.mFilter.SetParams(FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Lowpass, freq, 0);
+        lfo.mFilter.SetParams(FilterCircuit::OnePole,
+                              FilterSlope::Slope6dbOct,
+                              FilterResponse::Lowpass,
+                              freq,
+                              Param01{0} /*reso*/,
+                              0 /*gaindb*/);
       }
 
       for (auto* a : mpFilters)

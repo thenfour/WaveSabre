@@ -92,9 +92,9 @@ namespace WaveSabreCore
 			float releaseMS,
 			bool enableFilter,
 			float highPassFreq, // hz
-			float highPassQ, // biquad q ~0.2 - ~12.0f
+			M7::Decibels highPassQ, // biquad q ~0.2 - ~12.0f
 			float lowPassFreq, // hz
-			float lowPassQ // biquad q ~0.2 - ~12.0f
+			M7::Decibels lowPassQ // biquad q ~0.2 - ~12.0f
 		)
 		{
 			//mInputGainLin = inputGainLin;
@@ -292,9 +292,9 @@ namespace WaveSabreCore
 					mParams.GetPowCurvedValue(ParamIndices::Release, MonoCompressor::gReleaseCfg, 0),
 					mParams.GetBoolValue(ParamIndices::EnableSidechainFilter),
 					mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig),
-					mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg),
+                    M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg)},
 					mParams.GetFrequency(ParamIndices::LowPassFrequency, M7::gFilterFreqConfig),
-					mParams.GetDivCurvedValue(ParamIndices::LowPassQ, M7::gBiquadFilterQCfg)
+                    M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::LowPassQ, M7::gBiquadFilterQCfg)}
 				);
 			}
 		}

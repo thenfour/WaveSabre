@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <memory>
 #include <optional>
+#include "./StrongScalar.hpp"
 
 using std::max;
 using std::min;
@@ -134,6 +135,9 @@ void Init();
 using real_t = float;
 using real2 =
     float;  // internal filter real type. filters are theoretically more stable. but for the moment it doesn't cause issues.
+
+    struct Param01Tag {};
+using Param01 = StrongScalar<real_t, Param01Tag>;
 
 template <typename Tfirst, typename Tsecond>
 struct Pair

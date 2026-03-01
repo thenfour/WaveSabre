@@ -71,6 +71,7 @@ public:
     ImGui::SameLine();
     Maj7ImGuiDivCurvedParam((int)Echo::ParamIndices::LowCutQ, "Low Q", M7::gBiquadFilterQCfg, 0.75f, {});
 
+
     fp.SetFrequencyAssumingNoKeytracking(8500);
     ImGui::SameLine();
     Maj7ImGuiParamFrequency(

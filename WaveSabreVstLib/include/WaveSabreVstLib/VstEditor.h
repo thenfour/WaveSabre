@@ -19,6 +19,7 @@
 
 // Include the split header files
 #include "CompressorTransferCurve.hpp"
+#include "FilterSelection.hpp"
 #include "HistoryVisualization.hpp"
 #include "Maj7EditorComponents.hpp"
 #include "Maj7ParamConverters.hpp"

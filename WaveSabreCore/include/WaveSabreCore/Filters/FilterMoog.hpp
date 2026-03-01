@@ -17,15 +17,15 @@ struct MoogLadderFilter : IFilter
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real reso01) override
+                         Param01 reso01, real gainDb) override
   {
-    if ((mSlope != slope) || (mResponse != response) || (cutoffHz != m_cutoffHz) || (reso01 != mReso01))
+    if ((mSlope != slope) || (mResponse != response) || (cutoffHz != m_cutoffHz) || (reso01.value != mReso01))
     {
       mSlope = slope;
       mResponse = response;
       m_cutoffHz = cutoffHz;
-      mReso01 = reso01;
-      m_k = reso01 * real2(3.88);  // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
+      mReso01 = reso01.value;
+      m_k = mReso01 * real2(3.88);  // this maps dQControl = 0->1 to 0-4 * 0.97 to avoid clippy self oscillation
       Recalc();
     }
   }

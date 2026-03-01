@@ -92,7 +92,10 @@ namespace WaveSabreCore
 		{
 			auto gains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
 			mFilter.SetParams(M7::FilterCircuit::OnePole, M7::FilterSlope::Slope6dbOct,
-				M7::FilterResponse::Highpass, mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig), 0);
+                        M7::FilterResponse::Highpass,
+                        mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig),
+                        M7::Param01{0} /*reso*/,
+                        0 /*gain*/);
 			float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg) * M7::math::gPanCompensationGainLin;
 
 			for (size_t i = 0; i < (size_t)numSamples; ++i)

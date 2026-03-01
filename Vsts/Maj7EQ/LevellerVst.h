@@ -35,11 +35,11 @@ public:
 	virtual void OptimizeParams() override
 	{
 		using Params = Leveller::ParamIndices;
-		OptimizeBand(Params::Band1Type);
-		OptimizeBand(Params::Band2Type);
-		OptimizeBand(Params::Band3Type);
-		OptimizeBand(Params::Band4Type);
-		OptimizeBand(Params::Band5Type);
+		OptimizeBand(Params::Band1Circuit);
+		OptimizeBand(Params::Band2Circuit);
+		OptimizeBand(Params::Band3Circuit);
+		OptimizeBand(Params::Band4Circuit);
+		OptimizeBand(Params::Band5Circuit);
 	}
 
 	void OptimizeBand(Leveller::ParamIndices baseParam) {
@@ -47,11 +47,15 @@ public:
 		M7::ParamAccessor p{ ((Leveller*)getDevice())->mParamCache, baseParam };
 		using Param = Leveller::BandParamOffsets;
 		OptimizeBoolParam(p, Param::Enable);
-		OptimizeEnumParam<M7::FilterResponse>(p, Param::Type);
+		OptimizeEnumParam<M7::FilterCircuit>(p, Param::Circuit);
+		OptimizeEnumParam<M7::FilterSlope>(p, Param::Slope);
+		OptimizeEnumParam<M7::FilterResponse>(p, Param::Response);
 
 		if (!p.GetBoolValue(Param::Enable)) {
 			// effect not enabled; set defaults to params.
-			p.SetRawVal(Param::Type, defaults.GetRawVal(Param::Type));
+			p.SetRawVal(Param::Circuit, defaults.GetRawVal(Param::Circuit));
+			p.SetRawVal(Param::Slope, defaults.GetRawVal(Param::Slope));
+			p.SetRawVal(Param::Response, defaults.GetRawVal(Param::Response));
 			p.SetRawVal(Param::Freq, defaults.GetRawVal(Param::Freq));
 			p.SetRawVal(Param::Gain, defaults.GetRawVal(Param::Gain));
 			p.SetRawVal(Param::Q, defaults.GetRawVal(Param::Q));

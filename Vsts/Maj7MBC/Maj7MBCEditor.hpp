@@ -362,7 +362,7 @@ struct Maj7MBCEditor : public VstEditor
             // Capture bandIndex in individual lambdas for each band
             auto makeBandHandler = [this](VstInt32 freqParamIndex)
             {
-              return [this, freqParamIndex](float freqHz, float gainDb, uintptr_t userData)
+              return [this, freqParamIndex](float freqHz, M7::Decibels gainDb, uintptr_t userData)
               {
                 M7::QuickParam freqParam;
                 freqParam.SetFrequencyAssumingNoKeytracking(M7::gFilterFreqConfig, freqHz);
@@ -372,14 +372,14 @@ struct Maj7MBCEditor : public VstEditor
             };
 
             // Create Q parameter change handlers for each band
-            auto makeBandQHandler = [this](VstInt32 qParamIndex)
+            auto makeBandResoHandler = [this](VstInt32 qParamIndex)
             {
-              return [this, qParamIndex](float qValue, uintptr_t userData)
+              return [this, qParamIndex](M7::Param01 reso01, uintptr_t userData)
               {
                 M7::QuickParam qParam;
-                qParam.SetDivCurvedValue(M7::gBiquadFilterQCfg, qValue);
-                float qParamValue = qParam.GetRawValue();
-                GetEffectX()->setParameterAutomated(qParamIndex, M7::math::clamp01(qParamValue));
+                //qParam.SetDivCurvedValue(M7::gBiquadFilterQCfg, qValue);
+                //float qParamValue = qParam.GetRawValue();
+                GetEffectX()->setParameterAutomated(qParamIndex, M7::math::clamp01(reso01.value));
               };
             };
 
@@ -389,12 +389,12 @@ struct Maj7MBCEditor : public VstEditor
                                                 &band.mComp[0].mLowpassFilter,
                                                 "LP",
                                                 makeBandHandler(param(BandParam::LowPassFrequency)),
-                                                makeBandQHandler(param(BandParam::LowPassQ))},
+                                                makeBandResoHandler(param(BandParam::LowPassQ))},
                 FrequencyResponseRendererFilter{"4444cc",
                                                 &band.mComp[0].mHighpassFilter,
                                                 "HP",
                                                 makeBandHandler(param(BandParam::HighPassFrequency)),
-                                                makeBandQHandler(param(BandParam::HighPassQ))}};
+                                                makeBandResoHandler(param(BandParam::HighPassQ))}};
 
             FrequencyResponseRendererConfig<2, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
                 ColorFromHTML("222222", 1.0f),  // background

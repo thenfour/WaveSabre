@@ -379,9 +379,9 @@ struct Maj7MBC : public Device
                     mParams.GetPowCurvedValue(BandParam::Release, MonoCompressor::gReleaseCfg, 0),
                     mParams.GetBoolValue(BandParam::SidechainFilterEnable),
                     mParams.GetFrequency(BandParam::HighPassFrequency, M7::gFilterFreqConfig),
-                    mParams.GetDivCurvedValue(BandParam::HighPassQ, M7::gBiquadFilterQCfg),
+                    M7::Decibels{mParams.GetDivCurvedValue(BandParam::HighPassQ, M7::gBiquadFilterQCfg)},
                     mParams.GetFrequency(BandParam::LowPassFrequency, M7::gFilterFreqConfig),
-                    mParams.GetDivCurvedValue(BandParam::LowPassQ, M7::gBiquadFilterQCfg));
+                    M7::Decibels {mParams.GetDivCurvedValue(BandParam::LowPassQ, M7::gBiquadFilterQCfg)});
       }
     }
 

@@ -101,8 +101,10 @@ struct DivCurvedParamCfg
 static constexpr float gEqBandGainMin = -30;
 static constexpr float gEqBandGainMax = 30;
 
-extern __declspec(selectany) const M7::DivCurvedParamCfg gBiquadFilterQCfg{0.2f, 12.0f, 1.1f};
-extern __declspec(selectany) const M7::DivCurvedParamCfg gBiquadFilterQCfg_Steep{0.2f, 24.0f, 1.1f};
+// actually biquads only use this internally. externally i don't think we have any place to directly expose Q in decibels, 
+// because you are always operating on 0-1 "resonance" params for cross-filter support.
+extern __declspec(selectany) const M7::DivCurvedParamCfg gBiquadFilterQCfg{0.2f, 18.0f, 1.1f};
+//extern __declspec(selectany) const M7::DivCurvedParamCfg gBiquadFilterQCfg_Steep{0.2f, 24.0f, 1.1f};
 
 
 struct ParamAccessor

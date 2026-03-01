@@ -17,7 +17,7 @@ struct ButterworthFilter : IFilter
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real reso01) override
+                         Param01 reso01, real gainDb) override
   {
   #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     if (!DoesSupport(circuit, slope, response))
@@ -26,7 +26,7 @@ struct ButterworthFilter : IFilter
       return;
     }
   #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-    mCascade.SetParams(FilterCircuit::Butterworth, slope, response, cutoffHz, reso01);
+    mCascade.SetParams(FilterCircuit::Butterworth, slope, response, cutoffHz, reso01, gainDb);
   }
 
   virtual real ProcessSample(real x) override

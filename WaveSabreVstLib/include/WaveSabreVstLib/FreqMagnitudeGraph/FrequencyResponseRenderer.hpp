@@ -30,8 +30,8 @@ struct FrequencyResponseRendererFilter {
   const char *thumbColor;
   const M7::BiquadFilter *filter;
   const char* label = nullptr;
-  std::function<void(float freqHz, float gainDb, uintptr_t userData)> HandleChangeParam;
-  std::function<void(float qValue, uintptr_t userData)> HandleChangeQ;
+  std::function<void(float freqHz, M7::Decibels gainDb, uintptr_t userData)> HandleChangeParam;
+  std::function<void(M7::Param01 val, uintptr_t userData)> HandleChangeReso01;
   uintptr_t userData = 0; // Optional user data for custom handling
 };
 

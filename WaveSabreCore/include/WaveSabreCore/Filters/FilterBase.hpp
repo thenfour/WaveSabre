@@ -8,7 +8,10 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+
+
 using real = real_t;
+
 template <typename T>
 constexpr real Real(const T x)
 {
@@ -20,6 +23,12 @@ constexpr real PITimes2 = real{2.0f} * RealPI;
 constexpr real Real0 = real{0.0f};
 constexpr real Real1 = real{1.0f};
 constexpr real Real2 = real{2.0f};
+
+
+struct DecibelsTag
+{
+};
+using Decibels = StrongScalar<real, DecibelsTag>;
 
 // because many filters use certain static multipliers (coefs) based on filter type,
 // these should be indexable. that's why LP and LP2 are the same value, so there's no "empty" items here. there is no
@@ -41,7 +50,7 @@ constexpr real Real2 = real{2.0f};
 //     HP4 = 7,
 // };
 
-enum class FilterCircuit// : uint8_t
+enum class FilterCircuit  // : uint8_t
 {
   Disabled = 0,
   OnePole,
@@ -61,7 +70,7 @@ enum class FilterCircuit// : uint8_t
 // 4 stage = 48db/oct.
 // ...
 // 8 stage = 96db/oct.
-enum class FilterSlope// : uint8_t
+enum class FilterSlope  // : uint8_t
 {
   Flat = 0,
   Slope6dbOct = 1,
@@ -77,7 +86,7 @@ enum class FilterSlope// : uint8_t
   Count,
 };
 
-enum class FilterResponse// : uint8_t
+enum class FilterResponse  // : uint8_t
 {
   Lowpass,
   Highpass,
@@ -100,7 +109,8 @@ struct IFilter
       real cutoffHz,
       // NB: this must be a 0-1 param value, because different filters interpret "resonance" differently.
       // it's NOT the same as Q.
-      real reso01) = 0;
+      Param01 reso01,
+      real gainDb) = 0;
   virtual real ProcessSample(real x) = 0;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -117,7 +127,8 @@ struct NullFilter : IFilter
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real reso01) override
+                         Param01 reso01,
+                         real gainDb) override
   {
   }
   virtual real ProcessSample(real x) override

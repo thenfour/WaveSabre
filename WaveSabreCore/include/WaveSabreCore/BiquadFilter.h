@@ -17,7 +17,7 @@ namespace M7
 struct BiquadConfig
 {
   // q is linear Q (typically ~0.2 to ~12)
-  void SetBiquadParams(FilterResponse type, float freq, float q, float gain);
+  void SetBiquadParams(FilterResponse type, float freq, Decibels q, float gain);
 
   const float& normA0() const
   {
@@ -50,10 +50,16 @@ struct BiquadConfig
     return mW0;
   }
 
-  float Q() const
+  Decibels Q() const
   {
     return this->q;
   }
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  Param01 reso01() const
+  {
+    return Param01{gBiquadFilterQCfg.ValueToParam01(this->q.value)};
+  }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   float FreqHz() const
   {
     return this->freq;
@@ -61,8 +67,8 @@ struct BiquadConfig
 
 private:
   FilterResponse response;
+  Decibels q{0};
   float freq;
-  float q;
   float gain;
 
   //float ma0, ma1, ma2, mb0, mb1, mb2; // store a0 so we can calculate the coeffs from c12345
@@ -85,15 +91,21 @@ class BiquadFilter  // : public IFilter
 public:
   BiquadFilter();
 
-  void SetBiquadParams(FilterResponse response, float freq, float q, float gain)
+  void SetBiquadParams(FilterResponse response, float freq, Decibels q, float gain)
   {
     mConfig.SetBiquadParams(response, freq, q, gain);
   }
 
-  float Q() const
+  Decibels Q() const
   {
     return mConfig.Q();
   }
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  Param01 reso01() const
+  {
+    return mConfig.reso01();
+  }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   float freqHz() const
   {
     return mConfig.FreqHz();
@@ -130,7 +142,8 @@ public:
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifdef ENABLE_BUTTERWORTH_FILTER
-float ButterworthQForSection(size_t sectionIndex, size_t nStages);
+Decibels ButterworthQForSection(size_t sectionIndex, size_t nStages);
+
 enum class QStrategy  // : uint8_t
 {
   UserResonance,
@@ -171,18 +184,20 @@ public:
   void SetBiquadParams(size_t nStages,
                        FilterResponse response,
                        float cutoffHz,
-                       float q,
-                       float gain
+                       Decibels q,
+                       real gain
 #ifdef ENABLE_BUTTERWORTH_FILTER
-                       , QStrategy qStrategy
+                       ,
+                       QStrategy qStrategy
 #endif  // ENABLE_BUTTERWORTH_FILTER
-                      );
+  );
 
   virtual void SetParams(FilterCircuit circuit,
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real reso01) override;
+                         Param01 reso01,
+                         real gainDb) override;
 
   // IFilter
   virtual float ProcessSample(float x) override;

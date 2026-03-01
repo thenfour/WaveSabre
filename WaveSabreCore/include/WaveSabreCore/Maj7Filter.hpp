@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Filters/FilterDiode.hpp"
 #include "Filters/FilterButterworth.hpp"
+#include "Filters/FilterDiode.hpp"
 #include "Filters/FilterK35.hpp"
 #include "Filters/FilterMoog.hpp"
 #include "Filters/FilterOnePole.hpp"
@@ -10,10 +10,42 @@
 #include <WaveSabreCore/Maj7Basic.hpp>
 #include <array>
 
+
 namespace WaveSabreCore
 {
 namespace M7
 {
+
+
+INLINE bool DoesFilterSupport(M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
+{
+  switch (circuit)
+  {
+    case M7::FilterCircuit::Disabled:
+      return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
+    case M7::FilterCircuit::OnePole:
+      return slope == M7::FilterSlope::Slope6dbOct &&
+             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+    case M7::FilterCircuit::Biquad:
+      return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct;
+    case M7::FilterCircuit::Butterworth:
+      return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct &&
+             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+    case M7::FilterCircuit::Moog:
+      return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
+             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
+              response == M7::FilterResponse::Bandpass);
+    case M7::FilterCircuit::K35:
+      return (slope == M7::FilterSlope::Slope12dbOct || slope == M7::FilterSlope::Slope24dbOct) &&
+             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+    case M7::FilterCircuit::Diode:
+      return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
+             response == M7::FilterResponse::Lowpass;
+    default:
+      return false;
+  }
+};
+
 
 struct FilterNode
 {
@@ -27,7 +59,12 @@ struct FilterNode
 
   IFilter* mSelectedFilter = &mNullFilter;
 
-  void SetParams(FilterCircuit circuit, FilterSlope slope, FilterResponse response, float cutoffHz, float reso01)
+  void SetParams(FilterCircuit circuit,
+                 FilterSlope slope,
+                 FilterResponse response,
+                 float cutoffHz,
+                 Param01 reso01,
+                 float gainDb)
   {
     // select filter & set type
     IFilter* nextFilter = nullptr;
@@ -61,7 +98,7 @@ struct FilterNode
       nextFilter->Reset();
       mSelectedFilter = nextFilter;
     }
-    mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, reso01);
+    mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, reso01, gainDb);
   }
 
   float ProcessSample(float inputSample)
@@ -115,20 +152,21 @@ struct FilterAuxNode  // : IAuxEffect
     mnSampleCount = (mnSampleCount + 1) & recalcMask;
     if (calc)
     {
-      auto reso01 = mParams.Get01Value(FilterParamIndexOffsets::Q,
-                                       mModMatrix->GetDestinationValue((int)mModDestBase +
-                                                                       (int)FilterAuxModDestOffsets::Q));
+      auto reso01 = Param01{
+          mParams.Get01Value(FilterParamIndexOffsets::Q,
+                             mModMatrix->GetDestinationValue((int)mModDestBase + (int)FilterAuxModDestOffsets::Q))};
 
-      mFilter.SetParams(
-          mFilterCircuit,
-          mFilterSlope,
-          mFilterResponse,
-          mParams.GetFrequency(FilterParamIndexOffsets::Freq,
-                               FilterParamIndexOffsets::FreqKT,
-                               gFilterFreqConfig,
-                               mNoteHz,
-                               mModMatrix->GetDestinationValue((int)mModDestBase + (int)FilterAuxModDestOffsets::Freq)),
-                          reso01);
+      mFilter.SetParams(mFilterCircuit,
+                        mFilterSlope,
+                        mFilterResponse,
+                        mParams.GetFrequency(FilterParamIndexOffsets::Freq,
+                                             FilterParamIndexOffsets::FreqKT,
+                                             gFilterFreqConfig,
+                                             mNoteHz,
+                                             mModMatrix->GetDestinationValue((int)mModDestBase +
+                                                                             (int)FilterAuxModDestOffsets::Freq)),
+                        reso01,
+                        0 /* no gain here; it's only for filter types we don't support */);
     }
 
     return mFilter.ProcessSample(inputSample);
