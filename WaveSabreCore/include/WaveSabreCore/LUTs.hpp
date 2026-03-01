@@ -623,6 +623,10 @@ INLINE double fmodd(double x, double q) {
     return CrtFmodf(x, q);
 }
 
+INLINE float copysignf(float x, float y) {
+    return (y >= 0) ? std::abs(x) : -std::abs(x);
+}
+
 }  // namespace math
 
 

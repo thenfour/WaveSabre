@@ -196,7 +196,7 @@ public:
     mGainCompensationLinear = 1;
   }
 
-  void SetBiquadParams(int nStages,
+  void SetBiquadParams(size_t nStages,
                        FilterResponse response,
                        float cutoffHz,
                        float q,
@@ -230,7 +230,7 @@ public:
     }
     else
     {
-      for (int i = 0; i < nStages; ++i)
+      for (size_t i = 0; i < nStages; ++i)
       {
         const float sectionQ = ButterworthQForSection(i, nStages);
         mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, 0.0f);
