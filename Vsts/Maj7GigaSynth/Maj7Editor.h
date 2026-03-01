@@ -139,7 +139,7 @@ public:
   ImGuiTabSelectionHelper mModulationTabSelHelper;
 
   Maj7Editor(AudioEffect* audioEffect)
-      : VstEditor(audioEffect, 1180, 984)
+      : VstEditor(audioEffect, 1200, 990)
       , mpMaj7VST((Maj7Vst*)audioEffect)
       , pMaj7(((Maj7Vst*)audioEffect)->GetMaj7())
   {
@@ -1260,7 +1260,7 @@ public:
     if (WSBeginTabItemWithSel(labelWithID, oscID, mSourceTabSelHelper))
     {
       //WSImGuiParamCheckbox(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
-      Maj7ImGuiBoolParamToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "On");
+      Maj7ImGuiBoolParamToggleButton2(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "On ", "Off");
       //Maj7ImGuiParamBoolToggleButton(enabledParamID + (int)M7::OscParamIndexOffsets::Enabled, "Enabled");
       ImGui::SameLine();
       Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::Volume,
@@ -1882,7 +1882,7 @@ public:
       ImGui::BeginDisabled(isLocked);
       int enabledParamID = spec.mParams.mBaseParamID;
       //WSImGuiParamCheckbox(spec.mParams.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
-      Maj7ImGuiBoolParamToggleButton(spec.mParams.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled, "Enabled");
+      Maj7ImGuiBoolParamToggleButton2(spec.mParams.mBaseParamID + (int)M7::ModParamIndexOffsets::Enabled, "On ", "Off");
       ImGui::EndDisabled();
       ImGui::SameLine();
       {
@@ -2210,7 +2210,7 @@ public:
       };
 
       //WSImGuiParamCheckbox(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
-      Maj7ImGuiBoolParamToggleButton(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
+      Maj7ImGuiBoolParamToggleButton2(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "On ", "Off");
 
       ImGui::SameLine(0, 0);
 
@@ -3216,8 +3216,8 @@ public:
     if (WSBeginTabItemWithSel(labelWithID, (int)isrc, mSourceTabSelHelper))
     {
       //WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled), "Enabled");
-      Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled),
-                                     "Enabled");
+      Maj7ImGuiBoolParamToggleButton2((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Enabled),
+                                     "On ", "Off");
       ImGui::SameLine();
       Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Volume),
                            "Volume",

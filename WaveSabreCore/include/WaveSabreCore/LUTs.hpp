@@ -172,7 +172,7 @@ struct CrtFns
   double(__cdecl* crt_floor)(double);
   double(__cdecl* crt_log)(double);
   double(__cdecl* crt_pow)(double, double);
-  float(__cdecl* crt_fmodf)(float, float);
+  double(__cdecl* crt_fmod)(double, double);
   double(__cdecl* crt_exp)(double);
 };
 
@@ -208,9 +208,9 @@ INLINE double CrtPow(double x, double y)
   return gCrtFns->crt_pow(x, y);
 }
 
-INLINE float CrtFmodf(float x, float y)
+INLINE double CrtFmod(double x, double y)
 {
-  return gCrtFns->crt_fmodf(x, y);
+  return gCrtFns->crt_fmod(x, y);
 }
 
 // MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
@@ -616,11 +616,11 @@ INLINE T round(float x)
 }
 
 INLINE float fmodf(float x, float q) {
-    return CrtFmodf(x, q);
+    return (float)CrtFmod((double)x, (double)q);
 }
 
 INLINE double fmodd(double x, double q) {
-    return (double)CrtFmodf(float(x), float(q));
+    return CrtFmod(x, q);
 }
 
 INLINE float copysignf(float x, float y) {

@@ -31,7 +31,11 @@ foreach(child ${children})
 
 			if(VSTDIR)
 				add_custom_command(TARGET ${child} POST_BUILD
-					COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${child}> ${VSTDIR})
+					COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:${child}> ${VSTDIR}
+					COMMAND ${CMAKE_COMMAND}
+						-DSRC="$<TARGET_FILE_DIR:${child}>/$<TARGET_FILE_BASE_NAME:${child}>.pdb"
+						-DDST="${VSTDIR}"
+						-P "${PROJECT_SOURCE_DIR}/ProjectManager/CopyIfExists.cmake")
 			endif()
 
 			list(APPEND VST_TARGETS ${child})

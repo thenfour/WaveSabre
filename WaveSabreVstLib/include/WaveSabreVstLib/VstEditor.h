@@ -227,8 +227,9 @@ public:
   }
 
   template <typename TParamID>
-  void Maj7ImGuiBoolParamToggleButton(TParamID paramID,
-                                      const char* label,
+  void Maj7ImGuiBoolParamToggleButton2(TParamID paramID,
+                                      const char* labelOn,
+                                      const char* labelOff,
                                       ImVec2 size = {},
                                       const ButtonColorSpec& cfg = {})
   {
@@ -240,13 +241,22 @@ public:
     ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {0, 0});
     ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
 
-    if (ToggleButton(&value, label, size, cfg))
+    if (ToggleButton(&value, value ? labelOn : labelOff, size, cfg))
     {
       p.SetBoolValue(0, value);
       GetEffectX()->setParameterAutomated((VstInt32)paramID, backing);
     }
 
     ImGui::PopStyleVar(2);
+  }
+
+  template <typename TParamID>
+  void Maj7ImGuiBoolParamToggleButton(TParamID paramID,
+                                      const char* label,
+                                      ImVec2 size = {},
+                                      const ButtonColorSpec& cfg = {})
+  {
+    Maj7ImGuiBoolParamToggleButton2(paramID, label, label, size, cfg);
   }
 
   template <typename TparamID>
