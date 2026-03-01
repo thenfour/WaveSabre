@@ -3,6 +3,8 @@ target_link_libraries(WaveSabreStandAlonePlayer WaveSabrePlayerLib)
 
 if(MSVC)
 	target_compile_definitions(WaveSabreStandAlonePlayer PRIVATE _CRT_SECURE_NO_WARNINGS)
+	target_compile_options(WaveSabreStandAlonePlayer
+		PRIVATE $<$<OR:$<CONFIG:MinSizeRel>,$<CONFIG:MinSizeRelWithDebugInfo>>:/d2noftol3>)
 
 	target_link_libraries(WaveSabreStandAlonePlayer $<$<OR:$<CONFIG:MinSizeRel>,$<CONFIG:MinSizeRelWithDebugInfo>>:msvcrt>)
 	set_property(TARGET WaveSabreStandAlonePlayer APPEND_STRING PROPERTY LINK_FLAGS_MINSIZEREL
