@@ -170,7 +170,18 @@ LRESULT WINAPI VstEditor::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
   switch (msg)
   {
     case WM_GETDLGCODE:
-      return DLGC_WANTALLKEYS;
+      return DLGC_WANTALLKEYS | DLGC_WANTARROWS | DLGC_WANTTAB | DLGC_WANTCHARS;
+    case WM_MOUSEACTIVATE:
+      SetFocus(hWnd);
+      return MA_ACTIVATE;
+    case WM_LBUTTONDOWN:
+    case WM_MBUTTONDOWN:
+    case WM_RBUTTONDOWN:
+      if (GetFocus() != hWnd)
+      {
+        SetFocus(hWnd);
+      }
+      break;
   }
 
   if (mImGuiContext)
@@ -184,6 +195,20 @@ LRESULT WINAPI VstEditor::WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPa
 
   switch (msg)
   {
+    case WM_SETFOCUS:
+      if (mImGuiContext)
+      {
+        auto contextToken = PushMyImGuiContext("PushMyImGuiContext: WM_SETFOCUS");
+        ImGui::GetIO().AddFocusEvent(true);
+      }
+      return 0;
+    case WM_KILLFOCUS:
+      if (mImGuiContext)
+      {
+        auto contextToken = PushMyImGuiContext("PushMyImGuiContext: WM_KILLFOCUS");
+        ImGui::GetIO().AddFocusEvent(false);
+      }
+      return 0;
     case WM_SIZE:
       if (g_pd3dDevice != NULL && wParam != SIZE_MINIMIZED)
       {
@@ -220,6 +245,7 @@ LRESULT WINAPI VstEditor::gWndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
     // reaper uses this weird magic value to specify keyboard input should be sent to the window. WHAT
     // https://forum.cockos.com/showthread.php?t=116894
     ::SetWindowLongPtrW(hWnd, GWLP_USERDATA, 0xdeadf00b);
+    ::SetFocus(hWnd);
 
     return TRUE;
   }
