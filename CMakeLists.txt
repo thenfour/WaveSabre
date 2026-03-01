@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 include(CTest) # provides BUILD_TESTING option and CTest integration
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;MinSizeRel" CACHE STRING "" FORCE)
+set(CMAKE_CONFIGURATION_TYPES "Debug;RelWithDebInfo;MinSizeRel;MinSizeRelWithDebugInfo" CACHE STRING "" FORCE)
 
 set(TOOLS_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Tools CACHE STRING "" FORCE)
 
@@ -18,14 +18,15 @@ set(CMAKE_CSharp_FLAGS "/langversion:7")
 set_property(GLOBAL PROPERTY VS_DOTNET_TARGET_FRAMEWORK_VERSION "v4.7.2")
 
 
+# define SELECTABLE_OUTPUT_STREAM_SUPPORT and FFT_ANALYSIS_SUPPORT for non-MinSizeRel configs
 add_compile_definitions(
-    $<$<NOT:$<CONFIG:MinSizeRel>>:SELECTABLE_OUTPUT_STREAM_SUPPORT>
-    $<$<NOT:$<CONFIG:MinSizeRel>>:FFT_ANALYSIS_SUPPORT>
+	$<$<AND:$<NOT:$<CONFIG:MinSizeRel>>,$<NOT:$<CONFIG:MinSizeRelWithDebugInfo>>>:SELECTABLE_OUTPUT_STREAM_SUPPORT>
+	$<$<AND:$<NOT:$<CONFIG:MinSizeRel>>,$<NOT:$<CONFIG:MinSizeRelWithDebugInfo>>>:FFT_ANALYSIS_SUPPORT>
 )
 
 # MSVC MinSizeRel quirk: avoid sized delete calls that would pull in vcruntime
 if(MSVC)
-  add_compile_options($<$<CONFIG:MinSizeRel>:/Zc:sizedDealloc->)
+	add_compile_options($<$<OR:$<CONFIG:MinSizeRel>,$<CONFIG:MinSizeRelWithDebugInfo>>:/Zc:sizedDealloc->)
 endif()
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
@@ -56,6 +57,8 @@ endif()
 
 # set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /arch:IA32") # avoids modern CRT calls; however at least on vs2022 this says unknown compile option.
 set(CMAKE_CXX_FLAGS_MINSIZEREL "${CMAKE_CXX_FLAGS_MINSIZEREL} /fp:fast") # avoids modern CRT calls
+set(CMAKE_C_FLAGS_MINSIZERELWITHDEBUGINFO "${CMAKE_C_FLAGS_MINSIZEREL}")
+set(CMAKE_CXX_FLAGS_MINSIZERELWITHDEBUGINFO "${CMAKE_CXX_FLAGS_MINSIZEREL} /Zi")
 # It's tempting to add PDB output for all configs, however it's already on for RelWithDebInfo and Debug.
 # For MinSizeRel, don't output it because it adds ~100 bytes to the resulting compressed binary.
 # set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEBUG")
@@ -68,9 +71,11 @@ set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Ob2") # e
 if(MSVC)
 	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
 	set(CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_SHARED_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL:NO")
+	set(CMAKE_EXE_LINKER_FLAGS_MINSIZERELWITHDEBUGINFO "${CMAKE_EXE_LINKER_FLAGS_MINSIZEREL} /DEBUG /DEBUG:FULL /INCREMENTAL:NO")
+	set(CMAKE_SHARED_LINKER_FLAGS_MINSIZERELWITHDEBUGINFO "${CMAKE_SHARED_LINKER_FLAGS_MINSIZEREL} /DEBUG /DEBUG:FULL /INCREMENTAL:NO")
 endif()
 
-add_compile_definitions($<$<CONFIG:MinSizeRel>:MIN_SIZE_REL>) # a lot of special cases for size-optimization and CRT avoidance; make it easy.
+add_compile_definitions($<$<OR:$<CONFIG:MinSizeRel>,$<CONFIG:MinSizeRelWithDebugInfo>>:MIN_SIZE_REL>) # a lot of special cases for size-optimization and CRT avoidance; make it easy.
 add_compile_definitions(NOMINMAX) # prevent windows.h from invasive #defines
 add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 add_compile_definitions(WINVER=0x0A00)

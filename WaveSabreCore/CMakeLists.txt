@@ -20,10 +20,12 @@ target_include_directories(WaveSabreCore PUBLIC include)
 
 if(MSVC)
 	target_compile_options(WaveSabreCore
-		PUBLIC $<$<CONFIG:MinSizeRel>:/GS- /GL /Gy /Zi /GR->  # /GL is whole program optimization and causes some issues sometimes.
-		PRIVATE $<$<CONFIG:MinSizeRel>:/Oi /fp:fast>)
+		PUBLIC $<$<OR:$<CONFIG:MinSizeRel>,$<CONFIG:MinSizeRelWithDebugInfo>>:/GS- /GL /Gy /Zi /GR->  # /GL is whole program optimization and causes some issues sometimes.
+		PRIVATE $<$<OR:$<CONFIG:MinSizeRel>,$<CONFIG:MinSizeRelWithDebugInfo>>:/Oi /fp:fast>)
 
 	set_property(TARGET WaveSabreCore APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS_MINSIZEREL
+		" /LTCG")
+	set_property(TARGET WaveSabreCore APPEND_STRING PROPERTY STATIC_LIBRARY_FLAGS_MINSIZERELWITHDEBUGINFO
 		" /LTCG")
 
 	# MSVC MinSizeRel quirk: avoid sized delete calls that would pull in vcruntime
