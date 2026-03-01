@@ -11,12 +11,12 @@
 // level. So while there may be some interesting use for it, it's not useful right now.
 #undef ENABLE_BIQUAD_COMPENSATION_GAIN
 
-#undef ENABLE_DIODE_FILTER // is about 3kb of binary.
-#undef ENABLE_K35_FILTER // is about 3kb of binary.
-#undef ENABLE_BUTTERWORTH_FILTER // about 150 bytes of compressed binary.
+#undef ENABLE_DIODE_FILTER // is about ~350 bytes of compressed binary.
+#undef ENABLE_K35_FILTER // is about ~380 bytes of binary.
+#define ENABLE_BUTTERWORTH_FILTER // about 150 bytes of compressed binary.
 
 // for sat / MBC saturation...
-#undef MAJ7SAT_ENABLE_RARE_MODELS
+#define MAJ7SAT_ENABLE_RARE_MODELS
 #define MAJ7SAT_ENABLE_ANALOG
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
