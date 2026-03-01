@@ -69,7 +69,8 @@ enum class AntiAliasingOption
 
 struct ShapeCoreStreaming : public OscillatorCore
 {
-  std::unique_ptr<IShapeGenerator> mShapeGen;
+  //std::unique_ptr<IShapeGenerator> mShapeGen;
+  IShapeGenerator* mShapeGen;  // not owned
   WVShape mShape;
   CorrectionSpill mSpill;
   AntiAliasingOption mAaOpt;

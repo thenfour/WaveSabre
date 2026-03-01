@@ -49,7 +49,7 @@ INLINE double sqrt(double x)
 {
   return (double)::sqrt((double)x);
 }
-INLINE constexpr float clamp(float x, float low, float hi)
+NOINLINE constexpr float clamp(float x, float low, float hi)
 {
   if (x <= low)
     return low;
@@ -57,7 +57,7 @@ INLINE constexpr float clamp(float x, float low, float hi)
     return hi;
   return x;
 }
-INLINE constexpr double clamp(double x, double low, double hi)
+NOINLINE constexpr double clamp(double x, double low, double hi)
 {
   if (x <= low)
     return low;
@@ -99,15 +99,15 @@ float lerp_rev(float v_min, float v_max, float v_val);
 float fract(float x);
 double fract(double x);
 #else
-INLINE float lerp(float a, float b, float t)
+NOINLINE float lerp(float a, float b, float t)
 {
   return a * (1.0f - t) + b * t;
 }
-INLINE double lerpD(double a, double b, double t)
+NOINLINE double lerpD(double a, double b, double t)
 {
   return a * (1.0 - t) + b * t;
 }
-INLINE float lerp_rev(float v_min,
+NOINLINE float lerp_rev(float v_min,
                       float v_max,
                       float v_val)  // inverse of lerp; returns 0-1 where t lies between a and b.
 {
@@ -461,6 +461,7 @@ struct Pow2_N16_16_LUT
   }
 };
 
+// inline because only called once.
 INLINE float LookupLUT2D(const float (&mpTable)[gLutSize2D * gLutSize2D], float x, float y)
 {
   if (x <= 0)
@@ -545,7 +546,7 @@ struct CurveLUT  // : public LUT2D
   }
 
   // user passes in n11 values; need to map N11 to 01
-  INLINE float Invoke(float xN11, float yN11) const
+  NOINLINE float Invoke(float xN11, float yN11) const
   {
     return LookupLUT2D(mpTable, xN11 * .5f + .5f, yN11 * .5f + .5f);
   }
