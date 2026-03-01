@@ -401,7 +401,6 @@ extern bool gAlwaysTrue;
 static constexpr float gMinGainDecibels = -192.0f;
 static constexpr float gMinGainLinear = 0.00000000025118864315095819916852f;  // DecibelsToLinear(gMinGainDecibels);
 
-
 static constexpr real_t gFreqParamKTUnity = 0.3f;
 static constexpr size_t gModulationSpecDestinationCount = 4;
 
@@ -419,27 +418,27 @@ static constexpr real_t gFrequencyMulMax = 64;
 // these structs appear as duplicate data in the binary due to being static constexpr,
 // however the constexpr aspect reduces code size, and the compressor handles this fine.
 // so SizeBench will alert that there's redundant data, but by making these extern, you can only increase the resulting binary.
-static constexpr FreqParamConfig gFilterFreqConfig{1000, 10, 83.21309485364912f};
-static constexpr FreqParamConfig gLFOLPFreqConfig{20, 7, 15.486820576352429f};
-static constexpr FreqParamConfig gBitcrushFreqConfig{gFilterFreqConfig};
-static constexpr FreqParamConfig gSourceFreqConfig{gFilterFreqConfig};
-static constexpr FreqParamConfig
+extern __declspec(selectany) const FreqParamConfig gFilterFreqConfig{1000, 10, 83.21309485364912f};
+extern __declspec(selectany) const FreqParamConfig gLFOLPFreqConfig{20, 7, 15.486820576352429f};
+extern __declspec(selectany) const FreqParamConfig gBitcrushFreqConfig{gFilterFreqConfig};
+extern __declspec(selectany) const FreqParamConfig gSourceFreqConfig{gFilterFreqConfig};
+extern __declspec(selectany) const FreqParamConfig
     gLFOFreqConfig{1.5f, 8, -0.37631656229592636f};  // well midi note here is meaningless and i hope you never use it.
-static constexpr FreqParamConfig gSyncFreqConfig{gFilterFreqConfig};
+extern __declspec(selectany) const FreqParamConfig gSyncFreqConfig{gFilterFreqConfig};
 
-static constexpr IntParamConfig gSourcePitchSemisRange{-36, 36};
-static constexpr IntParamConfig gKeyRangeCfg{0, 127};
-static constexpr IntParamConfig gPitchBendCfg{-gPitchBendMaxRange, gPitchBendMaxRange};
-static constexpr IntParamConfig gUnisonoVoiceCfg{1, gUnisonoVoiceMax};
-static constexpr IntParamConfig gMaxVoicesCfg{1, gMaxMaxVoices};
-static constexpr IntParamConfig gGmDlsIndexParamCfg{-1, gGmDlsSampleCount};
+extern __declspec(selectany) const IntParamConfig gSourcePitchSemisRange{-36, 36};
+extern __declspec(selectany) const IntParamConfig gKeyRangeCfg{0, 127};
+extern __declspec(selectany) const IntParamConfig gPitchBendCfg{-gPitchBendMaxRange, gPitchBendMaxRange};
+extern __declspec(selectany) const IntParamConfig gUnisonoVoiceCfg{1, gUnisonoVoiceMax};
+extern __declspec(selectany) const IntParamConfig gMaxVoicesCfg{1, gMaxMaxVoices};
+extern __declspec(selectany) const IntParamConfig gGmDlsIndexParamCfg{-1, gGmDlsSampleCount};
 
-static constexpr VolumeParamConfig gVolumeCfg6db{1.9952623149688795f, 6.0f};
-static constexpr VolumeParamConfig gVolumeCfg12db{3.9810717055349722f, 12.0f};
-static constexpr VolumeParamConfig gVolumeCfg24db{15.848931924611133f, 24.0f};
-static constexpr VolumeParamConfig gVolumeCfg36db{63.09573444801933f, 36.0f};
-static constexpr VolumeParamConfig gMasterVolumeCfg = gVolumeCfg6db;
-static constexpr VolumeParamConfig gUnityVolumeCfg{1, 0};
+extern __declspec(selectany) const VolumeParamConfig gVolumeCfg6db{1.9952623149688795f, 6.0f};
+extern __declspec(selectany) const VolumeParamConfig gVolumeCfg12db{3.9810717055349722f, 12.0f};
+extern __declspec(selectany) const VolumeParamConfig gVolumeCfg24db{15.848931924611133f, 24.0f};
+extern __declspec(selectany) const VolumeParamConfig gVolumeCfg36db{63.09573444801933f, 36.0f};
+extern __declspec(selectany) const VolumeParamConfig gMasterVolumeCfg = gVolumeCfg6db;
+extern __declspec(selectany) const VolumeParamConfig gUnityVolumeCfg{1, 0};
 
 static constexpr size_t gModulationCount = 18;
 

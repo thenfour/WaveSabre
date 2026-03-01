@@ -103,7 +103,9 @@ struct IFilter
                         ) = 0;
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) = 0;
   virtual real ProcessSample(real x) = 0;
+
   virtual real GetMagnitudeAtFrequency(real freqHz) const = 0;
+
   virtual void Reset() = 0;
 };
 

@@ -5,52 +5,56 @@
 
 namespace WaveSabreCore
 {
-	// not a template to avoid code size bloat.
-	struct AudioBuffer
-	{
+// not a template to avoid code size bloat.
+struct AudioBuffer
+{
 #ifdef MIN_SIZE_REL
-#pragma message("Maj7::~Maj7() Leaking memory to save bits.")
+  #pragma message("Maj7::~Maj7() Leaking memory to save bits.")
 #else
-		~AudioBuffer()
-		{
-			delete[] mBuffer;
-		}
+  ~AudioBuffer()
+  {
+    delete[] mBuffer;
+  }
 #endif
 
-		int mLength;
-		int mCursor;
-		float* mBuffer = nullptr;
+private:
+  size_t mLength;
+  size_t mCursor;
 
-		// seems that this gets called on a separate thread than audio processing; make it naively thread-safe.
-		void SetLengthSamples(size_t sampleCount);
+  float* mBuffer = nullptr;
 
-		void WriteAndAdvance(float sample);
+public:
+  // seems that this gets called on a separate thread than audio processing; make it naively thread-safe.
+  void SetLengthSamples(size_t sampleCount);
 
-		float PeekAtCursor() const
-		{
-			return mBuffer[mCursor];
-		}
+  void WriteAndAdvance(float sample);
 
-		float& operator [](size_t i) {
-			CCASSERT(i > 0);
-			CCASSERT(i < mLength);
-			return mBuffer[i];
-		}
-	};
+  float PeekAtCursor() const
+  {
+    return mBuffer[mCursor];
+  }
+
+  float& operator[](size_t i)
+  {
+    CCASSERT(i > 0);
+    CCASSERT(i < mLength);
+    return mBuffer[i];
+  }
+};
 
 
-	// --------------------------------------------------------------------------------------------------------------------------------------------
-	class DelayBuffer
-	{
-	public:
-		void SetLength(float lengthMs);
+// --------------------------------------------------------------------------------------------------------------------------------------------
+class DelayBuffer
+{
+public:
+  void SetLength(float lengthMs);
 
-		void WriteSample(float sample);
-		float ReadSample() const;
+  void WriteSample(float sample);
+  float ReadSample() const;
 
-	private:
-		AudioBuffer mBuffer;
-	};
-}
+private:
+  AudioBuffer mBuffer;
+};
+}  // namespace WaveSabreCore
 
 #endif

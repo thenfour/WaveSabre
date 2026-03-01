@@ -6,6 +6,9 @@
 #include "WaveSabreCore/Maj7Basic.hpp"
 #include "WaveSabreCore/Maj7ParamAccessor.hpp"
 
+// compensation gain is interesting - it works pretty well, but there's actually no great way to do this at the oscillator
+// level. So while there may be some interesting use for it, it's not useful right now.
+#undef ENABLE_BIQUAD_COMPENSATION_GAIN
 
 namespace WaveSabreCore
 {
@@ -166,8 +169,8 @@ class CascadedBiquadFilter : public IFilter
   // 4 stage = 48db/oct.
   BiquadFilter mFilters[kMaxStages];
   size_t mNStages;
-  float mGainCompensationLinear;
-  float mEnableCompensationGain = false;
+  //float mGainCompensationLinear;
+  //float mEnableCompensationGain = false;
 
   static inline float ButterworthQForSection(int sectionIndex, int nStages)
   {
@@ -185,15 +188,15 @@ public:
   {
   }
 
-  void SetCompensationEnabled(bool enabled)
-  {
-	mEnableCompensationGain = enabled;
-  }
+  // void SetCompensationEnabled(bool enabled)
+  // {
+  //mEnableCompensationGain = enabled;
+  // }
 
   void Disable()
   {
     mNStages = 0;
-    mGainCompensationLinear = 1;
+    //mGainCompensationLinear = 1;
   }
 
   void SetBiquadParams(size_t nStages,
@@ -237,7 +240,7 @@ public:
       }
     }
 
-    mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
+    //mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
   }
 
   virtual void SetParams(FilterCircuit circuit,
@@ -271,7 +274,7 @@ public:
     {
       y = mFilters[i].ProcessSample(y);
     }
-    return y * mGainCompensationLinear;
+    return y;  // * mGainCompensationLinear;
   }
 
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
@@ -284,7 +287,7 @@ public:
     {
       mag *= double(mFilters[i].GetMagnitudeAtFrequency((float)freqHz));
     }
-    mag *= double(mGainCompensationLinear);
+    //mag *= double(mGainCompensationLinear);
     return (real)((mag > 0.0) ? mag : 0.0);
   }
 
@@ -309,7 +312,7 @@ public:
     return true;
   }
 
-
+#ifdef ENABLE_BIQUAD_COMPENSATION_GAIN
   float CalculateCompensationGainLinear() const
   {
     if (mNStages == 0)
@@ -402,6 +405,7 @@ public:
     const float g = (gPeak < gSafe) ? gPeak : gSafe;
     return M7::math::clamp(g, 0.0f, 16.0f);
   }
+#endif
 };  // class CascadedBiquadFilter
 }  // namespace M7
 }  // namespace WaveSabreCore
