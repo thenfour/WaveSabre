@@ -8,6 +8,7 @@
 
 #include <WaveSabreCore/Maj7Filter.hpp>
 #include <imgui.h>
+#include "ImGuiUtils.hpp"
 
 namespace WaveSabreVstLib
 {
@@ -175,25 +176,28 @@ inline void RenderFilterSelectionWidget(const char* id,
 
   ImGui::SameLine();
   ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(3, 0));
-  if (ImGui::SmallButton("+"))
   {
-    int idx = findChoiceIndex();
-    idx = (idx + 1) % (int)validChoices.size();
-    auto c = validChoices[(size_t)idx];
-    applySelection(c.circuit, c.slope, c.response);
-    selectedCircuit = c.circuit;
-    selectedSlope = c.slope;
-    selectedResponse = c.response;
-  }
-  if (ImGui::SmallButton("-"))
-  {
-    int idx = findChoiceIndex();
-    idx = (idx - 1 + (int)validChoices.size()) % (int)validChoices.size();
-    auto c = validChoices[(size_t)idx];
-    applySelection(c.circuit, c.slope, c.response);
-    selectedCircuit = c.circuit;
-    selectedSlope = c.slope;
-    selectedResponse = c.response;
+      ImGuiGroupScope _grp;
+    if (ImGui::SmallButton("+"))
+    {
+      int idx = findChoiceIndex();
+      idx = (idx + 1) % (int)validChoices.size();
+      auto c = validChoices[(size_t)idx];
+      applySelection(c.circuit, c.slope, c.response);
+      selectedCircuit = c.circuit;
+      selectedSlope = c.slope;
+      selectedResponse = c.response;
+    }
+    if (ImGui::SmallButton("-"))
+    {
+      int idx = findChoiceIndex();
+      idx = (idx - 1 + (int)validChoices.size()) % (int)validChoices.size();
+      auto c = validChoices[(size_t)idx];
+      applySelection(c.circuit, c.slope, c.response);
+      selectedCircuit = c.circuit;
+      selectedSlope = c.slope;
+      selectedResponse = c.response;
+    }
   }
   ImGui::PopStyleVar();
 
