@@ -17,6 +17,8 @@ template <int TWidth, int THeight, size_t TFilterCount, size_t TParamCount, bool
 class FrequencyResponseRendererLayered {
 private:
   FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels> mGraph;
+  float mSelectedYScaleHalfRangeDB = 0.0f;
+  bool mHasSelectedYScale = false;
   
   // Store raw pointers to layers for configuration (graph owns the layers)
   GridLayer<TShowGridLabels>* mGridLayer = nullptr;
@@ -80,6 +82,50 @@ public:
   
   // Maintain exact same API as original FrequencyResponseRenderer
   void OnRender(const FrequencyResponseRendererConfig<TFilterCount, TParamCount> &cfg) {
+    if (!cfg.yScaleHalfRangeOptionsDB.empty()) {
+      auto hasPreset = [&](float v) {
+        for (float candidate : cfg.yScaleHalfRangeOptionsDB) {
+          if (std::abs(candidate - v) < 0.001f) return true;
+        }
+        return false;
+      };
+
+      if (!mHasSelectedYScale || !hasPreset(mSelectedYScaleHalfRangeDB)) {
+        mSelectedYScaleHalfRangeDB = cfg.yScaleHalfRangeOptionsDB[0];
+        mHasSelectedYScale = true;
+      }
+
+      ImGui::PushID(this);
+      ImGui::AlignTextToFramePadding();
+      ImGui::TextUnformatted("Scale");
+      for (size_t i = 0; i < cfg.yScaleHalfRangeOptionsDB.size(); ++i) {
+        const float half = cfg.yScaleHalfRangeOptionsDB[i];
+        const bool isActive = std::abs(half - mSelectedYScaleHalfRangeDB) < 0.001f;
+        char label[32] = {0};
+        snprintf(label, sizeof(label), "+/-%ddB", (int)std::round(half));
+
+        ImGui::SameLine();
+        if (isActive) {
+          ImGui::PushStyleColor(ImGuiCol_Button, ColorFromHTML("666666").Value);
+          ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ColorFromHTML("777777").Value);
+          ImGui::PushStyleColor(ImGuiCol_ButtonActive, ColorFromHTML("888888").Value);
+        }
+        if (ImGui::SmallButton(label)) {
+          mSelectedYScaleHalfRangeDB = half;
+          mHasSelectedYScale = true;
+        }
+        if (isActive) {
+          ImGui::PopStyleColor(3);
+        }
+      }
+      ImGui::PopID();
+
+      mGraph.SetFixedYScaleHalfRange(mSelectedYScaleHalfRangeDB);
+    } else {
+      mGraph.ClearFixedYScale();
+      mHasSelectedYScale = false;
+    }
+
     // Configure the graph background
     mGraph.SetBackgroundColor(cfg.backgroundColor);
     

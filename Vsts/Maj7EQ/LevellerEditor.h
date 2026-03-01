@@ -368,6 +368,7 @@ public:
     // Apply current FFT scaling settings to renderer config
     cfg.fftDisplayMinDB = mFFTDisplayMinDB;
     cfg.fftDisplayMaxDB = mFFTDisplayMaxDB;
+    cfg.yScaleHalfRangeOptionsDB = {12.0f, 24.0f, 48.0f};
 
     mResponseGraph.OnRender(cfg);
 

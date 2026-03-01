@@ -16,6 +16,15 @@ public:
   FrequencyMagnitudeCoordinateSystem mCoords;
   std::vector<std::unique_ptr<IFrequencyGraphLayer>> mLayers;
   ImColor mBackgroundColor = ColorFromHTML("222222", 1.0f);
+  bool mUseFixedYScale = false;
+  float mFixedYHalfRangeDB = 12.0f;
+
+  void ApplyFixedYScale_() {
+    const float half = std::max(6.0f, mFixedYHalfRangeDB);
+    mCoords.mCurrentHalfRangeDB = half;
+    mCoords.mDisplayMinDB = -half;
+    mCoords.mDisplayMaxDB = +half;
+  }
   
   void AddLayer(std::unique_ptr<IFrequencyGraphLayer> layer) {
     mLayers.push_back(std::move(layer));
@@ -23,6 +32,15 @@ public:
   
   void SetBackgroundColor(ImColor color) {
     mBackgroundColor = color;
+  }
+
+  void SetFixedYScaleHalfRange(float halfRangeDB) {
+    mUseFixedYScale = true;
+    mFixedYHalfRangeDB = halfRangeDB;
+  }
+
+  void ClearFixedYScale() {
+    mUseFixedYScale = false;
   }
   
   void Render() {
@@ -34,6 +52,10 @@ public:
     
     // Draw background
     ImGui::RenderFrame(bb.Min, bb.Max, mBackgroundColor);
+
+    if (mUseFixedYScale) {
+      ApplyFixedYScale_();
+    }
     
     // Update data for all layers
     for (auto& layer : mLayers) {
@@ -63,8 +85,12 @@ public:
       }
     }
     
-    if (hasInfluence) {
+    if (hasInfluence && !mUseFixedYScale) {
       mCoords.UpdateScaling(minInfluenceDB, maxInfluenceDB, preventShrink);
+    }
+
+    if (mUseFixedYScale) {
+      ApplyFixedYScale_();
     }
     
     // Render all layers in order

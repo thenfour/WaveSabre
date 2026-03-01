@@ -59,6 +59,10 @@ struct FrequencyResponseRendererConfig {
   float fftDisplayMinDB = -90.0f;
   float fftDisplayMaxDB = 0.0f;    // Digital maximum (0dB)
   bool useIndependentFFTScale = true;  // Use separate scale for FFT vs EQ response
+
+  // Optional manual EQ Y-scale presets (half-range in dB, e.g. {12, 24, 48})
+  // When non-empty, auto-scale is disabled and the renderer shows buttons for selecting a fixed range.
+  std::vector<float> yScaleHalfRangeOptionsDB{};
 };
 
 // ... legacy renderer implementation commented out below ...

@@ -30,7 +30,7 @@ inline constexpr std::array<M7::FilterCircuit, 7> gFilterCircuitOrder = {
     M7::FilterCircuit::Diode,
 };
 
-inline constexpr std::array<const char*, 7> gFilterCircuitLabels = {
+inline constexpr std::array<const char*, (size_t)M7::FilterCircuit::Count> gFilterCircuitLabels = {
     "Off", "1Pole", "Biquad", "Butter", "Moog", "K35", "Diode",
 };
 

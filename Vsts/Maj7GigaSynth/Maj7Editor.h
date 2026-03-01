@@ -2218,35 +2218,6 @@ public:
       const int filterSlopeParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterSlope);
       const int filterResponseParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterResponse);
 
-      // auto isSupported = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
-      // {
-      //   switch (circuit)
-      //   {
-      //     case M7::FilterCircuit::Disabled:
-      //       return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
-      //     case M7::FilterCircuit::OnePole:
-      //       return slope == M7::FilterSlope::Slope6dbOct &&
-      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
-      //     case M7::FilterCircuit::Biquad:
-      //       return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct;
-      //     case M7::FilterCircuit::Butterworth:
-      //       return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct &&
-      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
-      //     case M7::FilterCircuit::Moog:
-      //       return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
-      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
-      //               response == M7::FilterResponse::Bandpass);
-      //     case M7::FilterCircuit::K35:
-      //       return (slope == M7::FilterSlope::Slope12dbOct || slope == M7::FilterSlope::Slope24dbOct) &&
-      //              (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
-      //     case M7::FilterCircuit::Diode:
-      //       return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
-      //              response == M7::FilterResponse::Lowpass;
-      //     default:
-      //       return false;
-      //   }
-      // };
-
       M7::QuickParam filterCircuitParam{GetEffectX()->getParameter(filterCircuitParamID)};
       M7::QuickParam filterSlopeParam{GetEffectX()->getParameter(filterSlopeParamID)};
       M7::QuickParam filterResponseParam{GetEffectX()->getParameter(filterResponseParamID)};
