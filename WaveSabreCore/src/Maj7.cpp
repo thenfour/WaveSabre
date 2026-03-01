@@ -5,12 +5,12 @@ namespace WaveSabreCore {
     const int16_t gDefaultMasterParams[29] = {
       16422, // Master = 0.50115966796875
       16384, // Pan = 0.5
-      8, // PolyMon = 0.0002470355830155313015
+      8, // PolyMon = 0.000244140625
       0, // Unisono = 0
       0, // UniDet = 0
       0, // UniSpr = 0
       16384, // FMBrigh = 0.5
-      5941, // PortTm = 0.18132977187633514404
+      5941, // PortTm = 0.181304931640625
       17721, // PBRng = 0.540802001953125
       12032, // MaxVox = 0.3671875
       0, // Macro1 = 0
@@ -107,7 +107,7 @@ namespace WaveSabreCore {
     };
     static_assert((int)M7::OscParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
     const int16_t gDefaultOscillatorParams[19] = {
-      32767, // O1En = 1
+      0, // O1En = 0
       32767, // O1Vol = 0.999969482421875
       16384, // O1Pan = 0.5
       128, // O1KRmin = 0.00390625
