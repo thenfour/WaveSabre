@@ -22,7 +22,10 @@ void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, Decibels
   // NB: frequency params typically go down to like 31.25hz or so. catch that to give the user the option of bypassing.
   freq = M7::math::clamp(freq, 32, 20000);
 
-  const float A = M7::math::DecibelsToLinear(gain);
+  const float linearGain = M7::math::DecibelsToLinear(gain);
+  const bool responseUsesGain =
+      response == FilterResponse::Peak || response == FilterResponse::LowShelf || response == FilterResponse::HighShelf;
+  const float A = responseUsesGain ? M7::math::sqrt(linearGain) : linearGain;
 
   mW0 = M7::math::gPITimes2 * freq * Helpers::CurrentSampleRateRecipF;
   const float alpha = M7::math::sin(mW0) / (q.value * 2);
@@ -196,11 +199,16 @@ void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
   if (nStages == 0)
     return;
 
+  const bool splitGainAcrossStages =
+      nStages > 1 &&
+      (response == FilterResponse::Peak || response == FilterResponse::LowShelf || response == FilterResponse::HighShelf);
+  const float perStageGainDb = splitGainAcrossStages ? (gainDb / (float)nStages) : gainDb;
+
 #ifdef ENABLE_BUTTERWORTH_FILTER
   if (qStrategy == QStrategy::UserResonance)
   {
     // Compute coefficients once, then copy to remaining stages.
-    mFilters[0].SetBiquadParams(response, cutoffHz, q, gainDb);
+    mFilters[0].SetBiquadParams(response, cutoffHz, q, perStageGainDb);
     for (size_t i = 1; i < nStages; ++i)
     {
       mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
@@ -211,13 +219,13 @@ void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
     for (size_t i = 0; i < nStages; ++i)
     {
       const auto sectionQ = ButterworthQForSection(i, nStages);
-      mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, gainDb);
+      mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, perStageGainDb);
     }
   }
 #else   // ENABLE_BUTTERWORTH_FILTER
   for (size_t i = 0; i < nStages; ++i)
   {
-    mFilters[i].SetBiquadParams(response, cutoffHz, q, gainDb);
+    mFilters[i].SetBiquadParams(response, cutoffHz, q, perStageGainDb);
   }
 #endif  // ENABLE_BUTTERWORTH_FILTER
 

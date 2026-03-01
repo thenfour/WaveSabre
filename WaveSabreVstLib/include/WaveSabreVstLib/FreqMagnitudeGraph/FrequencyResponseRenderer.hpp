@@ -35,6 +35,8 @@ struct FrequencyResponseRendererFilter {
   std::function<void(M7::Param01 val, uintptr_t userData)> HandleChangeReso01;
   uintptr_t userData = 0; // Optional user data for custom handling
   const M7::IFilter* responseFilter = nullptr;
+  std::function<float()> ThumbGetFrequencyHz;
+  std::function<M7::Param01()> ThumbGetReso01;
 };
 
 template <size_t TFilterCount, size_t TParamCount>

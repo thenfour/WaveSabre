@@ -208,7 +208,7 @@ public:
 
         // Set the parameters using VST automation
         GetEffectX()->setParameterAutomated(freqParamIndex, M7::math::clamp01(freqParamValue));
-        GetEffectX()->setParameterAutomated(gainParamIndex, M7::math::clamp01(gainDb.value));
+        GetEffectX()->setParameterAutomated(gainParamIndex, M7::math::clamp01(gainParamValue));
       };
     };
 
@@ -229,6 +229,28 @@ public:
       };
     };
 
+    auto makeBandFreqGetter = [this](uintptr_t bandIndex)
+    {
+      return [this, bandIndex]() -> float
+      {
+        VstInt32 freqParamIndex = (VstInt32)Leveller::ParamIndices::Band1Freq +
+                                  (VstInt32(bandIndex) * (int)Leveller::BandParamOffsets::Count__);
+        float freqParamValue = GetEffectX()->getParameter(freqParamIndex);
+        M7::ParamAccessor freqParamAccessor{&freqParamValue, 0};
+        return freqParamAccessor.GetFrequency(0, M7::gFilterFreqConfig);
+      };
+    };
+
+    auto makeBandResoGetter = [this](uintptr_t bandIndex)
+    {
+      return [this, bandIndex]() -> M7::Param01
+      {
+        VstInt32 qParamIndex = (VstInt32)Leveller::ParamIndices::Band1Q +
+                               (VstInt32(bandIndex) * (int)Leveller::BandParamOffsets::Count__);
+        return M7::Param01{GetEffectX()->getParameter(qParamIndex)};
+      };
+    };
+
     const std::array<FrequencyResponseRendererFilter, Leveller::gBandCount> filters = {
         FrequencyResponseRendererFilter{bandColors[0],
                                         (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band1Enable) >
@@ -242,7 +264,9 @@ public:
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band1Enable) >
                        0.5f)
                         ? mpLeveller->mBands[0].mFilters[0].mSelectedFilter
-                        : nullptr},
+                        : nullptr,
+                      makeBandFreqGetter(0),
+                      makeBandResoGetter(0)},
         FrequencyResponseRendererFilter{bandColors[1],
                                         (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) >
                                          0.5f)
@@ -255,7 +279,9 @@ public:
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) >
                        0.5f)
                         ? mpLeveller->mBands[1].mFilters[0].mSelectedFilter
-                        : nullptr},
+                        : nullptr,
+                      makeBandFreqGetter(1),
+                      makeBandResoGetter(1)},
         FrequencyResponseRendererFilter{bandColors[2],
                                         (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band3Enable) >
                                          0.5f)
@@ -268,7 +294,9 @@ public:
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band3Enable) >
                        0.5f)
                         ? mpLeveller->mBands[2].mFilters[0].mSelectedFilter
-                        : nullptr},
+                        : nullptr,
+                      makeBandFreqGetter(2),
+                      makeBandResoGetter(2)},
         FrequencyResponseRendererFilter{bandColors[3],
                                         (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band4Enable) >
                                          0.5f)
@@ -281,7 +309,9 @@ public:
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band4Enable) >
                        0.5f)
                         ? mpLeveller->mBands[3].mFilters[0].mSelectedFilter
-                        : nullptr},
+                        : nullptr,
+                      makeBandFreqGetter(3),
+                      makeBandResoGetter(3)},
         FrequencyResponseRendererFilter{bandColors[4],
                                         (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band5Enable) >
                                          0.5f)
@@ -294,7 +324,9 @@ public:
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band5Enable) >
                        0.5f)
                         ? mpLeveller->mBands[4].mFilters[0].mSelectedFilter
-                        : nullptr},
+                        : nullptr,
+                      makeBandFreqGetter(4),
+                      makeBandResoGetter(4)},
     };
 
     FrequencyResponseRendererConfig<Leveller::gBandCount, (size_t)Leveller::ParamIndices::NumParams> cfg{

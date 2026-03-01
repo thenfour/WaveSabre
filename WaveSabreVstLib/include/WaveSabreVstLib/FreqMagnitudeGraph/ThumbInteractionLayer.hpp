@@ -30,6 +30,8 @@ private:
     ImVec2 dragStartThumbPos;       // Thumb position when drag started
     float originalFreq = 0.0f;      // Original frequency when drag started
     float originalGain = 0.0f;      // Original gain when drag started (derived from response)
+    float dragStartDisplayMinDB = -12.0f; // dB range min captured at drag start
+    float dragStartDisplayMaxDB = 12.0f;  // dB range max captured at drag start
     bool isDragging = false;        // Currently in drag operation
     bool wasHovered = false;        // Was hovered last frame (for hover state tracking)
   };
@@ -59,10 +61,23 @@ public:
     
     for (size_t filterIdx = 0; filterIdx < mFilters.size(); ++filterIdx) {
       const auto &f = mFilters[filterIdx];
-      if (!f.filter) continue;
-      
-      float freq = f.filter->freqHz();
-      float magLin = f.filter->GetMagnitudeAtFrequency(freq);
+      if (!f.filter && !f.responseFilter) continue;
+
+      float freq = f.ThumbGetFrequencyHz ? f.ThumbGetFrequencyHz() : (f.filter ? f.filter->freqHz() : 0.0f);
+      if (freq <= 0.0f)
+        continue;
+
+      float magLin = 1.0f;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+      if (f.responseFilter)
+      {
+        magLin = (float)f.responseFilter->GetMagnitudeAtFrequency(freq);
+      }
+      else if (f.filter)
+      {
+        magLin = f.filter->GetMagnitudeAtFrequency(freq);
+      }
+#endif
       float magdB = M7::math::LinearToDecibels(magLin);
 
       ThumbRenderInfo thumbInfo;
@@ -112,7 +127,8 @@ public:
         
         if (filter.HandleChangeReso01) {
           // Get current reso value from the filter
-          auto currentReso = filter.filter ? filter.filter->reso01() : Param01{1.0f};
+          auto currentReso = filter.ThumbGetReso01 ? filter.ThumbGetReso01() :
+                             (filter.filter ? filter.filter->reso01() : Param01{1.0f});
           
           // Apply wheel delta to Q with reasonable scaling and limits
           float delta = mouseWheel * 0.1f; // Fine control
@@ -144,6 +160,8 @@ public:
         mThumbInteraction.dragStartThumbPos = thumb.point;
         mThumbInteraction.originalFreq = coords.XToFreq(thumb.point.x, bb);
         mThumbInteraction.originalGain = coords.YToDB(thumb.point.y, bb);
+        mThumbInteraction.dragStartDisplayMinDB = coords.mDisplayMinDB;
+        mThumbInteraction.dragStartDisplayMaxDB = coords.mDisplayMaxDB;
         return true;
       }
     }
@@ -161,11 +179,17 @@ public:
         };
         
         float newFreq = coords.XToFreq(clampedMouse.x, bb);
-        float newGain = coords.YToDB(clampedMouse.y, bb);
+        float dragStartRangeDB = mThumbInteraction.dragStartDisplayMaxDB - mThumbInteraction.dragStartDisplayMinDB;
+        float graphHeightPx = std::max(1.0f, bb.Max.y - bb.Min.y);
+        float dbPerPixel = dragStartRangeDB / graphHeightPx;
+        float dy = clampedMouse.y - mThumbInteraction.dragStartMousePos.y;
+        float newGain = mThumbInteraction.originalGain - (dy * dbPerPixel);
         
         // Apply reasonable limits
         newFreq = M7::math::clamp(newFreq, 20.0f, 20000.0f);
-        newGain = M7::math::clamp(newGain, coords.mDisplayMinDB, coords.mDisplayMaxDB);
+        newGain = M7::math::clamp(newGain,
+                mThumbInteraction.dragStartDisplayMinDB,
+                mThumbInteraction.dragStartDisplayMaxDB);
         
         // Call the parameter change handler
         filter.HandleChangeParam(newFreq, M7::Decibels{newGain}, filter.userData);
