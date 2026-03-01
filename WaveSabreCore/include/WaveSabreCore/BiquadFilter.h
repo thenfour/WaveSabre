@@ -172,9 +172,9 @@ class CascadedBiquadFilter : public IFilter
   //float mGainCompensationLinear;
   //float mEnableCompensationGain = false;
 
-  static inline float ButterworthQForSection(int sectionIndex, int nStages)
+  static inline float ButterworthQForSection(size_t sectionIndex, size_t nStages)
   {
-    const int N = nStages * 2;  // filter order
+    const size_t N = nStages * 2;  // filter order
     const float k = (float)(sectionIndex + 1);
     const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
     const float c = math::cos(angle);

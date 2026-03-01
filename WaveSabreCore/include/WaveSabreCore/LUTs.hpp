@@ -172,7 +172,7 @@ struct CrtFns
   double(__cdecl* crt_floor)(double);
   double(__cdecl* crt_log)(double);
   double(__cdecl* crt_pow)(double, double);
-  double(__cdecl* crt_fmodf)(double, double);
+  float(__cdecl* crt_fmodf)(float, float);
   double(__cdecl* crt_exp)(double);
 };
 
@@ -208,7 +208,7 @@ INLINE double CrtPow(double x, double y)
   return gCrtFns->crt_pow(x, y);
 }
 
-INLINE double CrtFmodf(double x, double y)
+INLINE float CrtFmodf(float x, float y)
 {
   return gCrtFns->crt_fmodf(x, y);
 }
@@ -616,11 +616,11 @@ INLINE T round(float x)
 }
 
 INLINE float fmodf(float x, float q) {
-    return (float)CrtFmodf(double(x), double(q));
+    return CrtFmodf(x, q);
 }
 
 INLINE double fmodd(double x, double q) {
-    return CrtFmodf(x, q);
+    return (double)CrtFmodf(float(x), float(q));
 }
 
 INLINE float copysignf(float x, float y) {
