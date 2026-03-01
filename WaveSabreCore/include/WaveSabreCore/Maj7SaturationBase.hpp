@@ -15,7 +15,7 @@ struct Maj7SaturationBase
 	static constexpr float gK85 = 11.3333333333f;
 
 #ifdef MAJ7SAT_ENABLE_RARE_MODELS
-	enum class Model : uint8_t
+	enum class Model //: uint8_t
 	{
 		Thru,
 		SineClip,
@@ -73,7 +73,7 @@ struct Maj7SaturationBase
 		1.0f,
 	};
 #else
-	enum class Model : uint8_t
+	enum class Model //: uint8_t
 	{
 		Thru,
 		TanhClip,

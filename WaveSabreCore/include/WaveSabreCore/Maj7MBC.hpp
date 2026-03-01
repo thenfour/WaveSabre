@@ -11,7 +11,7 @@ namespace WaveSabreCore
 {
 struct Maj7MBC : public Device
 {
-  enum class OutputStream : uint8_t
+  enum class OutputStream// : uint8_t
   {
     Normal,
     Delta,
@@ -19,7 +19,7 @@ struct Maj7MBC : public Device
     Count__,
   };
 
-  enum class ChannelMode : uint8_t
+  enum class ChannelMode// : uint8_t
   {
     Stereo,
     Mid,

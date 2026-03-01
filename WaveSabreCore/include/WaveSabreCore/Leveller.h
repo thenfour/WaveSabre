@@ -22,7 +22,7 @@ namespace WaveSabreCore
 	{
 		static constexpr size_t gBandCount = 5;
 
-		enum class ParamIndices : uint8_t
+		enum class ParamIndices// : uint8_t
 		{
 			OutputVolume,
 			EnableDCFilter,

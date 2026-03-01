@@ -5,7 +5,7 @@
 
 namespace WaveSabreCore
 {
-	enum class InterpolationMode : uint8_t
+	enum class InterpolationMode// : uint8_t
 	{
 		Nearest,
 		Linear,
@@ -13,7 +13,7 @@ namespace WaveSabreCore
 		NumInterpolationModes,
 	};
 
-	enum class LoopMode : uint8_t
+	enum class LoopMode// : uint8_t
 	{
 		Disabled,
 		Repeat,
@@ -22,7 +22,7 @@ namespace WaveSabreCore
 		NumLoopModes,
 	};
 
-	enum class LoopBoundaryMode : uint8_t
+	enum class LoopBoundaryMode// : uint8_t
 	{
 		FromSample,
 		Manual,

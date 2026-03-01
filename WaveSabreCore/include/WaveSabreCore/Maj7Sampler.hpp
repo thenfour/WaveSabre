@@ -21,7 +21,7 @@ namespace WaveSabreCore
 {
 	namespace M7
 	{
-		enum class SampleSource : uint8_t
+		enum class SampleSource //: uint8_t
 		{
 			GmDls,
 			Embed,

@@ -470,7 +470,7 @@ static constexpr size_t gModulationCount = 18;
 // 31 feels like a good quality compromise.
 // 7 is sharp quality.
 // 3 is HD.
-enum class QualitySetting : uint8_t
+enum class QualitySetting// : uint8_t
 {
   Potato,
   Carrot,
@@ -513,7 +513,7 @@ extern QualitySetting GetQualitySetting();
 extern void SetQualitySetting(QualitySetting);
 
 
-enum class Oversampling : uint8_t
+enum class Oversampling// : uint8_t
 {
   Off = 0,
   x2 = 1,  // value can be seen as the # of stages
@@ -666,7 +666,7 @@ void BipolarDistribute(size_t count, const bool* enabled, float* outp);
 
 void ImportDefaultsArray(size_t count, const int16_t* src, float* paramCacheOffset);
 
-enum class TimeBasis : uint8_t
+enum class TimeBasis //: uint8_t
 {
   Frequency,
   Time,
@@ -2201,7 +2201,7 @@ enum class ParamIndices : uint16_t
   }
 // clang-format on
 
-enum class MainParamIndices : uint8_t
+enum class MainParamIndices //: uint8_t
 {
   MasterVolume,
   Pan,

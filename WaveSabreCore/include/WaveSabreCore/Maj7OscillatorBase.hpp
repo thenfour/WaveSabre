@@ -84,7 +84,7 @@ struct ISoundSourceDevice
 // - enum class OscillatorWaveform
 // - InstantiateWaveformCore(OscillatorWaveform
 // - #define OSCILLATOR_WAVEFORM_CAPTIONS
-enum class OscillatorWaveform : uint8_t
+enum class OscillatorWaveform //: uint8_t
 {
   SineDCClip,
   SineClipSqueeze,
@@ -175,7 +175,7 @@ struct OscillatorWaveformUiStyle
 // clang-format on
 
 /////////////////////////////////////////////////////////////////////////////
-enum class OscillatorIntention : uint8_t
+enum class OscillatorIntention //: uint8_t
 {
   LFO,
   Audio,

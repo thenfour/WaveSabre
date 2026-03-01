@@ -27,7 +27,8 @@ namespace WaveSabreCore
 
 		static constexpr float gAnalogMaxLin = 2;
 
-		enum class PanMode : uint8_t {
+		enum class PanMode //: uint8_t 
+		{
 			Stereo,
 			MidSide,
 			Count__,
