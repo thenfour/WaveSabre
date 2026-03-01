@@ -4,18 +4,12 @@
 #include <Windows.h>
 #include <algorithm>
 #include <memory>
+#include "../WaveSabreCoreFeatures.hpp"
 
 namespace WaveSabreCore
 {
 namespace M7
 {
-#define INLINE inline
-#ifdef MIN_SIZE_REL
-  #define FORCE_INLINE inline
-#else
-// for non-size-optimized builds (bloaty), force inline some things when profiling suggests its performant.
-  #define FORCE_INLINE __forceinline
-#endif
 namespace math
 {
 extern void InitLUTs();

@@ -9,6 +9,7 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+#ifdef ENABLE_K35_FILTER
 struct K35Filter : IFilter
 {
   MoogOnePoleFilter mLPF1;
@@ -101,17 +102,6 @@ struct K35Filter : IFilter
     }
   }
 
-  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
-  {
-    if (circuit != FilterCircuit::K35)
-      return false;
-    if (slope != FilterSlope::Slope12dbOct && slope != FilterSlope::Slope24dbOct)
-      return false;
-    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass)
-      return false;
-    return true;
-  }
-
   inline real ProcessCore(real x)
   {
     real2 y = 0;
@@ -148,6 +138,18 @@ struct K35Filter : IFilter
     return y;
   }
 
+  #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+  {
+    if (circuit != FilterCircuit::K35)
+      return false;
+    if (slope != FilterSlope::Slope12dbOct && slope != FilterSlope::Slope24dbOct)
+      return false;
+    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass)
+      return false;
+    return true;
+  }
+
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {
     const double clampedFreq = math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
@@ -171,6 +173,8 @@ struct K35Filter : IFilter
     return real(math::sqrt(re * re + im * im));
   }
 
+  #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
   virtual void Reset() override
   {
     mLPF1.Reset();
@@ -178,6 +182,11 @@ struct K35Filter : IFilter
     mHPF1.Reset();
     mHPF2.Reset();
   }
-}; // class K35Filter
+};  // class K35Filter
+
+#else   // ENABLE_K35_FILTER
+using K35Filter = NullFilter;
+#endif  // ENABLE_K35_FILTER
+
 }  // namespace M7
 }  // namespace WaveSabreCore

@@ -1,11 +1,11 @@
 
 file(GLOB_RECURSE HEADER_FILES 
-    include/WaveSabreCore/*.hpp
-    include/WaveSabreCore/*.h
+    *.hpp
+    *.h
 )
 
 file(GLOB_RECURSE SOURCE_FILES 
-    src/*.cpp
+    *.cpp
 )
 
 set(ALL_FILES ${HEADER_FILES} ${SOURCE_FILES})

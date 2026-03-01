@@ -5,10 +5,7 @@
 #include "WaveSabreCore/Filters/FilterBase.hpp"
 #include "WaveSabreCore/Maj7Basic.hpp"
 #include "WaveSabreCore/Maj7ParamAccessor.hpp"
-
-// compensation gain is interesting - it works pretty well, but there's actually no great way to do this at the oscillator
-// level. So while there may be some interesting use for it, it's not useful right now.
-#undef ENABLE_BIQUAD_COMPENSATION_GAIN
+#include "Vector.hpp"
 
 namespace WaveSabreCore
 {
@@ -101,41 +98,16 @@ public:
     return mConfig.FreqHz();
   }
 
-  //   void SetParams(FilterCircuit circuit,
-  //                          FilterSlope slope,
-  //                          FilterResponse response,
-  //                          float cutoffHz,
-  //                          float reso01) override
-  //   {
-  //     // M7::ParamAccessor pa{&reso01, 0};
-  //     // float q = pa.GetDivCurvedValue(0, M7::gBiquadFilterQCfg, 0);
-
-  // 	//
-
-  //     SetBiquadParams(response, cutoffHz, q, 0);
-  //   }
-
-  // IFilter
-  //   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
-  //   {
-  //     if (circuit != FilterCircuit::Biquad)
-  //       return false;
-  //     if (slope != FilterSlope::Slope12dbOct)
-  //       return false;
-  //     // supports all responses.
-  //     return true;
-  //   }
-
   float ProcessSample(float x);
 
-  void Reset()
+  NOINLINE void Reset()
   {
     lastInput = lastLastInput = 0.0f;
     lastOutput = lastLastOutput = 0.0f;
   }
 
   // Copies filter type/params/coefficients from another instance, but preserves this instance's state.
-  void CopyParamsAndCoeffsFrom(const BiquadFilter& src)
+  NOINLINE void CopyParamsAndCoeffsFrom(const BiquadFilter& src)
   {
     this->mConfig = src.mConfig;
   }
@@ -145,14 +117,19 @@ public:
     return mConfig;
   }
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   // Returns linear magnitude at a frequency in Hz using current normalized coefficients
   float GetMagnitudeAtFrequency(float freqHz) const;
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+float ButterworthQForSection(size_t sectionIndex, size_t nStages);
+
 class CascadedBiquadFilter : public IFilter
 {
   enum class QStrategy
@@ -171,16 +148,6 @@ class CascadedBiquadFilter : public IFilter
   size_t mNStages;
   //float mGainCompensationLinear;
   //float mEnableCompensationGain = false;
-
-  static inline float ButterworthQForSection(size_t sectionIndex, size_t nStages)
-  {
-    const size_t N = nStages * 2;  // filter order
-    const float k = (float)(sectionIndex + 1);
-    const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
-    const float c = math::cos(angle);
-    const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
-    return 1.0f / denom;
-  }
 
 public:
   explicit CascadedBiquadFilter()
@@ -204,78 +171,18 @@ public:
                        float cutoffHz,
                        float q,
                        float gain,
-                       QStrategy qStrategy)
-  {
-    CCASSERT(nStages >= 0 && nStages <= kMaxStages);
-
-    // if nStages has increased since last call, we need to reset the new stages.
-    if (nStages > mNStages)
-    {
-      for (size_t i = mNStages; i < nStages; ++i)
-      {
-        mFilters[i].Reset();
-      }
-    }
-
-    mNStages = nStages;
-
-    if (nStages == 0)
-      return;
-
-    if (qStrategy == QStrategy::UserResonance)
-    {
-      // Compute coefficients once, then copy to remaining stages.
-      mFilters[0].SetBiquadParams(response, cutoffHz, q, q);
-      for (size_t i = 1; i < nStages; ++i)
-      {
-        mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
-      }
-    }
-    else
-    {
-      for (size_t i = 0; i < nStages; ++i)
-      {
-        const float sectionQ = ButterworthQForSection(i, nStages);
-        mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, 0.0f);
-      }
-    }
-
-    //mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
-  }
+                       QStrategy qStrategy);
 
   virtual void SetParams(FilterCircuit circuit,
                          FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
-                         real reso01) override
-  {
-    // convert slope to n stages.
-    int nStages = (int)slope - 1;
-    static_assert(((int)(FilterSlope::Slope12dbOct)-1) == 1, "filter slope enum values must match n stages + 1");
-    static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
-    static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
-
-    if (circuit == FilterCircuit::Butterworth)
-    {
-      SetBiquadParams(nStages, response, cutoffHz, 0, 0, QStrategy::Butterworth);
-    }
-    else
-    {
-      const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
-      SetBiquadParams(nStages, response, cutoffHz, q, 0, QStrategy::UserResonance);
-    }
-  }
+                         real reso01) override;
 
   // IFilter
-  virtual float ProcessSample(float x) override
-  {
-    float y = x;
-    for (size_t i = 0; i < mNStages; ++i)
-    {
-      y = mFilters[i].ProcessSample(y);
-    }
-    return y;  // * mGainCompensationLinear;
-  }
+  virtual float ProcessSample(float x) override;
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {
@@ -291,16 +198,6 @@ public:
     return (real)((mag > 0.0) ? mag : 0.0);
   }
 
-  // IFilter
-  virtual void Reset() override
-  {
-    for (size_t i = 0; i < mNStages; ++i)
-    {
-      mFilters[i].Reset();
-    }
-  }
-
-
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response)
   {
     if (circuit != FilterCircuit::Biquad && circuit != FilterCircuit::Butterworth)
@@ -311,6 +208,18 @@ public:
       return response == FilterResponse::Lowpass || response == FilterResponse::Highpass;
     return true;
   }
+
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+  // IFilter
+  virtual void Reset() override
+  {
+    for (size_t i = 0; i < mNStages; ++i)
+    {
+      mFilters[i].Reset();
+    }
+  }
+
 
 #ifdef ENABLE_BIQUAD_COMPENSATION_GAIN
   float CalculateCompensationGainLinear() const

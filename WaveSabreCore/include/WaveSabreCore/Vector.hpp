@@ -33,6 +33,10 @@ struct Vector
   {
     return mData[i];
   }
+  T& operator[](size_t i)
+  {
+    return mData[i];
+  }
   void reserve(size_t n)
   {
     if (n > mCapacity)

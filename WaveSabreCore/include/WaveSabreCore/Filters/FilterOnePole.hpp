@@ -18,25 +18,16 @@ struct MoogOnePoleFilter : public IFilter
                          float cutoffHz,
                          float reso01) override
   {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     if (!DoesSupport(circuit, slope, response))
     {
       return;
     }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
     mResponse = response;
     m_cutoffHz = cutoffHz;
     Recalc();
-  }
-
-  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
-  {
-    if (circuit != FilterCircuit::OnePole)
-      return false;
-    if (slope != FilterSlope::Slope6dbOct)
-      return false;
-    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass)
-      return false;
-    return true;
   }
 
   virtual void Reset() override
@@ -68,6 +59,19 @@ struct MoogOnePoleFilter : public IFilter
     return float(hpf);
   }
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+  {
+    if (circuit != FilterCircuit::OnePole)
+      return false;
+    if (slope != FilterSlope::Slope6dbOct)
+      return false;
+    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass)
+      return false;
+    return true;
+  }
+
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {
     const double clampedFreq = math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
@@ -92,6 +96,8 @@ struct MoogOnePoleFilter : public IFilter
     const double hhpIm = -hlpIm;
     return real(math::sqrt(hhpRe * hhpRe + hhpIm * hhpIm));
   }
+
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   // float ProcessSample(float xn, FilterType type, float cutoffHz) {
   //     SetParams(type, cutoffHz, 0);

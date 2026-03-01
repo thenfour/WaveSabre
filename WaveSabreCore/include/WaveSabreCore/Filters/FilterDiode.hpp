@@ -9,6 +9,8 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+#ifdef ENABLE_DIODE_FILTER
+
 struct DiodeFilter : IFilter
 {
   static constexpr size_t kStages = 4;
@@ -101,17 +103,6 @@ struct DiodeFilter : IFilter
     Recalc();
   }
 
-  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
-  {
-    if (circuit != FilterCircuit::Diode)
-      return false;
-    if (slope != FilterSlope::Slope24dbOct && slope != FilterSlope::Slope48dbOct)
-      return false;
-    if (response != FilterResponse::Lowpass)
-      return false;
-    return true;
-  }
-
   inline real ProcessCore(real x)
   {
     mLPF[kStages - 1].m_feedbackL = 0;
@@ -149,6 +140,19 @@ struct DiodeFilter : IFilter
     return y;
   }
 
+  #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+  {
+    if (circuit != FilterCircuit::Diode)
+      return false;
+    if (slope != FilterSlope::Slope24dbOct && slope != FilterSlope::Slope48dbOct)
+      return false;
+    if (response != FilterResponse::Lowpass)
+      return false;
+    return true;
+  }
+
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {
     const double clampedFreq = math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
@@ -172,6 +176,8 @@ struct DiodeFilter : IFilter
     return math::sqrt(float(re * re + im * im));
   }
 
+  #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
   virtual void Reset() override
   {
     for (size_t i = 0; i < kStages; i++)
@@ -180,5 +186,10 @@ struct DiodeFilter : IFilter
     }
   }
 };  // class DiodeFilter
+
+#else   // ENABLE_DIODE_FILTER
+using DiodeFilter = NullFilter;
+#endif  // ENABLE_DIODE_FILTER
+
 }  // namespace M7
 }  // namespace WaveSabreCore

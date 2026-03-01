@@ -132,9 +132,10 @@ float BiquadFilter::ProcessSample(float input)
   return output;
 }
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
 {
-    // it is actually necessary to do this using `double`. otherwise the response curve looks awful.
+  // it is actually necessary to do this using `double`. otherwise the response curve looks awful.
   // Use normalized coefficients (a0 == 1)
   const double a1 = mConfig.normA1();
   const double a2 = mConfig.normA2();
@@ -155,5 +156,104 @@ float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
   const double ratio = num / safeDen;
   return M7::math::sqrt(float((ratio > 0) ? ratio : 0));
 }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
+                                           FilterResponse response,
+                                           float cutoffHz,
+                                           float q,
+                                           float gain,
+                                           QStrategy qStrategy)
+{
+  CCASSERT(nStages >= 0 && nStages <= kMaxStages);
+
+  // if nStages has increased since last call, we need to reset the new stages.
+  if (nStages > mNStages)
+  {
+    for (size_t i = mNStages; i < nStages; ++i)
+    {
+      mFilters[i].Reset();
+    }
+  }
+
+  mNStages = nStages;
+
+  if (nStages == 0)
+    return;
+
+  if (qStrategy == QStrategy::UserResonance)
+  {
+    // Compute coefficients once, then copy to remaining stages.
+    mFilters[0].SetBiquadParams(response, cutoffHz, q, q);
+    for (size_t i = 1; i < nStages; ++i)
+    {
+      mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
+    }
+  }
+  else
+  {
+    for (size_t i = 0; i < nStages; ++i)
+    {
+      const float sectionQ = ButterworthQForSection(i, nStages);
+      mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, 0.0f);
+    }
+  }
+
+  //mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
+}
+
+void CascadedBiquadFilter::SetParams(FilterCircuit circuit,
+                                     FilterSlope slope,
+                                     FilterResponse response,
+                                     real cutoffHz,
+                                     real reso01)
+{
+  // convert slope to n stages.
+  int nStages = (int)slope - 1;
+  static_assert(((int)(FilterSlope::Slope12dbOct)-1) == 1, "filter slope enum values must match n stages + 1");
+  static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
+  static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
+
+  if (circuit == FilterCircuit::Butterworth)
+  {
+    SetBiquadParams(nStages, response, cutoffHz, 0, 0, QStrategy::Butterworth);
+  }
+  else
+  {
+    const float q = gBiquadFilterQCfg.Param01ToValue(reso01);
+    SetBiquadParams(nStages, response, cutoffHz, q, 0, QStrategy::UserResonance);
+  }
+}
+
+// IFilter
+float CascadedBiquadFilter::ProcessSample(float x)
+{
+  float y = x;
+  for (size_t i = 0; i < mNStages; ++i)
+  {
+    y = mFilters[i].ProcessSample(y);
+  }
+  return y;  // * mGainCompensationLinear;
+}
+
+
+float ButterworthQForSection(size_t sectionIndex, size_t nStages)
+{
+  const size_t N = nStages * 2;  // filter order
+  const float k = (float)(sectionIndex + 1);
+  const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
+  const float c = math::cos(angle);
+  const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
+  return 1.0f / denom;
+}
+
+
 }  // namespace M7
 }  // namespace WaveSabreCore

@@ -1,6 +1,6 @@
 
 #include <WaveSabreCore/Maj7Oscillator.hpp>
-#include <WaveSabreCore/Maj7Oscillator4WS.hpp>
+#include "../Waveshapes/Maj7Oscillator4WS.hpp"
 
 namespace WaveSabreCore
 {

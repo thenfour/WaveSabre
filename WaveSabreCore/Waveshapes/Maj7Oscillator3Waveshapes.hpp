@@ -2,15 +2,15 @@
 
 #include <algorithm>  // for std::sort, std::unique
 
-#include "BandSplitter.hpp"
-#include "BiquadFilter.h"
-#include "LinkwitzRileyFilter.hpp"
-#include "Maj7Basic.hpp"
-#include "Maj7Oscillator3Base.hpp"
-#include "Maj7Oscillator3Shape.hpp"
-#include "Maj7Oscillator4WS.hpp"
-#include "SVFilter.hpp"
-#include "Vector.hpp"
+#include <WaveSabreCore/BandSplitter.hpp>
+#include <WaveSabreCore/BiquadFilter.h>
+#include <WaveSabreCore/LinkwitzRileyFilter.hpp>
+#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/Maj7Oscillator3Base.hpp>
+#include "./Maj7Oscillator3Shape.hpp"
+#include "./Maj7Oscillator4WS.hpp"
+#include <WaveSabreCore/SVFilter.hpp>
+#include <WaveSabreCore/Vector.hpp>
 
 namespace WaveSabreCore
 {
@@ -611,101 +611,16 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
   {
   }
 
-  inline size_t ComputeGrainSizeSamples() const
-  {
-    // Map 0..1 → [minSize, maxSize] exponentially
-    const float minSize = float(kMinGrainSizeSamples);
-    const float maxSize = float(kMaxGrainSizeSamples);
-    const float sizeF = minSize * math::pow(maxSize / minSize, mGrainSize01);
-    const int sizeI = math::round<int>(sizeF);
-    return (size_t)math::ClampI(sizeI, (int)kMinGrainSizeSamples, (int)kMaxGrainSizeSamples);
-  }
+  size_t ComputeGrainSizeSamples() const;
+  void EnsureGrainAllocated();
 
-  inline void EnsureGrainAllocated()
-  {
-    const size_t targetSize = ComputeGrainSizeSamples();
+  void MutateGrainCycle();
 
-    // If size unchanged and we already have valid content, nothing to do
-    if (targetSize == mGrainSizeSamples && mGrainValid)
-      return;
+  void HandleParamsChanged() override;
 
-    mGrainSizeSamples = targetSize;
+  CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override;
 
-    // Fill the active portion of the fixed buffer with noise
-    for (size_t i = 0; i < mGrainSizeSamples; ++i)
-    {
-      mGrain[i] = math::randN11();  // [-1,1]
-    }
-
-    mGrainValid = true;
-  }
-
-  inline void MutateGrainCycle()
-  {
-    if (!mGrainValid || mGrainSizeSamples == 0)
-      return;
-
-    const float targetCountF = mMutationRate01 * float(mGrainSizeSamples);
-    const int targetCountI = math::round<int>(targetCountF);
-
-    const size_t mutateCount = (size_t)math::ClampI(targetCountI, 0, (int)mGrainSizeSamples);
-
-    for (size_t i = 0; i < mutateCount; ++i)
-    {
-      // Random index in [0, mGrainSizeSamples)
-      const size_t index = (size_t)(math::rand01() * double(mGrainSizeSamples)) % mGrainSizeSamples;
-
-      mGrain[index] = math::randN11();
-    }
-  }
-
-  void HandleParamsChanged() override
-  {
-    mGrainSize01 = mWaveshapeA;
-    mMutationRate01 = mWaveshapeB;
-
-    EnsureGrainAllocated();
-  }
-
-  CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
-  {
-    const auto step = mPhaseAcc.advanceOneSample();
-
-    if (!mInitialized)
-    {
-      mInitialized = true;
-      mGrainValid = false;  // force re-init
-      EnsureGrainAllocated();
-      MutateGrainCycle();
-    }
-
-    // assert grain valid & has samples.
-
-    const size_t index = (size_t)(step.phaseBegin01 * mGrainSizeSamples) % mGrainSizeSamples;
-
-    const float y = mGrain[index];
-
-    const bool completedCycle = step.hasReset || (step.phaseBegin01 + step.dt >= 1.0f);
-    if (completedCycle)
-    {
-      MutateGrainCycle();
-    }
-
-    return CoreSample{
-        .amplitude = y,
-        //.naive = y,
-        //.correction = 0.0f,
-        //.phaseAdvance = step,
-    };
-  }
-
-  void RestartDueToNoteOn() override
-  {
-    OscillatorCore::RestartDueToNoteOn();
-    mInitialized = false;
-    // for fresh random grain per note
-    // mGrainValid = false;
-  }
+  void RestartDueToNoteOn() override;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
-#include "Maj7Basic.hpp"
-#include "Maj7Oscillator3Base.hpp"
-#include "Maj7Oscillator3Shape.hpp"
+#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/Maj7Oscillator3Base.hpp>
+#include "./Maj7Oscillator3Shape.hpp"
 
 namespace WaveSabreCore
 {

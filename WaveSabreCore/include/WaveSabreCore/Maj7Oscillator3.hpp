@@ -2,8 +2,8 @@
 
 #include "Maj7Basic.hpp"
 #include "Maj7Oscillator3Base.hpp"
-#include "Maj7Oscillator3Waveshapes.hpp"
-#include "Maj7Oscillator4WS.hpp"
+#include "../../Waveshapes/Maj7Oscillator3Waveshapes.hpp"
+#include "../../Waveshapes/Maj7Oscillator4WS.hpp"
 
 namespace WaveSabreCore
 {
