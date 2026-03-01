@@ -17,6 +17,8 @@ namespace M7
 {
 
 
+  // NB: This duplicated matrix is acceptable; the class-specific instances should actually be removed.
+  // we need to be able to check capabilities without an instance.
 INLINE bool DoesFilterSupport(M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
 {
   switch (circuit)

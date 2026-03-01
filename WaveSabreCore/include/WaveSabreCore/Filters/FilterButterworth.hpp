@@ -35,6 +35,12 @@ struct ButterworthFilter : IFilter
   }
 
   #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  virtual std::unique_ptr<IFilter> Clone() const override
+  {
+    auto clone = std::make_unique<ButterworthFilter>();
+    clone->mCascade = this->mCascade;
+    return clone;
+  }
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {
     return mCascade.GetMagnitudeAtFrequency(freqHz);

@@ -14,6 +14,7 @@
 #include "VstPlug.h"
 #include <WaveSabreCore/Helpers.h>
 #include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/Filters/FilterBase.hpp>
 #include <WaveSabreCore/FFTAnalysis.hpp>
 #include "FrequencyMagnitudeGraphUtils.hpp"
 #include "FrequencyMagnitudeGraph.hpp"
@@ -33,6 +34,7 @@ struct FrequencyResponseRendererFilter {
   std::function<void(float freqHz, M7::Decibels gainDb, uintptr_t userData)> HandleChangeParam;
   std::function<void(M7::Param01 val, uintptr_t userData)> HandleChangeReso01;
   uintptr_t userData = 0; // Optional user data for custom handling
+  const M7::IFilter* responseFilter = nullptr;
 };
 
 template <size_t TFilterCount, size_t TParamCount>

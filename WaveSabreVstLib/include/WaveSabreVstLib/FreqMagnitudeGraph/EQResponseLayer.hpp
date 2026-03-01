@@ -3,6 +3,7 @@
 #include "FrequencyMagnitudeGraph.hpp"
 #include "Maj7VstUtils.hpp"
 #include <algorithm>
+#include <memory>
 
 namespace WaveSabreVstLib {
 
@@ -21,6 +22,9 @@ template <int TSegmentCount, size_t TFilterCount, size_t TParamCount>
 class EQResponseLayer : public IFrequencyGraphLayer, public IEQResponseLayer {
 private:
   std::array<FrequencyResponseRendererFilter, TFilterCount> mFilters;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  std::array<std::unique_ptr<M7::IFilter>, TFilterCount> mResponseFilterClones;
+#endif
   float mParamCacheCopy[TParamCount];
   float mParamCacheCache[TParamCount] = {0};
   
@@ -49,6 +53,12 @@ public:
   
   void SetFilters(const std::array<FrequencyResponseRendererFilter, TFilterCount>& filters) {
     mFilters = filters;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    for (size_t i = 0; i < TFilterCount; ++i)
+    {
+      mResponseFilterClones[i] = mFilters[i].responseFilter ? mFilters[i].responseFilter->Clone() : nullptr;
+    }
+#endif
     ForceRecalculation();
   }
   
@@ -124,10 +134,19 @@ public:
       
       // Calculate combined filter magnitude response
       float filterMagdB = 0;
-      for (const auto &f : mFilters) {
-        if (!f.filter) continue; // nullptr values are valid when filter is bypassed
-        
-        float magLin = f.filter->GetMagnitudeAtFrequency(freq);
+      for (size_t iFilter = 0; iFilter < mFilters.size(); ++iFilter) {
+        const auto& f = mFilters[iFilter];
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+        const M7::IFilter* responseSource = mResponseFilterClones[iFilter] ? mResponseFilterClones[iFilter].get() : f.responseFilter;
+        if (!responseSource && !f.filter)
+          continue;
+        float magLin = responseSource ? (float)responseSource->GetMagnitudeAtFrequency(freq)
+                                      : f.filter->GetMagnitudeAtFrequency(freq);
+#else
+        if (!f.filter)
+          continue;
+        float magLin = 1.0f;
+#endif
         filterMagdB += M7::math::LinearToDecibels(magLin);
       }
       

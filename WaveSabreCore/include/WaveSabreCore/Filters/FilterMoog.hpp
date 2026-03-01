@@ -36,7 +36,17 @@ struct MoogLadderFilter : IFilter
   }
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-
+  virtual std::unique_ptr<IFilter> Clone() const override
+  {
+    auto clone = std::make_unique<MoogLadderFilter>();
+    clone->mSlope = this->mSlope;
+    clone->mResponse = this->mResponse;
+    clone->m_cutoffHz = this->m_cutoffHz;
+    clone->mReso01 = this->mReso01;
+    clone->m_k = this->m_k;
+    clone->Recalc();
+    return clone;
+  }
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
   {
     if (circuit != FilterCircuit::Moog)

@@ -203,6 +203,17 @@ public:
   virtual float ProcessSample(float x) override;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  virtual std::unique_ptr<IFilter> Clone() const override
+  {
+    auto clone = std::make_unique<CascadedBiquadFilter>();
+    clone->mNStages = this->mNStages;
+    //clone->mGainCompensationLinear = this->mGainCompensationLinear;
+    for (size_t i = 0; i < mNStages; ++i)
+    {
+      clone->mFilters[i].CopyParamsAndCoeffsFrom(this->mFilters[i]);
+    }
+    return clone;
+  }
 
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {

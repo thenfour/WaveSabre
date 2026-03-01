@@ -100,6 +100,16 @@ enum class FilterResponse  // : uint8_t
   Count,
 };
 
+struct FilterParams
+{
+    FilterCircuit circuit;
+  FilterSlope slope;
+  FilterResponse response;
+  real cutoffHz;
+  Param01 reso01;
+  real gainDb;
+};
+
 struct IFilter
 {
   virtual void SetParams(
@@ -116,6 +126,8 @@ struct IFilter
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) = 0;
   virtual real GetMagnitudeAtFrequency(real freqHz) const = 0;
+  // needed in order for VSTs to be able to clone filters for the response graph without interrupting realtime audio processing.
+  virtual std::unique_ptr<IFilter> Clone() const = 0;
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   virtual void Reset() = 0;
@@ -139,6 +151,10 @@ struct NullFilter : IFilter
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
   {
     return true;
+  }
+  virtual std::unique_ptr<IFilter> Clone() const override
+  {
+    return std::make_unique<NullFilter>();
   }
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {

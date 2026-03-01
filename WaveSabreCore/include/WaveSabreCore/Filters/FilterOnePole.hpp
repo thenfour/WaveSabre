@@ -60,7 +60,18 @@ struct MoogOnePoleFilter : public IFilter
   }
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-
+  virtual std::unique_ptr<IFilter> Clone() const override
+  {
+    auto clone = std::make_unique<MoogOnePoleFilter>();
+    clone->mResponse = this->mResponse;
+    clone->m_cutoffHz = this->m_cutoffHz;
+    clone->m_alpha = this->m_alpha;
+    clone->m_beta = this->m_beta;
+    clone->m_gamma = this->m_gamma;
+    clone->m_delta = this->m_delta;
+    clone->m_epsilon = this->m_epsilon;
+    return clone;
+  }
   virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
   {
     if (circuit != FilterCircuit::OnePole)
