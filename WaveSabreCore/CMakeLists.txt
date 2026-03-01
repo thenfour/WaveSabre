@@ -10,8 +10,8 @@ file(GLOB_RECURSE SOURCE_FILES
 
 set(ALL_FILES ${HEADER_FILES} ${SOURCE_FILES})
 
-# group all files under the "Source Files" folder in Visual Studio
-source_group("Source Files" FILES ${ALL_FILES})
+# group files by real filesystem hierarchy in Visual Studio
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${ALL_FILES})
 
 add_library(WaveSabreCore ${ALL_FILES})
 
