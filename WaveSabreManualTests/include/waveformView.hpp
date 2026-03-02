@@ -272,11 +272,13 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
       if (cfg.showExtDots)
       {
         std::string str;
+#ifdef _DEBUG
         if (s.sample.correction > 1e-6)
         {
           str += ".corr";
           dl->AddCircle(p, markerRadius + 2, ColorFromHTML("44ff44"), 8, 2.0f);
         }
+#endif
 #if 0
         for (size_t iEvent = 0; iEvent < s.sample.phaseAdvance.eventCount; ++iEvent)
         {
@@ -366,8 +368,10 @@ static inline std::optional<WFVSample> WaveformViewImpl(const char* id,
     //    ImGui::Separator();
     //ImGui::Text("Amplitude: %.2f dB", vDb);
     ImGui::Separator();
+#ifdef _DEBUG
     ImGui::Text("Naive: %.3f", s.sample.naive);
     ImGui::Text("Correction: %.3f", s.sample.correction);
+#endif
     //ImGui::Text("Frequency: %.3f Hz", s.sample.phaseAdvance.ComputeFrequencyHz());
     ImGui::Separator();
 #if 0

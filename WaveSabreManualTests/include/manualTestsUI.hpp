@@ -251,7 +251,9 @@ void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
     std::string logContents;
     if (hoveredSample.has_value())
     {
-      logContents = hoveredSample->sample.log;
+#ifdef _DEBUG
+        logContents = hoveredSample->sample.log;
+#endif
     }
 
     // when the user uses a "copy" key combo (ctrl+c, ctrl+ins), copy the log text to clipboard

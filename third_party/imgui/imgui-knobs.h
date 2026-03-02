@@ -5,6 +5,7 @@
 #include <cstdlib>
 #include <functional>
 #include <string>
+#include <stdexcept> // for std::invalid_argument and std::out_of_range
 #include <variant>
 
 #include <WaveSabreCore/../../GigaSynth/Maj7.hpp>
