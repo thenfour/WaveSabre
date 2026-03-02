@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -135,28 +136,28 @@ namespace ReaperParser.ReaperElements
                             prop.SetValue(this, value, null);
                             break;
                         case "Int16":
-                            prop.SetValue(this, Convert.ToInt16(value), null);
+                            prop.SetValue(this, Convert.ToInt16(value, CultureInfo.InvariantCulture), null);
                             break;
                         case "Int32":
-                            prop.SetValue(this, Convert.ToInt32(value), null);
+                            prop.SetValue(this, Convert.ToInt32(value, CultureInfo.InvariantCulture), null);
                             break;
                         case "Int64":
-                            prop.SetValue(this, Convert.ToInt64(value), null);
+                            prop.SetValue(this, Convert.ToInt64(value, CultureInfo.InvariantCulture), null);
                             break;
                         case "Boolean":
                             prop.SetValue(this, value.ToString() == "0" ? false : true, null);
                             break;
                         case "DateTime":
-                            prop.SetValue(this, Convert.ToDateTime(value), null);
+                            prop.SetValue(this, Convert.ToDateTime(value, CultureInfo.InvariantCulture), null);
                             break;
                         case "Decimal":
-                            prop.SetValue(this, Convert.ToDecimal(value), null);
+                            prop.SetValue(this, Convert.ToDecimal(value, CultureInfo.InvariantCulture), null);
                             break;
                         case "Single":
-                            prop.SetValue(this, Convert.ToSingle(value), null);
+                            prop.SetValue(this, Convert.ToSingle(value, CultureInfo.InvariantCulture), null);
                             break;
                         case "Double":
-                            prop.SetValue(this, Convert.ToDouble(value), null);
+                            prop.SetValue(this, Convert.ToDouble(value, CultureInfo.InvariantCulture), null);
                             break;
                         default:
                             //Console.WriteLine(propTypeName);
