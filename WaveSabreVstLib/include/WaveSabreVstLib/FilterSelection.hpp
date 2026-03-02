@@ -63,7 +63,7 @@ inline constexpr std::array<M7::FilterResponse, 8> gFilterResponseOrder = {
 };
 
 inline constexpr std::array<const char*, 8> gFilterResponseLabels = {
-    "\\ LP", "  LS", "| BP", "- Nt", "* AP", "^ PK", "  HS", "/ HP",
+    "/ HP", "  LS", "| BP", "- Nt", "* AP", "^ PK", "  HS", "\\ LP",
 };
 
 inline const char* LabelForFilterCircuit(M7::FilterCircuit c)
