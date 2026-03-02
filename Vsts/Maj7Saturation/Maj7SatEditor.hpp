@@ -147,7 +147,11 @@ struct Maj7SatEditor : public VstEditor
 					 ColorFromHTML(effectEnabled ? "ffff00" : "777777"), // line clipped
 					 ColorFromHTML("444444"), // tick
 					}, [&](float x) {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 						return band.transfer(x);
+						#else
+              return x;  // mocks
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 					});
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT

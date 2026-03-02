@@ -10,16 +10,38 @@
 
 #include "../WaveSabreCoreFeatures.hpp"
 
-// compiler likes to try to use special intrinsics even when disabled... so use
-// custom names renamed in msvcrt/*.def
 #ifdef WAVESABRE_CUSTOM_MSVCRT
-extern "C" double __cdecl MsvcrtSin(double x);
-extern "C" double __cdecl MsvcrtCos(double x);
-extern "C" double __cdecl MsvcrtFloor(double x);
-extern "C" double __cdecl MsvcrtTan(double x);
-extern "C" double __cdecl MsvcrtLog(double x);
-extern "C" double __cdecl MsvcrtExp(double x);
-extern "C" double __cdecl MsvcrtPow(double x, double y);
+// MSVC wants to intrinsic many functions, bypassing our own MSVCRT shim and emitting linker errors.
+// this #pragma forces it to call our function.
+#pragma function(sin, cos, tan, exp, pow, log)
+inline double MsvcrtSin(double x)
+{
+  return ::sin(x);
+}
+inline double MsvcrtCos(double x)
+{
+  return ::cos(x);
+}
+inline double MsvcrtFloor(double x)
+{
+  return ::floor(x);
+}
+inline double MsvcrtTan(double x)
+{
+  return ::tan(x);
+}
+inline double MsvcrtLog(double x)
+{
+  return ::log(x);
+}
+inline double MsvcrtExp(double x)
+{
+  return ::exp(x);
+}
+inline double MsvcrtPow(double x, double y)
+{
+  return ::pow(x, y);
+}
 #else
 inline double MsvcrtSin(double x)
 {

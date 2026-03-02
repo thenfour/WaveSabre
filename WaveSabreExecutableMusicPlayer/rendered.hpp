@@ -5,10 +5,10 @@ WaveSabreCore::Device* SongFactory(SongRenderer::DeviceId id)
 {
 	switch (id)
 	{
-	case SongRenderer::DeviceId::Leveller: return new WaveSabreCore::Leveller();
+	case SongRenderer::DeviceId::Maj7EQ: return new WaveSabreCore::Leveller();
 	case SongRenderer::DeviceId::Maj7Space: return new WaveSabreCore::Maj7Space();
-	case SongRenderer::DeviceId::Maj7Width: return new WaveSabreCore::Maj7Width();
-	case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::Maj7();
+	case SongRenderer::DeviceId::Maj7StereoImager: return new WaveSabreCore::Maj7Width();
+	case SongRenderer::DeviceId::Maj7GigaSynth: return new WaveSabreCore::Maj7();
 	case SongRenderer::DeviceId::Maj7MBC: return new WaveSabreCore::Maj7MBC();
 	}
 	return nullptr;

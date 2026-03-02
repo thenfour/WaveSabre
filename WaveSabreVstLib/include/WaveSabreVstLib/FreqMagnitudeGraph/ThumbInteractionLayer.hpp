@@ -106,6 +106,7 @@ public:
   }
   
   bool HandleMouse(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) override {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     ImVec2 mousePos = ImGui::GetIO().MousePos;
     bool mouseClicked = ImGui::IsMouseClicked(0);
     bool mouseDown = ImGui::IsMouseDown(0);
@@ -126,7 +127,7 @@ public:
         
         if (filter.HandleChangeReso01) {
           // Get current reso value from the filter
-          auto currentReso = filter.ThumbGetReso01 ? filter.ThumbGetReso01() :
+            auto currentReso = filter.ThumbGetReso01 ? filter.ThumbGetReso01() :
                              (filter.filter ? filter.filter->reso01() : Param01{1.0f});
           
           // Apply wheel delta to Q with reasonable scaling and limits
@@ -198,6 +199,9 @@ public:
     }
     
     return false; // Didn't consume any mouse events
+      #else
+    return false;  // No interaction
+#endif
   }
   
   void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {

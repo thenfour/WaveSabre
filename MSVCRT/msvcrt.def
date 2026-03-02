@@ -665,14 +665,14 @@ EXPORTS
 	ceil
 	clearerr
 	clock
-	MsvcrtCos=cos
+	cos
 	cosh
 	ctime
 	difftime
 	div
 	DllMain@12
 	exit
-	MsvcrtExp=exp
+	exp
 	fabs
 	fclose
 	feof
@@ -683,7 +683,7 @@ EXPORTS
 	fgets
 	fgetwc
 	fgetws
-	MsvcrtFloor=floor
+	floor
 	fmod
 	fopen
 	fpieee_flt_simd
@@ -743,7 +743,7 @@ EXPORTS
 	LoadOperand
 	localeconv
 	localtime
-	MsvcrtLog=log
+	log
 	log10
 	longjmp
 	mainCRTStartup
@@ -759,7 +759,7 @@ EXPORTS
 	mktime
 	modf
 	perror
-	MsvcrtPow=pow
+	pow
 	powf
 	printf
 	putc
@@ -779,7 +779,7 @@ EXPORTS
 	setlocale
 	setvbuf
 	signal
-	MsvcrtSin=sin
+	sin
 	sinh
 	sprintf
 	sqrt
@@ -809,7 +809,7 @@ EXPORTS
 	swprintf
 	swscanf
 	system
-	MsvcrtTan=tan
+	tan
 	tanh
 	time
 	tmpfile

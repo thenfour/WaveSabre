@@ -211,8 +211,9 @@ float lerp_rev(float v_min, float v_max,
   return (v_val - v_min) / (v_max - v_min);
 }
 
-
-LUTs* gLuts = new math::LUTs();
+// in minsizerel, static initialization is disabled.
+// everything must use gigasynth so we init from there.
+LUTs* gLuts = nullptr;//new math::LUTs();
 
 
 }  // namespace math

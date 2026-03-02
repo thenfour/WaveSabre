@@ -11,6 +11,7 @@ int main(int argc, char** argv)
 {
   if (argc != 2)
   {
+    printf("Usage: %s c:\\path\\to\\file.wav\n", argv[0]);
     return 1;
   }
 
