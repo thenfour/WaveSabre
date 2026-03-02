@@ -4,8 +4,8 @@
 #include <imgui.h>
 #include "Common.h"
 #include "Maj7VstUtils.hpp"
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
 #include <vector>
 
 using namespace WaveSabreCore;

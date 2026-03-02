@@ -3,9 +3,9 @@
 #include "Common.h"
 #include "Maj7VstUtils.hpp"
 #include "WaveSabreVstLib.h"
-#include <WaveSabreCore/DelayCore.hpp>
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/../../DSP/DelayCore.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
 #include <vector>
 
 using namespace WaveSabreCore;

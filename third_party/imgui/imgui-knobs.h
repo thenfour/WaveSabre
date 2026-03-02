@@ -7,7 +7,7 @@
 #include <string>
 #include <variant>
 
-#include <WaveSabreCore/Maj7.hpp>
+#include <WaveSabreCore/../../GigaSynth/Maj7.hpp>
 #include <WaveSabreVstLib/Maj7VstUtils.hpp>
 
 #include "imgui.h"

@@ -1,7 +1,6 @@
 ﻿#pragma once
 
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Maj7Oscillator3Base.hpp>
+#include "../GigaSynth/Maj7Oscillator3Base.hpp"
 #include "./Maj7Oscillator3Shape.hpp"
 #include "./Blep.hpp"
 

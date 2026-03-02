@@ -48,7 +48,7 @@ namespace WSPlayerApp
             gpRenderer = new SongRenderer(&gSong, mProcessorCount);
             //gSampleRate = gpRenderer->GetSampleRate();
 
-            gSongLength.SetMilliseconds(WaveSabreCore::M7::math::DoubleToLong(gpRenderer->GetLength() * 1000));
+            gSongLength.SetMilliseconds(int32_t(gpRenderer->GetLength() * 1000));
             static_assert(SongRenderer::NumChannels == 2, "everything here assumes stereo");
             gAllocatedSampleCount = gSongLength.GetStereoSamples() +
                                     (WaveSabreCore::Helpers::CurrentSampleRateI *

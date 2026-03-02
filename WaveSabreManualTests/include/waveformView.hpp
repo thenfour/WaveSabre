@@ -14,8 +14,8 @@
 #include <vector>
 
 #include <WaveSabreCore.h>
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+//#include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreVstLib/ImGuiUtils.hpp>
 #include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 #include <WaveSabreVstLib/Maj7VstUtils.hpp>

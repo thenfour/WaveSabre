@@ -4,7 +4,7 @@
 #include "FrequencyMagnitudeGraph.hpp"
 #include <functional>
 #include <array>
-#include <WaveSabreCore/FFTAnalysis.hpp>
+#include <WaveSabreCore/../../Analysis/FFTAnalysis.hpp>
 
 namespace WaveSabreVstLib {
 

@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "VstPlug.h"
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
 #include <imgui-knobs.h>
 #include <imgui.h>
 #include <imgui_internal.h>

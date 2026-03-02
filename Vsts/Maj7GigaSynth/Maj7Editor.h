@@ -13,7 +13,8 @@
 #pragma comment(lib, "shlwapi.lib")
 
 #include <WaveSabreCore.h>
-#include <WaveSabreCore/Maj7.hpp>
+#include <WaveSabreCore/../../GigaSynth/Maj7.hpp>
+#include <WaveSabreCore/../../GigaSynth/GsmSample.h>
 #include <WaveSabreVstLib.h>
 
 
@@ -473,8 +474,8 @@ public:
                                    MB_YESNO | MB_ICONQUESTION))
         {
           // make a copy of param cache.
-          float orig[(size_t)M7::ParamIndices::NumParams];
-          for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i)
+          float orig[(size_t)M7::GigaSynthParamIndices::NumParams];
+          for (size_t i = 0; i < (size_t)M7::GigaSynthParamIndices::NumParams; ++i)
           {
             orig[i] = pMaj7->GetParam((int)i);
           }
@@ -496,8 +497,8 @@ public:
           delete[] data;
 
 
-          float after[(size_t)M7::ParamIndices::NumParams];
-          for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i)
+          float after[(size_t)M7::GigaSynthParamIndices::NumParams];
+          for (size_t i = 0; i < (size_t)M7::GigaSynthParamIndices::NumParams; ++i)
           {
             after[i] = pMaj7->GetParam((int)i);
           }
@@ -506,9 +507,9 @@ public:
           std::vector<std::string> paramReports;
 
           using vstn = const char[kVstMaxParamStrLen];
-          static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+          static constexpr vstn paramNames[(int)M7::GigaSynthParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 
-          for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i)
+          for (size_t i = 0; i < (size_t)M7::GigaSynthParamIndices::NumParams; ++i)
           {
             if (!M7::math::FloatEquals(orig[i], after[i]))
             {
@@ -606,7 +607,7 @@ public:
   void CopyParamCache()
   {
     using vstn = const char[kVstMaxParamStrLen];
-    static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+    static constexpr vstn paramNames[(int)M7::GigaSynthParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
     std::stringstream ss;
     ss << "#include <WaveSabreCore/Maj7.hpp>" << std::endl;
     ss << "namespace WaveSabreCore {" << std::endl;
@@ -680,7 +681,7 @@ public:
 
   void Maj7ImGuiParamMacro(int imacro)
   {
-    int paramID = (int)M7::ParamIndices::Macro1 + imacro;
+    int paramID = (int)M7::GigaSynthParamIndices::Macro1 + imacro;
     float tempVal = GetEffectX()->getParameter((VstInt32)paramID);
     //M7::Float01Param p{ tempVal };
     //M7::ParamAccessor pa{ &tempVal, 0 };
@@ -849,28 +850,28 @@ public:
       ImGui::PopID();
     }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-    Maj7ImGuiParamVolume((VstInt32)M7::ParamIndices::MasterVolume, "Volume##hc", M7::gMasterVolumeCfg, -6.0f, {});
+    Maj7ImGuiParamVolume((VstInt32)M7::GigaSynthParamIndices::MasterVolume, "Volume##hc", M7::gMasterVolumeCfg, -6.0f, {});
 
     ImGui::SameLine();
-    Maj7ImGuiParamFloatN11((VstInt32)M7::ParamIndices::Pan, "Pan##mst", 0.0f, 0, GetModInfo(M7::ModDestination::Pan));
+    Maj7ImGuiParamFloatN11((VstInt32)M7::GigaSynthParamIndices::Pan, "Pan##mst", 0.0f, 0, GetModInfo(M7::ModDestination::Pan));
 
     ImGui::SameLine();
-    Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);
+    Maj7ImGuiParamInt((VstInt32)M7::GigaSynthParamIndices::Unisono, "Unison##mst", M7::gUnisonoVoiceCfg, 1, 0);
 
     //ImGui::SameLine();
     //WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorDetune, "OscDetune##mst");
     ImGui::SameLine();
-    WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoDetune, "UniDetune##mst");
+    WSImGuiParamKnob((VstInt32)M7::GigaSynthParamIndices::UnisonoDetune, "UniDetune##mst");
     //ImGui::SameLine();
     //WSImGuiParamKnob((VstInt32)M7::ParamIndices::OscillatorSpread, "OscPan##mst");
     ImGui::SameLine();
-    WSImGuiParamKnob((VstInt32)M7::ParamIndices::UnisonoStereoSpread, "UniPan##mst");
+    WSImGuiParamKnob((VstInt32)M7::GigaSynthParamIndices::UnisonoStereoSpread, "UniPan##mst");
 
     ImGui::SameLine(0, 60);
-    Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::PitchBendRange, "PB Range##mst", M7::gPitchBendCfg, 2, 0);
+    Maj7ImGuiParamInt((VstInt32)M7::GigaSynthParamIndices::PitchBendRange, "PB Range##mst", M7::gPitchBendCfg, 2, 0);
     ImGui::SameLine();
 
-    Maj7ImGuiPowCurvedParam((VstInt32)M7::ParamIndices::PortamentoTime,
+    Maj7ImGuiPowCurvedParam((VstInt32)M7::GigaSynthParamIndices::PortamentoTime,
                             "Port##mst",
                             M7::gEnvTimeCfg,
                             0.4f,
@@ -879,11 +880,11 @@ public:
     //ImGui::SameLine();
     //Maj7ImGuiParamCurve((VstInt32)M7::ParamIndices::PortamentoCurve, "##portcurvemst", 0.0f, M7CurveRenderStyle::Rising, {});
     ImGui::SameLine();
-    Maj7ImGuiParamInt((VstInt32)M7::ParamIndices::MaxVoices, "MaxVox", M7::gMaxVoicesCfg, 24, 1);
+    Maj7ImGuiParamInt((VstInt32)M7::GigaSynthParamIndices::MaxVoices, "MaxVox", M7::gMaxVoicesCfg, 24, 1);
 
     static constexpr char const* const voiceModeCaptions[] = {"Poly", "Mono"};
     ImGui::SameLine(0, 60);
-    Maj7ImGuiParamEnumList<WaveSabreCore::VoiceMode>((VstInt32)M7::ParamIndices::VoicingMode,
+    Maj7ImGuiParamEnumList<WaveSabreCore::VoiceMode>((VstInt32)M7::GigaSynthParamIndices::VoicingMode,
                                                      "VoiceMode##mst",
                                                      (int)WaveSabreCore::VoiceMode::Count,
                                                      WaveSabreCore::VoiceMode::Polyphonic,
@@ -922,19 +923,19 @@ public:
       static_assert(M7::gOscillatorCount == 4, "osc count");
       int isrc = 0;
       Oscillator("Oscillator 1",
-                 (int)M7::ParamIndices::Osc1Enabled,
+                 (int)M7::GigaSynthParamIndices::Osc1Enabled,
                  isrc++,
                  (int)M7::ModDestination::Osc1AmpEnvDelayTime);
       Oscillator("Oscillator 2",
-                 (int)M7::ParamIndices::Osc2Enabled,
+                 (int)M7::GigaSynthParamIndices::Osc2Enabled,
                  isrc++,
                  (int)M7::ModDestination::Osc2AmpEnvDelayTime);
       Oscillator("Oscillator 3",
-                 (int)M7::ParamIndices::Osc3Enabled,
+                 (int)M7::GigaSynthParamIndices::Osc3Enabled,
                  isrc++,
                  (int)M7::ModDestination::Osc3AmpEnvDelayTime);
       Oscillator("Oscillator 4",
-                 (int)M7::ParamIndices::Osc4Enabled,
+                 (int)M7::GigaSynthParamIndices::Osc4Enabled,
                  isrc++,
                  (int)M7::ModDestination::Osc4AmpEnvDelayTime);
 
@@ -952,10 +953,10 @@ public:
 
     static_assert(M7::gOscillatorCount == 4, "osc count");
     bool oscEnabled[4] = {
-        pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc1Enabled),
-        pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc2Enabled),
-        pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc3Enabled),
-        pMaj7->mParams.GetBoolValue(M7::ParamIndices::Osc4Enabled),
+        pMaj7->mParams.GetBoolValue(M7::GigaSynthParamIndices::Osc1Enabled),
+        pMaj7->mParams.GetBoolValue(M7::GigaSynthParamIndices::Osc2Enabled),
+        pMaj7->mParams.GetBoolValue(M7::GigaSynthParamIndices::Osc3Enabled),
+        pMaj7->mParams.GetBoolValue(M7::GigaSynthParamIndices::Osc4Enabled),
     };
 
     //ImGui::BeginGroup();
@@ -969,89 +970,89 @@ public:
         ImGui::PushStyleVar(ImGuiStyleVar_ItemInnerSpacing, {0, 0});
         {
           auto colorModToken = (oscEnabled[0] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc1FMFeedback, "FB1");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::Osc1FMFeedback, "FB1");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[0] && oscEnabled[1]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to1, "2-1");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt2to1, "2-1");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[0] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to1, "3-1");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt3to1, "3-1");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[0] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to1, "4-1");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt4to1, "4-1");
         }
 
         {
           auto colorModToken = ((oscEnabled[0] && oscEnabled[1]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to2, "1-2");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt1to2, "1-2");
         }
         {
           auto colorModToken = (oscEnabled[1] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
           ImGui::SameLine();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc2FMFeedback, "FB2");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::Osc2FMFeedback, "FB2");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[1] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to2, "3-2");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt3to2, "3-2");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[1] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to2, "4-2");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt4to2, "4-2");
         }
 
         {
           auto colorModToken = ((oscEnabled[0] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to3, "1-3");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt1to3, "1-3");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[1] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to3, "2-3");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt2to3, "2-3");
         }
         {
           auto colorModToken = (oscEnabled[2] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
           ImGui::SameLine();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc3FMFeedback, "FB3");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::Osc3FMFeedback, "FB3");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[3] && oscEnabled[2]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt4to3, "4-3");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt4to3, "4-3");
         }
 
         {
           auto colorModToken = ((oscEnabled[0] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt1to4, "1-4");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt1to4, "1-4");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[1] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt2to4, "2-4");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt2to4, "2-4");
         }
         ImGui::SameLine();
         {
           auto colorModToken = ((oscEnabled[2] && oscEnabled[3]) ? &mFMColors : &mFMDisabledColors)->Push();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::FMAmt3to4, "3-4");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::FMAmt3to4, "3-4");
         }
         {
           auto colorModToken = (oscEnabled[3] ? &mFMFeedbackColors : &mFMDisabledFeedbackColors)->Push();
           ImGui::SameLine();
-          Maj7ImGuiParamFMKnob((VstInt32)M7::ParamIndices::Osc4FMFeedback, "FB4");
+          Maj7ImGuiParamFMKnob((VstInt32)M7::GigaSynthParamIndices::Osc4FMFeedback, "FB4");
         }
 
         ImGui::PopStyleVar();
         ImGui::EndGroup();
 
         ImGui::SameLine(0, 20);
-        Maj7ImGuiParamFloat01((VstInt32)M7::ParamIndices::FMBrightness,
+        Maj7ImGuiParamFloat01((VstInt32)M7::GigaSynthParamIndices::FMBrightness,
                               "Brightness##mst",
                               0.5f,
                               0.5f,
@@ -1091,33 +1092,33 @@ public:
       auto modColorModToken = mModEnvelopeColors.Push();
       if (WSBeginTabItemWithSel("Mod env 1", 0, mModEnvOrLFOTabSelHelper))
       {
-        Envelope("Modulation Envelope 1", (int)M7::ParamIndices::Env1DelayTime, (int)M7::ModDestination::Env1DelayTime);
+        Envelope("Modulation Envelope 1", (int)M7::GigaSynthParamIndices::Env1DelayTime, (int)M7::ModDestination::Env1DelayTime);
         ImGui::EndTabItem();
       }
       if (WSBeginTabItemWithSel("Mod env 2", 1, mModEnvOrLFOTabSelHelper))
       {
-        Envelope("Modulation Envelope 2", (int)M7::ParamIndices::Env2DelayTime, (int)M7::ModDestination::Env2DelayTime);
+        Envelope("Modulation Envelope 2", (int)M7::GigaSynthParamIndices::Env2DelayTime, (int)M7::ModDestination::Env2DelayTime);
         ImGui::EndTabItem();
       }
       auto lfoColorModToken = mLFOColors.Push();
       if (WSBeginTabItemWithSel("LFO 1", 2, mModEnvOrLFOTabSelHelper))
       {
-        LFO("LFO 1", (int)M7::ParamIndices::LFO1Waveform, 0);
+        LFO("LFO 1", (int)M7::GigaSynthParamIndices::LFO1Waveform, 0);
         ImGui::EndTabItem();
       }
       if (WSBeginTabItemWithSel("LFO 2", 3, mModEnvOrLFOTabSelHelper))
       {
-        LFO("LFO 2", (int)M7::ParamIndices::LFO2Waveform, 1);
+        LFO("LFO 2", (int)M7::GigaSynthParamIndices::LFO2Waveform, 1);
         ImGui::EndTabItem();
       }
       if (WSBeginTabItemWithSel("LFO 3", 4, mModEnvOrLFOTabSelHelper))
       {
-        LFO("LFO 3", (int)M7::ParamIndices::LFO3Waveform, 2);
+        LFO("LFO 3", (int)M7::GigaSynthParamIndices::LFO3Waveform, 2);
         ImGui::EndTabItem();
       }
       if (WSBeginTabItemWithSel("LFO 4", 5, mModEnvOrLFOTabSelHelper))
       {
-        LFO("LFO 4", (int)M7::ParamIndices::LFO4Waveform, 3);
+        LFO("LFO 4", (int)M7::GigaSynthParamIndices::LFO4Waveform, 3);
         ImGui::EndTabItem();
       }
       EndTabBarWithColoredSeparator();
@@ -1349,11 +1350,11 @@ public:
                              lGetModInfo(M7::OscModParamIndexOffsets::Pan));
 
       static_assert(M7::gOscillatorCount == 4, "osc count");
-      M7::ParamIndices ampEnvSources[M7::gOscillatorCount] = {
-          M7::ParamIndices::Osc1AmpEnvDelayTime,
-          M7::ParamIndices::Osc2AmpEnvDelayTime,
-          M7::ParamIndices::Osc3AmpEnvDelayTime,
-          M7::ParamIndices::Osc4AmpEnvDelayTime,
+      M7::GigaSynthParamIndices ampEnvSources[M7::gOscillatorCount] = {
+          M7::GigaSynthParamIndices::Osc1AmpEnvDelayTime,
+          M7::GigaSynthParamIndices::Osc2AmpEnvDelayTime,
+          M7::GigaSynthParamIndices::Osc3AmpEnvDelayTime,
+          M7::GigaSynthParamIndices::Osc4AmpEnvDelayTime,
       };
       auto ampEnvSource = ampEnvSources[oscID];  // ampSourceParam.GetIntValue()];
 
@@ -2165,10 +2166,10 @@ public:
           spec.mParams.SetN11Value(M7::ModParamIndexOffsets::Scale3, 0.618f);
           spec.mParams.SetN11Value(M7::ModParamIndexOffsets::Scale4, 0.618f);
 
-          pMaj7->mParams.SetBoolValue(M7::ParamIndices::Osc1PhaseRestart, true);
-          pMaj7->mParams.SetBoolValue(M7::ParamIndices::Osc2PhaseRestart, true);
-          pMaj7->mParams.SetBoolValue(M7::ParamIndices::Osc3PhaseRestart, true);
-          pMaj7->mParams.SetBoolValue(M7::ParamIndices::Osc4PhaseRestart, true);
+          pMaj7->mParams.SetBoolValue(M7::GigaSynthParamIndices::Osc1PhaseRestart, true);
+          pMaj7->mParams.SetBoolValue(M7::GigaSynthParamIndices::Osc2PhaseRestart, true);
+          pMaj7->mParams.SetBoolValue(M7::GigaSynthParamIndices::Osc3PhaseRestart, true);
+          pMaj7->mParams.SetBoolValue(M7::GigaSynthParamIndices::Osc4PhaseRestart, true);
         }
         ImGui::EndPopup();
       }
@@ -3102,7 +3103,7 @@ public:
       }
       else if (sampleSource == M7::SampleSource::Embed)
       {
-        auto* p = static_cast<WaveSabreCore::GsmSample*>(sampler.mSample);
+        auto* p = static_cast<WaveSabreCore::M7::GsmSample*>(sampler.mSample);
         ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%) / %d Samples / path:%s",
                     p->UncompressedSize,
                     p->CompressedSize,

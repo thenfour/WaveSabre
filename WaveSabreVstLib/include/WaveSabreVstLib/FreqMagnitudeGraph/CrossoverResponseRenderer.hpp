@@ -12,10 +12,10 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include "../VstPlug.h"
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/FFTAnalysis.hpp>
-#include <WaveSabreCore/Maj7MBC.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Analysis/FFTAnalysis.hpp>
+#include <WaveSabreCore/../../Devices/Maj7MBC.hpp>
 #include "FrequencyMagnitudeGraphUtils.hpp"
 
 using real_t = WaveSabreCore::M7::real_t;

@@ -11,8 +11,8 @@
 #include <imgui_impl_win32.h>
 
 #include <WaveSabreCore.h>
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
 #include <WaveSabreVstLib/ImGuiUtils.hpp>
 #include <WaveSabreVstLib/Maj7ParamConverters.hpp>
 

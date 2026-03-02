@@ -1,8 +1,8 @@
 #include <gtest/gtest.h>
 
-#include <WaveSabreCore/DelayBuffer.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Helpers.h>
+#include <WaveSabreCore/../../DSP/DelayBuffer.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
 
 using namespace WaveSabreCore;
 

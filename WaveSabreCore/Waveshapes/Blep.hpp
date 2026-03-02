@@ -1,9 +1,7 @@
 #pragma once
 
 #include "./Maj7Oscillator3Shape.hpp"
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Maj7Oscillator3Base.hpp>
-
+#include "../Basic/Pair.hpp"
 
 namespace WaveSabreCore
 {
@@ -45,7 +43,7 @@ struct CorrectionSpill
     now = next;
     next = 0.0;
   }
-  inline void add_edge(double alpha, const DoublePair& dAmpSlope, double dt)
+  inline void add_edge(double alpha, const ::WaveSabreCore::M7::DoublePair& dAmpSlope, double dt)
   {
     auto dAmp = dAmpSlope[0];
     if (dAmp != 0.0)

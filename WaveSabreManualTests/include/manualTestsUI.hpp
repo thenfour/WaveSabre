@@ -10,8 +10,8 @@
 #include <imgui_impl_win32.h>
 
 #include <WaveSabreCore.h>
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+//#include <WaveSabreCore/Maj7Basic.hpp>
 #include <WaveSabreVstLib/ImGuiUtils.hpp>
 #include <WaveSabreVstLib/Maj7EditorComponents.hpp>
 #include <WaveSabreVstLib/Maj7ParamConverters.hpp>
@@ -74,7 +74,7 @@ struct Maj7ManualTestState
   bool showLines = false;
   bool showExtDots = true;
   bool showEdgeEventLines = true;
-  M7::OscillatorWaveform wf = M7::OscillatorWaveform::ShapeCoreStreamingSaw2;
+  M7::OscillatorWaveform wf = M7::OscillatorWaveform::ShapeCoreSawTriSquare;
   float waveShapeA = 0;
   float waveShapeB = 1;
 };
@@ -103,7 +103,15 @@ void ImGuiLogWindow(const std::string& text, ImVec2 size)
 void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
 {
   auto& io = ImGui::GetIO();
-  OSCILLATOR_WAVEFORM_CAPTIONS(gWaveformCaptions);
+  OSCILLATOR_WAVEFORM_UI_STYLES(gWaveformCaptions);
+  // imgui combo wants a concatenation of captions in a single string, separated by \0, and ending with \0\0.
+  std::string comboCaptions;
+  for (auto& c : gWaveformCaptions)
+  {
+    comboCaptions += c.label;
+    comboCaptions += '\0';
+  }
+  comboCaptions += '\0';
 
   ImGui::SetNextWindowPos(ImVec2{0, 0});
   ImGui::SetNextWindowSize(io.DisplaySize);
@@ -120,37 +128,37 @@ void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
   }
 
   KnobN11("waveshape A", &state.waveShapeA, 0, 0);
-  synth.mSynth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeA, state.waveShapeA);
+  synth.mSynth.mParams.SetN11Value((int)M7::GigaSynthParamIndices::Osc1WaveshapeA, state.waveShapeA);
 
   ImGui::SameLine();
   KnobN11("waveshape B", &state.waveShapeB, 0, 0);
-  synth.mSynth.mParams.SetN11Value((int)M7::ParamIndices::Osc1WaveshapeB, state.waveShapeB);
+  synth.mSynth.mParams.SetN11Value((int)M7::GigaSynthParamIndices::Osc1WaveshapeB, state.waveShapeB);
 
   ImGui::SameLine();
   KnobN11("phase offset", &state.phaseOffset, 0, 0);
-  synth.mSynth.mParams.SetN11Value((int)M7::ParamIndices::Osc1PhaseOffset, state.phaseOffset);
+  synth.mSynth.mParams.SetN11Value((int)M7::GigaSynthParamIndices::Osc1PhaseOffset, state.phaseOffset);
 
   ImGui::SameLine();
   Knob01("freq", &state.freq01, 0.3f, 0.3f);
-  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParam] = state.freq01;
+  synth.mSynth.mParamCache[(int)M7::GigaSynthParamIndices::Osc1FrequencyParam] = state.freq01;
 
   ImGui::SameLine();
   Knob01("freq KT", &state.freqkt, 1, 1);
-  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1FrequencyParamKT] = state.freqkt;
+  synth.mSynth.mParamCache[(int)M7::GigaSynthParamIndices::Osc1FrequencyParamKT] = state.freqkt;
 
   ImGui::SameLine();
   ImGui::Checkbox("sync", &state.syncEnable);
-  synth.mSynth.mParams.SetBoolValue((int)M7::ParamIndices::Osc1SyncEnable, state.syncEnable);
+  synth.mSynth.mParams.SetBoolValue((int)M7::GigaSynthParamIndices::Osc1SyncEnable, state.syncEnable);
 
   // sync freq & KT
 
   ImGui::SameLine();
   Knob01("syncFreq", &state.syncFreq01, 0.4f, 0.4f);
-  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequency] = state.syncFreq01;
+  synth.mSynth.mParamCache[(int)M7::GigaSynthParamIndices::Osc1SyncFrequency] = state.syncFreq01;
 
   ImGui::SameLine();
   Knob01("syncFreqKT", &state.syncFreqKT, 1, 1);
-  synth.mSynth.mParamCache[(int)M7::ParamIndices::Osc1SyncFrequencyKT] = state.syncFreqKT;
+  synth.mSynth.mParamCache[(int)M7::GigaSynthParamIndices::Osc1SyncFrequencyKT] = state.syncFreqKT;
 
 
   ImGui::SameLine();
@@ -164,9 +172,9 @@ void renderManualTestsUI(Maj7SynthWrapper& synth, Maj7ManualTestState& state)
 
   ImGui::SameLine();
   ImGui::SetNextItemWidth(120);
-  ImGui::Combo("waveformShape", (int*)&state.wf, gWaveformCaptions, (int)M7::OscillatorWaveform::Count);
+  ImGui::Combo("waveformShape", (int*)&state.wf, comboCaptions.data(), (int)M7::OscillatorWaveform::Count);
 
-  synth.mSynth.mParams.SetEnumValue<M7::OscillatorWaveform>(M7::ParamIndices::Osc1Waveform, state.wf);
+  synth.mSynth.mParams.SetEnumValue<M7::OscillatorWaveform>(M7::GigaSynthParamIndices::Osc1Waveform, state.wf);
 
 
   ImGui::SameLine();

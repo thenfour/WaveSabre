@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Common.h"
+#include "../Common.h"
 #include <algorithm>  // for std::sort
 #include <d3d9.h>
 #include <functional>
@@ -13,11 +13,11 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <WaveSabreVstLib/AnalysisMocks.hpp>
-#include "Maj7VstUtils.hpp"
-#include "VstPlug.h"
-#include <WaveSabreCore/FFTAnalysis.hpp>
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
+#include "../Maj7VstUtils.hpp"
+#include "../VstPlug.h"
+#include <WaveSabreCore/../../Analysis/FFTAnalysis.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
 
 using real_t = WaveSabreCore::M7::real_t;
 using namespace WaveSabreCore;

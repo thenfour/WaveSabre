@@ -2,9 +2,9 @@
 
 #include <format>
 
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Maj7Oscillator3Shape.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Waveshapes/Maj7Oscillator3Shape.hpp>
 
 using namespace WaveSabreCore;
 
@@ -35,9 +35,9 @@ TEST(ShapeTests, SawShapeEval)
   // test that evaluating around edge boundaries works as expected.
   auto testEval = [&](double phase01, float expectedAmp, float expectedSlope)
   {
-    auto [amp, slope] = saw.EvalAmpSlopeAt(phase01);
-    EXPECT_NEAR(amp, expectedAmp, kEps) << " at phase " << phase01;
-    EXPECT_NEAR(slope, expectedSlope, kEps) << " at phase " << phase01;
+    auto ampSlope = saw.EvalAmpSlopeAt(phase01);
+    EXPECT_NEAR(ampSlope[0], expectedAmp, kEps) << " at phase " << phase01;
+    EXPECT_NEAR(ampSlope[1], expectedSlope, kEps) << " at phase " << phase01;
   };
 
   testEval(0.0, -1.0f, +2.0f);
@@ -59,12 +59,17 @@ TEST(ShapeTests, TriangleShapeEval)
   // test that evaluating around edge boundaries works as expected.
   auto testEval = [&](double phase01, float expectedAmp, float expectedSlope)
   {
-    auto [amp, slope] = triangle.EvalAmpSlopeAt(phase01);
-    auto msg = std::format("testing @ {:.3f}. expect=[{:.3f}, {:.3f}]; actual=[{:.3f}, {:.3f}]", phase01, expectedAmp, expectedSlope, amp, slope);
+    auto ampSlope = triangle.EvalAmpSlopeAt(phase01);
+    auto msg = std::format("testing @ {:.3f}. expect=[{:.3f}, {:.3f}]; actual=[{:.3f}, {:.3f}]",
+                           phase01,
+                           expectedAmp,
+                           expectedSlope,
+                           ampSlope[0],
+                           ampSlope[1]);
     std::cout << msg << std::endl;
     ::OutputDebugStringA((msg + "\n").c_str());
-    EXPECT_NEAR(amp, expectedAmp, kEps) << " at phase " << phase01;
-    EXPECT_NEAR(slope, expectedSlope, kEps) << " at phase " << phase01;
+    EXPECT_NEAR(ampSlope[0], expectedAmp, kEps) << " at phase " << phase01;
+    EXPECT_NEAR(ampSlope[1], expectedSlope, kEps) << " at phase " << phase01;
   };
 
   testEval(0.0, -1.0f, +4.0f);

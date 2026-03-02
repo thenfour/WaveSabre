@@ -56,14 +56,14 @@ struct Maj7SpaceEditor : public VstEditor
 
         ImGuiEnabledScope enabledScope{delayEnabled};
 
-        Maj7ImGuiParamInt((int)ParamIndices::DelayLeftDelayCoarse, "Left 8ths", DelayCore::gDelayCoarseCfg, 8, 0);
+        Maj7ImGuiParamInt((int)ParamIndices::DelayLeftDelayCoarse, "Left 8ths", M7::DelayCore::gDelayCoarseCfg, 8, 0);
         ImGui::SameLine();
         Maj7ImGuiParamFloatN11((int)ParamIndices::DelayLeftDelayFine, "(fine)##left", 0, 0, {});
         ImGui::SameLine();
         Maj7ImGuiBipolarPowCurvedParam((int)ParamIndices::DelayLeftDelayMS, "(ms)##left", M7::gEnvTimeCfg, 0, {});
 
         ImGui::SameLine(0, 60);
-        Maj7ImGuiParamInt((int)ParamIndices::DelayRightDelayCoarse, "Right 8ths", DelayCore::gDelayCoarseCfg, 6, 0);
+        Maj7ImGuiParamInt((int)ParamIndices::DelayRightDelayCoarse, "Right 8ths", M7::DelayCore::gDelayCoarseCfg, 6, 0);
         ImGui::SameLine();
         Maj7ImGuiParamFloatN11((int)ParamIndices::DelayRightDelayFine, "(fine)##right", 0, 0, {});
         ImGui::SameLine();
@@ -90,9 +90,9 @@ struct Maj7SpaceEditor : public VstEditor
         ImGui::SameLine();
         Maj7ImGuiDivCurvedParam((int)ParamIndices::DelayHighCutQ, "High Q", M7::gBiquadFilterQCfg, 0.75f, {});
 
-        float leftBufferLengthMs = DelayCore::CalcDelayMS(mpMaj7Space->mParams,
+        float leftBufferLengthMs = M7::DelayCore::CalcDelayMS(mpMaj7Space->mParams,
                                                           (int)ParamIndices::DelayLeftDelayCoarse);
-        float rightBufferLengthMs = DelayCore::CalcDelayMS(mpMaj7Space->mParams,
+        float rightBufferLengthMs = M7::DelayCore::CalcDelayMS(mpMaj7Space->mParams,
                                                            (int)ParamIndices::DelayRightDelayCoarse);
 
         DelayVisualization(leftBufferLengthMs,

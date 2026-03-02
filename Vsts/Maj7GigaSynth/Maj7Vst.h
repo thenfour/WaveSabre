@@ -62,7 +62,7 @@ public:
 		if (strnlen(pstr, byteSize - 1) >= (size_t)byteSize) return byteSize;
 
 		using vstn = const char[kVstMaxParamStrLen];
-		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+		static constexpr vstn paramNames[(int)M7::GigaSynthParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 
 		clarinoid::MemoryStream memStream{ (const uint8_t*)data, (size_t)byteSize };
 		clarinoid::BufferedStream buffering{ memStream };
@@ -95,7 +95,7 @@ public:
 		}
 
 		std::map<std::string, std::pair<bool, size_t>> paramMap; // maps string name to whether it's been set + which param index is it.
-		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i) {
+		for (size_t i = 0; i < (int)M7::GigaSynthParamIndices::NumParams; ++i) {
 			paramMap[paramNames[i]] = std::make_pair(false, i);
 		}
 
@@ -269,7 +269,7 @@ public:
 	VstInt32 getChunk2(void** data, bool isPreset, bool diff)
 	{
 		using vstn = const char[kVstMaxParamStrLen];
-		static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+		static constexpr vstn paramNames[(int)M7::GigaSynthParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 		
 		//auto defaultParamCache = GetDefaultParamCache();// GenerateDefaultParamCache();
 		clarinoid::MemoryStream memStream;
@@ -286,7 +286,7 @@ public:
 
 		auto paramsElement = doc.Object_MakeKey("params");
 		paramsElement.BeginObject();
-		for (size_t i = 0; i < (int)M7::ParamIndices::NumParams; ++i)
+		for (size_t i = 0; i < (int)M7::GigaSynthParamIndices::NumParams; ++i)
 		{
 			if (diff) {
 				float def = mDefaultParamCache[i];
@@ -503,36 +503,36 @@ public:
 		}
 
 		if (!oscEnabled[0]) {
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt1to2, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt1to3, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt1to4, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt2to1, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt3to1, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt4to1, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt1to2, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt1to3, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt1to4, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt2to1, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt3to1, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt4to1, 0);
 		}
 		if (!oscEnabled[1]) {
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt2to1, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt2to3, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt2to4, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt1to2, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt3to2, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt4to2, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt2to1, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt2to3, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt2to4, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt1to2, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt3to2, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt4to2, 0);
 		}
 		if (!oscEnabled[2]) {
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt3to2, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt3to1, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt3to4, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt1to3, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt2to3, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt4to3, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt3to2, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt3to1, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt3to4, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt1to3, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt2to3, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt4to3, 0);
 		}
 		if (!oscEnabled[3]) {
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt4to2, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt4to3, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt4to1, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt1to4, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt2to4, 0);
-			p->mParams.Set01Val(M7::ParamIndices::FMAmt3to4, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt4to2, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt4to3, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt4to1, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt1to4, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt2to4, 0);
+			p->mParams.Set01Val(M7::GigaSynthParamIndices::FMAmt3to4, 0);
 		}
 
 		// LFO
@@ -595,7 +595,7 @@ public:
 			OptimizeEnumParam < M7::ModDestination>(m.mParams, M7::ModParamIndexOffsets::Destination4);
 		}
 
-		for (size_t i = 0; i < (size_t)M7::ParamIndices::NumParams; ++i) {
+		for (size_t i = 0; i < (size_t)M7::GigaSynthParamIndices::NumParams; ++i) {
 			if (M7::math::FloatEquals(p->mParamCache[i], mDefaultParamCache[i], 0.000001f)) {
 				p->mParamCache[i] = mDefaultParamCache[i];
 			}
@@ -1002,14 +1002,14 @@ namespace WaveSabreCore
 		//enum class MainParamIndices : uint8_t
 		static inline void GenerateMasterParamDefaults(Maj7* p)
 		{
-			p->mParams.SetDecibels(ParamIndices::MasterVolume, gMasterVolumeCfg, -6);
-			p->mParams.SetIntValue(ParamIndices::Unisono, gUnisonoVoiceCfg, 1);//p->mUnisonoVoicesParam.SetIntValue(1);
-			p->mParams.SetEnumValue(ParamIndices::VoicingMode, VoiceMode::Polyphonic);//p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
-			p->mParams.Set01Val(ParamIndices::FMBrightness, 0.5f);//p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,
-			p->mParams.Set01Val(ParamIndices::PortamentoTime, 0.3f);//p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
-			//p->mParams.SetN11Value(ParamIndices::PortamentoCurve, 0);////p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
-			p->mParams.SetIntValue(ParamIndices::PitchBendRange, gPitchBendCfg, 2);//p->mPitchBendRange.SetIntValue(2);
-			p->mParams.SetIntValue(ParamIndices::MaxVoices, gMaxVoicesCfg, 24);//p->mMaxVoicesParam.SetIntValue(24);
+			p->mParams.SetDecibels(GigaSynthParamIndices::MasterVolume, gMasterVolumeCfg, -6);
+			p->mParams.SetIntValue(GigaSynthParamIndices::Unisono, gUnisonoVoiceCfg, 1);//p->mUnisonoVoicesParam.SetIntValue(1);
+			p->mParams.SetEnumValue(GigaSynthParamIndices::VoicingMode, VoiceMode::Polyphonic);//p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
+			p->mParams.Set01Val(GigaSynthParamIndices::FMBrightness, 0.5f);//p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,
+			p->mParams.Set01Val(GigaSynthParamIndices::PortamentoTime, 0.3f);//p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
+			//p->mParams.SetN11Value(GigaSynthParamIndices::PortamentoCurve, 0);////p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
+			p->mParams.SetIntValue(GigaSynthParamIndices::PitchBendRange, gPitchBendCfg, 2);//p->mPitchBendRange.SetIntValue(2);
+			p->mParams.SetIntValue(GigaSynthParamIndices::MaxVoices, gMaxVoicesCfg, 24);//p->mMaxVoicesParam.SetIntValue(24);
 			// macros all 0
 			// fm matrix all 0
 		}
@@ -1026,7 +1026,7 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults(Maj7* p)
 		{
 			// set baseline 0
-			for (int i = 0; i < (int)ParamIndices::NumParams; ++i) {
+			for (int i = 0; i < (int)GigaSynthParamIndices::NumParams; ++i) {
 				p->mParamCache[i] = 0;
 			}
 
@@ -1057,8 +1057,8 @@ namespace WaveSabreCore
 			GenerateMasterParamDefaults(p);
 
 			// Apply dynamic state
-			p->SetVoiceMode(p->mParams.GetEnumValue<VoiceMode>(ParamIndices::VoicingMode));// mVoicingModeParam.GetEnumValue());
-			p->SetUnisonoVoices(p->mParams.GetIntValue(ParamIndices::Unisono, gUnisonoVoiceCfg));// p->mUnisonoVoicesParam.GetIntValue());
+			p->SetVoiceMode(p->mParams.GetEnumValue<VoiceMode>(GigaSynthParamIndices::VoicingMode));// mVoicingModeParam.GetEnumValue());
+			p->SetUnisonoVoices(p->mParams.GetIntValue(GigaSynthParamIndices::Unisono, gUnisonoVoiceCfg));// p->mUnisonoVoicesParam.GetIntValue());
 			// NOTE: samplers will always be empty here
 		}
 

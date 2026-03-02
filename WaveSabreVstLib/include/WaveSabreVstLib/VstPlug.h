@@ -5,7 +5,7 @@
 
 #define _7ZIP_ST  // single-threaded LZMA lib
 
-#include <WaveSabreCore/Maj7Basic.hpp>
+//#include <WaveSabreCore/Maj7Basic.hpp>
 
 #include <LzmaEnc.h>
 #include "audioeffectx.h"

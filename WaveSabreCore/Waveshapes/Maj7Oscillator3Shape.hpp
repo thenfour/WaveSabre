@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Maj7Oscillator3Base.hpp>
-#include <WaveSabreCore/Vector.hpp>
 #include "./Blep.hpp"
+#include "../Basic/DSPMath.hpp"
+#include "../Basic/Pair.hpp"
+#include "../Basic/Vector.hpp"
 
 namespace WaveSabreCore
 {

@@ -17,6 +17,8 @@ add_library(WaveSabreCore ${ALL_FILES})
 
 target_link_libraries(WaveSabreCore Msacm32.lib)
 target_include_directories(WaveSabreCore PUBLIC include)
+target_compile_definitions(WaveSabreCore
+	PUBLIC $<$<OR:$<CONFIG:MinSizeRel>,$<CONFIG:MinSizeRelWithDebugInfo>>:WAVESABRE_CUSTOM_MSVCRT>)
 
 if(MSVC)
 	target_compile_options(WaveSabreCore

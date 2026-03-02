@@ -1,23 +1,19 @@
 #ifndef __WAVESABRECORE_H__
 #define __WAVESABRECORE_H__
 
-#include "WaveSabreCore/Device.h"
-#include "WaveSabreCore/SynthDevice.h"
+#include "../WSCore/Device.h"
+#include "../Devices/Maj7SynthDevice.hpp"
 
-#include "WaveSabreCore/Helpers.h"
-//#include "WaveSabreCore/Envelope.h"
-#include "WaveSabreCore/BiquadFilter.h"
-//#include "WaveSabreCore/StateVariableFilter.h"
-#include "WaveSabreCore/DelayBuffer.h"
-//#include "WaveSabreCore/AllPassDelay.h"
-#include "WaveSabreCore/Comb.h"
-#include "WaveSabreCore/ResampleBuffer.h"
-#include "WaveSabreCore/GmDls.h"
-#include "WaveSabreCore/MxcsrFlagGuard.h"
+#include "../Basic/Helpers.h"
+#include "../Filters/BiquadFilter.h"
+#include "../DSP/DelayBuffer.h"
+#include "../Filters/Comb.h"
+#include "../Basic/GmDls.h"
+#include "../Basic/MxcsrFlagGuard.h"
 
-#include "WaveSabreCore/Devices.h"
+#include "./Devices.h"
 
-#include "WaveSabreCore/GsmSample.h"
-#include "WaveSabreCore/Maj7Basic.hpp"
+#include "../GigaSynth/GsmSample.h"
+#include "../GigaSynth/Maj7Basic.hpp"
 
 #endif

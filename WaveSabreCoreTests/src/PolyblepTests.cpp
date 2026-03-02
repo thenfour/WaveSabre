@@ -5,15 +5,15 @@
 
 #include <format>
 
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Maj7Oscillator3Shape.hpp>
-#include <WaveSabreCore/Maj7Oscillator4WS.hpp>
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Waveshapes/Maj7Oscillator3Shape.hpp>
+#include <WaveSabreCore/../../Waveshapes/Maj7Oscillator4WS.hpp>
 
 using namespace WaveSabreCore;
 using namespace WaveSabreCore::M7;
-using M7Osc4::SplitKernels::add_blep;
-using M7Osc4::SplitKernels::add_blamp;
+using SplitKernels::add_blep;
+using SplitKernels::add_blamp;
 
 static constexpr float kTol = 1e-6f; // tolerance
 

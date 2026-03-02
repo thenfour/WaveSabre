@@ -42,14 +42,14 @@ public:
   {
     ImGui::BeginGroup();
 
-    Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayCoarse, "Left 8ths", DelayCore::gDelayCoarseCfg, 8, 0);
+    Maj7ImGuiParamInt((int)Echo::ParamIndices::LeftDelayCoarse, "Left 8ths", M7::DelayCore::gDelayCoarseCfg, 8, 0);
     ImGui::SameLine();
     Maj7ImGuiParamFloatN11((int)Echo::ParamIndices::LeftDelayFine, "(fine)##left", 0, 0, {});
     ImGui::SameLine();
     Maj7ImGuiBipolarPowCurvedParam((int)Echo::ParamIndices::LeftDelayMS, "(ms)##left", M7::gEnvTimeCfg, 0, {});
 
     ImGui::SameLine(0, 60);
-    Maj7ImGuiParamInt((int)Echo::ParamIndices::RightDelayCoarse, "Right 8ths", DelayCore::gDelayCoarseCfg, 6, 0);
+    Maj7ImGuiParamInt((int)Echo::ParamIndices::RightDelayCoarse, "Right 8ths", M7::DelayCore::gDelayCoarseCfg, 6, 0);
     ImGui::SameLine();
     Maj7ImGuiParamFloatN11((int)Echo::ParamIndices::RightDelayFine, "(fine)##right", 0, 0, {});
     ImGui::SameLine();
@@ -105,9 +105,9 @@ public:
     VUMeter("vu_outp", oaL, oaR);
 
     using ParamIndices = WaveSabreCore::Echo::ParamIndices;
-    float leftBufferLengthMs = DelayCore::CalcDelayMS(mpEcho->mParams,
+    float leftBufferLengthMs = M7::DelayCore::CalcDelayMS(mpEcho->mParams,
                                                       (int)ParamIndices::LeftDelayCoarse);
-    float rightBufferLengthMs = DelayCore::CalcDelayMS(mpEcho->mParams,
+    float rightBufferLengthMs = M7::DelayCore::CalcDelayMS(mpEcho->mParams,
                                                        (int)ParamIndices::RightDelayCoarse);
 
     DelayVisualization(leftBufferLengthMs,

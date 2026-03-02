@@ -23,20 +23,11 @@
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
 
-#undef ENABLE_TRIANGLE_FOLD_WAVEFORM
+#undef ENABLE_TRIANGLE_FOLD_WAVEFORM // quite a huge amount of binary due to complex shape building.
+
+#undef MAJ7_INCLUDE_GSM_SUPPORT
 
 // 8 = 96db/oct
 // 4 = 48db/oct
 // this doesn't  really affect binary size. keep @ 8
 static constexpr size_t kMaxBiquadStages = 8;
-
-#define NOINLINE __declspec(noinline)
-
-#define INLINE inline
-#ifdef MIN_SIZE_REL
-  #define FORCE_INLINE inline
-#else
-// for non-size-optimized builds (bloaty), force inline some things when profiling suggests its performant.
-  #define FORCE_INLINE __forceinline
-#endif
-

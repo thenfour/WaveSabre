@@ -8,7 +8,7 @@ using namespace WaveSabreCore;
 
 #include "Maj7AnalyzeVst.h"
 
-#include <WaveSabreCore/StereoImageAnalysis.hpp>
+#include <WaveSabreCore/../../Analysis/StereoImageAnalysis.hpp>
 #include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
 #include <WaveSabreVstLib/HistoryVisualization.hpp>
 #include <WaveSabreVstLib/Width/CorrelationMeter.hpp>

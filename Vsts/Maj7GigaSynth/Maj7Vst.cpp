@@ -11,7 +11,7 @@ AudioEffect *createEffectInstance(audioMasterCallback audioMaster)
 }
 
 Maj7Vst::Maj7Vst(audioMasterCallback audioMaster)
-	: VstPlug(audioMaster, (int)M7::ParamIndices::NumParams, 0, 2, 'maj7', new M7::Maj7(), true)
+	: VstPlug(audioMaster, (int)M7::GigaSynthParamIndices::NumParams, 0, 2, 'maj7', new M7::Maj7(), true)
 {
 	SetDefaultSettings();
 	if (audioMaster)
@@ -21,7 +21,7 @@ Maj7Vst::Maj7Vst(audioMasterCallback audioMaster)
 void Maj7Vst::getParameterName(VstInt32 index, char* text)
 {
 	using vstn = const char[kVstMaxParamStrLen];
-	static constexpr vstn paramNames[(int)M7::ParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
+	static constexpr vstn paramNames[(int)M7::GigaSynthParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
 
 	vst_strncpy(text, paramNames[index], kVstMaxParamStrLen);
 }

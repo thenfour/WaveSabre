@@ -6,7 +6,7 @@
 #include <utility>
 #include <vector>
 
-#include <WaveSabreCore/Maj7Filter.hpp>
+#include <WaveSabreCore/../../Filters/Maj7Filter.hpp>
 #include <imgui.h>
 #include "ImGuiUtils.hpp"
 

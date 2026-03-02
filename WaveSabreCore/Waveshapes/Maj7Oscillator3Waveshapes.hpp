@@ -4,13 +4,13 @@
 
 #include "./Maj7Oscillator3Shape.hpp"
 #include "./Maj7Oscillator4WS.hpp"
-#include <WaveSabreCore/BandSplitter.hpp>
-#include <WaveSabreCore/BiquadFilter.h>
-#include <WaveSabreCore/LinkwitzRileyFilter.hpp>
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Maj7Oscillator3Base.hpp>
-#include <WaveSabreCore/SVFilter.hpp>
-#include <WaveSabreCore/Vector.hpp>
+#include "../Filters/BandSplitter.hpp"
+#include "../Filters/BiquadFilter.h"
+#include "../Filters/LinkwitzRileyFilter.hpp"
+#include "../Filters/SVFilter.hpp"
+#include "../GigaSynth/Maj7Basic.hpp"
+#include "../GigaSynth/Maj7Oscillator3Base.hpp"
+#include "../Basic/Vector.hpp"
 
 
 namespace WaveSabreCore

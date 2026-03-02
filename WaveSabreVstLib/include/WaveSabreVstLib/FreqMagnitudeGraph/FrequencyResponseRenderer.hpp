@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Common.h"
+#include "../Common.h"
 #include <d3d9.h>
 #include <functional>
 #include <queue>
@@ -11,11 +11,11 @@
 #include <imgui-knobs.h>
 #include <imgui.h>
 #include <imgui_internal.h>
-#include "VstPlug.h"
-#include <WaveSabreCore/Helpers.h>
-#include <WaveSabreCore/Maj7Basic.hpp>
-#include <WaveSabreCore/Filters/FilterBase.hpp>
-#include <WaveSabreCore/FFTAnalysis.hpp>
+#include "../VstPlug.h"
+#include <WaveSabreCore/../../Basic/Helpers.h>
+#include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
+#include <WaveSabreCore/../../Filters/FilterBase.hpp>
+#include <WaveSabreCore/../../Analysis/FFTAnalysis.hpp>
 #include "FrequencyMagnitudeGraphUtils.hpp"
 #include "FrequencyMagnitudeGraph.hpp"
 #include "FFTSpectrumLayer.hpp"
