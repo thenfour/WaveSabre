@@ -146,7 +146,8 @@ public:
           {
             auto* dl = ImGui::GetWindowDrawList();
             dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
-            dl->AddText(ImVec2(bb.Min.x + 6, bb.Min.y + 3), ColorFromHTML("cccccc"), LabelForFilterCircuit(selectedCircuit));
+            auto label = BuildFilterSelectionButtonLabel(selectedCircuit, selectedSlope, selectedResponse);
+            dl->AddText(ImVec2(bb.Min.x + 6, bb.Min.y + 3), ColorFromHTML("cccccc"), label.c_str());
           });
     }
 

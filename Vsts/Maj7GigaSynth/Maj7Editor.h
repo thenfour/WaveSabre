@@ -2245,6 +2245,19 @@ public:
           selectedSlope,
           selectedResponse,
           WaveSabreCore::M7::DoesFilterSupport,
+          [](M7::FilterResponse response)
+          {
+            switch (response)
+            {
+              case M7::FilterResponse::Peak:
+              case M7::FilterResponse::Allpass:
+              case M7::FilterResponse::LowShelf:
+              case M7::FilterResponse::HighShelf:
+                return false;
+              default:
+                return true;
+            }
+          },
           applySelection,
           [&](const ImRect& bb)
           {
@@ -2259,7 +2272,8 @@ public:
                                                                       selectedCutoffHz,
                                                                       selectedReso01);
             DrawFilterPreview(bb, filterPreview);
-            DrawShadowText(std::string(LabelForFilterCircuit(selectedCircuit)), ImVec2(bb.Min.x + 6, bb.Min.y + 3));
+            DrawShadowText(BuildFilterSelectionButtonLabel(selectedCircuit, selectedSlope, selectedResponse),
+                           ImVec2(bb.Min.x + 6, bb.Min.y + 3));
           });
 
       Maj7ImGuiParamFrequency(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Freq),

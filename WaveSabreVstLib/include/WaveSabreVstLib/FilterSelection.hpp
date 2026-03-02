@@ -52,14 +52,14 @@ inline constexpr std::array<const char*, 9> gFilterSlopeLabels = {
 };
 
 inline constexpr std::array<M7::FilterResponse, 8> gFilterResponseOrder = {
-    M7::FilterResponse::Lowpass,
+    M7::FilterResponse::Highpass,
     M7::FilterResponse::LowShelf,
     M7::FilterResponse::Bandpass,
     M7::FilterResponse::Notch,
     M7::FilterResponse::Allpass,
     M7::FilterResponse::Peak,
     M7::FilterResponse::HighShelf,
-    M7::FilterResponse::Highpass,
+    M7::FilterResponse::Lowpass,
 };
 
 inline constexpr std::array<const char*, 8> gFilterResponseLabels = {
@@ -96,8 +96,49 @@ inline const char* LabelForFilterResponse(M7::FilterResponse r)
   return "-";
 }
 
-template <typename IsSupportedFn>
-inline std::vector<FilterSelectionChoice> BuildFilterSelectionChoices(IsSupportedFn isSupported)
+inline const char* LabelForFilterResponseShort(M7::FilterResponse r)
+{
+  switch (r)
+  {
+    case M7::FilterResponse::Lowpass:
+      return "LP";
+    case M7::FilterResponse::LowShelf:
+      return "LS";
+    case M7::FilterResponse::Bandpass:
+      return "BP";
+    case M7::FilterResponse::Notch:
+      return "NT";
+    case M7::FilterResponse::Allpass:
+      return "AP";
+    case M7::FilterResponse::Peak:
+      return "PK";
+    case M7::FilterResponse::HighShelf:
+      return "HS";
+    case M7::FilterResponse::Highpass:
+      return "HP";
+    default:
+      return "?";
+  }
+}
+
+inline std::string BuildFilterSelectionButtonLabel(M7::FilterCircuit circuit,
+                                                   M7::FilterSlope slope,
+                                                   M7::FilterResponse response)
+{
+  if (circuit == M7::FilterCircuit::Disabled)
+    return "Off";
+
+  std::string label = LabelForFilterCircuit(circuit);
+  label += " ";
+  label += LabelForFilterSlope(slope);
+  label += "dB ";
+  label += LabelForFilterResponseShort(response);
+  return label;
+}
+
+template <typename IsSupportedFn, typename IsResponseAllowedFn>
+inline std::vector<FilterSelectionChoice> BuildFilterSelectionChoices(IsSupportedFn isSupported,
+                                                                      IsResponseAllowedFn isResponseAllowed)
 {
   std::vector<FilterSelectionChoice> validChoices;
   constexpr size_t kMaxChoices =
@@ -116,6 +157,9 @@ inline std::vector<FilterSelectionChoice> BuildFilterSelectionChoices(IsSupporte
 
     for (auto r : gFilterResponseOrder)
     {
+      if (!isResponseAllowed(r))
+        continue;
+
       for (auto s : gFilterSlopeOrder)
       {
         if (isSupported(c, s, r))
@@ -134,18 +178,26 @@ inline std::vector<FilterSelectionChoice> BuildFilterSelectionChoices(IsSupporte
   return validChoices;
 }
 
-template <typename IsSupportedFn, typename ApplySelectionFn, typename DrawMainFn>
+template <typename IsSupportedFn>
+inline std::vector<FilterSelectionChoice> BuildFilterSelectionChoices(IsSupportedFn isSupported)
+{
+  return BuildFilterSelectionChoices(isSupported, [](M7::FilterResponse)
+                                     { return true; });
+}
+
+template <typename IsSupportedFn, typename IsResponseAllowedFn, typename ApplySelectionFn, typename DrawMainFn>
 inline void RenderFilterSelectionWidget(const char* id,
                                         int idSeed,
                                         M7::FilterCircuit selectedCircuit,
                                         M7::FilterSlope selectedSlope,
                                         M7::FilterResponse selectedResponse,
                                         IsSupportedFn isSupported,
+                                        IsResponseAllowedFn isResponseAllowed,
                                         ApplySelectionFn applySelection,
                                         DrawMainFn drawMain,
                                         ImVec2 selectorSize = ImVec2(133.0f, 60.0f))
 {
-  auto validChoices = BuildFilterSelectionChoices(isSupported);
+  auto validChoices = BuildFilterSelectionChoices(isSupported, isResponseAllowed);
 
   auto findChoiceIndex = [&]() -> int
   {
@@ -225,12 +277,16 @@ inline void RenderFilterSelectionWidget(const char* id,
       if (ImGui::Button(gFilterCircuitLabels[i]))
       {
         selectedCircuit = gFilterCircuitOrder[i];
-        bool matchedCurrent = isSupported(selectedCircuit, selectedSlope, selectedResponse);
+        bool matchedCurrent = isResponseAllowed(selectedResponse) &&
+                             isSupported(selectedCircuit, selectedSlope, selectedResponse);
         if (!matchedCurrent)
         {
           bool found = false;
           for (auto r : gFilterResponseOrder)
           {
+            if (!isResponseAllowed(r))
+              continue;
+
             for (auto s : gFilterSlopeOrder)
             {
               if (isSupported(selectedCircuit, s, r))
@@ -273,6 +329,9 @@ inline void RenderFilterSelectionWidget(const char* id,
 
       for (size_t ir = 0; ir < gFilterResponseOrder.size(); ++ir)
       {
+        if (!isResponseAllowed(gFilterResponseOrder[ir]))
+          continue;
+
         ImGui::PushID((int)(ir + 100));
         ImGui::TableNextRow();
         ImGui::TableSetColumnIndex(0);
@@ -327,6 +386,30 @@ inline void RenderFilterSelectionWidget(const char* id,
   }
 
   ImGui::PopID();
+}
+
+template <typename IsSupportedFn, typename ApplySelectionFn, typename DrawMainFn>
+inline void RenderFilterSelectionWidget(const char* id,
+                                        int idSeed,
+                                        M7::FilterCircuit selectedCircuit,
+                                        M7::FilterSlope selectedSlope,
+                                        M7::FilterResponse selectedResponse,
+                                        IsSupportedFn isSupported,
+                                        ApplySelectionFn applySelection,
+                                        DrawMainFn drawMain,
+                                        ImVec2 selectorSize = ImVec2(133.0f, 60.0f))
+{
+  RenderFilterSelectionWidget(id,
+                              idSeed,
+                              selectedCircuit,
+                              selectedSlope,
+                              selectedResponse,
+                              isSupported,
+                              [](M7::FilterResponse)
+                              { return true; },
+                              applySelection,
+                              drawMain,
+                              selectorSize);
 }
 
 }  // namespace WaveSabreVstLib
