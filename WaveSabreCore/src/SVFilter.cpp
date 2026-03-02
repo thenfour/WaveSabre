@@ -5,18 +5,6 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-float SVFilter::SVFOPapf_temp(float x, float cutoff)
-{
-  if (d1 != d0)
-  {
-    d0 = cutoff;
-    c = M7::math::tan(M7::math::gPI * (cutoff * Helpers::CurrentSampleRateRecipF - 0.25f)) * 0.5f + 0.5f;
-  }
-  float r = (1 - c) * i + c * x;
-  i = 2 * r - i;
-  return x - 2 * r;
-}
-
 // Update filter coefficients if cutoff or Q has changed
 M7::FloatPair SVFilter::updateCoefficients(float v0, float cutoff, float Q)
 {
@@ -60,7 +48,6 @@ void SVFilter::Reset()
   g = 0, k = 0, a1 = 0, a2 = 0;
   ic1eq = 0, ic2eq = 0;
   d0 = 0, d1 = 0;  // Used for tracking changes in cutoff and Q
-  c = 0, i = 0;    // Additional state variables for SVFOPapf_temp
 }
 
 }  // namespace M7

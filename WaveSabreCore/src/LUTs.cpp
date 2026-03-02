@@ -9,13 +9,13 @@ namespace math
 {
 void InitLUTs()
 {
-  if (math::gCrtFns)
-    return;
-  math::gCrtFns = new math::CrtFns();
+  // if (math::gCrtFns)
+  //   return;
+  // math::gCrtFns = new math::CrtFns();
   math::gLuts = new math::LUTs();
 }
 
-CrtFns* gCrtFns = nullptr;
+//CrtFns* gCrtFns = nullptr;
 LUTs* gLuts = nullptr;
 
 #ifdef MIN_SIZE_REL
@@ -38,27 +38,28 @@ double fract(double x)
 }
 #endif
 
-void* GetCrtProc(const char* const imp)
-{
-#ifdef MIN_SIZE_REL
-  HANDLE h = GetModuleHandleA("msvcrt");
-#else
-  HANDLE h = GetModuleHandleA("ucrtbase");
-#endif
-  return GetProcAddress((HMODULE)h, imp);
-}
+// void* GetCrtProc(const char* const imp)
+// {
+// #ifdef MIN_SIZE_REL
+//   HANDLE h = GetModuleHandleA("msvcrt");
+// #else
+//   HANDLE h = GetModuleHandleA("ucrtbase");
+// #endif
+//   return GetProcAddress((HMODULE)h, imp);
+// }
 
-CrtFns::CrtFns()
-    : crt_sin(decltype(crt_sin)(GetCrtProc("sin")))
-    , crt_cos(decltype(crt_cos)(GetCrtProc("cos")))
-    , crt_tan(decltype(crt_tan)(GetCrtProc("tan")))
-    , crt_floor(decltype(crt_floor)(GetCrtProc("floor")))
-    , crt_log(decltype(crt_log)(GetCrtProc("log")))
-    , crt_pow(decltype(crt_pow)(GetCrtProc("pow")))
-    , crt_fmod(decltype(crt_fmod)(GetCrtProc("fmod")))
-    , crt_exp(decltype(crt_exp)(GetCrtProc("exp")))
-{
-}
+// CrtFns::CrtFns()
+//     :
+//     // crt_sin(decltype(crt_sin)(GetCrtProc("sin")))
+//     //crt_cos(decltype(crt_cos)(GetCrtProc("cos")))
+//     //, crt_tan(decltype(crt_tan)(GetCrtProc("tan")))
+//     //, crt_floor(decltype(crt_floor)(GetCrtProc("floor")))
+//     //, crt_log(decltype(crt_log)(GetCrtProc("log")))
+//     crt_pow(decltype(crt_pow)(GetCrtProc("pow")))
+//     //, crt_fmod(decltype(crt_fmod)(GetCrtProc("fmod")))
+//     //crt_exp(decltype(crt_exp)(GetCrtProc("exp")))
+// {
+// }
 
 #ifdef MIN_SIZE_REL
 LUTs::LUTs()

@@ -6,6 +6,14 @@
 #include <memory>
 #include "../WaveSabreCoreFeatures.hpp"
 
+extern "C" double __cdecl MsvcrtSin(double x);
+extern "C" double __cdecl MsvcrtCos(double x);
+extern "C" double __cdecl MsvcrtFloor(double x);
+extern "C" double __cdecl MsvcrtTan(double x);
+extern "C" double __cdecl MsvcrtLog(double x);
+extern "C" double __cdecl MsvcrtExp(double x);
+extern "C" double __cdecl MsvcrtPow(double x, double y);
+
 namespace WaveSabreCore
 {
 namespace M7
@@ -146,56 +154,63 @@ INLINE float map_clamped(float inp, float inp_min, float inp_max, float out_min,
   return lerp(out_min, out_max, clamp01(t));
 }
 
-void* GetCrtProc(const char* const imp);
+// void* GetCrtProc(const char* const imp);
 
-struct CrtFns
-{
-  CrtFns();
-  double(__cdecl* crt_sin)(double);
-  double(__cdecl* crt_cos)(double);
-  double(__cdecl* crt_tan)(double);
-  double(__cdecl* crt_floor)(double);
-  double(__cdecl* crt_log)(double);
-  double(__cdecl* crt_pow)(double, double);
-  double(__cdecl* crt_fmod)(double, double);
-  double(__cdecl* crt_exp)(double);
-};
+// struct CrtFns
+// {
+//   CrtFns();
+//   //double(__cdecl* crt_sin)(double);
+//   //double(__cdecl* crt_cos)(double);
+//   //double(__cdecl* crt_tan)(double);
+//   //double(__cdecl* crt_floor)(double);
+//   //double(__cdecl* crt_log)(double);
+//   //double(__cdecl* crt_pow)(double, double);
+//   //double(__cdecl* crt_fmod)(double, double);
+//   //double(__cdecl* crt_exp)(double);
+// };
 
-extern CrtFns* gCrtFns;
+//extern CrtFns* gCrtFns;
 
 INLINE double CrtSin(double x)
 {
-  return gCrtFns->crt_sin(x);
+  return ::MsvcrtSin(x);
+  //return gCrtFns->crt_sin(x);
 }
 
 INLINE double CrtCos(double x)
 {
-  return gCrtFns->crt_cos(x);
+  return ::MsvcrtCos(x);
+  //return gCrtFns->crt_cos(x);
 }
 
 INLINE double CrtTan(double x)
 {
-  return gCrtFns->crt_tan(x);
+  return ::MsvcrtTan(x);
+  //return gCrtFns->crt_tan(x);
 }
 
 INLINE double CrtFloor(double x)
 {
-  return gCrtFns->crt_floor(x);
+  return ::MsvcrtFloor(x);
+  //return gCrtFns->crt_floor(x);
 }
 
 INLINE double CrtLog(double x)
 {
-  return gCrtFns->crt_log(x);
+  return ::MsvcrtLog(x);
+  //return gCrtFns->crt_log(x);
 }
 
 INLINE double CrtPow(double x, double y)
 {
-  return gCrtFns->crt_pow(x, y);
+  return ::MsvcrtPow(x, y);
+  //return gCrtFns->crt_pow(x, y);
 }
 
 INLINE double CrtFmod(double x, double y)
 {
-  return gCrtFns->crt_fmod(x, y);
+  return ::fmod(x, y);
+  //return gCrtFns->crt_fmod(x, y);
 }
 
 // MSVC has weird rules about implicitly calling CRT functions to cast between floats & integers. this encapsulates the chaos.
@@ -235,7 +250,7 @@ INLINE real_t tan(real_t x)
 }
 INLINE float expf(float x)
 {
-  return (float)gCrtFns->crt_exp((double)x);
+  return (float)MsvcrtExp((double)x);
 }
 
 
@@ -602,11 +617,13 @@ INLINE T round(float x)
 }
 
 INLINE float fmodf(float x, float q) {
-    return (float)CrtFmod((double)x, (double)q);
+    //return (float)CrtFmod((double)x, (double)q);
+    return (float)::fmod((double)x, (double)q);
 }
 
 INLINE double fmodd(double x, double q) {
-    return CrtFmod(x, q);
+    //return CrtFmod(x, q);
+    return ::fmod(x, q);
 }
 
 INLINE float copysignf(float x, float y) {
