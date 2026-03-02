@@ -83,7 +83,7 @@ namespace WaveSabrePlayerLib
 		if (!renderThread)
 			return 0.0;
 
-		return max((renderThread->GetPlayPositionMs() - (double)playbackBufferSizeMs) / 1000.0, 0.0);
+		return std::max((renderThread->GetPlayPositionMs() - (double)playbackBufferSizeMs) / 1000.0, 0.0);
 	}
 
 	void PreRenderPlayer::renderCallback(SongRenderer::Sample *buffer, int numSamples, void *data)
@@ -97,7 +97,7 @@ namespace WaveSabrePlayerLib
 			return;
 		}
 
-		int samplesToTake = min(numSamples, samplesLeft);
+		int samplesToTake = std::min(numSamples, samplesLeft);
 		if (samplesToTake)
 		{
 			memcpy(buffer, player->renderBuffer + player->playbackBufferIndex, samplesToTake * sizeof(SongRenderer::Sample));

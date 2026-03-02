@@ -51,7 +51,7 @@ namespace WaveSabrePlayerLib
 		if (!renderThread)
 			return 0.0;
 
-		return max((renderThread->GetPlayPositionMs() - (double)bufferSizeMs) / 1000.0, 0.0);
+		return std::max((renderThread->GetPlayPositionMs() - (double)bufferSizeMs) / 1000.0, 0.0);
 	}
 
 	void RealtimePlayer::renderCallback(SongRenderer::Sample *buffer, int numSamples, void *data)
@@ -59,6 +59,6 @@ namespace WaveSabrePlayerLib
 		auto player = (RealtimePlayer *)data;
 		const int stepSize = 100 * SongRenderer::NumChannels;
 		for (int i = 0; i < numSamples; i += stepSize)
-			player->songRenderer->RenderSamples(buffer + i, min(numSamples - i, stepSize));
+			player->songRenderer->RenderSamples(buffer + i, std::min(numSamples - i, stepSize));
 	}
 }

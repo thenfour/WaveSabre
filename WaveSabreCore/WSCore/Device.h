@@ -25,6 +25,7 @@ namespace WaveSabreCore
 	{
 	public:
 		explicit Device(int numParams, float* paramCache, const int16_t* defaults16);
+
 		virtual ~Device();
 
 		virtual void Run(float **inputs, float **outputs, int numSamples) = 0;

@@ -9,7 +9,7 @@ namespace M7
 {
 namespace math
 {
-extern void InitLUTs();
+//extern void InitLUTs();
 
 static constexpr size_t gLutSize1D = 4096;
 static constexpr size_t gLutSize2D = 512;

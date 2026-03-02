@@ -7,12 +7,6 @@ namespace M7
 {
 namespace math
 {
-void InitLUTs()
-{
-  math::gLuts = new math::LUTs();
-}
-
-LUTs* gLuts = nullptr;
 
 #ifdef MIN_SIZE_REL
 LUTs::LUTs()
@@ -95,7 +89,7 @@ TanHLUT::TanHLUT()
     : LUT01(
           [](float x)
           {
-            return (float)::tanh(((double)x - .5) * M_PI * 2);
+            return (float)::tanh(((double)x - .5) * gPITimes2d);
           })
 {
 }
@@ -216,6 +210,9 @@ float lerp_rev(float v_min, float v_max,
 {
   return (v_val - v_min) / (v_max - v_min);
 }
+
+
+LUTs* gLuts = new math::LUTs();
 
 
 }  // namespace math

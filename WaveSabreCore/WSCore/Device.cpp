@@ -16,14 +16,15 @@ namespace WaveSabreCore
 		chunkData = nullptr;
 	}
 
-#ifdef MIN_SIZE_REL
-  #pragma message("Device::~Device() Leaking memory to save bits.")
-#else
 	Device::~Device()
 	{
+#ifdef MIN_SIZE_REL
+		// this is a virtual method so don't gate it out entirely.
+  #pragma message("Device::~Device() Leaking memory to save bits.")
+#else
 		delete (char *)chunkData;
-	}
 #endif
+	}
 	void Device::AllNotesOff() { }
 	void Device::NoteOn(int note, int velocity, int deltaSamples) { }
 	void Device::NoteOff(int note, int deltaSamples) { }

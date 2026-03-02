@@ -14,11 +14,11 @@
 #include "manualTestsUI.hpp"
 
 #pragma comment(lib, "d3d9.lib")
-
-void InitWaveSabre()
-{
-  WaveSabreCore::M7::math::InitLUTs();
-}
+//
+//void InitWaveSabre()
+//{
+//  WaveSabreCore::M7::math::InitLUTs();
+//}
 
 static LPDIRECT3D9 g_pD3D = NULL;
 static LPDIRECT3DDEVICE9 g_pd3dDevice = NULL;
@@ -121,7 +121,7 @@ int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int)
   ImGui_ImplWin32_Init(hwnd);
   ImGui_ImplDX9_Init(g_pd3dDevice);
 
-  InitWaveSabre();
+  //InitWaveSabre();
 
   WaveSabreVstLib::Maj7ManualTestState state;
 
