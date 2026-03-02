@@ -42,7 +42,15 @@ set_property(TARGET ProjectManager PROPERTY VS_DOTNET_REFERENCES
 	"System.Windows.Forms"
 	"System.Drawing"
 )
-set_target_properties(ProjectManager PROPERTIES VS_GLOBAL_ROOTNAMESPACE ProjectManager)
+set(_PROJECT_MANAGER_PLATFORM_TARGET x64)
+if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+	set(_PROJECT_MANAGER_PLATFORM_TARGET x86)
+endif()
+
+set_target_properties(ProjectManager PROPERTIES
+	VS_GLOBAL_ROOTNAMESPACE ProjectManager
+	VS_GLOBAL_PlatformTarget ${_PROJECT_MANAGER_PLATFORM_TARGET}
+	VS_GLOBAL_Prefer32Bit false)
 
 add_custom_command(TARGET ProjectManager POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:WaveSabreStandAlonePlayer> $<TARGET_FILE_DIR:ProjectManager>)
 

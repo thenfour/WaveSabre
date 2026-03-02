@@ -59,8 +59,9 @@ namespace WaveSabreConvert
 
                 foreach (var id in devicesUsed)
                 {
-                    var name = id.ToString();
-                    sb.AppendLine("\tcase SongRenderer::DeviceId::" + name + ": return new WaveSabreCore::" + name + "();");
+                    var enumName = id.ToString();
+                    var typeName = Song.GetTypeNameFromDeviceId(id);
+                    sb.AppendLine("\tcase SongRenderer::DeviceId::" + enumName + ": return new " + typeName + "();");
                 }
 
                 sb.AppendLine("\t}");

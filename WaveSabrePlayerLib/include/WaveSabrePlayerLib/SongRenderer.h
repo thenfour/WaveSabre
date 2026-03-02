@@ -419,17 +419,17 @@ namespace WaveSabrePlayerLib
 		// NB: keep in sync with WaveSabreConvert/Song.cs
 		enum class DeviceId
 		{
-			Leveller,
-			Echo,
-			Cathedral,
-			Maj7,
-			Maj7Width,
-			Maj7Comp,
-			Maj7Sat,
-			Maj7MBC,
-			Maj7Analyze,
-			Maj7Crush,
-			Maj7Space,
+            Maj7Analyze,
+            Maj7Comp,
+            Maj7CReverb,
+            Maj7Crush,
+            Maj7Delay,
+            Maj7EQ,
+            Maj7GigaSynth,
+            Maj7MBC,
+            Maj7Saturation,
+            Maj7Space,
+            Maj7StereoImager,
 		};
 
 		typedef WaveSabreCore::Device* (*DeviceFactory)(DeviceId);

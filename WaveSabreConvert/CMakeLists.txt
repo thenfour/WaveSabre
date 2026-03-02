@@ -48,4 +48,14 @@ set_property(TARGET WaveSabreConvert PROPERTY VS_DOTNET_REFERENCES
 	"System.Xml"
 	"System.ComponentModel"
 )
-set_target_properties(WaveSabreConvert PROPERTIES VS_GLOBAL_ROOTNAMESPACE WaveSabreConvert)
+
+set(_WAVESABRE_CONVERT_PLATFORM_TARGET x64)
+if(CMAKE_GENERATOR_PLATFORM STREQUAL "Win32")
+	set(_WAVESABRE_CONVERT_PLATFORM_TARGET x86)
+endif()
+
+set_target_properties(WaveSabreConvert PROPERTIES
+	VS_GLOBAL_ROOTNAMESPACE WaveSabreConvert
+	VS_GLOBAL_PlatformTarget ${_WAVESABRE_CONVERT_PLATFORM_TARGET}
+	VS_GLOBAL_Prefer32Bit false)
+

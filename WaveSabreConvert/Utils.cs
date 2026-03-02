@@ -216,7 +216,7 @@ namespace WaveSabreConvert
         public static int WaveSabreTestCompression(byte[] data)
         {
             if (data.Length == 0) return 0;
-            string dll = FindDeviceDllFullPath(Song.DeviceId.Maj7);
+            string dll = FindDeviceDllFullPath(Song.DeviceId.Maj7GigaSynth);
             IntPtr dllHandle = LoadLibrary(dll);
             if (dllHandle == IntPtr.Zero)
             {

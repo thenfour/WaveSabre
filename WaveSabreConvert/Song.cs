@@ -13,17 +13,38 @@ namespace WaveSabreConvert
         // NB: keep in sync with WaveSabrePlayerLib/SongRenderer.h
         public enum DeviceId
         {
-            Leveller,
-            Echo,
-            Cathedral,
-            Maj7,
-            Maj7Width,
-            Maj7Comp,
-            Maj7Sat,
-            Maj7MBC,
             Maj7Analyze,
+            Maj7Comp,
+            Maj7CReverb,
             Maj7Crush,
+            Maj7Delay,
+            Maj7EQ,
+            Maj7GigaSynth,
+            Maj7MBC,
+            Maj7Saturation,
             Maj7Space,
+            Maj7StereoImager,
+        }
+
+        private static readonly IReadOnlyDictionary<DeviceId, string> _map =
+            new Dictionary<DeviceId, string>
+            {
+                { DeviceId.Maj7Analyze, "WaveSabreCore::Maj7Analyze" },
+                { DeviceId.Maj7Comp, "WaveSabreCore::Maj7Comp" },
+                { DeviceId.Maj7CReverb, "WaveSabreCore::Cathedral" },
+                { DeviceId.Maj7Crush, "WaveSabreCore::Maj7Crush" },
+                { DeviceId.Maj7Delay, "WaveSabreCore::M7::Echo" },
+                { DeviceId.Maj7EQ, "WaveSabreCore::M7::Leveller" },
+                { DeviceId.Maj7GigaSynth, "WaveSabreCore::M7::Maj7" },
+                { DeviceId.Maj7MBC, "WaveSabreCore::Maj7MBC" },
+                { DeviceId.Maj7Saturation, "WaveSabreCore::Maj7Sat" },
+                { DeviceId.Maj7Space, "WaveSabreCore::Maj7Space" },
+                { DeviceId.Maj7StereoImager, "WaveSabreCore::Maj7Width" },
+            };
+
+        public static string GetTypeNameFromDeviceId(DeviceId id)
+        {
+            return _map[id];
         }
 
         public class Receive
@@ -232,7 +253,7 @@ namespace WaveSabreConvert
 
             public CompressionTester()
             {
-                string dll = FindDeviceDllFullPath(Song.DeviceId.Maj7);
+                string dll = FindDeviceDllFullPath(Song.DeviceId.Maj7GigaSynth);
                 dllHandle = LoadLibrary(dll);
                 if (dllHandle == IntPtr.Zero)
                 {

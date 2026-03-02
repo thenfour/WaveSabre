@@ -5,9 +5,11 @@
 // - is intended mostly for invocation from ProjectManager. Therefore let's not hold back on diagnostic info.
 
 #include <Windows.h>
-#include <string.h>
+
 #include <Commctrl.h>
 #include <Commdlg.h>
+#include <string.h>
+
 #pragma comment(lib, "Comdlg32.lib")
 
 //#include <vector>
@@ -18,40 +20,43 @@
 using namespace WaveSabrePlayerLib;
 using namespace WSPlayerApp;
 
-char gFilename[MAX_PATH] = { 0 }; // set this to save upon completion
-char gSavedToFilename[MAX_PATH] = { 0 }; // gets populated upon successful save.
+char gFilename[MAX_PATH] = {0};         // set this to save upon completion
+char gSavedToFilename[MAX_PATH] = {0};  // gets populated upon successful save.
 
 auto& gTheme = gThemeFancy;
 
-WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)
+WaveSabreCore::Device* SongFactory(SongRenderer::DeviceId id)
 {
-	switch (id)
-	{
-    case SongRenderer::DeviceId::Leveller:
-      return new WaveSabreCore::M7::Leveller();
-	//case SongRenderer::DeviceId::Crusher: return new WaveSabreCore::Crusher();
-	case SongRenderer::DeviceId::Echo: return new WaveSabreCore::M7::Echo();
-	//case SongRenderer::DeviceId::Chamber: return new WaveSabreCore::Chamber();
-	//case SongRenderer::DeviceId::Twister: return new WaveSabreCore::Twister();
-	case SongRenderer::DeviceId::Cathedral: return new WaveSabreCore::Cathedral();
-	case SongRenderer::DeviceId::Maj7: return new WaveSabreCore::M7::Maj7();
-    case SongRenderer::DeviceId::Maj7Width: return new WaveSabreCore::Maj7Width();
-    case SongRenderer::DeviceId::Maj7Comp: return new WaveSabreCore::Maj7Comp();
-    case SongRenderer::DeviceId::Maj7Sat: return new WaveSabreCore::Maj7Sat();
-    case SongRenderer::DeviceId::Maj7MBC: return new WaveSabreCore::Maj7MBC();
+  switch (id)
+  {
     case SongRenderer::DeviceId::Maj7Analyze:
       return new WaveSabreCore::Maj7Analyze();
+    case SongRenderer::DeviceId::Maj7Comp:
+      return new WaveSabreCore::Maj7Comp();
+    case SongRenderer::DeviceId::Maj7CReverb:
+      return new WaveSabreCore::Cathedral();
+    case SongRenderer::DeviceId::Maj7Delay:
+      return new WaveSabreCore::M7::Echo();
     case SongRenderer::DeviceId::Maj7Crush:
       return new WaveSabreCore::Maj7Crush();
+    case SongRenderer::DeviceId::Maj7EQ:
+      return new WaveSabreCore::M7::Leveller();
+    case SongRenderer::DeviceId::Maj7GigaSynth:
+      return new WaveSabreCore::M7::Maj7();
+    case SongRenderer::DeviceId::Maj7MBC:
+      return new WaveSabreCore::Maj7MBC();
+    case SongRenderer::DeviceId::Maj7Saturation:
+      return new WaveSabreCore::Maj7Sat();
     case SongRenderer::DeviceId::Maj7Space:
       return new WaveSabreCore::Maj7Space();
-
-    }
-	return nullptr;
+    case SongRenderer::DeviceId::Maj7StereoImager:
+      return new WaveSabreCore::Maj7Width();
+  }
+  return nullptr;
 }
 
 
-const char * gStatus = "";
+const char* gStatus = "";
 char* gWindowText = nullptr;
 HWND hMain;
 
@@ -65,275 +70,331 @@ int32_t gPrecalcProgressPercent = 0;
 
 void UpdateStatusText()
 {
-    if (gpRenderer)
+  if (gpRenderer)
+  {
+    auto lock = gpRenderer->gCritsec.Enter();
+
+    static constexpr char format[] =
+        "%s"
+        "F5: Play (while playing, click to seek)\r\n"
+        "F6: Stop\r\n"
+        "F7: Write .WAV file\r\n"
+        "  %s\r\n"
+        "\r\n"
+        //"Song length: %d:%d.%d\r\n"
+        "Render progress %d%% (%d.%02dx real-time) using %d threads\r\n"
+        //"- song rendered: %d:%02d.%d\r\n"
+        //"- song remaining: %d:%02d.%d\r\n"
+        "Render time elapsed: %d:%02d.%d (est remaining: %d:%02d.%d) (est total:  %d:%02d.%d)\r\n"
+        "\r\n"
+        "Time remaining before you can safely play the whole track: %d:%02d.%d (total precalc time: %d:%02d.%d)\r\n"
+        // TODO: wav writing status & destination
+        ;
+
+    int32_t renderPercent = gpRenderer->gSongRendered.AsPercentOf(gpRenderer->gSongLength);
+
+    auto renderRate = gpRenderer->gSongRendered.AsRateOf_x100(gpRenderer->gRenderTime);
+    auto songYetToRender = gpRenderer->gSongLength - gpRenderer->gSongRendered;
+    auto remainingRenderTime = songYetToRender.DividedByRate_x100(renderRate);
+    auto estTotalRenderTime = remainingRenderTime + gpRenderer->gRenderTime;
+
+    // now let's calculate some buffering stuff. well this is going to be unreliable because the song doesn't render at the same rate throughout.
+    // we want to show "how long until the song should be playable without buffering?"
+    // basically it's similar to saying "at what point does the render-time-remaining fall below play-time-remaining?
+    auto totalPrecalcTime = estTotalRenderTime - gpRenderer->gSongLength;
+    auto remainingPrecalcTime = totalPrecalcTime - gpRenderer->gRenderTime;  // subtract how much you've already waited.
+    remainingPrecalcTime.Max0();
+    totalPrecalcTime.Max0();
+
+    gPrecalcProgressPercent =
+        std::max(renderPercent, gpRenderer->gRenderTime.AsPercentOf(WSTime::FromMilliseconds(gMaxPrecalcMilliseconds)));
+
+    char saveIndicatorText[1000] = {0};
+    if (gSavedToFilename[0])
     {
-        auto lock = gpRenderer->gCritsec.Enter();
+      sprintf(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
+    }
+    else if (gFilename[0])
+    {
+      sprintf(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
+    }
 
-        static constexpr char format[] =
-            "%s"
-            "F5: Play (while playing, click to seek)\r\n"
-            "F6: Stop\r\n"
-            "F7: Write .WAV file\r\n"
-            "  %s\r\n"
-            "\r\n"
-            //"Song length: %d:%d.%d\r\n"
-            "Render progress %d%% (%d.%02dx real-time) using %d threads\r\n"
-            //"- song rendered: %d:%02d.%d\r\n"
-            //"- song remaining: %d:%02d.%d\r\n"
-            "Render time elapsed: %d:%02d.%d (est remaining: %d:%02d.%d) (est total:  %d:%02d.%d)\r\n"
-            "\r\n"
-            "Time remaining before you can safely play the whole track: %d:%02d.%d (total precalc time: %d:%02d.%d)\r\n"
-            // TODO: wav writing status & destination
-            ;
-
-        int32_t renderPercent = gpRenderer->gSongRendered.AsPercentOf(gpRenderer->gSongLength);
-
-        auto renderRate = gpRenderer->gSongRendered.AsRateOf_x100(gpRenderer->gRenderTime);
-        auto songYetToRender = gpRenderer->gSongLength - gpRenderer->gSongRendered;
-        auto remainingRenderTime = songYetToRender.DividedByRate_x100(renderRate);
-        auto estTotalRenderTime = remainingRenderTime + gpRenderer->gRenderTime;
-
-        // now let's calculate some buffering stuff. well this is going to be unreliable because the song doesn't render at the same rate throughout.
-        // we want to show "how long until the song should be playable without buffering?"
-        // basically it's similar to saying "at what point does the render-time-remaining fall below play-time-remaining?
-        auto totalPrecalcTime = estTotalRenderTime - gpRenderer->gSongLength;
-        auto remainingPrecalcTime = totalPrecalcTime - gpRenderer->gRenderTime; // subtract how much you've already waited.
-        remainingPrecalcTime.Max0();
-        totalPrecalcTime.Max0();
-
-        gPrecalcProgressPercent = std::max(renderPercent, gpRenderer->gRenderTime.AsPercentOf(WSTime::FromMilliseconds(gMaxPrecalcMilliseconds)));
-
-        char saveIndicatorText[1000] = { 0 };
-        if (gSavedToFilename[0]) {
-            sprintf(saveIndicatorText, "Saved to \"%s\"", gSavedToFilename);
-        }
-        else if (gFilename[0]) {
-            sprintf(saveIndicatorText, "When finished rendering, will be saved to \"%s\"", gFilename);
-        }
-
-        sprintf(gWindowText, format,
+    sprintf(gWindowText,
+            format,
             gStatus,
             saveIndicatorText,
             renderPercent,
-            renderRate / 100, renderRate % 100,
+            renderRate / 100,
+            renderRate % 100,
             gpRenderer->gpRenderer->mpGraphRunner->mThreadCount,
-            gpRenderer->gRenderTime.GetMinutes(), gpRenderer->gRenderTime.GetSecondsOfMinute(), gpRenderer->gRenderTime.GetTenthsOfSecondsOfSeconds(),
-            remainingRenderTime.GetMinutes(), remainingRenderTime.GetSecondsOfMinute(), remainingRenderTime.GetTenthsOfSecondsOfSeconds(),
-            estTotalRenderTime.GetMinutes(), estTotalRenderTime.GetSecondsOfMinute(), estTotalRenderTime.GetTenthsOfSecondsOfSeconds(),
-            remainingPrecalcTime.GetMinutes(), remainingPrecalcTime.GetSecondsOfMinute(), remainingPrecalcTime.GetTenthsOfSecondsOfSeconds(),
-            totalPrecalcTime.GetMinutes(), totalPrecalcTime.GetSecondsOfMinute(), totalPrecalcTime.GetTenthsOfSecondsOfSeconds()
-        );
-    }
-    else {
-        sprintf(gWindowText, "%s", gStatus);
-    }
+            gpRenderer->gRenderTime.GetMinutes(),
+            gpRenderer->gRenderTime.GetSecondsOfMinute(),
+            gpRenderer->gRenderTime.GetTenthsOfSecondsOfSeconds(),
+            remainingRenderTime.GetMinutes(),
+            remainingRenderTime.GetSecondsOfMinute(),
+            remainingRenderTime.GetTenthsOfSecondsOfSeconds(),
+            estTotalRenderTime.GetMinutes(),
+            estTotalRenderTime.GetSecondsOfMinute(),
+            estTotalRenderTime.GetTenthsOfSecondsOfSeconds(),
+            remainingPrecalcTime.GetMinutes(),
+            remainingPrecalcTime.GetSecondsOfMinute(),
+            remainingPrecalcTime.GetTenthsOfSecondsOfSeconds(),
+            totalPrecalcTime.GetMinutes(),
+            totalPrecalcTime.GetSecondsOfMinute(),
+            totalPrecalcTime.GetTenthsOfSecondsOfSeconds());
+  }
+  else
+  {
+    sprintf(gWindowText, "%s", gStatus);
+  }
 }
 
 void WriteWave()
 {
-    OneShotWaveWriter::WriteWAV(gFilename, *gpRenderer);
-    strcpy(gSavedToFilename, gFilename);
-    gFilename[0] = 0;
+  OneShotWaveWriter::WriteWAV(gFilename, *gpRenderer);
+  strcpy(gSavedToFilename, gFilename);
+  gFilename[0] = 0;
 }
 
-void handleSave() {
-    OPENFILENAMEA o = {
-        sizeof(o),//DWORD        lStructSize;
-        hMain,//HWND         hwndOwner;
-        0,//HINSTANCE    hInstance;
-        "WAV files (*.wav)\0*.wav\0",//LPCSTR       lpstrFilter;
-        0,0,0,
-        gFilename,//LPSTR        lpstrFile;
-        sizeof(gFilename) / sizeof(gFilename[0]),//DWORD        nMaxFile;
-        0,0,0,
-        "",//LPCSTR       lpstrTitle;
-        0,0,0,// flags, fileoffset, nextension
-        "wav",//LPCSTR       lpstrDefExt;
-        0
-    };
-    if (::GetSaveFileNameA(&o)) {
-        if (gpRenderer->GetRenderStatus() == Renderer::RenderStatus::Done) {
-            WriteWave();
-        }
+void handleSave()
+{
+  OPENFILENAMEA o = {sizeof(o),                     //DWORD        lStructSize;
+                     hMain,                         //HWND         hwndOwner;
+                     0,                             //HINSTANCE    hInstance;
+                     "WAV files (*.wav)\0*.wav\0",  //LPCSTR       lpstrFilter;
+                     0,
+                     0,
+                     0,
+                     gFilename,                                 //LPSTR        lpstrFile;
+                     sizeof(gFilename) / sizeof(gFilename[0]),  //DWORD        nMaxFile;
+                     0,
+                     0,
+                     0,
+                     "",  //LPCSTR       lpstrTitle;
+                     0,
+                     0,
+                     0,      // flags, fileoffset, nextension
+                     "wav",  //LPCSTR       lpstrDefExt;
+                     0};
+  if (::GetSaveFileNameA(&o))
+  {
+    if (gpRenderer->GetRenderStatus() == Renderer::RenderStatus::Done)
+    {
+      WriteWave();
     }
+  }
 }
 
 
 void RenderWaveform_Fancy(GdiDeviceContextFancy& dc)
 {
-    static constexpr auto waveformRect = gThemeFancy.grcWaveform;
-    dc.SolidFill(waveformRect, gTheme.WaveformUnrenderedHatch1);
-    static constexpr  auto midY = waveformRect.GetMidY();
-    static constexpr  auto left = waveformRect.GetLeft();
-    auto lock = gpRenderer->gCritsec.Enter(); // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
-    for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i) {
-        auto h = gpWaveformGen->mHeights[i];
+  static constexpr auto waveformRect = gThemeFancy.grcWaveform;
+  dc.SolidFill(waveformRect, gTheme.WaveformUnrenderedHatch1);
+  static constexpr auto midY = waveformRect.GetMidY();
+  static constexpr auto left = waveformRect.GetLeft();
+  auto lock =
+      gpRenderer->gCritsec
+          .Enter();  // don't give waveformgen its own critsec for 1) complexity (lock hierarchies!) and 2) code size.
+  for (int i = 0; i < gpWaveformGen->mProcessedWidth; ++i)
+  {
+    auto h = gpWaveformGen->mHeights[i];
 
-        dc.SolidFill({ left + i, midY - h, 1, h * 2 }, gTheme.WaveformForeground);
-    }
-
+    dc.SolidFill({left + i, midY - h, 1, h * 2}, gTheme.WaveformForeground);
+  }
 }
 void handlePaint_Fancy()
 {
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(hMain, &ps);
+  PAINTSTRUCT ps;
+  HDC hdc = BeginPaint(hMain, &ps);
 
-    // Double-buffering: create off-screen bitmap
-    GdiDeviceContextFancy dc{ CreateCompatibleDC(hdc) };
-    HBITMAP hBitmap = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
-    HBITMAP hOldBitmap = (HBITMAP)SelectObject(dc.mDC, hBitmap);
+  // Double-buffering: create off-screen bitmap
+  GdiDeviceContextFancy dc{CreateCompatibleDC(hdc)};
+  HBITMAP hBitmap = CreateCompatibleBitmap(hdc, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top);
+  HBITMAP hOldBitmap = (HBITMAP)SelectObject(dc.mDC, hBitmap);
 
-    RenderWaveform_Fancy(dc);
+  RenderWaveform_Fancy(dc);
 
-    dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor);
+  dc.DrawText_(gWindowText, gTheme.grcText, gTheme.TextColor);
 
-    // present the back buffer
-    BitBlt(hdc, ps.rcPaint.left, ps.rcPaint.top, ps.rcPaint.right - ps.rcPaint.left, ps.rcPaint.bottom - ps.rcPaint.top, dc.mDC, 0, 0, SRCCOPY);
+  // present the back buffer
+  BitBlt(hdc,
+         ps.rcPaint.left,
+         ps.rcPaint.top,
+         ps.rcPaint.right - ps.rcPaint.left,
+         ps.rcPaint.bottom - ps.rcPaint.top,
+         dc.mDC,
+         0,
+         0,
+         SRCCOPY);
 
-    //SelectObject(dc.mDC, hOldFont);
-    //DeleteObject(hCustomFont);
-    SelectObject(dc.mDC, hOldBitmap);
-    DeleteObject(hBitmap);
-    DeleteDC(dc.mDC);
+  //SelectObject(dc.mDC, hOldFont);
+  //DeleteObject(hCustomFont);
+  SelectObject(dc.mDC, hOldBitmap);
+  DeleteObject(hBitmap);
+  DeleteDC(dc.mDC);
 
-    EndPaint(hMain, &ps);
+  EndPaint(hMain, &ps);
 }
 
 
-LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
-    switch (msg) {
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+  switch (msg)
+  {
     case WM_RENDERINGCOMPLETE:
     {
-        if (gFilename[0]) {
-            WriteWave();
-        }
-        return 0;
+      if (gFilename[0])
+      {
+        WriteWave();
+      }
+      return 0;
     }
-    case WM_TIMER: {
-        UpdateStatusText();
-        ::InvalidateRect(hwnd, NULL, FALSE);
-        return 0;
+    case WM_TIMER:
+    {
+      UpdateStatusText();
+      ::InvalidateRect(hwnd, NULL, FALSE);
+      return 0;
     }
-                 //case WM_ERASEBKGND: // this is actually not required now that i'm handling WM_PAINT and double-buffer
-                 //{
-                 //    return TRUE; // reduce flickering
-                 //}
+      //case WM_ERASEBKGND: // this is actually not required now that i'm handling WM_PAINT and double-buffer
+      //{
+      //    return TRUE; // reduce flickering
+      //}
     case WM_LBUTTONUP:
     {
-        Point p{ LOWORD(lParam), HIWORD(lParam) };
-        if (!gTheme.grcWaveform.ContainsPoint(p)) {
-            return 0;
-        }
-        int xPos = LOWORD(lParam) - gTheme.grcWaveform.GetLeft();
-        uint32_t ms = MulDiv(xPos, gpRenderer->gSongLength.GetMilliseconds(), gTheme.grcWaveform.GetWidth());
-        if (gpPlayer->IsPlaying()) {
-            gpPlayer->PlayFrom(WSTime::FromMilliseconds(ms));
-        }
+      Point p{LOWORD(lParam), HIWORD(lParam)};
+      if (!gTheme.grcWaveform.ContainsPoint(p))
+      {
         return 0;
+      }
+      int xPos = LOWORD(lParam) - gTheme.grcWaveform.GetLeft();
+      uint32_t ms = MulDiv(xPos, gpRenderer->gSongLength.GetMilliseconds(), gTheme.grcWaveform.GetWidth());
+      if (gpPlayer->IsPlaying())
+      {
+        gpPlayer->PlayFrom(WSTime::FromMilliseconds(ms));
+      }
+      return 0;
     }
-    case WM_KEYDOWN: {
-        switch (wParam) {
+    case WM_KEYDOWN:
+    {
+      switch (wParam)
+      {
         case VK_F7:
-            handleSave();
-            return 0;
+          handleSave();
+          return 0;
         case VK_F5:
-            gpPlayer->PlayFrom(WSTime::FromFrames(0));
-            return 0;
+          gpPlayer->PlayFrom(WSTime::FromFrames(0));
+          return 0;
         case VK_F6:
-            gpPlayer->Reset();
-            return 0;
+          gpPlayer->Reset();
+          return 0;
         case VK_F8:
-            //WaveSabrePlayerLib::gpGraphProfiler->Dump();
-            return 0;
-        }
+          //WaveSabrePlayerLib::gpGraphProfiler->Dump();
+          return 0;
+      }
 
-        break;
+      break;
     }
     case WM_PAINT:
     {
-        handlePaint_Fancy();
-        return 0;
+      handlePaint_Fancy();
+      return 0;
     }
     case WM_CLOSE:
-        ExitProcess(0); // avoid importing postquitmessage and having to release tons of stuff (bits bits bits)
-        return 0;
-    }
+      ExitProcess(0);  // avoid importing postquitmessage and having to release tons of stuff (bits bits bits)
+      return 0;
+  }
 
-    // since we're completely hijacking the window don't call old proc.
-    return ::DefWindowProcA(hwnd, msg, wParam, lParam);
+  // since we're completely hijacking the window don't call old proc.
+  return ::DefWindowProcA(hwnd, msg, wParam, lParam);
 }
 
 inline uint8_t* ReadBinaryFile(const char* filename)
 {
-    HANDLE file = ::CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-    if (file == INVALID_HANDLE_VALUE)
-    {
-        // handle error
-        return nullptr;
-    }
+  HANDLE file =
+      ::CreateFileA(filename, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+  if (file == INVALID_HANDLE_VALUE)
+  {
+    // handle error
+    return nullptr;
+  }
 
-    DWORD file_size = ::GetFileSize(file, NULL);
-    if (file_size == INVALID_FILE_SIZE)
-    {
-        // handle error
-        ::CloseHandle(file);
-        return nullptr;
-    }
-
-    uint8_t* buffer = new byte[file_size];
-    DWORD bytes_read;
-    if (!::ReadFile(file, buffer, file_size, &bytes_read, NULL) || bytes_read != file_size)
-    {
-        // handle error
-        ::CloseHandle(file);
-        return nullptr;
-    }
-
+  DWORD file_size = ::GetFileSize(file, NULL);
+  if (file_size == INVALID_FILE_SIZE)
+  {
+    // handle error
     ::CloseHandle(file);
-    return buffer;
+    return nullptr;
+  }
+
+  uint8_t* buffer = new byte[file_size];
+  DWORD bytes_read;
+  if (!::ReadFile(file, buffer, file_size, &bytes_read, NULL) || bytes_read != file_size)
+  {
+    // handle error
+    ::CloseHandle(file);
+    return nullptr;
+  }
+
+  ::CloseHandle(file);
+  return buffer;
 }
 
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-    SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
+  SetPriorityClass(GetCurrentProcess(), HIGH_PRIORITY_CLASS);
 
-    gWindowText = new char[60000];
-    gWindowText[0] = 0;
+  gWindowText = new char[60000];
+  gWindowText[0] = 0;
 
-    hMain = ::CreateWindowExA(0, "EDIT", "WaveSabre standalone player", WS_VISIBLE | ES_READONLY | ES_MULTILINE | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
-        CW_USEDEFAULT, CW_USEDEFAULT, gTheme.grcWindow.GetWidth(), gTheme.grcWindow.GetHeight(), 0, 0, 0, 0);
+  hMain = ::CreateWindowExA(0,
+                            "EDIT",
+                            "WaveSabre standalone player",
+                            WS_VISIBLE | ES_READONLY | ES_MULTILINE | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU,
+                            CW_USEDEFAULT,
+                            CW_USEDEFAULT,
+                            gTheme.grcWindow.GetWidth(),
+                            gTheme.grcWindow.GetHeight(),
+                            0,
+                            0,
+                            0,
+                            0);
 
-    auto oldProc = (WNDPROC)::SetWindowLongPtrA(hMain, GWLP_WNDPROC, (LONG_PTR)WindowProc);
+  auto oldProc = (WNDPROC)::SetWindowLongPtrA(hMain, GWLP_WNDPROC, (LONG_PTR)WindowProc);
 
-    const char * binPath;
-    if (argc > 1) {
-        binPath = argv[1];
-    }
-    if (argc > 3 && !strcmp(argv[2], "-w")) {
-        strcpy(gFilename, argv[3]);
-    }
+  const char* binPath;
+  if (argc > 1)
+  {
+    binPath = argv[1];
+  }
+  if (argc > 3 && !strcmp(argv[2], "-w"))
+  {
+    strcpy(gFilename, argv[3]);
+  }
 
-    auto blob = ReadBinaryFile(binPath);
-    if (!blob) {
-        gStatus = "Error reading file";
-    }
-    if (blob) {
-        SongRenderer::Song song;
-        song.blob = blob;
-        song.factory = SongFactory;
-        gpRenderer = new Renderer(hMain, song);
-        gpPlayer = new WaveOutPlayer(*gpRenderer);
+  auto blob = ReadBinaryFile(binPath);
+  if (!blob)
+  {
+    gStatus = "Error reading file";
+  }
+  if (blob)
+  {
+    SongRenderer::Song song;
+    song.blob = blob;
+    song.factory = SongFactory;
+    gpRenderer = new Renderer(hMain, song);
+    gpPlayer = new WaveOutPlayer(*gpRenderer);
 
-        gpWaveformGen = new WaveformGen(*gpRenderer);
-        gpRenderer->Begin(gpWaveformGen);
-    }
-    SetTimer(hMain, 0, gGeneralSleepPeriodMS, 0);
+    gpWaveformGen = new WaveformGen(*gpRenderer);
+    gpRenderer->Begin(gpWaveformGen);
+  }
+  SetTimer(hMain, 0, gGeneralSleepPeriodMS, 0);
 
-    MSG msg;
-    while (true) {
-        GetMessage(&msg, 0, 0, 0);
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
-    }
+  MSG msg;
+  while (true)
+  {
+    GetMessage(&msg, 0, 0, 0);
+    TranslateMessage(&msg);
+    DispatchMessage(&msg);
+  }
 }
