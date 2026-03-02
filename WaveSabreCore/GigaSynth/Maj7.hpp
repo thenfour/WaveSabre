@@ -238,11 +238,6 @@ struct Maj7 : public Maj7SynthDevice
   Maj7()
       : Maj7SynthDevice((int)GigaSynthParamIndices::NumParams, mParamCache)
   {
-      if (!math::gLuts)
-      {
-          math::gLuts = new math::LUTs();
-      }
-
     for (int i = 0; i < (int)std::size(mpModulations); ++i)
     {
       mpModulations[i] = new ModulationSpec{mParamCache,

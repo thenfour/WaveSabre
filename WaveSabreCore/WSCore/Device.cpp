@@ -12,7 +12,11 @@ namespace WaveSabreCore
 		mParamCache__(paramCache),
 		mDefaults16__(defaults16)
 	{
-		//M7::Init(); // <-- what is this? where is it?
+		// this is the best place to do static init
+      if (!M7::math::gLuts)
+      {
+          M7::math::gLuts = new M7::math::LUTs();
+      }
 		chunkData = nullptr;
 	}
 
