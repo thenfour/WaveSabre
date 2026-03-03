@@ -24,6 +24,7 @@ namespace WaveSabreConvert
             Maj7Saturation,
             Maj7Space,
             Maj7StereoImager,
+            Maj7Modulate,
         }
 
         private static readonly IReadOnlyDictionary<DeviceId, string> _map =
@@ -40,6 +41,7 @@ namespace WaveSabreConvert
                 { DeviceId.Maj7Saturation, "WaveSabreCore::Maj7Sat" },
                 { DeviceId.Maj7Space, "WaveSabreCore::Maj7Space" },
                 { DeviceId.Maj7StereoImager, "WaveSabreCore::Maj7Width" },
+                { DeviceId.Maj7Modulate, "WaveSabreCore::Maj7Modulate" },
             };
 
         public static string GetTypeNameFromDeviceId(DeviceId id)

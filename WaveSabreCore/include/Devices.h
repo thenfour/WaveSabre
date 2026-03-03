@@ -10,6 +10,7 @@
 #include "../Devices/Maj7Analyze.hpp"
 #include "../Devices/Maj7Crush.hpp"
 #include "../Devices/Maj7Space.hpp"
+#include "../Devices/Maj7Modulate.hpp"
 
 #include "../Devices/Leveller.h"
 #include "../Devices/Echo.h"

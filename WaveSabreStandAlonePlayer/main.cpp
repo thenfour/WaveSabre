@@ -51,6 +51,8 @@ WaveSabreCore::Device* SongFactory(SongRenderer::DeviceId id)
       return new WaveSabreCore::Maj7Space();
     case SongRenderer::DeviceId::Maj7StereoImager:
       return new WaveSabreCore::Maj7Width();
+    case SongRenderer::DeviceId::Maj7Modulate:
+      return new WaveSabreCore::Maj7Modulate();
   }
   return nullptr;
 }

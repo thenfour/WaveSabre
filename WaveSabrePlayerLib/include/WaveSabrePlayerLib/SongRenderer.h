@@ -430,6 +430,7 @@ namespace WaveSabrePlayerLib
             Maj7Saturation,
             Maj7Space,
             Maj7StereoImager,
+			Maj7Modulate,
 		};
 
 		typedef WaveSabreCore::Device* (*DeviceFactory)(DeviceId);
