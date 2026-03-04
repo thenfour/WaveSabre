@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include "../Basic/Base.hpp"
 
 // #include "./StrongScalar.hpp"
 // #include "LUTs.hpp"
@@ -69,12 +70,26 @@ static constexpr uint16_t gModulationRecalcSampleMaskValues[] = {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 // honestly this should probably just be removed; not used except for some probably not-working alt output stream stuff
 extern uint16_t GetAudioOscillatorRecalcSampleMask();
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 extern uint16_t GetModulationRecalcSampleMask();
 
 extern QualitySetting GetQualitySetting();
 extern void SetQualitySetting(QualitySetting);
+
+#else
+
+// #121 hardcode it.
+INLINE constexpr uint16_t GetModulationRecalcSampleMask()
+{
+  return gModulationRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
+}
+
+INLINE constexpr QualitySetting GetQualitySetting()
+{
+  return QualitySetting::Celery;
+}
+
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 
 enum class Oversampling  // : uint8_t

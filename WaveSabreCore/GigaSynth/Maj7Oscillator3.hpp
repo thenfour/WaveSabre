@@ -363,25 +363,22 @@ public:
 
     // Calculate immediate phase modulation from feedback and other oscillators.
     // immediatePhaseMod = mPrevSample * FMFeedbackAmt + sum(otherOscs * theirAmt)
-    auto calcImmediatePhaseMod = [&]()
+    //auto calcImmediatePhaseMod = [&]()
+    float previousSample = mPreviousSample;
+    float immediatePhaseMod = mPreviousSample * mFMFeedbackAmt;
+    int otherIndex = -1;
+    for (int i = 0; i < gOscillatorCount - 1; ++i)
     {
-      float previousSample = mPreviousSample;
-      float immediatePhaseMod = mPreviousSample * mFMFeedbackAmt;
-      int otherIndex = -1;
-      for (int i = 0; i < gOscillatorCount - 1; ++i)
-      {
-        int off = iosc * (gOscillatorCount - 1) + i;
-        GigaSynthParamIndices amtParam = GigaSynthParamIndices((int)GigaSynthParamIndices::FMAmt2to1 + off);
-        ModDestination amtMod = ModDestination((int)ModDestination::FMAmt2to1 + off);
-        float amt = globalParams.Get01Value(amtParam, mpModMatrix->GetDestinationValue(amtMod));
+      int off = iosc * (gOscillatorCount - 1) + i;
+      GigaSynthParamIndices amtParam = GigaSynthParamIndices((int)GigaSynthParamIndices::FMAmt2to1 + off);
+      ModDestination amtMod = ModDestination((int)ModDestination::FMAmt2to1 + off);
+      float amt = globalParams.Get01Value(amtParam, mpModMatrix->GetDestinationValue(amtMod));
 
-        otherIndex += (i == iosc) ? 2 : 1;
-        immediatePhaseMod += otherSignals[otherIndex] * amt * fmScale;
-      }
-      return immediatePhaseMod;
-    };
+      otherIndex += (i == iosc) ? 2 : 1;
+      immediatePhaseMod += otherSignals[otherIndex] * amt * fmScale;
+    }
 
-    auto immediatePhaseMod = calcImmediatePhaseMod();
+    //auto immediatePhaseMod = calcImmediatePhaseMod();
     auto outp = mCore->renderSampleAndAdvance(immediatePhaseMod + GetPhaseOffset());
     mLastSample = outp;
     mPreviousSample = outp.amplitude;

@@ -5,8 +5,6 @@ namespace WaveSabreCore
 namespace M7
 {
 
-uint16_t gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
-QualitySetting gQualitySetting = QualitySetting::Celery;
 
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -15,8 +13,9 @@ uint16_t GetAudioOscillatorRecalcSampleMask()
 {
   return gAudioOscRecalcSampleMask;
 }
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+uint16_t gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)QualitySetting::Celery];
+QualitySetting gQualitySetting = QualitySetting::Celery;
 uint16_t GetModulationRecalcSampleMask()
 {
   return gModulationRecalcSampleMask;
@@ -24,9 +23,7 @@ uint16_t GetModulationRecalcSampleMask()
 
 void SetQualitySetting(QualitySetting n)
 {
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   gAudioOscRecalcSampleMask = gAudioRecalcSampleMaskValues[(size_t)n];
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
   gModulationRecalcSampleMask = gModulationRecalcSampleMaskValues[(size_t)n];
   gQualitySetting = n;
 }
@@ -34,6 +31,9 @@ QualitySetting GetQualitySetting()
 {
   return gQualitySetting;
 }
+
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 
 }  // namespace M7
 
