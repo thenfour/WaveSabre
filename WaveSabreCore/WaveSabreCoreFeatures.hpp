@@ -25,6 +25,7 @@
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM // quite a huge amount of binary due to complex shape building.
 
+// user sample support (different than gmdls)
 #undef MAJ7_INCLUDE_GSM_SUPPORT
 
 // 8 = 96db/oct

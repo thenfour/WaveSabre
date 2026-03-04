@@ -3,18 +3,25 @@
 #include "../WSCore/Device.h"
 
 /*
+design goals:
+- continuous control over most params (bits especially)
 
-slider1:.7<0,1,0.001>Sampleratecrush Frequency
+SAMPLE CRUSHING
+- Sampleratecrush Frequency
+- interpolation (off, linear, cubic)
+- bandlimiting LP filter (off, on)
+- jitter (randomize sample position a little bit to reduce aliasing)
 
-slider10:4<1,16>Bitcrush Bits
-slider11:1<0,1,1{Safe,Rough}>Bitcrush mode (safe guarantees that 0 is available)
-slider14:1<0,1,{Stereo,Safe,Rough}>Bitcrush stereo mode
+BIT CRUSHING
+- Gate (off -> thresh)
+- bits (continuous 1-24)
+- distribution. few bits = fewer discrete Y values. those values can be distributed in different ways. options:
+	- uniform distribution (even distribution of discrete Y values, but 0 may not be available. for example 1-bit audio only has +1 and -1. 2-bit gives -1, -.5, +.5, +1)
+	- log distribution. Y values are distributed more like decibel values.
+- stereo mode (MS or LR).
+- stereo width (0 - full)
 
-slider20:1<0,1,1>Gate (off -> thresh)
-
-slider21:.4<0,1,.1>Stereo width
-
-slider22:.5<0,1>Mix (Dry-Wet-Difference)
+- wet/dry/diff if possible.
 
 */
 

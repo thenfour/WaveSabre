@@ -66,7 +66,11 @@ static constexpr uint16_t gModulationRecalcSampleMaskValues[] = {
       "Artichoke",                                                                                                     \
   };
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+// honestly this should probably just be removed; not used except for some probably not-working alt output stream stuff
 extern uint16_t GetAudioOscillatorRecalcSampleMask();
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
 extern uint16_t GetModulationRecalcSampleMask();
 
 extern QualitySetting GetQualitySetting();

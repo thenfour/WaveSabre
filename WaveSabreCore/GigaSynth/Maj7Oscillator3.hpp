@@ -226,11 +226,13 @@ public:
     return mPreviousSample;
   }
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   // for debug only, alternate streams, expose how many samples since last recalculation of k-rate params.
   size_t GetSamplesSinceRecalc() const
   {
     return mKRateRecalc.mNSamplesElapsed;
   }
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   virtual void NoteOn(bool legato) override
   {

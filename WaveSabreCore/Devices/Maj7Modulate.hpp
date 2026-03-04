@@ -2,37 +2,65 @@
 #include "../WSCore/Device.h"
 
 /*
-- N voices which are either
-   - time-warped (delay mod)
-   - phase-warped (all-pass)
-- pre gain / hpf/dc blocker
+
+underlying we should make an audio buffer that can also replace our existing
+- comb
+- allpass
+- delay line
+and aim to support...
+
+------------
+scenarios to support:
+- tremolo (lfo modulating gain)
+- vibrato (lfo modulating delay time)
+- chorus (multiple delay mods with feedback)
+- flanger (delay mod with feedback)
+- phaser (lfo modulating all-pass frequencies) -- this may not be necessary for v1 because it's a lot of infra for a rare effect.
+
+------------
+design:
+
+- N voices (8) which supports
+	- gain
+	- delay
+	- feedback
+	- allpass
+	- each of which supports LFO modulation
+- probably some amount of macro control like
+	- per-voice param, a variation amt.
 - x[n] -> voice -> v[n] -> mixed -> y[n]
    - feedback (-1,+1) mixes y[n] into x[n+1]
+
+------------
+params:
+- pre gain / hpf/dc blocker
 - dry mix
 - wet mix
-- voices
+- interpolation mode (nearest, linear, cubic)
+
+- each of N voices:
    - enabled
-   - gain
-   - pan
    - polarity
+   - base gain / pan
+   - base delay
    - feedback
-   - modulation:
-      - lfo shape
+      - gain
+	  - flip polarity
+	  - ping-pong
+   - lfo:
+      - waveform
+	  - shapeA
+	  - shapeB
       - rate hz
-      - depth
-      - phase offset (Stereo spread?)
-- delay warp voice
-   - base delay 0-30ms-ish
-   - mix mode ?
-   - interpolation type
-   - feedback send
-- phase warp voice
-   - stages 2,4,6,8. these are all-passed in series (8 stages = 8 all-pass filters in series)
-      - why always in pairs?
-   - center hz
-   - spread hz or octaves
-   - jitter - lerping each tap frequency towards something off-grid
-      - and stereo spread
+	  - -> delay time
+	  - -> gain
+	- phase warp
+		- stages 0-8 ap filters in series.
+		- slope
+		- response could be experimental
+		- cutoff center hz
+		- cutoff spread hz
+		- jitter - lerping each tap frequency towards something off-grid
 
 */
 
