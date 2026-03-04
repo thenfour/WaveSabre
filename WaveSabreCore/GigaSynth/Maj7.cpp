@@ -4,16 +4,16 @@ namespace WaveSabreCore {
   namespace M7 {
     static_assert((int)M7::MainParamIndices::Count == 29, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultMasterParams[29] = {
-      16422, // Master = 0.50115966796875
-      16384, // Pan = 0.5
-      8, // PolyMon = 0.000244140625
-      0, // Unisono = 0
+      16422, // Master = 0.50118726491928100586
+      0, // Pan = 0
+      16384, // PolyMon = 0.5000152587890625
+      16385, // Unisono = 0.5000457763671875
       0, // UniDet = 0
       0, // UniSpr = 0
       16384, // FMBrigh = 0.5
-      5941, // PortTm = 0.181304931640625
-      17721, // PBRng = 0.540802001953125
-      12032, // MaxVox = 0.3671875
+      9830, // PortTm = 0.30000001192092895508
+      16386, // PBRng = 0.5000762939453125
+      16408, // MaxVox = 0.5007476806640625
       0, // Macro1 = 0
       0, // Macro2 = 0
       0, // Macro3 = 0
@@ -37,93 +37,92 @@ namespace WaveSabreCore {
     static_assert((int)M7::SamplerParamIndexOffsets::Count == 22, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultSamplerParams[22] = {
       0, // S1En = 0
-      32767, // S1Vol = 0.999969482421875
+      32767, // S1Vol = 1
       0, // S1Pan = 0
-      128, // S1KRmin = 0.00390625
-      32640, // S1KRmax = 0.99609375
-      15488, // S1base = 0.47265625
-      32767, // S1LTrig = 0.999969482421875
+      16384, // S1KRmin = 0.5000152587890625
+      16511, // S1KRmax = 0.5038909912109375
+      16444, // S1base = 0.5018463134765625
+      32767, // S1LTrig = 1
       0, // S1Rev = 0
-      24, // S1src = 0.000732421875
-      32, // S1gmidx = 0.0009765625
+      16385, // S1src = 0.5000457763671875
+      16383, // S1gmidx = 0.4999847412109375
       0, // S1strt = 0
-      24, // S1LMode = 0.000732421875
-      8, // S1LSrc = 0.000244140625
+      16385, // S1LMode = 0.5000457763671875
+      16384, // S1LSrc = 0.5000152587890625
       0, // S1Lbeg = 0
-      32767, // S1Llen = 0.999969482421875
-      16384, // S1TunS = 0.5
+      32767, // S1Llen = 1
+      16384, // S1TunS = 0.5000152587890625
       16384, // S1TunF = 0.5
-      9830, // S1Frq = 0.29998779296875
-      32767, // S1FrqKT = 0.999969482421875
-      24, // S1Intrp = 0.000732421875
-      32767, // S1RelX = 0.999969482421875
+      9830, // S1Frq = 0.30000001192092895508
+      32767, // S1FrqKT = 1
+      16385, // S1Intrp = 0.5000457763671875
+      32767, // S1RelX = 1
       0, // S1Dly = 0
     };
     static_assert((int)M7::ModParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultModSpecParams[19] = {
       0, // M1en = 0
-      8, // M1src = 0.000244140625
-      8, // M1dest1 = 0.000244140625
-      8, // M1dest2 = 0.000244140625
-      8, // M1dest3 = 0.000244140625
-      8, // M1dest4 = 0.000244140625
+      16384, // M1src = 0.5000152587890625
+      16384, // M1dest1 = 0.5000152587890625
+      16384, // M1dest2 = 0.5000152587890625
+      16384, // M1dest3 = 0.5000152587890625
+      16384, // M1dest4 = 0.5000152587890625
       16384, // M1curv = 0.5
       28672, // M1scl1 = 0.875
       28672, // M1scl2 = 0.875
       28672, // M1scl3 = 0.875
       28672, // M1scl4 = 0.875
       0, // M1Aen = 0
-      8, // M1Asrc = 0.000244140625
-      32767, // M1Aatt = 0.999969482421875
+      16384, // M1Asrc = 0.5000152587890625
+      32767, // M1Aatt = 1
       16384, // M1Acrv = 0.5
-      10922, // M1rngA = 0.33331298828125
-      21845, // M1rngB = 0.666656494140625
+      10922, // M1rngA = 0.3333333432674407959
+      21845, // M1rngB = 0.6666666865348815918
       16384, // M1rngXA = 0.5
-      21845, // M1rngXB = 0.666656494140625
+      21845, // M1rngXB = 0.6666666865348815918
     };
-    static_assert((int)M7::LFOParamIndexOffsets::Count == 8, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultLFOParams[8] = {
-      8, // LFO1wav = 0.000244140625
+    static_assert((int)M7::LFOParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultLFOParams[7] = {
+      16384, // LFO1wav = 0.5000152587890625
       16384, // LFO1shA = 0.5
       16384, // LFO1shB = 0.5
       0, // LFO1rst = 0
       16384, // LFO1ph = 0.5
-      8, // LFO1bas = 0.000244140625
-      19660, // LFO1fr = 0.5999755859375
+      19660, // LFO1fr = 0.60000002384185791016
       16384, // LFO1lp = 0.5
     };
     static_assert((int)M7::EnvParamIndexOffsets::Count == 11, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultEnvelopeParams[11] = {
       0, // AE1dlt = 0
-      1638, // AE1att = 0.04998779296875
+      1638, // AE1att = 0.050000000745058059692
       24576, // AE1atc = 0.75
       0, // AE1ht = 0
       16384, // AE1dt = 0.5
       8192, // AE1dc = 0.25
-      13107, // AE1sl = 0.399993896484375
-      6553, // AE1rt = 0.199981689453125
+      13107, // AE1sl = 0.40000000596046447754
+      6553, // AE1rt = 0.20000000298023223877
       8192, // AE1tc = 0.25
-      32767, // AE1rst = 0.999969482421875
+      32767, // AE1rst = 1
       0, // AE1mode = 0
     };
     static_assert((int)M7::OscParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultOscillatorParams[19] = {
       0, // O1En = 0
-      32767, // O1Vol = 0.999969482421875
-      16384, // O1Pan = 0.5
-      128, // O1KRmin = 0.00390625
-      32640, // O1KRmax = 0.99609375
-      8, // O1Wave = 0.000244140625
-      16384, // O1ShpA = 0.5
+      32767, // O1Vol = 1
+      0, // O1Pan = 0
+      16384, // O1KRmin = 0.5000152587890625
+      16511, // O1KRmax = 0.5038909912109375
+      16384, // O1Wave = 0.5000152587890625
+      0, // O1ShpA = 0
       16384, // O1ShpB = 0.5
       0, // O1PRst = 0
       16384, // O1Poff = 0.5
       0, // O1Scen = 0
-      9830, // O1ScFq = 0.29998779296875
-      32767, // O1ScKt = 0.999969482421875
-      9830, // O1Fq = 0.29998779296875
-      32767, // O1FqKt = 0.999969482421875
-      16384, // O1Semi = 0.5
+      9830, // O1ScFq = 0.30000001192092895508
+      32767, // O1ScKt = 1
+      9830, // O1Fq = 0.30000001192092895508
+      32767, // O1FqKt = 1
+      16384, // O1Semi = 0.5000152587890625
       16384, // O1Fine = 0.5
       512, // O1Mul = 0.015625
       0, // O1FMFb = 0
@@ -131,12 +130,12 @@ namespace WaveSabreCore {
     static_assert((int)M7::FilterParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultFilterParams[7] = {
       0, // F1En = 0
-      72, // F1Circ = 0.002197265625
-      56, // F1Slop = 0.001708984375
-      8, // F1Resp = 0.000244140625
-      6553, // F1Q = 0.199981689453125
-      9830, // F1Freq = 0.29998779296875
-      32767, // F1FKT = 0.999969482421875
+      16388, // F1Circ = 0.5001373291015625
+      16387, // F1Slop = 0.5001068115234375
+      16384, // F1Resp = 0.5000152587890625
+      6553, // F1Q = 0.20000000298023223877
+      9830, // F1Freq = 0.30000001192092895508
+      32767, // F1FKT = 1
     };
   } // namespace M7
 } // namespace WaveSabreCore

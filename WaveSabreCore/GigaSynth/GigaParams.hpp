@@ -202,7 +202,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO1WaveshapeB,
   LFO1Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO1PhaseOffset,
-  LFO1FrequencyBasis,
   LFO1FrequencyParam,
   LFO1Sharpness,
 
@@ -211,7 +210,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO2WaveshapeB,
   LFO2Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO2PhaseOffset,
-  LFO2FrequencyBasis,
   LFO2FrequencyParam,
   LFO2Sharpness,
 
@@ -220,7 +218,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO3WaveshapeB,
   LFO3Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO3PhaseOffset,
-  LFO3FrequencyBasis,
   LFO3FrequencyParam,
   LFO3Sharpness,
 
@@ -229,7 +226,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO4WaveshapeB,
   LFO4Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO4PhaseOffset,
-  LFO4FrequencyBasis,
   LFO4FrequencyParam,
   LFO4Sharpness,
 
@@ -932,7 +928,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO1shB"},\
 {"LFO1rst"},\
 {"LFO1ph"},           \
-{"LFO1bas"},\
 {"LFO1fr"}, \
 {"LFO1lp"}, \
 {"LFO2wav"},\
@@ -940,7 +935,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO2shB"},\
 {"LFO2rst"},\
 {"LFO2ph"},           \
-{"LFO2bas"},\
 {"LFO2fr"}, \
 {"LFO2lp"}, \
 {"LFO3wav"},\
@@ -948,7 +942,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO3shB"},\
 {"LFO3rst"},\
 {"LFO3ph"},           \
-{"LFO3bas"},\
 {"LFO3fr"}, \
 {"LFO3lp"}, \
 {"LFO4wav"},\
@@ -956,7 +949,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO4shB"},\
 {"LFO4rst"},\
 {"LFO4ph"},           \
-{"LFO4bas"},\
 {"LFO4fr"}, \
 {"LFO4lp"}, \
 {"F1En"},   \
@@ -1586,7 +1578,6 @@ enum class LFOParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   WaveshapeB,
   Restart,
   PhaseOffset,
-  FrequencyBasis,
   FrequencyParam,
   Sharpness,
   Count,

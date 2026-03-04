@@ -863,15 +863,12 @@ public:
                          int v_defaultScaled,
                          int v_centerScaled)
   {
-    WaveSabreCore::M7::real_t tempVal;
-    M7::ParamAccessor pa{&tempVal, 0};
-    // M7::IntParam p{ tempVal , cfg };
-    pa.SetIntValue(0, cfg, v_defaultScaled);
-    // p.SetIntValue(v_defaultScaled);
-    float defaultParamVal = tempVal;
-    pa.SetIntValue(0, cfg, v_centerScaled);
-    float centerParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+    // for the KNOB, we will operate on a 0-1 range with scaling to the actual range (not the full intparam range which is like -16384..16383)
+    float defaultParamVal = cfg.serializeToFloat01WithUsableRange(v_defaultScaled);
+    float centerParamVal = cfg.serializeToFloat01WithUsableRange(v_centerScaled);
+    float tempValRaw = GetEffectX()->getParameter((VstInt32)paramID);
+    int tempValInt = cfg.deserialize(tempValRaw);
+    float tempVal = cfg.serializeToFloat01WithUsableRange(tempValInt);
 
     Maj7IntConverter conv{cfg};
     if (ImGuiKnobs::Knob(label,
@@ -881,19 +878,69 @@ public:
                          defaultParamVal,
                          centerParamVal,
                          ImGuiKnobs::ModInfo{},
-                         gNormalKnobSpeed,
-                         gSlowKnobSpeed,
+                         gNormalKnobSpeedInt,
+                         gSlowKnobSpeedInt,
                          nullptr,
                          ImGuiKnobVariant_WiperOnly,
+                         0,
+                         ImGuiKnobFlags_CustomInput,
+                         10 /* steps ... i think for rendering? */,
+                         &conv,
+                         this))
+    {
+      // tempVal is in 0..1 with the param's usable range.
+        // so convert to int, then to 0..1 in the full int param range.
+      const int intVal = cfg.deserializeWithUsableRange(tempVal);
+      const float serializedFullRange = cfg.serializeToFloat01(intVal);
+      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
+    }
+  }
+
+
+  void Maj7ImGuiParamMidiNote(VstInt32 paramID, const char* label, int defaultVal, int centerVal)
+  {
+    // M7::real_t tempVal;
+    // M7::ParamAccessor pa{&tempVal, 0};
+    // pa.SetIntValue(0, defaultVal);
+    // float defaultParamVal = tempVal;
+    // pa.SetIntValue(0, centerVal);
+    // float centerParamVal = tempVal;
+    // tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+
+    // for the KNOB, we will operate on a 0-1 range with scaling to the actual range (not the full intparam range which is like -16384..16383)
+    auto& cfg = M7::gKeyRangeCfg;
+    float defaultParamVal = cfg.serializeToFloat01WithUsableRange(defaultVal);
+    float centerParamVal = cfg.serializeToFloat01WithUsableRange(centerVal);
+    float tempValRaw = GetEffectX()->getParameter((VstInt32)paramID);
+    int tempValInt = cfg.deserialize(tempValRaw);
+    float tempVal = cfg.serializeToFloat01WithUsableRange(tempValInt);
+
+    Maj7MidiNoteConverter conv;
+    if (ImGuiKnobs::Knob(label,
+                         &tempVal,
+                         0,
+                         1,
+                         defaultParamVal,
+                         centerParamVal,
+                         ImGuiKnobs::ModInfo{},
+                         gNormalKnobSpeedInt,
+                         gSlowKnobSpeedInt,
+                         nullptr,
+                         ImGuiKnobVariant_ProgressBar,
                          0,
                          ImGuiKnobFlags_CustomInput,
                          10,
                          &conv,
                          this))
     {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
+      // tempVal is in 0..1 with the param's usable range.
+      // so convert to int, then to 0..1 in the full int param range.
+      const int intVal = cfg.deserializeWithUsableRange(tempVal);
+      const float serializedFullRange = cfg.serializeToFloat01(intVal);
+      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
     }
   }
+
 
   void Maj7ImGuiParamFrequency(VstInt32 paramID,
                                VstInt32 ktParamID,
@@ -969,38 +1016,6 @@ public:
                          gSlowKnobSpeed,
                          nullptr,
                          ImGuiKnobVariant_WiperOnly,
-                         0,
-                         ImGuiKnobFlags_CustomInput,
-                         10,
-                         &conv,
-                         this))
-    {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
-    }
-  }
-
-  void Maj7ImGuiParamMidiNote(VstInt32 paramID, const char* label, int defaultVal, int centerVal)
-  {
-    M7::real_t tempVal;
-    M7::ParamAccessor pa{&tempVal, 0};
-    pa.SetIntValue(0, M7::gKeyRangeCfg, defaultVal);
-    float defaultParamVal = tempVal;
-    pa.SetIntValue(0, M7::gKeyRangeCfg, centerVal);
-    float centerParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
-
-    Maj7MidiNoteConverter conv;
-    if (ImGuiKnobs::Knob(label,
-                         &tempVal,
-                         0,
-                         1,
-                         defaultParamVal,
-                         centerParamVal,
-                         ImGuiKnobs::ModInfo{},
-                         gNormalKnobSpeed,
-                         gSlowKnobSpeed,
-                         nullptr,
-                         ImGuiKnobVariant_ProgressBar,
                          0,
                          ImGuiKnobFlags_CustomInput,
                          10,

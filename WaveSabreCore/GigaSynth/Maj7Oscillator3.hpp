@@ -322,7 +322,7 @@ public:
           // - osc mul (Hz)                     hz           oscillator
           // - osc detune (semis)               hz+semis     oscillator
           // - unisono detune (semis)           hz+semis     oscillator
-          int pitchSemis = params.GetIntValue(OscParamIndexOffsets::PitchSemis, gSourcePitchSemisRange);
+          int pitchSemis = params.GetIntValue(OscParamIndexOffsets::PitchSemis);
           float pitchFine = params.GetN11Value(OscParamIndexOffsets::PitchFine, pitchFineModVal) *
                             gSourcePitchFineRangeSemis;
           midiNote +=

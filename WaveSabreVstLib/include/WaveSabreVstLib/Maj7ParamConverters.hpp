@@ -39,6 +39,8 @@ inline std::string FloatToString(float x, const char* suffix = nullptr)
 
 static inline std::string midiNoteToString(int midiNote)
 {
+  if (midiNote < 0 || midiNote > 127)
+    return std::to_string(midiNote);
   static constexpr char const* const noteNames[] = {"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
   int note = midiNote % 12;
   int octave = midiNote / 12 - 1;
@@ -255,10 +257,11 @@ struct ScaledFloatConverter : ImGuiKnobs::IValueConverter
   }
 };
 
+
+// intconverter is used by KNOBS, and when we use int knobs, we need to operate on a 0-1 range
+// representing the usable int range (not the theoretical serializable range).
 struct Maj7IntConverter : ImGuiKnobs::IValueConverter
 {
-  float mBacking;
-  M7::ParamAccessor mParams{&mBacking, 0};
   const M7::IntParamConfig mCfg;
 
   Maj7IntConverter(const M7::IntParamConfig& cfg)
@@ -266,10 +269,9 @@ struct Maj7IntConverter : ImGuiKnobs::IValueConverter
   {
   }
 
-  virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override
+  virtual std::string ParamToDisplayString(double param01Usable, void* capture, bool inputContinuity) override
   {
-    mBacking = (float)param;
-    int val = mParams.GetIntValue(0, mCfg);
+    int val = mCfg.deserializeWithUsableRange((float)param01Usable);
     char s[100] = {0};
     sprintf_s(s, "%d", val);
     return s;
@@ -279,10 +281,8 @@ struct Maj7IntConverter : ImGuiKnobs::IValueConverter
   {
     try
     {
-      int d = std::stoi(s);
-      M7::QuickParam p;
-      p.SetIntValue(mCfg, d);
-      return {p.GetRawValue(), true};
+      int intVal = std::stoi(s);
+      return {mCfg.serializeToFloat01WithUsableRange(intVal), true};
     }
     catch (const std::invalid_argument&)
     {
@@ -303,7 +303,10 @@ struct Maj7MidiNoteConverter : ImGuiKnobs::IValueConverter
   virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override
   {
     mBacking = (float)param;
-    return midiNoteToString(mParams.GetIntValue(0, M7::gKeyRangeCfg));
+    auto& cfg = M7::gKeyRangeCfg;
+    //return midiNoteToString(mParams.GetIntValue(0));
+    int midiNote = cfg.deserializeWithUsableRange(mBacking);
+    return midiNoteToString(midiNote);
   }
 };
 

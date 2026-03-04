@@ -109,8 +109,6 @@ extern __declspec(selectany) const M7::DivCurvedParamCfg gBiquadFilterQCfg{0.2f,
 
 struct ParamAccessor
 {
-  static constexpr size_t MaxEnumItems = 2023;
-
   float* const mParamCache;
   const int mBaseParamID;
 
@@ -188,22 +186,20 @@ struct ParamAccessor
     return GetBoolValue__((int)offset);
   }
 
-  int GetIntValue__(int offset, const IntParamConfig& cfg) const;
+  int GetIntValue__(int offset) const;
   template <typename T>
-  int GetIntValue(T offset, const IntParamConfig& cfg) const
+  int GetIntValue(T offset) const
   {
     static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
-    return GetIntValue__((int)offset, cfg);
+    return GetIntValue__((int)offset);
   }
-
-  static constexpr IntParamConfig gEnumIntConfig{0, MaxEnumItems};
 
   template <typename Tenum, typename Toffset>
   Tenum GetEnumValue(Toffset offset) const
   {
     static_assert(std::is_enum_v<Tenum>, "");
     static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-    return (Tenum)GetIntValue__((int)offset, gEnumIntConfig);
+    return (Tenum)GetIntValue__((int)offset);
   }
 
   //static constexpr real_t gEnvTimeCenterValue = 375; // the MS at 0.5 param value.
@@ -308,12 +304,12 @@ struct ParamAccessor
     SetRawVal__((int)offset, v ? 1.0f : 0.0f);
   }
 
-  void SetIntValue__(int offset, const IntParamConfig& cfg, int val);
+  void SetIntValue__(int offset, int val);
   template <typename T>
-  void SetIntValue(T offset, const IntParamConfig& cfg, int val)
+  void SetIntValue(T offset, int val)
   {
     static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
-    SetIntValue__((int)offset, cfg, val);
+    SetIntValue__((int)offset, val);
   }
 
   template <typename Tenum, typename Toffset>
@@ -321,7 +317,7 @@ struct ParamAccessor
   {
     static_assert(std::is_enum_v<Tenum>, "");
     static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-    SetIntValue__((int)offset, gEnumIntConfig, (int)val);
+    SetIntValue__((int)offset, (int)val);
   }
 
   // allows setting an enum value, as an integer, without having to cast.
@@ -329,7 +325,7 @@ struct ParamAccessor
   void SetEnumIntValue(T offset, int val)
   {
     static_assert(std::is_integral_v<T> || std::is_enum_v<T>, "");
-    SetIntValue__((int)offset, gEnumIntConfig, val);
+    SetIntValue__((int)offset, val);
   }
 
   void SetN11Value__(int offset, float v) const;
@@ -478,8 +474,8 @@ private:
   float mBacking;
   ParamAccessor mAccessor{&mBacking, 0};
 
-  bool mHasIntCfg = false;
-  IntParamConfig mIntCfg{0, 1};
+  //bool mHasIntCfg = false;
+  //IntParamConfig mIntCfg{0, 1};
 
   bool mHasFreqCfg = false;
   FreqParamConfig mFreqCfg{gFilterFreqConfig};
@@ -505,13 +501,6 @@ public:
   QuickParam(float val01, const IntParamConfig& cfg)
       : mHasValue(true)
       , mBacking(val01)
-      , mHasIntCfg(true)
-      , mIntCfg(cfg)
-  {
-  }
-  explicit QuickParam(const IntParamConfig& cfg)
-      : mHasIntCfg(true)
-      , mIntCfg(cfg)
   {
   }
 
@@ -583,25 +572,17 @@ public:
   int GetIntValue() const
   {
     CCASSERT(!!mHasValue);
-    CCASSERT(!!mHasIntCfg);
-    return mAccessor.GetIntValue(0, mIntCfg);
+    return mAccessor.GetIntValue(0);
   }
   int GetIntValue(const IntParamConfig& cfg) const
   {
     CCASSERT(!!mHasValue);
-    return mAccessor.GetIntValue(0, cfg);
+    return mAccessor.GetIntValue(0);
   }
   float SetIntValue(int n)
   {
-    CCASSERT(!!mHasIntCfg);
     mHasValue = true;
-    mAccessor.SetIntValue(0, mIntCfg, n);
-    return mBacking;
-  }
-  float SetIntValue(const IntParamConfig& cfg, int n)
-  {
-    mHasValue = true;
-    mAccessor.SetIntValue(0, cfg, n);
+    mAccessor.SetIntValue(0, n);
     return mBacking;
   }
 

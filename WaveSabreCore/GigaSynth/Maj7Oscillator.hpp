@@ -31,9 +31,9 @@ struct OscillatorDevice : ISoundSourceDevice
   {
     if (mIntention == OscillatorIntention::LFO)
       return true;
-    if (mParams.GetIntValue(OscParamIndexOffsets::KeyRangeMin, gKeyRangeCfg) > midiNote)
+    if (mParams.GetIntValue(OscParamIndexOffsets::KeyRangeMin) > midiNote)
       return false;
-    if (mParams.GetIntValue(OscParamIndexOffsets::KeyRangeMax, gKeyRangeCfg) < midiNote)
+    if (mParams.GetIntValue(OscParamIndexOffsets::KeyRangeMax) < midiNote)
       return false;
     return true;
   }

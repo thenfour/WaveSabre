@@ -26,21 +26,16 @@ namespace WaveSabreCore
 		bool ParamAccessor::GetBoolValue__(int offset) const {
 			return (GetRawVal__(offset) > 0.5f);
 		}
-		int ParamAccessor::GetIntValue__(int offset, const IntParamConfig& cfg) const {
-			int c = cfg.GetDiscreteValueCount();// maxValIncl - minValIncl + 1;
-			int r = (int)(GetRawVal__(offset) * c);
-			r = math::ClampI(r, 0, c - 1);
-			return r + cfg.mMinValInclusive;
+		int ParamAccessor::GetIntValue__(int offset) const {
+			const auto y01 = GetRawVal__(offset); // float 0 to 1
+			return IntParamConfig::deserialize(y01);
 		}
 		void ParamAccessor::SetRawVal__(int offset, float v) const {
 			mParamCache[mBaseParamID + offset] = v;
 		}
-		void ParamAccessor::SetIntValue__(int offset, const IntParamConfig& cfg, int val) {
-			int c = cfg.GetDiscreteValueCount();
-			real_t p = real_t(val);// +0.5f; // so it lands in the middle of a bucket.
-			p += 0.5f - cfg.mMinValInclusive;
-			p /= c;
-			SetRawVal__(offset, p);
+		void ParamAccessor::SetIntValue__(int offset, int val) {
+			 float f01 = IntParamConfig::serializeToFloat01(val);
+			 SetRawVal__(offset, f01);
 		}
 		void ParamAccessor::SetN11Value__(int offset, float v) const {
 			SetRawVal__(offset, (v + 1) * 0.5f);

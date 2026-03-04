@@ -20,8 +20,6 @@ public:
   float mFeedbackLin;
   float mFeedbackDriveLin;
 
-  //float mDryLin;
-  //float mWetLin;
   float mCrossMix;
 
   FloatPair Run(const FloatPair& dry)
@@ -45,14 +43,10 @@ public:
     delayBufferSignal = {math::lerp(delayBufferSignal[0], delayBufferSignal[1], mCrossMix),
                          math::lerp(delayBufferSignal[1], delayBufferSignal[0], mCrossMix)};
 
-    //FloatPair dry{inputs[0][i], inputs[1][i]};
-
     mBuffers[0].WriteSample(dry[0] + delayBufferSignal[0] * mFeedbackLin);
     mBuffers[1].WriteSample(dry[1] + delayBufferSignal[1] * mFeedbackLin);
 
     return {delayBufferSignal[0], delayBufferSignal[1]};
-
-    //return {dry[0] * mDryLin + delayBufferSignal[0] * mWetLin, dry[1] * mDryLin + delayBufferSignal[1] * mWetLin};
   }
 
 private:
@@ -70,7 +64,7 @@ public:
   static float CalcDelayMS(const ParamAccessor& params,
                            int eighthsIntParamOffset)
   {
-    return DelayCore::CalcDelayMS(params.GetIntValue(eighthsIntParamOffset, gDelayCoarseCfg),
+    return DelayCore::CalcDelayMS(params.GetIntValue(eighthsIntParamOffset),
                                   params.GetN11Value(eighthsIntParamOffset + 1, 0),
                                   params.GetBipolarPowCurvedValue(eighthsIntParamOffset + 2, gEnvTimeCfg, 0));
   }

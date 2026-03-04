@@ -266,14 +266,14 @@ public:
   }
 
   template <typename Toffset>
-  inline void OptimizeIntParam(ParamAccessor& params, const ::WaveSabreCore::M7::IntParamConfig& cfg, Toffset offset)
+  inline void OptimizeIntParam(ParamAccessor& params, Toffset offset)
   {
     int paramID = params.GetParamIndex(offset);  // (int)baseParam + (int)paramOffset;
     if ((int)offset < 0 || paramID < 0)
       return;  // invalid IDs exist for example in LFo
 
     ParamAccessor dp{mDefaultParamCache.data(), params.mBaseParamID};
-    if (dp.GetIntValue(offset, cfg) == params.GetIntValue(offset, cfg))
+    if (dp.GetIntValue(offset) == params.GetIntValue(offset))
     {
       params.SetRawVal(offset, dp.GetRawVal(offset));
     }

@@ -17,6 +17,9 @@ namespace WaveSabreVstLib {
     static constexpr double gNormalKnobSpeed = 0.0015;
     static constexpr double gSlowKnobSpeed = 0.000003;
 
+    static constexpr double gNormalKnobSpeedInt = 0.0030;
+    static constexpr double gSlowKnobSpeedInt = 0.00001;
+
     // Utility function used by tab system
     inline ImColor ColorFromHTML(const char* buf, float alpha = 1.0f) {
         int i[3] = { 0 };

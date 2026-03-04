@@ -1,11 +1,5 @@
 #ifndef __WAVESABRECORE_ECHO_H__
 #define __WAVESABRECORE_ECHO_H__
-//
-//#include "DelayCore.hpp"
-//#include "Device.h"
-//#include "Maj7Basic.hpp"
-//#include "RMS.hpp"
-//#include <WaveSabreCore/AnalysisStream.hpp>
 
 #include "../Basic/DSPMath.hpp"
 #include "../WSCore/Device.h"
@@ -17,7 +11,7 @@ namespace WaveSabreCore::M7
 {
 struct Echo : public Device
 {
-  //static constexpr M7::IntParamConfig gDelayFineCfg{ 0, 200 };
+  static constexpr M7::IntParamConfig gDelayFineCfg{ 0, 200 };
 
   enum class ParamIndices
   {

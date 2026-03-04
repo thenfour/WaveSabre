@@ -340,7 +340,7 @@ struct Maj7 : public Maj7SynthDevice
     this->SetVoiceMode(
         mParams.GetEnumValue<VoiceMode>(GigaSynthParamIndices::VoicingMode));  // mVoicingModeParam.GetEnumValue());
     this->SetUnisonoVoices(
-        mParams.GetIntValue(GigaSynthParamIndices::Unisono, gUnisonoVoiceCfg));  // mUnisonoVoicesParam.GetIntValue());
+        mParams.GetIntValue(GigaSynthParamIndices::Unisono));  // mUnisonoVoicesParam.GetIntValue());
     // NOTE: samplers will always be empty here
 
     SetVoiceInitialStates();
@@ -394,12 +394,12 @@ struct Maj7 : public Maj7SynthDevice
       }
       case (int)GigaSynthParamIndices::Unisono:
       {
-        this->SetUnisonoVoices(mParams.GetIntValue(GigaSynthParamIndices::Unisono, gUnisonoVoiceCfg));
+        this->SetUnisonoVoices(mParams.GetIntValue(GigaSynthParamIndices::Unisono));
         break;
       }
       case (int)GigaSynthParamIndices::MaxVoices:
       {
-        this->SetMaxVoices(mParams.GetIntValue(GigaSynthParamIndices::MaxVoices, gMaxVoicesCfg));
+        this->SetMaxVoices(mParams.GetIntValue(GigaSynthParamIndices::MaxVoices));
         break;
       }
     }

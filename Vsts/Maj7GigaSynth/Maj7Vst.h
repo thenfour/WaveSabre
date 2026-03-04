@@ -451,9 +451,9 @@ public:
 			auto& s = *ps;
 			// enabled, pitch semis, keyrange min, keyrange max.
 			OptimizeBoolParam(s.mParams, M7::SamplerParamIndexOffsets::Enabled);
-			OptimizeIntParam(s.mParams, M7::gSourcePitchSemisRange, M7::SamplerParamIndexOffsets::TuneSemis);
-			OptimizeIntParam(s.mParams, M7::gKeyRangeCfg, M7::SamplerParamIndexOffsets::KeyRangeMin);
-			OptimizeIntParam(s.mParams, M7::gKeyRangeCfg, M7::SamplerParamIndexOffsets::KeyRangeMax);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::TuneSemis);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::KeyRangeMin);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::KeyRangeMax);
 
 			OptimizeEnumParam<LoopMode>(s.mParams, M7::SamplerParamIndexOffsets::LoopMode);
 
@@ -466,8 +466,8 @@ public:
 			OptimizeBoolParam(s.mParams, M7::SamplerParamIndexOffsets::Reverse);
 			OptimizeBoolParam(s.mParams, M7::SamplerParamIndexOffsets::ReleaseExitsLoop);
 
-			OptimizeIntParam(s.mParams, M7::gGmDlsIndexParamCfg, M7::SamplerParamIndexOffsets::GmDlsIndex);
-			OptimizeIntParam(s.mParams, M7::gKeyRangeCfg, M7::SamplerParamIndexOffsets::BaseNote);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::GmDlsIndex);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::BaseNote);
 
 			if (!s.IsEnabled()) {
 				s.Reset();
@@ -484,9 +484,9 @@ public:
 			auto& s = *ps;
 			// enabled, pitch semis, keyrange min, keyrange max.
 			oscEnabled[iosc] = OptimizeBoolParam(s.mParams, M7::OscParamIndexOffsets::Enabled);
-			OptimizeIntParam(s.mParams, M7::gSourcePitchSemisRange, M7::OscParamIndexOffsets::PitchSemis);
-			OptimizeIntParam(s.mParams, M7::gKeyRangeCfg, M7::OscParamIndexOffsets::KeyRangeMin);
-			OptimizeIntParam(s.mParams, M7::gKeyRangeCfg, M7::OscParamIndexOffsets::KeyRangeMax);
+			OptimizeIntParam(s.mParams, M7::OscParamIndexOffsets::PitchSemis);
+			OptimizeIntParam(s.mParams, M7::OscParamIndexOffsets::KeyRangeMin);
+			OptimizeIntParam(s.mParams, M7::OscParamIndexOffsets::KeyRangeMax);
 
 			//OptimizeSource(p, &s);
 			OptimizeEnumParam<M7::OscillatorWaveform>(s.mParams, M7::OscParamIndexOffsets::Waveform);
@@ -538,7 +538,6 @@ public:
 		// LFO
 		for (auto* lfo : p->mpLFOs) {
 			OptimizeEnumParam<M7::OscillatorWaveform>(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::Waveform);
-			OptimizeEnumParam<M7::TimeBasis>(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::FrequencyBasis);
 			OptimizeBoolParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::Restart);
 		}
 
@@ -703,176 +702,6 @@ public:
 		}
 	}
 
-	// if aggressive, then round values which are very close to defaults back to default.
-	//static inline void OptimizeParams(Maj7* p, bool aggressive, std::vector<float>& defaultParamCache)
-	//{
-		//auto defaultParamCache = GenerateDefaultParamCache();
-
-		//// samplers
-		//for (auto* ps : p->mpSamplerDevices)
-		//{
-		//	auto& s = *ps;
-		//	// enabled, pitch semis, keyrange min, keyrange max.
-		//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Enabled, defaultParamCache);
-		//	OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, SamplerParamIndexOffsets::TuneSemis, defaultParamCache);
-		//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMin, defaultParamCache);
-		//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, SamplerParamIndexOffsets::KeyRangeMax, defaultParamCache);
-
-		//	OptimizeEnumParam<LoopMode>(p, s.mParams, SamplerParamIndexOffsets::LoopMode, defaultParamCache);
-
-		//	//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
-		//	OptimizeEnumParam< LoopBoundaryMode>(p, s.mParams, SamplerParamIndexOffsets::LoopSource, defaultParamCache);
-		//	OptimizeEnumParam < InterpolationMode>(p, s.mParams, SamplerParamIndexOffsets::InterpolationType, defaultParamCache);
-		//	OptimizeEnumParam < SampleSource>(p, s.mParams, SamplerParamIndexOffsets::SampleSource, defaultParamCache);
-
-		//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::LegatoTrig, defaultParamCache);
-		//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::Reverse, defaultParamCache);
-		//	OptimizeBoolParam(p, s.mParams, SamplerParamIndexOffsets::ReleaseExitsLoop, defaultParamCache);
-
-		//	OptimizeIntParam(p, s.mParams, gGmDlsIndexParamCfg, SamplerParamIndexOffsets::GmDlsIndex, defaultParamCache);
-		//	OptimizeIntParam(p, s.mParams, gKeyRangeCfg, SamplerParamIndexOffsets::BaseNote, defaultParamCache);
-
-		//	if (!s.IsEnabled()) {
-		//		s.Reset();
-		//		Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultSamplerParams);
-		//		s.mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);
-		//	}
-		//}
-
-		//// oscillators
-		//bool oscEnabled[M7::gOscillatorCount];
-		//int iosc = 0;
-		//for (auto* ps : p->mpOscillatorDevices)
-		//{
-		//	auto& s = *ps;
-		//	// enabled, pitch semis, keyrange min, keyrange max.
-		//	oscEnabled[iosc] = OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::Enabled, defaultParamCache);
-		//	OptimizeIntParam(p, s.mParams, M7::gSourcePitchSemisRange, OscParamIndexOffsets::PitchSemis, defaultParamCache);
-		//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, OscParamIndexOffsets::KeyRangeMin, defaultParamCache);
-		//	OptimizeIntParam(p, s.mParams, M7::gKeyRangeCfg, OscParamIndexOffsets::KeyRangeMax, defaultParamCache);
-
-		//	//OptimizeSource(p, &s);
-		//	OptimizeEnumParam<M7::OscillatorWaveform>(p, s.mParams, OscParamIndexOffsets::Waveform, defaultParamCache);
-		//	OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::PhaseRestart, defaultParamCache);
-		//	OptimizeBoolParam(p, s.mParams, OscParamIndexOffsets::SyncEnable, defaultParamCache);
-
-		//	if (!s.IsEnabled()) {
-		//		//memcpy(p->mParams.GetOffsetParamCache(), gDefaultOscillatorParams, sizeof(gDefaultOscillatorParams));
-		//		Copy16bitDefaults(s.mParams.GetOffsetParamCache(), gDefaultOscillatorParams);
-		//		s.mParams.SetBoolValue(OscParamIndexOffsets::Enabled, false);
-		//	}
-
-		//	iosc++;
-		//}
-
-		//if (!oscEnabled[0]) {
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt1to2, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt1to3, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt1to4, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt2to1, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt3to1, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt4to1, 0);
-		//}
-		//if (!oscEnabled[1]) {
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt2to1, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt2to3, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt2to4, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt1to2, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt3to2, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt4to2, 0);
-		//}
-		//if (!oscEnabled[2]) {
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt3to2, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt3to1, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt3to4, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt1to3, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt2to3, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt4to3, 0);
-		//}
-		//if (!oscEnabled[3]) {
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt4to2, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt4to3, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt4to1, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt1to4, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt2to4, 0);
-		//	p->mParams.Set01Val(M7::ParamIndices::FMAmt3to4, 0);
-		//}
-
-		//// LFO
-		//for (auto* lfo : p->mpLFOs) {
-		//	OptimizeEnumParam<M7::OscillatorWaveform>(p, lfo->mDevice.mParams, LFOParamIndexOffsets::Waveform, defaultParamCache);
-		//	OptimizeEnumParam<M7::TimeBasis>(p, lfo->mDevice.mParams, LFOParamIndexOffsets::FrequencyBasis, defaultParamCache);
-		//	OptimizeBoolParam(p, lfo->mDevice.mParams, LFOParamIndexOffsets::Restart, defaultParamCache);
-		//}
-
-		//// envelopes
-		//for (auto* env : p->mMaj7Voice[0]->mpEnvelopes) {
-		//	OptimizeEnvelope(p, *env, defaultParamCache);
-		//}
-
-		//// envelopes
-		//for (auto& f : p->mMaj7Voice[0]->mpFilters) {
-		//	OptimizeFilter(p, *f[0], defaultParamCache);
-		//}
-
-		//// modulations.
-		//// optimize hard because there are so many modulations and there's always a lot of fiddling happening here.
-		//for (auto* pm : p->mpModulations)
-		//{
-		//	auto& m = *pm;
-		//	if (!m.mParams.GetBoolValue(ModParamIndexOffsets::Enabled)) {
-		//		Copy16bitDefaults(m.mParams.GetOffsetParamCache(), gDefaultModSpecParams);
-		//		m.mParams.SetBoolValue(ModParamIndexOffsets::Enabled, false);
-		//	}
-
-		//	// still, try and optimize the aux part. 
-		//	if (!m.mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled)) {
-
-		//		m.mParams.SetRawVal(ModParamIndexOffsets::AuxAttenuation, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxAttenuation]));
-		//		m.mParams.SetRawVal(ModParamIndexOffsets::AuxCurve, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxCurve]));
-		//		m.mParams.SetRawVal(ModParamIndexOffsets::AuxSource, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxSource]));
-		//		m.mParams.SetRawVal(ModParamIndexOffsets::AuxRangeMin, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxRangeMin]));
-		//		m.mParams.SetRawVal(ModParamIndexOffsets::AuxRangeMax, M7::math::Sample16To32Bit(gDefaultModSpecParams[(size_t)ModParamIndexOffsets::AuxRangeMax]));
-		//	}
-		//	// set destination scales
-		//	for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
-		//	{
-		//		if (m.mParams.GetEnumValue<ModDestination>((int)ModParamIndexOffsets::Destination1 + id) != ModDestination::None)
-		//		{
-		//			continue;
-		//		}
-
-		//		m.mParams.SetRawVal((int)ModParamIndexOffsets::Destination1 + id, M7::math::Sample16To32Bit(gDefaultModSpecParams[(int)ModParamIndexOffsets::Destination1 + id]));
-		//		m.mParams.SetRawVal((int)ModParamIndexOffsets::Scale1 + id, M7::math::Sample16To32Bit(gDefaultModSpecParams[(int)ModParamIndexOffsets::Scale1 + id]));
-		//	}
-
-		//	OptimizeBoolParam(p, m.mParams, ModParamIndexOffsets::Enabled, defaultParamCache);
-		//	OptimizeBoolParam(p, m.mParams, ModParamIndexOffsets::AuxEnabled, defaultParamCache);
-
-		//	OptimizeEnumParam< ModSource>(p, m.mParams, ModParamIndexOffsets::Source, defaultParamCache);
-		//	OptimizeEnumParam < ModSource>(p, m.mParams, ModParamIndexOffsets::AuxSource, defaultParamCache);
-
-		//	OptimizeEnumParam< ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination1, defaultParamCache);
-		//	OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination2, defaultParamCache);
-		//	OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination3, defaultParamCache);
-		//	OptimizeEnumParam < ModDestination>(p, m.mParams, ModParamIndexOffsets::Destination4, defaultParamCache);
-		//}
-
-		//if (aggressive) {
-		//	for (size_t i = 0; i < (size_t)ParamIndices::NumParams; ++i) {
-		//		if (math::FloatEquals(p->mParamCache[i], defaultParamCache[i], 0.000001f)) {
-		//			p->mParamCache[i] = defaultParamCache[i];
-		//		}
-		//	}
-		//}
-
-
-	//} // optimizeParams()
-
-
-
-
-
 	WaveSabreCore::M7::Maj7 *GetMaj7() const;
 }; // Maj7Vst
 
@@ -940,7 +769,6 @@ namespace WaveSabreCore
 			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeA, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeB, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(LFOParamIndexOffsets::PhaseOffset, 0);// p->mPhaseOffset.SetN11Value(0);
-			p->mParams.SetEnumValue(LFOParamIndexOffsets::FrequencyBasis, TimeBasis::Frequency);
 			p->mParams.Set01Val(LFOParamIndexOffsets::Sharpness, 0.5f);
 			p->mParams.SetBoolValue(LFOParamIndexOffsets::Restart, false);
 		}
@@ -952,10 +780,10 @@ namespace WaveSabreCore
 			//p->mParams.SetN11Value(OscParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParamKT, 1);//p->mFrequencyParam.mKTValue.SetParamValue(0);
-			p->mParams.SetIntValue(OscParamIndexOffsets::PitchSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
+			p->mParams.SetIntValue(OscParamIndexOffsets::PitchSemis, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
 			p->mParams.SetN11Value(OscParamIndexOffsets::PitchFine, 0);//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
-			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
-			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
+			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMin, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
+			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMax, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 
 			p->mParams.SetEnumValue(OscParamIndexOffsets::Waveform, OscillatorWaveform::DefaultForLFO);//p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
 			p->mParams.Set01Val(OscParamIndexOffsets::WaveshapeA, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
@@ -976,10 +804,10 @@ namespace WaveSabreCore
 			//p->mParams.SetN11Value(SamplerParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 0);//p->mFrequencyParam.mKTValue.SetParamValue(0);
-			p->mParams.SetIntValue(SamplerParamIndexOffsets::TuneSemis, M7::gSourcePitchSemisRange, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::TuneSemis, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
 			p->mParams.SetN11Value(SamplerParamIndexOffsets::TuneFine, 0);//p->mPitchFineParam.SetN11Value(0);// (paramCache[(int)tuneFineParamID], 0),
-			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMin, M7::gKeyRangeCfg, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
-			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMax, M7::gKeyRangeCfg, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMin, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::KeyRangeMax, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::LegatoTrig, true);
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Reverse, false);
@@ -992,10 +820,10 @@ namespace WaveSabreCore
 
 			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopStart, 0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopLength, 1);
-			p->mParams.SetIntValue(SamplerParamIndexOffsets::BaseNote, M7::gKeyRangeCfg, 60);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::BaseNote, 60);
 
 			p->mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::Embed);
-			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg, -1);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, -1);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::Delay, 0);
 		}
 
@@ -1003,13 +831,13 @@ namespace WaveSabreCore
 		static inline void GenerateMasterParamDefaults(Maj7* p)
 		{
 			p->mParams.SetDecibels(GigaSynthParamIndices::MasterVolume, gMasterVolumeCfg, -6);
-			p->mParams.SetIntValue(GigaSynthParamIndices::Unisono, gUnisonoVoiceCfg, 1);//p->mUnisonoVoicesParam.SetIntValue(1);
+			p->mParams.SetIntValue(GigaSynthParamIndices::Unisono, 1);//p->mUnisonoVoicesParam.SetIntValue(1);
 			p->mParams.SetEnumValue(GigaSynthParamIndices::VoicingMode, VoiceMode::Polyphonic);//p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
 			p->mParams.Set01Val(GigaSynthParamIndices::FMBrightness, 0.5f);//p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,
 			p->mParams.Set01Val(GigaSynthParamIndices::PortamentoTime, 0.3f);//p->mMaj7Voice[0]->mPortamento.mTime.SetParamValue(0.3f);// PortamentoTime,
 			//p->mParams.SetN11Value(GigaSynthParamIndices::PortamentoCurve, 0);////p->mMaj7Voice[0]->mPortamento.mCurve.SetN11Value(0);
-			p->mParams.SetIntValue(GigaSynthParamIndices::PitchBendRange, gPitchBendCfg, 2);//p->mPitchBendRange.SetIntValue(2);
-			p->mParams.SetIntValue(GigaSynthParamIndices::MaxVoices, gMaxVoicesCfg, 24);//p->mMaxVoicesParam.SetIntValue(24);
+			p->mParams.SetIntValue(GigaSynthParamIndices::PitchBendRange, 2);//p->mPitchBendRange.SetIntValue(2);
+			p->mParams.SetIntValue(GigaSynthParamIndices::MaxVoices, 24);//p->mMaxVoicesParam.SetIntValue(24);
 			// macros all 0
 			// fm matrix all 0
 		}
@@ -1058,7 +886,7 @@ namespace WaveSabreCore
 
 			// Apply dynamic state
 			p->SetVoiceMode(p->mParams.GetEnumValue<VoiceMode>(GigaSynthParamIndices::VoicingMode));// mVoicingModeParam.GetEnumValue());
-			p->SetUnisonoVoices(p->mParams.GetIntValue(GigaSynthParamIndices::Unisono, gUnisonoVoiceCfg));// p->mUnisonoVoicesParam.GetIntValue());
+			p->SetUnisonoVoices(p->mParams.GetIntValue(GigaSynthParamIndices::Unisono));// p->mUnisonoVoicesParam.GetIntValue());
 			// NOTE: samplers will always be empty here
 		}
 

@@ -88,9 +88,9 @@ namespace WaveSabreCore
 				return mParams.GetBoolValue(OscParamIndexOffsets::Enabled);
 			}
 			virtual bool MatchesKeyRange(int midiNote) const override {
-				if (mParams.GetIntValue(SamplerParamIndexOffsets::KeyRangeMin, gKeyRangeCfg) > midiNote)
+				if (mParams.GetIntValue(SamplerParamIndexOffsets::KeyRangeMin) > midiNote)
 					return false;
-				if (mParams.GetIntValue(SamplerParamIndexOffsets::KeyRangeMax, gKeyRangeCfg) < midiNote)
+				if (mParams.GetIntValue(SamplerParamIndexOffsets::KeyRangeMax) < midiNote)
 					return false;
 				return true;
 			}

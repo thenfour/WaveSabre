@@ -100,7 +100,7 @@ namespace WaveSabreCore
 				mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, sampleSource);
 				//mSampleSource.SetIntValue(sampleSource);
 				if (sampleSource != SampleSource::Embed) {
-					LoadGmDlsSample(mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg));// mGmDlsIndex.GetIntValue());
+					LoadGmDlsSample(mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsIndex));
 					return;
 				}
 				if (!ds.ReadUByte()) { // indicator whether there's a sample serialized or not.
@@ -125,7 +125,7 @@ namespace WaveSabreCore
 				delete[] pCompressedData;
 				delete[] pwfxComplete;
 #else // MAJ7_INCLUDE_GSM_SUPPORT
-				LoadGmDlsSample(mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg));// mGmDlsIndex.GetIntValue());
+				LoadGmDlsSample(mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsIndex));
 #endif // MAJ7_INCLUDE_GSM_SUPPORT
 			}
 
@@ -200,10 +200,7 @@ namespace WaveSabreCore
 				}
 
 				mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::GmDls);
-				//mSampleSource.SetEnumValue(SampleSource::GmDls);
-				mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, gGmDlsIndexParamCfg, sampleIndex);
-				//mGmDlsIndex.SetIntValue(sampleIndex);
-				//mSampleLoadSequence++;
+				mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, sampleIndex);
 				mSample = new GmDlsSample(sampleIndex);
 			}
 
@@ -229,7 +226,7 @@ namespace WaveSabreCore
 				if (!mSample) {
 					return;
 				}
-				float base_hz = math::MIDINoteToFreq((float)mParams.GetIntValue(SamplerParamIndexOffsets::BaseNote, gKeyRangeCfg));
+				float base_hz = math::MIDINoteToFreq((float)mParams.GetIntValue(SamplerParamIndexOffsets::BaseNote));
 				mSampleRateCorrectionFactor = mSample->GetSampleRate() / (2 * base_hz * Helpers::CurrentSampleRateF);// WHY * 2? because it corresponds more naturally to other synth octave ranges.
 			}
 
@@ -327,7 +324,7 @@ namespace WaveSabreCore
 				float pitchFineMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::PitchFine);
 				float freqMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::FrequencyParam);
 
-				int pitchSemis = mpSamplerDevice->mParams.GetIntValue(SamplerParamIndexOffsets::TuneSemis, gSourcePitchSemisRange);
+				int pitchSemis = mpSamplerDevice->mParams.GetIntValue(SamplerParamIndexOffsets::TuneSemis);
 				float pitchFine = mpSamplerDevice->mParams.GetN11Value(SamplerParamIndexOffsets::TuneFine, pitchFineMod) * gSourcePitchFineRangeSemis;
 				midiNote += pitchSemis + pitchFine;
 

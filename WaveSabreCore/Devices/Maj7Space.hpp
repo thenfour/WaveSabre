@@ -1,19 +1,19 @@
 #pragma once
 
-#include "../Filters/BiquadFilter.h"
-#include "../WSCore/Device.h"
-#include "../GigaSynth/Maj7Basic.hpp"
-#include "../Filters/Maj7Filter.hpp"
 #include "../Analysis/RMS.hpp"
-#include "../DSP/ReverbCore.hpp"
 #include "../DSP/DelayBuffer.h"
 #include "../DSP/DelayCore.hpp"
+#include "../DSP/ReverbCore.hpp"
+#include "../Filters/BiquadFilter.h"
+#include "../Filters/Maj7Filter.hpp"
+#include "../GigaSynth/Maj7Basic.hpp"
+#include "../WSCore/Device.h"
+
 
 namespace WaveSabreCore
 {
 struct Maj7Space : public Device
 {
-  static constexpr M7::IntParamConfig gDelayCoarseCfg{0, 48};
   enum class ParamIndices
   {
     DelayLeftDelayCoarse,  // in 8ths range of 4 beats, 0-4*8
@@ -85,10 +85,10 @@ struct Maj7Space : public Device
 
   static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-      5684,   // LdlyC = 0.1734619140625
+      16390,  // LdlyC = 0.5001983642578125
       15433,  // LdlyF = 0.470977783203125
       16384,  // LdlyMS = 0.5
-      4346,   // RdlyC = 0.13262939453125
+      16392,  // RdlyC = 0.5002593994140625
       17334,  // RdlyF = 0.52899169921875
       16384,  // RdlyMS = 0.5
       2221,   // LCFreq = 0.067779541015625
@@ -203,12 +203,12 @@ struct Maj7Space : public Device
     float leftBufferLengthMs = M7::DelayCore::CalcDelayMS(mParams, (int)ParamIndices::DelayLeftDelayCoarse);
     float rightBufferLengthMs = M7::DelayCore::CalcDelayMS(mParams, (int)ParamIndices::DelayRightDelayCoarse);
 
-    mDelayCore.OnParamsChanged(leftBufferLengthMs,
-                               rightBufferLengthMs,
-                               mParams.GetFrequency(ParamIndices::DelayLowCutFreq, M7::gFilterFreqConfig),
-                               M7::Decibels{
-                                   mParams.GetDivCurvedValue(ParamIndices::DelayLowCutQ, M7::gBiquadFilterQCfg)},
-                               mParams.GetFrequency(ParamIndices::DelayHighCutFreq, M7::gFilterFreqConfig),
+    mDelayCore.OnParamsChanged(
+        leftBufferLengthMs,
+        rightBufferLengthMs,
+        mParams.GetFrequency(ParamIndices::DelayLowCutFreq, M7::gFilterFreqConfig),
+        M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::DelayLowCutQ, M7::gBiquadFilterQCfg)},
+        mParams.GetFrequency(ParamIndices::DelayHighCutFreq, M7::gFilterFreqConfig),
         M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::DelayHighCutQ, M7::gBiquadFilterQCfg)});
 
     // reverb params.

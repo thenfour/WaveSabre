@@ -147,7 +147,7 @@ INLINE constexpr double clampN11(double x)
 }
 
 template <typename T>
-INLINE static T ClampI(T x, T minInclusive, T maxInclusive)
+INLINE static constexpr T ClampI(T x, T minInclusive, T maxInclusive)
 {
   if (x <= minInclusive)
     return minInclusive;

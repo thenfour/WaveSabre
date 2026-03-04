@@ -347,7 +347,9 @@ public:
         }
         if (newSelection >= 0)
         {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
           M7::SetQualitySetting((M7::QualitySetting)newSelection);
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
         }
         ImGui::EndMenu();
       }
@@ -1409,8 +1411,6 @@ public:
                           waveformUiStyle.defaultWaveshapeB,
                           0,
                           lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeB));
-    // TODO: in the future,
-    //ImGui::SameLine(); Maj7ImGuiParamEnumCombo(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyBasis, "TimeBasis", M7::TimeBasis::Count, M7::TimeBasis::Frequency, timeBasisCaptions);
     ImGui::SameLine();
     Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam,
                             -1,
@@ -3073,8 +3073,7 @@ public:
       {
         ImGui::InputText("Filter#gmdlslist", mGmDlsFilter, std::size(mGmDlsFilter));
         ImGui::BeginListBox("sample");
-        int sampleIndex = (int)sampler.mParams.GetIntValue(M7::SamplerParamIndexOffsets::GmDlsIndex,
-                                                           M7::gGmDlsIndexParamCfg);
+        int sampleIndex = (int)sampler.mParams.GetIntValue(M7::SamplerParamIndexOffsets::GmDlsIndex);
 
         auto matches = (std::strlen(mGmDlsFilter) > 0) ? autocomplete(mGmDlsFilter, mGmDlsOptions) : mGmDlsOptions;
         for (auto& x : matches)

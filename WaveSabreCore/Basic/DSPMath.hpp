@@ -1,8 +1,9 @@
 #pragma once
 
-#include "math.hpp"
 #include "Pair.hpp"
 #include "StrongScalar.hpp"
+#include "math.hpp"
+
 // #include <algorithm>
 // #include <memory>
 // #include <optional>
@@ -51,10 +52,66 @@ struct IntParamConfig
 {
   const int mMinValInclusive;
   const int mMaxValInclusive;
-  constexpr int GetDiscreteValueCount() const
+  const int mUsableCount;
+
+  // #128: this should be a FIXED value for all enums/ints,
+  // so when the synth design changes it doesn't clobber existing presets.
+  static constexpr int kMinSerializableValue = -16384;
+  static constexpr int kMaxSerializableValue = 16383;
+    static constexpr int kSerializableValueCount =
+      kMaxSerializableValue - kMinSerializableValue + 1;
+
+  constexpr IntParamConfig(int minValInclusive, int maxValInclusive)
+    : mMinValInclusive(minValInclusive)
+    , mMaxValInclusive(maxValInclusive)
+      , mUsableCount(1 + maxValInclusive - minValInclusive)
   {
-    return mMaxValInclusive - mMinValInclusive + 1;
   }
+
+
+  [[nodiscard]]
+  static constexpr float serializeToFloat01(int code)
+  {
+    const int clamped = math::ClampI(code, kMinSerializableValue, kMaxSerializableValue);
+    const int index = clamped - kMinSerializableValue; // [0, N-1]
+    return (float(index) + 0.5f) / float(kSerializableValueCount);
+  }
+
+  [[nodiscard]]
+  static constexpr int deserialize(float f01)
+  {
+    const float clamped = math::clamp01(f01);
+
+    // map to bucket index
+    int index = int(clamped * float(kSerializableValueCount));
+
+    // if clamped == 1 exactly, this would become N, so clamp back
+    if (index >= kSerializableValueCount)
+      index = kSerializableValueCount - 1;
+
+    return kMinSerializableValue + index;
+  }
+
+#ifndef MIN_SIZE_REL
+  // this is for knobs / UI -- careful never to use this as part of the synth's internal param handling
+  [[nodiscard]]
+  float serializeToFloat01WithUsableRange(int code) const
+  {
+    const int clamped = math::ClampI(code, mMinValInclusive, mMaxValInclusive);
+    const int index = clamped - mMinValInclusive;
+    return (float(index) + 0.5f) / float(mUsableCount);
+  }
+
+  [[nodiscard]]
+  int deserializeWithUsableRange(float f01) const
+  {
+    const float clamped = math::clamp01(f01);
+    int index = int(clamped * float(mUsableCount));
+    if (index >= mUsableCount)
+      index = mUsableCount - 1;
+    return mMinValInclusive + index;
+  }
+#endif  // !MIN_SIZE_REL
 };
 
 struct VolumeParamConfig
@@ -109,12 +166,15 @@ extern __declspec(selectany) const FreqParamConfig
     gLFOFreqConfig{1.5f, 8, -0.37631656229592636f};  // well midi note here is meaningless and i hope you never use it.
 extern __declspec(selectany) const FreqParamConfig gSyncFreqConfig{gFilterFreqConfig};
 
-extern __declspec(selectany) const IntParamConfig gSourcePitchSemisRange{-36, 36};
-extern __declspec(selectany) const IntParamConfig gKeyRangeCfg{0, 127};
-extern __declspec(selectany) const IntParamConfig gPitchBendCfg{-gPitchBendMaxRange, gPitchBendMaxRange};
-extern __declspec(selectany) const IntParamConfig gUnisonoVoiceCfg{1, gUnisonoVoiceMax};
-extern __declspec(selectany) const IntParamConfig gMaxVoicesCfg{1, gMaxMaxVoices};
-extern __declspec(selectany) const IntParamConfig gGmDlsIndexParamCfg{-1, gGmDlsSampleCount};
+// int ranges are NOT used in the optimized synth param accessors; they are used by VSTs for knob
+// ranges and display conversions. The synth itself uses the raw int values and can
+// refer to these if needed as constants
+static constexpr IntParamConfig gSourcePitchSemisRange{-36, 36};
+static constexpr IntParamConfig gKeyRangeCfg{0, 127};
+static constexpr IntParamConfig gPitchBendCfg{-gPitchBendMaxRange, gPitchBendMaxRange};
+static constexpr IntParamConfig gUnisonoVoiceCfg{1, gUnisonoVoiceMax};
+static constexpr IntParamConfig gMaxVoicesCfg{1, gMaxMaxVoices};
+static constexpr IntParamConfig gGmDlsIndexParamCfg{-1, gGmDlsSampleCount};
 
 extern __declspec(selectany) const VolumeParamConfig gVolumeCfg6db{1.9952623149688795f, 6.0f};
 extern __declspec(selectany) const VolumeParamConfig gVolumeCfg12db{3.9810717055349722f, 12.0f};
