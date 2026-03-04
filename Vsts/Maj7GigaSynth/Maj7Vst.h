@@ -765,7 +765,7 @@ namespace WaveSabreCore
 		{
 			p->mParams.Set01Val(LFOParamIndexOffsets::FrequencyParam, 0.6f);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 
-			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::DefaultForAudio);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
+			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::DefaultForLFO);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
 			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeA, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeB, 0.5f);// p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(LFOParamIndexOffsets::PhaseOffset, 0);// p->mPhaseOffset.SetN11Value(0);
@@ -777,7 +777,8 @@ namespace WaveSabreCore
 		{
 			p->mParams.SetBoolValue(OscParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
 			p->mParams.SetDecibels(OscParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
-			//p->mParams.SetN11Value(OscParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
+			p->mParams.SetN11Value(OscParamIndexOffsets::Pan, 0);
+			p->mParams.SetDecibels(OscParamIndexOffsets::CompensationGain, M7::gVolumeCfg12db, 0);
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParamKT, 1);//p->mFrequencyParam.mKTValue.SetParamValue(0);
 			p->mParams.SetIntValue(OscParamIndexOffsets::PitchSemis, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
@@ -785,8 +786,8 @@ namespace WaveSabreCore
 			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMin, 0);//p->mKeyRangeMin.SetIntValue(0);// (paramCache[(int)keyRangeMinParamID], 0, 127, 0),
 			p->mParams.SetIntValue(OscParamIndexOffsets::KeyRangeMax, 127);//p->mKeyRangeMax.SetIntValue(127);// (paramCache[(int)keyRangeMaxParamID], 0, 127, 127)
 
-			p->mParams.SetEnumValue(OscParamIndexOffsets::Waveform, OscillatorWaveform::DefaultForLFO);//p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
-			p->mParams.Set01Val(OscParamIndexOffsets::WaveshapeA, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
+			p->mParams.SetEnumValue(OscParamIndexOffsets::Waveform, OscillatorWaveform::DefaultForAudio);//p->mWaveform.SetEnumValue(OscillatorWaveform::SineClip);
+			p->mParams.Set01Val(OscParamIndexOffsets::WaveshapeA, 0);//p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.Set01Val(OscParamIndexOffsets::WaveshapeB, 0.5f);//p->mWaveshape.SetParamValue(0.5f);
 			p->mParams.SetN11Value(OscParamIndexOffsets::PhaseOffset, 0);//p->mPhaseOffset.SetN11Value(0);
 			p->mParams.Set01Val(OscParamIndexOffsets::SyncFrequency, M7::gFreqParamKTUnity);//p->mSyncFrequency.mValue.SetParamValue(M7::gFreqParamKTUnity);
@@ -800,7 +801,9 @@ namespace WaveSabreCore
 			p->Reset();
 
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
+			p->mParams.SetN11Value(SamplerParamIndexOffsets::Pan, 0);
 			p->mParams.SetDecibels(SamplerParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
+			p->mParams.SetDecibels(SamplerParamIndexOffsets::CompensationGain, M7::gVolumeCfg12db, 0);
 			//p->mParams.SetN11Value(SamplerParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 0);//p->mFrequencyParam.mKTValue.SetParamValue(0);
@@ -831,6 +834,7 @@ namespace WaveSabreCore
 		static inline void GenerateMasterParamDefaults(Maj7* p)
 		{
 			p->mParams.SetDecibels(GigaSynthParamIndices::MasterVolume, gMasterVolumeCfg, -6);
+			p->mParams.SetN11Value(GigaSynthParamIndices::Pan, 0);
 			p->mParams.SetIntValue(GigaSynthParamIndices::Unisono, 1);//p->mUnisonoVoicesParam.SetIntValue(1);
 			p->mParams.SetEnumValue(GigaSynthParamIndices::VoicingMode, VoiceMode::Polyphonic);//p->mVoicingModeParam.SetEnumValue(VoiceMode::Polyphonic);
 			p->mParams.Set01Val(GigaSynthParamIndices::FMBrightness, 0.5f);//p->mFMBrightness.SetParamValue(0.5f);// FMBrightness,

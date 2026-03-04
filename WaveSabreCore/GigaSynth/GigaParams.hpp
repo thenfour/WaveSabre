@@ -47,6 +47,7 @@ enum class GigaSynthParamIndices : uint16_t
   Osc1Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc1Volume,
   Osc1Pan,
+  Osc1CompensationGain,
   Osc1KeyrangeMin,
   Osc1KeyrangeMax,
 
@@ -80,6 +81,7 @@ enum class GigaSynthParamIndices : uint16_t
   Osc2Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc2Volume,
   Osc2Pan,
+  Osc2CompensationGain,
   Osc2KeyrangeMin,
   Osc2KeyrangeMax,
   Osc2Waveform,
@@ -112,6 +114,7 @@ enum class GigaSynthParamIndices : uint16_t
   Osc3Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc3Volume,
   Osc3Pan,
+  Osc3CompensationGain,
   Osc3KeyrangeMin,
   Osc3KeyrangeMax,
   Osc3Waveform,
@@ -144,6 +147,7 @@ enum class GigaSynthParamIndices : uint16_t
   Osc4Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc4Volume,
   Osc4Pan,
+  Osc4CompensationGain,
   Osc4KeyrangeMin,
   Osc4KeyrangeMax,
   Osc4Waveform,
@@ -608,6 +612,7 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler1Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler1Volume,
   Sampler1Pan,
+  Sampler1CompensationGain,
   Sampler1KeyrangeMin,
   Sampler1KeyrangeMax,
   Sampler1BaseNote,
@@ -643,6 +648,7 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler2Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler2Volume,
   Sampler2Pan,
+  Sampler2CompensationGain,
   Sampler2KeyrangeMin,
   Sampler2KeyrangeMax,
   Sampler2BaseNote,
@@ -678,6 +684,7 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler3Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler3Volume,
   Sampler3Pan,
+  Sampler3CompensationGain,
   Sampler3KeyrangeMin,
   Sampler3KeyrangeMax,
   Sampler3BaseNote,
@@ -713,6 +720,7 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler4Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler4Volume,
   Sampler4Pan,
+  Sampler4CompensationGain,
   Sampler4KeyrangeMin,
   Sampler4KeyrangeMax,
   Sampler4BaseNote,
@@ -784,6 +792,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"O1En"},   \
 {"O1Vol"},  \
 {"O1Pan"},            \
+{"O1CGain"},\
 {"O1KRmin"},\
 {"O1KRmax"},\
 {"O1Wave"}, \
@@ -814,6 +823,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"O2En"},   \
 {"O2Vol"},  \
 {"O2Pan"},  \
+{"O2CGain"},\
 {"O2KRmin"},\
 {"O2KRmax"},          \
 {"O2Wave"}, \
@@ -844,6 +854,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"O3En"},   \
 {"O3Vol"},  \
 {"O3Pan"},  \
+{"O3CGain"},\
 {"O3KRmin"},\
 {"O3KRmax"},\
 {"O3Wave"}, \
@@ -874,6 +885,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"O4En"},             \
 {"O4Vol"},  \
 {"O4Pan"},  \
+{"O4CGain"},\
 {"O4KRmin"},\
 {"O4KRmax"},\
 {"O4Wave"}, \
@@ -1310,6 +1322,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1En"},   \
 {"S1Vol"},  \
 {"S1Pan"},  \
+{"S1CGain"},\
 {"S1KRmin"},\
 {"S1KRmax"},          \
 {"S1base"}, \
@@ -1342,6 +1355,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1Emode"},\
 {"S2En"},   \
 {"S2Pan"},  \
+{"S2CGain"},\
 {"S2Vol"},  \
 {"S2KRmin"},          \
 {"S2KRmax"},\
@@ -1376,6 +1390,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"S3En"},   \
 {"S3Vol"},  \
 {"S3Pan"},            \
+{"S3CGain"},\
 {"S3KRmin"},\
 {"S3KRmax"},\
 {"S3base"}, \
@@ -1409,6 +1424,7 @@ enum class GigaSynthParamIndices : uint16_t
 {"S4En"},   \
 {"S4Vol"},            \
 {"S4Pan"},  \
+{"S4CGain"},\
 {"S4KRmin"},\
 {"S4KRmax"},\
 {"S4base"}, \
@@ -1487,6 +1503,7 @@ enum class SourceParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   Enabled,      // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Volume,       // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Pan,          // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  CompensationGain,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMin,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMax,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
 };
@@ -1494,10 +1511,11 @@ enum class SourceParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
 enum class SamplerParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
 {
   Enabled,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
-  Volume,
-  Pan,
-  KeyRangeMin,
-  KeyRangeMax,
+  Volume,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  Pan,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  CompensationGain,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  KeyRangeMin,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  KeyRangeMax,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
 
   BaseNote,
   LegatoTrig,
@@ -1522,11 +1540,12 @@ enum class SamplerParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
 
 enum class OscParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
 {
-  Enabled,
-  Volume,
-  Pan,
-  KeyRangeMin,
-  KeyRangeMax,
+  Enabled,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  Volume,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  Pan,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  CompensationGain,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  KeyRangeMin,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
+  KeyRangeMax,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
 
   Waveform,
   WaveshapeA,

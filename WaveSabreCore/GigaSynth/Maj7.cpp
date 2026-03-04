@@ -1,11 +1,10 @@
 #include "../GigaSynth/GigaParams.hpp"
-
 namespace WaveSabreCore {
   namespace M7 {
     static_assert((int)M7::MainParamIndices::Count == 29, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultMasterParams[29] = {
       16422, // Master = 0.50118726491928100586
-      0, // Pan = 0
+      16384, // Pan = 0.5
       16384, // PolyMon = 0.5000152587890625
       16385, // Unisono = 0.5000457763671875
       0, // UniDet = 0
@@ -34,11 +33,12 @@ namespace WaveSabreCore {
       0, // FM2to4 = 0
       0, // FM3to4 = 0
     };
-    static_assert((int)M7::SamplerParamIndexOffsets::Count == 22, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultSamplerParams[22] = {
+    static_assert((int)M7::SamplerParamIndexOffsets::Count == 23, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultSamplerParams[23] = {
       0, // S1En = 0
       32767, // S1Vol = 1
-      0, // S1Pan = 0
+      16384, // S1Pan = 0.5
+      16422, // S1CGain = 0.50118720531463623047
       16384, // S1KRmin = 0.5000152587890625
       16511, // S1KRmax = 0.5038909912109375
       16444, // S1base = 0.5018463134765625
@@ -83,7 +83,7 @@ namespace WaveSabreCore {
     };
     static_assert((int)M7::LFOParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultLFOParams[7] = {
-      16384, // LFO1wav = 0.5000152587890625
+      16388, // LFO1wav = 0.5001373291015625
       16384, // LFO1shA = 0.5
       16384, // LFO1shB = 0.5
       0, // LFO1rst = 0
@@ -105,11 +105,12 @@ namespace WaveSabreCore {
       32767, // AE1rst = 1
       0, // AE1mode = 0
     };
-    static_assert((int)M7::OscParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultOscillatorParams[19] = {
+    static_assert((int)M7::OscParamIndexOffsets::Count == 20, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultOscillatorParams[20] = {
       0, // O1En = 0
       32767, // O1Vol = 1
-      0, // O1Pan = 0
+      16384, // O1Pan = 0.5
+      16422, // O1CGain = 0.50118720531463623047
       16384, // O1KRmin = 0.5000152587890625
       16511, // O1KRmax = 0.5038909912109375
       16384, // O1Wave = 0.5000152587890625

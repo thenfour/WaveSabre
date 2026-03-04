@@ -140,7 +140,7 @@ public:
   ImGuiTabSelectionHelper mModulationTabSelHelper;
 
   Maj7Editor(AudioEffect* audioEffect)
-      : VstEditor(audioEffect, 1200, 990)
+      : VstEditor(audioEffect, 1250, 990)
       , mpMaj7VST((Maj7Vst*)audioEffect)
       , pMaj7(((Maj7Vst*)audioEffect)->GetMaj7())
   {
@@ -611,7 +611,7 @@ public:
     using vstn = const char[kVstMaxParamStrLen];
     static constexpr vstn paramNames[(int)M7::GigaSynthParamIndices::NumParams] = MAJ7_PARAM_VST_NAMES;
     std::stringstream ss;
-    ss << "#include <WaveSabreCore/Maj7.hpp>" << std::endl;
+    ss << "#include \"../GigaSynth/GigaParams.hpp\"" << std::endl;
     ss << "namespace WaveSabreCore {" << std::endl;
     ss << "  namespace M7 {" << std::endl;
 
@@ -619,7 +619,7 @@ public:
     {
       ss << "    static_assert((int)" << countExpr << " == " << count
          << ", \"param count probably changed and this needs to be regenerated.\");" << std::endl;
-      ss << "    const int16_t " << arrayName << "[" << count << "] = {" << std::endl;
+      ss << "    extern const int16_t " << arrayName << "[" << count << "] = {" << std::endl;
       for (size_t i = 0; i < count; ++i)
       {
         size_t paramID = baseParamID + i;
@@ -1297,8 +1297,14 @@ public:
                             waveformUiStyle.defaultWaveshapeB,
                             0,
                             lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeB));
+      ImGui::SameLine();
+      Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::CompensationGain,
+                           "Comp.Vol",
+                           M7::gVolumeCfg12db,
+                           0,
+                           {});
 
-      ImGui::SameLine(0, 60);
+      ImGui::SameLine(0, 40);
       Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam,
                               enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParamKT,
                               "Freq",
@@ -2936,6 +2942,13 @@ public:
                            M7::gUnityVolumeCfg,
                            0,
                            lGetModInfo(M7::SamplerModParamIndexOffsets::Volume));
+
+                           ImGui::SameLine();
+      Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::CompensationGain),
+                           "Comp.Vol",
+                           M7::gVolumeCfg12db,
+                           0,
+                           {});
 
       ImGui::SameLine(0, 50);
       Maj7ImGuiParamFrequency((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqParam),

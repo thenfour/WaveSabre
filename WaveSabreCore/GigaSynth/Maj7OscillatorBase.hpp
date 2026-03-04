@@ -112,7 +112,7 @@ enum class OscillatorWaveform //: uint8_t
   Count,
 
   DefaultForAudio = SineDCClip,
-  DefaultForLFO = SineDCClip,
+  DefaultForLFO = ShapeCoreSawTri,
 };
 
 
@@ -150,7 +150,7 @@ struct OscillatorWaveformUiStyle
 #define OSCILLATOR_WAVEFORM_UI_STYLES(symbolName)                                                                      \
   static constexpr ::WaveSabreCore::M7::OscillatorWaveformUiStyle symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count] \
   {                                                                                                                    \
-  {true,  "Sine DC Clip",            "Clip",   "DC",         0.0f,    0.0f,    SINE_COLOR_FG,        SINE_COLOR_BG},\
+  {true,  "Sine DC Clip",            "Clip",   "DC",         0.0f,    0.5f,    SINE_COLOR_FG,        SINE_COLOR_BG},\
   {false, "Sine Clip Squeez",        "Clip",   "Duty",       0.0f,    0.0f,    SINE_COLOR_FG,        SINE_COLOR_BG},\
   {false, "Sine Harm Clip",          "Clip",   "Harm",       0.0f,    0.50f,   SINE_COLOR_FG,        SINE_COLOR_BG},\
   {false, "Sine Harm Clip Squeez",   "Duty",   "Harm",       0.0f,    0.50f,   SINE_COLOR_FG,        SINE_COLOR_BG},\
