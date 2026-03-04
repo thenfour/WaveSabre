@@ -201,6 +201,30 @@ enum class GigaSynthParamIndices : uint16_t
   Env2LegatoRestart,
   Env2AmpEnvMode,
 
+  Env3DelayTime,  // KEEP IN SYNC WITH EnvParamIndexOffsets
+  Env3AttackTime,
+  Env3AttackCurve,
+  Env3HoldTime,
+  Env3DecayTime,
+  Env3DecayCurve,
+  Env3SustainLevel,
+  Env3ReleaseTime,
+  Env3ReleaseCurve,
+  Env3LegatoRestart,
+  Env3AmpEnvMode,
+
+  Env4DelayTime,  // KEEP IN SYNC WITH EnvParamIndexOffsets
+  Env4AttackTime,
+  Env4AttackCurve,
+  Env4HoldTime,
+  Env4DecayTime,
+  Env4DecayCurve,
+  Env4SustainLevel,
+  Env4ReleaseTime,
+  Env4ReleaseCurve,
+  Env4LegatoRestart,
+  Env4AmpEnvMode,
+
   LFO1Waveform,  // KEEP IN SYNC WITH LFOParamIndexOffsets
   LFO1WaveshapeA,
   LFO1WaveshapeB,
@@ -935,6 +959,28 @@ enum class GigaSynthParamIndices : uint16_t
 {"E2tc"},   \
 {"E2rst"},  \
 {"E2mode"}, \
+{"E3dlt"},  \
+{"E3att"},  \
+{"E3atc"},            \
+{"E3ht"},   \
+{"E3dt"},   \
+{"E3dc"},   \
+{"E3sl"},   \
+{"E3rt"},   \
+{"E3tc"},   \
+{"E3rst"},  \
+{"E3mode"},           \
+{"E4dlt"},  \
+{"E4att"},  \
+{"E4atc"},  \
+{"E4ht"},   \
+{"E4dt"},   \
+{"E4dc"},   \
+{"E4sl"},   \
+{"E4rt"},             \
+{"E4tc"},   \
+{"E4rst"},  \
+{"E4mode"}, \
 {"LFO1wav"},\
 {"LFO1shA"},\
 {"LFO1shB"},\

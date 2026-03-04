@@ -54,6 +54,8 @@ namespace WaveSabreCore {
 			{ModDestination::Sampler4AmpEnvDelayTime, GigaSynthParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv },
 			{ModDestination::Env1DelayTime, GigaSynthParamIndices::Env1DelayTime, ModSource::ModEnv1 },
 			{ModDestination::Env2DelayTime, GigaSynthParamIndices::Env2DelayTime, ModSource::ModEnv2 },
+			{ModDestination::Env3DelayTime, GigaSynthParamIndices::Env3DelayTime, ModSource::ModEnv3 },
+			{ModDestination::Env4DelayTime, GigaSynthParamIndices::Env4DelayTime, ModSource::ModEnv4 },
 		};
 
     } // namespace M7

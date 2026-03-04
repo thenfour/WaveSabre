@@ -341,6 +341,15 @@ struct Maj7 : public Maj7SynthDevice
         mParams.GetEnumValue<VoiceMode>(GigaSynthParamIndices::VoicingMode));  // mVoicingModeParam.GetEnumValue());
     this->SetUnisonoVoices(
         mParams.GetIntValue(GigaSynthParamIndices::Unisono));  // mUnisonoVoicesParam.GetIntValue());
+
+    #ifdef _DEBUG
+    // validate values.
+    if (mVoicesUnisono < 1 || mVoicesUnisono > gUnisonoVoiceMax)
+    {
+      throw std::runtime_error("Invalid unisono voice count loaded from defaults.");
+    }
+    #endif
+
     // NOTE: samplers will always be empty here
 
     SetVoiceInitialStates();
@@ -679,6 +688,7 @@ struct Maj7 : public Maj7SynthDevice
     FilterAuxNode* mpFilters[gFilterCount][2];
     LFOVoice* mpLFOs[gModLFOCount];
 
+    // first source envs, then mod envs.
     EnvelopeNode* mpEnvelopes[gSourceCount + gModEnvCount];
     OscillatorNode* mpOscillatorNodes[gOscillatorCount];
     SamplerVoice* mpSamplerVoices[gSamplerCount];
@@ -1035,8 +1045,11 @@ struct Maj7 : public Maj7SynthDevice
       mTriggerRandom01 = math::rand01();
 
       // don't process all envelopes because some have keyranges to respect.
-      mpEnvelopes[gModEnv1Index]->noteOn(mLegato);
-      mpEnvelopes[gModEnv2Index]->noteOn(mLegato);
+      // only process mod envs.
+      for (int i = gSourceCount; i < (gSourceCount + gModEnvCount); ++i)
+      {
+        mpEnvelopes[i]->noteOn(mLegato);
+      }
 
       for (auto& p : mpLFOs)
       {

@@ -1102,23 +1102,33 @@ public:
         Envelope("Modulation Envelope 2", (int)M7::GigaSynthParamIndices::Env2DelayTime, (int)M7::ModDestination::Env2DelayTime);
         ImGui::EndTabItem();
       }
+      if (WSBeginTabItemWithSel("Mod env 3", 2, mModEnvOrLFOTabSelHelper))
+      {
+        Envelope("Modulation Envelope 3", (int)M7::GigaSynthParamIndices::Env3DelayTime, (int)M7::ModDestination::Env3DelayTime);
+        ImGui::EndTabItem();
+      }
+      if (WSBeginTabItemWithSel("Mod env 4", 3, mModEnvOrLFOTabSelHelper))
+      {
+        Envelope("Modulation Envelope 4", (int)M7::GigaSynthParamIndices::Env4DelayTime, (int)M7::ModDestination::Env4DelayTime);
+        ImGui::EndTabItem();
+      }
       auto lfoColorModToken = mLFOColors.Push();
-      if (WSBeginTabItemWithSel("LFO 1", 2, mModEnvOrLFOTabSelHelper))
+      if (WSBeginTabItemWithSel("LFO 1", 4, mModEnvOrLFOTabSelHelper))
       {
         LFO("LFO 1", (int)M7::GigaSynthParamIndices::LFO1Waveform, 0);
         ImGui::EndTabItem();
       }
-      if (WSBeginTabItemWithSel("LFO 2", 3, mModEnvOrLFOTabSelHelper))
+      if (WSBeginTabItemWithSel("LFO 2", 5, mModEnvOrLFOTabSelHelper))
       {
         LFO("LFO 2", (int)M7::GigaSynthParamIndices::LFO2Waveform, 1);
         ImGui::EndTabItem();
       }
-      if (WSBeginTabItemWithSel("LFO 3", 4, mModEnvOrLFOTabSelHelper))
+      if (WSBeginTabItemWithSel("LFO 3", 6, mModEnvOrLFOTabSelHelper))
       {
         LFO("LFO 3", (int)M7::GigaSynthParamIndices::LFO3Waveform, 2);
         ImGui::EndTabItem();
       }
-      if (WSBeginTabItemWithSel("LFO 4", 5, mModEnvOrLFOTabSelHelper))
+      if (WSBeginTabItemWithSel("LFO 4", 7, mModEnvOrLFOTabSelHelper))
       {
         LFO("LFO 4", (int)M7::GigaSynthParamIndices::LFO4Waveform, 3);
         ImGui::EndTabItem();

@@ -23,6 +23,8 @@ enum class ModSource  // : uint8_t
   Sampler4AmpEnv,
   ModEnv1,
   ModEnv2,
+  ModEnv3,
+  ModEnv4,
   LFO1,
   LFO2,
   LFO3,
@@ -54,7 +56,9 @@ enum class ModSource  // : uint8_t
 #define MOD_SOURCE_CAPTIONS                                                                                            \
   {                                                                                                                    \
       "None",           "Osc1AmpEnv",     "Osc2AmpEnv",     "Osc3AmpEnv", "Osc4AmpEnv", "Sampler1AmpEnv",              \
-      "Sampler2AmpEnv", "Sampler3AmpEnv", "Sampler4AmpEnv", "ModEnv1",    "ModEnv2",    "LFO1",                        \
+      "Sampler2AmpEnv", "Sampler3AmpEnv", "Sampler4AmpEnv", "ModEnv1",    "ModEnv2",   \
+      "ModEnv3",        "ModEnv4",\
+       "LFO1",                        \
       "LFO2",           "LFO3",           "LFO4",           "PitchBend",  "Velocity",   "NoteValue",                   \
       "RandomTrigger",  "UnisonoVoice",   "SustainPedal",   "Macro1",     "Macro2",     "Macro3",                      \
       "Macro4",         "Macro5",         "Macro6",         "Macro7",     "1 (const)",  "0.5 (const)",                 \
@@ -63,6 +67,7 @@ enum class ModSource  // : uint8_t
 #define MODSOURCE_SHORT_CAPTIONS(symbolName)                                                                           \
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{                           \
       "-",     "O1Env", "O2Env", "O3Env", "O4Env", "S1Env", "S2Env", "S3Env", "S4Env", "MEnv1", "MEnv2",               \
+      "MEnv3", "MEnv4",\
       "LFO1",  "LFO2",  "LFO3",  "LFO4",  "PB",    "Vel",   "Note",  "Rng",   "UVox",  "Sus",   "Knob1",               \
       "Knob2", "Knob3", "Knob4", "Knob5", "Knob6", "Knob7", "1",     "0.5",   "0",     "-.5",   "-1",                  \
   };
@@ -192,6 +197,26 @@ enum class ModDestination  //: uint8_t
   Env2SustainLevel,  // KEEP IN SYNC WITH EnvModParamIndexOffsets
   Env2ReleaseTime,   // KEEP IN SYNC WITH EnvModParamIndexOffsets
   Env2ReleaseCurve,  // KEEP IN SYNC WITH EnvModParamIndexOffsets
+
+  Env3DelayTime,     // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3AttackTime,    // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3AttackCurve,   // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3HoldTime,      // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3DecayTime,     // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3DecayCurve,    // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3SustainLevel,  // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3ReleaseTime,   // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env3ReleaseCurve,  // KEEP IN SYNC WITH EnvModParamIndexOffsets
+
+  Env4DelayTime,     // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4AttackTime,    // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4AttackCurve,   // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4HoldTime,      // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4DecayTime,     // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4DecayCurve,    // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4SustainLevel,  // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4ReleaseTime,   // KEEP IN SYNC WITH EnvModParamIndexOffsets
+  Env4ReleaseCurve,  // KEEP IN SYNC WITH EnvModParamIndexOffsets
 
   LFO1WaveshapeA,
   LFO1WaveshapeB,
@@ -474,6 +499,24 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
       "Env2SustainLevel",                                                                                              \
       "Env2ReleaseTime",                                                                                               \
       "Env2ReleaseCurve",                                                                                              \
+      "Env3DelayTime",                                                                                                 \
+      "Env3AttackTime",                                                                                                \
+      "Env3AttackCurve",                                                                                               \
+      "Env3HoldTime",                                                                                                  \
+      "Env3DecayTime",                                                                                                 \
+      "Env3DecayCurve",                                                                                                \
+      "Env3SustainLevel",                                                                                              \
+      "Env3ReleaseTime",                                                                                               \
+      "Env3ReleaseCurve",                                                                                              \
+      "Env4DelayTime",                                                                                                 \
+      "Env4AttackTime",                                                                                                \
+      "Env4AttackCurve",                                                                                               \
+      "Env4HoldTime",                                                                                                  \
+      "Env4DecayTime",                                                                                                 \
+      "Env4DecayCurve",                                                                                                \
+      "Env4SustainLevel",                                                                                              \
+      "Env4ReleaseTime",                                                                                               \
+      "Env4ReleaseCurve",                                                                                              \
       "LFO1WaveshapeA",                                                                                                \
       "LFO1WaveshapeB",                                                                                                \
       "LFO1FrequencyParam",                                                                                            \
@@ -586,7 +629,9 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
         "O4Phase", "O4EnvDly", "O4EnvAtt", "O4EnvAttCrv", "O4EnvHold", "O4EnvDcy", "O4EnvDcyCrv", "O4EnvSus",          \
         "O4EnvRel", "O4EnvRelCrv", "Env1Dly", "Env1Att", "Env1AttCrv", "Env1Hold", "Env1Dcy", "Env1DcyCrv", "Env1Sus", \
         "Env1Rel", "Env1RelCrv", "Env2Dly", "Env2Att", "Env2AttCrv", "Env2Hold", "Env2Dcy", "Env2DcyCrv", "Env2Sus",   \
-        "Env2Rel", "Env2RelCrv", "LFO1ShpA", "LFO1ShpB", "LFO1Freq", "LFO1Ph", "LFO1Shrp", "LFO2ShpA", "LFO2ShpB",     \
+        "Env2Rel", "Env2RelCrv", "Env3Dly", "Env3Att", "Env3AttCrv", "Env3Hold", "Env3Dcy", "Env3DcyCrv", "Env3Sus",   \
+        "Env3Rel", "Env3RelCrv", "Env4Dly", "Env4Att", "Env4AttCrv", "Env4Hold", "Env4Dcy", "Env4DcyCrv", "Env4Sus",   \
+        "Env4Rel", "Env4RelCrv", "LFO1ShpA", "LFO1ShpB", "LFO1Freq", "LFO1Ph", "LFO1Shrp", "LFO2ShpA", "LFO2ShpB",     \
         "LFO2Freq", "LFO2Ph", "LFO2Shrp", "LFO3ShpA", "LFO3ShpB", "LFO3Freq", "LFO3Ph", "LFO3Shrp", "LFO4ShpA",        \
         "LFO4ShpB", "LFO4Freq", "LFO4Ph", "LFO4Shrp", "FM2to1", "FM3to1", "FM4to1", "FM1to2", "FM3to2", "FM4to2",      \
         "FM1to3", "FM2to3", "FM4to3", "FM1to4", "FM2to4", "FM3to4", "S1Vol", "S1Pan", "S1PreVol", "S1Fine", "S1Freq",  \
@@ -751,7 +796,7 @@ static constexpr size_t gSamplerCount = 4;
 static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
 static constexpr size_t gMacroCount = 7;
 
-static constexpr size_t gModEnvCount = 2;
+static constexpr size_t gModEnvCount = 4;
 static constexpr size_t gModLFOCount = 4;
 static constexpr size_t gFilterCount = 2;
 
@@ -783,8 +828,6 @@ struct EnvelopeInfo
 
 extern EnvelopeInfo gEnvelopeInfo[gSourceCount + gModEnvCount];
 static constexpr size_t gOsc1AmpEnvIndex = 0;
-static constexpr size_t gModEnv1Index = gSourceCount + gModEnvCount - 2;
-static constexpr size_t gModEnv2Index = gSourceCount + gModEnvCount - 1;
 
 // seems like a good idea but increases code size for no perf gain.
 struct ModMatrixAccessor

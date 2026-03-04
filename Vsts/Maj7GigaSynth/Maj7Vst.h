@@ -204,9 +204,11 @@ public:
 				if (ch.mKeyName == "LFOName2") pvst->mLFONames[2] = ch.mStringValue;
 				if (ch.mKeyName == "LFOName3") pvst->mLFONames[3] = ch.mStringValue;
 
-				static_assert(M7::gModEnvCount == 2, "update this here shiz");
+				static_assert(M7::gModEnvCount == 4, "update this here shiz");
 				if (ch.mKeyName == "ModEnvName0") pvst->mModEnvNames[0] = ch.mStringValue;
 				if (ch.mKeyName == "ModEnvName1") pvst->mModEnvNames[1] = ch.mStringValue;
+				if (ch.mKeyName == "ModEnvName2") pvst->mModEnvNames[2] = ch.mStringValue;
+				if (ch.mKeyName == "ModEnvName3") pvst->mModEnvNames[3] = ch.mStringValue;
 
 				static_assert(M7::gModulationCount == 18, "update this here shiz");
 				if (ch.mKeyName == "ShowAdvancedModControls0") pvst->mShowAdvancedModControls[0] = ch.mBooleanValue;
@@ -339,9 +341,11 @@ public:
 		settingsObj.Object_MakeKey("LFOName2").WriteStringValue(mLFONames[2]);
 		settingsObj.Object_MakeKey("LFOName3").WriteStringValue(mLFONames[3]);
 
-		static_assert(M7::gModEnvCount == 2, "update this here shiz");
+		static_assert(M7::gModEnvCount == 4, "update this here shiz");
 		settingsObj.Object_MakeKey("ModEnvName0").WriteStringValue(mModEnvNames[0]);
 		settingsObj.Object_MakeKey("ModEnvName1").WriteStringValue(mModEnvNames[1]);
+		settingsObj.Object_MakeKey("ModEnvName2").WriteStringValue(mModEnvNames[2]);
+		settingsObj.Object_MakeKey("ModEnvName3").WriteStringValue(mModEnvNames[3]);
 
 		static_assert(M7::gModulationCount == 18, "update this here shiz");
 		settingsObj.Object_MakeKey("ShowAdvancedModControls0").WriteBoolean(mShowAdvancedModControls[0]);
@@ -879,8 +883,9 @@ namespace WaveSabreCore
 			for (auto& m : p->mMaj7Voice[0]->mpFilters) {
 				GenerateDefaults(m[0]);
 			}
-			GenerateDefaults_Env(p->mMaj7Voice[0]->mpEnvelopes[M7::gModEnv1Index]);
-			GenerateDefaults_Env(p->mMaj7Voice[0]->mpEnvelopes[M7::gModEnv2Index]);
+			for  (auto& e : p->mMaj7Voice[0]->mpEnvelopes) {
+				GenerateDefaults_Env(e);
+			}
 			for (auto p : p->mMaj7Voice[0]->mSourceVoices)
 			{
 				GenerateDefaults_Env(p->mpAmpEnv);
