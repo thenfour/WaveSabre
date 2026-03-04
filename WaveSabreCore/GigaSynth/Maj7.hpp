@@ -1009,7 +1009,8 @@ struct Maj7 : public Maj7SynthDevice
         else
         {
           auto po = static_cast<OscillatorNode*>(srcVoice);
-          sourceValues[i] = po->GetLastSample();
+          // #127 must apply amp gain to last samples.
+          sourceValues[i] = po->GetLastSample() * ampEnvGain;
         }
       }
 
