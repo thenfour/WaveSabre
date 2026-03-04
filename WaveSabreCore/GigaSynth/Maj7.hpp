@@ -673,6 +673,7 @@ struct Maj7 : public Maj7SynthDevice
 
     real_t mVelocity01 = 0;
     real_t mTriggerRandom01 = 0;
+    real_t mTrigger01 = 0;
     float mMidiNote = 0;
 
     PortamentoCalc mPortamento;
@@ -756,6 +757,7 @@ struct Maj7 : public Maj7SynthDevice
       mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);
       mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f);
       mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01);
+      mModMatrix.SetSourceValue(ModSource::Trigger01, mTrigger01);
       mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1));  // krate, 01
       float iuv = 1;
       if (mpOwner->mVoicesUnisono > 1)
@@ -1043,6 +1045,7 @@ struct Maj7 : public Maj7SynthDevice
     {
       mVelocity01 = mNoteInfo.Velocity / 127.0f;
       mTriggerRandom01 = math::rand01();
+      mTrigger01 = mNoteInfo.mSequence % 2 == 0 ? 1.0f : 0.0f;
 
       // don't process all envelopes because some have keyranges to respect.
       // only process mod envs.

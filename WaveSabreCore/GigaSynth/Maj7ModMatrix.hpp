@@ -33,6 +33,7 @@ enum class ModSource  // : uint8_t
   Velocity,
   NoteValue,
   RandomTrigger,
+  Trigger01,
   UnisonoVoice,
   SustainPedal,
   Macro1,
@@ -60,7 +61,9 @@ enum class ModSource  // : uint8_t
       "ModEnv3",        "ModEnv4",\
        "LFO1",                        \
       "LFO2",           "LFO3",           "LFO4",           "PitchBend",  "Velocity",   "NoteValue",                   \
-      "RandomTrigger",  "UnisonoVoice",   "SustainPedal",   "Macro1",     "Macro2",     "Macro3",                      \
+      "RandomTrigger", \
+      "Trigger 0, 1,...",\
+       "UnisonoVoice",   "SustainPedal",   "Macro1",     "Macro2",     "Macro3",                      \
       "Macro4",         "Macro5",         "Macro6",         "Macro7",     "1 (const)",  "0.5 (const)",                 \
       "0 (const)",      "-0.5 (const)",   "-1 (const)",                                                                \
   }
@@ -68,7 +71,7 @@ enum class ModSource  // : uint8_t
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{                           \
       "-",     "O1Env", "O2Env", "O3Env", "O4Env", "S1Env", "S2Env", "S3Env", "S4Env", "MEnv1", "MEnv2",               \
       "MEnv3", "MEnv4",\
-      "LFO1",  "LFO2",  "LFO3",  "LFO4",  "PB",    "Vel",   "Note",  "Rng",   "UVox",  "Sus",   "Knob1",               \
+      "LFO1",  "LFO2",  "LFO3",  "LFO4",  "PB",    "Vel",   "Note",  "Rng", "|:0,1:|",  "UVox",  "Sus",   "Knob1",               \
       "Knob2", "Knob3", "Knob4", "Knob5", "Knob6", "Knob7", "1",     "0.5",   "0",     "-.5",   "-1",                  \
   };
 
