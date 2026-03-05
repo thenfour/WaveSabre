@@ -8,8 +8,6 @@
 
 #include "./Base.hpp"
 
-#include "../WaveSabreCoreFeatures.hpp"
-
 #ifdef WAVESABRE_CUSTOM_MSVCRT
 // MSVC wants to intrinsic many functions, bypassing our own MSVCRT shim and emitting linker errors.
 // this #pragma forces it to call our function.

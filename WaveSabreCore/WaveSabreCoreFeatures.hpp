@@ -22,6 +22,7 @@
 #define MAJ7SAT_ENABLE_ANALOG
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
+#define ENABLE_PITCHBEND
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM // quite a huge amount of binary due to complex shape building.
 

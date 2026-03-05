@@ -183,6 +183,8 @@ extern __declspec(selectany) const VolumeParamConfig gVolumeCfg36db{63.095734448
 extern __declspec(selectany) const VolumeParamConfig gMasterVolumeCfg = gVolumeCfg6db;
 extern __declspec(selectany) const VolumeParamConfig gUnityVolumeCfg{1, 0};
 
+static constexpr IntParamConfig gLFOBeatNumeratorCfg{0, 16};
+static constexpr IntParamConfig gLFOBeatDenominatorCfg{1, 24};
 
 namespace math
 {
@@ -311,6 +313,21 @@ void CalculateMuteSolo(bool (&mutes)[NBands], bool (&solos)[NBands], bool (&outp
 void BipolarDistribute(size_t count, const bool* enabled, float* outp);
 
 void ImportDefaultsArray(size_t count, const int16_t* src, float* paramCacheOffset);
+
+INLINE float MillisecondsToHertz(float ms)
+{
+  return (ms > 0) ? (1000.0f / ms) : 0;
+}
+
+float CalcDelayMS(float eighths, float ms, float frequencyHz);
+INLINE float CalcFrequencyHz(int beatNumerator, int beatDenominator, float eighthsOffset)
+{
+  if (beatDenominator < 1)
+    return 0;
+  float beats = beatNumerator / float(beatDenominator);
+  float eighths = eighthsOffset + beats * 8;
+  return MillisecondsToHertz(CalcDelayMS(eighths, 0, 0));
+}
 
 enum class TimeBasis  //: uint8_t
 {

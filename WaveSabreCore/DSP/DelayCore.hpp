@@ -49,24 +49,14 @@ public:
     return {delayBufferSignal[0], delayBufferSignal[1]};
   }
 
-private:
-  static float CalcDelayMS(int eighthsI, float eighths01, float msParam)
-  {
-    // 60000/bpm = milliseconds per beat. but we are going to be in 8 divisions per beat.
-    // 60000/8 = 7500
-    float eighths = eighths01 + eighthsI;
-    float ms = 7500.0f / Helpers::CurrentTempo * eighths;
-    ms += msParam;
-    return std::max(0.0f, ms);
-  }
-
 public:
   static float CalcDelayMS(const ParamAccessor& params,
                            int eighthsIntParamOffset)
   {
-    return DelayCore::CalcDelayMS(params.GetIntValue(eighthsIntParamOffset),
+    return M7::CalcDelayMS(params.GetIntValue(eighthsIntParamOffset) + 
                                   params.GetN11Value(eighthsIntParamOffset + 1, 0),
-                                  params.GetBipolarPowCurvedValue(eighthsIntParamOffset + 2, gEnvTimeCfg, 0));
+                                  params.GetBipolarPowCurvedValue(eighthsIntParamOffset + 2, gEnvTimeCfg, 0)
+                                , 0 /* frequency */);
   }
 
   //virtual void SetParam(int index, float value) override

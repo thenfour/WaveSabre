@@ -1,7 +1,8 @@
 
 #include "DSPMath.hpp"
-#include "Math.hpp"
 #include "Helpers.h"
+#include "Math.hpp"
+
 
 namespace WaveSabreCore
 {
@@ -162,6 +163,17 @@ FloatPair FloatPair::Mix(const FloatPair& a, const FloatPair& b, float aLin, flo
   return {a.x[0] * aLin + b.x[0] * bLin, a.x[1] * aLin + b.x[1] * bLin};
 }
 
+float CalcDelayMS(float eighths, float msOffset, float frequencyHz)
+{
+  // 60000/bpm = milliseconds per beat. but we are going to be in 8 divisions per beat.
+  // 60000/8 = 7500
+  const float tempo = float(Helpers::CurrentTempo);
+  const float tempoMs = (tempo > 0.0f) ? (7500.0f / tempo) * eighths : 0.0f;
+
+  const float freqMs = (frequencyHz > 0) ? 1000.0f / frequencyHz : 0;
+  const float totalMs = tempoMs + msOffset + freqMs;
+  return std::max(0.0f, totalMs);
+}
 
 }  // namespace M7
 

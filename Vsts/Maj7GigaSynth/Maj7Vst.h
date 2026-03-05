@@ -543,6 +543,9 @@ public:
 		for (auto* lfo : p->mpLFOs) {
 			OptimizeEnumParam<M7::OscillatorWaveform>(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::Waveform);
 			OptimizeBoolParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::Restart);
+      OptimizeEnumParam<M7::TimeBasis>(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::TimeBasis);
+			OptimizeIntParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::BeatNumerator);
+			OptimizeIntParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::BeatDenominator);
 		}
 
 		// envelopes
@@ -768,6 +771,11 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults_LFO(OscillatorDevice* p)
 		{
 			p->mParams.Set01Val(LFOParamIndexOffsets::FrequencyParam, 0.6f);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
+			p->mParams.SetEnumValue<TimeBasis>(LFOParamIndexOffsets::TimeBasis, TimeBasis::Frequency);
+			p->mParams.SetIntValue(LFOParamIndexOffsets::BeatNumerator, 3);
+			p->mParams.SetIntValue(LFOParamIndexOffsets::BeatDenominator, 1);
+			p->mParams.Set01Val(LFOParamIndexOffsets::DurationEighthsFine, 0);
+			p->mParams.SetBipolarPowCurvedValue(LFOParamIndexOffsets::DurationMS, gEnvTimeCfg, 0);
 
 			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::DefaultForLFO);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
 			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeA, 0.5f);// p->mWaveshape.SetParamValue(0.5f);

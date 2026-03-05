@@ -741,7 +741,7 @@ struct Maj7 : public Maj7SynthDevice
 
 #ifdef ENABLE_PITCHBEND
       mMidiNote = mPortamento.GetCurrentMidiNote() +
-                  mpOwner->mParams.GetIntValue(ParamIndices::PitchBendRange, gPitchBendCfg) * mpOwner->mPitchBendN11;
+                  mpOwner->mParams.GetIntValue(GigaSynthParamIndices::PitchBendRange) * mpOwner->mPitchBendN11;
 #else
       mMidiNote = mPortamento.GetCurrentMidiNote();
 #endif  // ENABLE_PITCHBEND

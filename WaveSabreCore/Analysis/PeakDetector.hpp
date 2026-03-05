@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Basic/Helpers.h"
+#include <algorithm>
 
 namespace WaveSabreCore
 {

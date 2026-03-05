@@ -224,24 +224,36 @@ enum class ModDestination  //: uint8_t
   LFO1WaveshapeA,
   LFO1WaveshapeB,
   LFO1FrequencyParam,
+  LFO1DurationEighthsFine,
+  LFO1DurationMilliseconds,
+  LFO1PhaseRestartTrigger,
   LFO1Phase,
   LFO1Sharpness,
 
   LFO2WaveshapeA,
   LFO2WaveshapeB,
   LFO2FrequencyParam,
+  LFO2DurationEighthsFine,
+  LFO2DurationMilliseconds,
+  LFO2PhaseRestartTrigger,
   LFO2Phase,
   LFO2Sharpness,
 
   LFO3WaveshapeA,
   LFO3WaveshapeB,
   LFO3FrequencyParam,
+  LFO3DurationEighthsFine,
+  LFO3DurationMilliseconds,
+  LFO3PhaseRestartTrigger,
   LFO3Phase,
   LFO3Sharpness,
 
   LFO4WaveshapeA,
   LFO4WaveshapeB,
   LFO4FrequencyParam,
+  LFO4DurationEighthsFine,
+  LFO4DurationMilliseconds,
+  LFO4PhaseRestartTrigger,
   LFO4Phase,
   LFO4Sharpness,
 
@@ -393,6 +405,9 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
   WaveshapeA,
   WaveshapeB,
   FrequencyParam,
+  DurationEighthsFine,
+  DurationMilliseconds,
+  PhaseRestartTrigger,
   Phase,
   Sharpness,
 };
@@ -523,21 +538,33 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
       "LFO1WaveshapeA",                                                                                                \
       "LFO1WaveshapeB",                                                                                                \
       "LFO1FrequencyParam",                                                                                            \
+  "LFO1DurationEighthsFine",\
+  "LFO1DurationMilliseconds",\
+  "LFO1PhaseRestartTrigger",\
       "LFO1Phase",                                                                                                     \
       "LFO1Sharpness",                                                                                                 \
       "LFO2WaveshapeA",                                                                                                \
       "LFO2WaveshapeB",                                                                                                \
       "LFO2FrequencyParam",                                                                                            \
+      "LFO2DurationEighthsFine",\
+      "LFO2DurationMilliseconds",\
+      "LFO2PhaseRestartTrigger",\
       "LFO2Phase",                                                                                                     \
       "LFO2Sharpness",                                                                                                 \
       "LFO3WaveshapeA",                                                                                                \
       "LFO3WaveshapeB",                                                                                                \
       "LFO3FrequencyParam",                                                                                            \
+      "LFO3DurationEighthsFine",\
+      "LFO3DurationMilliseconds",\
+      "LFO3PhaseRestartTrigger",\
       "LFO3Phase",                                                                                                     \
       "LFO3Sharpness",                                                                                                 \
       "LFO4WaveshapeA",                                                                                                \
       "LFO4WaveshapeB",                                                                                                \
       "LFO4FrequencyParam",                                                                                            \
+      "LFO4DurationEighthsFine",\
+      "LFO4DurationMilliseconds",\
+      "LFO4PhaseRestartTrigger",\
       "LFO4Phase",                                                                                                     \
       "LFO4Sharpness",                                                                                                 \
       "FMAmt2to1",                                                                                                     \

@@ -1428,13 +1428,58 @@ public:
                           0,
                           lGetModInfo(M7::LFOModParamIndexOffsets::WaveshapeB));
     ImGui::SameLine();
-    Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam,
+
+
+    //static constexpr char const* const voiceModeCaptions[] = {"Poly", "Mono"};
+    //ImGui::SameLine(0, 60);
+    Maj7ImGuiParamEnumList<M7::TimeBasis>(waveformParamID + (int)M7::LFOParamIndexOffsets::TimeBasis,
+                                                     "TimeBasis",
+                                                     (int)M7::TimeBasis::Count,
+                                                     M7::TimeBasis::Frequency,
+                                                     timeBasisCaptions);
+
+    M7::QuickParam timeBasisParam{
+        GetEffectX()->getParameter((VstInt32)(waveformParamID + (int)M7::LFOParamIndexOffsets::TimeBasis))};
+        const auto timeBasis = timeBasisParam.GetEnumValue<M7::TimeBasis>();
+
+        switch (timeBasis)
+        {
+          case M7::TimeBasis::Beats:
+            ImGui::SameLine();
+            Maj7ImGuiParamInt(waveformParamID + (int)M7::LFOParamIndexOffsets::BeatNumerator, "BeatNum", M7::gLFOBeatNumeratorCfg, 3, 0);
+            ImGui::SameLine();
+            Maj7ImGuiParamInt(waveformParamID + (int)M7::LFOParamIndexOffsets::BeatDenominator, "Denom", M7::gLFOBeatDenominatorCfg, 1, 1);
+            ImGui::SameLine();
+            Maj7ImGuiParamFloatN11(waveformParamID + (int)M7::LFOParamIndexOffsets::DurationEighthsFine, "(fine)##left", 0, 0, lGetModInfo(M7::LFOModParamIndexOffsets::DurationEighthsFine));
+            break;
+          case M7::TimeBasis::Frequency:
+            ImGui::SameLine();
+            Maj7ImGuiParamFrequency(waveformParamID + (int)M7::LFOParamIndexOffsets::FrequencyParam,
                             -1,
                             "Freq",
                             M7::gLFOFreqConfig,
                             0.4f,
                             lGetModInfo(M7::LFOModParamIndexOffsets::FrequencyParam));
-    ImGui::SameLine();
+                            ImGui::SameLine();
+            break;
+          case M7::TimeBasis::Time:
+            ImGui::SameLine();
+            // Maj7ImGuiBipolarPowCurvedParam(waveformParamID + (int)M7::LFOParamIndexOffsets::DurationMS,
+            //   "(ms)##left", M7::gEnvTimeCfg, 0, lGetModInfo(M7::LFOModParamIndexOffsets::DurationMilliseconds));
+            Maj7ImGuiPowCurvedParam(waveformParamID + (int)M7::LFOParamIndexOffsets::DurationMS,
+                            "Millisecs",
+                            M7::gLFOTimeCfg,
+                            250,
+                            lGetModInfo(M7::LFOModParamIndexOffsets::DurationMilliseconds));
+            break;
+          default:
+            ImGui::Text("Unknown time basis!");
+            break;
+        }
+
+
+
+                            ImGui::SameLine(0, 30);
     Maj7ImGuiParamFloatN11(waveformParamID + (int)M7::LFOParamIndexOffsets::PhaseOffset,
                            "Phase",
                            0,

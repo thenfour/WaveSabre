@@ -7,25 +7,22 @@
 
 #include <type_traits>
 
-
-#ifdef _DEBUG
-  #include <cstdio>  // for sprintf
-
+#include "../WaveSabreCoreFeatures.hpp"
 
 using std::max;
 using std::min;
 
-  // https://stackoverflow.com/questions/1505582/determining-32-vs-64-bit-in-c
-  #if _WIN32 || _WIN64
-    #if _WIN64
-      #define ENV64BIT
-    #else
-      #define ENV32BIT
-    #endif
+// https://stackoverflow.com/questions/1505582/determining-32-vs-64-bit-in-c
+#if _WIN32 || _WIN64
+  #if _WIN64
+    #define ENV64BIT
+  #else
+    #define ENV32BIT
   #endif
+#endif
 
-
-// #define ENABLE_PITCHBEND
+#ifdef _DEBUG
+  #include <cstdio>  // for sprintf
 
   #ifdef _DEBUG
     #define WSASSERT(condition)                                                                                        \
@@ -38,7 +35,6 @@ using std::min;
       } while (false)
 
   #endif
-
 
 static inline void assert__(bool condition, const char* conditionStr, const char* file, int line)
 {
@@ -89,13 +85,11 @@ constexpr real Real1 = real{1.0f};
 constexpr real Real2 = real{2.0f};
 
 
-
 template <typename Tret, typename Tb>
 INLINE Tret AddEnum(Tret a, Tb b)
 {
   return Tret((int)a + (int)b);
 }
-
 
 
 }  // namespace WaveSabreCore::M7

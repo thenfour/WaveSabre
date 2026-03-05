@@ -1,9 +1,10 @@
 ﻿#pragma once
 
-#include "Maj7Basic.hpp"
-#include "Maj7Oscillator3Base.hpp"
 #include "../Waveshapes/Maj7Oscillator3Waveshapes.hpp"
 #include "../Waveshapes/Maj7Oscillator4WS.hpp"
+#include "Maj7Basic.hpp"
+#include "Maj7Oscillator3Base.hpp"
+
 
 namespace WaveSabreCore
 {
@@ -69,9 +70,9 @@ struct FoldedTriGenerator : public IShapeGenerator
 
 inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorIntention intention)
 {
-  const M7Osc4::AntiAliasingOption aaOpt = (intention == OscillatorIntention::LFO) 
-    ? M7Osc4::AntiAliasingOption::None 
-    : M7Osc4::AntiAliasingOption::PolyBlep;
+  const M7Osc4::AntiAliasingOption aaOpt = (intention == OscillatorIntention::LFO)
+                                               ? M7Osc4::AntiAliasingOption::None
+                                               : M7Osc4::AntiAliasingOption::PolyBlep;
 
   switch (w)
   {
@@ -82,7 +83,7 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new SineCoreExt(w, SineCoreExtVariant::ClipSilence);
 
     case OscillatorWaveform::SineHarmDCClip:
-      return new SineCoreExt(w,  SineCoreExtVariant::ClipHarm);
+      return new SineCoreExt(w, SineCoreExtVariant::ClipHarm);
     case OscillatorWaveform::SineHarmClipSqueeze:
       return new SineCoreExt(w, SineCoreExtVariant::HarmSilence);
 
@@ -102,11 +103,11 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
     case OscillatorWaveform::FoldedTriangle:
 #ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::FoldedTriGenerator);
-#else // ENABLE_TRIANGLE_FOLD_WAVEFORM
+#else   // ENABLE_TRIANGLE_FOLD_WAVEFORM
       return new FoldedSineCore(w);
 #endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
 
-      case OscillatorWaveform::EvolvingGrainNoise:
+    case OscillatorWaveform::EvolvingGrainNoise:
       return new EvolvingGrainNoiseCore(w);
 
     case OscillatorWaveform::Noise_SaH_LP4:
@@ -121,7 +122,7 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
     case OscillatorWaveform::Noise_White_ProbBP:
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Prob_BP);
 
-      case OscillatorWaveform::Noise_White_DutyLP:
+    case OscillatorWaveform::Noise_White_DutyLP:
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_LP);
     case OscillatorWaveform::Noise_White_DutyBP:
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_BP);
@@ -232,7 +233,7 @@ public:
   {
     return mKRateRecalc.mNSamplesElapsed;
   }
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   virtual void NoteOn(bool legato) override
   {
@@ -399,23 +400,62 @@ public:
     mKRateRecalc.visit(
         [&]()
         {
-          float freqModVal = mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::FrequencyParam);
-          float waveShapeAModVal = mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::WaveshapeA);
-          float waveShapeBModVal = mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::WaveshapeB);
+          auto& params = mpSrcDevice->mParams;
+          const auto timeBasis = params.GetEnumValue<TimeBasis>(
+              LFOParamIndexOffsets::TimeBasis);  // ensure time basis is cached for GetFrequency call below
 
-          float freq = mpSrcDevice->mParams.GetFrequency(LFOParamIndexOffsets::FrequencyParam,
-                                                         -1,  // no keytracking for lfo
-                                                         gLFOFreqConfig,
-                                                         0,  // note hz (no keytracking)
-                                                         freqModVal);
+          float finalFreq = 0;
+          switch (timeBasis)
+          {
+            case TimeBasis::Frequency:
+            {
+              // nothing to do, already in frequency mode
+              const float freqModVal = mpModMatrix->GetDestinationValue(modDestBaseId,
+                                                                        LFOModParamIndexOffsets::FrequencyParam);
+              finalFreq = params.GetFrequency(LFOParamIndexOffsets::FrequencyParam,
+                                              -1,  // no keytracking for lfo
+                                              gLFOFreqConfig,
+                                              0,  // note hz (no keytracking)
+                                              freqModVal);
+              break;
+            }
+            case TimeBasis::Time:
+            {
+              const float durationMSModVal =
+                  mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::DurationMilliseconds);
+              const float durationMS = params.GetPowCurvedValue(LFOParamIndexOffsets::DurationMS,
+                                                                gLFOTimeCfg,
+                                                                durationMSModVal);
+              // config has a minimum but still need to clamp becasue of modulation.
+              finalFreq = MillisecondsToHertz(std::max(durationMS, 1.0f));
+              break;
+            }
+            case TimeBasis::Beats:
+            {
+              const int beatNumerator = params.GetIntValue(LFOParamIndexOffsets::BeatNumerator);
+              const int beatDenominator = params.GetIntValue(LFOParamIndexOffsets::BeatDenominator);
+
+              const float eighthsFineModVal =
+                  mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::DurationEighthsFine);
+              const float eighthsFine = params.GetN11Value(LFOParamIndexOffsets::DurationEighthsFine,
+                                                           eighthsFineModVal);
+
+              // convert to frequency.
+              finalFreq = CalcFrequencyHz(beatNumerator, beatDenominator, eighthsFine);
+              break;
+            }
+          }
+
           // 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
-          freq = std::max(freq, 0.001f);
+          finalFreq = std::max(finalFreq, 0.0001f);
 
-          SetWaveformShape(mpOscDevice->mParams.GetEnumValue<OscillatorWaveform>(LFOParamIndexOffsets::Waveform));
+          SetWaveformShape(params.GetEnumValue<OscillatorWaveform>(LFOParamIndexOffsets::Waveform));
 
-          float waveshapeA = mpOscDevice->mParams.Get01Value(LFOParamIndexOffsets::WaveshapeA, waveShapeAModVal);
-          float waveshapeB = mpOscDevice->mParams.Get01Value(LFOParamIndexOffsets::WaveshapeB, waveShapeBModVal);
-          mCore->SetKRateParams(waveshapeA, waveshapeB, freq, false, 1);
+          float waveShapeAModVal = mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::WaveshapeA);
+          float waveshapeA = params.Get01Value(LFOParamIndexOffsets::WaveshapeA, waveShapeAModVal);
+          float waveShapeBModVal = mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::WaveshapeB);
+          float waveshapeB = params.Get01Value(LFOParamIndexOffsets::WaveshapeB, waveShapeBModVal);
+          mCore->SetKRateParams(waveshapeA, waveshapeB, finalFreq, false, 1);
         });
 
     // uncomment for prod

@@ -594,8 +594,8 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
   size_t mGrainSizeSamples = 256;
 
   // Fixed-size buffer instead of std::vector
-  static constexpr size_t kMinGrainSizeSamples = 8;
-  static constexpr size_t kMaxGrainSizeSamples = 4096;
+  static constexpr size_t kMinGrainSizeSamples = 1;
+  static constexpr size_t kMaxGrainSizeSamples = 1024;
   float mGrain[kMaxGrainSizeSamples]{};
 
   bool mGrainValid = false;  // whether mGrain[..mGrainSizeSamples) is initialized

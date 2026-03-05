@@ -81,14 +81,19 @@ namespace WaveSabreCore {
       16384, // M1rngXA = 0.5
       21845, // M1rngXB = 0.6666666865348815918
     };
-    static_assert((int)M7::LFOParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultLFOParams[7] = {
+    static_assert((int)M7::LFOParamIndexOffsets::Count == 12, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultLFOParams[12] = {
       16388, // LFO1wav = 0.5001373291015625
       16384, // LFO1shA = 0.5
       16384, // LFO1shB = 0.5
       0, // LFO1rst = 0
       16384, // LFO1ph = 0.5
       19660, // LFO1fr = 0.60000002384185791016
+      16384, // LFO1TmB = 0.5000152587890625
+      16387, // LFO1Num = 0.5001068115234375
+      16385, // LFO1Den = 0.5000457763671875
+      16384, // LFO1F8s = 0.5
+      9736, // LFO1ms = 0.29712915420532226562
       16384, // LFO1lp = 0.5
     };
     static_assert((int)M7::EnvParamIndexOffsets::Count == 11, "param count probably changed and this needs to be regenerated.");
