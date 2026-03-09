@@ -13,6 +13,23 @@
 #include "WaveSabreVstLib/Serialization.hpp"
 #include <WaveSabreVstLib/VUMeter.hpp>
 
+
+// we don't want to serialize floats to json as decimal strings due to precision loss.
+// bit_cast to uint32_t instead
+inline uint32_t SerializeFloat01ToJson(float val)
+{
+  static_assert(sizeof(float) == sizeof(uint32_t), "float and uint32_t must be the same size for this to work");
+  uint32_t intVal = std::bit_cast<uint32_t>(val);
+  return intVal;
+}
+inline float DeserializeFloat01FromJson(clarinoid::JsonVariantReader& r)
+{
+	  static_assert(sizeof(float) == sizeof(uint32_t), "float and uint32_t must be the same size for this to work");
+  uint32_t intVal = r.mNumericValue.Get<uint32_t>();
+  return std::bit_cast<float>(intVal);
+}
+
+
 namespace WaveSabreVstLib
 {
 
@@ -210,7 +227,8 @@ inline int SetSimpleJSONVstChunk(TDevice* pDevice,
                            return;  // return 0; // already set. is this a duplicate? just ignore.
                          }
 
-                         paramCache[(int)it->second.second] = elem.mNumericValue.Get<float>();
+                         float val = DeserializeFloat01FromJson(elem);
+                         paramCache[(int)it->second.second] = val;
                          it->second.first = true;
                        }))
     {
@@ -264,7 +282,8 @@ inline int GetSimpleJSONVstChunk(const std::string& keyName,
 
   for (size_t i = 0; i < paramCount; ++i)
   {
-    paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(paramCache[i]);
+    auto serializedVal = SerializeFloat01ToJson(paramCache[i]);
+    paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(serializedVal);
   }
 
   doc.EnsureClosed();

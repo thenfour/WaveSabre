@@ -83,33 +83,33 @@ struct Maj7Space : public Device
   // clang-format on
 
 
-  static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
-  static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-      16390,  // LdlyC = 0.5001983642578125
-      15433,  // LdlyF = 0.470977783203125
-      16384,  // LdlyMS = 0.5
-      16392,  // RdlyC = 0.5002593994140625
-      17334,  // RdlyF = 0.52899169921875
-      16384,  // RdlyMS = 0.5
-      2221,   // LCFreq = 0.067779541015625
-      11459,  // LCQ = 0.349700927734375
-      26500,  // HCFreq = 0.8087158203125
-      11459,  // HCQ = 0.349700927734375
-      9782,   // FbLvl = 0.29852294921875
-      4902,   // FbDrive = 0.14959716796875
-      8192,   // Cross = 0.25
-      16384,  // VRoomSz = 0.5
-      4915,   // VDamp = 0.149993896484375
-      29491,  // VWidth = 0.899993896484375
-      7255,   // VLCFreq = 0.221405029296875
-      24443,  // VHCFreq = 0.745941162109375
-      0,      // VPreDly = 0
-      32767,  // DlyEn = 1
-      32767,  // VerbEn = 1
-      16422,  // DryOut = 0.50115966796875
-      8230,   // DlyOut = 0.25115966796875
-      9782,   // RevOut = 0.29853826761245727539
-  };
+static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
+static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
+  24, // LdlyC = 0.000732421875
+  15433, // LdlyF = 0.470977783203125
+  16384, // LdlyMS = 0.5
+  32, // RdlyC = 0.0009765625
+  17334, // RdlyF = 0.52899169921875
+  16384, // RdlyMS = 0.5
+  2221, // LCFreq = 0.067779541015625
+  11459, // LCQ = 0.349700927734375
+  26500, // HCFreq = 0.8087158203125
+  11459, // HCQ = 0.349700927734375
+  9782, // FbLvl = 0.29852294921875
+  4902, // FbDrive = 0.14959716796875
+  8192, // Cross = 0.25
+  16384, // VRoomSz = 0.5
+  4915, // VDamp = 0.149993896484375
+  29491, // VWidth = 0.899993896484375
+  7255, // VLCFreq = 0.221405029296875
+  24443, // VHCFreq = 0.745941162109375
+  0, // VPreDly = 0
+  32767, // DlyEn = 1
+  32767, // VerbEn = 1
+  16422, // DryOut = 0.50115966796875
+  8230, // DlyOut = 0.25115966796875
+  9782, // RevOut = 0.29852294921875
+};
 
   float mParamCache[(int)ParamIndices::NumParams];
   M7::ParamAccessor mParams{mParamCache, 0};

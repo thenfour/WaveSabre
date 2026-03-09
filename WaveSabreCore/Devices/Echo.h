@@ -48,10 +48,10 @@ struct Echo : public Device
   static_assert((int)Echo::ParamIndices::NumParams == 15,
                 "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gDefaults16[(int)Echo::ParamIndices::NumParams] = {
-      5684,   // LdlyC = 0.17346939444541931152
+      24,   // LdlyC = 0.17346939444541931152
       16384,  // LdlyF = 0.5
       16384,  // LdlyMS = 0.5
-      4346,   // RdlyC = 0.13265305757522583008
+      32,   // RdlyC = 0.13265305757522583008
       16384,  // RdlyF = 0.5
       16384,  // RdlyMS = 0.5
       2221,   // LCFreq = 0.06780719757080078125

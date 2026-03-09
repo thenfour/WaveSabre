@@ -161,6 +161,7 @@ private:
   float mPreviousSample = 0;
   float mCurrentFrequencyHz = 0;
   float mFMFeedbackAmt = 0.0f;
+  bool mPhaseRestartTriggerWasHigh = false;
 
   float mCorrectionFactor = 1;
 
@@ -396,6 +397,15 @@ public:
     auto ens = gOscLog.EnabledBlock(false);
 #endif  // ENABLE_OSC_LOG
     auto modDestBaseId = mpSrcDevice->mModDestBaseID;
+
+    const float phaseRestartTrigger =
+        mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::PhaseRestartTrigger);
+    const bool phaseRestartTriggerHigh = phaseRestartTrigger > 0.5f;
+    if (phaseRestartTriggerHigh && !mPhaseRestartTriggerWasHigh)
+    {
+      mCore->RestartDueToNoteOn();
+    }
+    mPhaseRestartTriggerWasHigh = phaseRestartTriggerHigh;
 
     mKRateRecalc.visit(
         [&]()

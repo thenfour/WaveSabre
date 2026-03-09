@@ -873,6 +873,10 @@ public:
     Maj7ImGuiParamInt((VstInt32)M7::GigaSynthParamIndices::PitchBendRange, "PB Range##mst", M7::gPitchBendCfg, 2, 0);
     ImGui::SameLine();
 
+    // auto pbVal = GetEffectX()->getParameter((VstInt32)M7::GigaSynthParamIndices::PitchBendRange);
+    // ImGui::Text("%.10f", pbVal);
+    // ImGui::SameLine();
+
     Maj7ImGuiPowCurvedParam((VstInt32)M7::GigaSynthParamIndices::PortamentoTime,
                             "Port##mst",
                             M7::gEnvTimeCfg,

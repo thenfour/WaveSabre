@@ -4,11 +4,6 @@
 #include "StrongScalar.hpp"
 #include "math.hpp"
 
-// #include <algorithm>
-// #include <memory>
-// #include <optional>
-// #include "./StrongScalar.hpp"
-
 namespace WaveSabreCore
 {
 namespace M7
@@ -18,13 +13,6 @@ struct Param01Tag
 {
 };
 using Param01 = StrongScalar<real_t, Param01Tag>;
-
-
-// template <typename Tret, typename Tb>
-// Tret AddEnum(Tret a, Tb b)
-// {
-//   return Tret((int)a + (int)b);
-// }
 
 
 struct FreqParamConfig
@@ -56,10 +44,9 @@ struct IntParamConfig
 
   // #128: this should be a FIXED value for all enums/ints,
   // so when the synth design changes it doesn't clobber existing presets.
-  static constexpr int kMinSerializableValue = -16384;
-  static constexpr int kMaxSerializableValue = 16383;
-    static constexpr int kSerializableValueCount =
-      kMaxSerializableValue - kMinSerializableValue + 1;
+  // #130; this should also not be too large, otherwise discrete values are extremely
+  // close together in float space and dragging knobs can feel jumpy / awkward / unstable.
+  static constexpr int kSerializableScale = 4096;
 
   constexpr IntParamConfig(int minValInclusive, int maxValInclusive)
     : mMinValInclusive(minValInclusive)
@@ -72,24 +59,16 @@ struct IntParamConfig
   [[nodiscard]]
   static constexpr float serializeToFloat01(int code)
   {
-    const int clamped = math::ClampI(code, kMinSerializableValue, kMaxSerializableValue);
-    const int index = clamped - kMinSerializableValue; // [0, N-1]
-    return (float(index) + 0.5f) / float(kSerializableValueCount);
+    const float scaled = float(code) / float(kSerializableScale);
+    return math::clamp01(scaled);
   }
 
   [[nodiscard]]
   static constexpr int deserialize(float f01)
   {
     const float clamped = math::clamp01(f01);
-
-    // map to bucket index
-    int index = int(clamped * float(kSerializableValueCount));
-
-    // if clamped == 1 exactly, this would become N, so clamp back
-    if (index >= kSerializableValueCount)
-      index = kSerializableValueCount - 1;
-
-    return kMinSerializableValue + index;
+    const int index = int(clamped * float(kSerializableScale));
+    return index;
   }
 
 #ifndef MIN_SIZE_REL

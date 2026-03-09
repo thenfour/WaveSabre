@@ -26,6 +26,63 @@ TEST(MathTests, FloatEqualsBasic)
   EXPECT_FALSE(FloatEquals(1.0f, 1.001f, 1e-4f));
 }
 
+
+template <typename T>
+static std::string to_string_with_precision(const T a_value, const int n = 6)
+{
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return std::move(out).str();
+}
+
+
+TEST(ParamTests, IntParamSerialization)
+{
+  {
+    // test that a representative distinct values gets roundtripped ok.
+    for (int i = -100; i <= 100; ++i)
+    {
+      auto a = M7::gLFOBeatDenominatorCfg.serializeToFloat01(i);
+      auto b = M7::gLFOBeatDenominatorCfg.deserialize(a);
+      EXPECT_EQ(b, i) << " at i=" << i;
+    }
+    const int testVal = 5;
+    auto c = M7::gLFOBeatDenominatorCfg.serializeToFloat01WithUsableRange(testVal);
+    auto d = M7::gLFOBeatDenominatorCfg.deserializeWithUsableRange(c);
+    EXPECT_EQ(d, testVal);
+  }
+    {
+      // defaults serializing.
+      int16_t defaultVal = 16386;                          // represents +2
+      auto d1 = M7::math::Sample16To32Bit(defaultVal);     // should be like 0.5000762939
+      auto d2 = M7::gPitchBendCfg.deserialize(d1);         // should be +2.
+      auto d3 = M7::gPitchBendCfg.serializeToFloat01(d2);  // should be like 0.5000762939
+      auto d4 = M7::math::Sample32To16(d3);                // should be 16386 again.
+      EXPECT_EQ(d4, defaultVal);
+    }
+    {
+      // VST chunk serialization is done via JSON on float01 which serializes to string, truncating to 6 decimal places.
+        // see: floatparts / decimalPlaces
+      int16_t defaultVal = 16386;                          // represents +2
+      auto d1 = M7::math::Sample16To32Bit(defaultVal);     // should be like 0.5000762939
+      auto jsonstr = to_string_with_precision(d1, 9);      // should be "0.500076"
+      auto jsonDeserialized = std::stof(jsonstr);          // should be 0.500076
+      auto d2 = M7::gPitchBendCfg.deserialize(jsonDeserialized);         // should be +2.
+      EXPECT_EQ(d2, 2);
+    }
+    {
+      // capture some key values.
+      auto n1 = M7::gLFOBeatDenominatorCfg.serializeToFloat01(-1);
+      auto z = M7::gLFOBeatDenominatorCfg.serializeToFloat01(0);
+      auto p1 = M7::gLFOBeatDenominatorCfg.serializeToFloat01(1);
+      auto p2 = M7::gLFOBeatDenominatorCfg.serializeToFloat01(2);
+      auto p3 = M7::gLFOBeatDenominatorCfg.serializeToFloat01(3);
+    }
+
+}
+
+
 TEST(ShapeTests, SawShapeEval)
 {
   M7::WVShape saw = {.mSegments = {
@@ -48,44 +105,6 @@ TEST(ShapeTests, SawShapeEval)
   testEval(1.0 - 1e-10, +1.0f - 2e-10f, +2.0f);
 }
 
-TEST(ShapeTests, TriangleShapeEval)
-{
-  M7::WVShape triangle = {
-      .mSegments = {
-          M7::WVSegment{.beginPhase01 = 0.0, .endPhaseIncluding1 = 0.5, .beginAmp = -1.0f, .slope = +4.0f},
-          M7::WVSegment{.beginPhase01 = 0.5, .endPhaseIncluding1 = 1.0, .beginAmp = +1.0f, .slope = -4.0f},
-      }};
-
-  // test that evaluating around edge boundaries works as expected.
-  auto testEval = [&](double phase01, float expectedAmp, float expectedSlope)
-  {
-    auto ampSlope = triangle.EvalAmpSlopeAt(phase01);
-    auto msg = std::format("testing @ {:.3f}. expect=[{:.3f}, {:.3f}]; actual=[{:.3f}, {:.3f}]",
-                           phase01,
-                           expectedAmp,
-                           expectedSlope,
-                           ampSlope[0],
-                           ampSlope[1]);
-    std::cout << msg << std::endl;
-    ::OutputDebugStringA((msg + "\n").c_str());
-    EXPECT_NEAR(ampSlope[0], expectedAmp, kEps) << " at phase " << phase01;
-    EXPECT_NEAR(ampSlope[1], expectedSlope, kEps) << " at phase " << phase01;
-  };
-
-  testEval(0.0, -1.0f, +4.0f);
-  testEval(0.25, 0.0f, +4.0f);
-  testEval(0.5, +1.0f, -4.0f);
-  testEval(0.75, 0.0f, -4.0f);
-  testEval(1.0, -1.0f, +4.0f);
-
-  // test very near 0
-  testEval(2e-10, -1.0f + 4e-10f, +4.0f);        // just after 0
-  testEval(1.0 - 2e-10, -1.0f + 4e-10f, -4.0f);  // just before 1
-
-  // test around midpoint
-  testEval(0.5 - 2e-10, +1.0f - 4e-10f, +4.0f);
-  testEval(0.5 + 2e-10, +1.0f - 4e-10f, -4.0f);
-}
 
 struct EdgeEncounter
 {

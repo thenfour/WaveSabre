@@ -1229,6 +1229,15 @@ struct NumberData
         }
     }
 
+template <typename T>
+static std::string to_string_with_precision(const T a_value, const int n = 6)
+{
+    std::ostringstream out;
+    out.precision(n);
+    out << std::fixed << a_value;
+    return std::move(out).str();
+}
+
     String ToString() const
     {
         switch (mType)
@@ -1238,7 +1247,7 @@ struct NumberData
         case NumberType::Undefined:
             return "<undefined>";
         case NumberType::Float:
-            return String("<float>:") + std::to_string(mFloatValue);
+            return String("<float>:") + to_string_with_precision(mFloatValue, 9);//std::to_string(mFloatValue);
         case NumberType::Integer:
             return String("<signed>:") + SignedIntegerToString(mIntValue);
         case NumberType::UInteger:

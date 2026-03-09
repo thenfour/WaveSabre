@@ -95,17 +95,14 @@ public:
 				elem.Object_MakeKey("BandASolo").WriteBoolean(p->mBands[0].mVSTConfig.mSolo);
 				elem.Object_MakeKey("BandAMute").WriteBoolean(p->mBands[0].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandAOutputStream").WriteNumberValue(int(p->mBands[0].mVSTConfig.mOutputStream));
-				//elem.Object_MakeKey("BandADisplayMode").WriteNumberValue(int(p->mBands[0].mVSTConfig.mDisplayStyle));
 
 				elem.Object_MakeKey("BandBSolo").WriteBoolean(p->mBands[1].mVSTConfig.mSolo);
 				elem.Object_MakeKey("BandBMute").WriteBoolean(p->mBands[1].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandBOutputStream").WriteNumberValue(int(p->mBands[1].mVSTConfig.mOutputStream));
-				//elem.Object_MakeKey("BandBDisplayMode").WriteNumberValue(int(p->mBands[1].mVSTConfig.mDisplayStyle));
 
 				elem.Object_MakeKey("BandCSolo").WriteBoolean(p->mBands[2].mVSTConfig.mSolo);
 				elem.Object_MakeKey("BandCMute").WriteBoolean(p->mBands[2].mVSTConfig.mMute);
 				elem.Object_MakeKey("BandCOutputStream").WriteNumberValue(int(p->mBands[2].mVSTConfig.mOutputStream));
-				//elem.Object_MakeKey("BandCDisplayMode").WriteNumberValue(int(p->mBands[2].mVSTConfig.mDisplayStyle));
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				auto& editor = *static_cast<WaveSabreVstLib::VstEditor*>(getEditor());
 				auto map = editor.GetVstOnlyParams();

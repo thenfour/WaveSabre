@@ -413,6 +413,7 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
 };
 
 // size-optimize using macro
+// clang-format off
 #define MOD_DEST_CAPTIONS                                                                                              \
   {                                                                                                                    \
       "None",                                                                                                          \
@@ -648,32 +649,237 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
 #define MODDEST_SHORT_CAPTIONS(symbolName)                                                                             \
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModDestination::Count]                       \
   {                                                                                                                    \
-    "-", "FMAmt", "Port", "Pan", "Filt1 Hz", "Filt1 Q", "Filt2 Hz", "Filt2 Q", "O1Vol", "O1Pan", "O1PreVol",           \
-        "O1ShapeA", "O1ShapeB", "O1Sync", "O1Freq", "O1Fine", "O1FMFB", "O1Phase", "O1EnvDly", "O1EnvAtt",             \
-        "O1EnvAttCrv", "O1EnvHold", "O1EnvDcy", "O1EnvDcyCrv", "O1EnvSus", "O1EnvRel", "O1EnvRelCrv", "O2Vol",         \
-        "O2Pan", "O2PreVol", "O2ShapeA", "O2ShapeB", "O2Sync", "O2Freq", "O2Fine", "O2FMFB", "O2Phase", "O2EnvDly",    \
-        "O2EnvAtt", "O2EnvAttCrv", "O2EnvHold", "O2EnvDcy", "O2EnvDcyCrv", "O2EnvSus", "O2EnvRel", "O2EnvRelCrv",      \
-        "O3Vol", "O3Pan", "O3PreVol", "O3ShapeA", "O3ShapeB", "O3Sync", "O3Freq", "O3Fine", "O3FMFB", "O3Phase",       \
-        "O3EnvDly", "O3EnvAtt", "O3EnvAttCrv", "O3EnvHold", "O3EnvDcy", "O3EnvDcyCrv", "O3EnvSus", "O3EnvRel",         \
-        "O3EnvRelCrv", "O4Vol", "O4Pan", "O4PreVol", "O4ShapeA", "O4ShapeB", "O4Sync", "O4Freq", "O4Fine", "O4FMFB",   \
-        "O4Phase", "O4EnvDly", "O4EnvAtt", "O4EnvAttCrv", "O4EnvHold", "O4EnvDcy", "O4EnvDcyCrv", "O4EnvSus",          \
-        "O4EnvRel", "O4EnvRelCrv", "Env1Dly", "Env1Att", "Env1AttCrv", "Env1Hold", "Env1Dcy", "Env1DcyCrv", "Env1Sus", \
-        "Env1Rel", "Env1RelCrv", "Env2Dly", "Env2Att", "Env2AttCrv", "Env2Hold", "Env2Dcy", "Env2DcyCrv", "Env2Sus",   \
-        "Env2Rel", "Env2RelCrv", "Env3Dly", "Env3Att", "Env3AttCrv", "Env3Hold", "Env3Dcy", "Env3DcyCrv", "Env3Sus",   \
-        "Env3Rel", "Env3RelCrv", "Env4Dly", "Env4Att", "Env4AttCrv", "Env4Hold", "Env4Dcy", "Env4DcyCrv", "Env4Sus",   \
-        "Env4Rel", "Env4RelCrv", "LFO1ShpA", "LFO1ShpB", "LFO1Freq", "LFO1Ph", "LFO1Shrp", "LFO2ShpA", "LFO2ShpB",     \
-        "LFO2Freq", "LFO2Ph", "LFO2Shrp", "LFO3ShpA", "LFO3ShpB", "LFO3Freq", "LFO3Ph", "LFO3Shrp", "LFO4ShpA",        \
-        "LFO4ShpB", "LFO4Freq", "LFO4Ph", "LFO4Shrp", "FM2to1", "FM3to1", "FM4to1", "FM1to2", "FM3to2", "FM4to2",      \
-        "FM1to3", "FM2to3", "FM4to3", "FM1to4", "FM2to4", "FM3to4", "S1Vol", "S1Pan", "S1PreVol", "S1Fine", "S1Freq",  \
-        "S1Strt", "S1Dly", "S1EnvDly", "S1EnvAtt", "S1EnvAttCrv", "S1EnvHold", "S1EnvDcy", "S1EnvDcyCrv", "S1EnvSus",  \
-        "S1EnvRel", "S1EnvRelCrv", "S2Vol", "S2Pan", "S2PreVol", "S2Fine", "S2Freq", "S2Strt", "S2Dly", "S2EnvDly",    \
-        "S2EnvAtt", "S2EnvAttCrv", "S2EnvHold", "S2EnvDcy", "S2EnvDcyCrv", "S2EnvSus", "S2EnvRel", "S2EnvRelCrv",      \
-        "S3Vol", "S3Pan", "S3PreVol", "S3Fine", "S3Freq", "S3Strt", "S3Dly", "S3EnvDly", "S3EnvAtt", "S3EnvAttCrv",    \
-        "S3EnvHold", "S3EnvDcy", "S3EnvDcyCrv", "S3EnvSus", "S3EnvRel", "S3EnvRelCrv", "S4Vol", "S4Pan", "S4PreVol",   \
-        "S4Fine", "S4Freq", "S4Strt", "S4Dly", "S4EnvDly", "S4EnvAtt", "S4EnvAttCrv", "S4EnvHold", "S4EnvDcy",         \
-        "S4EnvDcyCrv", "S4EnvSus", "S4EnvRel", "S4EnvRelCrv",                                                          \
+"-",  \
+"FMAmt",  \
+"Port",  \
+"Pan",  \
+"Filt1 Hz",  \
+"Filt1 Q",  \
+"Filt2 Hz",  \
+"Filt2 Q",  \
+"O1Vol",  \
+"O1Pan",  \
+"O1PreVol",  \
+"O1ShapeA",  \
+"O1ShapeB",  \
+"O1Sync",  \
+"O1Freq",  \
+"O1Fine",  \
+"O1FMFB",  \
+"O1Phase",  \
+"O1EnvDly",  \
+"O1EnvAtt",  \
+"O1EnvAttCrv",  \
+"O1EnvHold",  \
+"O1EnvDcy",  \
+"O1EnvDcyCrv",  \
+"O1EnvSus",  \
+"O1EnvRel",  \
+"O1EnvRelCrv",  \
+"O2Vol",  \
+"O2Pan",  \
+"O2PreVol",  \
+"O2ShapeA",  \
+"O2ShapeB",  \
+"O2Sync",  \
+"O2Freq",  \
+"O2Fine",  \
+"O2FMFB",  \
+"O2Phase",  \
+"O2EnvDly",  \
+"O2EnvAtt",  \
+"O2EnvAttCrv",  \
+"O2EnvHold",  \
+"O2EnvDcy",  \
+"O2EnvDcyCrv",  \
+"O2EnvSus",  \
+"O2EnvRel",  \
+"O2EnvRelCrv",  \
+"O3Vol",  \
+"O3Pan",  \
+"O3PreVol",  \
+"O3ShapeA",  \
+"O3ShapeB",  \
+"O3Sync",  \
+"O3Freq",  \
+"O3Fine",  \
+"O3FMFB",  \
+"O3Phase",  \
+"O3EnvDly",  \
+"O3EnvAtt",  \
+"O3EnvAttCrv",  \
+"O3EnvHold",  \
+"O3EnvDcy",  \
+"O3EnvDcyCrv",  \
+"O3EnvSus",  \
+"O3EnvRel",  \
+"O3EnvRelCrv",  \
+"O4Vol",  \
+"O4Pan",  \
+"O4PreVol",  \
+"O4ShapeA",  \
+"O4ShapeB",  \
+"O4Sync",  \
+"O4Freq",  \
+"O4Fine",  \
+"O4FMFB",  \
+"O4Phase",  \
+"O4EnvDly",  \
+"O4EnvAtt",  \
+"O4EnvAttCrv",  \
+"O4EnvHold",  \
+"O4EnvDcy",  \
+"O4EnvDcyCrv",  \
+"O4EnvSus",  \
+"O4EnvRel",  \
+"O4EnvRelCrv",  \
+"Env1Dly",  \
+"Env1Att",  \
+"Env1AttCrv",  \
+"Env1Hold",  \
+"Env1Dcy",  \
+"Env1DcyCrv",  \
+"Env1Sus",  \
+"Env1Rel",  \
+"Env1RelCrv",  \
+"Env2Dly",  \
+"Env2Att",  \
+"Env2AttCrv",  \
+"Env2Hold",  \
+"Env2Dcy",  \
+"Env2DcyCrv",  \
+"Env2Sus",  \
+"Env2Rel",  \
+"Env2RelCrv",  \
+"Env3Dly",  \
+"Env3Att",  \
+"Env3AttCrv",  \
+"Env3Hold",  \
+"Env3Dcy",  \
+"Env3DcyCrv",  \
+"Env3Sus",  \
+"Env3Rel",  \
+"Env3RelCrv",  \
+"Env4Dly",  \
+"Env4Att",  \
+"Env4AttCrv",  \
+"Env4Hold",  \
+"Env4Dcy",  \
+"Env4DcyCrv",  \
+"Env4Sus",  \
+"Env4Rel",  \
+"Env4RelCrv",  \
+"LFO1ShpA",  \
+"LFO1ShpB",  \
+"LFO1Freq",  \
+"LFO1_8ths",  \
+"LFO1_Ms",  \
+"LFO1_Trig",  \
+"LFO1Ph",  \
+"LFO1Shrp",  \
+"LFO2ShpA",  \
+"LFO2ShpB",  \
+"LFO2Freq",  \
+"LFO2_8ths",  \
+"LFO2_Ms",  \
+"LFO2_Trig",  \
+"LFO2Ph",  \
+"LFO2Shrp",  \
+"LFO3ShpA",  \
+"LFO3ShpB",  \
+"LFO3Freq",  \
+"LFO3_8ths",  \
+"LFO3_Ms",  \
+"LFO3_Trig",  \
+"LFO3Ph",  \
+"LFO3Shrp",  \
+"LFO4ShpA",  \
+"LFO4ShpB",  \
+"LFO4Freq",  \
+"LFO4_8ths",  \
+"LFO4_Ms",  \
+"LFO4_Trig",  \
+"LFO4Ph",  \
+"LFO4Shrp",  \
+"FM2to1",  \
+"FM3to1",  \
+"FM4to1",  \
+"FM1to2",  \
+"FM3to2",  \
+"FM4to2",  \
+"FM1to3",  \
+"FM2to3",  \
+"FM4to3",  \
+"FM1to4",  \
+"FM2to4",  \
+"FM3to4",  \
+"S1Vol",  \
+"S1Pan",  \
+"S1PreVol",  \
+"S1Fine",  \
+"S1Freq",  \
+"S1Strt",  \
+"S1Dly",  \
+"S1EnvDly",  \
+"S1EnvAtt",  \
+"S1EnvAttCrv",  \
+"S1EnvHold",  \
+"S1EnvDcy",  \
+"S1EnvDcyCrv",  \
+"S1EnvSus",  \
+"S1EnvRel",  \
+"S1EnvRelCrv",  \
+"S2Vol",  \
+"S2Pan",  \
+"S2PreVol",  \
+"S2Fine",  \
+"S2Freq",  \
+"S2Strt",  \
+"S2Dly",  \
+"S2EnvDly",  \
+"S2EnvAtt",  \
+"S2EnvAttCrv",  \
+"S2EnvHold",  \
+"S2EnvDcy",  \
+"S2EnvDcyCrv",  \
+"S2EnvSus",  \
+"S2EnvRel",  \
+"S2EnvRelCrv",  \
+"S3Vol",  \
+"S3Pan",  \
+"S3PreVol",  \
+"S3Fine",  \
+"S3Freq",  \
+"S3Strt",  \
+"S3Dly",  \
+"S3EnvDly",  \
+"S3EnvAtt",  \
+"S3EnvAttCrv",  \
+"S3EnvHold",  \
+"S3EnvDcy",  \
+"S3EnvDcyCrv",  \
+"S3EnvSus",  \
+"S3EnvRel",  \
+"S3EnvRelCrv",  \
+"S4Vol",  \
+"S4Pan",  \
+"S4PreVol",  \
+"S4Fine",  \
+"S4Freq",  \
+"S4Strt",  \
+"S4Dly",  \
+"S4EnvDly",  \
+"S4EnvAtt",  \
+"S4EnvAttCrv",  \
+"S4EnvHold",  \
+"S4EnvDcy",  \
+"S4EnvDcyCrv",  \
+"S4EnvSus",  \
+"S4EnvRel",  \
+"S4EnvRelCrv",  \
   }
 
+// clang-format on
 
 // some modulation specs are for internal purposes / locked into certain behavior.
 enum ModulationSpecType

@@ -1,7 +1,10 @@
 
 #pragma once
 
+#include <bit> // for bit_cast
+#include <stdint.h>
 #include <WaveSabreVstLib.h>
+
 
 class Maj7Vst : public WaveSabreVstLib::VstPlug
 {
@@ -135,7 +138,8 @@ public:
 				continue;// return 0; // already set. is this a duplicate? just ignore.
 			}
 
-			p->SetParam((VstInt32)it->second.second, ch.mNumericValue.Get<float>());
+			float val = DeserializeFloat01FromJson(ch);
+			p->SetParam((VstInt32)it->second.second, val);
 			it->second.first = true;
 		}
 
@@ -292,10 +296,15 @@ public:
 		{
 			if (diff) {
 				float def = mDefaultParamCache[i];
-				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i) - def);
+				float val = getParameter((VstInt32)i);
+				float delta = val - def;
+				auto serialized = SerializeFloat01ToJson(delta);
+				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(serialized);
 			}
 			else {
-				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(getParameter((VstInt32)i));
+				float val = getParameter((VstInt32)i);
+				auto serialized = SerializeFloat01ToJson(val);
+				paramsElement.Object_MakeKey(paramNames[i]).WriteNumberValue(serialized);
 			}
 		}
 		paramsElement.EnsureClosed();
@@ -388,10 +397,10 @@ public:
 
 		settingsObj.Object_MakeKey("PatchName").WriteStringValue(mPatchName);
 
-		settingsObj.Object_MakeKey("SelectedSource").WriteNumberValue(mSelectedSource);
-		settingsObj.Object_MakeKey("SelectedModEnvOrLFO").WriteNumberValue(mSelectedModEnvOrLFO);
-		settingsObj.Object_MakeKey("SelectedFilter").WriteNumberValue(mSelectedFilter);
-		settingsObj.Object_MakeKey("SelectedModulation").WriteNumberValue(mSelectedModulation);
+		settingsObj.Object_MakeKey("SelectedSource").WriteNumberValue(mSelectedSource); // int
+		settingsObj.Object_MakeKey("SelectedModEnvOrLFO").WriteNumberValue(mSelectedModEnvOrLFO); // int
+		settingsObj.Object_MakeKey("SelectedFilter").WriteNumberValue(mSelectedFilter); // int
+		settingsObj.Object_MakeKey("SelectedModulation").WriteNumberValue(mSelectedModulation); // int
 			
 		settingsObj.EnsureClosed();
 
