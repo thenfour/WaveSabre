@@ -29,6 +29,10 @@
 // user sample support (different than gmdls)
 #undef MAJ7_INCLUDE_GSM_SUPPORT
 
+// see width sources for more; mostly the rotation stuff.
+#define MAJ7WIDTH_FULL_FEATURE
+
+
 // 8 = 96db/oct
 // 4 = 48db/oct
 // this doesn't  really affect binary size. keep @ 8

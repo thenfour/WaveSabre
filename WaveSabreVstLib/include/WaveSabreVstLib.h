@@ -373,6 +373,17 @@ inline void PopulateStandardMenuBar(HWND hWnd,
       pDevice->LoadDefaults();
     }
 
+    if (ImGui::MenuItem("Generate defaults programmatically"))
+    {
+      pVst->GenerateDefaults();
+      // sync param cache with vst device.
+      for (size_t i = 0; i < paramCount; ++i)
+      {
+        //paramCache[(int)i] = pDevice->GetParam((int)i);
+        pVst->setParameter((int)i, paramCache[(int)i]);
+      }
+    }
+
     ImGui::Separator();
     if (ImGui::MenuItem("Show demo window", nullptr, &sShowDemoWindow))
     {

@@ -164,4 +164,57 @@ public:
 		  p.SetRawVal(Param::Pan, defaults.GetRawVal(Param::Pan));
 		}
 	}
+
+	virtual void GenerateDefaults() override
+	{
+		auto* pDevice = GetMaj7MBC();
+		auto& p = pDevice->mParams;
+		using Params = Maj7MBC::ParamIndices;
+		using BandParam = Maj7MBC::FreqBand::BandParam;
+
+		p.SetDecibels(Params::InputGain, M7::gVolumeCfg24db, 0.0f);
+		p.SetEnumValue(Params::ChannelMode, Maj7MBC::ChannelMode::Stereo);
+		p.SetBoolValue(Params::MultibandEnable, false);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverAFrequency, M7::gFilterFreqConfig, 550.0f);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverBFrequency, M7::gFilterFreqConfig, 3000.0f);
+		p.SetDecibels(Params::OutputGain, M7::gVolumeCfg24db, 0.0f);
+
+		p.SetBoolValue(Params::SoftClipEnable, true);
+		p.SetDecibels(Params::SoftClipThresh, M7::gUnityVolumeCfg, -6.0f);
+		p.SetDecibels(Params::SoftClipOutput, M7::gUnityVolumeCfg, -0.3f);
+
+		auto setBand = [&](Params base, bool enabled)
+		{
+			M7::ParamAccessor b{pDevice->mParamCache, base};
+
+			b.SetDecibels(BandParam::InputGain, M7::gVolumeCfg24db, 0.0f);
+			b.SetDecibels(BandParam::OutputGain, M7::gVolumeCfg24db, 0.0f);
+			b.SetRangedValue(BandParam::Threshold, -60.0f, 0.0f, -20.0f);
+			b.SetPowCurvedValue(BandParam::Attack, MonoCompressor::gAttackCfg, 50.0f);
+			b.SetPowCurvedValue(BandParam::Release, MonoCompressor::gReleaseCfg, 80.0f);
+			b.SetDivCurvedValue(BandParam::Ratio, MonoCompressor::gRatioCfg, 4.0f);
+			b.SetRangedValue(BandParam::Knee, 0.0f, 30.0f, 4.0f);
+			b.Set01Val(BandParam::ChannelLink, 0.8f);
+			b.SetBoolValue(BandParam::Enable, enabled);
+
+			b.SetBoolValue(BandParam::SidechainFilterEnable, false);
+			b.SetFrequencyAssumingNoKeytracking(BandParam::HighPassFrequency, M7::gFilterFreqConfig, 110.0f);
+			b.SetDivCurvedValue(BandParam::HighPassQ, M7::gBiquadFilterQCfg, 1.0f);
+			b.SetFrequencyAssumingNoKeytracking(BandParam::LowPassFrequency, M7::gFilterFreqConfig, 8000.0f);
+			b.SetDivCurvedValue(BandParam::LowPassQ, M7::gBiquadFilterQCfg, 1.0f);
+
+			b.SetRangedValue(BandParam::Drive, 0.0f, 30.0f, 0.0f);
+			b.SetEnumValue(BandParam::SaturationModel, M7::Maj7SaturationBase::Model::DivClipHard);
+			b.SetDecibels(BandParam::SaturationThreshold, M7::gUnityVolumeCfg, -8.0f);
+			b.SetRangedValue(BandParam::SaturationEvenHarmonics, 0.0f, 2.0f, 0.0f);
+
+			b.SetN11Value(BandParam::MidSideMix, 0.0f);
+			b.SetN11Value(BandParam::Pan, 0.0f);
+			b.Set01Val(BandParam::DryWet, 1.0f);
+		};
+
+		setBand(Params::AInputGain, false);
+		setBand(Params::BInputGain, true);
+		setBand(Params::CInputGain, false);
+	}
 };

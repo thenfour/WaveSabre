@@ -3,6 +3,7 @@
 
 #include <WaveSabreCore.h>
 using namespace WaveSabreCore;
+using namespace WaveSabreCore::M7;
 
 int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName,
                                                    int inpSize, void *inpData,
@@ -45,3 +46,4 @@ bool CathedralVst::getProductString(char *text) {
   vst_strncpy(text, "Maj7 - C Reverb", kVstMaxProductStrLen);
   return true;
 }
+

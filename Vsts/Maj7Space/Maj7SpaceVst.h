@@ -99,4 +99,41 @@ public:
       p.SetRawVal(Params::ReverbVolume, defaults.GetRawVal(Params::ReverbVolume));
     }
   }
+
+  virtual void GenerateDefaults() override
+  {
+    auto& p = GetMaj7Space()->mParams;
+    using Params = Maj7Space::ParamIndices;
+
+    p.SetIntValue(Params::DelayLeftDelayCoarse, 3);
+    p.SetN11Value(Params::DelayLeftDelayFine, 0);
+    p.SetBipolarPowCurvedValue(Params::DelayLeftDelayMS, M7::gEnvTimeCfg, 0.0f);
+
+    p.SetIntValue(Params::DelayRightDelayCoarse, 4);
+    p.SetN11Value(Params::DelayRightDelayFine, 0);
+    p.SetBipolarPowCurvedValue(Params::DelayRightDelayMS, M7::gEnvTimeCfg, 0.0f);
+
+    p.SetFrequencyAssumingNoKeytracking(Params::DelayLowCutFreq, M7::gFilterFreqConfig, 50.0f);
+    p.SetDivCurvedValue(Params::DelayLowCutQ, M7::gBiquadFilterQCfg, 0.75f);
+    p.SetFrequencyAssumingNoKeytracking(Params::DelayHighCutFreq, M7::gFilterFreqConfig, 8500.0f);
+    p.SetDivCurvedValue(Params::DelayHighCutQ, M7::gBiquadFilterQCfg, 0.75f);
+
+    p.SetDecibels(Params::DelayFeedbackLevel, M7::gVolumeCfg6db, -15.0f);
+    p.SetDecibels(Params::DelayFeedbackDriveDB, M7::gVolumeCfg36db, 3.0f);
+    p.Set01Val(Params::DelayCross, 0.25f);
+
+    p.Set01Val(Params::ReverbRoomSize, 0.5f);
+    p.Set01Val(Params::ReverbDamp, 0.15f);
+    p.Set01Val(Params::ReverbWidth, 0.9f);
+    p.SetFrequencyAssumingNoKeytracking(Params::ReverbLowCutFreq, M7::gFilterFreqConfig, 145.0f);
+    p.SetFrequencyAssumingNoKeytracking(Params::ReverbHighCutFreq, M7::gFilterFreqConfig, 5500.0f);
+    p.SetRangedValue(Params::ReverbPreDelay, 0.0f, 500.0f, 1.0f);
+
+    p.SetBoolValue(Params::DelayEnabled, true);
+    p.SetBoolValue(Params::ReverbEnabled, true);
+
+    p.SetDecibels(Params::DryVolume, M7::gVolumeCfg12db, 0.0f);
+    p.SetDecibels(Params::DelayVolume, M7::gVolumeCfg12db, -12.0f);
+    p.SetDecibels(Params::ReverbVolume, M7::gVolumeCfg12db, -12.0f);
+  }
 };

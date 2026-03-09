@@ -206,7 +206,7 @@ namespace WaveSabreCore
 static_assert((int)ParamIndices::NumParams == 16, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   8230, // InpGain = 0.25118863582611083984
-  21845, // Thresh = 0.666656494140625
+  21845, // Thresh = 0.6666666865348815918
   15269, // Attack = 0.46597486734390258789
   15909, // Release = 0.48552104830741882324
   18939, // Ratio = 0.57798200845718383789
@@ -215,11 +215,11 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   8230, // CompGain = 0.25118863582611083984
   32767, // DryWet = 1
   0, // SCFEn = 0
-  0, // HPF = 0
-  6553, // HPQ = 0.199981689453125
-  32767, // LPF = 0.999969482421875
-  6553, // LPQ = 0.199981689453125
-  0, // OutSig = 0
+  5949, // HPF = 0.18155753612518310547
+  6553, // HPQ = 0.20000000298023223877
+  26214, // LPF = 0.80000001192092895508
+  6553, // LPQ = 0.20000000298023223877
+  16386, // OutSig = 0.50006103515625
   8230, // OutGain = 0.25118863582611083984
 };
 

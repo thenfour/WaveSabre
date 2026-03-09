@@ -867,7 +867,7 @@ public:
     float defaultParamVal = cfg.serializeToFloat01WithUsableRange(v_defaultScaled);
     float centerParamVal = cfg.serializeToFloat01WithUsableRange(v_centerScaled);
     float tempValRaw = GetEffectX()->getParameter((VstInt32)paramID);
-    int tempValInt = cfg.deserialize(tempValRaw);
+    int tempValInt = cfg.deserializeFromFloat01(tempValRaw);
     float tempVal = cfg.serializeToFloat01WithUsableRange(tempValInt);
 
     Maj7IntConverter conv{cfg};
@@ -890,7 +890,7 @@ public:
     {
       // tempVal is in 0..1 with the param's usable range.
         // so convert to int, then to 0..1 in the full int param range.
-      const int intVal = cfg.deserializeWithUsableRange(tempVal);
+      const int intVal = cfg.deserializeFromFloat01WithUsableRange(tempVal);
       const float serializedFullRange = cfg.serializeToFloat01(intVal);
       GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
     }
@@ -912,7 +912,7 @@ public:
     float defaultParamVal = cfg.serializeToFloat01WithUsableRange(defaultVal);
     float centerParamVal = cfg.serializeToFloat01WithUsableRange(centerVal);
     float tempValRaw = GetEffectX()->getParameter((VstInt32)paramID);
-    int tempValInt = cfg.deserialize(tempValRaw);
+    int tempValInt = cfg.deserializeFromFloat01(tempValRaw);
     float tempVal = cfg.serializeToFloat01WithUsableRange(tempValInt);
 
     Maj7MidiNoteConverter conv;
@@ -935,7 +935,7 @@ public:
     {
       // tempVal is in 0..1 with the param's usable range.
       // so convert to int, then to 0..1 in the full int param range.
-      const int intVal = cfg.deserializeWithUsableRange(tempVal);
+      const int intVal = cfg.deserializeFromFloat01WithUsableRange(tempVal);
       const float serializedFullRange = cfg.serializeToFloat01(intVal);
       GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
     }

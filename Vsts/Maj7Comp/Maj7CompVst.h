@@ -67,5 +67,30 @@ public:
 		}
 	}
 
+	virtual void GenerateDefaults() override {
+		auto& p = GetMaj7Comp()->mParams;
+		using Params = Maj7Comp::ParamIndices;
+
+		p.SetDecibels(Params::InputGain, M7::gVolumeCfg24db, 0.0f);
+		p.SetRangedValue(Params::Threshold, -60.0f, 0.0f, -20.0f);
+		p.SetPowCurvedValue(Params::Attack, MonoCompressor::gAttackCfg, 50.0f);
+		p.SetPowCurvedValue(Params::Release, MonoCompressor::gReleaseCfg, 80.0f);
+		p.SetDivCurvedValue(Params::Ratio, MonoCompressor::gRatioCfg, 4.0f);
+		p.SetRangedValue(Params::Knee, 0.0f, 30.0f, 4.0f);
+		p.Set01Val(Params::ChannelLink, 0.8f);
+
+		p.SetDecibels(Params::CompensationGain, M7::gVolumeCfg24db, 0.0f);
+		p.Set01Val(Params::DryWet, 1.0f);
+
+		p.SetBoolValue(Params::EnableSidechainFilter, false);
+		p.SetFrequencyAssumingNoKeytracking(Params::HighPassFrequency, M7::gFilterFreqConfig, 110.0f);
+		p.Set01Val(Params::HighPassQ, 0.2f);
+		p.SetFrequencyAssumingNoKeytracking(Params::LowPassFrequency, M7::gFilterFreqConfig, 8000.0f);
+		p.Set01Val(Params::LowPassQ, 0.2f);
+
+		p.SetEnumValue(Params::OutputSignal, Maj7Comp::OutputSignal::Normal);
+		p.SetDecibels(Params::OutputGain, M7::gVolumeCfg24db, 0.0f);
+	}
 
 };
+

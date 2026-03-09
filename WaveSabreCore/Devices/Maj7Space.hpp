@@ -85,30 +85,30 @@ struct Maj7Space : public Device
 
 static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-  24, // LdlyC = 0.000732421875
-  15433, // LdlyF = 0.470977783203125
+  16398, // LdlyC = 0.50042724609375
+  16384, // LdlyF = 0.5
   16384, // LdlyMS = 0.5
-  32, // RdlyC = 0.0009765625
-  17334, // RdlyF = 0.52899169921875
+  16402, // RdlyC = 0.50054931640625
+  16384, // RdlyF = 0.5
   16384, // RdlyMS = 0.5
-  2221, // LCFreq = 0.067779541015625
-  11459, // LCQ = 0.349700927734375
-  26500, // HCFreq = 0.8087158203125
-  11459, // HCQ = 0.349700927734375
-  9782, // FbLvl = 0.29852294921875
-  4902, // FbDrive = 0.14959716796875
+  2221, // LCFreq = 0.06780719757080078125
+  8508, // LCQ = 0.25965651869773864746
+  26500, // HCFreq = 0.80874627828598022461
+  8508, // HCQ = 0.25965651869773864746
+  9782, // FbLvl = 0.29853826761245727539
+  4902, // FbDrive = 0.14962357282638549805
   8192, // Cross = 0.25
   16384, // VRoomSz = 0.5
-  4915, // VDamp = 0.149993896484375
-  29491, // VWidth = 0.899993896484375
-  7255, // VLCFreq = 0.221405029296875
-  24443, // VHCFreq = 0.745941162109375
-  0, // VPreDly = 0
+  4915, // VDamp = 0.15000000596046447754
+  29491, // VWidth = 0.89999997615814208984
+  7255, // VLCFreq = 0.22141247987747192383
+  24443, // VHCFreq = 0.74594312906265258789
+  65, // VPreDly = 0.0020000000949949026108
   32767, // DlyEn = 1
   32767, // VerbEn = 1
-  16422, // DryOut = 0.50115966796875
-  8230, // DlyOut = 0.25115966796875
-  9782, // RevOut = 0.29852294921875
+  16422, // DryOut = 0.50118720531463623047
+  8230, // DlyOut = 0.25118863582611083984
+  8230, // RevOut = 0.25118863582611083984
 };
 
   float mParamCache[(int)ParamIndices::NumParams];
@@ -225,7 +225,7 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
     auto roomSize = mParams.Get01Value(ParamIndices::ReverbRoomSize);
     roomSize = 1.0f - roomSize;
     M7::ParamAccessor pa{&roomSize, 0};
-    float t = pa.GetDivCurvedValue(0, {0.0f, 1.0f, 1.140f}, 0);
+    float t = pa.GetDivCurvedValue(0, M7::gRoomSizeParamCfg, 0);
     roomSize = 1.0f - t;
     mReverbCore.roomSize = M7::math::clamp01(roomSize);
 

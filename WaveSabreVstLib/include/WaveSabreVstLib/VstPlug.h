@@ -247,6 +247,8 @@ public:
   // default impl does nothing.
   virtual void OptimizeParams();
 
+  virtual void GenerateDefaults() = 0;
+
   virtual const char* GetJSONTagName() = 0;
 
   using ParamAccessor = ::WaveSabreCore::M7::ParamAccessor;

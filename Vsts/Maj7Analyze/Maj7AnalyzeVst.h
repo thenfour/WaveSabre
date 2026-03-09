@@ -83,4 +83,8 @@ public:
   {
     return (Maj7Analyze*)getDevice();
   }
+
+	virtual void GenerateDefaults() override
+	{
+	}
 };

@@ -97,6 +97,40 @@ public:
     OptimizeBand(Params::CModel);
   }
 
+  virtual void GenerateDefaults() override {
+    auto *pDevice = GetMaj7Sat();
+    auto &p = pDevice->mParams;
+    using Params = Maj7Sat::ParamIndices;
+    using BandParam = Maj7Sat::FreqBand::BandParam;
+
+    p.SetDecibels(Params::InputGain, M7::gVolumeCfg24db, 0.0f);
+    p.SetFrequencyAssumingNoKeytracking(Params::CrossoverAFrequency, M7::gFilterFreqConfig, 550.0f);
+    p.SetFrequencyAssumingNoKeytracking(Params::CrossoverBFrequency, M7::gFilterFreqConfig, 3000.0f);
+    p.Set01Val(Params::OverallDryWet, 1.0f);
+    p.SetDecibels(Params::OutputGain, M7::gVolumeCfg24db, 0.0f);
+
+    auto setBand = [&](Params base)
+    {
+      M7::ParamAccessor b{pDevice->mParamCache, base};
+      b.SetEnumValue(BandParam::Model, Maj7Sat::Model::TanhClip);
+      b.SetDecibels(BandParam::Drive, M7::gVolumeCfg36db, 0.0f);
+      b.SetDecibels(BandParam::CompensationGain, M7::gVolumeCfg12db, 0.0f);
+      b.SetDecibels(BandParam::OutputGain, M7::gVolumeCfg12db, 0.0f);
+      b.SetDecibels(BandParam::Threshold, M7::gUnityVolumeCfg, -8.0f);
+#ifdef MAJ7SAT_ENABLE_ANALOG
+      b.SetRangedValue(BandParam::EvenHarmonics, 0.0f, Maj7Sat::gAnalogMaxLin, 0.12f);
+#else
+      b.SetRangedValue(BandParam::EvenHarmonics, 0.0f, Maj7Sat::gAnalogMaxLin, 0.0f);
+#endif
+      b.Set01Val(BandParam::DryWet, 1.0f);
+      b.SetBoolValue(BandParam::EnableEffect, false);
+    };
+
+    setBand(Params::AModel);
+    setBand(Params::BModel);
+    setBand(Params::CModel);
+  }
+
   void OptimizeBand(Maj7Sat::ParamIndices baseParam) {
     M7::ParamAccessor defaults{mDefaultParamCache.data(), baseParam};
     M7::ParamAccessor p{GetMaj7Sat()->mParamCache, baseParam};

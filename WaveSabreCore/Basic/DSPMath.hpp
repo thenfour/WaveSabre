@@ -46,7 +46,11 @@ struct IntParamConfig
   // so when the synth design changes it doesn't clobber existing presets.
   // #130; this should also not be too large, otherwise discrete values are extremely
   // close together in float space and dragging knobs can feel jumpy / awkward / unstable.
-  static constexpr int kSerializableScale = 4096;
+  //
+  // NB: keep also in mind that we must serialize to 0-1 floats, not bipolars.
+  // -4096 .. +4096 shall map to 0 .. 8192.
+  static constexpr int kSerializableOffset = 4096;
+  static constexpr int kSerializableScale = 2 * kSerializableOffset;
 
   constexpr IntParamConfig(int minValInclusive, int maxValInclusive)
     : mMinValInclusive(minValInclusive)
@@ -55,23 +59,26 @@ struct IntParamConfig
   {
   }
 
-
   [[nodiscard]]
   static constexpr float serializeToFloat01(int code)
   {
-    const float scaled = float(code) / float(kSerializableScale);
-    return math::clamp01(scaled);
+    //const float scaled = float(code) / float(kSerializableScale);
+    //return math::clamp01(scaled);
+    const int clamped = math::ClampI(code, -kSerializableOffset, kSerializableOffset);
+    const int index = clamped + kSerializableOffset;
+    return (float(index) + 0.5f) / float(kSerializableScale);
   }
 
   [[nodiscard]]
-  static constexpr int deserialize(float f01)
+  static constexpr int deserializeFromFloat01(float f01)
   {
     const float clamped = math::clamp01(f01);
     const int index = int(clamped * float(kSerializableScale));
-    return index;
+    return index - kSerializableOffset;
   }
 
 #ifndef MIN_SIZE_REL
+
   // this is for knobs / UI -- careful never to use this as part of the synth's internal param handling
   [[nodiscard]]
   float serializeToFloat01WithUsableRange(int code) const
@@ -82,7 +89,7 @@ struct IntParamConfig
   }
 
   [[nodiscard]]
-  int deserializeWithUsableRange(float f01) const
+  int deserializeFromFloat01WithUsableRange(float f01) const
   {
     const float clamped = math::clamp01(f01);
     int index = int(clamped * float(mUsableCount));

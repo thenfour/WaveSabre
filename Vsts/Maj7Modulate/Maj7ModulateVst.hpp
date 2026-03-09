@@ -88,4 +88,8 @@ public:
 		M7::ParamAccessor defaults{ mDefaultParamCache.data(), 0 };
 		M7::ParamAccessor p{ GetMaj7Modulate()->mParamCache, 0 };
 	}
+
+	virtual void GenerateDefaults() override
+	{
+	}
 };

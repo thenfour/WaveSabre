@@ -5,8 +5,6 @@
 #include "../Filters/FilterOnePole.hpp"
 #include "../Analysis/StereoImageAnalysis.hpp"
 
-#define MAJ7WIDTH_FULL_FEATURE
-
 namespace WaveSabreCore
 {
 	struct Maj7Width : public Device
@@ -40,17 +38,17 @@ namespace WaveSabreCore
 
 		float mParamCache[(int)ParamIndices::NumParams];
 		M7::ParamAccessor mParams;
-
-		static_assert((int)ParamIndices::NumParams == 7, "param count probably changed and this needs to be regenerated.");
-		static constexpr int16_t gParamDefaults[7] = {
-		  0, // LSrc = 0
-		  32767, // RSrc = 1
-		  16384, // Rot = 0.5
-		  0, // SideHPF = 0
-		  16384, // MSBal = 0.5
-		  16384, // Pan = 0.5
-		  16422, // OutGain = 0.50118720531463623047
-		};
+		
+static_assert((int)ParamIndices::NumParams == 7, "param count probably changed and this needs to be regenerated.");
+static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
+  0, // LSrc = 0
+  32767, // RSrc = 1
+  16384, // Rot = 0.5
+  0, // SideHPF = 0
+  16384, // MSBal = 0.5
+  16384, // Pan = 0.5
+  16422, // OutGain = 0.50118720531463623047
+};
 
 		M7::MoogOnePoleFilter mFilter;
 
@@ -90,7 +88,7 @@ namespace WaveSabreCore
 
 		virtual void Run(float** inputs, float** outputs, int numSamples) override
 		{
-			auto gains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
+			auto panGains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
 			mFilter.SetParams(M7::FilterCircuit::OnePole, M7::FilterSlope::Slope6dbOct,
                         M7::FilterResponse::Highpass,
                         mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig),
@@ -123,7 +121,8 @@ namespace WaveSabreCore
 					ms.x[0] *= 1.0f - msbal;
 				}
 
-				auto output = ms.MSDecode() * masterLinearGain;
+				auto outputPrePan = ms.MSDecode() * masterLinearGain;
+				auto output = outputPrePan.mul(panGains);
 
 				//M7::MSDecode(mid, side, &left, &right);
 				//left *= gains.x[0] * masterLinearGain;

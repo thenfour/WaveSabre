@@ -271,7 +271,7 @@ struct Maj7IntConverter : ImGuiKnobs::IValueConverter
 
   virtual std::string ParamToDisplayString(double param01Usable, void* capture, bool inputContinuity) override
   {
-    int val = mCfg.deserializeWithUsableRange((float)param01Usable);
+    int val = mCfg.deserializeFromFloat01WithUsableRange((float)param01Usable);
     char s[100] = {0};
     sprintf_s(s, "%d", val);
     return s;
@@ -305,7 +305,7 @@ struct Maj7MidiNoteConverter : ImGuiKnobs::IValueConverter
     mBacking = (float)param;
     auto& cfg = M7::gKeyRangeCfg;
     //return midiNoteToString(mParams.GetIntValue(0));
-    int midiNote = cfg.deserializeWithUsableRange(mBacking);
+    int midiNote = cfg.deserializeFromFloat01WithUsableRange(mBacking);
     return midiNoteToString(midiNote);
   }
 };

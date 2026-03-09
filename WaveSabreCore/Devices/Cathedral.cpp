@@ -54,15 +54,7 @@ void Cathedral::OnParamsChanged()
   mCore.lowCutFreq = mParams.GetFrequency(ParamIndices::LowCutFreq, M7::gFilterFreqConfig);
   mCore.highCutFreq = mParams.GetFrequency(ParamIndices::HighCutFreq, M7::gFilterFreqConfig);
 
-  // roomsize is not a linear param. it's also not a div-curved param; it's inverted.
-  // gotta flip -> map -> flip.
-  auto roomSize = mParams.Get01Value(ParamIndices::RoomSize);
-  roomSize = 1.0f - roomSize;
-  M7::ParamAccessor pa{&roomSize, 0};
-  float t = pa.GetDivCurvedValue(0, {0.0f, 1.0f, 1.140f}, 0);
-  roomSize = 1.0f - t;
-  mCore.roomSize = M7::math::clamp01(roomSize);
-  //mCore.roomSize = mParams.GetDivCurvedValue(ParamIndices::RoomSize, Cathedral::mRoomSizeParamCfg);
+  mCore.roomSize = mParams.GetInvDivCurvedValue(ParamIndices::RoomSize, M7::gRoomSizeParamCfg);
 
   mCore.Update();
 }

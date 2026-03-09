@@ -447,7 +447,7 @@ public:
                                    "WaveSabre - Maj7",
                                    MB_YESNO | MB_ICONQUESTION))
         {
-          GenerateDefaults(pMaj7);
+           mpMaj7VST->GenerateDefaults();
         }
       }
 

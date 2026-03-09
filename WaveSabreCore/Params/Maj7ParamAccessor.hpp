@@ -105,8 +105,9 @@ static constexpr float gEqBandGainMax = 30;
 
 // actually biquads only use this internally. externally i don't think we have any place to directly expose Q in decibels, 
 // because you are always operating on 0-1 "resonance" params for cross-filter support.
-extern __declspec(selectany) const M7::DivCurvedParamCfg gBiquadFilterQCfg{0.2f, 18.0f, 1.1f};
-//extern __declspec(selectany) const M7::DivCurvedParamCfg gBiquadFilterQCfg_Steep{0.2f, 24.0f, 1.1f};
+extern __declspec(selectany) const DivCurvedParamCfg gBiquadFilterQCfg{0.2f, 18.0f, 1.1f};
+extern __declspec(selectany) const DivCurvedParamCfg gRoomSizeParamCfg = {0.0f, 1.0f, 1.140f};
+
 
 
 struct ParamAccessor
@@ -257,6 +258,7 @@ struct ParamAccessor
   }
 
 
+  // DIV-CURVED PARAMS
   NOINLINE float GetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;
   template <typename Toffset>
   float GetDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float mod = 0) const
@@ -274,6 +276,26 @@ struct ParamAccessor
     SetDivCurvedValue__((int)offset, cfg, v);
   }
 
+
+  // INV DIV-CURVED PARAMS (reverb room size)
+  NOINLINE float GetInvDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const;
+  template <typename Toffset>
+  float GetInvDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float mod = 0) const
+  {
+    static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+    return GetInvDivCurvedValue__((int)offset, cfg, mod);
+  }
+
+  void SetInvDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float v);
+
+  template <typename Toffset>
+  void SetInvDivCurvedValue(Toffset offset, const DivCurvedParamCfg& cfg, float v)
+  {
+    static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+    SetInvDivCurvedValue__((int)offset, cfg, v);
+  }
+
+  // ------------------------------------------
   float ApplyCurveToValue__(int offset, float x, float modVal) const;
   template <typename Toffset>
   real_t ApplyCurveToValue(Toffset offset, real_t x, real_t mod = 0.0f) const
@@ -745,6 +767,33 @@ public:
   {
     mHasValue = true;
     mAccessor.SetDivCurvedValue(0, cfg, val);
+    return mBacking;
+  }
+
+
+  // INV DIV-CURVED -------------------------------------------------------------------------------
+  float GetInvDivCurvedValue() const
+  {
+    CCASSERT(mHasValue);
+    CCASSERT(mHasDivCurvedCfg);
+    return mAccessor.GetInvDivCurvedValue(0, mDivCurvedCfg, 0);
+  }
+  float SetInvDivCurvedValue(float val)
+  {
+    CCASSERT(mHasDivCurvedCfg);
+    mHasValue = true;
+    mAccessor.SetInvDivCurvedValue(0, mDivCurvedCfg, val);
+    return mBacking;
+  }
+  float GetInvDivCurvedValue(const DivCurvedParamCfg& cfg) const
+  {
+    CCASSERT(mHasValue);
+    return mAccessor.GetInvDivCurvedValue(0, cfg, 0);
+  }
+  float SetInvDivCurvedValue(const DivCurvedParamCfg& cfg, float val)
+  {
+    mHasValue = true;
+    mAccessor.SetInvDivCurvedValue(0, cfg, val);
     return mBacking;
   }
 

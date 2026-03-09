@@ -60,5 +60,9 @@ public:
 		M7::ParamAccessor p{ GetMaj7Crush()->mParamCache, 0 };
 	}
 
+	
+	virtual void GenerateDefaults() override
+	{
+	}
 
 };

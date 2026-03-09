@@ -346,7 +346,9 @@ struct Maj7 : public Maj7SynthDevice
     // validate values.
     if (mVoicesUnisono < 1 || mVoicesUnisono > gUnisonoVoiceMax)
     {
-      throw std::runtime_error("Invalid unisono voice count loaded from defaults.");
+        // clamp and allow execution in order to access the UI for investigation / generating defaults.
+        mVoicesUnisono = 1;
+      //throw std::runtime_error("Invalid unisono voice count loaded from defaults.");
     }
     #endif
 

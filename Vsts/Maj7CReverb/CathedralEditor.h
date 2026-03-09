@@ -25,7 +25,8 @@ public:
     PopulateStandardMenuBar(mCurrentWindow, "Maj7 - C Reverb", mpCathedral,
                             mpCathedralVST, "gParamDefaults",
                             "Cathedral::ParamIndices::NumParams",
-                            mpCathedral->mParamCache, paramNames);
+                            mpCathedral->mParamCache,
+        paramNames);
   }
 
   virtual void renderImgui() override {

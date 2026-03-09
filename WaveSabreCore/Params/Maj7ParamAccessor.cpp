@@ -28,7 +28,7 @@ namespace WaveSabreCore
 		}
 		int ParamAccessor::GetIntValue__(int offset) const {
 			const auto y01 = GetRawVal__(offset); // float 0 to 1
-			return IntParamConfig::deserialize(y01);
+			return IntParamConfig::deserializeFromFloat01(y01);
 		}
 		void ParamAccessor::SetRawVal__(int offset, float v) const {
 			mParamCache[mBaseParamID + offset] = v;
@@ -117,6 +117,26 @@ namespace WaveSabreCore
 		void ParamAccessor::SetDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float x)
 		{
 			float p01 = cfg.ValueToParam01(x);
+			this->SetRawVal__(offset, p01);
+		}
+
+		// inverted div curved value ...
+		float ParamAccessor::GetInvDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float mod) const
+		{
+			float param01 = this->GetRawVal__(offset) + mod;
+			param01 = 1.0f - param01;
+			auto val = cfg.Param01ToValue(param01);
+			val = 1.0f - val;
+			return math::clamp01(val);
+		}
+
+		void ParamAccessor::SetInvDivCurvedValue__(int offset, const DivCurvedParamCfg& cfg, float x)
+		{
+			// float p01 = cfg.ValueToParam01(x);
+			// this->SetRawVal__(offset, p01);
+			float invX = 1.0f - x;
+			float p01 = cfg.ValueToParam01(invX);
+			p01 = 1.0f - p01;
 			this->SetRawVal__(offset, p01);
 		}
 

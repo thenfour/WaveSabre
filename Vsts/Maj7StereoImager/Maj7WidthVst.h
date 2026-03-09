@@ -44,4 +44,19 @@ public:
 			}
 		});
 	}
+
+	virtual void GenerateDefaults() override
+	{
+		auto& p = GetMaj7Width()->mParams;
+		using Params = Maj7Width::ParamIndices;
+
+		p.SetN11Value(Params::LeftSource, -1.0f);
+		p.SetN11Value(Params::RightSource, 1.0f);
+		p.SetRangedValue(Params::RotationAngle, -M7::math::gPI, M7::math::gPI, 0.0f);
+		//p.SetFrequencyAssumingNoKeytracking(Params::SideHPFrequency, M7::gFilterFreqConfig, 20.0f);
+		p.SetRawVal(Params::SideHPFrequency, 0);
+		p.SetN11Value(Params::MidSideBalance, 0.0f);
+		p.SetN11Value(Params::Pan, 0.0f);
+		p.SetDecibels(Params::OutputGain, Maj7Width::gVolumeCfg, 0.0f);
+	}
 };

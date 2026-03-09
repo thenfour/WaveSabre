@@ -6,6 +6,12 @@
 #include <WaveSabreVstLib.h>
 
 
+
+namespace WaveSabreCore::M7
+{
+extern void GenerateGigaSynthDefaults(Maj7* p);
+}
+
 class Maj7Vst : public WaveSabreVstLib::VstPlug
 {
 public:
@@ -719,6 +725,10 @@ public:
 	}
 
 	WaveSabreCore::M7::Maj7 *GetMaj7() const;
+
+	virtual void GenerateDefaults() override {
+    WaveSabreCore::M7::GenerateGigaSynthDefaults(GetMaj7());
+	}
 }; // Maj7Vst
 
 
@@ -876,7 +886,7 @@ namespace WaveSabreCore
 		//extern const float gDefaultOscillatorParams[(int)OscParamIndexOffsets::Count];
 		//extern const float gDefaultAuxParams[(int)AuxParamIndexOffsets::Count];
 		// yea it's not strictly necessary to do this to *all* e.g. oscillators (only 1 is needed to generate the struct), but at least this is more predictable.
-		static inline void GenerateDefaults(Maj7* p)
+		static inline void GenerateGigaSynthDefaults(Maj7* p)
 		{
 			// set baseline 0
 			for (int i = 0; i < (int)GigaSynthParamIndices::NumParams; ++i) {
