@@ -267,7 +267,7 @@ INLINE float expf(float x)
 template<typename T>
 constexpr INLINE T round(float x)
 {
-  return (T)(x + 0.5f);
+  return (T)std::roundf(x); // negative-aware.
 }
 
 INLINE float fmodf(float x, float q) {

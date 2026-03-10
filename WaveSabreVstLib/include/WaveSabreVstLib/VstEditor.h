@@ -892,7 +892,7 @@ public:
         // so convert to int, then to 0..1 in the full int param range.
       const int intVal = cfg.deserializeFromFloat01WithUsableRange(tempVal);
       const float serializedFullRange = cfg.serializeToFloatN11(intVal);
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
+      GetEffectX()->setParameterAutomated(paramID, serializedFullRange);
     }
   }
 
@@ -937,7 +937,7 @@ public:
       // so convert to int, then to 0..1 in the full int param range.
       const int intVal = cfg.deserializeFromFloat01WithUsableRange(tempVal);
       const float serializedFullRange = cfg.serializeToFloatN11(intVal);
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
+      GetEffectX()->setParameterAutomated(paramID, serializedFullRange);
     }
   }
 
