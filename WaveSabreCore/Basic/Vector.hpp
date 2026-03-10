@@ -6,6 +6,8 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+// TODO: make this a POD-only vector, and place code in a cpp to avoid template bloat.
+// TODO: use for other POD vectors like AudioBuffer, Serializer, sample buffers, ...
 template <typename T>
 struct Vector
 {
@@ -87,19 +89,6 @@ struct Vector
     return mData.get() + mSize;
   }
 
-  // void erase(const_iterator pos)
-  // {
-  //   if (pos >= begin() && pos < end())
-  //   {
-  //     size_t index = pos - begin();
-  //     for (size_t i = index; i + 1 < mSize; ++i)
-  //     {
-  //       mData[i] = std::move(mData[i + 1]);
-  //     }
-  //     --mSize;
-  //   }
-  // }
-
   void erase(const_iterator first, const_iterator last)
   {
     if (first >= begin() && last <= end() && first <= last)
@@ -114,7 +103,6 @@ struct Vector
       mSize -= count;
     }
   }
-  
 };
 }  // namespace M7
 

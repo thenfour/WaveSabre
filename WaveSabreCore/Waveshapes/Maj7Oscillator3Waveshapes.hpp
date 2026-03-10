@@ -2,15 +2,16 @@
 
 #include <algorithm>  // for std::sort, std::unique
 
-#include "./Maj7Oscillator3Shape.hpp"
-#include "./Maj7Oscillator4WS.hpp"
+#include "../Basic/Noise.hpp"
+#include "../Basic/Vector.hpp"
 #include "../Filters/BandSplitter.hpp"
 #include "../Filters/BiquadFilter.h"
 #include "../Filters/LinkwitzRileyFilter.hpp"
 #include "../Filters/SVFilter.hpp"
 #include "../GigaSynth/Maj7Basic.hpp"
 #include "../GigaSynth/Maj7Oscillator3Base.hpp"
-#include "../Basic/Vector.hpp"
+#include "./Maj7Oscillator3Shape.hpp"
+#include "./Maj7Oscillator4WS.hpp"
 
 
 namespace WaveSabreCore
@@ -205,7 +206,7 @@ static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
 
   return shape;
 }
-#endif // ENABLE_TRIANGLE_FOLD_WAVEFORM
+#endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
 
 static inline WVShape MakePulseShape(double dutyCycle01)
 {
@@ -505,7 +506,7 @@ struct SAHNoiseCore : public OscillatorCore
   {
     mJitter01 = math::clamp01(mWaveshapeB);
 
-    static constexpr float kFixedQ = 0.7071f; //db
+    static constexpr float kFixedQ = 0.7071f;  //db
     const auto fixedReso01 = Param01{gBiquadFilterQCfg.ValueToParam01(kFixedQ)};
     const FilterResponse responseType = (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
                                                                                    : FilterResponse::Lowpass;
@@ -556,7 +557,7 @@ struct SAHNoiseCore : public OscillatorCore
       const double dAmp = double(newTarget) - double(mHeld);
 
       // Band-limit the step at alpha
-      mSpill.add_edge(alpha, {dAmp, 0} , dt);
+      mSpill.add_edge(alpha, {dAmp, 0}, dt);
 
       // Commit the step
       mHeld = newTarget;
@@ -617,6 +618,51 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
 
   void RestartDueToNoteOn() override;
 };
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// uses FBM noise in a 2d field, using a rotating orbit as a wave cycle.
+struct ContinuousNoiseCore : public OscillatorCore
+{
+  ContinuousNoiseCore(OscillatorWaveform waveformType)
+      : OscillatorCore(waveformType)
+  {
+  }
+
+  float mFieldScale = 1.0f;     // shapeA: detail / density
+  float mMovementSpeed = 0.0f;  // shapeB: drift speed
+
+  double mCenterY = 100.0;
+
+  void HandleParamsChanged() override
+  {
+    mFieldScale = math::lerp(0.5f, 4.5f, mWaveshapeA);
+    // after about 80x, starts to feel unuseful. the sonic effect is less noticeable and starts to make less difference. 80 is a modulateable-param-friendly max.
+    mMovementSpeed = math::lerp(0.0f, 24.0f, mWaveshapeB) * Helpers::CurrentSampleRateRecipF;
+  }
+
+  CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
+  {
+    const auto step = mPhaseAcc.advanceOneSample();
+    const auto fieldScale = mFieldScale;
+    const auto movementSpeed = mMovementSpeed;
+
+    mCenterY += movementSpeed;
+    const float angle = float(step.phaseBegin01 * math::gPITimes2);
+
+    const float orbitX = math::cos(angle);  // x is fixed 0
+    const float orbitY = float(mCenterY) + math::sin(angle);
+
+    const float x = orbitX * fieldScale;
+    const float y = orbitY * fieldScale;
+
+    const float v = fbm2D(x, y);
+
+    return CoreSample{
+        .amplitude = v,
+    };
+  }
+};
+
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct WhiteNoiseCore2 : public OscillatorCore

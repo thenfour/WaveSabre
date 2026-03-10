@@ -100,15 +100,15 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
 
     case OscillatorWaveform::FoldedSine:
       return new FoldedSineCore(w);
-    case OscillatorWaveform::FoldedTriangle:
 #ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
+    case OscillatorWaveform::FoldedTriangle:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::FoldedTriGenerator);
-#else   // ENABLE_TRIANGLE_FOLD_WAVEFORM
-      return new FoldedSineCore(w);
 #endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
 
     case OscillatorWaveform::EvolvingGrainNoise:
       return new EvolvingGrainNoiseCore(w);
+    case OscillatorWaveform::RotatingNoise:
+      return new ContinuousNoiseCore(w);
 
     case OscillatorWaveform::Noise_SaH_LP4:
       return new SAHNoiseCore(w, SAHNoiseCore::ControlStyle::LP_Jitter);

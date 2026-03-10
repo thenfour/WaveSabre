@@ -125,7 +125,8 @@ float Deserializer::ReadInt16NormalizedFloat()
 {
   int16_t ret = *((int16_t*)mpCursor);
   mpCursor += sizeof(ret);
-  return math::Sample16To32Bit(ret);
+  return math::Default16ToFloatN11(ret);
+  //return math::Sample16To32Bit(ret);
   //return math::clampN11(float(ret) / 32768);
 }
 

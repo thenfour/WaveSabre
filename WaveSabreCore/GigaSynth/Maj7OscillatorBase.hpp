@@ -96,9 +96,12 @@ enum class OscillatorWaveform //: uint8_t
   ShapeCoreSawTriSquare,
 
   FoldedSine,
+#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
   FoldedTriangle,
+#endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
 
   EvolvingGrainNoise,
+  RotatingNoise,
 
   Noise_SaH_LP4,
   Noise_SaH_HP4,
@@ -160,8 +163,8 @@ struct OscillatorWaveformUiStyle
   {false, "SS pulse 4 stage",        "Duty",   "Sym",        0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
   {false, "SS Tri-Square",           "Duty",   "Tri-Square", 0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
   {true,  "Folded Sine",             "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
-  {false, "Folded Tri",              "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
-  {true,  "Noise Grain Evolve",      "Grain",  "Mutate",     0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
+  {true,  "Noise Grain Evolve",      "Scale",  "Speed",     0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
+  {false,  "Rotating Noise",         "Scale",  "Speed",      0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
   {false, "Noise_SaH_LP4",           "LP Cut", "Jitter",     0.80f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
   {false, "Noise_SaH_HP4",           "HP Cut", "Jitter",     0.20f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
   {true,  "Noise White Prob+Duty",   "Prob",   "Duty",       0.35f,   0.25f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\

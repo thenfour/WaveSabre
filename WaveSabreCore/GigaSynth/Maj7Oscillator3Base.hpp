@@ -4,6 +4,7 @@
 #include "../Basic/Helpers.h"
 #include "Maj7Basic.hpp"
 #include "./Maj7Oscillator.hpp"
+#include "../Params/SmoothedParam.hpp"
 
 namespace WaveSabreCore
 {

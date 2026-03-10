@@ -34,8 +34,7 @@ struct Serializer
   void WriteInt16NormalizedFloat(float f)
   {
     auto p = (int16_t*)(GrowBy(sizeof(int16_t)));
-    *p = math::Sample32To16(f);
-    //*p = int16_t(math::ClampInclusive(int32_t(f * 32768), -32768, 32767));
+    *p = math::FloatN11ToDefault16(f);
   }
 };
 

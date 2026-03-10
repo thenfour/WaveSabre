@@ -59,8 +59,7 @@ namespace WaveSabreCore
 					for (int j = 0; j < mSampleLength; j++)
 					{
 						auto sample = *((short*)wave);
-						//mSampleData[j] = (float)((double)sample / 32768.0);
-						mSampleData[j] = math::Sample16To32Bit(sample);// (float)((double)sample / 32768.0);
+						mSampleData[j] = math::Sample16To32Bit(sample);
 						wave += 2;
 					}
 

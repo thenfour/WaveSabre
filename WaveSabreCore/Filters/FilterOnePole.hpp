@@ -5,7 +5,7 @@
 
 #include "FilterBase.hpp"
 #include "../Basic/DSPMath.hpp"
-//#include <complex>
+#include "../Basic/Helpers.h"
 
 namespace WaveSabreCore
 {
