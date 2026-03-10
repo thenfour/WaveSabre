@@ -38,7 +38,7 @@ namespace WaveSabreCore
 
 		float mParamCache[(int)ParamIndices::NumParams];
 		M7::ParamAccessor mParams;
-		
+
 static_assert((int)ParamIndices::NumParams == 7, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   -32767, // LSrc = -1

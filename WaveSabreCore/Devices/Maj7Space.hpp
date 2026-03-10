@@ -85,24 +85,24 @@ struct Maj7Space : public Device
 
 static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-  16398, // LdlyC = 0.50042724609375
-  16384, // LdlyF = 0.5
-  16384, // LdlyMS = 0.5
-  16402, // RdlyC = 0.50054931640625
-  16384, // RdlyF = 0.5
-  16384, // RdlyMS = 0.5
+  11, // LdlyC = 0.0003662109375
+  0, // LdlyF = 0
+  16383, // LdlyMS = 0.5
+  15, // RdlyC = 0.00048828125
+  0, // RdlyF = 0
+  16383, // RdlyMS = 0.5
   2221, // LCFreq = 0.06780719757080078125
   8508, // LCQ = 0.25965651869773864746
   26500, // HCFreq = 0.80874627828598022461
   8508, // HCQ = 0.25965651869773864746
   9782, // FbLvl = 0.29853826761245727539
   4902, // FbDrive = 0.14962357282638549805
-  8192, // Cross = 0.25
-  16384, // VRoomSz = 0.5
+  8191, // Cross = 0.25
+  16383, // VRoomSz = 0.5
   4915, // VDamp = 0.15000000596046447754
-  29491, // VWidth = 0.89999997615814208984
+  29490, // VWidth = 0.89999997615814208984
   7255, // VLCFreq = 0.22141247987747192383
-  24443, // VHCFreq = 0.74594312906265258789
+  24442, // VHCFreq = 0.74594312906265258789
   65, // VPreDly = 0.0020000000949949026108
   32767, // DlyEn = 1
   32767, // VerbEn = 1

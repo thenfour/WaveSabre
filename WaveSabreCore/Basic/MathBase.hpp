@@ -267,7 +267,8 @@ INLINE float expf(float x)
 template<typename T>
 constexpr INLINE T round(float x)
 {
-  return (T)std::roundf(x); // negative-aware.
+    static_assert(std::is_integral_v<T>, "round<T> requires integral T");
+    return static_cast<T>(x >= 0.0f ? x + 0.5f : x - 0.5f);
 }
 
 INLINE float fmodf(float x, float q) {

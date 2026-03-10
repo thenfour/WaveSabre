@@ -37,11 +37,11 @@ public:
 
 static_assert((int)Cathedral::ParamIndices::NumParams == 8, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)Cathedral::ParamIndices::NumParams] = {
-  16384, // RoomSize = 0.5
+  16383, // RoomSize = 0.5
   4915, // Damp = 0.15000000596046447754
-  29491, // Width = 0.89999997615814208984
+  29490, // Width = 0.89999997615814208984
   7255, // LCF = 0.22141247987747192383
-  24443, // HCF = 0.74594312906265258789
+  24442, // HCF = 0.74594312906265258789
   16422, // DryOut = 0.50118720531463623047
   11626, // WetOut = 0.35481339693069458008
   0, // PreDly = 0
