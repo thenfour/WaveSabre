@@ -1,95 +1,68 @@
-#ifndef __WAVESABRECORE_SAMPLEPLAYER_H__
-#define __WAVESABRECORE_SAMPLEPLAYER_H__
+
+#pragma once
 
 #include <cstdint>
+#include "../Basic/PodVector.hpp"
+#include "../Basic/GmDls.h"
 
 namespace WaveSabreCore
 {
-	enum class InterpolationMode// : uint8_t
-	{
-		Nearest,
-		Linear,
 
-		NumInterpolationModes,
-	};
+enum class LoopMode  // : uint8_t
+{
+  Disabled,
+  Repeat,
+  PingPong,
 
-	enum class LoopMode// : uint8_t
-	{
-		Disabled,
-		Repeat,
-		PingPong,
+  NumLoopModes,
+};
 
-		NumLoopModes,
-	};
+enum class LoopBoundaryMode  // : uint8_t
+{
+  FromSample,
+  Manual,
 
-	enum class LoopBoundaryMode// : uint8_t
-	{
-		FromSample,
-		Manual,
+  NumLoopBoundaryModes,
+};
 
-		NumLoopBoundaryModes,
-	};
+class SamplePlayer
+{
+public:
+  SamplePlayer();
 
-	typedef struct
-	{
-		char tag[4];
-		unsigned int size;
-		short wChannels;
-		int dwSamplesPerSec;
-		int dwAvgBytesPerSec;
-		short wBlockAlign;
-	} Fmt;
+  void SetPlayRate(double ratio);
+  void InitPos();
+  void RunPrep();
+  float Next();
 
-	typedef struct
-	{
-		char tag[4];
-		unsigned int size;
-		unsigned short unityNote;
-		short fineTune;
-		int gain;
-		int attenuation;
-		unsigned int fulOptions;
-		unsigned int loopCount;
-		unsigned int loopSize;
-		unsigned int loopType;
-		unsigned int loopStart;
-		unsigned int loopLength;
-	} Wsmp;
+  bool Reverse;
+  WaveSabreCore::LoopMode LoopMode;
+  WaveSabreCore::LoopBoundaryMode LoopBoundaryMode;
 
-	class SamplePlayer
-	{
-	public:
-		SamplePlayer();
+  float SampleStart;
+  float LoopStart;
+  float LoopLength;
 
-		void SetPlayRate(double ratio);
-		void InitPos();
-		void RunPrep();
-		float Next();
+  GmDlsSample* mpSample;
 
-		bool IsActive;
-		bool Reverse;
-		WaveSabreCore::LoopMode LoopMode;
-		WaveSabreCore::LoopBoundaryMode LoopBoundaryMode;
-		WaveSabreCore::InterpolationMode InterpolationMode;
+  // used by editor
+  double samplePos;
 
-		float SampleStart;
-		float LoopStart;
-		float LoopLength;
+private:
+  size_t SampleLength() const
+  {
+    return mpSample->mSampleData.size();
+  }
 
-		const float *SampleData;
-		size_t SampleLength;
-		size_t SampleLoopStart;
-		size_t SampleLoopLength;
+  bool IsActive;
 
-		double samplePos;
+  // for linear interpolation, use a 1-sample delay and store previous sample value.
+  float mPrevSample = 0;
 
-	private:
-		double sampleDelta;
-		size_t roundedLoopStart;
-		size_t roundedLoopLength;
-		size_t roundedLoopEnd;
-		bool reverse;
-	};
-}
-
-#endif
+  double sampleDelta;
+  size_t roundedLoopStart;
+  size_t roundedLoopLength;
+  size_t roundedLoopEnd;
+  bool reverse;
+};
+}  // namespace WaveSabreCore

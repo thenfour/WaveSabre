@@ -673,7 +673,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler1TuneFine,
   Sampler1FreqParam,
   Sampler1FreqKT,
-  Sampler1InterpolationType,
   Sampler1ReleaseExitsLoop,
   Sampler1Delay,
 
@@ -709,7 +708,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler2TuneFine,
   Sampler2FreqParam,
   Sampler2FreqKT,
-  Sampler2InterpolationType,
   Sampler2ReleaseExitsLoop,
   Sampler2Delay,
 
@@ -745,7 +743,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler3TuneFine,
   Sampler3FreqParam,
   Sampler3FreqKT,
-  Sampler3InterpolationType,
   Sampler3ReleaseExitsLoop,
   Sampler3Delay,
 
@@ -781,7 +778,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler4TuneFine,
   Sampler4FreqParam,
   Sampler4FreqKT,
-  Sampler4InterpolationType,
   Sampler4ReleaseExitsLoop,
   Sampler4Delay,
 
@@ -1414,7 +1410,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1base"}, \
 {"S1LTrig"},\
 {"S1Rev"},  \
-{"S1src"},  \
 {"S1gmidx"},\
 {"S1strt"}, \
 {"S1LMode"},\
@@ -1425,7 +1420,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1TunF"}, \
 {"S1Frq"},  \
 {"S1FrqKT"},\
-{"S1Intrp"},\
 {"S1RelX"},           \
 {"S1Dly"},  \
 {"S1Edlt"}, \
@@ -1448,7 +1442,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S2base"}, \
 {"S2LTrig"},\
 {"S2Rev"},  \
-{"S2src"},  \
 {"S2gmidx"},\
 {"S2strt"}, \
 {"S2LMode"},          \
@@ -1459,7 +1452,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S2TunF"}, \
 {"S2Frq"},  \
 {"S2FrqKT"},\
-{"S2Intrp"},          \
 {"S2RelX"}, \
 {"S2Dly"},  \
 {"S2Edlt"}, \
@@ -1482,7 +1474,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S3base"}, \
 {"S3LTrig"},\
 {"S3Rev"},  \
-{"S3src"},  \
 {"S3gmidx"},\
 {"S3strt"},           \
 {"S3LMode"},\
@@ -1493,7 +1484,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S3TunF"}, \
 {"S3Frq"},  \
 {"S3FrqKT"},          \
-{"S3Intrp"},\
 {"S3RelX"}, \
 {"S3Dly"},  \
 {"S3Edlt"}, \
@@ -1516,7 +1506,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S4base"}, \
 {"S4LTrig"},\
 {"S4Rev"},  \
-{"S4src"},  \
 {"S4gmidx"},          \
 {"S4strt"}, \
 {"S4LMode"},\
@@ -1527,7 +1516,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S4TunF"}, \
 {"S4Frq"},            \
 {"S4FrqKT"},\
-{"S4Intrp"},\
 {"S4RelX"}, \
 {"S4Dly"},  \
 {"S4Edlt"}, \
@@ -1606,7 +1594,6 @@ enum class SamplerParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   BaseNote,
   LegatoTrig,
   Reverse,
-  SampleSource,
   GmDlsIndex,
   SampleStart,
   LoopMode,
@@ -1617,7 +1604,6 @@ enum class SamplerParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   TuneFine,
   FreqParam,
   FreqKT,
-  InterpolationType,
   ReleaseExitsLoop,
   Delay,
   AmpEnvDelayTime,

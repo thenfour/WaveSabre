@@ -36,7 +36,8 @@ public:
     AppendRange(value, 1);
   }
   void AppendRange(const void* values, size_t count);
-  void Clear() {
+  void Clear()
+  {
     mSizeElements = 0;
   }
 
@@ -127,9 +128,9 @@ struct PodVector
     return mBuffer.Data<T>();
   }
   void push_back(const T& value)
-    {
-        mBuffer.PushBack(&value);
-    }
+  {
+    mBuffer.PushBack(&value);
+  }
 
   // begin / end impl
   using iterator = T*;
@@ -151,6 +152,31 @@ struct PodVector
     return mBuffer.Data<T>() + mBuffer.SizeElements();
   }
 
+};  // struct PodVector
+
+template <typename T>
+struct PodSpan
+{
+private:
+  const T* mData = nullptr;
+  size_t mSizeElements = 0;
+
+public:
+
+  explicit PodSpan(const T* data, size_t sizeElements)
+      : mData(data)
+      , mSizeElements(sizeElements)
+  {
+  }
+  const T* data() const
+  {
+    static_assert(std::is_trivially_copyable_v<T>, "Span can only be used with trivially copyable types");
+    return mData;
+  }
+  size_t size() const
+  {
+    return mSizeElements;
+  }
 };
 
 }  // namespace WaveSabreCore::M7

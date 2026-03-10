@@ -438,8 +438,8 @@ public:
 
 			//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
 			OptimizeEnumParam< LoopBoundaryMode>(s.mParams, M7::SamplerParamIndexOffsets::LoopSource);
-			OptimizeEnumParam < InterpolationMode>(s.mParams, M7::SamplerParamIndexOffsets::InterpolationType);
-			OptimizeEnumParam < M7::SampleSource>(s.mParams, M7::SamplerParamIndexOffsets::SampleSource);
+			//OptimizeEnumParam < InterpolationMode>(s.mParams, M7::SamplerParamIndexOffsets::InterpolationType);
+			//OptimizeEnumParam < M7::SampleSource>(s.mParams, M7::SamplerParamIndexOffsets::SampleSource);
 
 			OptimizeBoolParam(s.mParams, M7::SamplerParamIndexOffsets::LegatoTrig);
 			OptimizeBoolParam(s.mParams, M7::SamplerParamIndexOffsets::Reverse);
@@ -449,7 +449,7 @@ public:
 			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::BaseNote);
 
 			if (!s.IsEnabled()) {
-				s.Reset();
+				//s.Reset();
 				Copy16bitDefaults(s.mParams.GetOffsetParamCache(), M7::gDefaultSamplerParams);
 				s.mParams.SetBoolValue(M7::SamplerParamIndexOffsets::Enabled, false);
 			}
@@ -789,7 +789,7 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults(SamplerDevice* p)
 		{
 			auto token = p->mMutex.Enter();
-			p->Reset();
+			//p->Reset();
 
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
 			p->mParams.SetN11Value(SamplerParamIndexOffsets::Pan, 0);
@@ -810,14 +810,14 @@ namespace WaveSabreCore
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 1);
 			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopMode, LoopMode::Repeat);
 			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopSource, LoopBoundaryMode::FromSample);
-			p->mParams.SetEnumValue(SamplerParamIndexOffsets::InterpolationType, InterpolationMode::Linear);
+			//p->mParams.SetEnumValue(SamplerParamIndexOffsets::InterpolationType, InterpolationMode::Linear);
 
 			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopStart, 0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopLength, 1);
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::BaseNote, 60);
 
-			p->mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::Embed);
-			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, -1);
+			//p->mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::Embed);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, 0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::Delay, 0);
 		}
 

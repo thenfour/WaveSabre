@@ -2814,6 +2814,7 @@ public:
   }  // waveform param
 
 
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
   bool LoadSample(const char* path, M7::SamplerDevice& sampler, size_t isrc)
   {
     std::ifstream input(path, std::ios::in | std::ios::binary | std::ios::ate);
@@ -2912,6 +2913,7 @@ public:
 
     return SetStatus(isrc, StatusStyle::Green, "Sample loaded successfully.");
   }
+#endif  // MAJ7_INCLUDE_GSM_SUPPORT
 
   static BOOL __stdcall driverEnumCallback(HACMDRIVERID driverId, DWORD_PTR dwInstance, DWORD fdwSupport)
   {
@@ -3073,13 +3075,13 @@ public:
       ImGui::SameLine();
       Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop),
                                      "Rel");
-      ImGui::SameLine();
-      Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>(
-          (int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::InterpolationType),
-          "Interp.##mst",
-          (int)WaveSabreCore::InterpolationMode::NumInterpolationModes,
-          WaveSabreCore::InterpolationMode::Linear,
-          interpModeNames);
+      // ImGui::SameLine();
+      // Maj7ImGuiParamEnumList<WaveSabreCore::InterpolationMode>(
+      //     (int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::InterpolationType),
+      //     "Interp.##mst",
+      //     (int)WaveSabreCore::InterpolationMode::NumInterpolationModes,
+      //     WaveSabreCore::InterpolationMode::Linear,
+      //     interpModeNames);
 
       ImGui::SameLine();
       Maj7ImGuiParamFloatN11((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::Pan),
@@ -3116,6 +3118,8 @@ public:
       ImGui::SameLine();
       SamplerWaveformDisplay(sampler, isrc);
 
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
+
       if (ImGui::SmallButton("Load from file ..."))
       {
         OPENFILENAMEA ofn = {0};
@@ -3132,10 +3136,10 @@ public:
           LoadSample(szFile, sampler, isrc);
         }
       }
-
+#endif  // MAJ7_INCLUDE_GSM_SUPPORT 
       if (!mShowingGmDlsList)
       {
-        ImGui::SameLine();
+        //ImGui::SameLine();
         if (ImGui::SmallButton("Load Gm.Dls sample..."))
         {
           mShowingGmDlsList = true;
@@ -3167,42 +3171,43 @@ public:
       }
 
       //ImGui::SameLine();
-      auto sampleSource = sampler.mParams.GetEnumValue<M7::SampleSource>(M7::SamplerParamIndexOffsets::SampleSource);
-      if (!sampler.mSample)
-      {
-        ImGui::Text("No sample loaded");
-      }
-      else if (sampleSource == M7::SampleSource::Embed)
-      {
-#ifdef MAJ7_INCLUDE_GSM_SUPPORT
-          auto* p = static_cast<WaveSabreCore::M7::GsmSample*>(sampler.mSample);
-        ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%) / %d Samples / path:%s",
-                    p->UncompressedSize,
-                    p->CompressedSize,
-                    (p->CompressedSize * 100) / p->UncompressedSize,
-                    p->SampleLength,
-                    sampler.mSamplePath);
-
-        if (ImGui::SmallButton("Clear sample"))
-        {
-          sampler.Reset();
-        }
-#endif  // MAJ7_INCLUDE_GSM_SUPPORT
-      }
-      else if (sampleSource == M7::SampleSource::GmDls)
-      {
-        auto* p = static_cast<M7::GmDlsSample*>(sampler.mSample);
+      //auto sampleSource = sampler.mParams.GetEnumValue<M7::SampleSource>(M7::SamplerParamIndexOffsets::SampleSource);
+      //if (!sampler.mSample)
+      //{
+      //  ImGui::Text("No sample loaded");
+      //}
+//      else if (sampleSource == M7::SampleSource::Embed)
+//      {
+//#ifdef MAJ7_INCLUDE_GSM_SUPPORT
+//          auto* p = static_cast<WaveSabreCore::M7::GsmSample*>(sampler.mSample);
+//        ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%) / %d Samples / path:%s",
+//                    p->UncompressedSize,
+//                    p->CompressedSize,
+//                    (p->CompressedSize * 100) / p->UncompressedSize,
+//                    p->SampleLength,
+//                    sampler.mSamplePath);
+//
+//        if (ImGui::SmallButton("Clear sample"))
+//        {
+//          sampler.Reset();
+//        }
+//#endif  // MAJ7_INCLUDE_GSM_SUPPORT
+//      }
+//      else if (sampleSource == M7::SampleSource::GmDls)
+//      {
+        //auto* p = static_cast<M7::GmDlsSample*>(sampler.mSample);
+      auto* p = &sampler.mSample;
         const char* name = "(none)";
         if (p->mSampleIndex >= 0 && p->mSampleIndex < M7::gGmDlsSampleCount)
         {
           name = mGmDlsOptions[p->mSampleIndex + 1].first.c_str();
         }
         ImGui::Text("GmDls : %s (%d)", name, p->mSampleIndex);
-      }
-      else
-      {
-        ImGui::Text("--");
-      }
+      //}
+      //else
+      //{
+      //  ImGui::Text("--");
+      //}
 
       ImGui::SameLine();
       switch (mSourceStatusText[isrc].mStatusStyle)
@@ -3316,17 +3321,19 @@ public:
     auto sourceInfo = this->mSourceStatusText[isrc];
     //ImGuiIO& io = ImGui::GetIO();
     //ImGui::Image(io.Fonts->TexID, { gSamplerWaveformWidth, gSamplerWaveformHeight });
-    if (!sampler.mSample)
-      return;
+    //if (!sampler.mSample)
+    //  return;
 
-    auto sampleData = sampler.mSample->GetSampleData();
+    auto sampleDataPair = DupeBuffer<float>(sampler.mSample.mSampleData.mBuffer);
+    auto sampleData = sampleDataPair.first;
+    auto sampleLengthSamples = sampleDataPair.second;
 
     std::vector<std::pair<float, float>> peaks;
     peaks.resize(gSamplerWaveformWidth);
     for (size_t i = 0; i < gSamplerWaveformWidth; ++i)
     {
-      size_t sampleBegin = size_t((i * sampler.mSample->GetSampleLength()) / gSamplerWaveformWidth);
-      size_t sampleEnd = size_t(((i + 1) * sampler.mSample->GetSampleLength()) / gSamplerWaveformWidth);
+      size_t sampleBegin = size_t((i * sampleLengthSamples) / gSamplerWaveformWidth);
+      size_t sampleEnd = size_t(((i + 1) * sampleLengthSamples) / gSamplerWaveformWidth);
       sampleEnd = std::max(sampleEnd, sampleBegin + 1);
       peaks[i].first = 0;
       peaks[i].second = 0;
@@ -3337,18 +3344,20 @@ public:
       }
     }
 
-    float cursor = 0;
+    double cursor = 0;
     if (mRenderContext.mpActiveVoice)
     {
       M7::SamplerVoice* sv = static_cast<M7::SamplerVoice*>(mRenderContext.mpActiveVoice->mSourceVoices[isrc]);
-      cursor = (float)sv->mSamplePlayer.samplePos;
-      cursor /= sampler.mSample->GetSampleLength();
+      cursor = sv->mSamplePlayer.samplePos;
+      cursor /= sampleLengthSamples;
     }
 
     auto sampleStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::SampleStart);
     auto loopStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopStart);
     auto loopLength = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopLength);
-    WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampleStart, loopStart, loopLength, cursor);
+    WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampleStart, loopStart, loopLength, (float)cursor);
+
+    FreeBuffer(sampleDataPair.first);
   }
 
 };  // class maj7editor

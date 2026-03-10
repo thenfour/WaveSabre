@@ -289,10 +289,10 @@ struct Maj7 : public Maj7SynthDevice
   virtual void LoadDefaults() override
   {
     // samplers reset
-    for (auto& s : mpSamplerDevices)
-    {
-      s->Reset();
-    }
+    //for (auto& s : mpSamplerDevices)
+    //{
+    //  s->Reset();
+    //}
 
     // now load in all default params
     ImportDefaultsArray(std::size(gDefaultMasterParams), gDefaultMasterParams, mParamCache);

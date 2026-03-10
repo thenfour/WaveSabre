@@ -671,7 +671,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler1TuneFine,
   Sampler1FreqParam,
   Sampler1FreqKT,
-  Sampler1InterpolationType,
   Sampler1ReleaseExitsLoop,
   Sampler1Delay,
 
@@ -707,7 +706,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler2TuneFine,
   Sampler2FreqParam,
   Sampler2FreqKT,
-  Sampler2InterpolationType,
   Sampler2ReleaseExitsLoop,
   Sampler2Delay,
 
@@ -743,7 +741,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler3TuneFine,
   Sampler3FreqParam,
   Sampler3FreqKT,
-  Sampler3InterpolationType,
   Sampler3ReleaseExitsLoop,
   Sampler3Delay,
 
@@ -779,7 +776,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler4TuneFine,
   Sampler4FreqParam,
   Sampler4FreqKT,
-  Sampler4InterpolationType,
   Sampler4ReleaseExitsLoop,
   Sampler4Delay,
 
