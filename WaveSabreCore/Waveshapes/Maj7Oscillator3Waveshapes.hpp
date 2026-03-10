@@ -619,53 +619,65 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
   void RestartDueToNoteOn() override;
 };
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// uses FBM noise in a 2d field, using a rotating orbit as a wave cycle.
 struct ContinuousNoiseCore : public OscillatorCore
 {
   static int gInstanceCount;
+
   ContinuousNoiseCore(OscillatorWaveform waveformType)
       : OscillatorCore(waveformType)
-      , mCenterY(100 * (++ gInstanceCount))
+      , mFieldScaleCurrent(1.0f)
+      , mFieldScaleTarget(1.0f)
+      , mCenterX(0.0)
+      , mCenterY(100.0 * double(++gInstanceCount))
   {
   }
 
-  float mFieldScale = 1.0f;     // shapeA: detail / density
-  float mMovementSpeed = 0.0f;  // shapeB: drift speed
+  float mFieldScaleCurrent;
+  float mFieldScaleTarget;
+  float mMovementSpeed = 0.0f;
 
+  double mCenterX;
   double mCenterY;
 
   void HandleParamsChanged() override
   {
-    //mFieldScale = math::lerp(0.5f, 4.5f, mWaveshapeA);
-    mFieldScale = math::lerp(0.5f, 7.0f, mWaveshapeA);
-    // after about 80x, starts to feel unuseful. the sonic effect is less noticeable and starts to make less difference. 80 is a modulateable-param-friendly max.
-    mMovementSpeed = math::lerp(0.0f, 24.0f, mWaveshapeB) * Helpers::CurrentSampleRateRecipF;
+    mFieldScaleTarget = math::lerp(0.5f, 7.0f, mWaveshapeA);
+    // want enough speed to feel like really NOISE; that doesn't happen until after 150 or so. but below that you get a lot of variation.
+    // so go for high max, but use a curve to allow good control at low speeds.
+    mMovementSpeed = math::lerp(0.0f, 512, mWaveshapeB * mWaveshapeB) * Helpers::CurrentSampleRateRecipF;
   }
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
   {
     const auto step = mPhaseAcc.advanceOneSample();
-    const auto fieldScale = mFieldScale;
-    const auto movementSpeed = mMovementSpeed;
-
-    mCenterY += movementSpeed;
     const float angle = float(step.phaseBegin01 * math::gPITimes2);
 
-    const float orbitX = math::cos(angle);  // x is fixed 0
-    const float orbitY = float(mCenterY) + math::sin(angle);
+    const float orbitX = math::cos(angle);
+    const float orbitY = math::sin(angle);
 
-    const float x = orbitX * fieldScale;
-    const float y = orbitY * fieldScale;
+    // Geometric continuity correction for field scale changes:
+    // preserve the currently sampled field-space point.
+    if (mFieldScaleCurrent != mFieldScaleTarget)
+    {
+      const float ds = mFieldScaleCurrent - mFieldScaleTarget;
+      mCenterX += double(orbitX * ds);
+      mCenterY += double(orbitY * ds);
+      mFieldScaleCurrent = mFieldScaleTarget;
+    }
+
+    mCenterY += mMovementSpeed;
+
+    const float scale = mFieldScaleCurrent;
+    const float x = float(mCenterX) + orbitX * scale;
+    const float y = float(mCenterY) + orbitY * scale;
 
     const float v = fbm2D(x, y);
 
     return CoreSample{
-        .amplitude = v,
+      .amplitude = v,
     };
   }
 };
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct WhiteNoiseCore2 : public OscillatorCore
