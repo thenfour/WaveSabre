@@ -9,7 +9,7 @@ namespace WaveSabreCore::M7
 struct DelayCore
 {
 private:
-  DelayBuffer mBuffers[2];
+  AudioBuffer mBuffers[2];
   BiquadFilter mLowCutFilter[2];
   BiquadFilter mHighCutFilter[2];
   float mFeedbackDriveGainCompensationFact;
@@ -25,7 +25,7 @@ public:
   FloatPair Run(const FloatPair& dry)
   {
     // read buffer, apply processing (filtering, cross mix, drive)
-    FloatPair delayBufferSignal = {mBuffers[0].ReadSample(), mBuffers[1].ReadSample()};
+    FloatPair delayBufferSignal = {mBuffers[0].PeekAtCursor(), mBuffers[1].PeekAtCursor()};
 
     delayBufferSignal[0] = mHighCutFilter[0].ProcessSample(delayBufferSignal[0]);
     delayBufferSignal[1] = mHighCutFilter[1].ProcessSample(delayBufferSignal[1]);
@@ -43,8 +43,8 @@ public:
     delayBufferSignal = {math::lerp(delayBufferSignal[0], delayBufferSignal[1], mCrossMix),
                          math::lerp(delayBufferSignal[1], delayBufferSignal[0], mCrossMix)};
 
-    mBuffers[0].WriteSample(dry[0] + delayBufferSignal[0] * mFeedbackLin);
-    mBuffers[1].WriteSample(dry[1] + delayBufferSignal[1] * mFeedbackLin);
+    mBuffers[0].WriteAndAdvance(dry[0] + delayBufferSignal[0] * mFeedbackLin);
+    mBuffers[1].WriteAndAdvance(dry[1] + delayBufferSignal[1] * mFeedbackLin);
 
     return {delayBufferSignal[0], delayBufferSignal[1]};
   }
@@ -69,9 +69,8 @@ public:
   {
     mFeedbackDriveGainCompensationFact = math::CalcTanhGainCompensation(mFeedbackDriveLin);
 
-    mBuffers[0].SetLength(leftBufferLengthMs);
-
-    mBuffers[1].SetLength(rightBufferLengthMs);
+    mBuffers[0].SetLengthMilliseconds(leftBufferLengthMs);
+    mBuffers[1].SetLengthMilliseconds(rightBufferLengthMs);
 
     for (int i = 0; i < 2; i++)
     {

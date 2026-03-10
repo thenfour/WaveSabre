@@ -95,7 +95,7 @@ namespace WaveSabreCore
 
 		case InterpolationMode::Linear:
 			float left = SampleData[roundedSamplePos];
-			int rightIndex = roundedSamplePos + 1;
+			size_t rightIndex = roundedSamplePos + 1;
 			if (LoopMode == LoopMode::Repeat && rightIndex == roundedLoopEnd)
 				rightIndex = roundedLoopStart;
 			float right = rightIndex < SampleLength ? SampleData[rightIndex] : 0.0f;

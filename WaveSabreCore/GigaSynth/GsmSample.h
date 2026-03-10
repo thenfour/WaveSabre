@@ -2,6 +2,7 @@
 #define __WAVESABRECORE_GSMSAMPLE_H__
 
 #include "../Basic/DSPMath.hpp"
+#include "../Basic/PodVector.hpp"
 
 #ifdef UNICODE
 #define _UNICODE
@@ -14,30 +15,30 @@
 
 namespace WaveSabreCore::M7
 {
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
 	class GsmSample : public ISampleSource
 	{
 	public:
 		GsmSample(const char *data, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormat);
 		~GsmSample();
 
-		char *WaveFormatData;
+		PodVector<uint8_t> WaveFormatData;
 		int CompressedSize, UncompressedSize;
 
-		char *CompressedData;
-		float *SampleData;
+		PodVector<uint8_t> CompressedData;
+		PodVector<float> SampleData;
 
-		int SampleLength;
 		int mSampleRate;
 
 		virtual const float* GetSampleData() const override
 		{
-			return SampleData;
+			return SampleData.data();
 		}
-		virtual int GetSampleLength() const override {
-			return SampleLength;
+		virtual size_t GetSampleLength() const override {
+			return SampleData.size();
 		}
 		virtual int GetSampleLoopStart() const override { return 0; }
-		virtual int GetSampleLoopLength() const override { return SampleLength; }
+		virtual int GetSampleLoopLength() const override { return SampleData.size(); }
 		virtual int GetSampleRate() const override { return mSampleRate; }
 
 	private:
@@ -46,6 +47,7 @@ namespace WaveSabreCore::M7
 
 		static HACMDRIVERID driverId;
 	};
+#endif  // MAJ7_INCLUDE_GSM_SUPPORT	
   }  // namespace WaveSabreCore::M7
 
 #endif

@@ -5,24 +5,24 @@
 
 namespace WaveSabreCore
 {
-	class AllPass
-	{
-	public:
-		//AllPass();
-		//virtual ~AllPass();
+	// class AllPass
+	// {
+	// public:
+	// 	//AllPass();
+	// 	//virtual ~AllPass();
 
-		void SetBufferSize(int size); 
-		float Process(float inp);
-		void SetFeedback(float val);
-		//float GetFeedback();
+	// 	void SetBufferSize(int size); 
+	// 	float Process(float inp);
+	// 	void SetFeedback(float val);
+	// 	//float GetFeedback();
 
-	private:
-		float feedback;
-		AudioBuffer mBuffer;
-		//float *buffer;
-		//int bufferSize;
-		//int bufferIndex;
-	};
+	// private:
+	// 	float feedback;
+	// 	AudioBuffer mBuffer;
+	// 	//float *buffer;
+	// 	//int bufferSize;
+	// 	//int bufferIndex;
+	// };
 }
 
 #endif

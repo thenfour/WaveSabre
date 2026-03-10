@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <memory> // for unique_ptr
+
 #include "../Waveshapes/Maj7Oscillator3Waveshapes.hpp"
 #include "../Waveshapes/Maj7Oscillator4WS.hpp"
 #include "Maj7Basic.hpp"

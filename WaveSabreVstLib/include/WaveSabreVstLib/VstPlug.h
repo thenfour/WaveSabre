@@ -26,6 +26,23 @@ inline void Copy16bitDefaults(float* dest, const int16_t (&src)[N])
   }
 }
 
+  // returns { ptr, size } and relinquishes ownership of the buffer (caller must free).
+inline std::pair<void*, size_t> DupeBuffer(WaveSabreCore::M7::Serializer& s)
+{
+  // Caller is responsible for freeing this buffer.
+  // allocate new buffer & copy.
+  size_t size = s.mBuffer.SizeBytes();
+  void* buf = malloc(size);
+  memcpy(buf, s.mBuffer.Data<uint8_t>(), size);
+  return {buf, size};
+}
+
+inline void FreeBuffer(void* data)
+{
+  free(data);
+}
+
+
 namespace WaveSabreVstLib
 {
 

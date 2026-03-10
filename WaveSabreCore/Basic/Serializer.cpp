@@ -7,34 +7,13 @@ namespace M7
 {
 
 
-Serializer::~Serializer()
-{
-  delete[] mBuffer;
-}
-
-Pair<uint8_t*, size_t> Serializer::DetachBuffer()
-{
-  Pair<uint8_t*, size_t> ret{mBuffer, mSize};
-  mBuffer = nullptr;
-  mAllocatedSize = mSize = 0;
-  return ret;
-}
 
 uint8_t* Serializer::GrowBy(size_t n)
 {
-  size_t newSize = mSize + n;
-  if (mAllocatedSize < newSize)
-  {
-    size_t newAllocatedSize = newSize * 2 + 100;
-    uint8_t* newBuffer = new uint8_t[newAllocatedSize];
-    memcpy(newBuffer, mBuffer, mSize);
-    delete[] mBuffer;
-    mBuffer = newBuffer;
-    mAllocatedSize = newAllocatedSize;
-  }
-  auto ret = mBuffer + mSize;
-  mSize = newSize;
-  return ret;
+  size_t oldSize = mBuffer.SizeElements();
+  size_t newSize = oldSize + n;
+  mBuffer.ResizeElements(newSize);
+  return mBuffer.Data<uint8_t>() + oldSize;
 }
 
 void Serializer::WriteUByte(uint8_t b)

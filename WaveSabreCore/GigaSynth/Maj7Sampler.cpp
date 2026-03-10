@@ -54,13 +54,13 @@ namespace WaveSabreCore
 					wave += 4;
 
 					// Data format is assumed to be mono 16-bit signed PCM
-					mSampleLength = dataChunkSize / 2;
-					mSampleData = new float[mSampleLength];
-					for (int j = 0; j < mSampleLength; j++)
+					auto sampleLength = int(dataChunkSize / 2);
+					mSampleData.resize(sampleLength);
+					int16_t* wave16 = (int16_t*)wave;
+					for (int j = 0; j < sampleLength; j++)
 					{
-						auto sample = *((short*)wave);
+						auto sample = wave16[j];
 						mSampleData[j] = math::Sample16To32Bit(sample);
-						wave += 2;
 					}
 
 					if (wsmp.loopCount)
@@ -71,7 +71,7 @@ namespace WaveSabreCore
 					else
 					{
 						mSampleLoopStart = 0;
-						mSampleLoopLength = mSampleLength;
+						mSampleLoopLength = sampleLength;
 					}
 
 					delete[] gmDls;
@@ -79,7 +79,6 @@ namespace WaveSabreCore
 			}
 
 	GmDlsSample::~GmDlsSample() {
-				delete[] mSampleData;
 			}
 
 
@@ -150,11 +149,12 @@ namespace WaveSabreCore
 				s.WriteUInt32(pSample->CompressedSize);
 				s.WriteUInt32(pSample->UncompressedSize);
 
-				auto waveFormatSize = sizeof(WAVEFORMATEX) + ((WAVEFORMATEX*)pSample->WaveFormatData)->cbSize;
-				s.WriteBuffer((const uint8_t*)pSample->WaveFormatData, waveFormatSize);
+				auto waveFormat = reinterpret_cast<const WAVEFORMATEX*>(pSample->WaveFormatData.data());
+				auto waveFormatSize = sizeof(WAVEFORMATEX) + waveFormat->cbSize;
+				s.WriteBuffer(pSample->WaveFormatData.data(), waveFormatSize);
 
 				// Write compressed data
-				s.WriteBuffer((const uint8_t*)pSample->CompressedData, pSample->CompressedSize);
+				s.WriteBuffer(pSample->CompressedData.data(), pSample->CompressedSize);
 			}
 #endif // MAJ7_INCLUDE_GSM_SUPPORT
 

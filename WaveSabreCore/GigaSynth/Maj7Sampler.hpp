@@ -1,7 +1,5 @@
 #pragma once
 
-// embedding own samples is kinda a luxury. if needed we can save code size
-//#define MAJ7_INCLUDE_GSM_SUPPORT // comment this and save about 1kb of minified code.
 #include <Windows.h>
 // correction for windows.h macros.
 #undef min
@@ -10,6 +8,7 @@
 //#include <WaveSabreCore/Maj7Basic.hpp>
 //#include <WaveSabreCore/Maj7ModMatrix.hpp>
 #include "../Basic/CriticalSection.hpp"
+#include "../Basic/PodVector.hpp"
 #include "../Basic/Serializer.hpp"
 #include "../Basic/GmDls.h"
 #ifdef MAJ7_INCLUDE_GSM_SUPPORT
@@ -34,15 +33,14 @@ namespace WaveSabreCore
 		struct GmDlsSample : ISampleSource
 		{
 			int mSampleIndex = 0;
-			int mSampleLength = 0;
 			int mSampleLoopStart = 0;
 			int mSampleLoopLength = 0;
-			float* mSampleData = nullptr;
+			PodVector<float> mSampleData;
 
 			GmDlsSample(int sampleIndex);
 			~GmDlsSample();
-			virtual const float* GetSampleData() const override { return mSampleData; }
-			virtual int GetSampleLength() const override { return mSampleLength; }
+			virtual const float* GetSampleData() const override { return mSampleData.data(); }
+			virtual size_t GetSampleLength() const override { return mSampleData.size(); }
 			virtual int GetSampleLoopStart() const override { return mSampleLoopStart; }
 			virtual int GetSampleLoopLength() const override { return mSampleLoopLength; }
 			virtual int GetSampleRate() const override { return 44100; }
@@ -52,9 +50,6 @@ namespace WaveSabreCore
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		struct SamplerDevice : ISoundSourceDevice
 		{
-			//ParamAccessor mParams;
-			//SourceInfo& mSourceInfo;
-
 			bool mEnabledCached;
 
 			ISampleSource* mSample = nullptr;
@@ -70,13 +65,8 @@ namespace WaveSabreCore
 			void Serialize(Serializer& s);
 #endif // MAJ7_INCLUDE_GSM_SUPPORT
 
-			//explicit SamplerDevice(float* paramCache, ModulationSpec* ampEnvModulation,
-			//	ParamIndices baseParamID, ParamIndices ampEnvBaseParamID, ModSource ampEnvModSourceID, ModDestination modDestBaseID
-			//);
 			explicit SamplerDevice(float* paramCache, ModulationList modulations, const SourceInfo& srcInfo);
 
-
-			//virtual ~SamplerDevice();
 			// called when loading chunk, or by VST
 			void LoadSample(char* compressedDataPtr, int compressedSize, int uncompressedSize, WAVEFORMATEX* waveFormatPtr, const char* path);
 			void LoadGmDlsSample(int sampleIndex);
@@ -94,17 +84,6 @@ namespace WaveSabreCore
 					return false;
 				return true;
 			}
-
-			//virtual float GetAuxPan() const override
-			//{
-			//	return mParams.GetN11Value(SamplerParamIndexOffsets::AuxMix, 0);
-			//}
-
-			//virtual float GetLinearVolume(float mod) const override
-			//{
-			//	return mParams.GetLinearVolume(SamplerParamIndexOffsets::Volume, gUnityVolumeCfg, mod);
-			//}
-
 
 		}; // struct SamplerDevice
 

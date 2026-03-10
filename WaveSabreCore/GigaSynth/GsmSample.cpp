@@ -3,14 +3,25 @@
 
 namespace WaveSabreCore::M7
 {
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
 	GsmSample::GsmSample(const char *data, int compressedSize, int uncompressedSize, WAVEFORMATEX *waveFormat)
 		: CompressedSize(compressedSize)
 		, UncompressedSize(uncompressedSize)
 	{
-		WaveFormatData = new char[sizeof(WAVEFORMATEX) + waveFormat->cbSize];
-		memcpy(WaveFormatData, waveFormat, sizeof(WAVEFORMATEX) + waveFormat->cbSize);
-		CompressedData = new char[compressedSize];
-		memcpy(CompressedData, data, compressedSize);
+		size_t waveFormatSize = sizeof(WAVEFORMATEX) + waveFormat->cbSize;
+		WaveFormatData.reserve(waveFormatSize);
+		auto waveFormatBytes = reinterpret_cast<const uint8_t*>(waveFormat);
+		for (size_t i = 0; i < waveFormatSize; ++i)
+		{
+			WaveFormatData.push_back(waveFormatBytes[i]);
+		}
+
+		CompressedData.reserve(compressedSize);
+		auto compressedBytes = reinterpret_cast<const uint8_t*>(data);
+		for (int i = 0; i < compressedSize; ++i)
+		{
+			CompressedData.push_back(compressedBytes[i]);
+		}
 
 		acmDriverEnum(driverEnumCallback, NULL, NULL);
 		HACMDRIVER driver = NULL;
@@ -33,7 +44,7 @@ namespace WaveSabreCore::M7
 		ACMSTREAMHEADER streamHeader;
 		memset(&streamHeader, 0, sizeof(ACMSTREAMHEADER));
 		streamHeader.cbStruct = sizeof(ACMSTREAMHEADER);
-		streamHeader.pbSrc = (LPBYTE)CompressedData;
+		streamHeader.pbSrc = (LPBYTE)CompressedData.data();
 		streamHeader.cbSrcLength = compressedSize;
 		auto uncompressedData = new short[uncompressedSize * 2];
 		streamHeader.pbDst = (LPBYTE)uncompressedData;
@@ -46,9 +57,9 @@ namespace WaveSabreCore::M7
 		acmDriverClose(driver, 0);
 
 		mSampleRate = waveFormat->nSamplesPerSec;
-		SampleLength = streamHeader.cbDstLengthUsed / sizeof(short);
-		SampleData = new float[SampleLength];
-		for (int i = 0; i < SampleLength; i++)
+		auto sampleLength = int(streamHeader.cbDstLengthUsed / sizeof(short));
+		SampleData.resize(sampleLength);
+		for (int i = 0; i < sampleLength; i++)
 		{
 			SampleData[i] = M7::math::Sample16To32Bit(uncompressedData[i]);
 		}
@@ -58,9 +69,6 @@ namespace WaveSabreCore::M7
 
 	GsmSample::~GsmSample()
 	{
-		delete [] WaveFormatData;
-		delete [] CompressedData;
-		delete [] SampleData;
 	}
 
 	HACMDRIVERID GsmSample::driverId = NULL;
@@ -101,4 +109,6 @@ namespace WaveSabreCore::M7
 		}
 		return 1;
 	}
-}
+
+	#endif  // MAJ7_INCLUDE_GSM_SUPPORT
+  }  //  namespace WaveSabreCore::M7

@@ -27,7 +27,7 @@
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM // quite a huge amount of binary due to complex shape building.
 
 // user sample support (different than gmdls)
-#undef MAJ7_INCLUDE_GSM_SUPPORT
+#undef MAJ7_INCLUDE_GSM_SUPPORT // ~1kb of minified code.
 
 // see width sources for more; mostly the rotation stuff.
 #define MAJ7WIDTH_FULL_FEATURE

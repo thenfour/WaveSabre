@@ -1,8 +1,10 @@
 #pragma once
 
+#include "DSPMath.hpp"
 #include "Math.hpp"
 #include "Pair.hpp"
-#include "DSPMath.hpp"
+#include "PodVector.hpp"
+
 
 
 namespace WaveSabreCore
@@ -12,18 +14,8 @@ namespace M7
 
 struct Serializer
 {
-  uint8_t* mBuffer = nullptr;
-  size_t mAllocatedSize = 0;
-  size_t mSize = 0;
+  PodBuffer mBuffer = PodBuffer{sizeof(uint8_t)};
 
-  ~Serializer();
-
-  static void FreeBuffer(void* p)
-  {
-    delete[] p;
-  }
-
-  Pair<uint8_t*, size_t> DetachBuffer();
   uint8_t* GrowBy(size_t n);
   void WriteUByte(uint8_t b);
 

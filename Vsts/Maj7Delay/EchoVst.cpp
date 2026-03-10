@@ -12,7 +12,7 @@ int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char* deviceName, int i
 
 void __cdecl WaveSabreFreeChunk(void* p)
 {
-	M7::Serializer::FreeBuffer(p);
+	FreeBuffer(p);
 }
 int __cdecl WaveSabreTestCompression(int inpSize, void* inpData)
 {

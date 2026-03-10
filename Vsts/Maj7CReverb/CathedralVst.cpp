@@ -14,7 +14,7 @@ int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName,
       deviceName, inpSize, inpData, outpSize, outpData, deltaFromDefaults);
 }
 
-void __cdecl WaveSabreFreeChunk(void *p) { M7::Serializer::FreeBuffer(p); }
+void __cdecl WaveSabreFreeChunk(void *p) { FreeBuffer(p); }
 
 int __cdecl WaveSabreTestCompression(int inpSize, void *inpData) {
   // implemented in maj7.dll

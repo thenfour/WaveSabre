@@ -13,7 +13,7 @@
 
 #include "./Devices.h"
 
-#include "../GigaSynth/GsmSample.h"
+//#include "../GigaSynth/GsmSample.h"
 #include "../GigaSynth/Maj7Basic.hpp"
 
 #endif

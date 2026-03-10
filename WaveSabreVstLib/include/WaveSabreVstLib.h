@@ -141,31 +141,31 @@ inline std::string LoadContentsOfTextFile(const std::string& path)
 }
 
 
-// returns params as a minified chunk
-template <size_t paramCount>
-inline int GetSimpleMinifiedChunk(const float (&paramCache)[paramCount],
-                                  const int16_t (&defaults16)[paramCount],
-                                  void** data)
-{
-  M7::Serializer s;
+// // returns params as a minified chunk
+// template <size_t paramCount>
+// inline int GetSimpleMinifiedChunk(const float (&paramCache)[paramCount],
+//                                   const int16_t (&defaults16)[paramCount],
+//                                   void** data)
+// {
+//   M7::Serializer s;
 
-  for (int i = 0; i < paramCount; ++i)
-  {
-    double f = paramCache[i];
-    f -= M7::math::Default16ToFloatN11(defaults16[i]);
-    static constexpr double eps = 0.0000001;
-    double af = f < 0 ? -f : f;
-    if (af < eps)
-    {
-      f = 0;
-    }
-    s.WriteInt16NormalizedFloat((float)f);
-  }
+//   for (int i = 0; i < paramCount; ++i)
+//   {
+//     double f = paramCache[i];
+//     f -= M7::math::Default16ToFloatN11(defaults16[i]);
+//     static constexpr double eps = 0.0000001;
+//     double af = f < 0 ? -f : f;
+//     if (af < eps)
+//     {
+//       f = 0;
+//     }
+//     s.WriteInt16NormalizedFloat((float)f);
+//   }
 
-  auto ret = s.DetachBuffer();
-  *data = ret.first;
-  return (int)ret.second;
-}
+//   auto ret = DupeBuffer(s);
+//   *data = ret.first;
+//   return (int)ret.second;
+// }
 
 // return bool if error
 inline bool VisitChildren(clarinoid::JsonVariantReader& parent,

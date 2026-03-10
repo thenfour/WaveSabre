@@ -50,7 +50,7 @@ int __cdecl WaveSabreDeviceVSTChunkToMinifiedChunk(const char *deviceName, int i
 
 void __cdecl WaveSabreFreeChunk(void* p)
 {
-	M7::Serializer::FreeBuffer(p);
+	FreeBuffer(p);
 }
 
 // compresses the given data to test Squishy performance for a given buf.

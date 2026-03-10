@@ -77,17 +77,17 @@ namespace WaveSabreCore
 		float LoopLength;
 
 		const float *SampleData;
-		int SampleLength;
-		int SampleLoopStart;
-		int SampleLoopLength;
+		size_t SampleLength;
+		size_t SampleLoopStart;
+		size_t SampleLoopLength;
 
 		double samplePos;
 
 	private:
 		double sampleDelta;
-		int roundedLoopStart;
-		int roundedLoopLength;
-		int roundedLoopEnd;
+		size_t roundedLoopStart;
+		size_t roundedLoopLength;
+		size_t roundedLoopEnd;
 		bool reverse;
 	};
 }

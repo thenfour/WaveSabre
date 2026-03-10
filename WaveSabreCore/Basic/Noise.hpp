@@ -6,7 +6,6 @@
 
 namespace WaveSabreCore::M7
 {
-
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Deterministic integer hash -> [-1, +1]
 float hash1D(int n);
@@ -21,7 +20,7 @@ float fade3(float t);
 // -1..1 output
 float valueNoise2D(float x, float y);
 
-float valueNoise1D(float x);
+//float valueNoise1D(float x);
 
 float fbm2D(float x, float y);
 

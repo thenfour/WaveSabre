@@ -29,7 +29,7 @@ struct WVSegment
 
 struct WVShape
 {
-   Vector<WVSegment> mSegments;
+   PodVector<WVSegment> mSegments;
 
   // find segment at phase:
   WVSegment FindSegment(double sampleInPhase01) const;

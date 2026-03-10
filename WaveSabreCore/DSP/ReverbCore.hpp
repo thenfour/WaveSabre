@@ -27,18 +27,18 @@ struct ReverbCore
 
     for (int i = 0; i < numCombs; i++)
     {
-      combLeft[i].SetBufferSize(CombTuning[i]);
-      combRight[i].SetBufferSize(CombTuning[i] + stereoSpread);
+      combLeft[i].SetLengthSamples(CombTuning[i]);
+      combRight[i].SetLengthSamples(CombTuning[i] + stereoSpread);
     }
 
     for (int i = 0; i < numAllPasses; i++)
     {
-      allPassLeft[i].SetBufferSize(AllPassTuning[i]);
-      allPassRight[i].SetBufferSize(AllPassTuning[i] + stereoSpread);
+      allPassLeft[i].SetLengthSamples(AllPassTuning[i]);
+      allPassRight[i].SetLengthSamples(AllPassTuning[i] + stereoSpread);
 
       // NOTE: this is never set again, so effectively it means a fixed feedback amount of 0.5.
-      allPassLeft[i].SetFeedback(/*roomSize*/ 0.5f);
-      allPassRight[i].SetFeedback(/*roomSize*/ 0.5f);
+      allPassLeft[i].SetCombParams(0, /*roomSize*/ 0.5f);
+      allPassRight[i].SetCombParams(0, /*roomSize*/ 0.5f);
     }
   }
 
@@ -47,7 +47,7 @@ struct ReverbCore
     static constexpr float SVQ = 1;
 
     // this is done in processSample (not in UpdateParams) to avoid GUI / Audio thread contention.
-    preDelayBuffer.SetLength(preDelayMS);
+    preDelayBuffer.SetLengthMilliseconds(preDelayMS);
 
     float leftInput = in.Left();
     float rightInput = in.Right();
@@ -62,8 +62,8 @@ struct ReverbCore
     // predelay is part of the reverb network; feed it the pre-filtered signal
     if (preDelayMS > 0)
     {
-      preDelayBuffer.WriteSample(input);
-      input = preDelayBuffer.ReadSample();
+      preDelayBuffer.WriteAndAdvance(input);
+      input = preDelayBuffer.PeekAtCursor();
     }
 
     float outL = 0;
@@ -72,15 +72,15 @@ struct ReverbCore
     // Accumulate comb filters in parallel
     for (int i = 0; i < numCombs; i++)
     {
-      outL += combLeft[i].Process(input);
-      outR += combRight[i].Process(input);
+      outL += combLeft[i].ProcessComb(input);
+      outR += combRight[i].ProcessComb(input);
     }
 
     // Feed through allpasses in series
     for (int i = 0; i < numAllPasses; i++)
     {
-      outL = allPassLeft[i].Process(outL);
-      outR = allPassRight[i].Process(outR);
+      outL = allPassLeft[i].ProcessAllPass(outL);
+      outR = allPassRight[i].ProcessAllPass(outR);
     }
 
     // Width cross-mix for the wet signal (0=mono center, 1=full width)
@@ -105,8 +105,8 @@ struct ReverbCore
 
     for (int i = 0; i < numCombs; i++)
     {
-      combLeft[i].SetParams(damp, roomSize);
-      combRight[i].SetParams(damp, roomSize);
+      combLeft[i].SetCombParams(damp, roomSize);
+      combRight[i].SetCombParams(damp, roomSize);
     }
   }
 
@@ -119,13 +119,13 @@ private:
 
   M7::SVFilter lowCutFilter[2], highCutFilter[2];
 
-  Comb combLeft[numCombs];
-  Comb combRight[numCombs];
+  AudioBuffer combLeft[numCombs];
+  AudioBuffer combRight[numCombs];
 
-  AllPass allPassLeft[numAllPasses];
-  AllPass allPassRight[numAllPasses];
+  AudioBuffer allPassLeft[numAllPasses];
+  AudioBuffer allPassRight[numAllPasses];
 
-  DelayBuffer preDelayBuffer;
+  AudioBuffer preDelayBuffer;
 };
 
 }  // namespace WaveSabreCore

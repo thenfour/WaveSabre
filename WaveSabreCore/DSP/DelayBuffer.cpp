@@ -6,38 +6,53 @@ namespace WaveSabreCore
 
 void AudioBuffer::SetLengthSamples(size_t sampleCount)
 {
-  if (sampleCount == mLength)
-    return;
-  if (sampleCount < 1)
-    sampleCount = 1;
-  auto oldBuf = mBuffer;
-  auto newBuffer = new float[sampleCount];
-  memset(newBuffer, 0, sizeof(float) * sampleCount);
-  mCursor = 0;
-  mLength = (int)sampleCount;
-  mBuffer = newBuffer;
-  delete[] oldBuf;
+  // if (sampleCount == mBuffer.size())
+  //   return;
+
+  // this internally zeroes new elements.
+  mBuffer.resize(std::max<size_t>(1, sampleCount));
+  mCursor = 0;  // necessary in case of shrinking buffer.
+}
+
+void AudioBuffer::SetLengthMilliseconds(float lengthMs)
+{
+  auto sampleCount = (size_t)M7::math::MillisecondsToSamples(lengthMs);
+  SetLengthSamples(sampleCount);
 }
 
 void AudioBuffer::WriteAndAdvance(float sample)
 {
   mBuffer[mCursor] = sample;
-  mCursor = (mCursor + 1) % mLength;
+  mCursor = (mCursor + 1) % mBuffer.size();
 }
 
-void DelayBuffer::SetLength(float lengthMs)
+float AudioBuffer::PeekAtCursor() const
 {
-  int newLength = (int)M7::math::MillisecondsToSamples(lengthMs);
-  mBuffer.SetLengthSamples(newLength);
+  if (mBuffer.empty())
+    return 0.0f;
+  return mBuffer[mCursor];
 }
 
-void DelayBuffer::WriteSample(float sample)
+void AudioBuffer::SetCombParams(float damp, float feedback)
 {
-  mBuffer.WriteAndAdvance(sample);
+  mDamp1 = damp;
+  mFeedback = feedback;
 }
 
-float DelayBuffer::ReadSample() const
+float AudioBuffer::ProcessComb(float input)
 {
-  return mBuffer.PeekAtCursor();
+  float output = PeekAtCursor();
+  mFilterStore = M7::math::lerp(output, mFilterStore, mDamp1);
+  WriteAndAdvance(input + (mFilterStore * mFeedback));
+  return output;
 }
+
+float AudioBuffer::ProcessAllPass(float input)
+{
+  float bufferOut = PeekAtCursor();
+  float output = -input + bufferOut;
+  WriteAndAdvance(input + (bufferOut * mFeedback));
+  return output;
+}
+
 }  // namespace WaveSabreCore

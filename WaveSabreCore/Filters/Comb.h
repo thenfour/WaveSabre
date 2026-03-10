@@ -1,24 +1,24 @@
-#ifndef __WAVESABRECORE_COMB_H__
-#define __WAVESABRECORE_COMB_H__
+// #ifndef __WAVESABRECORE_COMB_H__
+// #define __WAVESABRECORE_COMB_H__
 
 #include "../DSP/DelayBuffer.h"
 
-namespace WaveSabreCore
-{
-	class Comb
-	{
-	public:
-		void SetBufferSize(int size);
-		float Process(float inp);
-		void SetParams(float damp, float feedback);
+// namespace WaveSabreCore
+// {
+// 	class Comb
+// 	{
+// 	public:
+// 		void SetBufferSize(int size);
+// 		float Process(float inp);
+// 		void SetParams(float damp, float feedback);
 
-	private:
-		float feedback;
-		float filterStore = 0;
-		float damp1;
-		AudioBuffer mBuffer;
-		int bufferIndex;
-	};
-}
+// 	private:
+// 		float feedback;
+// 		float filterStore = 0;
+// 		float damp1;
+// 		AudioBuffer mBuffer;
+// 		//int bufferIndex;
+// 	};
+// }
 
-#endif
+// #endif

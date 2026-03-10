@@ -295,7 +295,7 @@ struct PerfRecorder
     return ring.Push(s);
   }
 
-  // UI thread: drain what’s available and update rolling stats.
+  // UI thread: drain whatï¿½s available and update rolling stats.
   void DrainToUi()
   {
     PerfSample s;
@@ -644,7 +644,7 @@ int VstPlug::GetMinifiedChunk(void** data, bool deltaFromDefaults)
     s.WriteInt16NormalizedFloat(f);
   }
 
-  auto ret = s.DetachBuffer();
+  auto ret = DupeBuffer(s);
   *data = ret.first;
   return (int)ret.second;
 }
@@ -700,7 +700,7 @@ ChunkStats VstPlug::AnalyzeChunkMinification()
                             &alloc);
   ret.compressedSize = (int)compressedSize;
 
-  delete[] data;
+  FreeBuffer(data);
   return ret;
 }
 

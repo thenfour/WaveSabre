@@ -125,7 +125,7 @@ static inline WVShape MakeFoldedTriangleShape(float drive, float bias)
       {0.75, 1.0, 4.0f, -4.0f},
   };
 
-  Vector<double> breakpoints;
+  PodVector<double> breakpoints;
   breakpoints.reserve(64);
   breakpoints.push_back(0.0);
   breakpoints.push_back(0.25);

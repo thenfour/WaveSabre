@@ -3174,7 +3174,8 @@ public:
       }
       else if (sampleSource == M7::SampleSource::Embed)
       {
-        auto* p = static_cast<WaveSabreCore::M7::GsmSample*>(sampler.mSample);
+#ifdef MAJ7_INCLUDE_GSM_SUPPORT
+          auto* p = static_cast<WaveSabreCore::M7::GsmSample*>(sampler.mSample);
         ImGui::Text("Uncompressed size: %d, compressed to %d (%d%%) / %d Samples / path:%s",
                     p->UncompressedSize,
                     p->CompressedSize,
@@ -3186,6 +3187,7 @@ public:
         {
           sampler.Reset();
         }
+#endif  // MAJ7_INCLUDE_GSM_SUPPORT
       }
       else if (sampleSource == M7::SampleSource::GmDls)
       {
