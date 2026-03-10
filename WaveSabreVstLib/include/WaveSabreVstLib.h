@@ -152,7 +152,7 @@ inline int GetSimpleMinifiedChunk(const float (&paramCache)[paramCount],
   for (int i = 0; i < paramCount; ++i)
   {
     double f = paramCache[i];
-    f -= M7::math::Sample16To32Bit(defaults16[i]);
+    f -= M7::math::Default16ToFloatN11(defaults16[i]);
     static constexpr double eps = 0.0000001;
     double af = f < 0 ? -f : f;
     if (af < eps)
@@ -335,7 +335,7 @@ void CopyParamCache(HWND hWnd,
   for (size_t i = 0; i < paramCount; ++i)
   {
     float valf = paramCache[i];
-    ss << std::setprecision(20) << "  " << M7::math::Sample32To16(valf) << ", // " << paramNames[i] << " = " << valf
+    ss << std::setprecision(20) << "  " << M7::math::FloatN11ToDefault16(valf) << ", // " << paramNames[i] << " = " << valf
        << std::endl;
   }
   ss << "};" << std::endl;

@@ -55,17 +55,17 @@ TEST(ParamTests, IntParamSerialization)
     {
       // defaults serializing.
       int16_t defaultVal = 16386;                          // represents +2
-      auto d1 = M7::math::Sample16To32Bit(defaultVal);     // should be like 0.5000762939
+      auto d1 = M7::math::Default16ToFloatN11(defaultVal);     // should be like 0.5000762939
       auto d2 = M7::gPitchBendCfg.deserialize(d1);         // should be +2.
       auto d3 = M7::gPitchBendCfg.serializeToFloat01(d2);  // should be like 0.5000762939
-      auto d4 = M7::math::Sample32To16(d3);                // should be 16386 again.
+      auto d4 = M7::math::FloatN11ToDefault16(d3);                // should be 16386 again.
       EXPECT_EQ(d4, defaultVal);
     }
     {
       // VST chunk serialization is done via JSON on float01 which serializes to string, truncating to 6 decimal places.
         // see: floatparts / decimalPlaces
       int16_t defaultVal = 16386;                          // represents +2
-      auto d1 = M7::math::Sample16To32Bit(defaultVal);     // should be like 0.5000762939
+      auto d1 = M7::math::Default16ToFloatN11(defaultVal);     // should be like 0.5000762939
       auto jsonstr = to_string_with_precision(d1, 9);      // should be "0.500076"
       auto jsonDeserialized = std::stof(jsonstr);          // should be 0.500076
       auto d2 = M7::gPitchBendCfg.deserialize(jsonDeserialized);         // should be +2.

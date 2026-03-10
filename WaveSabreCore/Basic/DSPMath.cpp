@@ -154,7 +154,7 @@ void ImportDefaultsArray(size_t count, const int16_t* src, float* paramCacheOffs
 {
   for (size_t i = 0; i < count; ++i)
   {
-    paramCacheOffset[i] = math::Sample16To32Bit(src[i]);
+    paramCacheOffset[i] = math::Default16ToFloatN11(src[i]);
   }
 }
 

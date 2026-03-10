@@ -47,19 +47,19 @@ struct Echo : public Device
 
 static_assert((int)Echo::ParamIndices::NumParams == 15, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gDefaults16[(int)Echo::ParamIndices::NumParams] = {
-  16418, // LdlyC = 0.50103759765625
-  16384, // LdlyF = 0.5
-  16384, // LdlyMS = 0.5
-  16410, // RdlyC = 0.50079345703125
-  16384, // RdlyF = 0.5
-  16384, // RdlyMS = 0.5
+  31, // LdlyC = 0.0009765625
+  0, // LdlyF = 0
+  16383, // LdlyMS = 0.5
+  23, // RdlyC = 0.000732421875
+  0, // RdlyF = 0
+  16383, // RdlyMS = 0.5
   2221, // LCFreq = 0.06780719757080078125
   8508, // LCQ = 0.25965651869773864746
   26500, // HCFreq = 0.80874627828598022461
   8508, // HCQ = 0.25965651869773864746
   9782, // FbLvl = 0.29853826761245727539
   4902, // FbDrive = 0.14962357282638549805
-  8192, // Cross = 0.25
+  8191, // Cross = 0.25
   16422, // DryOut = 0.50118720531463623047
   8230, // WetOut = 0.25118863582611083984
 };

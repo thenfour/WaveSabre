@@ -41,12 +41,12 @@ namespace WaveSabreCore
 		
 static_assert((int)ParamIndices::NumParams == 7, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-  0, // LSrc = 0
+  -32767, // LSrc = -1
   32767, // RSrc = 1
-  16384, // Rot = 0.5
+  16383, // Rot = 0.5
   0, // SideHPF = 0
-  16384, // MSBal = 0.5
-  16384, // Pan = 0.5
+  0, // MSBal = 0
+  0, // Pan = 0
   16422, // OutGain = 0.50118720531463623047
 };
 

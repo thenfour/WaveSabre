@@ -222,12 +222,14 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 
     // roomsize is not a linear param. it's also not a div-curved param; it's inverted.
     // gotta flip -> map -> flip.
-    auto roomSize = mParams.Get01Value(ParamIndices::ReverbRoomSize);
-    roomSize = 1.0f - roomSize;
-    M7::ParamAccessor pa{&roomSize, 0};
-    float t = pa.GetDivCurvedValue(0, M7::gRoomSizeParamCfg, 0);
-    roomSize = 1.0f - t;
-    mReverbCore.roomSize = M7::math::clamp01(roomSize);
+    // auto roomSize = mParams.Get01Value(ParamIndices::ReverbRoomSize);
+    // roomSize = 1.0f - roomSize;
+    // M7::ParamAccessor pa{&roomSize, 0};
+    // float t = pa.GetDivCurvedValue(0, M7::gRoomSizeParamCfg, 0);
+    // roomSize = 1.0f - t;
+    //mReverbCore.roomSize = M7::math::clamp01(roomSize);
+
+    mReverbCore.roomSize = mParams.GetInvDivCurvedValue(ParamIndices::ReverbRoomSize, M7::gRoomSizeParamCfg);
 
     mReverbCore.Update();
   }

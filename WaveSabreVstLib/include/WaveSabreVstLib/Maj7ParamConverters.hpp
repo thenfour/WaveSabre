@@ -385,14 +385,15 @@ struct Maj7FrequencyConverter : ImGuiKnobs::IValueConverter
 
 struct FloatN11Converter : ImGuiKnobs::IValueConverter
 {
-  float mBacking;
-  M7::ParamAccessor mParams{&mBacking, 0};
+  //float mBacking;
+  //M7::ParamAccessor mParams{&mBacking, 0};
 
-  virtual std::string ParamToDisplayString(double param, void* capture, bool inputContinuity) override
+  virtual std::string ParamToDisplayString(double knobValue01, void* capture, bool inputContinuity) override
   {
-    mBacking = (float)param;
-    float n11 = mParams.GetN11Value(0, 0);
-    char s[100] = {0};
+    //mBacking = (float)param;
+    //float n11 = mParams.GetN11Value(0, 0);
+    float n11 = M7::FloatN11ParamCore::deserializeFromFloat01ForKnob((float)knobValue01);
+    char s[20] = {0};
     sprintf_s(s, "%0.3f", n11);
     return s;
   }
@@ -402,9 +403,11 @@ struct FloatN11Converter : ImGuiKnobs::IValueConverter
     try
     {
       double d = std::stod(s);
-      M7::QuickParam p;
-      p.SetN11Value(float(d));
-      return {p.GetRawValue(), true};
+      //M7::QuickParam p;
+      //p.SetN11Value(float(d));
+      //return {p.GetRawValue(), true};
+      float serialized = M7::FloatN11ParamCore::serializeToFloat01ForKnob(float(d));
+      return {serialized, true};
     }
     catch (const std::invalid_argument&)
     {

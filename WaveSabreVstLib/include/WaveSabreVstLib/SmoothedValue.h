@@ -120,14 +120,6 @@ private:
       return (T)((v + step / 2) / step) * step;  // crude for integers
   }
 
-  static T Clamp01(T x)
-  {
-    if constexpr (std::is_floating_point<T>::value)
-      return std::clamp(x, (T)0, (T)1);
-    else
-      return std::clamp(x, (T)0, (T)1);
-  }
-
   // config
   Duration mPublishPeriod = std::chrono::milliseconds(700);  // default ~5 Hz
   size_t mCallsPerPublish = 0;                               // 0 disables call-based cadence

@@ -320,7 +320,6 @@ struct ParamAccessor
     SetRawVal__((int)offset, v);
   }
 
-
   template <typename T>
   void SetBoolValue(T offset, bool v)
   {

@@ -19,26 +19,26 @@ enum class ParamType
 struct ParamRegistryValue
 {
   int16_t mAsDefault;
-  float mAsFloat01;
+  float mAsFloatN11;
 
   [[nodiscard]]
-  static ParamRegistryValue FromFloat01(float f01)
+  static ParamRegistryValue FromFloatN11(float f01)
   {
-    auto asdefault = math::Sample32To16(f01);
+    auto asdefault = math::FloatN11ToDefault16(f01);
     return ParamRegistryValue(asdefault, f01);
   }
 
   [[nodiscard]]
   static ParamRegistryValue FromDefault(int16_t defaultValue)
   {
-    auto asFloat01 = math::Sample16To32Bit(defaultValue);
-    return ParamRegistryValue(defaultValue, asFloat01);
+    auto asFloatN11 = math::Default16ToFloatN11(defaultValue);
+    return ParamRegistryValue(defaultValue, asFloatN11);
   }
 
 private:
-  ParamRegistryValue(int16_t asDefault, float asFloat01)
+  ParamRegistryValue(int16_t asDefault, float asFloatN11)
       : mAsDefault(asDefault)
-      , mAsFloat01(asFloat01)
+      , mAsFloatN11(asFloatN11)
   {
   }
 };

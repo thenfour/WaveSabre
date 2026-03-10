@@ -10,8 +10,10 @@ namespace WaveSabreCore
 		}
 
 		float ParamAccessor::GetN11Value__(int offset, float mod) const {
-			float ret = math::clampN11((GetRawVal__(offset) * 2 - 1) + mod);
-			return ret;
+			return  FloatN11ParamCore::deserializeFromVstParam(GetRawVal__(offset) + mod);
+		}
+		void ParamAccessor::SetN11Value__(int offset, float v) const {
+			SetRawVal__(offset, FloatN11ParamCore::serializeToVstParam(v));
 		}
 
 		float ParamAccessor::Get01Value__(int offset, float mod) const {
@@ -27,18 +29,15 @@ namespace WaveSabreCore
 			return (GetRawVal__(offset) > 0.5f);
 		}
 		int ParamAccessor::GetIntValue__(int offset) const {
-			const auto y01 = GetRawVal__(offset); // float 0 to 1
-			return IntParamConfig::deserializeFromFloat01(y01);
+			const auto yN11 = GetRawVal__(offset); // float -1..1
+			return IntParamConfig::deserializeFromFloatN11(yN11);
 		}
 		void ParamAccessor::SetRawVal__(int offset, float v) const {
 			mParamCache[mBaseParamID + offset] = v;
 		}
 		void ParamAccessor::SetIntValue__(int offset, int val) {
-			 float f01 = IntParamConfig::serializeToFloat01(val);
-			 SetRawVal__(offset, f01);
-		}
-		void ParamAccessor::SetN11Value__(int offset, float v) const {
-			SetRawVal__(offset, (v + 1) * 0.5f);
+			 float fN11 = IntParamConfig::serializeToFloatN11(val);
+			 SetRawVal__(offset, fN11);
 		}
 
 		//float ParamAccessor::GetEnvTimeMilliseconds__(int offset, float mod) const

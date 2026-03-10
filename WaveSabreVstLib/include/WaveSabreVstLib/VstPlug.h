@@ -22,7 +22,7 @@ inline void Copy16bitDefaults(float* dest, const int16_t (&src)[N])
 {
   for (size_t i = 0; i < N; ++i)
   {
-    dest[i] = WaveSabreCore::M7::math::Sample16To32Bit(src[i]);
+    dest[i] = WaveSabreCore::M7::math::Default16ToFloatN11(src[i]);
   }
 }
 

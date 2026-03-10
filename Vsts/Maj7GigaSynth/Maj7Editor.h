@@ -624,7 +624,7 @@ public:
       {
         size_t paramID = baseParamID + i;
         float valf = GetEffectX()->getParameter((VstInt32)paramID);
-        ss << std::setprecision(20) << "      " << M7::math::Sample32To16(valf) << ", // " << paramNames[paramID]
+        ss << std::setprecision(20) << "      " << M7::math::FloatN11ToDefault16(valf) << ", // " << paramNames[paramID]
            << " = " << valf << std::endl;
       }
       ss << "    };" << std::endl;

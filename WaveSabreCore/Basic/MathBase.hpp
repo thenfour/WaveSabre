@@ -265,7 +265,7 @@ INLINE float expf(float x)
 }
 
 template<typename T>
-INLINE T round(float x)
+constexpr INLINE T round(float x)
 {
   return (T)(x + 0.5f);
 }

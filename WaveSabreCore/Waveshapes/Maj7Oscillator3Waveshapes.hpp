@@ -654,10 +654,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
 
   void HandleParamsChanged() override
   {
-    mWaveshapeA = math::clamp01(mWaveshapeA);
     mProbability01 = mWaveshapeA * mWaveshapeA;  // curve for better control at low vals.
-
-    mWaveshapeB = math::clamp01(mWaveshapeB);
     mDutyCycle01 = 1.0f;
     //mAmpExtent01 = 1.0f;
 

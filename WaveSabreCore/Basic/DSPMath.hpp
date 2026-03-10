@@ -36,6 +36,37 @@ struct FreqParamConfig
   constexpr FreqParamConfig(const FreqParamConfig& rhs) = default;
 };
 
+struct FloatN11ParamCore
+{
+  [[nodiscard]]
+  static constexpr float serializeToVstParam(float floatN11)
+  {
+    return math::clampN11(floatN11);
+  }
+
+  [[nodiscard]]
+  static constexpr float deserializeFromVstParam(float param)
+  {
+    return math::clampN11(param);
+  }
+
+#ifndef MIN_SIZE_REL
+
+  // this is for knobs / UI -- careful never to use this as part of the synth's internal param handling
+  [[nodiscard]]
+  static constexpr float serializeToFloat01ForKnob(float floatN11)
+  {
+    return math::clamp01((floatN11 + 1) * 0.5f);
+  }
+
+  [[nodiscard]]
+  static constexpr float deserializeFromFloat01ForKnob(float float01)
+  {
+    return math::clampN11(float01 * 2 - 1);
+  }
+#endif  // !MIN_SIZE_REL
+};
+
 struct IntParamConfig
 {
   const int mMinValInclusive;
@@ -49,8 +80,9 @@ struct IntParamConfig
   //
   // NB: keep also in mind that we must serialize to 0-1 floats, not bipolars.
   // -4096 .. +4096 shall map to 0 .. 8192.
-  static constexpr int kSerializableOffset = 4096;
-  static constexpr int kSerializableScale = 2 * kSerializableOffset;
+  //static constexpr int kSerializableOffset = 4096;
+  //static constexpr int kSerializableScale = 2 * kSerializableOffset;
+  static constexpr int kSerializableScale = 8192;
 
   constexpr IntParamConfig(int minValInclusive, int maxValInclusive)
     : mMinValInclusive(minValInclusive)
@@ -60,21 +92,21 @@ struct IntParamConfig
   }
 
   [[nodiscard]]
-  static constexpr float serializeToFloat01(int code)
+  static constexpr float serializeToFloatN11(int code)
   {
-    //const float scaled = float(code) / float(kSerializableScale);
-    //return math::clamp01(scaled);
-    const int clamped = math::ClampI(code, -kSerializableOffset, kSerializableOffset);
-    const int index = clamped + kSerializableOffset;
-    return (float(index) + 0.5f) / float(kSerializableScale);
+    return float(code) / float(kSerializableScale);
+    //const int clamped = math::ClampI(code, -kSerializableOffset, kSerializableOffset);
+    //const int index = clamped + kSerializableOffset;
+    //return (float(index) + 0.5f) / float(kSerializableScale);
   }
 
   [[nodiscard]]
-  static constexpr int deserializeFromFloat01(float f01)
+  static constexpr int deserializeFromFloatN11(float f01)
   {
-    const float clamped = math::clamp01(f01);
-    const int index = int(clamped * float(kSerializableScale));
-    return index - kSerializableOffset;
+    return math::round<int>(f01 * kSerializableScale);
+    //const float clamped = math::clamp01(f01);
+    //const int index = int(clamped * float(kSerializableScale));
+    //return index - kSerializableOffset;
   }
 
 #ifndef MIN_SIZE_REL
@@ -255,6 +287,18 @@ inline float Sample16To32Bit(int16_t s)
 inline int16_t Sample32To16(float f)
 {
   return int16_t(ClampI(int32_t(f * 32768), -32768, 32767));
+}
+
+// converts the 16-bit serialized default value [-32767..32767] to a
+// -1..1 float. Using 32767 as divisor lets us represent -1 and +1 fully using the same
+// number of steps in pos / neg.
+inline float Default16ToFloatN11(int16_t s)
+{
+  return clampN11(float(s) / 32767);
+}
+inline int16_t FloatN11ToDefault16(float f)
+{
+  return int16_t(ClampI(int32_t(f * 32767), -32767, 32767));
 }
 
 }  // namespace math

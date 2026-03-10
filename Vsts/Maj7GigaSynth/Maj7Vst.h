@@ -586,11 +586,11 @@ public:
 			// still, try and optimize the aux part. 
 			if (!m.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled)) {
 
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxAttenuation, M7::math::Sample16To32Bit(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxAttenuation]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxCurve, M7::math::Sample16To32Bit(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxCurve]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxSource, M7::math::Sample16To32Bit(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxSource]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMin, M7::math::Sample16To32Bit(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMin]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMax, M7::math::Sample16To32Bit(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMax]));
+				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxAttenuation, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxAttenuation]));
+				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxCurve, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxCurve]));
+				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxSource, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxSource]));
+				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMin, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMin]));
+				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMax, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMax]));
 			}
 			// set destination scales
 			for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
@@ -600,8 +600,8 @@ public:
 					continue;
 				}
 
-				m.mParams.SetRawVal((int)M7::ModParamIndexOffsets::Destination1 + id, M7::math::Sample16To32Bit(M7::gDefaultModSpecParams[(int)M7::ModParamIndexOffsets::Destination1 + id]));
-				m.mParams.SetRawVal((int)M7::ModParamIndexOffsets::Scale1 + id, M7::math::Sample16To32Bit(M7::gDefaultModSpecParams[(int)M7::ModParamIndexOffsets::Scale1 + id]));
+				m.mParams.SetRawVal((int)M7::ModParamIndexOffsets::Destination1 + id, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(int)M7::ModParamIndexOffsets::Destination1 + id]));
+				m.mParams.SetRawVal((int)M7::ModParamIndexOffsets::Scale1 + id, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(int)M7::ModParamIndexOffsets::Scale1 + id]));
 			}
 
 			OptimizeBoolParam(m.mParams, M7::ModParamIndexOffsets::Enabled);

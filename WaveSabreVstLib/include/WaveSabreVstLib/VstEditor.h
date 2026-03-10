@@ -867,7 +867,7 @@ public:
     float defaultParamVal = cfg.serializeToFloat01WithUsableRange(v_defaultScaled);
     float centerParamVal = cfg.serializeToFloat01WithUsableRange(v_centerScaled);
     float tempValRaw = GetEffectX()->getParameter((VstInt32)paramID);
-    int tempValInt = cfg.deserializeFromFloat01(tempValRaw);
+    int tempValInt = cfg.deserializeFromFloatN11(tempValRaw);
     float tempVal = cfg.serializeToFloat01WithUsableRange(tempValInt);
 
     Maj7IntConverter conv{cfg};
@@ -891,7 +891,7 @@ public:
       // tempVal is in 0..1 with the param's usable range.
         // so convert to int, then to 0..1 in the full int param range.
       const int intVal = cfg.deserializeFromFloat01WithUsableRange(tempVal);
-      const float serializedFullRange = cfg.serializeToFloat01(intVal);
+      const float serializedFullRange = cfg.serializeToFloatN11(intVal);
       GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
     }
   }
@@ -912,7 +912,7 @@ public:
     float defaultParamVal = cfg.serializeToFloat01WithUsableRange(defaultVal);
     float centerParamVal = cfg.serializeToFloat01WithUsableRange(centerVal);
     float tempValRaw = GetEffectX()->getParameter((VstInt32)paramID);
-    int tempValInt = cfg.deserializeFromFloat01(tempValRaw);
+    int tempValInt = cfg.deserializeFromFloatN11(tempValRaw);
     float tempVal = cfg.serializeToFloat01WithUsableRange(tempValInt);
 
     Maj7MidiNoteConverter conv;
@@ -936,7 +936,7 @@ public:
       // tempVal is in 0..1 with the param's usable range.
       // so convert to int, then to 0..1 in the full int param range.
       const int intVal = cfg.deserializeFromFloat01WithUsableRange(tempVal);
-      const float serializedFullRange = cfg.serializeToFloat01(intVal);
+      const float serializedFullRange = cfg.serializeToFloatN11(intVal);
       GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(serializedFullRange));
     }
   }
@@ -1133,22 +1133,20 @@ public:
   }
   void Maj7ImGuiParamFloatN11(VstInt32 paramID,
                               const char* label,
-                              M7::real_t v_defaultScaled,
+                              M7::real_t v_defaultN11,
                               float size /*=0*/,
                               ImGuiKnobs::ModInfo modInfo)
   {
-    WaveSabreCore::M7::real_t tempVal;
-    M7::ParamAccessor pa{&tempVal, 0};
-    pa.SetN11Value(0, v_defaultScaled);
-    float defaultParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+    M7::real_t existingValParam = GetEffectX()->getParameter((VstInt32)paramID);
+    M7::real_t tempValN11 = M7::FloatN11ParamCore::deserializeFromVstParam(existingValParam);
+    M7::real_t tempVal01 = M7::FloatN11ParamCore::serializeToFloat01ForKnob(tempValN11);
 
     FloatN11Converter conv{};
     if (ImGuiKnobs::Knob(label,
-                         &tempVal,
+                         &tempVal01,
                          0,
                          1,
-                         defaultParamVal,
+                         M7::FloatN11ParamCore::serializeToFloat01ForKnob(v_defaultN11),
                          0.5f,
                          modInfo,
                          gNormalKnobSpeed,
@@ -1161,7 +1159,9 @@ public:
                          &conv,
                          this))
     {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
+        M7::real_t newValN11 = M7::FloatN11ParamCore::deserializeFromFloat01ForKnob(tempVal01);
+        M7::real_t serialized = M7::FloatN11ParamCore::serializeToVstParam(newValN11);
+        GetEffectX()->setParameterAutomated(paramID, serialized);
     }
   }
 
@@ -1172,21 +1172,18 @@ public:
                                         float size /*=0*/,
                                         ImGuiKnobs::ModInfo modInfo)
   {
-    WaveSabreCore::M7::real_t tempVal;
-    M7::ParamAccessor pa{&tempVal, 0};
-    pa.SetN11Value(0, v_defaultScaled);
-    float defaultParamVal = tempVal;
-    pa.SetN11Value(0, centerValN11);
-    float centerParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+    M7::real_t existingValParam = GetEffectX()->getParameter((VstInt32)paramID);
+    M7::real_t tempValN11 = M7::FloatN11ParamCore::deserializeFromVstParam(existingValParam);
+    M7::real_t tempVal01 = M7::FloatN11ParamCore::serializeToFloat01ForKnob(tempValN11);
+
 
     FloatN11Converter conv{};
     if (ImGuiKnobs::Knob(label,
-                         &tempVal,
+                         &tempVal01,
                          0,
                          1,
-                         defaultParamVal,
-                         centerParamVal,
+                         M7::FloatN11ParamCore::serializeToFloat01ForKnob(v_defaultScaled),
+                         M7::FloatN11ParamCore::serializeToFloat01ForKnob(centerValN11),
                          modInfo,
                          gNormalKnobSpeed,
                          gSlowKnobSpeed,
@@ -1198,7 +1195,9 @@ public:
                          &conv,
                          this))
     {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
+      M7::real_t newValN11 = M7::FloatN11ParamCore::deserializeFromFloat01ForKnob(tempVal01);
+      M7::real_t serialized = M7::FloatN11ParamCore::serializeToVstParam(newValN11);
+      GetEffectX()->setParameterAutomated(paramID, serialized);
     }
   }
 
