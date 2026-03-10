@@ -105,6 +105,9 @@ namespace M7
     // mGrainValid = false;
   }
 
+  int ContinuousNoiseCore::gInstanceCount = 0;
+
+
 }  // namespace M7
 
 }  // namespace WaveSabreCore

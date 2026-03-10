@@ -67,7 +67,7 @@ float fbm2D(float x, float y)
   float freq = 1.0f;
   float norm = 0.0f;
 
-  for (int i = 0; i < 3; ++i)
+  for (int i = 0; i < 4; ++i)
   {
     sum += valueNoise2D(x * freq, y * freq) * amp;
     norm += amp;

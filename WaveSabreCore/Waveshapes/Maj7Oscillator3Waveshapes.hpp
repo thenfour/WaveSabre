@@ -623,19 +623,22 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
 // uses FBM noise in a 2d field, using a rotating orbit as a wave cycle.
 struct ContinuousNoiseCore : public OscillatorCore
 {
+  static int gInstanceCount;
   ContinuousNoiseCore(OscillatorWaveform waveformType)
       : OscillatorCore(waveformType)
+      , mCenterY(100 * (++ gInstanceCount))
   {
   }
 
   float mFieldScale = 1.0f;     // shapeA: detail / density
   float mMovementSpeed = 0.0f;  // shapeB: drift speed
 
-  double mCenterY = 100.0;
+  double mCenterY;
 
   void HandleParamsChanged() override
   {
-    mFieldScale = math::lerp(0.5f, 4.5f, mWaveshapeA);
+    //mFieldScale = math::lerp(0.5f, 4.5f, mWaveshapeA);
+    mFieldScale = math::lerp(0.5f, 7.0f, mWaveshapeA);
     // after about 80x, starts to feel unuseful. the sonic effect is less noticeable and starts to make less difference. 80 is a modulateable-param-friendly max.
     mMovementSpeed = math::lerp(0.0f, 24.0f, mWaveshapeB) * Helpers::CurrentSampleRateRecipF;
   }
