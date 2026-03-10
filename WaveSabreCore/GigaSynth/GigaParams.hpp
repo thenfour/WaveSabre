@@ -662,7 +662,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler1BaseNote,
   Sampler1LegatoTrig,
   Sampler1Reverse,
-  Sampler1Source,  // gmdls or own sample
   Sampler1GmDlsIndex,
   Sampler1SampleStart,
   Sampler1LoopMode,
@@ -697,7 +696,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler2BaseNote,
   Sampler2LegatoTrig,
   Sampler2Reverse,
-  Sampler2Source,  // gmdls or own sample
   Sampler2GmDlsIndex,
   Sampler2SampleStart,
   Sampler2LoopMode,
@@ -732,7 +730,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler3BaseNote,
   Sampler3LegatoTrig,
   Sampler3Reverse,
-  Sampler3Source,  // gmdls or own sample
   Sampler3GmDlsIndex,
   Sampler3SampleStart,
   Sampler3LoopMode,
@@ -767,7 +764,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler4BaseNote,
   Sampler4LegatoTrig,
   Sampler4Reverse,
-  Sampler4Source,  // gmdls or own sample
   Sampler4GmDlsIndex,
   Sampler4SampleStart,
   Sampler4LoopMode,
