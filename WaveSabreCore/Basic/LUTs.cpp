@@ -147,6 +147,8 @@ float LUT2D::Invoke(float x, float y) const
   float f1 = lerp(f01, f11, tx);
 
   return lerp(f0, f1, ty);
+
+  //return bilerp(f00, f10, f01, f11, tx, ty);
 }
 
 // valid for 0<k<1 and 0<x<1
@@ -210,6 +212,14 @@ float lerp_rev(float v_min, float v_max,
 {
   return (v_val - v_min) / (v_max - v_min);
 }
+
+float bilerp(float f00, float f10, float f01, float f11, float tx, float ty)
+{
+  float f0 = lerp(f00, f10, tx);
+  float f1 = lerp(f01, f11, tx);
+  return lerp(f0, f1, ty);
+}
+
 
 // in minsizerel, static initialization is disabled.
 // everything must use gigasynth so we init from there.

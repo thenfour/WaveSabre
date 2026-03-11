@@ -39,37 +39,39 @@ float fade3(float t)
 }
 
 // -1..1 output
+// using math::bilerp() loses minified bytes (20b)
+// using FloatPair also loses a bit.
 float valueNoise2D(float x, float y)
 {
-  const int x0 = (int)math::floord(x);
-  const int y0 = (int)math::floord(y);
-
+  const int x0 = (int)math::floor(x);
   const float tx = x - (float)x0;
-  const float ty = y - (float)y0;
+  const float sx = tx;//fade3(tx);
 
-  const float sx = fade3(tx);
-  const float sy = fade3(ty);
+  const int y0 = (int)math::floor(y);
+  const float ty = y - (float)y0;
+  const float sy = ty;//fade3(ty);
 
   const float v00 = hash2D(x0, y0);
   const float v10 = hash2D(x0 + 1, y0);
   const float v01 = hash2D(x0, y0 + 1);
   const float v11 = hash2D(x0 + 1, y0 + 1);
 
-  const float ix0 = v00 + (v10 - v00) * sx;
-  const float ix1 = v01 + (v11 - v01) * sx;
-  return ix0 + (ix1 - ix0) * sy;
+  const float ix0 = math::lerp(v00, v10, sx);
+  const float ix1 = math::lerp(v01, v11, sx);
+  return math::lerp(ix0, ix1, sy);
 }
 
-float fbm2D(float x, float y)
+float fbm2D(const FloatPair& p)
 {
   float sum = 0.0f;
+  float norm = 0.0f;
   float amp = 1.0f;
   float freq = 1.0f;
-  float norm = 0.0f;
 
   for (int i = 0; i < 4; ++i)
   {
-    sum += valueNoise2D(x * freq, y * freq) * amp;
+    //sum += valueNoise2D(p * freq) * amp;
+    sum += valueNoise2D(p.x[0] * freq, p.x[1] * freq) * amp;
     norm += amp;
     freq *= 2.0f;
     amp *= 0.5f;

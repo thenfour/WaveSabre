@@ -42,7 +42,7 @@ DoublePair WVShape::EvalAmpSlopeAt(double sampleInPhase01) const
 SegmentWalker SegmentWalker::Begin(const WVShape& sh, double phaseBegin, double dtSample)
 {
   auto p = sh.EvalAmpSlopeAt(phaseBegin);
-  return {sh, phaseBegin, dtSample, 1.0, p[0], p[1]};
+  return {sh, phaseBegin, dtSample, 1.0, p};
 }
 void SegmentWalker::ResetSubwindow(double newPhase, double newLen)
 {

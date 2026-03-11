@@ -18,6 +18,12 @@ struct Pair
 template <typename T, std::enable_if_t<std::is_floating_point_v<T>, int> = 0>
 struct TFloatPair
 {
+  TFloatPair() = default;
+  TFloatPair(T x0, T x1)
+      : x{x0, x1}
+  {
+  }
+
   T x[2] = {0};
   T& operator[](size_t i)
   {
@@ -179,6 +185,10 @@ struct TFloatPair
 using FloatPair = TFloatPair<float>;
 using DoublePair = TFloatPair<double>;
 
+INLINE FloatPair SinCos(float angle)
+{
+  return {math::sin(angle), math::cos(angle)};
+}
 
 }  // namespace M7
 

@@ -160,6 +160,8 @@ NOINLINE double lerpD(double a, double b, double t);
 NOINLINE float lerp_rev(float v_min,
                       float v_max,
                       float v_val);
+NOINLINE float bilerp(float f00, float f10, float f01, float f11, float tx, float ty);
+
 INLINE float fract(float x)
 {
   // for negative values, fract works like,

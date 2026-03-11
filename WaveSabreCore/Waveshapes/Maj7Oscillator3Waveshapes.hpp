@@ -627,8 +627,7 @@ struct ContinuousNoiseCore : public OscillatorCore
       : OscillatorCore(waveformType)
       , mFieldScaleCurrent(1.0f)
       , mFieldScaleTarget(1.0f)
-      , mCenterX(0.0)
-      , mCenterY(100.0 * double(++gInstanceCount))
+      , mCenter(0.0f, 100.0f * float(++gInstanceCount))
   {
   }
 
@@ -636,8 +635,7 @@ struct ContinuousNoiseCore : public OscillatorCore
   float mFieldScaleTarget;
   float mMovementSpeed = 0.0f;
 
-  double mCenterX;
-  double mCenterY;
+  FloatPair mCenter;
 
   void HandleParamsChanged() override
   {
@@ -652,26 +650,30 @@ struct ContinuousNoiseCore : public OscillatorCore
     const auto step = mPhaseAcc.advanceOneSample();
     const float angle = float(step.phaseBegin01 * math::gPITimes2);
 
-    const float orbitX = math::cos(angle);
-    const float orbitY = math::sin(angle);
+    const auto orbit = SinCos(angle);
+
+    // const float orbitX = math::cos(angle);
+    // const float orbitY = math::sin(angle);
 
     // Geometric continuity correction for field scale changes:
     // preserve the currently sampled field-space point.
     if (mFieldScaleCurrent != mFieldScaleTarget)
     {
       const float ds = mFieldScaleCurrent - mFieldScaleTarget;
-      mCenterX += double(orbitX * ds);
-      mCenterY += double(orbitY * ds);
+      mCenter.Accumulate(orbit * ds);
       mFieldScaleCurrent = mFieldScaleTarget;
     }
 
-    mCenterY += mMovementSpeed;
+    mCenter.x[1] += mMovementSpeed; // y+= movementSpeed
 
     const float scale = mFieldScaleCurrent;
-    const float x = float(mCenterX) + orbitX * scale;
-    const float y = float(mCenterY) + orbitY * scale;
 
-    const float v = fbm2D(x, y);
+    const float v = fbm2D(mCenter + orbit * scale);
+
+    //const float x = float(mCenterX) + orbitX * scale;
+    //const float y = float(mCenterY) + orbitY * scale;
+
+    //const float v = fbm2D(x, y);
 
     return CoreSample{
       .amplitude = v,

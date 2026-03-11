@@ -22,6 +22,6 @@ float valueNoise2D(float x, float y);
 
 //float valueNoise1D(float x);
 
-float fbm2D(float x, float y);
+float fbm2D(const FloatPair& p);
 
 } // namespace WaveSabreCore::M7
