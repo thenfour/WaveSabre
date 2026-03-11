@@ -185,7 +185,12 @@ struct TFloatPair
 using FloatPair = TFloatPair<float>;
 using DoublePair = TFloatPair<double>;
 
-INLINE FloatPair SinCos(float angle)
+INLINE FloatPair SinCosF(float angle)
+{
+  return {math::sin(angle), math::cos(angle)};
+}
+
+INLINE DoublePair SinCosD(double angle)
 {
   return {math::sin(angle), math::cos(angle)};
 }

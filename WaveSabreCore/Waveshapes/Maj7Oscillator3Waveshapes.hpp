@@ -268,7 +268,7 @@ static inline WVShape MakeTriStatePulseShape4(double masterDutyCycle01, double l
       }};
 }
 
-#endif // ENABLE_PULSE4_WAVEFORM
+#endif  // ENABLE_PULSE4_WAVEFORM
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -310,14 +310,14 @@ enum class SineCoreExtVariant
 struct SineCoreExt : public OscillatorCore
 {
   // A: dc asym (-1..+1), B: clip (0..1), C: silence frac (0..1), H: harmonic blend (0..1)
-  float mA = 0.0f;
-  float mB = 0.0f;
-  float mC = 0.0f;
-  float mH = 0.0f;
+  float mA;
+  float mB;
+  float mC;
+  float mH;
 
   // Derived for clipping
-  float mClipThreshold = 1.0f;
-  float mClipGain = 1.0f;
+  float mClipThreshold;
+  float mClipGain;
   bool mSquareMode = false;
   static constexpr float kSquareEps = 1e-4f;
   const SineCoreExtVariant mVariant;
@@ -339,7 +339,6 @@ struct SineCoreExt : public OscillatorCore
       case SineCoreExtVariant::DCClip:
       {
         mA = mWaveshapeB * 2 - 1;
-        mB = mWaveshapeA;
         break;
       }
       case SineCoreExtVariant::ClipSilence:
@@ -622,6 +621,13 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
   void RestartDueToNoteOn() override;
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// here's a pitched noise that uses another evolving wave cycle.
+// this one uses a 2D fbm noise field. over time drifts through the field in a big circle.
+// a big circle allows infinite movement over the field without any dimension exploding, causing precision issues (#144)
+// 1. small enough that the precision scale is under control (so modulations & knobs are always consistent and well-behaved and predictable)
+// 2. big enough that you never hear any repetitions
+// the wave cycle is another circle. allows for smooth cyclical waveform, continuous movement and drifting, modulation-friendly.
 struct ContinuousNoiseCore : public OscillatorCore
 {
   static int gInstanceCount;
@@ -630,56 +636,53 @@ struct ContinuousNoiseCore : public OscillatorCore
       : OscillatorCore(waveformType)
       , mFieldScaleCurrent(1.0f)
       , mFieldScaleTarget(1.0f)
-      , mCenter(0.0f, 100.0f * float(++gInstanceCount))
+      , mBaseCenter(0.0f, 10.0f * float(++gInstanceCount))
   {
   }
 
-  float mFieldScaleCurrent;
-  float mFieldScaleTarget;
-  float mMovementSpeed = 0.0f;
+  double mFieldScaleCurrent;
+  double mFieldScaleTarget;
+  double mMovementSpeed = 0;
 
-  FloatPair mCenter;
+  double mTravelPhase = 0.0;
+  static constexpr int kTravelRadius = 1024;
+  static constexpr float kOneOverTravelRadius = 1.0f / kTravelRadius;
+  DoublePair mBaseCenter;
 
   void HandleParamsChanged() override
   {
     mFieldScaleTarget = math::lerp(0.5f, 7.0f, mWaveshapeA);
     // want enough speed to feel like really NOISE; that doesn't happen until after 150 or so. but below that you get a lot of variation.
     // so go for high max, but use a curve to allow good control at low speeds.
-    mMovementSpeed = math::lerp(0.0f, 512, mWaveshapeB * mWaveshapeB) * Helpers::CurrentSampleRateRecipF;
+    mMovementSpeed = math::lerp(0, 400.0f * kOneOverTravelRadius * Helpers::CurrentSampleRateRecipF, mWaveshapeB * mWaveshapeB);
   }
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
   {
     const auto step = mPhaseAcc.advanceOneSample();
-    const float angle = float(step.phaseBegin01 * math::gPITimes2);
 
-    const auto orbit = SinCos(angle);
-
-    // const float orbitX = math::cos(angle);
-    // const float orbitY = math::sin(angle);
+    const auto angle = step.phaseBegin01 * math::gPITimes2d;
+    const auto orbit = SinCosD(angle);
 
     // Geometric continuity correction for field scale changes:
     // preserve the currently sampled field-space point.
     if (mFieldScaleCurrent != mFieldScaleTarget)
     {
-      const float ds = mFieldScaleCurrent - mFieldScaleTarget;
-      mCenter.Accumulate(orbit * ds);
+      const double ds = mFieldScaleCurrent - mFieldScaleTarget;
+      mBaseCenter.Accumulate(orbit * ds);
       mFieldScaleCurrent = mFieldScaleTarget;
     }
 
-    mCenter.x[1] += mMovementSpeed; // y+= movementSpeed
+    mTravelPhase += mMovementSpeed;
+    const auto drift = SinCosD(mTravelPhase) * kTravelRadius;
+    const auto center = mBaseCenter + drift;
 
-    const float scale = mFieldScaleCurrent;
+    const double scale = mFieldScaleCurrent;
 
-    const float v = fbm2D(mCenter + orbit * scale);
-
-    //const float x = float(mCenterX) + orbitX * scale;
-    //const float y = float(mCenterY) + orbitY * scale;
-
-    //const float v = fbm2D(x, y);
+    const double v = fbm2D(center + orbit * scale);
 
     return CoreSample{
-      .amplitude = v,
+        .amplitude = static_cast<float>(v),
     };
   }
 };

@@ -14,14 +14,16 @@ float hash2D(int x, int y);
 
 // Quintic fade curve
 // 6t^5 - 15t^4 + 10t^3
-float fade5(float t);
-float fade3(float t);
+// float fade5(float t);
+// float fade3(float t);
 
 // -1..1 output
-float valueNoise2D(float x, float y);
+float valueNoise2Df(float x, float y);
+double valueNoise2D(double x, double y);
 
 //float valueNoise1D(float x);
 
-float fbm2D(const FloatPair& p);
+float fbm2Df(const FloatPair& p);
+double fbm2D(const DoublePair& p);
 
 } // namespace WaveSabreCore::M7

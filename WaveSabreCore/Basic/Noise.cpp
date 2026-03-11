@@ -24,24 +24,32 @@ float hash2D(int x, int y)
   return hash1D(n);
 }
 
-// Quintic fade curve
-// 6t^5 - 15t^4 + 10t^3
-float fade5(float t)
-{
-  return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
-}
+// // Quintic fade curve
+// // 6t^5 - 15t^4 + 10t^3
+// float fade5f(float t)
+// {
+//   return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
+// }
+// double fade5(double t)
+// {
+//   return t * t * t * (t * (t * 6.0 - 15.0) + 10.0);
+// }
 
-// cubic fade curve
-// 3t^2 - 2t^3
-float fade3(float t)
-{
-  return t * t * (3.0f - 2.0f * t);
-}
+// // cubic fade curve
+// // 3t^2 - 2t^3
+// float fade3f(float t)
+// {
+//   return t * t * (3.0f - 2.0f * t);
+// }
+// double fade3(double t)
+// {
+//   return t * t * (3.0 - 2.0 * t);
+// }
 
 // -1..1 output
 // using math::bilerp() loses minified bytes (20b)
 // using FloatPair also loses a bit.
-float valueNoise2D(float x, float y)
+float valueNoise2Df(float x, float y)
 {
   const int x0 = (int)math::floor(x);
   const float tx = x - (float)x0;
@@ -61,7 +69,27 @@ float valueNoise2D(float x, float y)
   return math::lerp(ix0, ix1, sy);
 }
 
-float fbm2D(const FloatPair& p)
+double valueNoise2D(double x, double y)
+{
+  const int x0 = (int)math::floord(x);
+  const double tx = x - (double)x0;
+  const double sx = tx;//fade3(tx);
+
+  const int y0 = (int)math::floord(y);
+  const double ty = y - (double)y0;
+  const double sy = ty;//fade3(ty);
+
+  const double v00 = hash2D(x0, y0);
+  const double v10 = hash2D(x0 + 1, y0);
+  const double v01 = hash2D(x0, y0 + 1);
+  const double v11 = hash2D(x0 + 1, y0 + 1);
+
+  const double ix0 = math::lerpD(v00, v10, sx);
+  const double ix1 = math::lerpD(v01, v11, sx);
+  return math::lerpD(ix0, ix1, sy);
+}
+
+float fbm2Df(const FloatPair& p)
 {
   float sum = 0.0f;
   float norm = 0.0f;
@@ -70,14 +98,33 @@ float fbm2D(const FloatPair& p)
 
   for (int i = 0; i < 4; ++i)
   {
-    //sum += valueNoise2D(p * freq) * amp;
-    sum += valueNoise2D(p.x[0] * freq, p.x[1] * freq) * amp;
+    sum += valueNoise2Df(p.x[0] * freq, p.x[1] * freq) * amp;
     norm += amp;
     freq *= 2.0f;
     amp *= 0.5f;
   }
 
   CCASSERT(norm > 0.0001f);
+
+  return sum / norm;
+}
+
+double fbm2D(const DoublePair& p)
+{
+  double sum = 0.0;
+  double norm = 0.0;
+  double amp = 1.0;
+  double freq = 1.0;
+
+  for (int i = 0; i < 4; ++i)
+  {
+    sum += valueNoise2D(p.x[0] * freq, p.x[1] * freq) * amp;
+    norm += amp;
+    freq *= 2.0;
+    amp *= 0.5;
+  }
+
+  CCASSERT(norm > 0.0001);
 
   return sum / norm;
 }
