@@ -21,6 +21,7 @@ void SamplePlayer::SetPlayRate(double ratio)
 
 void SamplePlayer::InitPos()
 {
+  if (!mpSample) return;
   reverse = Reverse;
   IsActive = true;
   mPrevSample = 0;
@@ -33,6 +34,7 @@ void SamplePlayer::InitPos()
 
 void SamplePlayer::RunPrep()
 {
+  if (!mpSample) return;
   auto lengthSamplesI = SampleLength();
   auto lengthSamplesF = (float)lengthSamplesI;
   switch (LoopBoundaryMode)
@@ -64,6 +66,7 @@ void SamplePlayer::RunPrep()
 
 float SamplePlayer::Next()
 {
+  if (!mpSample) return 0;
   double samplePosFloor = M7::math::floord(samplePos);
   double samplePosFract = samplePos - samplePosFloor;
 

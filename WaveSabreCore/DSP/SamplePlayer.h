@@ -43,7 +43,7 @@ public:
   float LoopStart;
   float LoopLength;
 
-  GmDlsSample* mpSample;
+  GmDlsSample* mpSample = nullptr;
 
   // used by editor
   double samplePos;
@@ -51,6 +51,7 @@ public:
 private:
   size_t SampleLength() const
   {
+    if (!mpSample) return 0;
     return mpSample->mSampleData.size();
   }
 
