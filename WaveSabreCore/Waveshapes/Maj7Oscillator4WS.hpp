@@ -71,11 +71,6 @@ struct ShapeCoreStreaming : public OscillatorCore
     {
       w.winLen = preLen;
       w.VisitEdges2(0, mSpill);
-      // w.VisitEdges(
-      //     [&](double alpha, const DoublePair& dAS)
-      //     {
-      //       mSpill.add_edge(alpha, dAS, dt);
-      //     });
     }
 
     // dynamic Reset: synthesize edge with exact deltas at the event
@@ -88,8 +83,6 @@ struct ShapeCoreStreaming : public OscillatorCore
       const auto ppre = /*[ ampPre, slopePre ] =*/ mShape.EvalAmpSlopeAt(prePh);
       const auto  ppost /* [ampPost, slopePost]*/ = mShape.EvalAmpSlopeAt(postPh);
 
-      //mSpill.add_edge(alpha, double(ampPost) - double(ampPre), double(slopePost) - double(slopePre), dt);
-      //mSpill.add_edge(alpha, double(ppost[0]) - double(ppre[0]), double(ppost[1]) - double(ppre[1]), dt);
       mSpill.add_edge(alpha, ppost - ppost, dt);
 
       // post-reset window: continue walking from postPh
@@ -97,23 +90,13 @@ struct ShapeCoreStreaming : public OscillatorCore
       {
         w.ResetSubwindow(postPh, postLen);
         w.VisitEdges2(alpha, mSpill);
-        // w.VisitEdges(
-        //     [&](double alphaLocal, const DoublePair& dAS)
-        //     {
-        //       const double alphaFull = alpha + alphaLocal;
-        //       mSpill.add_edge(alphaFull, dAS, dt);
-        //     });
       }
     }
 
     corr = mSpill.now;
-    //y = (double)ampNaive + mSpill.now;
 
     return CoreSample{
         .amplitude = float((double)p[0] + mSpill.now),
-        //.naive = (float)ampNaive,
-        //.correction = (float)corr,
-        //.phaseAdvance = {/* if needed */},
     };
   }
 };

@@ -177,11 +177,10 @@ static constexpr real_t gFrequencyMulMax = 64;
 // however the constexpr aspect reduces code size, and the compressor handles this fine.
 // so SizeBench will alert that there's redundant data, but by making these extern, you can only increase the resulting binary.
 extern __declspec(selectany) const FreqParamConfig gFilterFreqConfig{1000, 10, 83.21309485364912f};
-extern __declspec(selectany) const FreqParamConfig gLFOLPFreqConfig{20, 7, 15.486820576352429f};
 extern __declspec(selectany) const FreqParamConfig gBitcrushFreqConfig{gFilterFreqConfig};
 extern __declspec(selectany) const FreqParamConfig gSourceFreqConfig{gFilterFreqConfig};
-extern __declspec(selectany) const FreqParamConfig
-    gLFOFreqConfig{1.5f, 8, -0.37631656229592636f};  // well midi note here is meaningless and i hope you never use it.
+extern __declspec(selectany) const FreqParamConfig gLFOLPFreqConfig{60, 8, 0};
+extern __declspec(selectany) const FreqParamConfig gLFOFreqConfig{1.5f, 8, 0};  // midi note here is meaningless
 extern __declspec(selectany) const FreqParamConfig gSyncFreqConfig{gFilterFreqConfig};
 
 // int ranges are NOT used in the optimized synth param accessors; they are used by VSTs for knob
@@ -225,7 +224,7 @@ float MillisecondsToSamples(float ms);
 // and t1 is "before" t2,
 // return true if x falls between t1 and t2.
 // so if t2 < t1, it means a cycle wrap.
-bool DoesEncounter(double t1, double t2, float x);
+//bool DoesEncounter(double t1, double t2, float x);
 
 /**
              * Converts a linear value to decibels.  Returns <= aMinDecibels if the linear
@@ -236,21 +235,21 @@ bool DoesEncounter(double t1, double t2, float x);
 // On a modular line with value [0,1),
 // and start, length define a segment along the line; [start, start+length)
 // return true if x falls on the segment.
-inline bool DoesEncounter2(double start, double length, float xf)
-{
-  // Handle degenerate lengths quickly
-  if (!(length > 0.0))
-    return false;  // also makes NaN -> false
-  if (length >= 1.0)
-    return true;
-
-  // x relative to start, wrapped into [0,1)
-  double d = static_cast<double>(xf) - start;
-  d += (d < 0.0);  // branchless: adds 1.0 if negative
-
-  // Half-open membership test
-  return d < length;
-}
+//inline bool DoesEncounter2(double start, double length, float xf)
+//{
+//  // Handle degenerate lengths quickly
+//  if (!(length > 0.0))
+//    return false;  // also makes NaN -> false
+//  if (length >= 1.0)
+//    return true;
+//
+//  // x relative to start, wrapped into [0,1)
+//  double d = static_cast<double>(xf) - start;
+//  d += (d < 0.0);  // branchless: adds 1.0 if negative
+//
+//  // Half-open membership test
+//  return d < length;
+//}
 
 
 float LinearToDecibels(float aLinearValue, float aMinDecibels = gMinGainDecibels);

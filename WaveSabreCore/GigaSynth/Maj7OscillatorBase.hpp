@@ -7,9 +7,6 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-static constexpr float gOscillatorHeadroomScalar =
-    0.75f;  // scale oscillator outputs down to make room for blepping etc.
-
 // sampler, oscillator, LFO @ device level
 struct ISoundSourceDevice
 {
@@ -96,9 +93,7 @@ enum class OscillatorWaveform //: uint8_t
   ShapeCoreSawTriSquare,
 
   FoldedSine,
-#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
   FoldedTriangle,
-#endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
 
   EvolvingGrainNoise,
   RotatingNoise,
@@ -150,6 +145,26 @@ struct OscillatorWaveformUiStyle
 #define NOISE_WHITE_FG "#55dd88"
 #define NOISE_WHITE_BG "#102417"
 
+#ifdef ENABLE_PULSE4_WAVEFORM
+  #define PULSE4_NAME "Pulse 4 stage"
+  #define PULSE4_SHAPEA_NAME "Duty"
+  #define PULSE4_SHAPEB_NAME "Sym"
+#else
+  #define PULSE4_NAME "Pulse 4 (unavailable)"
+  #define PULSE4_SHAPEA_NAME "(n/a)"
+  #define PULSE4_SHAPEB_NAME "(n/a)"
+#endif
+
+#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
+  #define TRIANGLE_FOLD_NAME "Folded triangle"
+  #define TRIANGLE_FOLD_SHAPEA_NAME "Fold"
+  #define TRIANGLE_FOLD_SHAPEB_NAME "Bias"
+#else
+  #define TRIANGLE_FOLD_NAME "Folded triangle (unavailable)"
+  #define TRIANGLE_FOLD_SHAPEA_NAME "(n/a)"
+  #define TRIANGLE_FOLD_SHAPEB_NAME "(n/a)"
+#endif
+
 #define OSCILLATOR_WAVEFORM_UI_STYLES(symbolName)                                                                      \
   static constexpr ::WaveSabreCore::M7::OscillatorWaveformUiStyle symbolName[(int)::WaveSabreCore::M7::OscillatorWaveform::Count] \
   {                                                                                                                    \
@@ -157,12 +172,13 @@ struct OscillatorWaveformUiStyle
   {false, "Sine Clip Squeez",        "Clip",   "Duty",       0.0f,    0.0f,    SINE_COLOR_FG,        SINE_COLOR_BG},\
   {false, "Sine Harm Clip",          "Clip",   "Harm",       0.0f,    0.50f,   SINE_COLOR_FG,        SINE_COLOR_BG},\
   {false, "Sine Harm Clip Squeez",   "Duty",   "Harm",       0.0f,    0.50f,   SINE_COLOR_FG,        SINE_COLOR_BG},\
-  {true,  "SS Saw-Tri",              "Duty",   "Tri-Saw",    0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
-  {false, "SS pulse 2 stage",        "Duty",   "--",         0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
-  {false, "SS pulse 3 stage",        "Duty",   "Sym",        2.f/3.f, 0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
-  {false, "SS pulse 4 stage",        "Duty",   "Sym",        0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
-  {false, "SS Tri-Square",           "Duty",   "Tri-Square", 0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {true,  "Saw-Tri",              "Duty",   "Tri-Saw",    0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, "pulse 2 stage",        "Duty",   "(n/a)",         0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, "pulse 3 stage",        "Duty",   "Sym",        2.f/3.f, 0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, PULSE4_NAME,        PULSE4_SHAPEA_NAME,   PULSE4_SHAPEB_NAME,        0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  {false, "Tri-Square",           "Duty",   "Tri-Square", 0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
   {true,  "Folded Sine",             "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
+  {false,  TRIANGLE_FOLD_NAME,             TRIANGLE_FOLD_SHAPEA_NAME,   TRIANGLE_FOLD_SHAPEB_NAME,       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
   {true,  "Noise Grain Evolve",      "Scale",  "Speed",     0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
   {false,  "Rotating Noise",         "Scale",  "Speed",      0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
   {false, "Noise_SaH_LP4",           "LP Cut", "Jitter",     0.80f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\

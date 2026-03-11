@@ -235,6 +235,7 @@ static inline WVShape MakeTriStatePulseShape3(double masterDutyCycle01, double s
       }};
 }
 
+#ifdef ENABLE_PULSE4_WAVEFORM
 
 // four state pulse: low, mid, high, mid
 // segment 0: low
@@ -266,6 +267,8 @@ static inline WVShape MakeTriStatePulseShape4(double masterDutyCycle01, double l
                     .slope = 0},
       }};
 }
+
+#endif // ENABLE_PULSE4_WAVEFORM
 
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

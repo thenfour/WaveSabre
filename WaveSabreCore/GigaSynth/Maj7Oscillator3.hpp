@@ -43,7 +43,7 @@ struct TriPulseGenerator1 : public IShapeGenerator
     return MakeTriStatePulseShape3(shapeA, shapeB);
   }
 };
-
+#ifdef ENABLE_PULSE4_WAVEFORM
 struct TriPulseGenerator2 : public IShapeGenerator
 {
   WVShape GetShape(float shapeA, float shapeB) const override
@@ -55,6 +55,7 @@ struct TriPulseGenerator2 : public IShapeGenerator
     return MakeTriStatePulseShape4(shapeB, lowDuty01, highDuty01);
   }
 };
+#endif  // ENABLE_PULSE4_WAVEFORM
 
 #ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
 struct FoldedTriGenerator : public IShapeGenerator
@@ -95,8 +96,10 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::PulseGenerator);
     case OscillatorWaveform::ShapeCoreSawPulse3:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator1);
+#ifdef ENABLE_PULSE4_WAVEFORM
     case OscillatorWaveform::ShapeCoreSawPulse4:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator2);
+#endif  // ENABLE_PULSE4_WAVEFORM
     case OscillatorWaveform::ShapeCoreSawTriSquare:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
 

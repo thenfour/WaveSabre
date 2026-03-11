@@ -25,6 +25,7 @@
 #define ENABLE_PITCHBEND
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM // quite a huge amount of binary due to complex shape building.
+#undef ENABLE_PULSE4_WAVEFORM
 
 // user sample support (different than gmdls)
 #undef MAJ7_INCLUDE_GSM_SUPPORT // ~1kb of minified code.
