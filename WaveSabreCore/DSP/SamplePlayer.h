@@ -49,21 +49,18 @@ public:
   double samplePos;
 
 private:
-  size_t SampleLength() const
+  int SampleLength() const
   {
     if (!mpSample) return 0;
-    return mpSample->mSampleData.size();
+    return int(mpSample->mSampleData.size());
   }
 
   bool IsActive;
 
-  // for linear interpolation, use a 1-sample delay and store previous sample value.
-  float mPrevSample = 0;
-
   double sampleDelta;
-  size_t roundedLoopStart;
-  size_t roundedLoopLength;
-  size_t roundedLoopEnd;
+  int roundedLoopStart;
+  int roundedLoopLength;
+  int roundedLoopEnd;
   bool reverse;
 };
 }  // namespace WaveSabreCore

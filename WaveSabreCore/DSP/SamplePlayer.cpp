@@ -21,10 +21,10 @@ void SamplePlayer::SetPlayRate(double ratio)
 
 void SamplePlayer::InitPos()
 {
-  if (!mpSample) return;
+  if (!mpSample)
+    return;
   reverse = Reverse;
   IsActive = true;
-  mPrevSample = 0;
   samplePos = (double)SampleStart * (double)(SampleLength() - 1);
   if (reverse)
   {
@@ -34,7 +34,8 @@ void SamplePlayer::InitPos()
 
 void SamplePlayer::RunPrep()
 {
-  if (!mpSample) return;
+  if (!mpSample)
+    return;
   auto lengthSamplesI = SampleLength();
   auto lengthSamplesF = (float)lengthSamplesI;
   switch (LoopBoundaryMode)
@@ -66,7 +67,8 @@ void SamplePlayer::RunPrep()
 
 float SamplePlayer::Next()
 {
-  if (!mpSample) return 0;
+  if (!mpSample)
+    return 0;
   double samplePosFloor = M7::math::floord(samplePos);
   double samplePosFract = samplePos - samplePosFloor;
 
@@ -78,10 +80,16 @@ float SamplePlayer::Next()
     return 0.0f;
   }
 
-  float leftSample = mPrevSample;
-  float rightSample = mpSample->mSampleData[roundedSamplePos];
+  float leftSample = mpSample->mSampleData[roundedSamplePos];
+
+  // calculate next sample. needs to consider:
+  // - reverse playback,
+  // - loop mode (which can cause samplepos to jump around, and thus cause the next sample to be non-adjacent to the current sample)
+  int rightIndex = roundedSamplePos + 1;
+  if (LoopMode == LoopMode::Repeat && rightIndex == roundedLoopEnd)
+    rightIndex = roundedLoopStart;
+  float rightSample = rightIndex < lengthSamplesI ? mpSample->mSampleData[rightIndex] : 0.0f;
   float sample = M7::math::lerp(leftSample, rightSample, (float)samplePosFract);
-  mPrevSample = rightSample;
 
   samplePos += sampleDelta;
 
