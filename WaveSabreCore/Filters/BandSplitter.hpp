@@ -37,13 +37,19 @@ private:
 #endif
 
   LinkwitzRileyFilter mLR[kBandSplitterBands * 2];
-
 public:
   void SetParams(float crossoverFreqA,
                  CrossoverSlope crossoverSlopeA,
                  float crossoverFreqB,
                  CrossoverSlope crossoverSlopeB)
   {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    mCrossoverFreqA = crossoverFreqA;
+    mCrossoverFreqB = crossoverFreqB;
+    mCrossoverSlopeA = crossoverSlopeA;
+    mCrossoverSlopeB = crossoverSlopeB;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+
     mLR[1].SetParams(crossoverFreqB, crossoverSlopeB, FilterResponse::Lowpass);
     mLR[3].SetParams(crossoverFreqB, crossoverSlopeB, FilterResponse::Lowpass);
 
@@ -71,38 +77,45 @@ public:
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   std::array<float, kBandSplitterBands> GetMagnitudesAtFrequency(float freqHz) const
   {
-    // FrequencySplitter probe = *this;
-    // probe.Reset();
+    auto getLRIdealLowpassMagnitude = [](float freq, float cutoff, CrossoverSlope slope)
+    {
+      if (cutoff <= 0.0f)
+      {
+        return 0.0f;
+      }
 
-    // std::array<float, kBandSplitterBands> real{};
-    // std::array<float, kBandSplitterBands> imag{};
-    // const float phaseStep = M7::PITimes2 * freqHz * Helpers::CurrentSampleRateRecipF;
+      const float ratio = freq / cutoff;
+      const float ratio2 = ratio * ratio;
 
-    // for (int i = 0; i < kMagnitudeImpulseTaps; ++i)
-    // {
-    //   const float input = (i == 0) ? 1.0f : 0.0f;
-    //   const auto y = probe.frequency_splitter(input);
-    //   const float phase = phaseStep * float(i);
-    //   const float c = math::cos(phase);
-    //   const float s = math::sin(phase);
+      float power;
+      switch (slope)
+      {
+        default:
+        case CrossoverSlope::Slope_12dB:
+          power = ratio2;
+          break;
+        case CrossoverSlope::Slope_24dB:
+          power = ratio2 * ratio2;
+          break;
+        case CrossoverSlope::Slope_36dB:
+          power = ratio2 * ratio2 * ratio2;
+          break;
+        case CrossoverSlope::Slope_48dB:
+          power = ratio2 * ratio2 * ratio2 * ratio2;
+          break;
+      }
 
-    //   for (int band = 0; band < kBandSplitterBands; ++band)
-    //   {
-    //     real[band] += y.s[band] * c;
-    //     imag[band] -= y.s[band] * s;
-    //   }
-    // }
+      return 1.0f / (1.0f + power);
+    };
 
-    // std::array<float, kBandSplitterBands> ret{};
-    // for (int band = 0; band < kBandSplitterBands; ++band)
-    // {
-    //   ret[band] = sqrtf(real[band] * real[band] + imag[band] * imag[band]);
-    // }
-    // return ret;
-    (void)freqHz;
-    return {};
+    const float lowA = getLRIdealLowpassMagnitude(freqHz, mCrossoverFreqA, mCrossoverSlopeA);
+    const float highA = 1.0f - lowA;
+    const float lowB = getLRIdealLowpassMagnitude(freqHz, mCrossoverFreqB, mCrossoverSlopeB);
+    const float highB = 1.0f - lowB;
+
+    return {lowA * lowB, highA * lowB, highB};
   }
-#endif
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 };
 
 

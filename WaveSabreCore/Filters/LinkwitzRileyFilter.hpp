@@ -135,21 +135,16 @@ struct LinkwitzRileyFilter
             return svf[3].Process(x);
         }
       case FilterResponse::Highpass:
-        if (mSlope == CrossoverSlope::Slope_12dB || mSlope == CrossoverSlope::Slope_36dB)
-        {
-          x = -x;
-        }
-
         switch (mSlope)
         {
           default:
           case CrossoverSlope::Slope_12dB:
-            return svf[0].Process(x);
+            return svf[0].Process(-x);
           case CrossoverSlope::Slope_24dB:
             x = svf[0].Process(x);
             return svf[1].Process(x);
           case CrossoverSlope::Slope_36dB:
-            x = svf[0].Process(x);
+            x = svf[0].Process(-x);
             x = svf[1].Process(x);
             return svf[2].Process(x);
           case CrossoverSlope::Slope_48dB:
