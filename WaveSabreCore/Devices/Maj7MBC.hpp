@@ -224,9 +224,9 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   7, // ASatMod = 0.000244140625
   20674, // ASatThr = 0.63095736503601074219
   0, // AAnalog = 0
-  32767, // AWidth = 1
+  0, // AWidth = 0
   0, // APan = 0
-  0, // ADryWet = 0
+  32767, // ADryWet = 1
   8230, // BInVol = 0.25118863582611083984
   8230, // BOutVol = 0.25118863582611083984
   21844, // BThresh = 0.6666666865348815918
@@ -245,9 +245,9 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   7, // BSatMod = 0.000244140625
   20674, // BSatThr = 0.63095736503601074219
   0, // BAnalog = 0
-  32767, // BWidth = 1
+  0, // BWidth = 0
   0, // BPan = 0
-  0, // BDryWet = 0
+  32767, // BDryWet = 1
   8230, // CInVol = 0.25118863582611083984
   8230, // COutVol = 0.25118863582611083984
   21844, // CThresh = 0.6666666865348815918
@@ -266,9 +266,9 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   7, // CSatMod = 0.000244140625
   20674, // CSatThr = 0.63095736503601074219
   0, // CAnalog = 0
-  32767, // CWidth = 1
+  0, // CWidth = 0
   0, // CPan = 0
-  0, // CDryWet = 0
+  32767, // CDryWet = 1
 };
 
 
@@ -603,8 +603,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
         s = s.MSEncode();
       }
 
-      // to support solo/mute, because this gets clobbered later, if you are doing ms processing and solo/muting, need to accumulate this just like the main signal.
-      M7::FloatPair msDrySignal{s};
+      // accumulates either mid or side.
+      // for mid mode, side is processed but ignored.
+      // and vice-versa.
+      M7::FloatPair msDrySignal{};
 
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[0], s[0]);
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[1], s[1]);
@@ -625,7 +627,9 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
           if (band.mMuteSoloEnable)
           {
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
             msDrySignal += bandInput;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
           }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
           auto r = band.ProcessSample(bandInput, channelMode, isGuiVisible);
@@ -634,11 +638,14 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       }
       else
       {
-        auto& band = mBands[1];
+         // single wide band
+        auto& band = mBands[1]; // use middle band for processing
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
         if (band.mMuteSoloEnable)
         {
-          msDrySignal += s;
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+          msDrySignal = s;
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
         }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
         auto r = band.ProcessSample(s, channelMode, isGuiVisible);
