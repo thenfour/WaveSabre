@@ -385,11 +385,6 @@ namespace WaveSabreVstLib {
 			// Read crossover frequencies from device params
 			float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
 			float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-			M7::ParamAccessor paA{ &rawA, 0 };
-			M7::ParamAccessor paB{ &rawB, 0 };
-			float crossoverA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-			float crossoverB = paB.GetFrequency(0, M7::gFilterFreqConfig);
-
 			// Use splitter magnitudes from the device
 			auto* pSplitter = &mDevice->splitter0;
 
@@ -397,8 +392,8 @@ namespace WaveSabreVstLib {
 			for (int i = 0; i < TSegmentCount; ++i) {
 				float f = mFrequencies[i];
 
-				// Low/Mid/High band magnitudes from device splitter (LR topology)
-				auto mags = pSplitter->GetMagnitudesAtFrequency(f, crossoverA, crossoverB);
+				// Low/Mid/High band magnitudes from the active splitter topology.
+				auto mags = pSplitter->GetMagnitudesAtFrequency(f);
 				float lowLin = mags[0];
 				float midLin = mags[1];
 				float highLin = mags[2];

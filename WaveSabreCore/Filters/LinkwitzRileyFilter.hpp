@@ -2,16 +2,14 @@
 
 #include "../Filters/FilterMoog.hpp"
 #include "../Filters/FilterOnePole.hpp"
-//#include "Maj7ModMatrix.hpp"
 #include "SVFilter.hpp"
-#include "BiquadFilter.h"
-//#include <WaveSabreCore/Maj7Basic.hpp>
-//#include <array>
+#include <stdint.h>
 
 namespace WaveSabreCore
 {
 namespace M7
 {
+
 struct LinkwitzRileyFilter
 {
   using real = float;
@@ -24,117 +22,101 @@ struct LinkwitzRileyFilter
   static constexpr real q48_1 = 0.541196100146f;  // 0.5 / cos($pi / 8 * 1);
   static constexpr real q48_2 = 1.30656296488f;   // 0.5 / cos($pi / 8 * 3);
 
-  //SVFilter svf[4];
-  SVFilter svf[2];
+  SVFilter svf[4];
+  MoogOnePoleFilter apf1;
 
-  void Reset()
+  real mFrequency;
+  CrossoverSlope mSlope;
+  FilterResponse mResponse;
+
+  void SetParams(real freq, CrossoverSlope slope, FilterResponse response)
   {
-    for (auto& f : svf)
+    if (freq == mFrequency && slope == mSlope && response == mResponse)
     {
-      f.Reset();
+      return;
     }
+    mResponse = response;
+    mFrequency = freq;
+    mSlope = slope;
+
+    // TODO: set parameters for the underlying SVFs based on the desired slope and response.
+
+    // TODO: check correctness of this:
+    apf1.SetParams(
+        FilterCircuit::OnePole, FilterSlope::Slope6dbOct, FilterResponse::Allpass, freq, Param01(0), 0);
   }
 
-  real LR_LPF(real x, real freq /*, Slope slope*/)
+  real process(real x)
   {
-    //switch (slope) {
-    //default:
-    //case Slope::Slope_12dB:
-    //				return svf.SVFlow(x, freq, 0.5f);
-    //			case Slope::Slope_24dB:
-    x = svf[0].SVFlow(x, freq, q24);
-    return svf[1].SVFlow(x, freq, q24);
-    //#ifdef ENABLE_6db_oct_crossover
-    //			case Slope::Slope_36dB:
-    //				x = svf[0].SVFlow(x, freq, 1);
-    //				x = svf[1].SVFlow(x, freq, 1);
-    //				return svf[2].SVFlow(x, freq, 0.5f);
-    //#endif // ENABLE_6db_oct_crossover
-    //#ifndef DISABLE_48db_oct_crossover
-    //			case Slope::Slope_48dB:
-    //				x = svf[0].SVFlow(x, freq, q48_1);
-    //				x = svf[1].SVFlow(x, freq, q48_2);
-    //				x = svf[2].SVFlow(x, freq, q48_1);
-    //				return svf[3].SVFlow(x, freq, q48_2);
-    //#endif // DISABLE_48db_oct_crossover
-    //			}
+    // TODO: implement processing based on the desired slope and response.
   }
 
-  real LR_HPF(real x, real freq /*, Slope slope*/)
-  {
-    //switch (slope) {
-    //default:
-    //case Slope::Slope_12dB:
-    //return svf.SVFhigh(-x, freq, 0.5f);
-    //			case Slope::Slope_24dB:
-    x = svf[0].SVFhigh(x, freq, q24);
-    return svf[1].SVFhigh(x, freq, q24);
-    //#ifdef ENABLE_6db_oct_crossover
-    //			case Slope::Slope_36dB:
-    //				x = svf[0].SVFhigh(-x, freq, 1);
-    //				x = svf[1].SVFhigh(x, freq, 1);
-    //				return svf[2].SVFhigh(x, freq, 0.5f);
-    //#endif // ENABLE_6db_oct_crossover
-    //#ifndef DISABLE_48db_oct_crossover
-    //			case Slope::Slope_48dB:
-    //				x = svf[0].SVFhigh(x, freq, q48_1);
-    //				x = svf[1].SVFhigh(x, freq, q48_2);
-    //				x = svf[2].SVFhigh(x, freq, q48_1);
-    //				return svf[3].SVFhigh(x, freq, q48_2);
-    //#endif // DISABLE_48db_oct_crossover
-    //			}
-  }
+  // real LR_LPF(real x, real freq, CrossoverSlope slopeCode)
+  // {
+  //   switch (slopeCode)
+  //   {
+  //     default:
+  //     case 1:
+  //       return svf[0].SVFlow(x, freq, 0.5f);
+  //     case 2:
+  //       x = svf[0].SVFlow(x, freq, q24);
+  //       return svf[1].SVFlow(x, freq, q24);
+  //     case 3:
+  //       x = svf[0].SVFlow(x, freq, 1.0f);
+  //       x = svf[1].SVFlow(x, freq, 1.0f);
+  //       return svf[2].SVFlow(x, freq, 0.5f);
+  //     case 4:
+  //       x = svf[0].SVFlow(x, freq, q48_1);
+  //       x = svf[1].SVFlow(x, freq, q48_2);
+  //       x = svf[2].SVFlow(x, freq, q48_1);
+  //       return svf[3].SVFlow(x, freq, q48_2);
+  //   }
+  // }
 
-  real APF(real x, real freq /*, Slope slope*/)
-  {
-    //switch (slope) {
-    //default:
-    //case Slope::Slope_12dB:
-    //return svf.SVFOPapf_temp(-x, freq);
-    //			case Slope::Slope_24dB:
-    return svf[0].SVFall(x, freq, q24);
-    //#ifdef ENABLE_6db_oct_crossover
-    //			case Slope::Slope_36dB:
-    //				x = svf[0].SVFall(-x, freq, 1);
-    //				return svf[1].SVFOPapf_temp(x, freq);
-    //#endif // ENABLE_6db_oct_crossover
-    //#ifndef DISABLE_48db_oct_crossover
-    //			case Slope::Slope_48dB:
-    //				x = svf[0].SVFall(x, freq, q48_1);
-    //				return svf[1].SVFall(x, freq, q48_2);
-    //#endif // DISABLE_48db_oct_crossover
-    //			}
-  }
+  // real LR_HPF(real x, real freq, CrossoverSlope slopeCode)
+  // {
+  //   if (slopeCode == 1 || slopeCode == 3)
+  //   {
+  //     x = -x;
+  //   }
 
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  static inline float MagnitudeLPF(float freqHz, float crossoverHz)
-  {
-    if (crossoverHz <= 0.0f)
-      return 0.0f;
+  //   switch (slopeCode)
+  //   {
+  //     default:
+  //     case 1:
+  //       return svf[0].SVFhigh(x, freq, 0.5f);
+  //     case 2:
+  //       x = svf[0].SVFhigh(x, freq, q24);
+  //       return svf[1].SVFhigh(x, freq, q24);
+  //     case 3:
+  //       x = svf[0].SVFhigh(x, freq, 1.0f);
+  //       x = svf[1].SVFhigh(x, freq, 1.0f);
+  //       return svf[2].SVFhigh(x, freq, 0.5f);
+  //     case 4:
+  //       x = svf[0].SVFhigh(x, freq, q48_1);
+  //       x = svf[1].SVFhigh(x, freq, q48_2);
+  //       x = svf[2].SVFhigh(x, freq, q48_1);
+  //       return svf[3].SVFhigh(x, freq, q48_2);
+  //   }
+  // }
 
-    const float r = freqHz / crossoverHz;
-    const float r2 = r * r;
-    const float r4 = r2 * r2;
-
-    // LR4 low-pass amplitude: 1 / (1 + r^4)
-    const float denom = 1.0f + r4;
-    return 1.0f / denom;
-  }
-
-  static inline float MagnitudeHPF(float freqHz, float crossoverHz)
-  {
-    if (crossoverHz <= 0.0f)
-      return 1.0f;
-
-    const float r = freqHz / crossoverHz;
-    const float r2 = r * r;
-    const float r4 = r2 * r2;
-
-    // LR4 high-pass amplitude: r^4 / (1 + r^4)
-    const float denom = 1.0f + r4;
-    return r4 / denom;
-  }
-#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+  // real APF(real x, real freq, CrossoverSlope slopeCode)
+  // {
+  //   switch (slopeCode)
+  //   {
+  //     default:
+  //     case 1:
+  //       return apf1.Process(x, freq);
+  //     case 2:
+  //       return svf[0].SVFall(x, freq, q24);
+  //     case 3:
+  //       x = svf[0].SVFall(-x, freq, 1.0f);
+  //       return apf1.Process(x, freq);
+  //     case 4:
+  //       x = svf[0].SVFall(x, freq, q48_1);
+  //       return svf[1].SVFall(x, freq, q48_2);
+  //   }
+  // }
 };
 
 }  // namespace M7

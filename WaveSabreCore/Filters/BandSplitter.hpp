@@ -2,189 +2,134 @@
 
 //#include <WaveSabreCore/Maj7Basic.hpp>
 //#include <WaveSabreCore/BiquadFilter.h>
-#include "../GigaSynth/Maj7ModMatrix.hpp"
 #include "../Filters/FilterMoog.hpp"
 #include "../Filters/FilterOnePole.hpp"
-#include <array>
+#include "../GigaSynth/Maj7ModMatrix.hpp"
 #include "SVFilter.hpp"
+#include <array>
+#include <math.h>
+
 
 #include "LinkwitzRileyFilter.hpp"
 
-#define CROSSOVER_SLOPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::LinkwitzRileyFilter::Slope::Count__] { \
-	"6dB",\
-	"12dB",\
+// clang-format off
+#define CROSSOVER_SLOPE_CAPTIONS(symbolName)                                                                           \
+  static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::CrossoverSlope::Count]                       \
+  {                                                                                                                    \
+    "6dB",\
+	"12dB", \
 	"24dB",\
 	"36dB",\
-	"48dB",\
-	}
+	"48dB",                                                                             \
+  }
+// clang-format on
 
 namespace WaveSabreCore
 {
-	namespace M7
-	{
-  enum class CrossoverSlope : uint8_t {
-  	Slope_6dB,
-  	Slope_12dB,
-  	Slope_24dB,
-  	Slope_36dB,
-  	Slope_48dB,
-  	Count,
-  };
+namespace M7
+{
+enum class CrossoverSlope : uint8_t
+{
+  Slope_6dB, // TODO: don't bother supporting this because it introduces complexity and code bloat.
+  Slope_12dB,
+  Slope_24dB,
+  Slope_36dB,
+  Slope_48dB,
+  Count,
+};
 
 
-		static constexpr int gMBBands = 3;
+static constexpr int kBandSplitterBands = 3;
 
-		///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		// mono signal processing.
-		struct FrequencySplitterOutput
-		{
-			float s[gMBBands];
-		};
-		struct FrequencySplitterBand
-		{
-		    // 2 per band for LR4; 3 per band for LR6; 4 per band for LR8
-			LinkwitzRileyFilter mLR[4];
-#ifdef ENABLE_6db_oct_crossover
-            // for 6 dB/oct crossover, 1 per-band.
-			M7::MoogOnePoleFilter mOP;
-#endif // ENABLE_6db_oct_crossover
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// mono signal processing.
+struct BandSplitterOutput
+{
+  float s[kBandSplitterBands];
 
-			float mCrossoverFreq;
-			CrossoverSlope mCrossoverSlope;
-		};
-		struct FrequencySplitter
-		{
-		private:
-			// for 3 bands, we need 3 filter sets, but only 2 crossover freqs & slopes.
-			// the last band's crossover freq and slope are ignored.
-			FrequencySplitterBand mBands[gMBBands];
+  float constexpr operator [](size_t index) const
+  {
+	return s[index];
+  }
+};
+struct BandSplitter
+{
+private:
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  static constexpr int kMagnitudeImpulseTaps = 96;
+#endif
 
-		public:
+  LinkwitzRileyFilter mLR[kBandSplitterBands * 2];
 
-			void SetParams(float crossoverFreqA, CrossoverSlope crossoverSlopeA, float crossoverFreqB, CrossoverSlope crossoverSlopeB)
-			{
-				mBands[0].mCrossoverFreq = crossoverFreqA;
-				mBands[0].mCrossoverSlope = crossoverSlopeA;
-				mBands[1].mCrossoverFreq = crossoverFreqB;
-				mBands[1].mCrossoverSlope = crossoverSlopeB;
-				// last band's crossover freq are ignored.
-			}
+  float mCrossoverFreqA;
+  float mCrossoverFreqB;
+  CrossoverSlope mCrossoverSlopeA;
+  CrossoverSlope mCrossoverSlopeB;
 
-			FrequencySplitterOutput frequency_splitter(float x)
-			{
-#ifdef ENABLE_6db_oct_crossover
-				// if (crossoverSlope == Slope::Slope_6dB) {
-				// 	s[0] = mOP[0].ProcessSample(x, M7::FilterType::LP2, crossoverFreqA);
-				// 	s[2] = mOP[1].ProcessSample(x, M7::FilterType::HP2, crossoverFreqB);
-				// 	s[1] = x - s[0] - s[2];
-				// }
-				// else
-#endif // ENABLE_6db_oct_crossover
-				{
-				//	FrequencySplitterOutput out{
-				//	 s[0] = mLR[0].LR_LPF(x, mBands[0].mCrossoverFreq);
-				//	 s[0] = mLR[1].LR_LPF(s[0], mBands[1].mCrossoverFreq);
+public:
 
-				//	 s[1] = mLR[2].LR_HPF(x, mBands[0].mCrossoverFreq);
-				//	 s[1] = mLR[3].LR_LPF(s[1], mBands[1].mCrossoverFreq);
+  void SetParams(float crossoverFreqA,
+                 CrossoverSlope crossoverSlopeA,
+                 float crossoverFreqB,
+                 CrossoverSlope crossoverSlopeB)
+  {
+    // TODO: set LR filter parameters.
+  }
 
-				//	 s[2] = mLR[4].APF(x, mBands[0].mCrossoverFreq);
-				//	 s[2] = mLR[5].LR_HPF(s[2], mBands[1].mCrossoverFreq);
-		  //};
-				}
-        return {};
-			}
+  BandSplitterOutput Process(float x)
+  {
+    // TODO: implement processing based on the desired slope and response.
+
+    //   float low = mLR[0].LR_LPF(x, cutoffHz, slope);//ProcessLow(0,  x, mCrossoverFreqA, mCrossoverSlopeA);
+  //   low = mLR[1].LR_LPF(x, cutoffHz, slope);//ProcessLow(1, 2, low, mCrossoverFreqB, mCrossoverSlopeB);
+
+  //   float mid = mLR[2].LR_HPF(x, cutoffHz, slope);//ProcessHigh(2, x, mCrossoverFreqA, mCrossoverSlopeA);
+  //   mid = mLR[3].LR_LPF(x, cutoffHz, slope);//ProcessLow(3, out.s[1], mCrossoverFreqB, mCrossoverSlopeB);
+
+	// out.s[2] = mLR[4].APF(x, mCrossoverFreqA, mCrossoverSlopeA);
+	// out.s[2] = mLR[5].LR_HPF(out.s[2], mCrossoverFreqB, mCrossoverSlopeB);
+
+    return out;
+  }
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-// todo: comment specifically which this is for, and implement for other slopes.
-			std::array<float, gMBBands> GetMagnitudesAtFrequency(float freqHz, float crossoverFreqA, float crossoverFreqB) const
-			{
-				// Return low/mid/high magnitudes at the given frequency using LR4 responses.
-				// Keep the same clamping and ordering as the processing path.
-				float a = math::clamp(crossoverFreqA, 30.0f, 18000.0f);
-				float b = math::clamp(crossoverFreqB, 30.0f, 18000.0f);
+  std::array<float, gMBBands> GetMagnitudesAtFrequency(float freqHz) const
+  {
 
-				float low  = LinkwitzRileyFilter::MagnitudeLPF(freqHz, a) * LinkwitzRileyFilter::MagnitudeLPF(freqHz, b);
-				float mid  = LinkwitzRileyFilter::MagnitudeHPF(freqHz, a) * LinkwitzRileyFilter::MagnitudeLPF(freqHz, b);
-				// High band includes an APF at A which has unity magnitude; only HPF at B shapes magnitude.
-				float high = LinkwitzRileyFilter::MagnitudeHPF(freqHz, b);
+    // FrequencySplitter probe = *this;
+    // probe.Reset();
 
-				return { low, mid, high };
-				//std::array<float, gMBBands> ret;
-				//return ret;
-			}
+    // std::array<float, gMBBands> real{};
+    // std::array<float, gMBBands> imag{};
+    // const float phaseStep = M7::PITimes2 * freqHz * Helpers::CurrentSampleRateRecipF;
+
+    // for (int i = 0; i < kMagnitudeImpulseTaps; ++i)
+    // {
+    //   const float input = (i == 0) ? 1.0f : 0.0f;
+    //   const auto y = probe.frequency_splitter(input);
+    //   const float phase = phaseStep * float(i);
+    //   const float c = math::cos(phase);
+    //   const float s = math::sin(phase);
+
+    //   for (int band = 0; band < gMBBands; ++band)
+    //   {
+    //     real[band] += y.s[band] * c;
+    //     imag[band] -= y.s[band] * s;
+    //   }
+    // }
+
+    // std::array<float, gMBBands> ret{};
+    // for (int band = 0; band < gMBBands; ++band)
+    // {
+    //   ret[band] = sqrtf(real[band] * real[band] + imag[band] * imag[band]);
+    // }
+    // return ret;
+  }
 #endif
-		};
+};
 
 
-	} // namespace M7
+}  // namespace M7
 
 
-} // namespace WaveSabreCore
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}  // namespace WaveSabreCore

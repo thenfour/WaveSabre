@@ -799,6 +799,56 @@ public:
         mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
       }
 
+      if (mbEnabled)
+      {
+        CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
+        using CrossoverSlope = M7::CrossoverSlope;
+
+        ImGui::SameLine(0, 40);
+        Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+            ParamIndices::CrossoverASlope,
+            "xA slope",
+            {
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_6dB],
+                                          CrossoverSlope::Slope_6dB,
+                                          "8d6e63"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                                          CrossoverSlope::Slope_12dB,
+                                          "8d6e63"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                                          CrossoverSlope::Slope_24dB,
+                                          "8d6e63"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                                          CrossoverSlope::Slope_36dB,
+                                          "8d6e63"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                                          CrossoverSlope::Slope_48dB,
+                                          "8d6e63"},
+            });
+
+        ImGui::SameLine();
+        Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+            ParamIndices::CrossoverBSlope,
+            "xB slope",
+            {
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_6dB],
+                                          CrossoverSlope::Slope_6dB,
+                                          "3f7a93"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                                          CrossoverSlope::Slope_12dB,
+                                          "3f7a93"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                                          CrossoverSlope::Slope_24dB,
+                                          "3f7a93"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                                          CrossoverSlope::Slope_36dB,
+                                          "3f7a93"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                                          CrossoverSlope::Slope_48dB,
+                                          "3f7a93"},
+            });
+      }
+
       ImGui::SameLine(0, 200);
 
       ToggleButton(&mShowInputFft, "Input FFT");

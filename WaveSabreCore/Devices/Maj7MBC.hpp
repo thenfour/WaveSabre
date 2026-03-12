@@ -509,8 +509,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       {mParamCache, ParamIndices::CInputGain},
   };
 
-  M7::FrequencySplitter splitter0;
-  M7::FrequencySplitter splitter1;
+  M7::BandSplitter splitter0;
+  M7::BandSplitter splitter1;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   static constexpr float gAnalysisFalloffMS = 500;
@@ -631,8 +631,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       if (mbEnable)
       {
         // split into 3 bands
-        const auto splitter0Output = splitter0.frequency_splitter(s[0]);
-        const auto splitter1Output = splitter1.frequency_splitter(s[1]);
+        const auto splitter0Output = splitter0.Process(s[0]);
+        const auto splitter1Output = splitter1.Process(s[1]);
 
         s.Clear();
 

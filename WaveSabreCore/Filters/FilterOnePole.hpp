@@ -1,11 +1,14 @@
 // "Designing Software Synthesizer Plug-Ins in C++" // https://willpirkle.com
-// this is NOT a completely general-purpose one-pole filter; it's designed to be used as a building block for the Moog ladder filter
+// this is an effective one-pass filter but also supports some features
+// used by diode/moog/et al filters,
+// like feedback, ...
 
 #pragma once
 
-#include "FilterBase.hpp"
 #include "../Basic/DSPMath.hpp"
 #include "../Basic/Helpers.h"
+#include "FilterBase.hpp"
+
 
 namespace WaveSabreCore
 {
@@ -17,7 +20,8 @@ struct MoogOnePoleFilter : public IFilter
                          FilterSlope slope,
                          FilterResponse response,
                          float cutoffHz,
-                         Param01 reso01, real gainDb) override
+                         Param01 reso01,
+                         real gainDb) override
   {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     if (!DoesSupport(circuit, slope, response))
@@ -25,6 +29,10 @@ struct MoogOnePoleFilter : public IFilter
       return;
     }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
+    if (mResponse == response && m_cutoffHz == cutoffHz)
+    {
+      return;
+    }
 
     mResponse = response;
     m_cutoffHz = cutoffHz;
@@ -52,12 +60,16 @@ struct MoogOnePoleFilter : public IFilter
     real2 lpf = vn + m_z_1L;
     // update memory
     m_z_1L = vn + lpf;
-    if (mResponse == FilterResponse::Lowpass)
+    switch (mResponse)
     {
-      return float(lpf);
+      default:
+      case FilterResponse::Lowpass:
+        return float(lpf);
+      case FilterResponse::Highpass:
+        return float(xn - lpf);
+      case FilterResponse::Allpass:
+        return float(xn - 2.0f * lpf);
     }
-    auto hpf = xn - lpf;
-    return float(hpf);
   }
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -79,9 +91,14 @@ struct MoogOnePoleFilter : public IFilter
       return false;
     if (slope != FilterSlope::Slope6dbOct)
       return false;
-    if (response != FilterResponse::Lowpass && response != FilterResponse::Highpass)
-      return false;
-    return true;
+    switch (response)
+    {
+      case FilterResponse::Lowpass:
+      case FilterResponse::Highpass:
+      case FilterResponse::Allpass:
+        return true;
+    }
+    return false;
   }
 
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
