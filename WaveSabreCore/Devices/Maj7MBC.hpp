@@ -391,15 +391,20 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       M7::FloatPair output{input};
       if (mEnable)
       {
-        float monoDetector =
-            (input.x[0] + input.x[1]) *
-            0.5f;  // apparently averaging yields slightly more consistent sweeping between mono->stereo link
         float channelLink01 = channelMode == ChannelMode::Stereo ? mParams.Get01Value(BandParam::ChannelLink) : 0;
+        float inpAudio[2] = {
+            input.x[0] * mInputGainLin,
+            input.x[1] * mInputGainLin,
+        };
+        float detectorLevel[2] = {
+            mComp[0].ComputeDetectorLevel(inpAudio[0]),
+            mComp[1].ComputeDetectorLevel(inpAudio[1]),
+        };
+        float linkedDetectorLevel = (detectorLevel[0] + detectorLevel[1]) * 0.5f;
         for (size_t ich = 0; ich < 2; ++ich)
         {
-          float inpAudio = input.x[ich] * mInputGainLin;
-          float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
-          float wetSignal = mComp[ich].ProcessSample(inpAudio, detector);
+          float detector = M7::math::lerp(detectorLevel[ich], linkedDetectorLevel, channelLink01);
+          float wetSignal = mComp[ich].ApplyGainFromDetector(inpAudio[ich], detector);
 
           const bool doSaturation = (mDriveLin > 1.0f) || (mSaturationModel != M7::Maj7SaturationBase::Model::Thru) ||
                                     (mSaturationEvenHarmonics > 0.0f);
@@ -423,10 +428,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
           wetSignal *= mOutputGainLin;
 
           // Apply dry/wet mix
-          float finalSignal = M7::math::lerp(inpAudio, wetSignal, mDryWetMix);
+          float finalSignal = M7::math::lerp(inpAudio[ich], wetSignal, mDryWetMix);
           output.x[ich] = finalSignal;
 
-          WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[ich], inpAudio);
+          WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[ich], inpAudio[ich]);
           WRITE_ANALYSIS_SAMPLE(isGuiVisible, mDetectorAnalysis[ich], detector);
           WRITE_ANALYSIS_SAMPLE(isGuiVisible, mAttenuationAnalysis[ich], mComp[ich].mGainReduction);
         }

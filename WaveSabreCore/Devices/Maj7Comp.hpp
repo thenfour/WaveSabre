@@ -122,11 +122,9 @@ namespace WaveSabreCore
 			return e;
 		}
 
-		// responsible for calculating mInput, mDry, mSidechain, mPreDetector
-		float ProcessSample(float inputAudio, float detectorInput) {
-			//inputAudio *= mInputGainLin;
-			//mDry = inputAudio;
-
+		// Filter the detector path, keep the signed signal for audition, and return the
+		// rectified detector level used by stereo linking and gain computation.
+		float ComputeDetectorLevel(float detectorInput) {
 			if (!mEnableFilter) {
 				mSidechain = detectorInput;
 			}
@@ -135,9 +133,11 @@ namespace WaveSabreCore
 				mSidechain = mHighpassFilter.ProcessSample(detectorInput);
 				mSidechain = mLowpassFilter.ProcessSample(mSidechain);
 			}
-			mDetector = std::abs(mSidechain);
-			//float attFactor = CompressorPeakSlow(mDetector);
+			return std::abs(mSidechain);
+		}
 
+		float ApplyGainFromDetector(float inputAudio, float detectorLevel) {
+			mDetector = detectorLevel;
 			float detectorDB = M7::math::LinearToDecibels(mDetector);
 			float e = TransferDecibels(detectorDB);
 			e = M7::math::DecibelsToLinear(e);
@@ -305,21 +305,25 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 			//bool midside = mParams.GetBoolValue(ParamIndices::MidSideEnable);
 			for (size_t iSample = 0; iSample < (size_t)numSamples; ++iSample)
 			{
-				// apply stereo linking
-				float s0 = inputs[0][iSample] * mInputGainLin;
-				float s1 = inputs[1][iSample] * mInputGainLin;
-				float monoDetector = (s0 + s1) * 0.5f;
+				float inpAudio[2] = {
+					inputs[0][iSample] * mInputGainLin,
+					inputs[1][iSample] * mInputGainLin
+				};
+				float detectorLevel[2] = {
+					mComp[0].ComputeDetectorLevel(inpAudio[0]),
+					mComp[1].ComputeDetectorLevel(inpAudio[1])
+				};
+				float linkedDetectorLevel = (detectorLevel[0] + detectorLevel[1]) * 0.5f;
 
 				for (size_t ich = 0; ich < 2; ++ich) {
-					float inpAudio = inputs[ich][iSample] * mInputGainLin;
-					float detector = M7::math::lerp(inpAudio, monoDetector, channelLink01);
-					float wetSignal = mComp[ich].ProcessSample(inpAudio, detector);
+					float detector = M7::math::lerp(detectorLevel[ich], linkedDetectorLevel, channelLink01);
+					float wetSignal = mComp[ich].ApplyGainFromDetector(inpAudio[ich], detector);
 					
 					// Apply compensation gain to wet signal
 					wetSignal *= mCompensationGainLin;
 					
 					// Apply dry/wet mix
-					float finalSignal = M7::math::lerp(inpAudio, wetSignal, mDryWetMix);
+					float finalSignal = M7::math::lerp(inpAudio[ich], wetSignal, mDryWetMix);
 					
 					// Apply output gain
 					outputs[ich][iSample] = finalSignal * mOutputGainLin;
@@ -327,10 +331,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 					if (IsGuiVisible())
 					{
-						mInputAnalysis[ich].WriteSample(inpAudio);
+						mInputAnalysis[ich].WriteSample(inpAudio[ich]);
 						mOutputAnalysis[ich].WriteSample(outputs[ich][iSample]);
 
-						mInputAnalysisSlow[ich].WriteSample(inpAudio);
+						mInputAnalysisSlow[ich].WriteSample(inpAudio[ich]);
 						mOutputAnalysisSlow[ich].WriteSample(outputs[ich][iSample]);
 
 						mDetectorAnalysis[ich].WriteSample(mComp[ich].mDetector);
