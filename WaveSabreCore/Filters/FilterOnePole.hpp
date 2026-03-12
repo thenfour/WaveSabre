@@ -68,7 +68,7 @@ struct MoogOnePoleFilter : public IFilter
       case FilterResponse::Highpass:
         return float(xn - lpf);
       case FilterResponse::Allpass:
-        return float(xn - 2.0f * lpf);
+        return float(2.0f * lpf - xn);
     }
   }
 

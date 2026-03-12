@@ -167,7 +167,7 @@ struct LinkwitzRileyFilter
           case CrossoverSlope::Slope_24dB:
             return svf[0].Process(x);
           case CrossoverSlope::Slope_36dB:
-            x = svf[0].Process(-x);
+            x = svf[0].Process(x);
             return apf1.ProcessSample(x);
           case CrossoverSlope::Slope_48dB:
             x = svf[0].Process(x);
