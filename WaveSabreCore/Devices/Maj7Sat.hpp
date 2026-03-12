@@ -416,8 +416,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		float mInputGainLin = 0;
 		float mOutputGainLin = 0;
 
-		float mCrossoverFreqA = 0;
-		float mCrossoverFreqB = 0;
+		///float mCrossoverFreqA = 0;
+		//float mCrossoverFreqB = 0;
 
 		//M7::LinkwitzRileyFilter::Slope mCrossoverSlopeA = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
 		//M7::LinkwitzRileyFilter::Slope mCrossoverSlopeB = M7::LinkwitzRileyFilter::Slope::Slope_12dB;
@@ -433,8 +433,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 			mInputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
 			mOutputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
 
-			mCrossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
-			mCrossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
+			const auto crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
+			const auto crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
+      splitter0.SetParams( crossoverFreqA, M7::CrossoverSlope::Slope_24dB, crossoverFreqB, M7::CrossoverSlope::Slope_24dB );
+      splitter1.SetParams( crossoverFreqA, M7::CrossoverSlope::Slope_24dB, crossoverFreqB, M7::CrossoverSlope::Slope_24dB );
 
 			//mCrossoverSlopeA = mParams.GetEnumValue<M7::LinkwitzRileyFilter::Slope>(ParamIndices::CrossoverASlope);
 		}
@@ -478,14 +480,14 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// split into 3 bands
-				splitter0.frequency_splitter(s0, mCrossoverFreqA, /*, mCrossoverSlopeA, */mCrossoverFreqB);
-				splitter1.frequency_splitter(s1, mCrossoverFreqA, /*, mCrossoverSlopeA, */mCrossoverFreqB);
+				const auto splitL = splitter0.frequency_splitter(s0);
+				const auto splitR = splitter1.frequency_splitter(s1);
 
 				s0 = 0;
 				s1 = 0;
 				for (int iBand = 0; iBand < gBandCount; ++iBand) {
 					auto& band = mBands[iBand];
-					auto r = band.ProcessSample(splitter0.s[iBand], splitter1.s[iBand], masterDryWet
+					auto r = band.ProcessSample(splitL.s[iBand], splitR.s[iBand], masterDryWet
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 						, isGuiVisible
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT

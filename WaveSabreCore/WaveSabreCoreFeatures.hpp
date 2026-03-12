@@ -17,6 +17,9 @@
 #undef ENABLE_NOTCH_FILTER
 #undef ENABLE_ALLPASS_FILTER
 
+#define ENABLE_6db_oct_crossover
+
+
 // for sat / MBC saturation...
 #undef MAJ7SAT_ENABLE_RARE_MODELS
 #define MAJ7SAT_ENABLE_ANALOG

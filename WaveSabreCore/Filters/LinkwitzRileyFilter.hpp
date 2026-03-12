@@ -24,15 +24,6 @@ struct LinkwitzRileyFilter
   static constexpr real q48_1 = 0.541196100146f;  // 0.5 / cos($pi / 8 * 1);
   static constexpr real q48_2 = 1.30656296488f;   // 0.5 / cos($pi / 8 * 3);
 
-  //enum class Slope : uint8_t {
-  //	Slope_6dB,
-  //	Slope_12dB,
-  //	Slope_24dB,
-  //	Slope_36dB,
-  //	Slope_48dB,
-  //	Count__,
-  //};
-
   //SVFilter svf[4];
   SVFilter svf[2];
 
@@ -53,12 +44,12 @@ struct LinkwitzRileyFilter
     //			case Slope::Slope_24dB:
     x = svf[0].SVFlow(x, freq, q24);
     return svf[1].SVFlow(x, freq, q24);
-    //#ifndef DISABLE_6db_oct_crossover
+    //#ifdef ENABLE_6db_oct_crossover
     //			case Slope::Slope_36dB:
     //				x = svf[0].SVFlow(x, freq, 1);
     //				x = svf[1].SVFlow(x, freq, 1);
     //				return svf[2].SVFlow(x, freq, 0.5f);
-    //#endif // DISABLE_6db_oct_crossover
+    //#endif // ENABLE_6db_oct_crossover
     //#ifndef DISABLE_48db_oct_crossover
     //			case Slope::Slope_48dB:
     //				x = svf[0].SVFlow(x, freq, q48_1);
@@ -78,12 +69,12 @@ struct LinkwitzRileyFilter
     //			case Slope::Slope_24dB:
     x = svf[0].SVFhigh(x, freq, q24);
     return svf[1].SVFhigh(x, freq, q24);
-    //#ifndef DISABLE_6db_oct_crossover
+    //#ifdef ENABLE_6db_oct_crossover
     //			case Slope::Slope_36dB:
     //				x = svf[0].SVFhigh(-x, freq, 1);
     //				x = svf[1].SVFhigh(x, freq, 1);
     //				return svf[2].SVFhigh(x, freq, 0.5f);
-    //#endif // DISABLE_6db_oct_crossover
+    //#endif // ENABLE_6db_oct_crossover
     //#ifndef DISABLE_48db_oct_crossover
     //			case Slope::Slope_48dB:
     //				x = svf[0].SVFhigh(x, freq, q48_1);
@@ -102,11 +93,11 @@ struct LinkwitzRileyFilter
     //return svf.SVFOPapf_temp(-x, freq);
     //			case Slope::Slope_24dB:
     return svf[0].SVFall(x, freq, q24);
-    //#ifndef DISABLE_6db_oct_crossover
+    //#ifdef ENABLE_6db_oct_crossover
     //			case Slope::Slope_36dB:
     //				x = svf[0].SVFall(-x, freq, 1);
     //				return svf[1].SVFOPapf_temp(x, freq);
-    //#endif // DISABLE_6db_oct_crossover
+    //#endif // ENABLE_6db_oct_crossover
     //#ifndef DISABLE_48db_oct_crossover
     //			case Slope::Slope_48dB:
     //				x = svf[0].SVFall(x, freq, q48_1);
@@ -115,6 +106,7 @@ struct LinkwitzRileyFilter
     //			}
   }
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   static inline float MagnitudeLPF(float freqHz, float crossoverHz)
   {
     if (crossoverHz <= 0.0f)
@@ -142,6 +134,7 @@ struct LinkwitzRileyFilter
     const float denom = 1.0f + r4;
     return r4 / denom;
   }
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 };
 
 }  // namespace M7

@@ -43,6 +43,8 @@ struct Maj7MBC : public Device
     MultibandEnable,
     CrossoverAFrequency,
     CrossoverBFrequency,
+    CrossoverASlope,
+    CrossoverBSlope,
     OutputGain,
     SoftClipEnable,
     SoftClipThresh,
@@ -125,6 +127,8 @@ struct Maj7MBC : public Device
     {"MBEnable"},\
     {"xAFreq"},\
     {"xBFreq"},\
+    {"xASlope"},\
+    {"xBSlope"},\
     {"OutGain"},\
     {"SCEn"},\
     {"SCThr"},\
@@ -195,13 +199,15 @@ struct Maj7MBC : public Device
   }
   // clang-format on
 
-static_assert((int)ParamIndices::NumParams == 72, "param count probably changed and this needs to be regenerated.");
+static_assert((int)ParamIndices::NumParams == 74, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   8230, // InGain = 0.25118863582611083984
   0, // ChMode = 0
   0, // MBEnable = 0
   13557, // xAFreq = 0.4137503504753112793
   21576, // xBFreq = 0.65849626064300537109
+  0, // xASlope = 0
+  0, // xBSlope = 0
   8230, // OutGain = 0.25118863582611083984
   32767, // SCEn = 1
   23197, // SCThr = 0.70794582366943359375
@@ -538,6 +544,13 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
     {
       b.Slider();
     }
+
+    const float crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
+    const float crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
+    const auto crossoverSlopeA = mParams.GetEnumValue<M7::CrossoverSlope>(ParamIndices::CrossoverASlope);
+    const auto crossoverSlopeB = mParams.GetEnumValue<M7::CrossoverSlope>(ParamIndices::CrossoverBSlope);
+    splitter0.SetParams(crossoverFreqA, crossoverSlopeA, crossoverFreqB, crossoverSlopeB);
+    splitter1.SetParams(crossoverFreqA, crossoverSlopeA, crossoverFreqB, crossoverSlopeB);
   }
 
   // returns {output sample, clip amount}
@@ -561,8 +574,6 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   {
     const float inputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
     const float outputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
-    const float crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
-    const float crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
     const bool mbEnable = mParams.GetBoolValue(ParamIndices::MultibandEnable);
 
     const bool softClipEnabled = mParams.GetBoolValue(ParamIndices::SoftClipEnable);
@@ -620,15 +631,15 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       if (mbEnable)
       {
         // split into 3 bands
-        splitter0.frequency_splitter(s[0], crossoverFreqA, crossoverFreqB);
-        splitter1.frequency_splitter(s[1], crossoverFreqA, crossoverFreqB);
+        const auto splitter0Output = splitter0.frequency_splitter(s[0]);
+        const auto splitter1Output = splitter1.frequency_splitter(s[1]);
 
         s.Clear();
 
         for (int iBand = 0; iBand < gBandCount; ++iBand)
         {
           auto& band = mBands[iBand];
-          M7::FloatPair bandInput{splitter0.s[iBand], splitter1.s[iBand]};
+          M7::FloatPair bandInput{splitter0Output.s[iBand], splitter1Output.s[iBand]};
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
           if (band.mMuteSoloEnable)
           {
