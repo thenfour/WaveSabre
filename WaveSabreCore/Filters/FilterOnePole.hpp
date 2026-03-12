@@ -103,6 +103,11 @@ struct MoogOnePoleFilter : public IFilter
 
   virtual real GetMagnitudeAtFrequency(real freqHz) const override
   {
+    if (mResponse == FilterResponse::Allpass)
+    {
+      return 1.0f;
+    }
+
     const double clampedFreq = math::clamp(double(freqHz), 0.0, 0.5 * Helpers::CurrentSampleRate);
     const double w = math::gPITimes2d * clampedFreq * Helpers::CurrentSampleRateRecipF;
     const double cw = math::cos(w);

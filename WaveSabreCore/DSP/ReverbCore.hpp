@@ -19,6 +19,8 @@ struct ReverbCore
   float highCutFreq = 0;
   float preDelayMS = 0;
 
+  static constexpr float kSVQ = 1;
+
   ReverbCore()
   {
     static constexpr int16_t CombTuning[numCombs] = {1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617};
@@ -44,7 +46,6 @@ struct ReverbCore
 
   M7::FloatPair ProcessSample(const M7::FloatPair& in)
   {
-    static constexpr float SVQ = 1;
 
     // this is done in processSample (not in UpdateParams) to avoid GUI / Audio thread contention.
     preDelayBuffer.SetLengthMilliseconds(preDelayMS);
@@ -56,8 +57,10 @@ struct ReverbCore
     float input = (leftInput + rightInput) * 0.015f;
 
     // Pre-EQ: apply LP/HP to the signal feeding the reverb network (more typical usage)
-    input = highCutFilter[0].SVFlow(input, highCutFreq, SVQ);  // low-pass
-    input = lowCutFilter[0].SVFhigh(input, lowCutFreq, SVQ);   // high-pass
+    for (auto& f : mFilters)
+    {
+      input = f.Process(input);
+    }
 
     // predelay is part of the reverb network; feed it the pre-filtered signal
     if (preDelayMS > 0)
@@ -108,6 +111,9 @@ struct ReverbCore
       combLeft[i].SetCombParams(damp, roomSize);
       combRight[i].SetCombParams(damp, roomSize);
     }
+
+    mFilters[0].SetParams(lowCutFreq, kSVQ, M7::FilterResponse::Highpass);
+    mFilters[1].SetParams(highCutFreq, kSVQ, M7::FilterResponse::Lowpass);
   }
 
 private:
@@ -117,7 +123,7 @@ private:
   float wet1 = 0;
   float wet2 = 0;  // stereo width cross-mix factors
 
-  M7::SVFilter lowCutFilter[2], highCutFilter[2];
+  M7::SVFilter mFilters[2];
 
   AudioBuffer combLeft[numCombs];
   AudioBuffer combRight[numCombs];

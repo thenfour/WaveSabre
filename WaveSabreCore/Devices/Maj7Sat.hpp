@@ -441,8 +441,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 			//mCrossoverSlopeA = mParams.GetEnumValue<M7::LinkwitzRileyFilter::Slope>(ParamIndices::CrossoverASlope);
 		}
 
-		M7::FrequencySplitter splitter0;
-		M7::FrequencySplitter splitter1;
+		M7::BandSplitter splitter0;
+		M7::BandSplitter splitter1;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		AnalysisStream mInputAnalysis0;
@@ -480,8 +480,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 				// split into 3 bands
-				const auto splitL = splitter0.frequency_splitter(s0);
-				const auto splitR = splitter1.frequency_splitter(s1);
+				const auto splitL = splitter0.Process(s0);
+				const auto splitR = splitter1.Process(s1);
 
 				s0 = 0;
 				s1 = 0;

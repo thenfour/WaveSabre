@@ -12,33 +12,10 @@
 
 #include "LinkwitzRileyFilter.hpp"
 
-// clang-format off
-#define CROSSOVER_SLOPE_CAPTIONS(symbolName)                                                                           \
-  static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::CrossoverSlope::Count]                       \
-  {                                                                                                                    \
-    "6dB",\
-	"12dB", \
-	"24dB",\
-	"36dB",\
-	"48dB",                                                                             \
-  }
-// clang-format on
-
 namespace WaveSabreCore
 {
 namespace M7
 {
-enum class CrossoverSlope : uint8_t
-{
-  Slope_6dB, // TODO: don't bother supporting this because it introduces complexity and code bloat.
-  Slope_12dB,
-  Slope_24dB,
-  Slope_36dB,
-  Slope_48dB,
-  Count,
-};
-
-
 static constexpr int kBandSplitterBands = 3;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,9 +24,9 @@ struct BandSplitterOutput
 {
   float s[kBandSplitterBands];
 
-  float constexpr operator [](size_t index) const
+  float constexpr operator[](size_t index) const
   {
-	return s[index];
+    return s[index];
   }
 };
 struct BandSplitter
@@ -61,46 +38,44 @@ private:
 
   LinkwitzRileyFilter mLR[kBandSplitterBands * 2];
 
-  float mCrossoverFreqA;
-  float mCrossoverFreqB;
-  CrossoverSlope mCrossoverSlopeA;
-  CrossoverSlope mCrossoverSlopeB;
-
 public:
-
   void SetParams(float crossoverFreqA,
                  CrossoverSlope crossoverSlopeA,
                  float crossoverFreqB,
                  CrossoverSlope crossoverSlopeB)
   {
-    // TODO: set LR filter parameters.
+    mLR[1].SetParams(crossoverFreqB, crossoverSlopeB, FilterResponse::Lowpass);
+    mLR[3].SetParams(crossoverFreqB, crossoverSlopeB, FilterResponse::Lowpass);
+
+    mLR[0].SetParams(crossoverFreqA, crossoverSlopeA, FilterResponse::Lowpass);
+    mLR[2].SetParams(crossoverFreqA, crossoverSlopeA, FilterResponse::Highpass);
+    mLR[4].SetParams(crossoverFreqA, crossoverSlopeA, FilterResponse::Allpass);
+
+    mLR[5].SetParams(crossoverFreqB, crossoverSlopeB, FilterResponse::Highpass);
   }
 
   BandSplitterOutput Process(float x)
   {
-    // TODO: implement processing based on the desired slope and response.
+    float a = mLR[0].Process(x);
+    a = mLR[1].Process(a);
 
-    //   float low = mLR[0].LR_LPF(x, cutoffHz, slope);//ProcessLow(0,  x, mCrossoverFreqA, mCrossoverSlopeA);
-  //   low = mLR[1].LR_LPF(x, cutoffHz, slope);//ProcessLow(1, 2, low, mCrossoverFreqB, mCrossoverSlopeB);
+    float b = mLR[2].Process(x);
+    b = mLR[3].Process(b);
 
-  //   float mid = mLR[2].LR_HPF(x, cutoffHz, slope);//ProcessHigh(2, x, mCrossoverFreqA, mCrossoverSlopeA);
-  //   mid = mLR[3].LR_LPF(x, cutoffHz, slope);//ProcessLow(3, out.s[1], mCrossoverFreqB, mCrossoverSlopeB);
+    float c = mLR[4].Process(x);
+    c = mLR[5].Process(c);
 
-	// out.s[2] = mLR[4].APF(x, mCrossoverFreqA, mCrossoverSlopeA);
-	// out.s[2] = mLR[5].LR_HPF(out.s[2], mCrossoverFreqB, mCrossoverSlopeB);
-
-    return out;
+    return { a, b, c};
   }
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  std::array<float, gMBBands> GetMagnitudesAtFrequency(float freqHz) const
+  std::array<float, kBandSplitterBands> GetMagnitudesAtFrequency(float freqHz) const
   {
-
     // FrequencySplitter probe = *this;
     // probe.Reset();
 
-    // std::array<float, gMBBands> real{};
-    // std::array<float, gMBBands> imag{};
+    // std::array<float, kBandSplitterBands> real{};
+    // std::array<float, kBandSplitterBands> imag{};
     // const float phaseStep = M7::PITimes2 * freqHz * Helpers::CurrentSampleRateRecipF;
 
     // for (int i = 0; i < kMagnitudeImpulseTaps; ++i)
@@ -111,19 +86,21 @@ public:
     //   const float c = math::cos(phase);
     //   const float s = math::sin(phase);
 
-    //   for (int band = 0; band < gMBBands; ++band)
+    //   for (int band = 0; band < kBandSplitterBands; ++band)
     //   {
     //     real[band] += y.s[band] * c;
     //     imag[band] -= y.s[band] * s;
     //   }
     // }
 
-    // std::array<float, gMBBands> ret{};
-    // for (int band = 0; band < gMBBands; ++band)
+    // std::array<float, kBandSplitterBands> ret{};
+    // for (int band = 0; band < kBandSplitterBands; ++band)
     // {
     //   ret[band] = sqrtf(real[band] * real[band] + imag[band] * imag[band]);
     // }
     // return ret;
+    (void)freqHz;
+    return {};
   }
 #endif
 };

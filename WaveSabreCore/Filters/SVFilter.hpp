@@ -14,12 +14,16 @@ struct SVFilter
   float Process(float v0);
 
 private:
-  float mCutoff;
-  float mQ;
-  FilterResponse mResponse;
+  float mCutoff = -1.0f;
+  float mQ = -1.0f;
+  FilterResponse mResponse = FilterResponse::Lowpass;
 
-  float g, k, a1, a2;
-  float ic1eq, ic2eq;
+  float g = 0.0f;
+  float k = 0.0f;
+  float a1 = 0.0f;
+  float a2 = 0.0f;
+  float ic1eq = 0.0f;
+  float ic2eq = 0.0f;
 };  // SVFilter
 
 

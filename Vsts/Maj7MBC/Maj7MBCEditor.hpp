@@ -809,9 +809,6 @@ public:
             ParamIndices::CrossoverASlope,
             "xA slope",
             {
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_6dB],
-                                          CrossoverSlope::Slope_6dB,
-                                          "8d6e63"},
                 EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
                                           CrossoverSlope::Slope_12dB,
                                           "8d6e63"},
@@ -831,9 +828,6 @@ public:
             ParamIndices::CrossoverBSlope,
             "xB slope",
             {
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_6dB],
-                                          CrossoverSlope::Slope_6dB,
-                                          "3f7a93"},
                 EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
                                           CrossoverSlope::Slope_12dB,
                                           "3f7a93"},

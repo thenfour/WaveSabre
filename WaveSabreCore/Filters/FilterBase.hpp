@@ -4,7 +4,7 @@
 
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-#include <memory>
+  #include <memory>
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 
@@ -92,7 +92,8 @@ INLINE bool DoesFilterSupport(M7::FilterCircuit circuit, M7::FilterSlope slope, 
       return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
     case M7::FilterCircuit::OnePole:
       return slope == M7::FilterSlope::Slope6dbOct &&
-             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
+              response == M7::FilterResponse::Allpass);
     case M7::FilterCircuit::Biquad:
       return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct;
     case M7::FilterCircuit::Butterworth:
