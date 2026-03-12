@@ -14,9 +14,6 @@
 #define DISABLE_6db_oct_crossover
 #define DISABLE_36db_oct_crossover
 //#define DISABLE_48db_oct_crossover
-//#define DISABLE_onepole_maj7_filter // actually DON'T disable this because it's required for the LFO "sharpness" control. it's pretty much free anyway.
-//#define DISABLE_MOOG_FILTER
-#define DISABLE_BIQUAD_MAJ7_FILTER
 //
 //#define LR_SLOPE_CAPTIONS(symbolName) static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::LinkwitzRileyFilter::Slope::Count__] { \
 //	"6dB (unsupported)",\
@@ -45,12 +42,6 @@ namespace WaveSabreCore
 
 			void frequency_splitter(float x, float crossoverFreqA, /*LinkwitzRileyFilter::Slope crossoverSlope, */ float crossoverFreqB)
 			{
-				// do some fixing of crossover frequencies.
-				float a = math::clamp(crossoverFreqA, 30, 18000);
-				float b = math::clamp(crossoverFreqB, 30, 18000);
-				//if (a > b) {
-				//	std::swap(a, b);
-				//}
 
 #ifndef DISABLE_6db_oct_crossover
 				if (crossoverSlope == LinkwitzRileyFilter::Slope::Slope_6dB) {
