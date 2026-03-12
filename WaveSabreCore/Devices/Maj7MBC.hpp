@@ -295,9 +295,9 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       SaturationModel,
       SaturationThreshold,
       SaturationEvenHarmonics,
-      DryWet,
       MidSideMix,
       Pan,
+      DryWet,
       Count__,
     };
 
