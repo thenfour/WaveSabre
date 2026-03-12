@@ -148,8 +148,7 @@ struct Maj7SaturationBase
 
 	static float CalcAutoDriveCompensation(float driveLin)
 	{
-		static constexpr float dck = 1.5f;
-		return 1.0f / (1.0f + dck * M7::math::log10(std::max(1.0f, driveLin)));
+		return (driveLin > 1.0f) ? (1.0f / driveLin) : 1.0f;
 	}
 
 	// Returns soft-clipped sample with optional attenuation metric used by some visualizers.
@@ -194,7 +193,7 @@ struct Maj7SaturationBase
 		return s * sign * outputGain;
 	}
 
-	static float Transfer(float s, Model model, float thresholdLin, float corrSlope)
+	static float Transfer(float s, Model model, float thresholdLin, float /*corrSlope*/)
 	{
 		float g = 1;
 		if (s < 0)
@@ -202,8 +201,6 @@ struct Maj7SaturationBase
 			g = -1;
 			s = -s;
 		}
-
-		s *= corrSlope;
 
 		if (s > thresholdLin)
 		{
@@ -283,7 +280,6 @@ struct Maj7SaturationBase
 #endif
 													 )
 	{
-    s *= ModelPregain[(int)model];
 		s = Transfer(s, model, thresholdLin, corrSlope);
 #ifdef MAJ7SAT_ENABLE_ANALOG
 		s = ApplyAnalog(s, chanIndex, dcFilters, evenHarmonicsGainLin);
