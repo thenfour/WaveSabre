@@ -1251,11 +1251,9 @@ public:
                            M7CurveRenderStyle style,
                            ImGuiKnobs::ModInfo modInfo)
   {
-    WaveSabreCore::M7::real_t tempVal;
-    M7::ParamAccessor pa{&tempVal, 0};
-    pa.SetN11Value(0, v_defaultN11);
-    float defaultParamVal = tempVal;
-    tempVal = GetEffectX()->getParameter((VstInt32)paramID);
+    M7::real_t existingValParam = GetEffectX()->getParameter((VstInt32)paramID);
+    M7::real_t tempValN11 = M7::FloatN11ParamCore::deserializeFromVstParam(existingValParam);
+    M7::real_t tempVal01 = M7::FloatN11ParamCore::serializeToFloat01ForKnob(tempValN11);
 
     FloatN11Converter conv{};
     int flags = (int)ImGuiKnobFlags_CustomInput;
@@ -1268,10 +1266,10 @@ public:
       flags |= ImGuiKnobFlags_InvertYCurve | ImGuiKnobFlags_InvertXCurve;
     }
     if (ImGuiKnobs::Knob(label,
-                         &tempVal,
+                         &tempVal01,
                          0,
                          1,
-                         defaultParamVal,
+                         M7::FloatN11ParamCore::serializeToFloat01ForKnob(v_defaultN11),
                          0.5f,
                          modInfo,
                          gNormalKnobSpeed,
@@ -1284,7 +1282,9 @@ public:
                          &conv,
                          this))
     {
-      GetEffectX()->setParameterAutomated(paramID, M7::math::clamp01(tempVal));
+      M7::real_t newValN11 = M7::FloatN11ParamCore::deserializeFromFloat01ForKnob(tempVal01);
+      M7::real_t serialized = M7::FloatN11ParamCore::serializeToVstParam(newValN11);
+      GetEffectX()->setParameterAutomated(paramID, serialized);
     }
   }
 

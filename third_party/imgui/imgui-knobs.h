@@ -244,7 +244,7 @@ inline static void AddCurveToPath(ImDrawList* dl,
                                   ImVec2 size,
                                   bool invertX,
                                   bool invertY,
-                                  float paramValue01,
+                                  float vstParamValue, // it's n11
                                   ImU32 color,
                                   float thickness,
                                   int segments = 16)
@@ -260,7 +260,11 @@ inline static void AddCurveToPath(ImDrawList* dl,
   }
   dl->PathLineTo(p);
 
-  WaveSabreCore::M7::ParamAccessor pa{&paramValue01, 0};
+  // paramvalue01 is a 0-1 knob value.
+  // but curve params are -1 to 1.
+  // M7::real_t valN11 = M7::FloatN11ParamCore::deserializeFromFloat01ForKnob(vstParamValue); // convert to code-facing n11 value
+  // M7::real_t valParam = M7::FloatN11ParamCore::serializeToVstParam(valN11); // convert to param value (which paramAccessor wants)
+  M7::ParamAccessor pa{&vstParamValue, 0};
 
   for (int i = 0; i < segments; ++i)
   {

@@ -513,13 +513,20 @@ namespace ImGuiKnobs {
                     is_active ? color.active : (is_hovered ? color.hovered : color.base));
             }
 
-            void draw_m7_curve(color_set linecolor, float val, bool invertX, bool invertY) {
+            void draw_m7_curve(color_set linecolor, float val01, bool invertX, bool invertY) {
                 //ImGui::RenderFrame(graphic_rect.Min, graphic_rect.Max, bgcolor.base, false, 3);
                 //float backing = val;
                 //WaveSabreCore::M7::ParamAccessor param{ &backing, 0 };
                 //WaveSabreCore::M7::CurveParam param { backing };
                 //param.SetParamValue(val);
-                AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, val, linecolor.base, 2.0f);
+
+                // val01 is a 0-1 knob value.
+                // but curve params are -1 to 1.
+                M7::real_t valN11 = M7::FloatN11ParamCore::deserializeFromFloat01ForKnob(val01); // convert to code-facing n11 value
+                M7::real_t valParam = M7::FloatN11ParamCore::serializeToVstParam(valN11); // convert to param value (which paramAccessor wants)
+                //M7::ParamAccessor pa{&valParam, 0};
+
+                AddCurveToPath(ImGui::GetWindowDrawList(), graphic_rect.Min, graphic_rect.GetSize(), invertX, invertY, valParam, linecolor.base, 2.0f);
             }
 
             void draw_progress_bar(color_set bgcolor, color_set linecolor, color_set tickColor, float center01, bool roundThumb) {

@@ -384,51 +384,6 @@ struct ParamExplorer
   }
 };
 
-//// Helper function to add curved lines to ImDrawList paths
-//inline void AddCurveToPath(ImDrawList* dl, const ImVec2& start, const ImVec2& delta,
-//                          bool invertX, bool invertY, float curveParam,
-//                          ImU32 color, float thickness) {
-//  static constexpr int numSegments = 16;
-//  std::vector<ImVec2> points;
-//  points.reserve(numSegments + 1);
-//
-//  // Add the starting point
-//  points.push_back(start);
-//
-//  for (int i = 1; i <= numSegments; ++i) {
-//    float t = float(i) / numSegments;
-//
-//    // Apply curve transformation using the M7 curve system
-//    float curvedT = WaveSabreCore::M7::math::modCurve_xN11_kN11(t * 2 - 1, curveParam * 2 - 1) * 0.5f + 0.5f;
-//
-//    // Apply inversion flags
-//    float finalT = curvedT;
-//    if (invertX) {
-//      finalT = 1.0f - finalT;
-//    }
-//
-//    float x = start.x + delta.x * finalT;
-//    float y = start.y + delta.y * (invertY ? (1.0f - finalT) : finalT);
-//
-//    points.push_back(ImVec2(x, y));
-//  }
-//
-//  // Draw the polyline
-//  dl->AddPolyline(points.data(), (int)points.size(), color, 0, thickness);
-//}
-
-// making this an enum keeps the core from getting bloated. if we for example
-// have some kind of behavior class passed in from the core, then those details
-// will pollute core.
-//enum class ParamBehavior {
-//  Default01,
-//  // Unisono,
-//  // VibratoFreq,
-//  // Frequency,
-//  // FilterQ,
-//  // Db,
-//};
-
 template <typename TEnum>
 struct EnumToggleButtonArrayItem
 {
