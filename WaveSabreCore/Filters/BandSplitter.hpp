@@ -33,7 +33,10 @@ struct BandSplitter
 {
 private:
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  static constexpr int kMagnitudeImpulseTaps = 96;
+    float mCrossoverFreqA = 200.0f;
+    float mCrossoverFreqB = 2000.0f;
+    CrossoverSlope mCrossoverSlopeA = CrossoverSlope::Slope_24dB;
+    CrossoverSlope mCrossoverSlopeB = CrossoverSlope::Slope_24dB;
 #endif
 
   LinkwitzRileyFilter mLR[kBandSplitterBands * 2];
