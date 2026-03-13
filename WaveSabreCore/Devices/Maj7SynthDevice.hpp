@@ -69,21 +69,24 @@ public:
     EventType Type;    // = EventType::None;
   };
 
-  // always returns a voice. ideally we would look at envelope states to determine the most suitable, but let's just keep it simple and increase max poly
+  // always returns a voice. prefer stealing notes that are no longer physically held.
   Voice* FindFreeVoice()
   {
-    Voice* playingVoiceToReturn = mVoices[0];
+    Voice* oldestReleasedVoice = nullptr;
+    Voice* oldestHeldVoice = nullptr;
     for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
     {
       auto* v = mVoices[iv];
       if (!v->IsPlaying())
         return v;
-      if (!playingVoiceToReturn || (v->mNoteInfo.mSequence < playingVoiceToReturn->mNoteInfo.mSequence))
+
+      Voice*& bestCandidate = v->mNoteInfo.mIsPhysicallyHeld ? oldestHeldVoice : oldestReleasedVoice;
+      if (!bestCandidate || (v->mNoteInfo.mSequence < bestCandidate->mNoteInfo.mSequence))
       {
-        playingVoiceToReturn = v;
+        bestCandidate = v;
       }
     }
-    return playingVoiceToReturn;
+    return oldestReleasedVoice ? oldestReleasedVoice : oldestHeldVoice;
   }
 
 

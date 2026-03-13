@@ -105,6 +105,9 @@ void Maj7SynthDevice::ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo
         auto* v = mVoices[iv];
         if (v->mNoteInfo.MidiNoteValue == note)
         {
+          // for pedal-up vs. midi note off vs ..., keep states in sync
+          v->mNoteInfo.mIsPhysicallyHeld = myNote.mIsPhysicallyHeld;
+          v->mNoteInfo.mIsMusicallyHeld = false;
           v->NoteOff();
         }
       }
@@ -151,6 +154,14 @@ void Maj7SynthDevice::ProcessNoteOffEvent(Event* e)
   auto pPlaying = FindCurrentlyPlayingNote();
 
   ni.mIsPhysicallyHeld = false;
+  for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
+  {
+    auto* v = mVoices[iv];
+    if (v->mNoteInfo.MidiNoteValue == note)
+    {
+      v->mNoteInfo.mIsPhysicallyHeld = false;
+    }
+  }
   if (this->mIsPedalDown)
   {
     return;  // don't affect musical state; nothing more to do.
