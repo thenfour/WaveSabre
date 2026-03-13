@@ -132,6 +132,8 @@ struct OscillatorWaveformUiStyle
   const char* backgroundColorHtml;
 };
 
+#define DISABLED_COLOR_FG "#333333"
+#define DISABLED_COLOR_BG "#111111"
 #define SINE_COLOR_FG "#66ccff"
 #define SINE_COLOR_BG "#0a1a24"
 #define SHAPE_COLOR_FG "#ffaa33"
@@ -146,23 +148,31 @@ struct OscillatorWaveformUiStyle
 #define NOISE_WHITE_BG "#102417"
 
 #ifdef ENABLE_PULSE4_WAVEFORM
-  #define PULSE4_NAME "Pulse 4 stage"
-  #define PULSE4_SHAPEA_NAME "Duty"
-  #define PULSE4_SHAPEB_NAME "Sym"
+  #define PULSE4_WAVEFORM_ENTRY {false, "Pulse 4 stage",        "Duty",   "Sym",        0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG}
 #else
-  #define PULSE4_NAME "Pulse 4 (unavailable)"
-  #define PULSE4_SHAPEA_NAME "(n/a)"
-  #define PULSE4_SHAPEB_NAME "(n/a)"
+  #define PULSE4_WAVEFORM_ENTRY {false, "Pulse 4 (disabled)",        "(n/a)",   "(n/a)",        0.50f,   0.50f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG}
 #endif
 
 #ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
-  #define TRIANGLE_FOLD_NAME "Folded triangle"
-  #define TRIANGLE_FOLD_SHAPEA_NAME "Fold"
-  #define TRIANGLE_FOLD_SHAPEB_NAME "Bias"
+  #define TRIANGLE_FOLD_WAVEFORM_ENTRY {false,  "Folded triangle",             "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG}
 #else
-  #define TRIANGLE_FOLD_NAME "Folded triangle (unavailable)"
-  #define TRIANGLE_FOLD_SHAPEA_NAME "(n/a)"
-  #define TRIANGLE_FOLD_SHAPEB_NAME "(n/a)"
+  #define TRIANGLE_FOLD_WAVEFORM_ENTRY {false,  "Folded triangle (disabled)",             "(n/a)",   "(n/a)",       0.30f,   0,       DISABLED_COLOR_FG,      DISABLED_COLOR_BG}
+#endif
+
+#ifdef ENABLE_FILTERED_WHITENOISE_WAVEFORMS
+#define FILTERED_WHITENOISE_WAVEFORMS_ENTRIES \
+  {true,  "Noise White Prob+Duty",   "Prob",   "Duty",       0.35f,   0.25f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Prob+LP",     "Prob",   "LP Q",       0.35f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Prob+BP",     "Prob",   "BP Q",       0.35f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Duty+LP",     "Duty",   "LP Q",       0.50f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Noise White Duty+BP",     "Duty",   "BP Q",       0.50f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG}
+#else
+#define FILTERED_WHITENOISE_WAVEFORMS_ENTRIES \
+  {true,  "Noise White Prob+Duty (disabled)",   "(n/a)",   "(n/a)",       0.35f,   0.25f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
+  {false, "Noise White Prob+LP (disabled)",     "(n/a)",   "(n/a)",       0.35f,   0.60f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
+  {false, "Noise White Prob+BP (disabled)",     "(n/a)",   "(n/a)",       0.35f,   0.35f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
+  {false, "Noise White Duty+LP (disabled)",     "(n/a)",   "(n/a)",       0.50f,   0.60f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
+  {false, "Noise White Duty+BP (disabled)",     "(n/a)",   "(n/a)",       0.50f,   0.35f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG}
 #endif
 
 #define OSCILLATOR_WAVEFORM_UI_STYLES(symbolName)                                                                      \
@@ -175,19 +185,15 @@ struct OscillatorWaveformUiStyle
   {true,  "Saw-Tri",              "Duty",   "Tri-Saw",    0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
   {false, "pulse 2 stage",        "Duty",   "(n/a)",         0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
   {false, "pulse 3 stage",        "Duty",   "Sym",        2.f/3.f, 0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
-  {false, PULSE4_NAME,        PULSE4_SHAPEA_NAME,   PULSE4_SHAPEB_NAME,        0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
+  PULSE4_WAVEFORM_ENTRY,\
   {false, "Tri-Square",           "Duty",   "Tri-Square", 0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG},\
   {true,  "Folded Sine",             "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
-  {false,  TRIANGLE_FOLD_NAME,             TRIANGLE_FOLD_SHAPEA_NAME,   TRIANGLE_FOLD_SHAPEB_NAME,       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG},\
+  TRIANGLE_FOLD_WAVEFORM_ENTRY,\
   {true,  "Noise Grain Evolve",      "Scale",  "Speed",     0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
   {false,  "Rotating Noise",         "Scale",  "Speed",      0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
   {false, "Noise_SaH_LP4",           "LP Cut", "Jitter",     0.80f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
   {false, "Noise_SaH_HP4",           "HP Cut", "Jitter",     0.20f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
-  {true,  "Noise White Prob+Duty",   "Prob",   "Duty",       0.35f,   0.25f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Prob+LP",     "Prob",   "LP Q",       0.35f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Prob+BP",     "Prob",   "BP Q",       0.35f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Duty+LP",     "Duty",   "LP Q",       0.50f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Duty+BP",     "Duty",   "BP Q",       0.50f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  FILTERED_WHITENOISE_WAVEFORMS_ENTRIES,\
   }
 // clang-format on
 

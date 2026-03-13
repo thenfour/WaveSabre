@@ -33,27 +33,18 @@ struct PowCurvedParamCfg
   {
   }
 
-  float Param01ToValue(float p01) const
-  {
-    p01 = math::clamp01(p01);
-    // min * (R ^ x) - k
-    return mMinMSPlusK * M7::math::pow(mBase, p01) - mK;
-  }
-
-  float ValueToParam01(float ms) const
-  {
-    float t = ms + mK;
-    t /= mMinMSPlusK;
-    float n = M7::math::log10(t);
-    n /= M7::math::log10(mBase);
-    return math::clamp01(n);
-  }
+  float Param01ToValue(float p01) const;
+  float ValueToParam01(float ms) const;
 };
 
-extern __declspec(selectany) const PowCurvedParamCfg
-    gEnvTimeCfg{0.0f, 12000.0f, 12.0f};  // value of K can be found by looking in param explorer in a vst.
-extern __declspec(selectany) const PowCurvedParamCfg
-    gLFOTimeCfg{40.0f, 12000.0f, 12.0f};  // value of K can be found by looking in param explorer in a vst.
+extern __declspec(selectany)
+const PowCurvedParamCfg gEnvTimeCfg{0.0f,
+                                    12000.0f,
+                                    12.0f};  // value of K can be found by looking in param explorer in a vst.
+extern __declspec(selectany)
+const PowCurvedParamCfg gLFOTimeCfg{40.0f,
+                                    12000.0f,
+                                    12.0f};  // value of K can be found by looking in param explorer in a vst.
 
 // something like compressor ratio requires a very steep curve, and using 1/x will fit that. it's based off the principle curve 1/(1-x).
 struct DivCurvedParamCfg
@@ -84,30 +75,17 @@ struct DivCurvedParamCfg
   {
   }
 
-  float Param01ToValue(float p01) const
-  {
-    p01 = math::clamp01(p01);
-    float t = mKTimesKMinus1 / (mK - p01) - mKMinus1;
-    return M7::math::lerp(mMin, mMax, t);
-  }
-
-  float ValueToParam01(float v) const
-  {
-    float t = M7::math::lerp_rev(mMin, mMax, v);
-    // solving the above for x leads to:
-    // k*t/(k + t - 1)
-    return mK * t / (mK + t - 1);
-  }
+  float Param01ToValue(float p01) const;
+  float ValueToParam01(float v) const;
 };
 
 static constexpr float gEqBandGainMin = -30;
 static constexpr float gEqBandGainMax = 30;
 
-// actually biquads only use this internally. externally i don't think we have any place to directly expose Q in decibels, 
+// actually biquads only use this internally. externally i don't think we have any place to directly expose Q in decibels,
 // because you are always operating on 0-1 "resonance" params for cross-filter support.
 extern __declspec(selectany) const DivCurvedParamCfg gBiquadFilterQCfg{0.2f, 18.0f, 1.1f};
 extern __declspec(selectany) const DivCurvedParamCfg gRoomSizeParamCfg = {0.0f, 1.0f, 1.140f};
-
 
 
 struct ParamAccessor
@@ -421,7 +399,7 @@ struct ParamAccessor
 
   //explicit FrequencyParam(real_t& valRef, real_t& ktRef, real_t centerFrequency, real_t scale/*=10.0f*/);
   // noteHz is the playing note, to support key-tracking.
-  float GetFrequency__(int freqOffset, int ktOffset, const FreqParamConfig& cfg, float noteHz, float mod) const;
+  //float GetFrequency__(int freqOffset, int ktOffset, const FreqParamConfig& cfg, float noteHz, float mod) const;
   template <typename Toffset, typename TktOffset>
   float GetFrequency(Toffset freqOffset,
                      TktOffset ktOffset /* -1 means no kt */,
@@ -431,28 +409,38 @@ struct ParamAccessor
   {
     static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
     static_assert(std::is_integral_v<TktOffset> || std::is_enum_v<TktOffset>, "");
-    return GetFrequency__((int)freqOffset, (int)ktOffset, cfg, noteHz, mod);
+    //return GetFrequency__((int)freqOffset, (int)ktOffset, cfg, noteHz, mod);
+    return cfg.GetFrequency(Get01Value((int)freqOffset, mod),
+                            (int)ktOffset < 0 ? 0 : GetRawVal__((int)ktOffset),
+                            noteHz);
   }
-  float GetFrequency__(int freqOffset, const FreqParamConfig& cfg) const;
+  //float GetFrequency__(int freqOffset, const FreqParamConfig& cfg) const;
   template <typename Toffset>
   float GetFrequency(Toffset freqOffset, const FreqParamConfig& cfg) const
   {
     static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-    return GetFrequency__((int)freqOffset, cfg);
+    //return GetFrequency__((int)freqOffset, cfg);
+    return cfg.GetFrequency(GetRawVal__((int)freqOffset), 0, 0);
   }
 
-  // param modulation is normal krate param mod
-  // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
-  float GetMidiNote__(int freqOffset, int ktOffset, const FreqParamConfig& cfg, float playingMidiNote, float mod) const;
-  template <typename Toffset>
-  float GetMidiNote(Toffset freqOffset, Toffset ktOffset, const FreqParamConfig& cfg, float playingMidiNote, float mod)
-      const
-  {
-    static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
-    return GetMidiNote__((int)freqOffset, (int)ktOffset, cfg, playingMidiNote, mod);
-  }
+  //// param modulation is normal krate param mod
+  //// noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
+  ////float GetMidiNote__(int freqOffset, int ktOffset, const FreqParamConfig& cfg, float playingMidiNote, float mod) const;
+  //template <typename Toffset>
+  //float GetMidiNote(Toffset freqOffset, Toffset ktOffset, const FreqParamConfig& cfg, float playingMidiNote, float mod)
+  //    const
+  //{
+  //  static_assert(std::is_integral_v<Toffset> || std::is_enum_v<Toffset>, "");
+  //  //return GetMidiNote__((int)freqOffset, (int)ktOffset, cfg, playingMidiNote, mod);
+  //  return cfg.GetMidiNote(GetRawVal__((int)freqOffset),
+  //                         (int)ktOffset < 0 ? 0 : GetRawVal__((int)ktOffset),
+  //                         playingMidiNote,
+  //                         mod);
+  //}
 
-  void SetFrequencyAssumingNoKeytracking__(int freqOffset, const FreqParamConfig& cfg, float hz);
+  void SetFrequencyAssumingNoKeytracking__(int freqOffset, const FreqParamConfig& cfg, float hz){
+    SetRawVal__(freqOffset, cfg.GetParam01ValueForFrequencyAssumingNoKeytracking(hz));
+  }
 
   template <typename Toffset>
   void SetFrequencyAssumingNoKeytracking(Toffset freqOffset, const FreqParamConfig& cfg, float hz)

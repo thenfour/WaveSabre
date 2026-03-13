@@ -318,8 +318,7 @@ struct SineCoreExt : public OscillatorCore
   // Derived for clipping
   float mClipThreshold;
   float mClipGain;
-  bool mSquareMode = false;
-  static constexpr float kSquareEps = 1e-4f;
+  static constexpr float kLim = 0.998f;
   const SineCoreExtVariant mVariant;
 
   SineCoreExt(OscillatorWaveform wf, SineCoreExtVariant variant)
@@ -334,6 +333,7 @@ struct SineCoreExt : public OscillatorCore
     mB = 0;
     mC = 0;
     mH = 0;
+    float waveShapeAAsClip = math::lerp(0, kLim, mWaveshapeA);
     switch (mVariant)
     {
       case SineCoreExtVariant::DCClip:
@@ -343,13 +343,13 @@ struct SineCoreExt : public OscillatorCore
       }
       case SineCoreExtVariant::ClipSilence:
       {
-        mB = mWaveshapeA;
+        mB = waveShapeAAsClip;
         mC = mWaveshapeB;
         break;
       }
       case SineCoreExtVariant::ClipHarm:
       {
-        mB = mWaveshapeA;
+        mB = waveShapeAAsClip;
         mH = mWaveshapeB;
         break;
       }
@@ -361,24 +361,12 @@ struct SineCoreExt : public OscillatorCore
       }
     }
 
-    if (mB >= 1.0f - kSquareEps)
-    {
-      mSquareMode = true;
-      mClipThreshold = 1.0f;
-      mClipGain = 1.0f;
-    }
-    else
-    {
-      mSquareMode = false;
       mClipThreshold = math::clamp(1.0f - mB, 1e-6f, 1.0f);
       mClipGain = 1.0f / mClipThreshold;
-    }
   }
 
   inline float ClipAndNormalize(float x) const
   {
-    if (mSquareMode)
-      return (x > 0.0f) ? 1.0f : (x < 0.0f ? -1.0f : 0.0f);
     const float y = math::clamp(x, -mClipThreshold, +mClipThreshold);
     return y * mClipGain;
   }

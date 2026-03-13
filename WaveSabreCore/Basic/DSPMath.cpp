@@ -16,6 +16,71 @@ bool gAlwaysTrue = true;
 M7::OscLog gOscLog;
 #endif  // ENABLE_OSC_LOG
 
+
+
+
+
+  float FreqParamConfig::GetFrequency(float freqParam01, float ktParam01, float noteHz) const
+  {
+    // at 0.5, we use 1khz.
+    // for each 0.1 param value, it's +/- one octave
+
+    //float centerFreq = 1000; // the cutoff frequency at 0.5 param value.
+
+    // with no KT,
+    // so if param is 0.8, we want to multiply by 8 (2^3)
+    // if param is 0.3, multiply by 1/4 (2^(1/4))
+
+    // with full KT,
+    // at 0.3, we use playFrequency.
+    // for each 0.1 param value, it's +/- one octave.
+    // to copy massive, 1:1 is at paramvalue 0.3. 0.5 is 2 octaves above playing freq.
+    const float ktFreq = noteHz * 4;
+    //float ktParamVal = (ktOffset < 0) ? 0 : Get01Value__(ktOffset, 0);
+    const float centerFreq = math::lerp(mCenterFrequency, ktFreq, ktParam01);
+
+    freqParam01 = math::clamp01(freqParam01);
+    freqParam01 -= 0.5f;    // signed distance from 0.5 -.2 (0.3 = -.2, 0.8 = .3)   [-.5,+.5]
+    freqParam01 *= mScale;  // 10.0f; // (.3 = -2, .8 = 3) [-15,+15]
+    //float fact = math::pow(2, param);
+    float fact = math::pow2_N16_16(freqParam01);
+    return centerFreq * fact;
+    //return math::clamp(centerFreq * fact, 0.0f, 22050.0f);
+  }
+
+  // // param modulation is normal krate param mod
+  // // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
+  // float GetMidiNote(float freqParam01, float ktParam01, float playingMidiNote) const
+  // {
+  //   float ktNote = playingMidiNote + 24;  // center represents playing note + 2 octaves.
+
+  //   float centerNote = math::lerp(mCenterMidiNote, ktNote, ktParam01);
+
+  //   freqParam01 = math::clamp01(freqParam01);
+  //   freqParam01 -= 0.5f;
+  //   freqParam01 *= mScale;  // 10; // rescale from 0-1 to -5 to +5 (octaves)
+  //   float paramSemis = centerNote +
+  //                      freqParam01 * 12;  // each 1 param = 1 octave. because we're in semis land, it's just a mul.
+  //   return paramSemis;
+  // }
+
+  float FreqParamConfig::GetParam01ValueForFrequencyAssumingNoKeytracking(float hz) const
+  {
+    // 2 ^ param
+    float p = math::log2(hz / mCenterFrequency);
+    p /= mScale;
+    p += 0.5f;
+    return p;
+  }
+
+
+
+
+
+
+
+
+
 namespace math
 {
 
@@ -174,6 +239,7 @@ float CalcDelayMS(float eighths, float msOffset, float frequencyHz)
   const float totalMs = tempoMs + msOffset + freqMs;
   return std::max(0.0f, totalMs);
 }
+
 
 }  // namespace M7
 

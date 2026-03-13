@@ -34,6 +34,31 @@ struct FreqParamConfig
   {
   }
   constexpr FreqParamConfig(const FreqParamConfig& rhs) = default;
+
+  float GetFrequency(float freqParam01, float ktParam01, float noteHz) const;
+
+  float GetFrequencyWithoutKT(float freqParam01) const
+  {
+    return GetFrequency(freqParam01, 0, 0);
+  }
+
+  // // param modulation is normal krate param mod
+  // // noteModulation includes osc.mPitchFine + osc.mPitchSemis + detune;
+  // float GetMidiNote(float freqParam01, float ktParam01, float playingMidiNote) const
+  // {
+  //   float ktNote = playingMidiNote + 24;  // center represents playing note + 2 octaves.
+
+  //   float centerNote = math::lerp(mCenterMidiNote, ktNote, ktParam01);
+
+  //   freqParam01 = math::clamp01(freqParam01);
+  //   freqParam01 -= 0.5f;
+  //   freqParam01 *= mScale;  // 10; // rescale from 0-1 to -5 to +5 (octaves)
+  //   float paramSemis = centerNote +
+  //                      freqParam01 * 12;  // each 1 param = 1 octave. because we're in semis land, it's just a mul.
+  //   return paramSemis;
+  // }
+
+  float GetParam01ValueForFrequencyAssumingNoKeytracking(float hz) const;
 };
 
 struct FloatN11ParamCore
@@ -85,8 +110,8 @@ struct IntParamConfig
   static constexpr int kSerializableScale = 8192;
 
   constexpr IntParamConfig(int minValInclusive, int maxValInclusive)
-    : mMinValInclusive(minValInclusive)
-    , mMaxValInclusive(maxValInclusive)
+      : mMinValInclusive(minValInclusive)
+      , mMaxValInclusive(maxValInclusive)
       , mUsableCount(1 + maxValInclusive - minValInclusive)
   {
   }
@@ -349,6 +374,8 @@ INLINE float MillisecondsToHertz(float ms)
 }
 
 float CalcDelayMS(float eighths, float ms, float frequencyHz);
+
+// no binary savings by de-inlining this.
 INLINE float CalcFrequencyHz(int beatNumerator, int beatDenominator, float eighthsOffset)
 {
   if (beatDenominator < 1)
@@ -357,6 +384,7 @@ INLINE float CalcFrequencyHz(int beatNumerator, int beatDenominator, float eight
   float eighths = eighthsOffset + beats * 8;
   return MillisecondsToHertz(CalcDelayMS(eighths, 0, 0));
 }
+
 
 enum class TimeBasis  //: uint8_t
 {
