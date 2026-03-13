@@ -6,6 +6,7 @@ namespace WaveSabreCore
 
 void AudioBuffer::SetLengthSamples(size_t sampleCount)
 {
+  sampleCount = std::max(sampleCount, (size_t)1);  // avoid zero-length buffer, which would cause modulo by zero in WriteAndAdvance.
   if (sampleCount == mBuffer.size())
     return;
 
@@ -20,12 +21,10 @@ void AudioBuffer::SetLengthMilliseconds(float lengthMs)
   SetLengthSamples(sampleCount);
 }
 
-float AudioBuffer::WriteAndAdvance(float sample)
+void AudioBuffer::WriteAndAdvance(float sample)
 {
-  float ret = mBuffer[mCursor];
   mBuffer[mCursor] = sample;
   mCursor = (mCursor + 1) % mBuffer.size();
-  return ret;
 }
 
 float AudioBuffer::PeekAtCursor() const

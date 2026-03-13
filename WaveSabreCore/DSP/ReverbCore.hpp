@@ -61,7 +61,9 @@ struct ReverbCore
     // predelay is part of the reverb network; feed it the pre-filtered signal
     if (preDelayMS > 0)
     {
-      input = preDelayBuffer.WriteAndAdvance(input);
+      float t = preDelayBuffer.PeekAtCursor();
+      preDelayBuffer.WriteAndAdvance(input);
+      input = t;
     }
 
     float outL = 0;
