@@ -21,56 +21,12 @@ struct MoogOnePoleFilter : public IFilter
                          FilterResponse response,
                          float cutoffHz,
                          Param01 reso01,
-                         real gainDb) override
-  {
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-    if (!DoesSupport(circuit, slope, response))
-    {
-      return;
-    }
-#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-    if (mResponse == response && m_cutoffHz == cutoffHz)
-    {
-      return;
-    }
+                         real gainDb) override;
 
-    mResponse = response;
-    m_cutoffHz = cutoffHz;
-    Recalc();
-  }
+  virtual void Reset() override;
+  real2 getFeedbackOutputL();
 
-  virtual void Reset() override
-  {
-    m_z_1L = 0;
-    m_feedbackL = 0;
-  }
-
-  real2 getFeedbackOutputL()
-  {
-    return m_beta * (m_z_1L + m_feedbackL * m_delta);
-  }
-
-  virtual float ProcessSample(float xn__) override
-  {
-    // for diode filter support
-    real2 xn = xn__ * m_gamma + m_feedbackL + m_epsilon * getFeedbackOutputL();
-    // calculate v(n)
-    real2 vn = (m_a_0 * xn - m_z_1L) * m_alpha;
-    // form LP output
-    real2 lpf = vn + m_z_1L;
-    // update memory
-    m_z_1L = vn + lpf;
-    switch (mResponse)
-    {
-      default:
-      case FilterResponse::Lowpass:
-        return float(lpf);
-      case FilterResponse::Highpass:
-        return float(xn - lpf);
-      case FilterResponse::Allpass:
-        return float(2.0f * lpf - xn);
-    }
-  }
+  virtual float ProcessSample(float xn__) override;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   virtual std::unique_ptr<IFilter> Clone() const override
@@ -133,11 +89,6 @@ struct MoogOnePoleFilter : public IFilter
 
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-  // float ProcessSample(float xn, FilterType type, float cutoffHz) {
-  //     SetParams(type, cutoffHz, 0);
-  //     return ProcessSample(xn);
-  // }
-
   // all get written to directly by other filters; so yea.
   real2 m_alpha = 1;  // Feed Forward coeff
   real2 m_beta = 0;
@@ -153,18 +104,7 @@ private:
 
   real2 m_z_1L = 0;  // z-1 storage location, left/mono
 
-  void Recalc()
-  {
-    // NB: LFOs use this filter so the cutoff should support VERY low frequencies with precision. fortunately single poles are fine with that.
-    // TPT (topology-preserving transform) 1-pole integrator formula
-    real2 cutoff = math::clamp(m_cutoffHz, 0, 20000);
-    real2 wd = math::gPI * cutoff;
-    real2 T = Helpers::CurrentSampleRateRecipF;
-    //real wa = (2 / T) * math::tan(wd * T / 2);
-    //real g = wa * T / 2;
-    real2 g = real2(math::tan(float(wd * T)));
-    m_alpha = g / (g + 1);
-  }
+  void Recalc();
 };
 
 

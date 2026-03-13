@@ -18,12 +18,12 @@ private:
   float mQ = -1.0f;
   FilterResponse mResponse = FilterResponse::Lowpass;
 
-  float g = 0.0f;
-  float k = 0.0f;
-  float a1 = 0.0f;
-  float a2 = 0.0f;
-  float ic1eq = 0.0f;
-  float ic2eq = 0.0f;
+  float g;
+  float k;
+  float a1;
+  float a2;
+  float ic1eq;
+  float ic2eq;
 };  // SVFilter
 
 

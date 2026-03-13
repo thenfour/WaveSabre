@@ -22,6 +22,10 @@
 #define MAJ7SAT_ENABLE_ANALOG
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
+#undef ENABLE_12db_oct_CROSSOVER
+#undef ENABLE_36db_oct_CROSSOVER
+#define FIXED_SLOPE_CROSSOVER_ONLY  // if you enable this, only the 24db/oct crossover will be available. simpler LR filter implementation, smaller binary size.
+
 #define ENABLE_PITCHBEND
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM  // quite a huge amount of binary due to complex shape building.

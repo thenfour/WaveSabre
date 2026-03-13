@@ -7,6 +7,7 @@
   #include <memory>
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
+#include "../Basic/DSPMath.hpp"
 
 namespace WaveSabreCore::M7
 {
@@ -82,6 +83,7 @@ enum class FilterResponse  // : uint8_t
 };
 
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 // NB: This duplicated matrix is acceptable; the class-specific instances should actually be removed.
 // we need to be able to check capabilities without an instance.
 INLINE bool DoesFilterSupport(M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
@@ -113,7 +115,7 @@ INLINE bool DoesFilterSupport(M7::FilterCircuit circuit, M7::FilterSlope slope, 
       return false;
   }
 };
-
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 struct FilterParams
 {
