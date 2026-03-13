@@ -295,10 +295,11 @@ public:
   // helper for frequency params.
   float GetFrequency(float param01) const
   {
-    float params[2] = {param01,
-                       1};  // [0] is cutoff freq; [1] is key-tracking. we hard-code it so the filter tracks your note.
-    ParamAccessor pa{params, 0};
-    return pa.GetFrequency(0, 1, gFilterFreqConfig, mMainFrequencyHz, 0);
+    return gFilterFreqConfig.GetFrequency(param01, 0, mMainFrequencyHz);
+    // float params[2] = {param01,
+    //                    1};  // [0] is cutoff freq; [1] is key-tracking. we hard-code it so the filter tracks your note.
+    // ParamAccessor pa{params, 0};
+    // return pa.GetFrequency(0, 1, gFilterFreqConfig, mMainFrequencyHz, 0);
   }
 };
 
