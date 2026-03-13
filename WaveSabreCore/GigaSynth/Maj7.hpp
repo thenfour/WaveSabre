@@ -20,21 +20,23 @@
 
 #pragma once
 
-#include "../Basic/DSPMath.hpp"
-#include "../Basic/Helpers.h"
-#include "../Params/Maj7ParamAccessor.hpp"
 #include "../Analysis/AnalysisStream.hpp"
 #include "../Analysis/RMS.hpp"
+#include "../Basic/DSPMath.hpp"
+#include "../Basic/Helpers.h"
 #include "../Devices/Maj7SynthDevice.hpp"
+#include "../Params/Maj7ParamAccessor.hpp"
 
+
+#include "../DSP/Maj7Envelope.hpp"
+#include "../Filters/Maj7Filter.hpp"
 #include "../GigaSynth/GigaParams.hpp"
-#include "../GigaSynth/Maj7ModMatrix.hpp"
 #include "../GigaSynth/Maj7Basic.hpp"
+#include "../GigaSynth/Maj7ModMatrix.hpp"
 #include "./Maj7Oscillator.hpp"
 #include "./Maj7Oscillator3.hpp"
 #include "./Maj7Sampler.hpp"
-#include "../Filters/Maj7Filter.hpp"
-#include "../DSP/Maj7Envelope.hpp"
+
 
 namespace WaveSabreCore
 {
@@ -198,7 +200,7 @@ struct Maj7 : public Maj7SynthDevice
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   OutputStream mOutputStreams[2] = {OutputStream::Master, OutputStream::Master};
 
-  AnalysisStream mOutputAnalysis[2]{AnalysisStream{1000}, AnalysisStream{1000}};
+  AnalysisStream mOutputAnalysis[2]{AnalysisStream{1000}, AnalysisStream { 1000 }};
 
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
@@ -241,7 +243,8 @@ struct Maj7 : public Maj7SynthDevice
     for (int i = 0; i < (int)std::size(mpModulations); ++i)
     {
       mpModulations[i] = new ModulationSpec{mParamCache,
-                                            (int)GigaSynthParamIndices::Mod1Enabled + ((int)ModParamIndexOffsets::Count * i)};
+                                            (int)GigaSynthParamIndices::Mod1Enabled +
+                                                ((int)ModParamIndexOffsets::Count * i)};
     }
 
     static_assert(gModLFOCount == gOscillatorCount && gOscillatorCount == gSamplerCount, "meecro optimizutionz");
@@ -254,7 +257,7 @@ struct Maj7 : public Maj7SynthDevice
                                                                                gSourceInfo[i + gOscillatorCount]);
     }
 
-    for (size_t i = 0; i < std::size(mVoices); ++i)
+    for (size_t i = 0; i < mVoices.Size(); ++i)
     {
       mVoices[i] = mMaj7Voice[i] = new Maj7Voice(this);
     }
@@ -279,7 +282,7 @@ struct Maj7 : public Maj7SynthDevice
       delete mpSamplerDevices[i];
     }
 
-    for (size_t i = 0; i < std::size(mVoices); ++i)
+    for (size_t i = 0; i < mVoices.Size(); ++i)
     {
       delete mMaj7Voice[i];
     }
@@ -338,19 +341,18 @@ struct Maj7 : public Maj7SynthDevice
 
     // Apply dynamic state
     this->SetVoiceMode(
-        mParams.GetEnumValue<VoiceMode>(GigaSynthParamIndices::VoicingMode));  // mVoicingModeParam.GetEnumValue());
-    this->SetUnisonoVoices(
-        mParams.GetIntValue(GigaSynthParamIndices::Unisono));  // mUnisonoVoicesParam.GetIntValue());
+        mParams.GetEnumValue<VoiceMode>(GigaSynthParamIndices::VoicingMode));     // mVoicingModeParam.GetEnumValue());
+    this->SetUnisonoVoices(mParams.GetIntValue(GigaSynthParamIndices::Unisono));  // mUnisonoVoicesParam.GetIntValue());
 
-    #ifdef _DEBUG
+#ifdef _DEBUG
     // validate values.
     if (mVoicesUnisono < 1 || mVoicesUnisono > gUnisonoVoiceMax)
     {
-        // clamp and allow execution in order to access the UI for investigation / generating defaults.
-        mVoicesUnisono = 1;
+      // clamp and allow execution in order to access the UI for investigation / generating defaults.
+      mVoicesUnisono = 1;
       //throw std::runtime_error("Invalid unisono voice count loaded from defaults.");
     }
-    #endif
+#endif
 
     // NOTE: samplers will always be empty here
 
@@ -607,7 +609,7 @@ struct Maj7 : public Maj7SynthDevice
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 
-  struct Maj7Voice : public Maj7SynthDevice::Voice
+  struct Maj7Voice : public Voice
   {
     Maj7Voice(Maj7* owner)
         : mpOwner(owner)
@@ -619,7 +621,8 @@ struct Maj7 : public Maj7SynthDevice
         {
           mpFilters[ifilt][ich] = new FilterAuxNode(
               owner->mParamCache,
-              (GigaSynthParamIndices)((int)GigaSynthParamIndices::Filter1Enabled + (int)FilterParamIndexOffsets::Count * ifilt),
+              (GigaSynthParamIndices)((int)GigaSynthParamIndices::Filter1Enabled +
+                                      (int)FilterParamIndexOffsets::Count * ifilt),
               (ModDestination)((int)ModDestination::Filter1Freq + ((int)FilterAuxModDestOffsets::Count * ifilt)));
         }
       }
@@ -634,10 +637,8 @@ struct Maj7 : public Maj7SynthDevice
       {
         mpLFOs[i] = new LFOVoice{*mpOwner->mpLFOs[i], mModMatrix};
 
-        mSourceVoices[i] = mpOscillatorNodes[i] = new OscillatorNode(owner->mpOscillatorDevices[i],
-                                                                     OscillatorIntention::Audio,
-                                                                     &mModMatrix,
-                                                                     mpEnvelopes[i]);
+        mSourceVoices[i] = mpOscillatorNodes[i] =
+            new OscillatorNode(owner->mpOscillatorDevices[i], OscillatorIntention::Audio, &mModMatrix, mpEnvelopes[i]);
         mSourceVoices[i + gOscillatorCount] = mpSamplerVoices[i] = new SamplerVoice(mModMatrix,
                                                                                     owner->mpSamplerDevices[i],
                                                                                     mpEnvelopes[i + gOscillatorCount]);
@@ -771,7 +772,8 @@ struct Maj7 : public Maj7SynthDevice
       for (size_t iMacro = 0; iMacro < gMacroCount; ++iMacro)
       {
         mModMatrix.SetSourceValue((int)ModSource::Macro1 + iMacro,
-                                  mpOwner->mParams.Get01Value((int)GigaSynthParamIndices::Macro1 + iMacro, 0));  // krate, 01
+                                  mpOwner->mParams.Get01Value((int)GigaSynthParamIndices::Macro1 + iMacro,
+                                                              0));  // krate, 01
       }
 
       for (size_t i = 0; i < gModLFOCount; ++i)

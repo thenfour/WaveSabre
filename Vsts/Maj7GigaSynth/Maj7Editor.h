@@ -1195,7 +1195,7 @@ public:
     {
       ImGui::SeparatorText("Voice inspector");
 
-      for (size_t i = 0; i < std::size(pMaj7->mVoices); ++i)
+      for (size_t i = 0; i < pMaj7->mVoices.Size(); ++i)
       {
         auto pv = (M7::Maj7::Maj7Voice*)pMaj7->mVoices[i];
         char txt[200];
