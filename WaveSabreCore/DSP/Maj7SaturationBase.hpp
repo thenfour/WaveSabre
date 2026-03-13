@@ -153,7 +153,11 @@ struct Maj7SaturationBase
 
 	// Returns soft-clipped sample with optional attenuation metric used by some visualizers.
 	// Attenuation is only reduced when the input exceeds the effective clip region.
-	static float SoftClipSine(float s, float thresh, float outputGain, float* attenuationOut = nullptr)
+	static float SoftClipSine(float s, float thresh, float outputGain
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		, float* attenuationOut = nullptr
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
+	)
 	{
 		thresh = M7::math::clamp(thresh, 0.01f, 0.99f);
 
@@ -164,18 +168,22 @@ struct Maj7SaturationBase
 			s = -s;
 		}
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		float atten = 1.0f;
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 		static constexpr float naturalSlope = M7::math::gPIHalf;
-		const float corrSlope = M7::math::lerp(naturalSlope, 1.0f, thresh);
+		//const float corrSlope = M7::math::lerp(naturalSlope, 1.0f, thresh);
 
-		s *= corrSlope;
+		//s *= corrSlope;
 		if (s > thresh)
 		{
 			s = M7::math::lerp_rev(thresh, 1.0f, s);
 			s /= naturalSlope;
 			if (s > 1.0f)
 			{
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 				atten = std::min(0.95f, (1.0f / s));
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 				s = 1.0f;
 			}
 			else
@@ -185,10 +193,12 @@ struct Maj7SaturationBase
 			s = M7::math::lerp(thresh, 1.0f, s);
 		}
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 		if (attenuationOut)
 		{
 			*attenuationOut = atten;
 		}
+#endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 		return s * sign * outputGain;
 	}
