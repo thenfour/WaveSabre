@@ -330,10 +330,9 @@ struct SineCoreExt : public OscillatorCore
   void HandleParamsChanged() override
   {
     mA = 0;
-    mB = 0;
     mC = 0;
     mH = 0;
-    float waveShapeAAsClip = math::lerp(0, kLim, mWaveshapeA);
+    mB = math::lerp(0, kLim, mWaveshapeA);
     switch (mVariant)
     {
       case SineCoreExtVariant::DCClip:
@@ -343,18 +342,17 @@ struct SineCoreExt : public OscillatorCore
       }
       case SineCoreExtVariant::ClipSilence:
       {
-        mB = waveShapeAAsClip;
         mC = mWaveshapeB;
         break;
       }
       case SineCoreExtVariant::ClipHarm:
       {
-        mB = waveShapeAAsClip;
         mH = mWaveshapeB;
         break;
       }
       case SineCoreExtVariant::HarmSilence:
       {
+        mB = 0;
         mC = mWaveshapeA;
         mH = mWaveshapeB;
         break;
@@ -375,7 +373,6 @@ struct SineCoreExt : public OscillatorCore
   {
     const auto step = mPhaseAcc.advanceOneSample();  // no offset inside accumulator
     const double p = step.phaseBegin01;
-    const double off = audioRatePhaseOffset;  // offset is in cycles [0,1) here
     const double actW = 1.0 - (double)mC;     // active window width
 
     float out = 0.0f;
@@ -383,7 +380,7 @@ struct SineCoreExt : public OscillatorCore
     if (mC < 1.0f && p < actW)
     {
       // Compress the active part to [0,1), then apply offset and get angle
-      const double phi = math::fmodd((p / actW) + off, 1.0);
+      const double phi = math::wrap01((p / actW) + audioRatePhaseOffset);
       const float theta = float(phi * math::gPITimes2);
 
       // Base sine
@@ -647,11 +644,11 @@ struct ContinuousNoiseCore : public OscillatorCore
                                 mWaveshapeB * mWaveshapeB);
   }
 
-  CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
+  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const auto step = mPhaseAcc.advanceOneSample();
 
-    const auto angle = step.phaseBegin01 * math::gPITimes2d;
+    const auto angle = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset) * math::gPITimes2d;
     const auto orbit = SinCosD(angle);
 
     // Geometric continuity correction for field scale changes:
