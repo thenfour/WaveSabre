@@ -120,6 +120,7 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
     case OscillatorWaveform::Noise_SaH_HP4:
       return new SAHNoiseCore(w, SAHNoiseCore::ControlStyle::HP_Jitter);
 
+#ifdef ENABLE_FILTERED_WHITENOISE_WAVEFORMS
     case OscillatorWaveform::Noise_White_ProbDuty:
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Prob_Duty);
     case OscillatorWaveform::Noise_White_ProbLP:
@@ -131,6 +132,14 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_LP);
     case OscillatorWaveform::Noise_White_DutyBP:
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_BP);
+#else
+    case OscillatorWaveform::Noise_White_ProbDuty:
+    case OscillatorWaveform::Noise_White_ProbLP:
+    case OscillatorWaveform::Noise_White_ProbBP:
+    case OscillatorWaveform::Noise_White_DutyLP:
+    case OscillatorWaveform::Noise_White_DutyBP:
+      return new WhiteNoiseCore2(w);
+#endif
   }
 }
 

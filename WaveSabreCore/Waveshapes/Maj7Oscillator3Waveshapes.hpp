@@ -654,7 +654,9 @@ struct ContinuousNoiseCore : public OscillatorCore
     mFieldScaleTarget = math::lerp(0.5f, 7.0f, mWaveshapeA);
     // want enough speed to feel like really NOISE; that doesn't happen until after 150 or so. but below that you get a lot of variation.
     // so go for high max, but use a curve to allow good control at low speeds.
-    mMovementSpeed = math::lerp(0, 400.0f * kOneOverTravelRadius * Helpers::CurrentSampleRateRecipF, mWaveshapeB * mWaveshapeB);
+    mMovementSpeed = math::lerp(0,
+                                400.0f * kOneOverTravelRadius * Helpers::CurrentSampleRateRecipF,
+                                mWaveshapeB * mWaveshapeB);
   }
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override
@@ -687,6 +689,7 @@ struct ContinuousNoiseCore : public OscillatorCore
   }
 };
 
+#ifdef ENABLE_FILTERED_WHITENOISE_WAVEFORMS
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 struct WhiteNoiseCore2 : public OscillatorCore
 {
@@ -697,8 +700,7 @@ struct WhiteNoiseCore2 : public OscillatorCore
   // it's tempting to do gain compensation. when heavy filtering and sweeping probability, you're just changing the signal level.
   // but cant do this in a generalized way; it will only cause clipping.
   float mDutyCycle01 =
-      0.5f;  // how much of the cycle is spent on noise vs. silence. after this point in the cycle, output forced to 0.
-  CascadedBiquadFilter mFilter;
+      0;  // how much of the cycle is spent on noise vs. silence. after this point in the cycle, output forced to 0.
 
   enum class ControlStyle
   {
@@ -712,6 +714,8 @@ struct WhiteNoiseCore2 : public OscillatorCore
   };
 
   ControlStyle mControlStyle;
+
+  CascadedBiquadFilter mFilter;
 
   WhiteNoiseCore2(OscillatorWaveform waveformType, ControlStyle controlStyle)
       : OscillatorCore(waveformType)
@@ -803,6 +807,52 @@ struct WhiteNoiseCore2 : public OscillatorCore
     mFilter.Reset();
   }
 };
+#else   //  ENABLE_FILTERED_WHITENOISE_WAVEFORMS
+
+// simplified: only 1 control style: prob_duty.
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+struct WhiteNoiseCore2 : public OscillatorCore
+{
+  //static constexpr float kFilterQ = 0.707f;
+  // note: impulses are always 1 sample. And impulses are allowed to be adjascent.
+  // the only thing that makes this "grain" is that
+  float mProbability01 = 0;
+  // it's tempting to do gain compensation. when heavy filtering and sweeping probability, you're just changing the signal level.
+  // but cant do this in a generalized way; it will only cause clipping.
+  float mDutyCycle01 =
+      0;  // how much of the cycle is spent on noise vs. silence. after this point in the cycle, output forced to 0.
+
+  WhiteNoiseCore2(OscillatorWaveform waveformType)
+      : OscillatorCore(waveformType)
+  {
+  }
+
+  void HandleParamsChanged() override
+  {
+    mProbability01 = mWaveshapeA * mWaveshapeA;  // curve for better control at low vals.
+    mDutyCycle01 = mWaveshapeB;
+
+    auto filterType = FilterResponse::Lowpass;  // default, may be overridden below
+  }
+
+  CoreSample renderSampleAndAdvance(float) override
+  {
+    const auto step = mPhaseAcc.advanceOneSample();
+    float y = 0.0f;
+
+    const bool inDutyWindow = step.phaseBegin01 < mDutyCycle01;
+    if (inDutyWindow && math::rand01() < mProbability01)
+    {
+      const float sign = (math::rand01() < 0.5f) ? -1.0f : 1.0f;
+      y = sign;
+    }
+
+    return CoreSample{
+        .amplitude = y,
+    };
+  }
+};
+#endif  //  ENABLE_FILTERED_WHITENOISE_WAVEFORMS
 
 
 }  // namespace M7
