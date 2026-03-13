@@ -111,14 +111,14 @@ public:
 
   float ProcessSample(float x);
 
-  NOINLINE void Reset()
+  void Reset()
   {
     lastInput = lastLastInput = 0.0f;
     lastOutput = lastLastOutput = 0.0f;
   }
 
   // Copies filter type/params/coefficients from another instance, but preserves this instance's state.
-  NOINLINE void CopyParamsAndCoeffsFrom(const BiquadFilter& src)
+  void CopyParamsAndCoeffsFrom(const BiquadFilter& src)
   {
     this->mConfig = src.mConfig;
   }

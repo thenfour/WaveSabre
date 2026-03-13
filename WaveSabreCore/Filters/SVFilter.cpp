@@ -17,8 +17,9 @@ void SVFilter::SetParams(float cutoff, float Q, FilterResponse response)
   mQ = Q;
   mResponse = response;
 
-  g = M7::math::tan(M7::math::gPI * cutoff * Helpers::CurrentSampleRateRecipF);
-  k = 1.0f / Q; // do NOT try to normalize this; caller is responsible for usable values. (size-optimization)
+  //g = M7::math::tan(M7::math::gPI * cutoff * Helpers::CurrentSampleRateRecipF);
+  g = CalculateFilterG(cutoff);
+  k = 1.0f / Q;  // do NOT try to normalize this; caller is responsible for usable values. (size-optimization)
   a1 = 1.0f / (1.0f + g * (g + k));
   a2 = g * a1;
 }
@@ -42,8 +43,8 @@ float SVFilter::Process(float v0)
       return v1;
     case FilterResponse::Allpass:
       return v0 - 2 * k * v1;
-    // case FilterResponse::Notch:
-    //   return v0 - k * v1;
+      // case FilterResponse::Notch:
+      //   return v0 - k * v1;
   }
 }
 

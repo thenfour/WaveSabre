@@ -63,12 +63,13 @@ void MoogOnePoleFilter::Recalc()
 {
   // NB: LFOs use this filter so the cutoff should support VERY low frequencies with precision. fortunately single poles are fine with that.
   // TPT (topology-preserving transform) 1-pole integrator formula
-  real2 cutoff = math::clamp(m_cutoffHz, 0, 20000);
-  real2 wd = math::gPI * cutoff;
-  real2 T = Helpers::CurrentSampleRateRecipF;
-  //real wa = (2 / T) * math::tan(wd * T / 2);
-  //real g = wa * T / 2;
-  real2 g = real2(math::tan(float(wd * T)));
+  // real2 cutoff = math::clamp(m_cutoffHz, 20, 20000);
+  // real2 wd = math::gPI * cutoff;
+  // real2 T = Helpers::CurrentSampleRateRecipF;
+  // real2 g = real2(math::tan(float(wd * T)));
+
+  real2 g = CalculateFilterG(m_cutoffHz);  // math::tan(cutoff * math::gPI * Helpers::CurrentSampleRateRecipF);
+
   m_alpha = g / (g + 1);
 }
 

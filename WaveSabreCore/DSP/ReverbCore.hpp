@@ -1,10 +1,6 @@
 #pragma once
 
-#include "../Filters/AllPass.h"
-#include "../Filters/Comb.h"
 #include "DelayBuffer.h"
-//#include "Maj7Basic.hpp"
-//#include "Maj7Filter.hpp"
 #include "../Filters/SVFilter.hpp"
 
 namespace WaveSabreCore
@@ -65,8 +61,7 @@ struct ReverbCore
     // predelay is part of the reverb network; feed it the pre-filtered signal
     if (preDelayMS > 0)
     {
-      preDelayBuffer.WriteAndAdvance(input);
-      input = preDelayBuffer.PeekAtCursor();
+      input = preDelayBuffer.WriteAndAdvance(input);
     }
 
     float outL = 0;

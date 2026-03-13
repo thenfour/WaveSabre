@@ -7,13 +7,11 @@
 #include "../Basic/Helpers.h"
 #include "../Filters/BiquadFilter.h"
 #include "../DSP/DelayBuffer.h"
-#include "../Filters/Comb.h"
 #include "../Basic/GmDls.h"
 #include "../Basic/MxcsrFlagGuard.h"
 
 #include "./Devices.h"
 
-//#include "../GigaSynth/GsmSample.h"
 #include "../GigaSynth/Maj7Basic.hpp"
 
 #endif

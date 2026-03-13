@@ -6,11 +6,11 @@ namespace WaveSabreCore
 
 void AudioBuffer::SetLengthSamples(size_t sampleCount)
 {
-  // if (sampleCount == mBuffer.size())
-  //   return;
+  if (sampleCount == mBuffer.size())
+    return;
 
   // this internally zeroes new elements.
-  mBuffer.resize(std::max<size_t>(1, sampleCount));
+  mBuffer.resize(sampleCount);
   mCursor = 0;  // necessary in case of shrinking buffer.
 }
 
@@ -20,10 +20,12 @@ void AudioBuffer::SetLengthMilliseconds(float lengthMs)
   SetLengthSamples(sampleCount);
 }
 
-void AudioBuffer::WriteAndAdvance(float sample)
+float AudioBuffer::WriteAndAdvance(float sample)
 {
+  float ret = mBuffer[mCursor];
   mBuffer[mCursor] = sample;
   mCursor = (mCursor + 1) % mBuffer.size();
+  return ret;
 }
 
 float AudioBuffer::PeekAtCursor() const

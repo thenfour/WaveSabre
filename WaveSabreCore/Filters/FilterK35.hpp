@@ -50,8 +50,8 @@ struct K35Filter : IFilter
 
   inline void Recalc()
   {
-    const real2 cutoff = math::clamp(mCutoffHz, 20.0f, 20000.0f);
-    const real2 g = math::tan(cutoff * math::gPI * Helpers::CurrentSampleRateRecipF);
+    //const real2 cutoff = math::clamp(mCutoffHz, 20.0f, 20000.0f);
+    const real2 g = CalculateFilterG(cutoff);  // math::tan(cutoff * math::gPI * Helpers::CurrentSampleRateRecipF);
     const real2 G = g / (real2(1) + g);
 
     ConfigureOnePolesForCurrentResponse(cutoff);

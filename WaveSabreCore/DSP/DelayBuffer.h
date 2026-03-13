@@ -23,7 +23,8 @@ public:
   void SetLengthSamples(size_t sampleCount);
   void SetLengthMilliseconds(float lengthMs);
 
-  void WriteAndAdvance(float sample);
+  // returns the previous value at cursor.
+  float WriteAndAdvance(float sample);
 
   float PeekAtCursor() const;
 

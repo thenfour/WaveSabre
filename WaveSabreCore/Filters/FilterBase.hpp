@@ -82,6 +82,8 @@ enum class FilterResponse  // : uint8_t
   Count,
 };
 
+extern float CalculateFilterG(float cutoffHz);
+
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 // NB: This duplicated matrix is acceptable; the class-specific instances should actually be removed.
