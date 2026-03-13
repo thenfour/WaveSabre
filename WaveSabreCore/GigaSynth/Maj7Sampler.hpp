@@ -84,6 +84,7 @@ struct SamplerVoice : ISoundSourceDevice::Voice
 
   SamplerVoice(ModMatrixNode& modMatrix, SamplerDevice* pDevice, EnvelopeNode* pAmpEnv);
   void ConfigPlayer();
+  void ClearState();
 
   virtual void NoteOn(bool legato) override;
   virtual void NoteOff() override;

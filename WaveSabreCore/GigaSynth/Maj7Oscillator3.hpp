@@ -274,6 +274,17 @@ public:
     //mpSlaveWave = mpWaveforms[math::ClampI((int)w, 0, (int)OscillatorWaveform::Count - 1)];
   }
 
+  void ClearState()
+  {
+    mPreviousSample = 0.0f;
+    //mCurrentFrequencyHz = 0.0f;
+    //mFMFeedbackAmt = 0.0f;
+    mPhaseRestartTriggerWasHigh = false;
+    //mLastSample = {};
+    mKRateRecalc.Invalidate();
+    // mCore->RestartDueToNoteOn();
+  }
+
   void SetWaveformShape(OscillatorWaveform w)
   {
     if (mCore->mWaveformType == w)
@@ -396,12 +407,12 @@ public:
 
     //auto immediatePhaseMod = calcImmediatePhaseMod();
     auto outp = mCore->renderSampleAndAdvance(immediatePhaseMod + GetPhaseOffset());
-    mLastSample = outp;
+    //mLastSample = outp;
     mPreviousSample = outp.amplitude;
     return outp.amplitude * ampEnvLin;
   }
 
-  CoreSample mLastSample;
+  //CoreSample mLastSample;
 
   // render one sample for LFO, advance phase.
   // forceSilence skips rendering the wave but still advances phase
@@ -484,7 +495,7 @@ public:
 
     // uncomment for prod
     const auto outp = mCore->renderSampleAndAdvance(GetPhaseOffset());
-    mLastSample = outp;
+    //mLastSample = outp;
 
     if (forceSilence)
     {

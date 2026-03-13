@@ -35,6 +35,7 @@ struct FilterNode
                  Param01 reso01,
                  float gainDb);
 
+  void ResetState();
   float ProcessSample(float inputSample);
 
 };  // FilterNode

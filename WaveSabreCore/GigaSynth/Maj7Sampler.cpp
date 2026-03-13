@@ -174,6 +174,14 @@ SamplerVoice::SamplerVoice(ModMatrixNode& modMatrix, SamplerDevice* pDevice, Env
 {
 }
 
+void SamplerVoice::ClearState()
+{
+  mSamplePlayer = SamplePlayer{};
+  mNoteIsOn = false;
+  // mDelayPos01 = 0;
+  // mDelayStep = 0;
+}
+
 void SamplerVoice::ConfigPlayer()
 {
   mSamplePlayer.SampleStart = mpSamplerDevice->mParams.Get01Value(

@@ -712,6 +712,48 @@ struct Maj7 : public Maj7SynthDevice
     bool mSourceEnabledCache[gSourceCount]{};  // mirrors device enabled state
     bool mLFOUsedCache[gModLFOCount]{};        // true if any enabled modulation references this LFO
 
+    void ClearState()
+    {
+      for (auto& p : mpEnvelopes)
+      {
+        p->kill();
+      }
+
+      mModMatrix.ResetState();
+
+      for (auto& p : mpLFOs)
+      {
+        p->mNode.ClearState();
+        p->mFilter.ResetState();
+      }
+
+      for (auto* p : mpOscillatorNodes)
+      {
+        p->ClearState();
+      }
+
+      for (auto* p : mpSamplerVoices)
+      {
+        p->ClearState();
+      }
+
+      for (auto* a : mpFilters)
+      {
+        for (int ich = 0; ich < 2; ++ich)
+        {
+          a[ich]->mFilter.ResetState();
+        }
+      }
+
+      mVelocity01 = 0;
+      mTriggerRandom01 = 0;
+      mTrigger01 = 0;
+      mMidiNote = 0;
+      mOutputGainsInitialized = false;
+      mMasterPanInitialized = false;
+      mLFOInitialized = false;
+    }
+
     void BeginBlock(bool forceProcessing)
     {
       for (size_t i = 0; i < gSourceCount; ++i)
@@ -1048,6 +1090,11 @@ struct Maj7 : public Maj7SynthDevice
 
     virtual void NoteOn() override
     {
+      if (!mLegato)
+      {
+        ClearState();
+      }
+
       mVelocity01 = mNoteInfo.Velocity / 127.0f;
       mTriggerRandom01 = math::rand01();
       mTrigger01 = mNoteInfo.mSequence % 2 == 0 ? 1.0f : 0.0f;
@@ -1089,10 +1136,7 @@ struct Maj7 : public Maj7SynthDevice
 
     virtual void Kill() override
     {
-      for (auto& p : mpEnvelopes)
-      {
-        p->kill();
-      }
+      ClearState();
     }
 
     virtual bool IsPlaying() override

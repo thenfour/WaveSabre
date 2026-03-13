@@ -46,6 +46,11 @@ void FilterNode::SetParams(FilterCircuit circuit,
   mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, reso01, gainDb);
 }
 
+void FilterNode::ResetState()
+{
+  mSelectedFilter->Reset();
+}
+
 float FilterNode::ProcessSample(float inputSample)
 {
   return mSelectedFilter->ProcessSample(inputSample);

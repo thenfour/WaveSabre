@@ -973,6 +973,7 @@ struct ModMatrixNode
   int mnSampleCount = 0;
 
   ModMatrixNode();
+  void ResetState();
 
   template <typename Tmodid>
   inline void SetSourceValue(Tmodid id, real_t val)

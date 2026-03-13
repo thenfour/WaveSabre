@@ -14,10 +14,17 @@ namespace WaveSabreCore
 		// putting (nearly) empty ctor in the .cpp so the default ctor doesn't get inlined.
 		ModMatrixNode::ModMatrixNode()
 		{
+			ResetState();
+		}
+
+		void ModMatrixNode::ResetState()
+		{
 			memset(mSourceValues, 0, sizeof(mSourceValues));
 			memset(mDestValues, 0, sizeof(mDestValues)); // shouldn't have to do this; will be set on 1st process. but currently needed for some reason. no time to investigate.
 			memset(mModulatedDestValueDeltas, 0, sizeof(mModulatedDestValueDeltas)); // same as above.
 			memset(mModSpecLastDestinations, 0, sizeof(mModSpecLastDestinations));
+			mModulatedDestValueCount = 0;
+			mnSampleCount = 0;
 
 			// this makes 0 difference in size optimizing whether fancy or whatev
 			//static constexpr float consts[] = {
