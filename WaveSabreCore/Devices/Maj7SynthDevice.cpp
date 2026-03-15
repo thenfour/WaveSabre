@@ -71,8 +71,7 @@ void Maj7SynthDevice::ProcessMusicalNoteOn(Event* __e, NoteInfo& myNote)
       }
 
       // important that this comes after looking for existing note, otherwise it will think THIS note is the trill note.
-      //myNote.mIsMusicallyHeld = true;
-      //myNote.mSequence = ++mNoteSequence;
+      myNote.mIsMusicallyHeld = true;
 
       for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
       {

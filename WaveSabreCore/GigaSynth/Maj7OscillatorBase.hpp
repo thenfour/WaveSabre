@@ -102,6 +102,7 @@ enum class OscillatorWaveform //: uint8_t
   Noise_SaH_HP4,
 
   Noise_White_ProbDuty,
+
   Noise_White_ProbLP,
   Noise_White_ProbBP,
   Noise_White_DutyLP,
@@ -150,29 +151,27 @@ struct OscillatorWaveformUiStyle
 #ifdef ENABLE_PULSE4_WAVEFORM
   #define PULSE4_WAVEFORM_ENTRY {false, "Pulse 4 stage",        "Duty",   "Sym",        0.50f,   0.50f,   SHAPE_COLOR_FG,       SHAPE_COLOR_BG}
 #else
-  #define PULSE4_WAVEFORM_ENTRY {false, "Pulse 4 (disabled)",        "(n/a)",   "(n/a)",        0.50f,   0.50f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG}
+  #define PULSE4_WAVEFORM_ENTRY {false, "Pulse 4 (disabled)",         "(n/a)##A",   "(n/a)##B",        0.50f,   0.50f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG}
 #endif
 
 #ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
   #define TRIANGLE_FOLD_WAVEFORM_ENTRY {false,  "Folded triangle",             "Fold",   "Bias",       0.30f,   0,       FOLDED_COLOR_FG,      FOLDED_COLOR_BG}
 #else
-  #define TRIANGLE_FOLD_WAVEFORM_ENTRY {false,  "Folded triangle (disabled)",             "(n/a)",   "(n/a)",       0.30f,   0,       DISABLED_COLOR_FG,      DISABLED_COLOR_BG}
+  #define TRIANGLE_FOLD_WAVEFORM_ENTRY {false,  "Folded triangle (disabled)",             "(n/a)##A",   "(n/a)##B",       0.30f,   0,       DISABLED_COLOR_FG,      DISABLED_COLOR_BG}
 #endif
 
 #ifdef ENABLE_FILTERED_WHITENOISE_WAVEFORMS
 #define FILTERED_WHITENOISE_WAVEFORMS_ENTRIES \
-  {true,  "Noise White Prob+Duty",   "Prob",   "Duty",       0.35f,   0.25f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Prob+LP",     "Prob",   "LP Q",       0.35f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Prob+BP",     "Prob",   "BP Q",       0.35f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Duty+LP",     "Duty",   "LP Q",       0.50f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
-  {false, "Noise White Duty+BP",     "Duty",   "BP Q",       0.50f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG}
+  {false, "Whitenoise Prob+LP",     "Prob",   "LP Q",       0.35f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Whitenoise Prob+BP",     "Prob",   "BP Q",       0.35f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Whitenoise Duty+LP",     "Duty",   "LP Q",       0.50f,   0.60f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
+  {false, "Whitenoise Duty+BP",     "Duty",   "BP Q",       0.50f,   0.35f,   NOISE_WHITE_FG,       NOISE_WHITE_BG}
 #else
 #define FILTERED_WHITENOISE_WAVEFORMS_ENTRIES \
-  {true,  "Noise White Prob+Duty (disabled)",   "(n/a)",   "(n/a)",       0.35f,   0.25f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
-  {false, "Noise White Prob+LP (disabled)",     "(n/a)",   "(n/a)",       0.35f,   0.60f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
-  {false, "Noise White Prob+BP (disabled)",     "(n/a)",   "(n/a)",       0.35f,   0.35f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
-  {false, "Noise White Duty+LP (disabled)",     "(n/a)",   "(n/a)",       0.50f,   0.60f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
-  {false, "Noise White Duty+BP (disabled)",     "(n/a)",   "(n/a)",       0.50f,   0.35f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG}
+  {false, "Whitenoise Prob+LP (disabled)",     "(n/a)##A",   "(n/a)##B",       0.35f,   0.60f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
+  {false, "Whitenoise Prob+BP (disabled)",     "(n/a)##A",   "(n/a)##B",       0.35f,   0.35f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
+  {false, "Whitenoise Duty+LP (disabled)",     "(n/a)##A",   "(n/a)##B",       0.50f,   0.60f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG},\
+  {false, "Whitenoise Duty+BP (disabled)",     "(n/a)##A",   "(n/a)##B",       0.50f,   0.35f,   DISABLED_COLOR_FG,       DISABLED_COLOR_BG}
 #endif
 
 #define OSCILLATOR_WAVEFORM_UI_STYLES(symbolName)                                                                      \
@@ -193,6 +192,7 @@ struct OscillatorWaveformUiStyle
   {false,  "Rotating Noise",         "Scale",  "Speed",      0.35f,   0.15f,   NOISE_GRAIN_FG,       NOISE_GRAIN_BG},\
   {false, "Noise_SaH_LP4",           "LP Cut", "Jitter",     0.80f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
   {false, "Noise_SaH_HP4",           "HP Cut", "Jitter",     0.20f,   0.0f,    NOISE_SAH_FG,         NOISE_SAH_BG},\
+  {true,  "Whitenoise Prob+Duty",   "Prob",   "Duty",       0.35f,   0.25f,   NOISE_WHITE_FG,       NOISE_WHITE_BG},\
   FILTERED_WHITENOISE_WAVEFORMS_ENTRIES,\
   }
 // clang-format on
