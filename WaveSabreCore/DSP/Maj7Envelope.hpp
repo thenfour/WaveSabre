@@ -39,9 +39,9 @@ struct EnvelopeNode
   // >=1sample per stage.
   void AdvanceToStage(EnvelopeStage stage);
 
-  void noteOn(bool isLegato);
+  void EnvelopeNoteOn(VoiceNoteOnFlags flags);
 
-  void noteOff();
+  void EnvelopeNoteOff();
 
   void KillEnvelope(VoiceNoteOnFlags flags);
 
@@ -80,7 +80,7 @@ private:
   // when release stage begins, what value is it releasing from?
   real_t mReleaseFromValue01 = 0;
 
-  // in monophonic situations, attack stage may not start from 0.
+  // in monophonic situations, or voice stealing, attack stage may not start from 0.
   real_t mAttackFromValue01 = 0;
 };
 

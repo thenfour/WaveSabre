@@ -95,9 +95,9 @@ void EnvelopeNode::AdvanceToStage(EnvelopeStage stage)
   RecalcState();
 }
 
-void EnvelopeNode::noteOn(bool isLegato)
+void EnvelopeNode::EnvelopeNoteOn(VoiceNoteOnFlags flags)
 {
-  if (isLegato && !mParams.GetBoolValue(EnvParamIndexOffsets::LegatoRestart))
+  if (HasFlag(flags, VoiceNoteOnFlags::Legato) && !mParams.GetBoolValue(EnvParamIndexOffsets::LegatoRestart))
   {
     return;
   }
@@ -106,7 +106,7 @@ void EnvelopeNode::noteOn(bool isLegato)
   AdvanceToStage(EnvelopeStage::FixedDelay);
 }
 
-void EnvelopeNode::noteOff()
+void EnvelopeNode::EnvelopeNoteOff()
 {
   if (!IsPlaying())
     return;
