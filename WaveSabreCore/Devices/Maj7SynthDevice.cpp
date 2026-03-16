@@ -76,7 +76,14 @@ void Maj7SynthDevice::ProcessMusicalNoteOn(Event* __e, NoteInfo& myNote)
 
       for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
       {
-        mVoices[iuv]->BaseNoteOn(myNote, iuv, M7::ConditionalFlag(existingNote, VoiceNoteOnFlags::Legato));
+        // steal the voice if it's already playing. that can happen even without "existingNote" in the case of
+        // the voice being in release stage but not silent for example.
+        auto* v = mVoices[iuv];
+        bool isPlaying = v->IsPlaying();
+        v->BaseNoteOn(myNote, iuv,
+          M7::CombineFlags(
+            M7::ConditionalFlag(isPlaying, VoiceNoteOnFlags::VoiceSteal),
+            M7::ConditionalFlag(existingNote, VoiceNoteOnFlags::Legato)));
       }
 
       break;

@@ -42,10 +42,6 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-// when a voice is "stolen", transition from the previous note's amplitude output
-// to the new playing note over this many samples.
-//static constexpr size_t kStolenVoiceTransitionSamples = 1000;
-
 // even if this doesn't strictly need to have #ifdef, better to make it clear to callers that this depends on built config.
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 enum class OutputStream
@@ -683,9 +679,6 @@ struct Maj7 : public Maj7SynthDevice
     real_t mTrigger01 = 0;
     float mMidiNote = 0;
 
-    // float mStolenDeltaPerSample = 0;
-    // int mStolenSlideSamplesLeft = 0;
-    // FloatPair mLastOutput;
     PortamentoCalc mPortamento;
 
     struct LFOVoice
@@ -748,29 +741,20 @@ struct Maj7 : public Maj7SynthDevice
         p->ClearState();
       }
 
-      for (auto* a : mpFilters)
-      {
-        for (int ich = 0; ich < 2; ++ich)
-        {
-          a[ich]->mFilter.ResetState();
-        }
-      }
+      // Don't reset filters to avoid clicks. Maybe this could be added
+      // for panic, but not general.
+      //for (auto* a : mpFilters)
+      //{
+      //  for (int ich = 0; ich < 2; ++ich)
+      //  {
+      //    a[ich]->mFilter.ResetState();
+      //  }
+      //}
 
-      //mVelocity01 = 0;
-      //mTriggerRandom01 = 0;
-      //mTrigger01 = 0;
       mMidiNote = 0;
       mOutputGainsInitialized = false;
       mMasterPanInitialized = false;
       mLFOInitialized = false;
-      // if (HasFlag(flags, VoiceNoteOnFlags::VoiceSteal))
-      // {
-      //   // set up transition from last playing amplitude to avoid clicks / audible discontinuities.
-      // }
-      // else {
-      //   //
-      // }
-      // mLastOutput.Zero();
     }
 
     void BeginBlock(bool forceProcessing)
@@ -1095,7 +1079,6 @@ struct Maj7 : public Maj7SynthDevice
       // apply panning & filter, and mix with s[] as requested
       mixedSources = mMasterPanFactorsCached.mul(mixedSources);
 
-      //mLastOutput.Zero();
       for (size_t ich = 0; ich < 2; ++ich)
       {
         for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter)
@@ -1104,9 +1087,6 @@ struct Maj7 : public Maj7SynthDevice
         }
         s[ich] += mixedSources.x[ich];
       }
-
-      //s[0] += mLastOutput.x[0];
-      //s[1] += mLastOutput.x[1];
 
       mPortamento.Advance(1, mModMatrix.GetDestinationValue(ModDestination::PortamentoTime));
     }
