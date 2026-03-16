@@ -730,7 +730,7 @@ struct Maj7 : public Maj7SynthDevice
         }
       }
 
-      mModMatrix.ResetState();
+      mModMatrix.Recalc();
 
       for (auto& p : mpLFOs)
       {

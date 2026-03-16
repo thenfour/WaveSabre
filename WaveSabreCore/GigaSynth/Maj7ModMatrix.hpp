@@ -1,14 +1,15 @@
 #pragma once
 
 #include "../Basic/DSPMath.hpp"
-#include "../Params/Maj7ParamAccessor.hpp"
 #include "../GigaSynth/GigaParams.hpp"
+#include "../Params/Maj7ParamAccessor.hpp"
+
 
 namespace WaveSabreCore
 {
 namespace M7
 {
-    static constexpr size_t gModulationCount = 18;
+static constexpr size_t gModulationCount = 18;
 
 enum class ModSource  // : uint8_t
 {
@@ -56,23 +57,30 @@ enum class ModSource  // : uint8_t
 // size-optimize using macro
 #define MOD_SOURCE_CAPTIONS                                                                                            \
   {                                                                                                                    \
-      "None",           "Osc1AmpEnv",     "Osc2AmpEnv",     "Osc3AmpEnv", "Osc4AmpEnv", "Sampler1AmpEnv",              \
-      "Sampler2AmpEnv", "Sampler3AmpEnv", "Sampler4AmpEnv", "ModEnv1",    "ModEnv2",   \
-      "ModEnv3",        "ModEnv4",\
-       "LFO1",                        \
-      "LFO2",           "LFO3",           "LFO4",           "PitchBend",  "Velocity",   "NoteValue",                   \
-      "RandomTrigger", \
-      "Trigger 0, 1,...",\
-       "UnisonoVoice",   "SustainPedal",   "Macro1",     "Macro2",     "Macro3",                      \
-      "Macro4",         "Macro5",         "Macro6",         "Macro7",     "1 (const)",  "0.5 (const)",                 \
-      "0 (const)",      "-0.5 (const)",   "-1 (const)",                                                                \
+      "None",           "Osc1AmpEnv",                                                                                  \
+      "Osc2AmpEnv",     "Osc3AmpEnv",                                                                                  \
+      "Osc4AmpEnv",     "Sampler1AmpEnv",                                                                              \
+      "Sampler2AmpEnv", "Sampler3AmpEnv",                                                                              \
+      "Sampler4AmpEnv", "ModEnv1",                                                                                     \
+      "ModEnv2",        "ModEnv3",                                                                                     \
+      "ModEnv4",        "LFO1",                                                                                        \
+      "LFO2",           "LFO3",                                                                                        \
+      "LFO4",           "PitchBend",                                                                                   \
+      "Velocity",       "NoteValue",                                                                                   \
+      "RandomTrigger",  "Trigger 0, 1,...",                                                                            \
+      "UnisonoVoice",   "SustainPedal",                                                                                \
+      "Macro1",         "Macro2",                                                                                      \
+      "Macro3",         "Macro4",                                                                                      \
+      "Macro5",         "Macro6",                                                                                      \
+      "Macro7",         "1 (const)",                                                                                   \
+      "0.5 (const)",    "0 (const)",                                                                                   \
+      "-0.5 (const)",   "-1 (const)",                                                                                  \
   }
 #define MODSOURCE_SHORT_CAPTIONS(symbolName)                                                                           \
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{                           \
-      "-",     "O1Env", "O2Env", "O3Env", "O4Env", "S1Env", "S2Env", "S3Env", "S4Env", "MEnv1", "MEnv2",               \
-      "MEnv3", "MEnv4",\
-      "LFO1",  "LFO2",  "LFO3",  "LFO4",  "PB",    "Vel",   "Note",  "Rng", "|:0,1:|",  "UVox",  "Sus",   "Knob1",               \
-      "Knob2", "Knob3", "Knob4", "Knob5", "Knob6", "Knob7", "1",     "0.5",   "0",     "-.5",   "-1",                  \
+      "-",     "O1Env", "O2Env", "O3Env", "O4Env", "S1Env", "S2Env", "S3Env", "S4Env", "MEnv1",   "MEnv2", "MEnv3",    \
+      "MEnv4", "LFO1",  "LFO2",  "LFO3",  "LFO4",  "PB",    "Vel",   "Note",  "Rng",   "|:0,1:|", "UVox",  "Sus",      \
+      "Knob1", "Knob2", "Knob3", "Knob4", "Knob5", "Knob6", "Knob7", "1",     "0.5",   "0",       "-.5",   "-1",       \
   };
 
 enum class ModDestination  //: uint8_t
@@ -1001,6 +1009,13 @@ struct ModMatrixNode
     return mDestValues[static_cast<int>(id) + static_cast<int>(offset)];
   }
 
+
+  void Recalc()
+  {
+    mnSampleCount = 0;
+  }
+
+
   void BeginBlock()
   {
     // force a full recalc every block. this is required, otherwise our mod deltas will get messed up.
@@ -1010,7 +1025,7 @@ struct ModMatrixNode
     // period is too short, which also leaves things in an inaccurate state, although a much safer state because
     // at least it's between the desired value and original. too long and it would go out of bounds. it will
     // correct itself on the next recalc.
-    mnSampleCount = 0;
+    Recalc();
   }
 
   // caller passes in:
@@ -1025,7 +1040,7 @@ struct ModMatrixNode
                  ModParamIndexOffsets srcRangeMinParam,
                  ModParamIndexOffsets srcRangeMaxParam,
                  bool isDestN11);
-};
+};  // ModMatrixNode
 
 static constexpr size_t gOscillatorCount = 4;
 static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
@@ -1058,8 +1073,8 @@ extern SourceInfo gSourceInfo[gSourceCount];
 
 struct EnvelopeInfo
 {
-  ModDestination mModDestBase;  // delay time
-  GigaSynthParamIndices mParamBase;      // delay time
+  ModDestination mModDestBase;       // delay time
+  GigaSynthParamIndices mParamBase;  // delay time
   ModSource mMyModSource;
 };
 
