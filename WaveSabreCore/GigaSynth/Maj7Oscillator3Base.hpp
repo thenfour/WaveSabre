@@ -229,6 +229,16 @@ struct CoreSample
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////
+enum class OscillatorCoreResetFlags
+{
+  None = 0,
+  NoteOn = 1 << 0, // was this a note on?
+   // if note on, legato?
+   // if 
+  Legato = 1 << 1,
+  PhaseRestart = 1 << 2,  // requesting phase restart
+};
+
 struct OscillatorCore
 {
 public:
@@ -268,8 +278,12 @@ public:
     mPhaseAcc.SynchronizeWith(src.mPhaseAcc);
   };
 
-  virtual void RestartDueToNoteOn()
+  // NB: this is called to restart phase on non-legato note-on.
+  // NB: This is *also* called for LFOs on phase restart trigger.
+  virtual void ResetOscillator(OscillatorCoreResetFlags flags)
   {
+    if (HasFlag(flags, OscillatorCoreResetFlags::Legato)) return;
+    if (!HasFlag(flags, OscillatorCoreResetFlags::PhaseRestart)) return;
     // set phase to 0 (because the oscillator's "phase offset" is performed via audioRatePhaseOffset in renderSampleAndAdvance.
     mPhaseAcc.setPhase01(0);
   };

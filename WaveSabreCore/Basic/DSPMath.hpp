@@ -3,6 +3,8 @@
 #include "Pair.hpp"
 #include "StrongScalar.hpp"
 #include "math.hpp"
+#include "Helpers.h"
+#include "Enum.hpp"
 
 namespace WaveSabreCore
 {
@@ -323,6 +325,11 @@ inline float Default16ToFloatN11(int16_t s)
 inline int16_t FloatN11ToDefault16(float f)
 {
   return int16_t(ClampI(int32_t(f * 32767), -32767, 32767));
+}
+
+inline float ClampFrequencyHz(float hz)
+{
+  return math::ClampI(hz, 20.0f, Helpers::NyquistHz);
 }
 
 }  // namespace math

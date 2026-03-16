@@ -359,8 +359,8 @@ struct SineCoreExt : public OscillatorCore
       }
     }
 
-      mClipThreshold = math::clamp(1.0f - mB, 1e-6f, 1.0f);
-      mClipGain = 1.0f / mClipThreshold;
+    mClipThreshold = math::clamp(1.0f - mB, 1e-6f, 1.0f);
+    mClipGain = 1.0f / mClipThreshold;
   }
 
   inline float ClipAndNormalize(float x) const
@@ -373,7 +373,7 @@ struct SineCoreExt : public OscillatorCore
   {
     const auto step = mPhaseAcc.advanceOneSample();  // no offset inside accumulator
     const double p = step.phaseBegin01;
-    const double actW = 1.0 - (double)mC;     // active window width
+    const double actW = 1.0 - (double)mC;  // active window width
 
     float out = 0.0f;
 
@@ -492,8 +492,7 @@ struct SAHNoiseCore : public OscillatorCore
   void HandleParamsChanged() override
   {
     mJitter01 = math::clamp01(mWaveshapeB);
-
-    static constexpr float kFixedQ = 0.7071f;  //db
+    static constexpr float kFixedQ = 0.707106781187f;  // sqrt(0.5) db
     const auto fixedReso01 = Param01{gBiquadFilterQCfg.ValueToParam01(kFixedQ)};
     const FilterResponse responseType = (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
                                                                                    : FilterResponse::Lowpass;
@@ -568,6 +567,17 @@ struct SAHNoiseCore : public OscillatorCore
         .amplitude = y,
     };
   }
+
+
+  virtual void ResetOscillator(OscillatorCoreResetFlags flags) override
+  {
+    OscillatorCore::ResetOscillator(flags);
+    if (!HasFlag(flags, OscillatorCoreResetFlags::Legato))
+    {
+      mFilter.Reset();
+      mSpill.reset();
+    }
+  }
 };
 
 
@@ -603,7 +613,7 @@ struct EvolvingGrainNoiseCore : public OscillatorCore
 
   CoreSample renderSampleAndAdvance(float /*audioRatePhaseOffset*/) override;
 
-  void RestartDueToNoteOn() override;
+  void ResetOscillator(OscillatorCoreResetFlags flags) override;
 };
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -186,7 +186,7 @@ public:
         float newGain = mThumbInteraction.originalGain - (dy * dbPerPixel);
         
         // Apply reasonable limits
-        newFreq = M7::math::clamp(newFreq, 20.0f, 20000.0f);
+        newFreq = M7::math::ClampFrequencyHz(newFreq);
         newGain = M7::math::clamp(newGain,
                 mThumbInteraction.dragStartDisplayMinDB,
                 mThumbInteraction.dragStartDisplayMaxDB);

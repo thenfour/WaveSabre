@@ -52,6 +52,11 @@ struct CorrectionSpill
     if (dSlope != 0.0)
       SplitKernels::add_blamp(alpha, dSlope, dt, now, next);
   }
+  void reset()
+  {
+    now = 0.0;
+    next = 0.0;
+  }
 };
 
 }  // namespace M7

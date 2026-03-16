@@ -23,7 +23,7 @@ void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, Decibels
 
   // these ranges can cause instability and are effectively out of usable range
   // NB: frequency params typically go down to like 31.25hz or so. catch that to give the user the option of bypassing.
-  freq = M7::math::clamp(freq, 32, 20000);
+  freq = M7::math::ClampFrequencyHz(freq);
 
   const float linearGain = M7::math::DecibelsToLinear(gain);
   const bool responseUsesGain =

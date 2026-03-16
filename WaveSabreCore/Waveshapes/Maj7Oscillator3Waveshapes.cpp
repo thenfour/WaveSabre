@@ -11,7 +11,7 @@ namespace M7
 
   size_t EvolvingGrainNoiseCore::ComputeGrainSizeSamples() const
   {
-    // Map 0..1 → [minSize, maxSize] exponentially
+    // Map 0..1 -> [minSize, maxSize] exponentially
     const float minSize = float(kMinGrainSizeSamples);
     const float maxSize = float(kMaxGrainSizeSamples);
     const float sizeF = minSize * math::pow(maxSize / minSize, mGrainSize01);
@@ -97,12 +97,11 @@ namespace M7
     };
   }
 
-  void EvolvingGrainNoiseCore::RestartDueToNoteOn()
+  void EvolvingGrainNoiseCore::ResetOscillator(OscillatorCoreResetFlags flags)
   {
-    OscillatorCore::RestartDueToNoteOn();
-    mInitialized = false;
-    // for fresh random grain per note
-    // mGrainValid = false;
+    OscillatorCore::ResetOscillator(flags);
+    if (!HasFlag(flags, OscillatorCoreResetFlags::Legato))
+      mInitialized = false;  // re-init grain on non-legato reset
   }
 
   int ContinuousNoiseCore::gInstanceCount = 0;

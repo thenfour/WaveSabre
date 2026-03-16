@@ -252,12 +252,12 @@ public:
 
   virtual void NoteOn(bool legato) override
   {
-    if (legato)
-      return;
-    if (mpOscDevice->GetPhaseRestart())
-    {
-      mCore->RestartDueToNoteOn();
-    }
+    mCore->ResetOscillator(
+      CombineFlags(OscillatorCoreResetFlags::NoteOn,
+        ConditionalFlag(legato, OscillatorCoreResetFlags::Legato),
+        ConditionalFlag(mpOscDevice->GetPhaseRestart(), OscillatorCoreResetFlags::PhaseRestart)
+      )
+    );
   }
   virtual void NoteOff() override {}
 
@@ -282,7 +282,6 @@ public:
     mPhaseRestartTriggerWasHigh = false;
     //mLastSample = {};
     mKRateRecalc.Invalidate();
-    // mCore->RestartDueToNoteOn();
   }
 
   void SetWaveformShape(OscillatorWaveform w)
@@ -369,7 +368,7 @@ public:
                                                       0);  //mpOscDevice->mFrequencyMul.mCachedVal;// .GetRangedValue();
           freq *= detuneFreqMul;
           // 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
-          freq = std::max(freq, 0.0001f);
+          freq = math::clamp(freq, 0.0001f, Helpers::NyquistHz);
           mCurrentFrequencyHz = freq;
 
           float syncFreq = 1;
@@ -380,7 +379,7 @@ public:
                                            gSyncFreqConfig,
                                            noteHz,
                                            syncFreqModVal);
-            syncFreq = std::max(syncFreq, 0.0001f);
+            syncFreq = math::clamp(syncFreq, 0.0001f, Helpers::NyquistHz);
           }
 
           SetWaveformShape(params.GetEnumValue<OscillatorWaveform>(OscParamIndexOffsets::Waveform));
@@ -428,7 +427,8 @@ public:
     const bool phaseRestartTriggerHigh = phaseRestartTrigger > 0.5f;
     if (phaseRestartTriggerHigh && !mPhaseRestartTriggerWasHigh)
     {
-      mCore->RestartDueToNoteOn();
+      // rising edge on the trigger, restart phase "non-legato" style
+      mCore->ResetOscillator(OscillatorCoreResetFlags::PhaseRestart);
     }
     mPhaseRestartTriggerWasHigh = phaseRestartTriggerHigh;
 
@@ -482,7 +482,8 @@ public:
           }
 
           // 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
-          finalFreq = std::max(finalFreq, 0.0001f);
+          //finalFreq = std::max(finalFreq, 0.0001f);
+          finalFreq = math::clamp(finalFreq, 0.0001f, Helpers::NyquistHz);
 
           SetWaveformShape(params.GetEnumValue<OscillatorWaveform>(LFOParamIndexOffsets::Waveform));
 

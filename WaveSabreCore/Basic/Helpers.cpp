@@ -21,6 +21,7 @@ namespace WaveSabreCore
 	double Helpers::CurrentSampleRate = 44100.0;
 	float Helpers::CurrentSampleRateF = 44100.0f;
 	float Helpers::CurrentSampleRateRecipF = 1.0f/44100.0f;
+	float Helpers::NyquistHz = 22050.0f;
 
 	void Helpers::SetSampleRate(int sampleRate)
 	{
@@ -28,6 +29,7 @@ namespace WaveSabreCore
 		CurrentSampleRate = static_cast<double>(sampleRate);
 		CurrentSampleRateF = static_cast<float>(sampleRate);
 		CurrentSampleRateRecipF = 1.0f / static_cast<float>(sampleRate);
+		NyquistHz = CurrentSampleRateF * 0.5f;
 	}
 #endif  // MIN_SIZE_REL
 

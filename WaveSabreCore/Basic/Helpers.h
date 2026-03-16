@@ -57,11 +57,13 @@ namespace WaveSabreCore
     static constexpr float CurrentSampleRateF = CurrentSampleRateI;
     static constexpr double CurrentSampleRate = CurrentSampleRateI;
     static constexpr float CurrentSampleRateRecipF = 1.0f / CurrentSampleRateF;
+	static constexpr float NyquistHz = CurrentSampleRateF * 0.5f;
 #else
     static int CurrentSampleRateI;
     static double CurrentSampleRate;
     static float CurrentSampleRateF;
     static float CurrentSampleRateRecipF;
+	static float NyquistHz;
 	static void SetSampleRate(int sampleRate);
 #endif  // MIN_SIZE_REL
 
