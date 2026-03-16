@@ -42,9 +42,9 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-  // when a voice is "stolen", transition from the previous note's amplitude output
-  // to the new playing note over this many samples.
-  //static constexpr size_t kStolenVoiceTransitionSamples = 1000;
+// when a voice is "stolen", transition from the previous note's amplitude output
+// to the new playing note over this many samples.
+//static constexpr size_t kStolenVoiceTransitionSamples = 1000;
 
 // even if this doesn't strictly need to have #ifdef, better to make it clear to callers that this depends on built config.
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -719,12 +719,15 @@ struct Maj7 : public Maj7SynthDevice
     bool mSourceEnabledCache[gSourceCount]{};  // mirrors device enabled state
     bool mLFOUsedCache[gModLFOCount]{};        // true if any enabled modulation references this LFO
 
-    
+
     virtual void Kill(VoiceNoteOnFlags flags) override
     {
-      for (auto& p : mpEnvelopes)
+      if (!HasFlag(flags, VoiceNoteOnFlags::VoiceSteal))
       {
-        p->KillEnvelope(flags);
+        for (auto& p : mpEnvelopes)
+        {
+          p->KillEnvelope();
+        }
       }
 
       mModMatrix.ResetState();
@@ -779,7 +782,7 @@ struct Maj7 : public Maj7SynthDevice
         mSourceEnabledCache[i] = enabled;
         if (!enabled)
         {
-          srcVoice->mpAmpEnv->KillEnvelope(VoiceNoteOnFlags::None);
+          srcVoice->mpAmpEnv->KillEnvelope();
           continue;
         }
       }
@@ -1124,7 +1127,7 @@ struct Maj7 : public Maj7SynthDevice
       // only process mod envs.
       for (int i = gSourceCount; i < (gSourceCount + gModEnvCount); ++i)
       {
-        mpEnvelopes[i]->noteOn(legato);
+        mpEnvelopes[i]->EnvelopeNoteOn(flags);
       }
 
       for (auto& p : mpLFOs)
@@ -1137,7 +1140,7 @@ struct Maj7 : public Maj7SynthDevice
         if (!srcVoice->mpSrcDevice->MatchesKeyRange(mNoteInfo.MidiNoteValue))
           continue;
         srcVoice->NoteOn(legato);
-        srcVoice->mpAmpEnv->noteOn(legato);
+        srcVoice->mpAmpEnv->EnvelopeNoteOn(flags);
       }
       mPortamento.NoteOn((float)mNoteInfo.MidiNoteValue, !legato);
     }
@@ -1151,7 +1154,7 @@ struct Maj7 : public Maj7SynthDevice
 
       for (auto& p : mpEnvelopes)
       {
-        p->noteOff();
+        p->EnvelopeNoteOff();
       }
     }
 
@@ -1165,7 +1168,7 @@ struct Maj7 : public Maj7SynthDevice
       }
       return false;
     }
-  }; // Maj7Voice
+  };  // Maj7Voice
 
   struct Maj7Voice* mMaj7Voice[gMaxMaxVoices];  // = { 0 };
 };
