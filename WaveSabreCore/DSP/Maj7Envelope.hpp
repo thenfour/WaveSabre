@@ -3,6 +3,7 @@
 #include "../GigaSynth/Maj7ModMatrix.hpp"
 #include "../GigaSynth/GigaParams.hpp"
 #include "../Params/Maj7ParamAccessor.hpp"
+#include "../Devices/VoiceAllocator.hpp"
 
 namespace WaveSabreCore
 {
@@ -42,13 +43,7 @@ struct EnvelopeNode
 
   void noteOff();
 
-  float kill(bool startFromCurrentLevel);
-
-  // // used by debug displays
-  // EnvelopeStage GetStage() const
-  // {
-  //   return this->mStage;
-  // }
+  void KillEnvelope(VoiceNoteOnFlags flags);
 
   bool IsPlaying() const
   {

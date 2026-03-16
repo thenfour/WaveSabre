@@ -116,10 +116,13 @@ void EnvelopeNode::noteOff()
 }
 
 // call to forcibly kill the env and jump to silence
-float EnvelopeNode::kill(bool startFromCurrentLevel)
+void EnvelopeNode::KillEnvelope(VoiceNoteOnFlags flags)
 {
+  if (HasFlag(flags, VoiceNoteOnFlags::VoiceSteal))
+  {
+    //  todo...
+  }
   AdvanceToStage(EnvelopeStage::Idle);
-  return 0;
 }
 
 void EnvelopeNode::BeginBlock()
@@ -204,7 +207,7 @@ void EnvelopeNode::ProcessSampleFull()
     {
       if (mMode == EnvelopeMode::OneShot)
       {
-        kill(false);
+        KillEnvelope(VoiceNoteOnFlags::None);
         return;
       }
       float ret = mParams.Get01Value(EnvParamIndexOffsets::SustainLevel,
@@ -217,7 +220,7 @@ void EnvelopeNode::ProcessSampleFull()
     {
       if (mMode == EnvelopeMode::OneShot)
       {
-        kill(false);
+        KillEnvelope(VoiceNoteOnFlags::None);
         return;
       }
       // 0-1 => mReleaseFromValue01 - 0

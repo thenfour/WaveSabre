@@ -724,7 +724,7 @@ struct Maj7 : public Maj7SynthDevice
     {
       for (auto& p : mpEnvelopes)
       {
-        p->kill(HasFlag(flags, VoiceNoteOnFlags::VoiceSteal));
+        p->KillEnvelope(flags);
       }
 
       mModMatrix.ResetState();
@@ -779,7 +779,7 @@ struct Maj7 : public Maj7SynthDevice
         mSourceEnabledCache[i] = enabled;
         if (!enabled)
         {
-          srcVoice->mpAmpEnv->kill(false);
+          srcVoice->mpAmpEnv->KillEnvelope(VoiceNoteOnFlags::None);
           continue;
         }
       }
