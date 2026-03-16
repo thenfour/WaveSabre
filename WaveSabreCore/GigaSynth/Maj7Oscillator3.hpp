@@ -276,6 +276,7 @@ public:
 
   void ClearState()
   {
+    // explicitly do NOT reset phase, because for stolen voices, 
     mPreviousSample = 0.0f;
     //mCurrentFrequencyHz = 0.0f;
     //mFMFeedbackAmt = 0.0f;

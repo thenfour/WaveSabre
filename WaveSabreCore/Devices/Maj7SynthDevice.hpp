@@ -43,7 +43,7 @@ public:
     AllNotesOff();  // helps make things predictable, reduce cases
     for (int i = 0; i < M7::gMaxMaxVoices; i++)
     {
-      mVoices[i]->Kill();
+      mVoices[i]->Kill(VoiceNoteOnFlags::Panic);
     }
     mMaxVoices = x;
   }
@@ -70,7 +70,7 @@ public:
   };
 
   // always returns a voice. prefer stealing notes that are no longer physically held.
-  Voice* FindFreeVoice()
+  M7::Pair<Voice*, VoiceNoteOnFlags> AllocateVoice()
   {
     Voice* oldestReleasedVoice = nullptr;
     Voice* oldestHeldVoice = nullptr;
@@ -78,7 +78,7 @@ public:
     {
       auto* v = mVoices[iv];
       if (!v->IsPlaying())
-        return v;
+        return { v, VoiceNoteOnFlags::None };
 
       Voice*& bestCandidate = v->mNoteInfo.mIsPhysicallyHeld ? oldestHeldVoice : oldestReleasedVoice;
       if (!bestCandidate || (v->mNoteInfo.mSequence < bestCandidate->mNoteInfo.mSequence))
@@ -86,7 +86,8 @@ public:
         bestCandidate = v;
       }
     }
-    return oldestReleasedVoice ? oldestReleasedVoice : oldestHeldVoice;
+    Voice* ret = oldestReleasedVoice ? oldestReleasedVoice : oldestHeldVoice;
+    return { ret, VoiceNoteOnFlags::VoiceSteal };
   }
 
 

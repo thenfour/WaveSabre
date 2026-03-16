@@ -17,23 +17,32 @@ struct NoteInfo
   bool mIsMusicallyHeld;   // = false;
 };
 
+enum class VoiceNoteOnFlags
+{
+  None = 0,
+  Legato = 1 << 0,
+  VoiceSteal = 1 << 1,  // signal to the voice to handle transition properly. #155
+  Panic = 1 << 2,
+};
+
 struct Voice
 {
   // child classes must implement
   //virtual void ProcessAndMix(double songPosition, float* const* const outputs, int numSamples, const float* oscDetuneSemis, const float* unisonoDetuneSemis) = 0;
-  virtual void NoteOn() = 0;  // unisonoVoice is only valid for legato=false.
+  virtual void NoteOn(VoiceNoteOnFlags flags) = 0;  // unisonoVoice is only valid for legato=false.
   virtual void NoteOff() = 0;
-  virtual void
-  Kill() = 0;  // forcibly (non-musically) kill the note, bypass envelopes. used for AllNotesOff or change of voice mode etc.
+  // forcibly (non-musically) kill the note, bypass envelopes. used for AllNotesOff or change of voice mode etc.
+  // 
+  virtual void Kill(VoiceNoteOnFlags flags) = 0;  
   virtual bool IsPlaying() = 0;  // subclass return true/false based on envelope / voice activity
 
   // called from Maj7SynthDevice
-  void BaseNoteOn(const NoteInfo& ni, int unisonoVoice, bool legato);
+  void BaseNoteOn(const NoteInfo& ni, int unisonoVoice, VoiceNoteOnFlags flags);
   void BaseNoteOff();
 
   NoteInfo mNoteInfo;
   int mUnisonVoice = 0;
-  bool mLegato;
+  //bool mLegato;
 };
 
 // struct VoiceAllocator

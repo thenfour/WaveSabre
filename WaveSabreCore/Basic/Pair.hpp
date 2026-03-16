@@ -99,6 +99,23 @@ struct TFloatPair
     return *this;
   }
 
+  void Set(const T& x0, const T& x1)
+  {
+    x[0] = x0;
+    x[1] = x1;
+  }
+
+  void Set(const T& x)
+  {
+    x[0] = x;
+    x[1] = x;
+  }
+
+  void Zero()
+  {
+    memset(x, 0, sizeof(x));
+  }
+
   [[nodiscard]]
   TFloatPair<T> yx() const
   {
@@ -138,8 +155,7 @@ struct TFloatPair
 
   void Clear()
   {
-    x[0] = 0;
-    x[1] = 0;
+    Zero();
   }
   // hm this is a weird function actually... not sure it should be expressed this way.
   static TFloatPair<T> Mix(const TFloatPair<T>& a, const TFloatPair<T>& b, T aLin, T bLin);

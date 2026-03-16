@@ -1,14 +1,15 @@
 
 #include "VoiceAllocator.hpp"
+#include "../Basic/Enum.hpp"
 
 namespace WaveSabreCore
 {
-	void Voice::BaseNoteOn(const NoteInfo& ni, int unisonoVoice, bool legato)
+	void Voice::BaseNoteOn(const NoteInfo& ni, int unisonoVoice, VoiceNoteOnFlags flags)
 	{
 		mNoteInfo = ni;
-		mLegato = legato;
+		//mLegato = M7::HasFlag(flags, VoiceNoteOnFlags::Legato);
 		mUnisonVoice = unisonoVoice;
-		this->NoteOn();
+		this->NoteOn(flags);
 	}
 
 	void Voice::BaseNoteOff() 

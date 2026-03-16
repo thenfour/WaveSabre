@@ -116,7 +116,7 @@ void EnvelopeNode::noteOff()
 }
 
 // call to forcibly kill the env and jump to silence
-float EnvelopeNode::kill()
+float EnvelopeNode::kill(bool startFromCurrentLevel)
 {
   AdvanceToStage(EnvelopeStage::Idle);
   return 0;
@@ -204,7 +204,7 @@ void EnvelopeNode::ProcessSampleFull()
     {
       if (mMode == EnvelopeMode::OneShot)
       {
-        kill();
+        kill(false);
         return;
       }
       float ret = mParams.Get01Value(EnvParamIndexOffsets::SustainLevel,
@@ -217,7 +217,7 @@ void EnvelopeNode::ProcessSampleFull()
     {
       if (mMode == EnvelopeMode::OneShot)
       {
-        kill();
+        kill(false);
         return;
       }
       // 0-1 => mReleaseFromValue01 - 0

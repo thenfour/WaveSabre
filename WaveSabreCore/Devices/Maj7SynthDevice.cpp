@@ -9,6 +9,7 @@
 // 4. there, we distribute to voices based off voicing mode & unisono.
 
 #include "Maj7SynthDevice.hpp"
+#include "../Basic/Enum.hpp"
 
 namespace WaveSabreCore
 {
@@ -49,7 +50,7 @@ void Maj7SynthDevice::ProcessMusicalNoteOn(Event* __e, NoteInfo& myNote)
           auto* pv = mVoices[iv];
           if (pv->mNoteInfo.MidiNoteValue != myNote.MidiNoteValue)
             continue;
-          pv->BaseNoteOn(myNote, pv->mUnisonVoice, false);
+          pv->BaseNoteOn(myNote, pv->mUnisonVoice, VoiceNoteOnFlags::None);
         }
       }
       else
@@ -57,8 +58,8 @@ void Maj7SynthDevice::ProcessMusicalNoteOn(Event* __e, NoteInfo& myNote)
         myNote.mIsMusicallyHeld = true;
         for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
         {
-          auto v = FindFreeVoice();
-          v->BaseNoteOn(myNote, iuv, false);
+          auto v = AllocateVoice();
+          v.first->BaseNoteOn(myNote, iuv, v.second);
         }
       }
       break;
@@ -75,7 +76,7 @@ void Maj7SynthDevice::ProcessMusicalNoteOn(Event* __e, NoteInfo& myNote)
 
       for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
       {
-        mVoices[iuv]->BaseNoteOn(myNote, iuv, !!existingNote);
+        mVoices[iuv]->BaseNoteOn(myNote, iuv, M7::ConditionalFlag(existingNote, VoiceNoteOnFlags::Legato));
       }
 
       break;
@@ -129,7 +130,7 @@ void Maj7SynthDevice::ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo
       {
         if (pTrillNote)
         {
-          mVoices[iuv]->BaseNoteOn(*pTrillNote, iuv, true);
+          mVoices[iuv]->BaseNoteOn(*pTrillNote, iuv, M7::ConditionalFlag(pTrillNote, VoiceNoteOnFlags::Legato));
         }
         else
         {
@@ -302,7 +303,7 @@ void Maj7SynthDevice::AllNotesOff()
   {
     if (!mVoices[i])
       continue;  // necessary because on ctor this gets called before voices are cerated. because this function is an initialization of state as well as all notes off.
-    mVoices[i]->Kill();
+    mVoices[i]->Kill(VoiceNoteOnFlags::Panic);
   }
   // clear events
   mIsPedalDown = false;  // not strictly necessary but makes sense in the spirit of "resetting".
@@ -353,7 +354,7 @@ void Maj7SynthDevice::SetVoiceMode(VoiceMode voiceMode)
   AllNotesOff();
   for (int i = 0; i < M7::gMaxMaxVoices; i++)
   {
-    mVoices[i]->Kill();
+    mVoices[i]->Kill(VoiceNoteOnFlags::Panic);
   }
   this->mVoiceMode = voiceMode;
 }

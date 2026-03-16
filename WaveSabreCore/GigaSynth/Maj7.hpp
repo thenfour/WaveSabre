@@ -42,6 +42,10 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+  // when a voice is "stolen", transition from the previous note's amplitude output
+  // to the new playing note over this many samples.
+  //static constexpr size_t kStolenVoiceTransitionSamples = 1000;
+
 // even if this doesn't strictly need to have #ifdef, better to make it clear to callers that this depends on built config.
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 enum class OutputStream
@@ -679,6 +683,9 @@ struct Maj7 : public Maj7SynthDevice
     real_t mTrigger01 = 0;
     float mMidiNote = 0;
 
+    // float mStolenDeltaPerSample = 0;
+    // int mStolenSlideSamplesLeft = 0;
+    // FloatPair mLastOutput;
     PortamentoCalc mPortamento;
 
     struct LFOVoice
@@ -712,11 +719,12 @@ struct Maj7 : public Maj7SynthDevice
     bool mSourceEnabledCache[gSourceCount]{};  // mirrors device enabled state
     bool mLFOUsedCache[gModLFOCount]{};        // true if any enabled modulation references this LFO
 
-    void ClearState()
+    
+    virtual void Kill(VoiceNoteOnFlags flags) override
     {
       for (auto& p : mpEnvelopes)
       {
-        p->kill();
+        p->kill(HasFlag(flags, VoiceNoteOnFlags::VoiceSteal));
       }
 
       mModMatrix.ResetState();
@@ -745,13 +753,21 @@ struct Maj7 : public Maj7SynthDevice
         }
       }
 
-      mVelocity01 = 0;
-      mTriggerRandom01 = 0;
-      mTrigger01 = 0;
+      //mVelocity01 = 0;
+      //mTriggerRandom01 = 0;
+      //mTrigger01 = 0;
       mMidiNote = 0;
       mOutputGainsInitialized = false;
       mMasterPanInitialized = false;
       mLFOInitialized = false;
+      // if (HasFlag(flags, VoiceNoteOnFlags::VoiceSteal))
+      // {
+      //   // set up transition from last playing amplitude to avoid clicks / audible discontinuities.
+      // }
+      // else {
+      //   //
+      // }
+      // mLastOutput.Zero();
     }
 
     void BeginBlock(bool forceProcessing)
@@ -763,7 +779,7 @@ struct Maj7 : public Maj7SynthDevice
         mSourceEnabledCache[i] = enabled;
         if (!enabled)
         {
-          srcVoice->mpAmpEnv->kill();
+          srcVoice->mpAmpEnv->kill(false);
           continue;
         }
       }
@@ -1076,6 +1092,7 @@ struct Maj7 : public Maj7SynthDevice
       // apply panning & filter, and mix with s[] as requested
       mixedSources = mMasterPanFactorsCached.mul(mixedSources);
 
+      //mLastOutput.Zero();
       for (size_t ich = 0; ich < 2; ++ich)
       {
         for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter)
@@ -1085,14 +1102,18 @@ struct Maj7 : public Maj7SynthDevice
         s[ich] += mixedSources.x[ich];
       }
 
+      //s[0] += mLastOutput.x[0];
+      //s[1] += mLastOutput.x[1];
+
       mPortamento.Advance(1, mModMatrix.GetDestinationValue(ModDestination::PortamentoTime));
     }
 
-    virtual void NoteOn() override
+    virtual void NoteOn(VoiceNoteOnFlags flags) override
     {
-      if (!mLegato)
+      const auto legato = HasFlag(flags, VoiceNoteOnFlags::Legato);
+      if (!legato)
       {
-        ClearState();
+        Kill(flags);
       }
 
       mVelocity01 = mNoteInfo.Velocity / 127.0f;
@@ -1103,22 +1124,22 @@ struct Maj7 : public Maj7SynthDevice
       // only process mod envs.
       for (int i = gSourceCount; i < (gSourceCount + gModEnvCount); ++i)
       {
-        mpEnvelopes[i]->noteOn(mLegato);
+        mpEnvelopes[i]->noteOn(legato);
       }
 
       for (auto& p : mpLFOs)
       {
-        p->mNode.NoteOn(mLegato);
+        p->mNode.NoteOn(legato);
       }
 
       for (auto& srcVoice : mSourceVoices)
       {
         if (!srcVoice->mpSrcDevice->MatchesKeyRange(mNoteInfo.MidiNoteValue))
           continue;
-        srcVoice->NoteOn(mLegato);
-        srcVoice->mpAmpEnv->noteOn(mLegato);
+        srcVoice->NoteOn(legato);
+        srcVoice->mpAmpEnv->noteOn(legato);
       }
-      mPortamento.NoteOn((float)mNoteInfo.MidiNoteValue, !mLegato);
+      mPortamento.NoteOn((float)mNoteInfo.MidiNoteValue, !legato);
     }
 
     virtual void NoteOff() override
@@ -1134,11 +1155,6 @@ struct Maj7 : public Maj7SynthDevice
       }
     }
 
-    virtual void Kill() override
-    {
-      ClearState();
-    }
-
     virtual bool IsPlaying() override
     {
       for (auto& srcVoice : mSourceVoices)
@@ -1149,7 +1165,7 @@ struct Maj7 : public Maj7SynthDevice
       }
       return false;
     }
-  };
+  }; // Maj7Voice
 
   struct Maj7Voice* mMaj7Voice[gMaxMaxVoices];  // = { 0 };
 };

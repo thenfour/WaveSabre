@@ -42,7 +42,7 @@ struct EnvelopeNode
 
   void noteOff();
 
-  float kill();
+  float kill(bool startFromCurrentLevel);
 
   // // used by debug displays
   // EnvelopeStage GetStage() const
