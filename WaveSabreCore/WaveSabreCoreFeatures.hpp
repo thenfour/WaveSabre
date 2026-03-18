@@ -26,7 +26,10 @@
 #undef ENABLE_36db_oct_CROSSOVER
 #define FIXED_SLOPE_CROSSOVER_ONLY  // if you enable this, only the 24db/oct crossover will be available. simpler LR filter implementation, smaller binary size.
 
-#define ENABLE_PITCHBEND
+// Pitchbend is basically not a good idea for size-optimized music. A huge number of discrete values is surprisingly bloaty.
+// much better to use a param automation lane.
+// also note: if you enable this, it still needs work before it will function.
+#undef ENABLE_PITCHBEND
 
 #undef ENABLE_TRIANGLE_FOLD_WAVEFORM  // quite a huge amount of binary due to complex shape building.
 #undef ENABLE_PULSE4_WAVEFORM
