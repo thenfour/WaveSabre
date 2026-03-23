@@ -307,15 +307,14 @@ namespace WaveSabreConvert
                 }
                 if (device == null)
                 {
-                    logger.WriteLine($"ERROR: Track {reaperTrack.TrackName}; Unsupported plugin skipped: {f.Vst.VstFile}");
+                    logger.WriteLine($"WARNING: Track {reaperTrack.TrackName}; Unsupported plugin skipped: {f.Vst.VstFile}");
+                }
+                else if (f.IsBypassed)
+                {
+                    logger.WriteLine($"WARNING: Track {reaperTrack.TrackName}; Device skipped (bypass enabled): {f.Vst.VstName}");
                 }
                 else
                 {
-                    if (f.IsBypassed)
-                    {
-                        logger.WriteLine($"ERROR: Track {reaperTrack.TrackName}; Bypassed devices cause problems: {f.Vst.VstName}");
-                    }
-
                     track.Devices.Add(device);
                     var deviceIndex = track.Devices.IndexOf(device);
                     foreach (var a in f.Automations)
@@ -497,15 +496,14 @@ namespace WaveSabreConvert
                 }
                 if (device == null)
                 {
-                    logger.WriteLine("ERROR: Device skipped (unsupported plugin): " + f.Vst.VstFile);
+                    logger.WriteLine("WARNING: Device skipped (unsupported plugin): " + f.Vst.VstFile);
+                }
+                else if (f.IsBypassed)
+                {
+                    logger.WriteLine("WARNING: Device skipped (bypass enabled): " + f.ParentElement.ElementName);
                 }
                 else
                 {
-                    if (f.IsBypassed)
-                    {
-                        logger.WriteLine("ERROR: Bypassed devices cause problems: " + f.ParentElement.ElementName);
-                    }
-
                     master.Devices.Add(device);
                     var deviceIndex = master.Devices.IndexOf(device);
                     foreach (var a in f.Automations)

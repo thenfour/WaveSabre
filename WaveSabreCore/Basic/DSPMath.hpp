@@ -329,7 +329,9 @@ inline int16_t FloatN11ToDefault16(float f)
 
 inline float ClampFrequencyHz(float hz)
 {
-  return math::ClampI(hz, 20.0f, Helpers::NyquistHz);
+  // NOTE: you can't just use Nyquist here; this must be below nyquist
+  // to avoid instability.
+  return math::ClampI(hz, 20.0f, 20000.0f);
 }
 
 }  // namespace math

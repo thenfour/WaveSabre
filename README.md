@@ -39,7 +39,16 @@ It's quite robust and usable, however because it's a 1-man show, there's no anno
 
 ## Size optimization
 
-* SizeBench is best.
+* SizeBench is best for profiling. build min-size-rel-with-debug-info
+* see `WaveSabreCoreFeatures.hpp` to disable features in the code. it's not always clear from the VST editors which things are disabled.
+* use directives in track names to elide data (like `#fixedvelocity`, `#oneshot`, `#fixednote`) -- (oneshot is possibly not currently supported)
+
+## Directives in track names
+
+* `#fixedvelocity` indicates that the track's midi data doesn't require including velocity info. useful for sfx, arps...
+  often it's optimal to not use velocity (that gets serialized with every note), and instead use a parameter automation lane for things like sfx.
+* `#oneshot` indicates that the track not need to serialize note off information. it's commented out for some reason.
+* `#fixednote` things like snare drums, kick drums, may not need note value info.
 
 ### notes:
 
