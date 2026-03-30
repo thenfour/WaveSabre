@@ -11,10 +11,6 @@
 
 namespace WaveSabreCore
 {
-///////////////////////////////////////////////////////////////////////////
-// MonoFFTAnalysis Implementation - Core single-channel algorithm
-///////////////////////////////////////////////////////////////////////////
-
 MonoFFTAnalysis::MonoFFTAnalysis(FFTSize fftSize, WindowType windowType, float sampleRate)
     : mFFTSize(fftSize)
     , mWindowType(windowType)
@@ -55,11 +51,6 @@ void MonoFFTAnalysis::SetOverlapFactor(int factor)
   mOverlapFactor = std::max(1, std::min(16, factor));  // Allow 1x overlap for completeness
   mSamplesUntilProcess = mFFTSizeInt / mOverlapFactor;
 }
-
-//void MonoFFTAnalysis::SetDisplayBoost(float boostDB)
-//{
-//    mDisplayBoostDB = boostDB;
-//}
 
 
 void MonoFFTAnalysis::SetWindowType(WindowType windowType)
@@ -240,9 +231,6 @@ void MonoFFTAnalysis::Reset()
   mHasNewData = false;
 }
 
-///////////////////////////////////////////////////////////////////////////
-// SmoothedStereoFFT Implementation - uses FrequencyDependentPeakDetector
-///////////////////////////////////////////////////////////////////////////
 
 SmoothedStereoFFT::SmoothedStereoFFT()
     : mFFTAnalysis()
@@ -270,7 +258,7 @@ void SmoothedStereoFFT::SetPeakHoldTime(float holdTimeMs)
   {
     const auto& active = mBuffers[mActiveBuffer.load(std::memory_order_acquire)];
     float frequency = (i < active.size()) ? active[i].frequency : 0.0f;
-    mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+    mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
   }
 }
 
@@ -283,7 +271,7 @@ void SmoothedStereoFFT::SetFalloffRate(float falloffTimeMs)
   {
     const auto& active = mBuffers[mActiveBuffer.load(std::memory_order_acquire)];
     float frequency = (i < active.size()) ? active[i].frequency : 0.0f;
-    mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+    mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
   }
 }
 
@@ -311,7 +299,7 @@ void SmoothedStereoFFT::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpect
     for (size_t i = 0; i < mPeakDetectors.size(); ++i)
     {
       float frequency = (i < rawSpectrum.size()) ? rawSpectrum[i].frequency : 0.0f;
-      mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+      mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
     }
     // resize buffers
     mBuffers[0].resize(rawSpectrum.size());
@@ -395,10 +383,6 @@ void SmoothedStereoFFT::Reset()
   mInputDecimationCounter = 0;
   mHasNewOutput.store(false, std::memory_order_release);
 }
-
-///////////////////////////////////////////////////////////////////////////
-// FFTAnalysis Implementation - Stereo wrapper
-///////////////////////////////////////////////////////////////////////////
 
 FFTAnalysis::FFTAnalysis(FFTSize fftSize, WindowType windowType, float sampleRate)
     : mAnalyzers{MonoFFTAnalysis(fftSize, windowType, sampleRate), MonoFFTAnalysis(fftSize, windowType, sampleRate)}

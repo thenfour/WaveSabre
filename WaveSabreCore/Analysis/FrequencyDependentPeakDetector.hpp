@@ -10,7 +10,7 @@ namespace WaveSabreCore
 
 // frequency-dependent peak detector for spectrum display
 // Uses different falloff rates per frequency band
-struct FrequencyDependentPeakDetector
+struct FrequencyDependentPeakDetector : IPeakDetector
 {
   int mClipHoldSamples;
   int mPeakHoldSamples;

@@ -1,6 +1,5 @@
 #pragma once
 
-//#include "Device.h"
 #include "../Basic/Helpers.h"
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -9,36 +8,35 @@
 #include <complex>
 #include <cmath>
 #include "RMS.hpp"  // Include for PeakDetector
+#include "PeakDetector.hpp"
 
 namespace WaveSabreCore
 {
     struct SpectrumBin
     {
         float frequency;    // Hz
-        float magnitudeDB;  // dB
-        //float phase;        // radians (if needed)
+        float magnitudeDB;
     };
-    // Common interface for frequency analysis data providers
+
     class IFrequencyAnalysis
     {
     public:
         
         virtual ~IFrequencyAnalysis() = default;
         
-        // Get spectrum data for rendering
         virtual const std::vector<SpectrumBin>& GetSpectrum() const = 0;
         
-        // Get magnitude at specific frequency (interpolated if necessary)
+        //interpolates if necessary
         virtual float GetMagnitudeAtFrequency(float frequency) const = 0;
         
-        // Get the frequency resolution (Hz per bin)
+        // Hz per bin
         virtual float GetFrequencyResolution() const = 0;
         
         // Get the maximum frequency represented
         virtual float GetNyquistFrequency() const = 0;
     };
 
-    // Single-channel FFT analyzer - the core algorithm
+    // Single-channel FFT analyzer
     class MonoFFTAnalysis
     {
     public:
@@ -99,11 +97,9 @@ namespace WaveSabreCore
         
         ~MonoFFTAnalysis();
         
-        // Configuration
         void SetSampleRate(float sampleRate);
         void SetSmoothingFactor(float smoothing); // 0.0 = no smoothing, 0.9 = heavy smoothing
         void SetOverlapFactor(int factor); // 1, 2, 4, 8, or 16
-        //void SetDisplayBoost(float boostDB); // artificial boost for display purposes (default +18dB)
         void SetWindowType(WindowType windowType); // Change window function at runtime
         
 		WindowType GetWindowType() const { return mWindowType; }
@@ -126,34 +122,17 @@ namespace WaveSabreCore
 		float GetSampleRate() const { return mSampleRate; }
 		int GetOverlapFactor() const { return mOverlapFactor; }
 		float GetSmoothingFactor() const { return mSmoothingFactor; }
-		//float GetDisplayBoost() const { return mDisplayBoostDB; }
 
-        // Input processing (call once per sample)
         void ProcessSample(float sample);
-        
-        // Check if new spectrum data is available
         bool HasNewSpectrum() const { return mHasNewData; }
-        
-        // Mark spectrum as consumed
         void ConsumeSpectrum() { mHasNewData = false; }
-        
-        // Get spectrum data
         const std::vector<SpectrumBin>& GetSpectrum() const { return mSpectrum; }
-        
-        // Get magnitude at specific frequency (interpolated if necessary)
         float GetMagnitudeAtFrequency(float frequency) const;
-        
-        // Get the frequency resolution (Hz per bin)
         float GetFrequencyResolution() const { return mSampleRate / mFFTSizeInt; }
-        
-        // Get the maximum frequency represented
         float GetNyquistFrequency() const { return mSampleRate * 0.5f; }
         
         // Clear/reset state
         void Reset();
-
-    //private:
-        //float mDisplayBoostDB; // artificial boost for better visual display
     };
 
 	// Stereo FFT analyzer wrapper; wraps 2 mono fft analyzers and provides a single spectrum
@@ -209,7 +188,7 @@ namespace WaveSabreCore
     {
     private:
 		FFTAnalysis mFFTAnalysis; // Underlying FFT analysis
-        std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
+        std::vector<PeakDetector> mPeakDetectors;
         std::vector<SpectrumBin> mBuffers[2]; // double-buffered output
         std::atomic<int> mActiveBuffer{0};
         std::atomic<bool> mHasNewOutput{false};
@@ -275,7 +254,7 @@ namespace WaveSabreCore
     class SmoothedMonoFFT : public IFrequencyAnalysis
     {
     private:
-        MonoFFTAnalysis mFFTAnalysis; // Underlying FFT analysis (mono)
+        MonoFFTAnalysis mFFTAnalysis;
         std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
         std::vector<SpectrumBin> mBuffers[2];
         std::atomic<int> mActiveBuffer{0};
