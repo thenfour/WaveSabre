@@ -458,13 +458,6 @@ struct Maj7 : public Maj7SynthDevice
       mUnisonoDetuneAmts[i] *= mParamCache[(int)GigaSynthParamIndices::UnisonoDetune] /*+ mUnisonoDetuneMod*/;
     }
 
-    //for (size_t i = 0; i < gSourceCount; ++i) {
-    //	auto* src = mSources[i];
-    //	// for the moment mOscDetuneAmts[i] is just a generic spread value.
-    //	src->mAuxPanDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorSpread] /*+ mOscillatorStereoSpreadMod*/);
-    //	src->mDetuneDeviceModAmt = sourceModDistribution[i] * (mParamCache[(int)ParamIndices::OscillatorDetune]/* + mOscillatorDetuneMod*/);
-    //}
-
     for (size_t i = 0; i < gModLFOCount; ++i)
     {
       auto& lfo = mpLFOs[i];
@@ -477,8 +470,8 @@ struct Maj7 : public Maj7SynthDevice
       mMaj7Voice[iv]->BeginBlock(forceAllVoicesToProcess);
     }
 
-    // very inefficient to calculate all in the loops like that but it's for size-optimization
-    float masterGain = mParams.GetLinearVolume(GigaSynthParamIndices::MasterVolume, gMasterVolumeCfg, 0);
+    const float masterGain = mParams.GetLinearVolume(GigaSynthParamIndices::MasterVolume, gMasterVolumeCfg, 0);
+
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     bool isGuiVisible = IsGuiVisible();
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -699,12 +692,10 @@ struct Maj7 : public Maj7SynthDevice
 
     ISoundSourceDevice::Voice* mSourceVoices[gSourceCount];
 
-    // K-rate cache for per-source output gains (pan * volume)
+    // K-rate cache for per-source output gains (pan * volume) including global
     FloatPair mOutputGainsCached[gSourceCount];
     bool mOutputGainsInitialized = false;
-    // K-rate cache for master pan factors
-    FloatPair mMasterPanFactorsCached{1.0f, 1.0f};
-    bool mMasterPanInitialized = false;
+
     // K-rate cache for LFO samples
     float mLFOSampleCached[gModLFOCount]{};
     bool mLFOInitialized = false;
@@ -753,7 +744,6 @@ struct Maj7 : public Maj7SynthDevice
 
       mMidiNote = 0;
       mOutputGainsInitialized = false;
-      mMasterPanInitialized = false;
       mLFOInitialized = false;
     }
 
@@ -869,7 +859,6 @@ struct Maj7 : public Maj7SynthDevice
 
       // Ensure output/master pan gains get recomputed on the first sample of processing
       mOutputGainsInitialized = false;
-      mMasterPanInitialized = false;
       mLFOInitialized = false;
 
       // Recompute per-block usage caches (LFO usage)
@@ -916,25 +905,16 @@ struct Maj7 : public Maj7SynthDevice
           float compGainLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::CompensationGain, gVolumeCfg12db);
           volumeLin *= compGainLin;
 
+          float masterPanN11 = 2 * mpOwner->mParams.GetN11Value(GigaSynthParamIndices::Pan,
+                                                            mModMatrix.GetDestinationValue(ModDestination::Pan));
+
           float panMod = mModMatrix.GetDestinationValue(AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Pan));
-          float panN11 = dev->mParams.GetN11Value(SourceParamIndexOffsets::Pan, panMod + myUnisonoPan);
+          float panN11 = dev->mParams.GetN11Value(SourceParamIndexOffsets::Pan, panMod + myUnisonoPan + masterPanN11);
 
           auto panLin = M7::math::PanToFactor(panN11);
           mOutputGainsCached[i] = panLin.mul(volumeLin);
         }
         mOutputGainsInitialized = true;
-      }
-    }
-
-    // Recompute master pan factors at K-rate
-    inline void UpdateMasterPanIfNeeded(float myUnisonoPan)
-    {
-      if (!mMasterPanInitialized || IsKRateBoundary())
-      {
-        float masterPanN11 = mpOwner->mParams.GetN11Value(GigaSynthParamIndices::Pan,
-                                                          mModMatrix.GetDestinationValue(ModDestination::Pan));
-        mMasterPanFactorsCached = M7::math::PanToFactor(masterPanN11 + myUnisonoPan);
-        mMasterPanInitialized = true;
       }
     }
 
@@ -1014,10 +994,7 @@ struct Maj7 : public Maj7SynthDevice
       float myUnisonoDetune = mpOwner->mUnisonoDetuneAmts[this->mUnisonVoice];
       float myUnisonoPan = mpOwner->mUnisonoPanAmts[this->mUnisonVoice];
 
-      // Update cached per-source output gains K-rate
       UpdateOutputGainsIfNeeded(myUnisonoPan);
-      // Update cached master pan factors K-rate
-      UpdateMasterPanIfNeeded(myUnisonoPan);
 
       float sourceValues[gOscillatorCount];  // required for FM to hold all source values
       //float detuneMul[gSourceCount];         // = { 0 };
@@ -1076,16 +1053,13 @@ struct Maj7 : public Maj7SynthDevice
         mixedSources.Accumulate(mOutputGainsCached[i].mul(s));
       }
 
-      // apply panning & filter, and mix with s[] as requested
-      mixedSources = mMasterPanFactorsCached.mul(mixedSources);
-
       for (size_t ich = 0; ich < 2; ++ich)
       {
         for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter)
         {
           mixedSources.x[ich] = mpFilters[ifilter][ich]->AuxProcessSample(mixedSources.x[ich]);
         }
-        s[ich] += mixedSources.x[ich];
+        s[ich] += mixedSources[ich];
       }
 
       mPortamento.Advance(1, mModMatrix.GetDestinationValue(ModDestination::PortamentoTime));
