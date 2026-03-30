@@ -46,7 +46,8 @@ namespace WaveSabreCore
             FFT512 = 512,
             FFT1024 = 1024,
             FFT2048 = 2048,
-            FFT4096 = 4096
+            FFT4096 = 4096,
+            Default = FFT4096,
         };
 
         // Window function types for better frequency resolution
@@ -91,7 +92,7 @@ namespace WaveSabreCore
         void ComputeSpectrum();
 
     public:
-        MonoFFTAnalysis(FFTSize fftSize = FFTSize::FFT2048, 
+        MonoFFTAnalysis(FFTSize fftSize = FFTSize::Default,
                        WindowType windowType = WindowType::Hanning,
                        float sampleRate = Helpers::CurrentSampleRate);
         
@@ -146,7 +147,7 @@ namespace WaveSabreCore
         using FFTSize = MonoFFTAnalysis::FFTSize;
         using WindowType = MonoFFTAnalysis::WindowType;
         
-        FFTAnalysis(FFTSize fftSize = FFTSize::FFT2048, 
+        FFTAnalysis(FFTSize fftSize = FFTSize::Default,
                    WindowType windowType = WindowType::Hanning,
                    float sampleRate = Helpers::CurrentSampleRate);
         

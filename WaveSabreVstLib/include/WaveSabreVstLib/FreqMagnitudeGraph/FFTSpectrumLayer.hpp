@@ -46,7 +46,9 @@ private:
   }
   
   float MapToY(float value, float minV, float maxV, const ImRect& bb) const {
-    const float t01 = (maxV - minV) != 0.0f ? M7::math::clamp01((value - minV) / (maxV - minV)) : 0.0f;
+    // will NOT clamp the output/input to the range.
+    //const float t01 = (maxV - minV) != 0.0f ? M7::math::clamp01((value - minV) / (maxV - minV)) : 0.0f;
+    const float t01 = M7::math::lerp_rev(minV, maxV, value);
     return M7::math::lerp(bb.Max.y, bb.Min.y, t01);
   }
 
@@ -132,6 +134,7 @@ public:
       
       const auto& fftCache = mFFTCache[overlayIndex];
       std::vector<ImVec2> pts; pts.reserve(TSegmentCount);
+      std::vector<ImVec2> fillPoly;
 
       // Determine transform for this overlay
       auto transform = overlay.valueTransform ? overlay.valueTransform : mValueTransform;
@@ -144,27 +147,60 @@ public:
       if (maxT < minT) std::swap(minT, maxT);
 
       for (int i = 0; i < TSegmentCount; ++i) {
-        const auto& cache = fftCache[i]; if (!cache.valid) continue;
+        const auto& cache = fftCache[i];
+        if (!cache.valid) continue;
         float v = transform ? transform(cache.magnitudeDB) : cache.magnitudeDB;
-        if (v < minT || v > maxT) continue;
+        //if (v < minT || v > maxT) continue; // creating gaps causes visual glitches. it's not time yet to cull oob.
         float y = MapToY(v, minT, maxT, bb);
         pts.push_back({ mScreenX[i], y });
       }
 
       if (pts.size() >= 2) {
-        // Render filled area under curve first (behind line)
+        dl->PushClipRect(bb.Min, bb.Max, true);
+
         if (overlay.enableFftFill) {
           const float baseline = bb.Max.y;
-          
+
+          fillPoly.reserve(pts.size() + 4);
+          fillPoly.push_back({pts.front().x, baseline});
+
+          const bool firstAboveBaseline = pts.front().y <= baseline;
+          if (firstAboveBaseline) {
+            fillPoly.push_back(pts.front());
+          }
+
           for (size_t i = 0; i + 1 < pts.size(); ++i) {
-            const ImVec2& p1 = pts[i]; const ImVec2& p2 = pts[i+1];
-            ImVec2 quad[4] = { {p1.x, baseline}, {p1.x, p1.y}, {p2.x, p2.y}, {p2.x, baseline} };
-            dl->AddConvexPolyFilled(quad, 4, overlay.fftFillColor);
+            const ImVec2& p0 = pts[i];
+            const ImVec2& p1 = pts[i + 1];
+            const bool p0AboveBaseline = p0.y <= baseline;
+            const bool p1AboveBaseline = p1.y <= baseline;
+
+            if (p0AboveBaseline && p1AboveBaseline) {
+              fillPoly.push_back(p1);
+              continue;
+            }
+
+            if (p0AboveBaseline != p1AboveBaseline) {
+              const float dy = p1.y - p0.y;
+              const float t = (dy != 0.0f) ? ((baseline - p0.y) / dy) : 0.0f;
+              const float xCross = M7::math::lerp(p0.x, p1.x, t);
+              fillPoly.push_back({xCross, baseline});
+
+              if (p1AboveBaseline) {
+                fillPoly.push_back(p1);
+              }
+            }
+          }
+
+          fillPoly.push_back({pts.back().x, baseline});
+
+          if (fillPoly.size() >= 3) {
+            dl->AddConcavePolyFilled(fillPoly.data(), (int)fillPoly.size(), overlay.fftFillColor);
           }
         }
-        
-        // Render spectrum line
+
         dl->AddPolyline(pts.data(), (int)pts.size(), overlay.fftColor, 0, 1.5f);
+        dl->PopClipRect();
       }
     }
     

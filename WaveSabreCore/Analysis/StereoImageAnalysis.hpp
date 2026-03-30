@@ -122,8 +122,8 @@ public:
       mMidAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
       mSideAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
 
-      mMidAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::FFT1024);
-      mSideAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::FFT1024);
+      mMidAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::Default);
+      mSideAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::Default);
 
       mMidAnalyzer->SetFFTSmoothing(0.3f);
       mSideAnalyzer->SetFFTSmoothing(0.3f);
@@ -479,7 +479,7 @@ struct StereoImagingAnalysisStream
   {
     return mFrequencyAnalyzer && mFrequencyAnalyzer->IsEnabled();
   }
-  inline void ConfigureFrequencyAnalysis(MonoFFTAnalysis::FFTSize fftSize = MonoFFTAnalysis::FFTSize::FFT1024,
+  inline void ConfigureFrequencyAnalysis(MonoFFTAnalysis::FFTSize fftSize = MonoFFTAnalysis::FFTSize::Default,
                                          MonoFFTAnalysis::WindowType windowType = MonoFFTAnalysis::WindowType::Hanning,
                                          float peakHoldTimeMs = 60.0f,
                                          float falloffTimeMs = 1200.0f)

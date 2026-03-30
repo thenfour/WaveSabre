@@ -84,7 +84,6 @@ constexpr real Real0 = real{0.0f};
 constexpr real Real1 = real{1.0f};
 constexpr real Real2 = real{2.0f};
 
-
 template <typename Tret, typename Tb>
 INLINE Tret AddEnum(Tret a, Tb b)
 {
