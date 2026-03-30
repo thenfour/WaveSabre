@@ -34,6 +34,14 @@ public:
     mBackgroundColor = color;
   }
 
+  void SetMaxDisplayFrequency(float maxFrequencyHz) {
+    mCoords.SetMaxDisplayFrequency(maxFrequencyHz);
+  }
+
+  void ClearDisplayFrequencyBounds() {
+    mCoords.ClearDisplayFrequencyBounds();
+  }
+
   void SetFixedYScaleHalfRange(float halfRangeDB) {
     mUseFixedYScale = true;
     mFixedYHalfRangeDB = halfRangeDB;
@@ -133,6 +141,9 @@ public:
     
     // Frequency grid (vertical lines)
     auto drawFreqTick = [&](float f, bool major) {
+      if (f < coords.mMinDisplayFrequencyHz || f > coords.mMaxDisplayFrequencyHz)
+        return;
+
       float x = std::round(coords.FreqToX(f, bb));
       if (x < bb.Min.x || x > bb.Max.x) return;
       

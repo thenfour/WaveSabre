@@ -41,13 +41,57 @@ struct FrequencyMagnitudeCoordinateSystem
   float mCurrentHalfRangeDB = 12.0f;
   int mShrinkCountdown = 0;  // hysteresis for shrinking range
 
+  // X frequency bounds.
+  float mMinFrequencyParam01 = 0.0f;
+  float mMaxFrequencyParam01 = 1.0f;
+  float mMinDisplayFrequencyHz = 0.0f;
+  float mMaxDisplayFrequencyHz = 0.0f;
+
+  FrequencyMagnitudeCoordinateSystem()
+  {
+    SetFrequencyParamRange(0.0f, 1.0f);
+  }
+
+  void SetFrequencyParamRange(float minParam01, float maxParam01)
+  {
+    mMinFrequencyParam01 = M7::math::clamp01(minParam01);
+    mMaxFrequencyParam01 = M7::math::clamp01(maxParam01);
+    if (mMaxFrequencyParam01 <= mMinFrequencyParam01)
+    {
+      mMaxFrequencyParam01 = std::min(1.0f, mMinFrequencyParam01 + 0.001f);
+    }
+
+    float minRaw = mMinFrequencyParam01;
+    M7::ParamAccessor minAccessor{&minRaw, 0};
+    mMinDisplayFrequencyHz = minAccessor.GetFrequency(0, M7::gFilterFreqConfig);
+
+    float maxRaw = mMaxFrequencyParam01;
+    M7::ParamAccessor maxAccessor{&maxRaw, 0};
+    mMaxDisplayFrequencyHz = maxAccessor.GetFrequency(0, M7::gFilterFreqConfig);
+  }
+
+  void SetMaxDisplayFrequency(float maxHz)
+  {
+    float raw = 0.0f;
+    M7::ParamAccessor accessor{&raw, 0};
+    accessor.SetFrequencyAssumingNoKeytracking(0, M7::gFilterFreqConfig, maxHz);
+    SetFrequencyParamRange(0.0f, raw);
+  }
+
+  void ClearDisplayFrequencyBounds()
+  {
+    SetFrequencyParamRange(0.0f, 1.0f);
+  }
+
   // Core coordinate mapping functions
   float FreqToX(float hz, const ImRect& bb) const
   {
-    float underlyingValue = 0;
-    M7::ParamAccessor p{&underlyingValue, 0};
+    float raw = 0.0f;
+    M7::ParamAccessor p{&raw, 0};
     p.SetFrequencyAssumingNoKeytracking(0, M7::gFilterFreqConfig, hz);
-    return M7::math::lerp(bb.Min.x, bb.Max.x, underlyingValue);
+    float t01 = M7::math::lerp_rev(mMinFrequencyParam01, mMaxFrequencyParam01, raw);
+    t01 = M7::math::clamp01(t01);
+    return M7::math::lerp(bb.Min.x, bb.Max.x, t01);
   }
 
   float DBToY(float dB, const ImRect& bb) const
@@ -64,9 +108,8 @@ struct FrequencyMagnitudeCoordinateSystem
     float t01 = M7::math::lerp_rev(bb.Min.x, bb.Max.x, x);
     t01 = M7::math::clamp01(t01);
 
-    // Use the same frequency mapping as FreqToX but in reverse
-    float underlyingValue = t01;
-    M7::ParamAccessor p{&underlyingValue, 0};
+    float raw = M7::math::lerp(mMinFrequencyParam01, mMaxFrequencyParam01, t01);
+    M7::ParamAccessor p{&raw, 0};
     return p.GetFrequency(0, M7::gFilterFreqConfig);
   }
 
@@ -185,7 +228,8 @@ struct ScreenSpaceFrequencySampler
     M7::QuickParam param{0, M7::gFilterFreqConfig};
     for (int i = 0; i < segmentCount; ++i)
     {
-      param.SetRawValue(float(i) / segmentCount);
+      const float t01 = (segmentCount > 1) ? (float(i) / float(segmentCount - 1)) : 0.0f;
+      param.SetRawValue(M7::math::lerp(coords.mMinFrequencyParam01, coords.mMaxFrequencyParam01, t01));
       frequencies[i] = param.GetFrequency();
       screenX[i] = coords.FreqToX(frequencies[i], bb);
     }

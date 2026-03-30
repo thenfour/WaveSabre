@@ -128,8 +128,28 @@ public:
 
     // Configure the graph background
     mGraph.SetBackgroundColor(cfg.backgroundColor);
-    
+
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    float fftStableMaxHz = 0.0f;
+    for (const auto& overlay : cfg.fftOverlays) {
+      if (!overlay.frequencyAnalysis) continue;
+
+      const float nyquist = overlay.frequencyAnalysis->GetNyquistFrequency();
+      const float binRes = overlay.frequencyAnalysis->GetFrequencyResolution();
+      if (nyquist <= 0.0f || binRes <= 0.0f) continue;
+
+      // Keep the visible FFT range a bit inside Nyquist so the graph only shows stable, trustworthy bins.
+      // 44.1khz -> 22050 nyquist * 0.9 = 19845 stable max (~20kHz)
+      const float stableMaxHz = std::max(20.0f, std::min(nyquist * 0.9f, nyquist - binRes));
+      fftStableMaxHz = (fftStableMaxHz > 0.0f) ? std::min(fftStableMaxHz, stableMaxHz) : stableMaxHz;
+    }
+
+    if (fftStableMaxHz > 0.0f) {
+      mGraph.SetMaxDisplayFrequency(fftStableMaxHz);
+    } else {
+      mGraph.ClearDisplayFrequencyBounds();
+    }
+    
     // Update filled FFT diff layer scaling to match FFT layer request (shares scale)
     if (mFFTDiffLayer) {
       mFFTDiffLayer->SetScaling(cfg.fftDisplayMinDB, cfg.fftDisplayMaxDB, cfg.useIndependentFFTScale);
