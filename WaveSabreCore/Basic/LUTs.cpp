@@ -8,7 +8,7 @@ namespace M7
 namespace math
 {
 
-#ifdef MIN_SIZE_REL
+#ifndef USE_INLINE_LUTS
 LUTs::LUTs()
     : gSinLUT{[](float x)
               {

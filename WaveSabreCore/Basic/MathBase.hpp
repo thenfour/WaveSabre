@@ -9,9 +9,9 @@
 #include "./Base.hpp"
 
 #ifdef WAVESABRE_CUSTOM_MSVCRT
-// MSVC wants to intrinsic many functions, bypassing our own MSVCRT shim and emitting linker errors.
-// this #pragma forces it to call our function.
-#pragma function(sin, cos, tan, exp, pow, log)
+  // MSVC wants to intrinsic many functions, bypassing our own MSVCRT shim and emitting linker errors.
+  // this #pragma forces it to call our function.
+  #pragma function(sin, cos, tan, exp, pow, log, tanh, floor)
 inline double MsvcrtSin(double x)
 {
   return ::sin(x);
@@ -20,9 +20,20 @@ inline double MsvcrtCos(double x)
 {
   return ::cos(x);
 }
-inline double MsvcrtFloor(double x)
+inline float MsvcrtFloorF(float x)
 {
-  return ::floor(x);
+  // a CRT call is expensive. manual implementation of this single function results in a ~8x performance boost to rendering.
+  // keep in mind it's called in many hot paths:
+  // - LUT lookups (indexing)
+  // - quantization, wrap01, trunc, fract, ...
+  //return ::floorf(x);
+  int xi = (int)x;
+  return float(x < xi ? xi - 1 : xi);
+}
+inline double MsvcrtFloorD(double x)
+{
+  int xi = (int)x;
+  return double(x < xi ? xi - 1 : xi);
 }
 inline double MsvcrtTan(double x)
 {
@@ -49,7 +60,11 @@ inline double MsvcrtCos(double x)
 {
   return std::cos(x);
 }
-inline double MsvcrtFloor(double x)
+inline float MsvcrtFloorF(float x)
+{
+  return std::floorf(x);
+}
+inline double MsvcrtFloorD(double x)
 {
   return std::floor(x);
 }
@@ -89,11 +104,11 @@ static constexpr float FloatEpsilon = 1e-6f;
 
 INLINE real_t floor(real_t x)
 {
-  return (real_t)MsvcrtFloor((double)x);
+  return (real_t)MsvcrtFloorF(x);
 }
 INLINE double floord(double x)
 {
-  return ::MsvcrtFloor(x);
+  return ::MsvcrtFloorD(x);
 }
 INLINE float rand01()
 {
@@ -157,9 +172,7 @@ INLINE static constexpr T ClampI(T x, T minInclusive, T maxInclusive)
 
 NOINLINE float lerp(float a, float b, float t);
 NOINLINE double lerpD(double a, double b, double t);
-NOINLINE float lerp_rev(float v_min,
-                      float v_max,
-                      float v_val);
+NOINLINE float lerp_rev(float v_min, float v_max, float v_val);
 NOINLINE float bilerp(float f00, float f10, float f01, float f11, float tx, float ty);
 
 INLINE float fract(float x)
@@ -218,10 +231,6 @@ INLINE double CrtTan(double x)
   return ::MsvcrtTan(x);
 }
 
-INLINE double CrtFloor(double x)
-{
-  return ::MsvcrtFloor(x);
-}
 
 INLINE double CrtLog(double x)
 {
@@ -266,23 +275,26 @@ INLINE float expf(float x)
   return (float)MsvcrtExp((double)x);
 }
 
-template<typename T>
+template <typename T>
 constexpr INLINE T round(float x)
 {
-    static_assert(std::is_integral_v<T>, "round<T> requires integral T");
-    return static_cast<T>(x >= 0.0f ? x + 0.5f : x - 0.5f);
+  static_assert(std::is_integral_v<T>, "round<T> requires integral T");
+  return static_cast<T>(x >= 0.0f ? x + 0.5f : x - 0.5f);
 }
 
-INLINE float fmodf(float x, float q) {
-    return (float)::fmod((double)x, (double)q);
+INLINE float fmodf(float x, float q)
+{
+  return (float)::fmod((double)x, (double)q);
 }
 
-INLINE double fmodd(double x, double q) {
-    return ::fmod(x, q);
+INLINE double fmodd(double x, double q)
+{
+  return ::fmod(x, q);
 }
 
-INLINE float copysignf(float x, float y) {
-    return (y >= 0) ? std::abs(x) : -std::abs(x);
+INLINE float copysignf(float x, float y)
+{
+  return (y >= 0) ? std::abs(x) : -std::abs(x);
 }
 
 }  // namespace math

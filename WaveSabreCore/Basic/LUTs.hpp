@@ -14,9 +14,16 @@ namespace math
 static constexpr size_t gLutSize1D = 4096;
 static constexpr size_t gLutSize2D = 512;
 
+#ifdef FORCE_USE_INLINE_LUTS
+#define USE_INLINE_LUTS
+#endif
 
-// LUTs are such hot paths we want to inline for non-size-optimized builds
-#ifdef MIN_SIZE_REL
+// LUTs are hot paths; inline as much as possible. But if perf is an issue, we want to inline for non-size-optimized builds
+#ifndef MIN_SIZE_REL
+#define USE_INLINE_LUTS
+#endif
+
+#ifndef USE_INLINE_LUTS
 
 // lookup table for 0-1 input values, linear interpolation upon lookup.
 // non-periodic.

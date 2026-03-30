@@ -42,6 +42,11 @@
 #define MAJ7WIDTH_FULL_FEATURE
 
 
+// USE_INLINE_LUTS is for perf-optimized.
+// By default size-optimized builds will NOT inline LUTs.
+//#define FORCE_USE_INLINE_LUTS
+
+
 // 8 = 96db/oct
 // 4 = 48db/oct
 // this doesn't  really affect binary size. keep @ 8
