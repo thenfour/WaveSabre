@@ -1203,7 +1203,7 @@ public:
         auto color = ImColor::HSV(0, 0, .3f);
         if (pv->IsPlaying())
         {
-          auto& ns = pMaj7->mNoteStates[pv->mNoteInfo.MidiNoteValue];
+          auto& ns = pMaj7->mMonoNoteStates[pv->mNoteInfo.MidiNoteValue];
           std::sprintf(txt, "%d u:%d", (int)i, pv->mUnisonVoice);
           //std::sprintf(txt, "%d u:%d %d %c%c #%d", (int)i, pv->mUnisonVoice, ns.MidiNoteValue, ns.mIsPhysicallyHeld ? 'P' : ' ', ns.mIsMusicallyHeld ? 'M' : ' ', ns.mSequence);
           color = ImColor::HSV(2 / 7.0f, .8f, .7f);

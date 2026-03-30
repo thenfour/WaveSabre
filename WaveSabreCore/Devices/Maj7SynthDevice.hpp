@@ -121,7 +121,7 @@ public:
     // 2. pedal down
     // 3. hold note B, release note B. pedal is currently down so you hear note B.
     // 4. release pedal. note A is still held so it should now be playing.
-    for (auto& x : mNoteStates)
+    for (auto& x : mMonoNoteStates)
     {
       if (x.mIsPhysicallyHeld && (x.MidiNoteValue != ignoreMidiNote))
       {
@@ -140,7 +140,7 @@ public:
     NoteInfo* pRet = nullptr;
     for (size_t i = 0; i < maxActiveNotes; ++i)
     {
-      auto& x = mNoteStates[i];
+      auto& x = mMonoNoteStates[i];
       if (!x.mIsMusicallyHeld)
         continue;
       if (pRet && x.mSequence < pRet->mSequence)
@@ -158,6 +158,9 @@ public:
   void ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo* pPlaying);
   // process physical state, convert to musical state.
   void ProcessNoteOffEvent(Event* e);
+
+  int FindOldestPhysicalSequenceForNote(int note);
+  void ReleasePolyphonicSequence(int note, int sequence, bool keepSustained);
 
   void ProcessPedalEvent(Event* e, bool isDown);
 
@@ -183,7 +186,7 @@ public:
 
   int mNoteSequence = 0;
 
-  NoteInfo mNoteStates[maxActiveNotes];  // index = midi note value
+  NoteInfo mMonoNoteStates[maxActiveNotes];  // index = midi note value; mono/trill bookkeeping only
 
   M7::PodArray<Voice*, M7::gMaxMaxVoices>
       mVoices;  // allow child class to instantiate derived voice classes; don't template due to bloat.
