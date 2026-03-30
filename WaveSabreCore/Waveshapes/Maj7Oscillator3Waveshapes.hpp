@@ -372,15 +372,15 @@ struct SineCoreExt : public OscillatorCore
   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
   {
     const auto step = mPhaseAcc.advanceOneSample();  // no offset inside accumulator
-    const double p = step.phaseBegin01;
     const double actW = 1.0 - (double)mC;  // active window width
+    const double evalPhase = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
 
     float out = 0.0f;
 
-    if (mC < 1.0f && p < actW)
+    if (mC < 1.0f && evalPhase < actW)
     {
-      // Compress the active part to [0,1), then apply offset and get angle
-      const double phi = math::wrap01((p / actW) + audioRatePhaseOffset);
+      // Shift the whole duty window with phase, then remap the active segment to one cycle.
+      const double phi = evalPhase / actW;
       const float theta = float(phi * math::gPITimes2);
 
       // Base sine
