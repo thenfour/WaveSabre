@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../Basic/Helpers.h"
 #include "../Basic/DSPMath.hpp"
+#include "../Basic/Helpers.h"
 #include <algorithm>
 
 namespace WaveSabreCore
@@ -23,6 +23,8 @@ struct PeakDetector : public IPeakDetector
   int mClipHoldSamples;
   int mPeakHoldSamples;
   double mPeakFalloffPerSample;
+  double mPeakFalloffMultiplierPerSample;
+  bool mUseExponentialFalloff = false;
 
   // state
   int mClipHoldCounter = 0;
@@ -37,8 +39,15 @@ struct PeakDetector : public IPeakDetector
     mClipHoldSamples = (int)M7::math::MillisecondsToSamples((float)clipHoldMS);
     mPeakHoldSamples = (int)M7::math::MillisecondsToSamples((float)peakHoldMS);
 
-    mPeakFalloffPerSample = std::max(0.0000001, 1.0 / M7::math::MillisecondsToSamples((float)peakFalloffMaxMS));
+    const double falloffSamples = std::max(1.0f, M7::math::MillisecondsToSamples((float)peakFalloffMaxMS));
+    mPeakFalloffPerSample = std::max(0.0000001, 1.0 / falloffSamples);
+    mPeakFalloffMultiplierPerSample = std::pow(0.001, 1.0 / falloffSamples);
     Reset();
+  }
+
+  void SetUseExponentialFalloff(bool enabled)
+  {
+    mUseExponentialFalloff = enabled;
   }
 
   void Reset()
@@ -80,9 +89,18 @@ struct PeakDetector : public IPeakDetector
     }
     else if (mCurrentPeak > 0)
     {
-      mCurrentPeak -= mPeakFalloffPerSample;  // falloff phase
-      if (mCurrentPeak < 0)
-        mCurrentPeak = 0;  // Ensure mCurrentPeak doesn't go below 0
+      if (mUseExponentialFalloff)
+      {
+        mCurrentPeak *= mPeakFalloffMultiplierPerSample;
+        if (mCurrentPeak < 1e-10)
+          mCurrentPeak = 0;
+      }
+      else
+      {
+        mCurrentPeak -= mPeakFalloffPerSample;  // falloff phase
+        if (mCurrentPeak < 0)
+          mCurrentPeak = 0;  // Ensure mCurrentPeak doesn't go below 0
+      }
     }
   }
 
@@ -129,9 +147,18 @@ struct PeakDetector : public IPeakDetector
 
     if (remaining > 0 && mCurrentPeak > 0)
     {
-      mCurrentPeak -= mPeakFalloffPerSample * remaining;
-      if (mCurrentPeak < 0)
-        mCurrentPeak = 0;
+      if (mUseExponentialFalloff)
+      {
+        mCurrentPeak *= std::pow(mPeakFalloffMultiplierPerSample, (double)remaining);
+        if (mCurrentPeak < 1e-10)
+          mCurrentPeak = 0;
+      }
+      else
+      {
+        mCurrentPeak -= mPeakFalloffPerSample * remaining;
+        if (mCurrentPeak < 0)
+          mCurrentPeak = 0;
+      }
     }
   }
 };

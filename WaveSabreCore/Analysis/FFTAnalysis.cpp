@@ -253,12 +253,11 @@ void SmoothedStereoFFT::SetPeakHoldTime(float holdTimeMs)
 {
   mCurrentHoldTimeMs = holdTimeMs;  // Store the new hold time
 
-  // Update all existing peak detectors with BOTH current settings + their frequencies
+  // Update all existing peak detectors with current timing and FFT-appropriate falloff mode.
   for (size_t i = 0; i < mPeakDetectors.size(); ++i)
   {
-    const auto& active = mBuffers[mActiveBuffer.load(std::memory_order_acquire)];
-    float frequency = (i < active.size()) ? active[i].frequency : 0.0f;
     mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+    mPeakDetectors[i].SetUseExponentialFalloff(true);
   }
 }
 
@@ -266,12 +265,11 @@ void SmoothedStereoFFT::SetFalloffRate(float falloffTimeMs)
 {
   mCurrentFalloffTimeMs = falloffTimeMs;  // Store the new falloff time
 
-  // Update all existing peak detectors with BOTH current settings + their frequencies
+  // Update all existing peak detectors with current timing and FFT-appropriate falloff mode.
   for (size_t i = 0; i < mPeakDetectors.size(); ++i)
   {
-    const auto& active = mBuffers[mActiveBuffer.load(std::memory_order_acquire)];
-    float frequency = (i < active.size()) ? active[i].frequency : 0.0f;
     mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+    mPeakDetectors[i].SetUseExponentialFalloff(true);
   }
 }
 
@@ -295,11 +293,11 @@ void SmoothedStereoFFT::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpect
   if (mPeakDetectors.size() != rawSpectrum.size())
   {
     mPeakDetectors.resize(rawSpectrum.size());
-    // initialize detectors with current settings and their frequencies
+    // initialize detectors with current settings and FFT-appropriate falloff behavior
     for (size_t i = 0; i < mPeakDetectors.size(); ++i)
     {
-      float frequency = (i < rawSpectrum.size()) ? rawSpectrum[i].frequency : 0.0f;
       mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+      mPeakDetectors[i].SetUseExponentialFalloff(true);
     }
     // resize buffers
     mBuffers[0].resize(rawSpectrum.size());

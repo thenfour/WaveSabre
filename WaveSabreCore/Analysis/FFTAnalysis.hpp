@@ -255,7 +255,7 @@ namespace WaveSabreCore
     {
     private:
         MonoFFTAnalysis mFFTAnalysis;
-        std::vector<FrequencyDependentPeakDetector> mPeakDetectors;
+        std::vector<PeakDetector> mPeakDetectors;
         std::vector<SpectrumBin> mBuffers[2];
         std::atomic<int> mActiveBuffer{0};
         std::atomic<bool> mHasNewOutput{false};
@@ -305,8 +305,9 @@ namespace WaveSabreCore
             mCurrentHoldTimeMs = holdTimeMs;
             for (size_t i = 0; i < mPeakDetectors.size(); ++i)
             {
-                float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
-                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+                //float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
+                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+                mPeakDetectors[i].SetUseExponentialFalloff(true);
             }
         }
         void SetFalloffRate(float falloffTimeMs)
@@ -314,8 +315,9 @@ namespace WaveSabreCore
             mCurrentFalloffTimeMs = falloffTimeMs;
             for (size_t i = 0; i < mPeakDetectors.size(); ++i)
             {
-                float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
-                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+                //float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
+                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+                mPeakDetectors[i].SetUseExponentialFalloff(true);
             }
         }
         void SetFFTUpdateRate(int fftSize, int overlapFactor) { mSamplesPerFFTUpdate = (overlapFactor > 0) ? (fftSize / overlapFactor) : fftSize; }
@@ -338,8 +340,9 @@ namespace WaveSabreCore
                     // initialize detectors with current settings and per-bin frequency
                     for (size_t i = 0; i < mPeakDetectors.size(); ++i)
                     {
-                        float frequency = (i < raw.size()) ? raw[i].frequency : 0.0f;
-                        mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs, frequency);
+                        //float frequency = (i < raw.size()) ? raw[i].frequency : 0.0f;
+                        mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+                        mPeakDetectors[i].SetUseExponentialFalloff(true);
                     }
                     // ensure both buffers sized
                     mBuffers[0].resize(raw.size());
