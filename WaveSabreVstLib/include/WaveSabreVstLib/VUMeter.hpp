@@ -632,7 +632,7 @@ inline bool VUMeter(const char* id,
   }
 
   // draw clip
-  bool allowClipIndicator = true;  // (cfg.levelMode != VUMeterLevelMode::Attenuation);
+  bool allowClipIndicator = (cfg.levelMode != VUMeterLevelMode::Attenuation);
   if (clipIndicator && *clipIndicator && allowClipIndicator)
   {
     dl->AddRectFilled(bb.Min, {bb.Max.x, bb.Min.y + 8}, colors.clipTick);

@@ -336,7 +336,7 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
         , mInputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
         , mOutputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
         , mDetectorAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
-        , mAttenuationAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
+        , mAttenuationAnalysis{AnalysisStream{gCompressionAttenuationFalloffMS}, AnalysisStream{gCompressionAttenuationFalloffMS}}
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     {
     }
@@ -344,6 +344,7 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     static constexpr float gAnalysisFalloffMS = 500;
+    static constexpr float gCompressionAttenuationFalloffMS = 250;
     AnalysisStream mInputAnalysis[2];
     AnalysisStream mOutputAnalysis[2];
     AnalysisStream mDetectorAnalysis[2];
@@ -514,6 +515,7 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   static constexpr float gAnalysisFalloffMS = 500;
+  static constexpr float gSoftclipAttenuationFalloffMS = 100;
   AnalysisStream mInputAnalysis[2];
   AnalysisStream mOutputAnalysis[2];
   AttenuationAnalysisStream mClippingAnalysis[2];
@@ -527,7 +529,7 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       , mInputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
       , mOutputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
-      , mClippingAnalysis{AttenuationAnalysisStream{4000}, AttenuationAnalysisStream{4000}}
+      , mClippingAnalysis{AttenuationAnalysisStream{gSoftclipAttenuationFalloffMS}, AttenuationAnalysisStream{gSoftclipAttenuationFalloffMS}}
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   {
     LoadDefaults();
@@ -553,15 +555,15 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
     splitter1.SetParams(crossoverFreqA, crossoverSlopeA, crossoverFreqB, crossoverSlopeB);
   }
 
-  // returns {output sample, clip amount}
-  // NOTE: clip amount is 0 for anything below clipping level, even though shaping actually does mess with amplitudes.
-  // the visualizations just don't care about that area though; users only care about how much is being clipped.
+  // returns {output sample, transfer gain}
+  // The analysis value is the clipper's instantaneous transfer gain before makeup gain, where
+  // 1.0 means no reduction and smaller values mean stronger soft-clip attenuation.
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   static M7::FloatPair Softclip(float s, float thresh, float outputGain)
   {
-    float atten = 1.0f;
-    const float y = M7::Maj7SaturationBase::SoftClipSine(s, thresh, outputGain, &atten);
-    return {y, atten};
+    float transferGain = 1.0f;
+    const float y = M7::Maj7SaturationBase::SoftClipSine(s, thresh, outputGain, &transferGain);
+    return {y, transferGain};
   }
 #else
   static float Softclip(float s, float thresh, float outputGain)

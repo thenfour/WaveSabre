@@ -69,11 +69,18 @@ struct AttenuationAnalysisStream : IAnalysisStream
 
   void WriteSample(double s)
   {
-    mPeakDetector.ProcessSample(s);
-    mPeakHoldDetector.ProcessSample(s);
-    mClipIndicator = mPeakHoldDetector.mClipIndicator;
-    mCurrentPeak = mPeakDetector.mCurrentPeak;
-    mCurrentHeldPeak = mPeakHoldDetector.mCurrentPeak;
+    // Attenuation streams carry transfer-gain ratios where 1.0 means no reduction and
+    // smaller values mean stronger reduction. The generic peak detector tracks maxima,
+    // so we feed it the reciprocal and then map the detected peak back into gain space.
+    const double clampedGain = std::max(1.0e-6, std::min(1.0, s));
+    const double reciprocalGain = 1.0 / clampedGain;
+
+    mPeakDetector.ProcessSample(reciprocalGain);
+    mPeakHoldDetector.ProcessSample(reciprocalGain);
+
+    mClipIndicator = false;
+    mCurrentPeak = 1.0 / std::max(1.0, mPeakDetector.mCurrentPeak);
+    mCurrentHeldPeak = 1.0 / std::max(1.0, mPeakHoldDetector.mCurrentPeak);
   }
 
   virtual void Reset() override

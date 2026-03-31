@@ -7,9 +7,10 @@ using namespace WaveSabreVstLib;
 using namespace WaveSabreCore;
 
 #include "Maj7MBCVst.hpp"
+#include <WaveSabreVstLib/CompressorVis.hpp>
 #include <WaveSabreVstLib/FreqMagnitudeGraph/FFTDiffLayer.hpp>
 #include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
-#include <WaveSabreVstLib/CompressorVis.hpp>
+
 
 struct Maj7MBCEditor : public VstEditor
 {
@@ -28,7 +29,12 @@ struct Maj7MBCEditor : public VstEditor
   FrequencyResponseRendererLayered<270, 78, 2, (size_t)Maj7MBC::ParamIndices::NumParams, false>
       mResponseGraphs[Maj7MBC::gBandCount];
   FrequencyResponseRendererLayered<1000, 180, 0, (size_t)Maj7MBC::ParamIndices::NumParams, false> mCrossoverGraph;
-  const ImVec2 kMainVuMeterSize{20, 180};
+  static constexpr float kMainVuMeterHeight = 180.0f;
+  static constexpr float kSoftClipTransferCurveWidth = 120.0f;
+  static constexpr float kSoftClipAttenuationVuWidth = 30.0f;
+  const ImVec2 kMainVuMeterSize{20, kMainVuMeterHeight};
+  const ImVec2 kSoftClipTransferCurveSize{kSoftClipTransferCurveWidth, kMainVuMeterHeight};
+  const ImVec2 kSoftClipAttenuationVuSize{kSoftClipAttenuationVuWidth, kMainVuMeterHeight};
 
   // for small compressor vis
   bool mShowInputHistory = true;
@@ -1099,6 +1105,15 @@ public:
       ImGui::SameLine();
       Maj7ImGuiBoolParamToggleButton(ParamIndices::SoftClipEnable, "Softclip");
       M7::QuickParam qp{mpMaj7MBCVst->getParameter((VstInt32)ParamIndices::SoftClipEnable)};
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+      auto& ia = mpMaj7MBC->mInputAnalysis;
+      auto& oa = mpMaj7MBC->mOutputAnalysis;
+#else
+      AnalysisStream ia[2];  // mock
+      AnalysisStream oa[2];  // mock
+#endif
+
       if (qp.GetBoolValue())
       {
         //ImGui::BeginDisabled(!qp.GetBoolValue());
@@ -1112,7 +1127,7 @@ public:
         float softClipThreshLin = qp.GetVolumeLin(M7::gUnityVolumeCfg);
 
         ImGui::SameLine();
-        RenderTransferCurve({120, 120},
+        RenderTransferCurve(kSoftClipTransferCurveSize,
                             {
                                 ColorFromHTML("222222"),  // bg
                                 ColorFromHTML("8888cc"),  // line
@@ -1134,58 +1149,64 @@ public:
         AnalysisStream ca[2];  // mock
 #endif
 
+        ImGui::SameLine();
+
+        {
+          VUMeterTooltipStripScope tooltipStrip{"mbc_main_vu_strip"};
+          VUMeterAtten("scclip",
+                       ca[0],
+                       ca[1],
+                       kSoftClipAttenuationVuSize,
+                       "Soft clip attenuation Left",
+                       "Soft clip attenuation Right",
+                       &tooltipStrip);
           ImGui::SameLine();
-          {
-            VUMeterTooltipStripScope tooltipStrip{"mbc_main_vu_strip"};
-            VUMeterAtten("scclip",
-                 ca[0],
-                 ca[1],
-                 {30, 120},
-                 "Soft clip attenuation Left",
-                 "Soft clip attenuation Right",
-                 &tooltipStrip);
-
-      #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-            auto& ia = mpMaj7MBC->mInputAnalysis;
-            auto& oa = mpMaj7MBC->mOutputAnalysis;
-      #else
-            AnalysisStream ia[2];  // mock
-            AnalysisStream oa[2];  // mock
-      #endif
-
-            ImGui::SameLine();
-            VUMeter("main_vu_inp",
-            ia[0],
-            ia[1],
-            kMainVuMeterSize,
-            "Input Left",
-            "Input Right",
-            nullptr,
-            &tooltipStrip);
-            ImGui::SameLine();
-            VUMeter("main_vu_outp",
-            oa[0],
-            oa[1],
-            kMainVuMeterSize,
-            "Output Left",
-            "Output Right",
-            nullptr,
-            &tooltipStrip);
-          }
+          VUMeter("main_vu_inp",     //
+                  ia[0],             //
+                  ia[1],             //
+                  kMainVuMeterSize,  //
+                  "Input Left",      //
+                  "Input Right",     //
+                  nullptr,           //
+                  &tooltipStrip      //
+          );
+          ImGui::SameLine();
+          VUMeter("main_vu_outp",    //
+                  oa[0],             //
+                  oa[1],             //
+                  kMainVuMeterSize,  //
+                  "Output Left",     //
+                  "Output Right",    //
+                  nullptr,           //
+                  &tooltipStrip      //
+          );
+        }  // tooltip strip scope
+      }  // if soft clip enabled
+      else
+      {
+        ImGui::SameLine();
+        VUMeterTooltipStripScope tooltipStrip{"mbc_main_vu_strip"};
+        VUMeter("main_vu_inp",     //
+                ia[0],             //
+                ia[1],             //
+                kMainVuMeterSize,  //
+                "Input Left",      //
+                "Input Right",     //
+                nullptr,           //
+                &tooltipStrip      //
+        );
+        ImGui::SameLine();
+        VUMeter("main_vu_outp",    //
+                oa[0],             //
+                oa[1],             //
+                kMainVuMeterSize,  //
+                "Output Left",     //
+                "Output Right",    //
+                nullptr,           //
+                &tooltipStrip      //
+        );
       }
     }
-    //if (mbEnabled) {
-    //}
-
-    //ImGui::PushID("band1");
-    //RenderBand(1, ParamIndices::BInputGain, mbEnabled ? "Mids" : "All frequencies", muteSoloEnabled[1], true, mbEnabled);
-    //ImGui::PopID();
-
-    //if (mbEnabled) {
-    //	ImGui::PushID("band2");
-    //	RenderBand(2, ParamIndices::CInputGain, "Highs", muteSoloEnabled[2], mbEnabled, mbEnabled);
-    //	ImGui::PopID();
-    //}
   }
 };
 
