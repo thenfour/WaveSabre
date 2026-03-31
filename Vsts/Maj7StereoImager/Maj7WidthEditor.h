@@ -345,7 +345,7 @@ struct Maj7WidthEditor : public VstEditor
 private:
   bool mShowGoniometerLines = false;
   bool mShowGoniometerPoints = true;
-  bool mShowPolarL = true;
+  bool mShowPolarL = false;
   bool mShowPhaseX = true;
 
   VstSerializableBoolParamRef mShowGoniometerLinesParam{"ShowGoniometerLines", mShowGoniometerLines};

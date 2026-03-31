@@ -53,7 +53,7 @@ struct Maj7AnalyzeEditor : public VstEditor
   // Stereo visualization layer toggles
   bool mShowGoniometerLines = false;
   bool mShowGoniometerPoints = true;
-  bool mShowPolarL = true;
+  bool mShowPolarL = false;
   bool mShowPhaseX = true;
 
   VstSerializableBoolParamRef mShowGoniometerLinesParam{"ShowGoniometerLines", mShowGoniometerLines};
