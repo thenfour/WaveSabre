@@ -96,7 +96,7 @@ struct ColorRegionMap {
 inline void RenderCorrelationMeter(const char* id, double correlation, ImVec2 size) {
 	auto* dl = ImGui::GetWindowDrawList();
 	ImVec2 pos = ImGui::GetCursorScreenPos();
-	ImRect bb(pos, pos + size);
+	ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
 
 	// Background
 	dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(40, 40, 40, 255));
@@ -229,7 +229,8 @@ inline void RenderStereoFieldOverlay(const char* id,
 	(void)size;
 	auto* dl = ImGui::GetWindowDrawList();
 
-	const float signalLevel = std::max(static_cast<float>(analysis.mLeftLevel), static_cast<float>(analysis.mRightLevel));
+	const float signalLevel = std::max(static_cast<float>(analysis.mMidLevelDetector.mCurrentRMSValue),
+		static_cast<float>(analysis.mSideLevelDetector.mCurrentRMSValue));
 	const float signalDb = StereoFieldOverlayLinearToDb(signalLevel);
 	const float visibility = StereoFieldOverlayRemapClamped(signalDb, style.fadeStartDb, style.fadeEndDb, 0.0f, 1.0f);
 	if (visibility <= 0.001f) return;
@@ -268,7 +269,8 @@ inline void RenderStereoFieldOverlay(const char* id,
 
 	auto sectorPoints = BuildStereoFieldSectorPoints(center, startAngle, endAngle, sectorInnerRadius, sectorOuterRadius, style.arcSegments);
 	if (sectorPoints.size() >= 3) {
-		dl->AddConvexPolyFilled(sectorPoints.data(), static_cast<int>(sectorPoints.size()), fillColor);
+		// The annular sector is a simple but non-convex polygon, so convex fill will glitch.
+		dl->AddConcavePolyFilled(sectorPoints.data(), static_cast<int>(sectorPoints.size()), fillColor);
 		dl->AddPolyline(sectorPoints.data(), static_cast<int>(sectorPoints.size()), outlineColor, ImDrawFlags_Closed, style.sectorOutlineThickness);
 	}
 
@@ -283,7 +285,7 @@ inline void RenderStereoFieldOverlay(const char* id,
 inline void RenderGeneralMeter(double value, double minValue, double maxValue, ImVec2 size, const char *label, double centerValue, const ColorRegionMap& colorMap) {
 	auto* dl = ImGui::GetWindowDrawList();
 	ImVec2 pos = ImGui::GetCursorScreenPos();
-	ImRect bb(pos, pos + size);
+	ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
 
 	// Background
 	dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(40, 40, 40, 255));
