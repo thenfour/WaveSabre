@@ -272,7 +272,7 @@ struct Maj7WidthEditor : public VstEditor
               MakeButtonSpec(
                   "Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
               MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
-              MakeButtonSpec("Scissor", &mShowPhaseX, kScopeScissorColor, "Show the scissor-style phase view."),
+              MakeButtonSpec("Wedge", &mShowPhaseX, kScopeScissorColor, "Show the wedge-style phase view."),
           });
     }
     {

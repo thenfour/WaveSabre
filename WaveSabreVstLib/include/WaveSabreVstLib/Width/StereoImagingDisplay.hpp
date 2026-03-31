@@ -20,10 +20,22 @@ struct StereoImagingScopeLayerVisibility
   bool showPhaseX = true;
 };
 
+struct StereoImagingDisplayStyle
+{
+  StereoFieldOverlayStyle fieldOverlay{};
+};
+
+inline const StereoImagingDisplayStyle& GetDefaultStereoImagingDisplayStyle()
+{
+  static const StereoImagingDisplayStyle style{};
+  return style;
+}
+
 inline void RenderStereoImagingScope(const char* id,
                                      const StereoImagingAnalysisStream& analysis,
                                      ImVec2 size,
-                                     const StereoImagingScopeLayerVisibility& visibility)
+                                     const StereoImagingScopeLayerVisibility& visibility,
+                                     const StereoImagingDisplayStyle& style = GetDefaultStereoImagingDisplayStyle())
 {
   auto* dl = ImGui::GetWindowDrawList();
   ImVec2 pos = ImGui::GetCursorScreenPos();
@@ -71,7 +83,7 @@ inline void RenderStereoImagingScope(const char* id,
 
   if (visibility.showPhaseX)
   {
-    RenderPhaseCorrelationOverlay(id, analysis, size, center, radius);
+    RenderPhaseCorrelationOverlay(id, analysis, size, center, radius, style.fieldOverlay);
   }
 
   ImGui::Dummy(size);
@@ -80,7 +92,8 @@ inline void RenderStereoImagingScope(const char* id,
 inline void RenderStereoImagingDisplay(const char* id,
                                        const StereoImagingAnalysisStream& analysis,
                                        const StereoImagingScopeLayerVisibility& visibility,
-                                       int dimension = 250)
+                                       int dimension = 250,
+                                       const StereoImagingDisplayStyle& style = GetDefaultStereoImagingDisplayStyle())
 {
   ImGuiGroupScope _scope(id);
 
@@ -145,5 +158,5 @@ inline void RenderStereoImagingDisplay(const char* id,
   }
 
   const std::string scopeId = std::string(id) + "_scope";
-  RenderStereoImagingScope(scopeId.c_str(), analysis, scopeSize, visibility);
+  RenderStereoImagingScope(scopeId.c_str(), analysis, scopeSize, visibility, style);
 }

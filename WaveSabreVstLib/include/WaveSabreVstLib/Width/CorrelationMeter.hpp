@@ -131,6 +131,154 @@ inline void RenderCorrelationMeter(const char* id, double correlation, ImVec2 si
 }
 
 
+struct StereoFieldOverlayStyle {
+	float backgroundPieRadiusRatio = 0.90f;
+	float sectorOuterRadiusRatio = 0.83f;
+	float sectorInnerRadiusRatio = 0.48f;
+	float backgroundPieAlpha = 0.07f;
+	float sectorFillAlpha = 0.18f;
+	float sectorOutlineAlpha = 0.78f;
+	float spokeAlpha = 0.65f;
+	float sectorOutlineThickness = 2.0f;
+	float spokeThickness = 1.5f;
+	float maxBalanceAngleDegrees = 60.0f;
+	float minWidthSpanDegrees = 10.0f;
+	float maxWidthSpanDegrees = 150.0f;
+	float maxDisplayedWidth = 1.25f;
+	float fadeStartDb = -72.0f;
+	float fadeEndDb = -48.0f;
+	int arcSegments = 48;
+	bool showBackgroundPie = true;
+	bool showBalanceSpoke = true;
+};
+
+inline const StereoFieldOverlayStyle& GetDefaultStereoFieldOverlayStyle() {
+	static const StereoFieldOverlayStyle style{};
+	return style;
+}
+
+inline float StereoFieldOverlayRemapClamped(float value, float inMin, float inMax, float outMin, float outMax) {
+	if (fabsf(inMax - inMin) < 0.0001f) return outMin;
+	float t = (value - inMin) / (inMax - inMin);
+	t = std::clamp(t, 0.0f, 1.0f);
+	return outMin + (outMax - outMin) * t;
+}
+
+inline float StereoFieldOverlayLinearToDb(float value) {
+	return 20.0f * log10f(std::max(value, 1.0e-8f));
+}
+
+inline ImVec2 StereoFieldOverlayPolarPoint(ImVec2 center, float angleRadians, float radius) {
+	return {
+		center.x + sinf(angleRadians) * radius,
+		center.y - cosf(angleRadians) * radius,
+	};
+}
+
+inline std::vector<ImVec2> BuildStereoFieldSectorPoints(ImVec2 center,
+										 float startAngle,
+										 float endAngle,
+										 float innerRadius,
+										 float outerRadius,
+										 int arcSegments) {
+	const int segmentCount = std::max(arcSegments, 8);
+	std::vector<ImVec2> points;
+	points.reserve(static_cast<size_t>(segmentCount + 1) * 2);
+
+	for (int i = 0; i <= segmentCount; ++i) {
+		float t = static_cast<float>(i) / static_cast<float>(segmentCount);
+		float angle = startAngle + (endAngle - startAngle) * t;
+		points.push_back(StereoFieldOverlayPolarPoint(center, angle, outerRadius));
+	}
+
+	for (int i = segmentCount; i >= 0; --i) {
+		float t = static_cast<float>(i) / static_cast<float>(segmentCount);
+		float angle = startAngle + (endAngle - startAngle) * t;
+		points.push_back(StereoFieldOverlayPolarPoint(center, angle, innerRadius));
+	}
+
+	return points;
+}
+
+inline std::vector<ImVec2> BuildStereoFieldPiePoints(ImVec2 center,
+									 float startAngle,
+									 float endAngle,
+									 float outerRadius,
+									 int arcSegments) {
+	const int segmentCount = std::max(arcSegments, 8);
+	std::vector<ImVec2> points;
+	points.reserve(static_cast<size_t>(segmentCount) + 3);
+	points.push_back(center);
+
+	for (int i = 0; i <= segmentCount; ++i) {
+		float t = static_cast<float>(i) / static_cast<float>(segmentCount);
+		float angle = startAngle + (endAngle - startAngle) * t;
+		points.push_back(StereoFieldOverlayPolarPoint(center, angle, outerRadius));
+	}
+
+	return points;
+}
+
+inline void RenderStereoFieldOverlay(const char* id,
+								 const StereoImagingAnalysisStream& analysis,
+								 ImVec2 size,
+								 ImVec2 center,
+								 float radius,
+								 const StereoFieldOverlayStyle& style = GetDefaultStereoFieldOverlayStyle()) {
+	(void)id;
+	(void)size;
+	auto* dl = ImGui::GetWindowDrawList();
+
+	const float signalLevel = std::max(static_cast<float>(analysis.mLeftLevel), static_cast<float>(analysis.mRightLevel));
+	const float signalDb = StereoFieldOverlayLinearToDb(signalLevel);
+	const float visibility = StereoFieldOverlayRemapClamped(signalDb, style.fadeStartDb, style.fadeEndDb, 0.0f, 1.0f);
+	if (visibility <= 0.001f) return;
+
+	const float correlation = std::clamp(static_cast<float>(analysis.mPhaseCorrelation), -1.0f, 1.0f);
+	const float balance = std::clamp(static_cast<float>(analysis.mStereoBalance), -1.0f, 1.0f);
+	const float width = std::max(0.0f, static_cast<float>(analysis.mStereoWidth));
+
+	const float radiansPerDegree = 3.14159265f / 180.0f;
+	const float maxBalanceAngle = style.maxBalanceAngleDegrees * radiansPerDegree;
+	const float centerAngle = StereoFieldOverlayRemapClamped(balance, -1.0f, 1.0f, -maxBalanceAngle, maxBalanceAngle);
+	const float halfSpan = StereoFieldOverlayRemapClamped(width,
+		0.0f,
+		style.maxDisplayedWidth,
+		style.minWidthSpanDegrees * radiansPerDegree * 0.5f,
+		style.maxWidthSpanDegrees * radiansPerDegree * 0.5f);
+	const float startAngle = centerAngle - halfSpan;
+	const float endAngle = centerAngle + halfSpan;
+
+	const float backgroundOuterRadius = radius * style.backgroundPieRadiusRatio;
+	const float sectorOuterRadius = radius * style.sectorOuterRadiusRatio;
+	const float sectorInnerRadius = radius * style.sectorInnerRadiusRatio;
+	const float emphasis = 0.45f + 0.55f * fabsf(correlation);
+
+	const ImU32 backgroundColor = GetCorrellationColor(correlation, style.backgroundPieAlpha * visibility);
+	const ImU32 fillColor = GetCorrellationColor(correlation, style.sectorFillAlpha * emphasis * visibility);
+	const ImU32 outlineColor = GetCorrellationColor(correlation, style.sectorOutlineAlpha * emphasis * visibility);
+	const ImU32 spokeColor = GetCorrellationColor(correlation, style.spokeAlpha * visibility);
+
+	if (style.showBackgroundPie) {
+		auto piePoints = BuildStereoFieldPiePoints(center, startAngle, endAngle, backgroundOuterRadius, style.arcSegments);
+		if (piePoints.size() >= 3) {
+			dl->AddConvexPolyFilled(piePoints.data(), static_cast<int>(piePoints.size()), backgroundColor);
+		}
+	}
+
+	auto sectorPoints = BuildStereoFieldSectorPoints(center, startAngle, endAngle, sectorInnerRadius, sectorOuterRadius, style.arcSegments);
+	if (sectorPoints.size() >= 3) {
+		dl->AddConvexPolyFilled(sectorPoints.data(), static_cast<int>(sectorPoints.size()), fillColor);
+		dl->AddPolyline(sectorPoints.data(), static_cast<int>(sectorPoints.size()), outlineColor, ImDrawFlags_Closed, style.sectorOutlineThickness);
+	}
+
+	if (style.showBalanceSpoke) {
+		const ImVec2 spokeEnd = StereoFieldOverlayPolarPoint(center, centerAngle, backgroundOuterRadius);
+		dl->AddLine(center, spokeEnd, spokeColor, style.spokeThickness);
+	}
+}
+
+
 
 inline void RenderGeneralMeter(double value, double minValue, double maxValue, ImVec2 size, const char *label, double centerValue, const ColorRegionMap& colorMap) {
 	auto* dl = ImGui::GetWindowDrawList();
@@ -213,41 +361,12 @@ inline void RenderGeneralMeter(double value, double minValue, double maxValue, I
 
 
 
-// Custom phase correlation "X" overlay renderer
-inline void RenderPhaseCorrelationOverlay(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, ImVec2 center, float radius) {
-	auto* dl = ImGui::GetWindowDrawList();
-
-	float correlation = static_cast<float>(analysis.mPhaseCorrelation);
-	ImU32 phaseLineColor = GetCorrellationColor(correlation, 0.8f);
-
-	// Calculate correlation angle - same logic as in PolarL
-	float correlationAngle = acosf(std::max(-1.0f, std::min(1.0f, correlation * 0.5f + 0.5f)));
-	correlationAngle -= 3.14159f * 0.5f;
-
-	// Calculate line extent 
-	float lineLength = radius * 0.9f;
-
-	// First diagonal of the X
-	ImVec2 lineStart1 = {
-		center.x - cosf(correlationAngle) * lineLength,
-		center.y + sinf(correlationAngle) * lineLength
-	};
-	ImVec2 lineEnd1 = {
-		center.x + cosf(correlationAngle) * lineLength,
-		center.y - sinf(correlationAngle) * lineLength
-	};
-
-	// Second diagonal of the X (perpendicular)
-	ImVec2 lineStart2 = {
-		center.x + cosf(correlationAngle) * lineLength,
-		center.y + sinf(correlationAngle) * lineLength
-	};
-	ImVec2 lineEnd2 = {
-		center.x - cosf(correlationAngle) * lineLength,
-		center.y - sinf(correlationAngle) * lineLength
-	};
-
-	// Draw the X-shaped phase correlation lines
-	dl->AddLine(lineStart1, lineEnd1, phaseLineColor, 2.5f);
-	dl->AddLine(lineStart2, lineEnd2, phaseLineColor, 2.5f);
+// Compatibility wrapper while call sites still use the old name.
+inline void RenderPhaseCorrelationOverlay(const char* id,
+									   const StereoImagingAnalysisStream& analysis,
+									   ImVec2 size,
+									   ImVec2 center,
+									   float radius,
+									   const StereoFieldOverlayStyle& style = GetDefaultStereoFieldOverlayStyle()) {
+	RenderStereoFieldOverlay(id, analysis, size, center, radius, style);
 }
