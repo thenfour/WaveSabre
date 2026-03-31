@@ -111,17 +111,18 @@ struct ButtonArrayButtonSpec
   const char* color;
   const char* tooltip;
   std::function<void()> onClick;
-  // space before
-  // space after
-  // disabled
+  float spaceBefore = 0.0f;
+  ImVec2 size{};
 };
 
 inline ButtonArrayButtonSpec MakeButtonSpec(const char* label,
                                             bool* pValueRef,
                                             const char* colorHTML = nullptr,
-                                            const char* tooltip = nullptr)
+                                            const char* tooltip = nullptr,
+                                            float spaceBefore = 0.0f,
+                                            ImVec2 size = {})
 {
-  return ButtonArrayButtonSpec{label, pValueRef, colorHTML, tooltip};
+  return ButtonArrayButtonSpec{label, pValueRef, colorHTML, tooltip, {}, spaceBefore, size};
 }
 
 template <size_t N>
@@ -137,8 +138,21 @@ inline void ButtonArray(const char *id, const std::array<ButtonArrayButtonSpec, 
   {
     const auto& btn = x[i];
     if (i > 0)
-      ImGui::SameLine();
-    if (ToggleButton(btn.pSelected, btn.label.c_str(), {}, ButtonColorSpec{btn.color}))
+      ImGui::SameLine(0.0f, btn.spaceBefore > 0.0f ? btn.spaceBefore : -1.0f);
+
+    std::string displayLabel;
+    if (btn.pSelected)
+    {
+      // todo: find a better indicator?
+      displayLabel = *btn.pSelected ? "[x] " : "[ ] ";
+      displayLabel += btn.label;
+    }
+    else
+    {
+      displayLabel = btn.label;
+    }
+
+    if (ToggleButton(btn.pSelected, displayLabel.c_str(), btn.size, ButtonColorSpec{btn.color}, btn.tooltip))
     {
       if (btn.onClick)
         btn.onClick();
@@ -176,7 +190,7 @@ struct ParamExplorer
     auto* dl = ImGui::GetWindowDrawList();
     ImRect bb;
     bb.Min = ImGui::GetCursorScreenPos();
-    bb.Max = bb.Min + size;
+    bb.Max = {bb.Min.x + size.x, bb.Min.y + size.y};
     ImGui::RenderFrame(bb.Min, bb.Max, ColorFromHTML("222222"));
 
     auto LinToY = [&](float lin)

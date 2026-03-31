@@ -852,18 +852,19 @@ public:
 
       ImGui::SameLine(0, 200);
 
-      ToggleButton(&mShowInputFft, "Input FFT");
-      ImGui::SameLine();
-      ToggleButton(&mShowOutputFft, "Output FFT");
-      ImGui::SameLine();
-      ToggleButton(&mShowFftDiff, "FFT Diff");
-      ImGui::SameLine();
-      ToggleButton(&mShowFftDiffFlat, "FFT Diff (flat)");
+      ButtonArray<4>("mbc_fft_overlays", {
+          MakeButtonSpec("Input FFT", &mShowInputFft, "888888", "Show the input spectrum overlay."),
+          MakeButtonSpec("Output FFT", &mShowOutputFft, bandColors[1], "Show the output spectrum overlay."),
+          MakeButtonSpec("FFT Diff", &mShowFftDiff, "ff8844", "Show the spectral difference between output and input."),
+          MakeButtonSpec("FFT Diff (flat)", &mShowFftDiffFlat, "cc66ff", "Show the flattened spectral difference view."),
+      });
 
       if (mbEnabled)
       {
         ImGui::SameLine();
-        ToggleButton(&mShowCrossoverResponse, "Crossover response");
+        ButtonArray<1>("mbc_crossover_response", {
+            MakeButtonSpec("Crossover response", &mShowCrossoverResponse, "ff00ff", "Show the crossover filter response curves."),
+        });
       }
 
       ImGui::Spacing();

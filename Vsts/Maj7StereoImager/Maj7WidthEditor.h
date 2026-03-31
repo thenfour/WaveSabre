@@ -52,6 +52,10 @@ struct Maj7WidthEditor : public VstEditor
 	const char* kOutputMidFftColor = bandColors[0];
 	const char* kOutputSideFftColor = bandColors[1];
 	const char* kOutputWidthFftColor = bandColors[2];
+	const char* kScopeLinesColor = "66b3ff";
+	const char* kScopePointsColor = "ffcc66";
+	const char* kScopePolyColor = "66dd88";
+	const char* kScopeScissorColor = "cc66ff";
 
 
 	Maj7WidthEditor(AudioEffect* audioEffect) : //
@@ -193,11 +197,12 @@ struct Maj7WidthEditor : public VstEditor
 
 			// Toggle buttons for layer visibility
 			{
-				// Create toggle buttons with appropriate colors
-				ToggleButton(&mShowGoniometerLines, "Lines");
-				ImGui::SameLine(); ToggleButton(&mShowGoniometerPoints, "Points");
-				ImGui::SameLine(); ToggleButton(&mShowPolarL, "Poly");
-				ImGui::SameLine(); ToggleButton(&mShowPhaseX, "Scissor");
+				ButtonArray<4>("width_scope_layers", {
+					MakeButtonSpec("Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
+					MakeButtonSpec("Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
+					MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
+					MakeButtonSpec("Scissor", &mShowPhaseX, kScopeScissorColor, "Show the scissor-style phase view."),
+				});
 			}
 			{
 				mStereoHistory.Render(true, mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
@@ -219,35 +224,17 @@ struct Maj7WidthEditor : public VstEditor
 			{
 				ImGui::Separator();
 				ImGui::Text("Freq overlays:");
-				// Input Mid (dB)
-				ToggleButton(&mShowInputMid, "In M", {}, ButtonColorSpec{kInputMidFftColor});
-				if (ImGui::IsItemHovered()) {
-					ImGui::BeginTooltip(); ImGui::Text("Input mid / center channel");
-					ImGui::EndTooltip();
-				}
-				ImGui::SameLine();
-				// Input Side (dB)
-				ToggleButton(&mShowInputSide, "In S", {}, ButtonColorSpec{ kInputSideFftColor });
-				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Input Side"); ImGui::EndTooltip(); }
-				ImGui::SameLine();
-				// Input Width (linear width)
-				ToggleButton(&mShowInputWidth, "In W", {}, ButtonColorSpec{ kInputWidthFftColor });
-				if (ImGui::IsItemHovered()) {
-					ImGui::BeginTooltip(); ImGui::Text("Input Width (normalized side)");
-					ImGui::EndTooltip();
-				}
+				ButtonArray<3>("width_fft_input", {
+					MakeButtonSpec("In M", &mShowInputMid, kInputMidFftColor, "Show the input mid / center FFT overlay."),
+					MakeButtonSpec("In S", &mShowInputSide, kInputSideFftColor, "Show the input side FFT overlay."),
+					MakeButtonSpec("In W", &mShowInputWidth, kInputWidthFftColor, "Show the input width FFT overlay."),
+				});
 				ImGui::SameLine(0, 20);
-				// Output Mid (dB)
-				ToggleButton(&mShowOutputMid, "Out M", {}, ButtonColorSpec{ kOutputMidFftColor });
-				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Mid/center"); ImGui::EndTooltip(); }
-				ImGui::SameLine();
-				// Output Side (dB)
-				ToggleButton(&mShowOutputSide, "Out S", {}, ButtonColorSpec{ kOutputSideFftColor });
-				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Side"); ImGui::EndTooltip(); }
-				ImGui::SameLine();
-				// Output Width (linear width)
-				ToggleButton(&mShowOutputWidth, "Out W", {}, ButtonColorSpec{ kOutputWidthFftColor });
-				if (ImGui::IsItemHovered()) { ImGui::BeginTooltip(); ImGui::Text("Output Width (normalized side)"); ImGui::EndTooltip(); }
+				ButtonArray<3>("width_fft_output", {
+					MakeButtonSpec("Out M", &mShowOutputMid, kOutputMidFftColor, "Show the output mid / center FFT overlay."),
+					MakeButtonSpec("Out S", &mShowOutputSide, kOutputSideFftColor, "Show the output side FFT overlay."),
+					MakeButtonSpec("Out W", &mShowOutputWidth, kOutputWidthFftColor, "Show the output width FFT overlay."),
+				});
 			}
 
 			RenderFrequencyAnalysis();
@@ -528,22 +515,19 @@ private:
 				}, historyViewMinValue, historyViewMaxValue, &historyTooltipCfg);
 
 				if (showToggles) {
-					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
-					ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+					ButtonArray<5>("width_history_metrics", {
+						MakeButtonSpec("Correllation", &mShowPhaseCorrelation, kInputCorrellationColor, "Show stereo correlation history."),
+						MakeButtonSpec("Width", &mShowStereoWidth, kInputWidthColor, "Show stereo width history."),
+						MakeButtonSpec("Balance", &mShowStereoBalance, kInputBalanceColor, "Show stereo balance history."),
+						MakeButtonSpec("Mid", &mShowMidLevel, kInputMidLevelColor, "Show mid-channel level history.", 20.0f),
+						MakeButtonSpec("Side", &mShowSideLevel, kInputSideLevelColor, "Show side-channel level history."),
+					});
 
-					// Parameter toggles
-					ToggleButton(&mShowPhaseCorrelation, "Correllation", {}, ButtonColorSpec{ kInputCorrellationColor });
-					ImGui::SameLine(); ToggleButton(&mShowStereoWidth, "Width", {}, ButtonColorSpec{ kInputWidthColor });
-					ImGui::SameLine(); ToggleButton(&mShowStereoBalance, "Balance", {}, ButtonColorSpec{ kInputBalanceColor });
-
-					ImGui::SameLine(0, 20); ToggleButton(&mShowMidLevel, "Mid", {}, ButtonColorSpec{ kInputMidLevelColor });
-					ImGui::SameLine(); ToggleButton(&mShowSideLevel, "Side", {}, ButtonColorSpec{ kInputSideLevelColor });
-
-					// Input/Output toggles (separate line, similar to CompressorVis L/R pattern)
-					ImGui::SameLine(0, 40); ToggleButton(&mShowInput, "Input");
-					ImGui::SameLine(); ToggleButton(&mShowOutput, "Output");
-
-					ImGui::PopStyleVar(2); // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+					ImGui::SameLine(0, 40);
+					ButtonArray<2>("width_history_groups", {
+						MakeButtonSpec("Input", &mShowInput, kInputCorrellationColor, "Show input history series."),
+						MakeButtonSpec("Output", &mShowOutput, kOutputCorrellationColor, "Show output history series."),
+					});
 				}
 				ImGui::EndGroup();
 		}

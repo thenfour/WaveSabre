@@ -109,23 +109,18 @@ struct CompressorVis
 
     if (showToggles)
     {
-      ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {2, 0});
-      ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
-
-      ToggleButton(&mShowInputHistory, "Input");
-      ImGui::SameLine();
-      ToggleButton(&mShowDetectorHistory, "Detector");
-      ImGui::SameLine();
-      ToggleButton(&mShowAttenuationHistory, "Attenuation");
-      ImGui::SameLine();
-      ToggleButton(&mShowOutputHistory, "Output");
+      ButtonArray<4>("compressor_history_series", {
+          MakeButtonSpec("Input", &mShowInputHistory, "666666", "Show or hide input history."),
+          MakeButtonSpec("Detector", &mShowDetectorHistory, "ffcc00", "Show or hide detector history."),
+          MakeButtonSpec("Attenuation", &mShowAttenuationHistory, "cc3333", "Show or hide attenuation history."),
+          MakeButtonSpec("Output", &mShowOutputHistory, "00cccc", "Show or hide output history."),
+      });
 
       ImGui::SameLine(0, 40);
-      ToggleButton(&mShowLeft, "L");
-      ImGui::SameLine();
-      ToggleButton(&mShowRight, "R");
-
-      ImGui::PopStyleVar(2);  // ImGuiStyleVar_ItemSpacing & ImGuiStyleVar_FrameRounding
+      ButtonArray<2>("compressor_history_channels", {
+          MakeButtonSpec("L", &mShowLeft, "4f7ddb", "Show left-channel history series."),
+          MakeButtonSpec("R", &mShowRight, "cc6b7a", "Show right-channel history series."),
+      });
     }
     ImGui::EndGroup();
 

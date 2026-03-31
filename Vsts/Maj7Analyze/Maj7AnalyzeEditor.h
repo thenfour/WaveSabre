@@ -42,6 +42,10 @@ struct Maj7AnalyzeEditor : public VstEditor
   const char* kSignalSideFftColor = bandColors[1];
   const char* kSignalWidthFftColor = bandColors[2];
   const char* kSignalFftColor = bandColors[3];
+  const char* kScopeLinesColor = "66b3ff";
+  const char* kScopePointsColor = "ffcc66";
+  const char* kScopePolyColor = "66dd88";
+  const char* kScopeScissorColor = "cc66ff";
 
   // Stereo visualization layer toggles
   bool mShowGoniometerLines = false;
@@ -128,13 +132,12 @@ struct Maj7AnalyzeEditor : public VstEditor
       RenderStereoImagingDisplay("stereo_imaging_sig", mpMaj7Analyze->mInputImagingAnalysis);
 
       // Layer toggles
-      ToggleButton(&mShowGoniometerLines, "Lines");
-      ImGui::SameLine();
-      ToggleButton(&mShowGoniometerPoints, "Points");
-      ImGui::SameLine();
-      ToggleButton(&mShowPolarL, "Poly");
-      ImGui::SameLine();
-      ToggleButton(&mShowPhaseX, "Scissor");
+      ButtonArray<4>("analyze_scope_layers", {
+          MakeButtonSpec("Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
+          MakeButtonSpec("Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
+          MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
+          MakeButtonSpec("Scissor", &mShowPhaseX, kScopeScissorColor, "Show the scissor-style phase view."),
+      });
     }
 
     mStereoHistory.Render(true,
@@ -152,39 +155,12 @@ struct Maj7AnalyzeEditor : public VstEditor
     ImGui::Separator();
     ImGui::Text("Freq overlays:");
 
-    ToggleButton(&mShowSignalFFT, "Signal", {}, ButtonColorSpec{kSignalFftColor});
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::Text("Main signal");
-      ImGui::EndTooltip();
-    }
-
-    ImGui::SameLine();
-    ToggleButton(&mShowSignalMid, "Mid", {}, ButtonColorSpec{kSignalMidFftColor});
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::Text("Mid / center channel (dB)");
-      ImGui::EndTooltip();
-    }
-
-    ImGui::SameLine();
-    ToggleButton(&mShowSignalSide, "Side", {}, ButtonColorSpec{kSignalSideFftColor});
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::Text("Side channel (dB)");
-      ImGui::EndTooltip();
-    }
-    ImGui::SameLine();
-    ToggleButton(&mShowSignalWidth, "Width", {}, ButtonColorSpec{kSignalWidthFftColor});
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::Text("Width (normalized side) mapped to dB scale");
-      ImGui::EndTooltip();
-    }
+    ButtonArray<4>("analyze_fft_overlays", {
+        MakeButtonSpec("Signal", &mShowSignalFFT, kSignalFftColor, "Show the main signal FFT overlay."),
+        MakeButtonSpec("Mid", &mShowSignalMid, kSignalMidFftColor, "Show the mid / center FFT overlay."),
+        MakeButtonSpec("Side", &mShowSignalSide, kSignalSideFftColor, "Show the side FFT overlay."),
+        MakeButtonSpec("Width", &mShowSignalWidth, kSignalWidthFftColor, "Show width as a normalized side FFT overlay."),
+    });
 
     RenderFrequencyAnalysis();
     ImGui::EndGroup();
@@ -403,13 +379,13 @@ private:
       if (showToggles)
       {
         ButtonArray<7>("displayOptions1" , {
-            MakeButtonSpec("L Peak", &mShowLeftPeak, kLeftPeakColor),
-            MakeButtonSpec("R Peak", &mShowRightPeak, kRightPeakColor),
-            MakeButtonSpec("Correllation", &mShowPhaseCorrelation, kCorrelationColor),
-            MakeButtonSpec("Width", &mShowStereoWidth, kWidthColor),
-            MakeButtonSpec("Balance", &mShowStereoBalance, kBalanceColor),
-            MakeButtonSpec("Mid", &mShowMidLevel, kMidLevelColor),
-            MakeButtonSpec("Side", &mShowSideLevel, kSideLevelColor),
+            MakeButtonSpec("L Peak", &mShowLeftPeak, kLeftPeakColor, "Show the left-channel peak history."),
+            MakeButtonSpec("R Peak", &mShowRightPeak, kRightPeakColor, "Show the right-channel peak history."),
+            MakeButtonSpec("Correllation", &mShowPhaseCorrelation, kCorrelationColor, "Show stereo phase correlation history."),
+            MakeButtonSpec("Width", &mShowStereoWidth, kWidthColor, "Show stereo width history."),
+            MakeButtonSpec("Balance", &mShowStereoBalance, kBalanceColor, "Show stereo balance history."),
+            MakeButtonSpec("Mid", &mShowMidLevel, kMidLevelColor, "Show mid-channel level history."),
+            MakeButtonSpec("Side", &mShowSideLevel, kSideLevelColor, "Show side-channel level history."),
         });
       }
 #else
