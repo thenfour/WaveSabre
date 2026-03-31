@@ -119,6 +119,10 @@ public:
   void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
     if (!mHasOverlay) return;
 
+    const ImDrawListFlags savedFlags = dl->Flags;
+    dl->Flags &= ~(ImDrawListFlags_AntiAliasedLines | ImDrawListFlags_AntiAliasedLinesUseTex | ImDrawListFlags_AntiAliasedFill);
+    dl->PushClipRect(bb.Min, bb.Max, true);
+
     // Determine display min/max
     const float dispMin = mUseIndependentScale ? mDisplayMinDB : coords.mDisplayMinDB;
     const float dispMax = mUseIndependentScale ? mDisplayMaxDB : coords.mDisplayMaxDB;
@@ -142,8 +146,7 @@ public:
       float yMin0 = DBToY(min0, coords, bb);
       float yMin1 = DBToY(min1, coords, bb);
 
-      ImVec2 quad[4] = { {x0, baseline}, {x0, yMin0}, {x1, yMin1}, {x1, baseline} };
-      dl->AddConvexPolyFilled(quad, 4, mOverlay.colorInBoth);
+      dl->AddQuadFilled({x0, baseline}, {x0, yMin0}, {x1, yMin1}, {x1, baseline}, mOverlay.colorInBoth);
     }
 
     // Pass 2: draw A-only (A above B)
@@ -167,8 +170,7 @@ public:
       float yMin0 = DBToY(min0, coords, bb);
       float yMin1 = DBToY(min1, coords, bb);
 
-      ImVec2 quad[4] = { {x0, yA0}, {x1, yA1}, {x1, yMin1}, {x0, yMin0} };
-      dl->AddConvexPolyFilled(quad, 4, mOverlay.colorInAOnly);
+      dl->AddQuadFilled({x0, yA0}, {x1, yA1}, {x1, yMin1}, {x0, yMin0}, mOverlay.colorInAOnly);
     }
 
     // Pass 3: draw B-only (B above A)
@@ -192,9 +194,11 @@ public:
       float yMin0 = DBToY(min0, coords, bb);
       float yMin1 = DBToY(min1, coords, bb);
 
-      ImVec2 quad[4] = { {x0, yB0}, {x1, yB1}, {x1, yMin1}, {x0, yMin0} };
-      dl->AddConvexPolyFilled(quad, 4, mOverlay.colorInBOnly);
+      dl->AddQuadFilled({x0, yB0}, {x1, yB1}, {x1, yMin1}, {x0, yMin0}, mOverlay.colorInBOnly);
     }
+
+    dl->PopClipRect();
+    dl->Flags = savedFlags;
   }
 };
 
@@ -293,6 +297,10 @@ public:
   void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
     if (!mHasOverlay) return;
 
+    const ImDrawListFlags savedFlags = dl->Flags;
+    dl->Flags &= ~(ImDrawListFlags_AntiAliasedLines | ImDrawListFlags_AntiAliasedLinesUseTex | ImDrawListFlags_AntiAliasedFill);
+    dl->PushClipRect(bb.Min, bb.Max, true);
+
     const float zeroY = ValToY(0.0f, coords, bb);
 
     // Draw unity/zero line across graph
@@ -359,6 +367,9 @@ public:
         }
       }
     }
+
+    dl->PopClipRect();
+    dl->Flags = savedFlags;
   }
 };
 

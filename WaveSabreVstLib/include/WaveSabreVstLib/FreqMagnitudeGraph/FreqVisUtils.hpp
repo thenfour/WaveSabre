@@ -9,42 +9,6 @@
 
 namespace WaveSabreVstLib {
 
-//=============================================================================
-// WAVESABRE LAYERED FREQUENCY VISUALIZATION SYSTEM
-//
-// This system provides a clean, composable architecture for frequency domain
-// visualizations. It separates concerns into focused layers that can be mixed
-// and matched for different use cases.
-//
-// CORE COMPONENTS:
-// 1. FrequencyMagnitudeGraph - Main container and coordinate system manager
-// 2. IFrequencyGraphLayer - Base interface for all visualization layers
-// 3. Individual layer implementations for specific features
-//
-// USAGE EXAMPLES:
-//
-// Basic EQ visualization (same as original FrequencyResponseRenderer):
-//   FrequencyMagnitudeGraph<400, 200, true> graph;
-//   graph.AddLayer(std::make_unique<GridLayer<true>>());
-//   graph.AddLayer(std::make_unique<EQResponseLayer<...>>(filters));
-//   graph.AddLayer(std::make_unique<ThumbInteractionLayer<...>>(filters));
-//   graph.Render();
-//
-// Crossover visualization:
-//   CrossoverVisualization<400, 200> crossover;
-//   crossover.SetCrossoverFrequencies({300.0f, 3000.0f});
-//   crossover.Render();
-//
-// Custom visualization with FFT + EQ:
-//   FrequencyMagnitudeGraph<400, 200, true> graph;
-//   graph.AddLayer(std::make_unique<GridLayer<true>>());
-//   graph.AddLayer(std::make_unique<FFTSpectrumLayer<...>>(fftOverlays));
-//   graph.AddLayer(std::make_unique<EQResponseLayer<...>>(filters));
-//   graph.Render();
-//
-//=============================================================================
-
-// Helper function to create a standard EQ visualization
 template <int TWidth, int THeight, size_t TFilterCount, size_t TParamCount>
 std::unique_ptr<FrequencyMagnitudeGraph<TWidth, THeight, true>>
 CreateStandardEQVisualization(
@@ -75,7 +39,6 @@ CreateStandardEQVisualization(
   return graph;
 }
 
-// Helper function to create a visualization with FFT overlay
 template <int TWidth, int THeight>
 std::unique_ptr<FrequencyMagnitudeGraph<TWidth, THeight, true>>
 CreateFFTVisualization(const std::vector<FFTAnalysisOverlay> &fftOverlays) {
