@@ -260,23 +260,22 @@ struct Maj7WidthEditor : public VstEditor
       RenderStereoImagingDisplay("stereo_imaging_inp", mpMaj7Width->mInputImagingAnalysis);
       ImGui::SameLine();
       RenderStereoImagingDisplay("stereo_imaging_outp", mpMaj7Width->mOutputImagingAnalysis);
+    }  // stereo imaging group
 
-      // Toggle buttons for layer visibility
-      {
-        ButtonArray<4>(
-            "width_scope_layers",
-            {
-                MakeButtonSpec(
-                    "Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
-                MakeButtonSpec(
-                    "Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
-                MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
-                MakeButtonSpec("Scissor", &mShowPhaseX, kScopeScissorColor, "Show the scissor-style phase view."),
-            });
-      }
-      {
-        mStereoHistory.Render(true, mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
-      }
+    // Toggle buttons for layer visibility
+    {
+      ButtonArray<4>(
+          "width_scope_layers",
+          {
+              MakeButtonSpec("Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
+              MakeButtonSpec(
+                  "Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
+              MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
+              MakeButtonSpec("Scissor", &mShowPhaseX, kScopeScissorColor, "Show the scissor-style phase view."),
+          });
+    }
+    {
+      mStereoHistory.Render(true, mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
     }
 
     // Frequency analysis visualization (when enabled)
