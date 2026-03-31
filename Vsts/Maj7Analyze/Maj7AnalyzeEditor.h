@@ -27,21 +27,27 @@ struct Maj7AnalyzeEditor : public VstEditor
       mWidthGraph;
 
   // FFT overlay toggles (single signal)
-  bool mShowSignalFFT = true;
+  bool mShowSignalLeft = false;
+  bool mShowSignalRight = false;
+  bool mShowSignalStereo = true;
   bool mShowSignalMid = false;
   bool mShowSignalSide = true;
   bool mShowSignalWidth = false;
 
   // Persist across sessions (FFT toggles)
-  VstSerializableBoolParamRef mShowSignalFFTParam{"ShowSignalFFT", mShowSignalFFT};
+  VstSerializableBoolParamRef mShowSignalLeftParam{"ShowSignalLeftFFT", mShowSignalLeft};
+  VstSerializableBoolParamRef mShowSignalRightParam{"ShowSignalRightFFT", mShowSignalRight};
+  VstSerializableBoolParamRef mShowSignalStereoParam{"ShowSignalStereoFFT", mShowSignalStereo};
   VstSerializableBoolParamRef mShowSignalMidParam{"ShowSignalMidFFT", mShowSignalMid};
   VstSerializableBoolParamRef mShowSignalSideParam{"ShowSignalSideFFT", mShowSignalSide};
   VstSerializableBoolParamRef mShowSignalWidthParam{"ShowSignalWidthFFT", mShowSignalWidth};
 
+  const char* kSignalLeftFftColor = "4f7ddb";
+  const char* kSignalRightFftColor = "cc6b7a";
   const char* kSignalMidFftColor = bandColors[0];
   const char* kSignalSideFftColor = bandColors[1];
   const char* kSignalWidthFftColor = bandColors[2];
-  const char* kSignalFftColor = bandColors[3];
+  const char* kSignalStereoFftColor = bandColors[3];
   const char* kScopeLinesColor = "66b3ff";
   const char* kScopePointsColor = "ffcc66";
   const char* kScopePolyColor = "66dd88";
@@ -155,8 +161,10 @@ struct Maj7AnalyzeEditor : public VstEditor
     ImGui::Separator();
     ImGui::Text("Freq overlays:");
 
-    ButtonArray<4>("analyze_fft_overlays", {
-        MakeButtonSpec("Signal", &mShowSignalFFT, kSignalFftColor, "Show the main signal FFT overlay."),
+    ButtonArray<6>("analyze_fft_overlays", {
+      MakeButtonSpec("L", &mShowSignalLeft, kSignalLeftFftColor, "Show the left-channel FFT overlay."),
+      MakeButtonSpec("R", &mShowSignalRight, kSignalRightFftColor, "Show the right-channel FFT overlay."),
+      MakeButtonSpec("Stereo", &mShowSignalStereo, kSignalStereoFftColor, "Show the combined stereo FFT overlay."),
         MakeButtonSpec("Mid", &mShowSignalMid, kSignalMidFftColor, "Show the mid / center FFT overlay."),
         MakeButtonSpec("Side", &mShowSignalSide, kSignalSideFftColor, "Show the side FFT overlay."),
         MakeButtonSpec("Width", &mShowSignalWidth, kSignalWidthFftColor, "Show width as a normalized side FFT overlay."),
@@ -181,7 +189,9 @@ struct Maj7AnalyzeEditor : public VstEditor
         &mShowPhaseXParam,
 
         // FFT overlays
-        &mShowSignalFFTParam,
+        &mShowSignalLeftParam,
+        &mShowSignalRightParam,
+        &mShowSignalStereoParam,
         &mShowSignalMidParam,
         &mShowSignalSideParam,
         &mShowSignalWidthParam,
@@ -231,13 +241,33 @@ private:
 
     cfg.fftOverlays.clear();
 
-    if (mShowSignalFFT)
+    if (mShowSignalLeft)
+    {
+      cfg.fftOverlays.push_back({&mpMaj7Analyze->mFFT.GetLeftView(),
+                                 ColorFromHTML(kSignalLeftFftColor, 0.9f),
+                                 ColorFromHTML(kSignalLeftFftColor, 0.25f),
+                                 true,
+                                 "Left",
+                                 nullptr});
+    }
+
+    if (mShowSignalRight)
+    {
+      cfg.fftOverlays.push_back({&mpMaj7Analyze->mFFT.GetRightView(),
+                                 ColorFromHTML(kSignalRightFftColor, 0.9f),
+                                 ColorFromHTML(kSignalRightFftColor, 0.25f),
+                                 true,
+                                 "Right",
+                                 nullptr});
+    }
+
+    if (mShowSignalStereo)
     {
       cfg.fftOverlays.push_back({&mpMaj7Analyze->mFFT,
-                                 ColorFromHTML(kSignalFftColor, 0.9f),
-                                 ColorFromHTML(kSignalFftColor, 0.25f),
+                                 ColorFromHTML(kSignalStereoFftColor, 0.9f),
+                                 ColorFromHTML(kSignalStereoFftColor, 0.25f),
                                  true,
-                                 "Signal",
+                                 "Stereo",
                                  nullptr});
     }
 
