@@ -173,6 +173,8 @@ namespace WaveSabreCore
         
         // Mark spectrum as consumed
         void ConsumeSpectrum();
+        const std::vector<SpectrumBin>& GetChannelSpectrum(int channel) const;
+        float GetChannelMagnitudeAtFrequency(int channel, float frequency) const;
         
         // IFrequencyAnalysis implementation
         virtual const std::vector<SpectrumBin>& GetSpectrum() const override;
@@ -188,11 +190,33 @@ namespace WaveSabreCore
     class SmoothedStereoFFT : public IFrequencyAnalysis
     {
     private:
+        class ChannelView : public IFrequencyAnalysis
+        {
+        private:
+            const SmoothedStereoFFT* mOwner = nullptr;
+            int mChannel = 0;
+
+        public:
+            ChannelView() = default;
+            ChannelView(const SmoothedStereoFFT* owner, int channel)
+                : mOwner(owner)
+                , mChannel(channel)
+            {
+            }
+
+            const std::vector<SpectrumBin>& GetSpectrum() const override;
+            float GetMagnitudeAtFrequency(float frequency) const override;
+            float GetFrequencyResolution() const override;
+            float GetNyquistFrequency() const override;
+        };
+
 		FFTAnalysis mFFTAnalysis; // Underlying FFT analysis
-        std::vector<PeakDetector> mPeakDetectors;
-        std::vector<SpectrumBin> mBuffers[2]; // double-buffered output
+        std::vector<PeakDetector> mPeakDetectors[3];
+        std::vector<SpectrumBin> mBuffers[3][2];
         std::atomic<int> mActiveBuffer{0};
         std::atomic<bool> mHasNewOutput{false};
+        ChannelView mLeftView;
+        ChannelView mRightView;
 
         int mSamplesPerFFTUpdate; // How many samples between FFT updates (e.g., 512)
                 int mInputDecimationFactor; // 1 = no decimation, 2 = every other sample, etc.
@@ -208,6 +232,12 @@ namespace WaveSabreCore
         void PublishBuffer(int idx) { mActiveBuffer.store(idx, std::memory_order_release); mHasNewOutput.store(true, std::memory_order_release); }
         void ConfigurePeakDetector(PeakDetector& detector);
         void ConfigurePeakDetectors();
+        void ProcessSpectrumView(const std::vector<SpectrumBin>& rawSpectrum,
+                                 std::vector<PeakDetector>& detectors,
+                                 std::vector<SpectrumBin>& out);
+        float InterpolateMagnitude(const std::vector<SpectrumBin>& spectrum, float frequency) const;
+        const std::vector<SpectrumBin>& GetChannelSpectrum(int channel) const;
+        float GetChannelMagnitudeAtFrequency(int channel, float frequency) const;
 
     public:
         SmoothedStereoFFT();
@@ -244,10 +274,12 @@ namespace WaveSabreCore
         void ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum);
 
         // IFrequencyAnalysis implementation (display-ready smoothed spectrum)
-        const std::vector<SpectrumBin>& GetSpectrum() const { return mBuffers[mActiveBuffer.load(std::memory_order_acquire)]; }
+        const std::vector<SpectrumBin>& GetSpectrum() const { return mBuffers[0][mActiveBuffer.load(std::memory_order_acquire)]; }
         float GetMagnitudeAtFrequency(float frequency) const override;
         float GetFrequencyResolution() const override { return mFFTAnalysis.GetFrequencyResolution(); }
         float GetNyquistFrequency() const override { return mFFTAnalysis.GetNyquistFrequency(); }
+        const IFrequencyAnalysis& GetLeftView() const { return mLeftView; }
+        const IFrequencyAnalysis& GetRightView() const { return mRightView; }
 
         void Reset();
 

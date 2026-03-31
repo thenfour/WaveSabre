@@ -160,6 +160,65 @@ inline void ButtonArray(const char *id, const std::array<ButtonArrayButtonSpec, 
   }
 }
 
+template <typename TEnum>
+struct EnumSelectionButtonSpec
+{
+  std::string label;
+  TEnum value{};
+  const char* color = nullptr;
+  const char* tooltip = nullptr;
+  float spaceBefore = 0.0f;
+  ImVec2 size{};
+};
+
+template <typename TEnum>
+inline EnumSelectionButtonSpec<TEnum> MakeEnumSelectionSpec(const char* label,
+                                                            TEnum value,
+                                                            const char* colorHTML = nullptr,
+                                                            const char* tooltip = nullptr,
+                                                            float spaceBefore = 0.0f,
+                                                            ImVec2 size = {})
+{
+  return EnumSelectionButtonSpec<TEnum>{label, value, colorHTML, tooltip, spaceBefore, size};
+}
+
+template <typename TEnum, size_t N>
+inline bool EnumSelectionButtonArray(const char* id,
+                                     TEnum* selectedValue,
+                                     const std::array<EnumSelectionButtonSpec<TEnum>, N>& buttons)
+{
+  bool changed = false;
+
+  ImGuiScope ims;
+  ims.PushStyleVar(ImGuiStyleVar_ItemSpacing, {2, 0});
+  ims.PushStyleVar(ImGuiStyleVar_FrameRounding, 0);
+
+  ImGuiGroupScope grp{id};
+
+  for (size_t i = 0; i < N; ++i)
+  {
+    const auto& btn = buttons[i];
+    if (i > 0)
+      ImGui::SameLine(0.0f, btn.spaceBefore > 0.0f ? btn.spaceBefore : -1.0f);
+
+    const bool isSelected = selectedValue && (*selectedValue == btn.value);
+    std::string displayLabel = isSelected ? "[x] " : "[ ] ";
+    displayLabel += btn.label;
+
+    bool buttonValue = isSelected;
+    if (ToggleButton(&buttonValue, displayLabel.c_str(), btn.size, ButtonColorSpec{btn.color}, btn.tooltip))
+    {
+      if (selectedValue)
+      {
+        *selectedValue = btn.value;
+      }
+      changed = true;
+    }
+  }
+
+  return changed;
+}
+
 
 struct ParamExplorer
 {

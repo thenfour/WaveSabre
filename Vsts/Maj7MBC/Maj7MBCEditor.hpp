@@ -10,10 +10,25 @@ using namespace WaveSabreCore;
 #include <WaveSabreVstLib/CompressorVis.hpp>
 #include <WaveSabreVstLib/FreqMagnitudeGraph/FFTDiffLayer.hpp>
 #include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
+#include <WaveSabreVstLib/Maj7EditorComponents.hpp>
 
 
 struct Maj7MBCEditor : public VstEditor
 {
+  enum class FftSeriesSelection
+  {
+    Stereo = 0,
+    Left,
+    Right,
+  };
+
+  enum class FftAnalysisSelection
+  {
+    InputOutput = 0,
+    Diff,
+    DiffFlat,
+  };
+
   Maj7MBC* mpMaj7MBC;
   Maj7MBCVst* mpMaj7MBCVst;
   using ParamIndices = Maj7MBC::ParamIndices;
@@ -46,10 +61,8 @@ struct Maj7MBCEditor : public VstEditor
   bool mShowRight = false;
 
   bool mShowCrossoverResponse = true;
-  bool mShowInputFft = true;
-  bool mShowOutputFft = false;
-  bool mShowFftDiff = true;
-  bool mShowFftDiffFlat = false;  // new toggle for FFT diff flat
+  int mFftSeriesSelection = (int)FftSeriesSelection::Stereo;
+  int mFftAnalysisSelection = (int)FftAnalysisSelection::InputOutput;
 
   VstSerializableIntParamRef<int> mEditingBandParam{"EditingBand", mEditingBand};
   VstSerializableBoolParamRef mShowInputHistoryParam{"ShowInputHistory", mShowInputHistory};
@@ -61,10 +74,8 @@ struct Maj7MBCEditor : public VstEditor
   VstSerializableBoolParamRef mShowRightParam{"ShowRight", mShowRight};
 
   VstSerializableBoolParamRef mShowCrossoverResponseParam{"ShowCrossoverResponse", mShowCrossoverResponse};
-  VstSerializableBoolParamRef mShowInputFftParam{"ShowInputFft", mShowInputFft};
-  VstSerializableBoolParamRef mShowOutputFftParam{"ShowOutputFft", mShowOutputFft};
-  VstSerializableBoolParamRef mShowFftDiffParam{"ShowFftDiff", mShowFftDiff};  // serialize diff toggle
-  VstSerializableBoolParamRef mShowFftDiffFlatParam{"ShowFftDiffFlat", mShowFftDiffFlat};
+  VstSerializableIntParamRef<int> mFftSeriesSelectionParam{"FftSeriesSelection", mFftSeriesSelection};
+  VstSerializableIntParamRef<int> mFftAnalysisSelectionParam{"FftAnalysisSelection", mFftAnalysisSelection};
 
   Maj7MBCEditor(AudioEffect* audioEffect)
       : VstEditor(audioEffect, 1150, 1000)
@@ -84,10 +95,8 @@ struct Maj7MBCEditor : public VstEditor
                                                     &mShowLeftParam,
                                                     &mShowRightParam,
                                                     &mShowCrossoverResponseParam,
-                                                    &mShowInputFftParam,
-                                                    &mShowOutputFftParam,
-                                                    &mShowFftDiffParam,
-                                                    &mShowFftDiffFlatParam};
+                                                    &mFftSeriesSelectionParam,
+                                                    &mFftAnalysisSelectionParam};
     return base;
   }
 
@@ -852,12 +861,52 @@ public:
 
       ImGui::SameLine(0, 200);
 
-      ButtonArray<4>("mbc_fft_overlays", {
-          MakeButtonSpec("Input FFT", &mShowInputFft, "888888", "Show the input spectrum overlay."),
-          MakeButtonSpec("Output FFT", &mShowOutputFft, bandColors[1], "Show the output spectrum overlay."),
-          MakeButtonSpec("FFT Diff", &mShowFftDiff, "ff8844", "Show the spectral difference between output and input."),
-          MakeButtonSpec("FFT Diff (flat)", &mShowFftDiffFlat, "cc66ff", "Show the flattened spectral difference view."),
-      });
+      auto selectedSeries = (FftSeriesSelection)mFftSeriesSelection;
+      auto selectedAnalysis = (FftAnalysisSelection)mFftAnalysisSelection;
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Series");
+        ImGui::SameLine();
+        EnumSelectionButtonArray<FftSeriesSelection, 3>("mbc_fft_series",
+                       &selectedSeries,
+                               {
+                                 MakeEnumSelectionSpec("Stereo",
+                                           FftSeriesSelection::Stereo,
+                                           "888888",
+                                           "Show the combined stereo spectrum view."),
+                                 MakeEnumSelectionSpec("Left",
+                                           FftSeriesSelection::Left,
+                                           "4f7ddb",
+                                           "Show the left-channel spectrum view."),
+                                 MakeEnumSelectionSpec("Right",
+                                           FftSeriesSelection::Right,
+                                           "cc6b7a",
+                                           "Show the right-channel spectrum view."),
+                               });
+
+        ImGui::SameLine(0, 20);
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Analysis");
+        ImGui::SameLine();
+        EnumSelectionButtonArray<FftAnalysisSelection, 3>("mbc_fft_analysis",
+                                                       &selectedAnalysis,
+                               {
+                                 MakeEnumSelectionSpec("In+Out",
+                                             FftAnalysisSelection::InputOutput,
+                                             "66aa88",
+                                             "Overlay the selected input and output spectra."),
+                                 MakeEnumSelectionSpec("Diff",
+                                             FftAnalysisSelection::Diff,
+                                             "ff8844",
+                                             "Show the spectral difference between output and input.",
+                                             12.0f),
+                                 MakeEnumSelectionSpec("Flat Diff",
+                                             FftAnalysisSelection::DiffFlat,
+                                             "cc66ff",
+                                             "Show the flattened spectral difference view."),
+                               });
+                mFftSeriesSelection = (int)selectedSeries;
+                mFftAnalysisSelection = (int)selectedAnalysis;
 
       if (mbEnabled)
       {
@@ -882,28 +931,53 @@ public:
 
       // FFT overlays
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-      crossoverCfg.fftOverlays.clear();
-      if (mShowInputFft)
+      const IFrequencyAnalysis* inputSpectrum = &mpMaj7MBC->mInputSpectrum;
+      const IFrequencyAnalysis* outputSpectrum = &mpMaj7MBC->mOutputSpectrum;
+      const char* inputLabel = "Input";
+      const char* outputLabel = "Output";
+
+      switch (selectedSeries)
       {
-        crossoverCfg.fftOverlays.push_back(
-            {&mpMaj7MBC->mInputSpectrum, ColorFromHTML("888888", 0.8f), ColorFromHTML("444444", 0.3f), true, "Input"});
+        case FftSeriesSelection::Left:
+          inputSpectrum = &mpMaj7MBC->mInputSpectrum.GetLeftView();
+          outputSpectrum = &mpMaj7MBC->mOutputSpectrum.GetLeftView();
+          inputLabel = "Input L";
+          outputLabel = "Output L";
+          break;
+
+        case FftSeriesSelection::Right:
+          inputSpectrum = &mpMaj7MBC->mInputSpectrum.GetRightView();
+          outputSpectrum = &mpMaj7MBC->mOutputSpectrum.GetRightView();
+          inputLabel = "Input R";
+          outputLabel = "Output R";
+          break;
+
+        case FftSeriesSelection::Stereo:
+        default:
+          break;
       }
 
-      if (mShowOutputFft)
+      crossoverCfg.fftOverlays.clear();
+      if (selectedAnalysis == FftAnalysisSelection::InputOutput)
       {
-        crossoverCfg.fftOverlays.push_back({&mpMaj7MBC->mOutputSpectrum,
+        crossoverCfg.fftOverlays.push_back({inputSpectrum,
+                                            ColorFromHTML("888888", 0.8f),
+                                            ColorFromHTML("444444", 0.3f),
+                                            true,
+                                            inputLabel});
+        crossoverCfg.fftOverlays.push_back({outputSpectrum,
                                             ColorFromHTML(bandColors[1], 0.5f),
                                             ColorFromHTML(bandColors[1], 0.2f),
                                             true,
-                                            "Output"});
+                                            outputLabel});
       }
 
       // Configure FFT diff overlay
-      if (mShowFftDiff)
+      if (selectedAnalysis == FftAnalysisSelection::Diff)
       {
         FFTDiffOverlay diff{};
-        diff.sourceA = &mpMaj7MBC->mInputSpectrum;
-        diff.sourceB = &mpMaj7MBC->mOutputSpectrum;
+        diff.sourceA = inputSpectrum;
+        diff.sourceB = outputSpectrum;
         mCrossoverGraph.SetFFTDiffOverlay(diff);
       }
       else
@@ -911,11 +985,11 @@ public:
         mCrossoverGraph.ClearFFTDiffOverlay();
       }
 
-      if (mShowFftDiffFlat)
+      if (selectedAnalysis == FftAnalysisSelection::DiffFlat)
       {
         FFTDiffFlatOverlay diffFlat{};
-        diffFlat.sourceB = &mpMaj7MBC->mInputSpectrum;
-        diffFlat.sourceA = &mpMaj7MBC->mOutputSpectrum;
+        diffFlat.sourceB = inputSpectrum;
+        diffFlat.sourceA = outputSpectrum;
         // Default symmetric scale already set in layer; can override if desired:
         mCrossoverGraph.SetFFTDiffFlatOverlay(diffFlat);
         // Ensure default scale [-24..24]

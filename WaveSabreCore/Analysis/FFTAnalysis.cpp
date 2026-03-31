@@ -234,6 +234,8 @@ void MonoFFTAnalysis::Reset()
 
 SmoothedStereoFFT::SmoothedStereoFFT()
     : mFFTAnalysis()
+  , mLeftView(this, 0)
+  , mRightView(this, 1)
     , mSamplesPerFFTUpdate(512)  // initial default; will be updated below
     , mInputDecimationFactor(1)
     , mInputDecimationCounter(0)
@@ -251,6 +253,26 @@ SmoothedStereoFFT::SmoothedStereoFFT()
   SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
 }
 
+const std::vector<SpectrumBin>& SmoothedStereoFFT::ChannelView::GetSpectrum() const
+{
+  return mOwner->GetChannelSpectrum(mChannel);
+}
+
+float SmoothedStereoFFT::ChannelView::GetMagnitudeAtFrequency(float frequency) const
+{
+  return mOwner->GetChannelMagnitudeAtFrequency(mChannel, frequency);
+}
+
+float SmoothedStereoFFT::ChannelView::GetFrequencyResolution() const
+{
+  return mOwner->GetFrequencyResolution();
+}
+
+float SmoothedStereoFFT::ChannelView::GetNyquistFrequency() const
+{
+  return mOwner->GetNyquistFrequency();
+}
+
 void SmoothedStereoFFT::ConfigurePeakDetector(PeakDetector& detector)
 {
   detector.SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
@@ -260,9 +282,12 @@ void SmoothedStereoFFT::ConfigurePeakDetector(PeakDetector& detector)
 
 void SmoothedStereoFFT::ConfigurePeakDetectors()
 {
-  for (auto& detector : mPeakDetectors)
+  for (auto& detectorSet : mPeakDetectors)
   {
-    ConfigurePeakDetector(detector);
+    for (auto& detector : detectorSet)
+    {
+      ConfigurePeakDetector(detector);
+    }
   }
 }
 
@@ -300,31 +325,33 @@ void SmoothedStereoFFT::SetInputDecimationFactor(int factor)
 
 void SmoothedStereoFFT::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpectrum)
 {
-  // Resize if needed
-  if (mPeakDetectors.size() != rawSpectrum.size())
+  int inactive = InactiveBufferIndex();
+  ProcessSpectrumView(rawSpectrum, mPeakDetectors[0], mBuffers[0][inactive]);
+  PublishBuffer(inactive);
+}
+
+void SmoothedStereoFFT::ProcessSpectrumView(const std::vector<SpectrumBin>& rawSpectrum,
+                                           std::vector<PeakDetector>& detectors,
+                                           std::vector<SpectrumBin>& out)
+{
+  if (detectors.size() != rawSpectrum.size())
   {
-    mPeakDetectors.resize(rawSpectrum.size());
-    ConfigurePeakDetectors();
-    // resize buffers
-    mBuffers[0].resize(rawSpectrum.size());
-    mBuffers[1].resize(rawSpectrum.size());
+    detectors.resize(rawSpectrum.size());
+    for (auto& detector : detectors)
+    {
+      ConfigurePeakDetector(detector);
+    }
   }
 
-  int inactive = InactiveBufferIndex();
-  auto& out = mBuffers[inactive];
   out.resize(rawSpectrum.size());
-
-  // Process each bin once per FFT update using multi-step falloff
   for (size_t i = 0; i < rawSpectrum.size(); ++i)
   {
     float magnitudeLinear = M7::math::DecibelsToLinear(rawSpectrum[i].magnitudeDB);
-    mPeakDetectors[i].ProcessSampleMulti(magnitudeLinear, mSamplesPerFFTUpdate);
-    float smoothedMagnitudeDB = M7::math::LinearToDecibels((float)mPeakDetectors[i].mCurrentPeak);
+    detectors[i].ProcessSampleMulti(magnitudeLinear, mSamplesPerFFTUpdate);
+    float smoothedMagnitudeDB = M7::math::LinearToDecibels((float)detectors[i].mCurrentPeak);
     out[i].frequency = rawSpectrum[i].frequency;
     out[i].magnitudeDB = smoothedMagnitudeDB;
   }
-
-  PublishBuffer(inactive);
 }
 
 void SmoothedStereoFFT::ProcessSamples(float leftSample, float rightSample)
@@ -344,8 +371,15 @@ void SmoothedStereoFFT::ProcessSamples(float leftSample, float rightSample)
 
   if (mFFTAnalysis.HasNewSpectrum())
   {
-    const auto& raw = mFFTAnalysis.GetSpectrum();
-    ProcessSpectrum(raw);
+    const auto& rawCombined = mFFTAnalysis.GetSpectrum();
+    const auto& rawLeft = mFFTAnalysis.GetChannelSpectrum(0);
+    const auto& rawRight = mFFTAnalysis.GetChannelSpectrum(1);
+
+    int inactive = InactiveBufferIndex();
+    ProcessSpectrumView(rawCombined, mPeakDetectors[0], mBuffers[0][inactive]);
+    ProcessSpectrumView(rawLeft, mPeakDetectors[1], mBuffers[1][inactive]);
+    ProcessSpectrumView(rawRight, mPeakDetectors[2], mBuffers[2][inactive]);
+    PublishBuffer(inactive);
     mFFTAnalysis.ConsumeSpectrum();
   }
 }
@@ -356,7 +390,11 @@ void SmoothedStereoFFT::ProcessSamples(const M7::FloatPair& s)
 
 float SmoothedStereoFFT::GetMagnitudeAtFrequency(float frequency) const
 {
-  const auto& output = GetSpectrum();
+  return InterpolateMagnitude(GetSpectrum(), frequency);
+}
+
+float SmoothedStereoFFT::InterpolateMagnitude(const std::vector<SpectrumBin>& output, float frequency) const
+{
   if (output.empty() || frequency <= 0.0f || frequency >= mFFTAnalysis.GetNyquistFrequency())
     return -80.0f;
 
@@ -377,11 +415,25 @@ float SmoothedStereoFFT::GetMagnitudeAtFrequency(float frequency) const
   return output[lowerBin].magnitudeDB * (1.0f - fraction) + output[upperBin].magnitudeDB * fraction;
 }
 
+const std::vector<SpectrumBin>& SmoothedStereoFFT::GetChannelSpectrum(int channel) const
+{
+  const int viewIndex = channel == 0 ? 1 : 2;
+  return mBuffers[viewIndex][mActiveBuffer.load(std::memory_order_acquire)];
+}
+
+float SmoothedStereoFFT::GetChannelMagnitudeAtFrequency(int channel, float frequency) const
+{
+  return InterpolateMagnitude(GetChannelSpectrum(channel), frequency);
+}
+
 void SmoothedStereoFFT::Reset()
 {
-  for (auto& detector : mPeakDetectors)
+  for (auto& detectorSet : mPeakDetectors)
   {
-    detector.Reset();  // Use the built-in Reset() method
+    for (auto& detector : detectorSet)
+    {
+      detector.Reset();
+    }
   }
   mFFTAnalysis.Reset();
   mInputDecimationCounter = 0;
@@ -434,6 +486,16 @@ void FFTAnalysis::ConsumeSpectrum()
   mAnalyzers[1].ConsumeSpectrum();
 }
 
+const std::vector<SpectrumBin>& FFTAnalysis::GetChannelSpectrum(int channel) const
+{
+  return mAnalyzers[channel == 0 ? 0 : 1].GetSpectrum();
+}
+
+float FFTAnalysis::GetChannelMagnitudeAtFrequency(int channel, float frequency) const
+{
+  return mAnalyzers[channel == 0 ? 0 : 1].GetMagnitudeAtFrequency(frequency);
+}
+
 const std::vector<SpectrumBin>& FFTAnalysis::GetSpectrum() const
 {
   // Return a combined spectrum for both channels using per-instance buffer
@@ -460,8 +522,8 @@ const std::vector<SpectrumBin>& FFTAnalysis::GetSpectrum() const
 
 float FFTAnalysis::GetMagnitudeAtFrequency(float frequency) const
 {
-  float leftMagnitude = mAnalyzers[0].GetMagnitudeAtFrequency(frequency);
-  float rightMagnitude = mAnalyzers[1].GetMagnitudeAtFrequency(frequency);
+  float leftMagnitude = GetChannelMagnitudeAtFrequency(0, frequency);
+  float rightMagnitude = GetChannelMagnitudeAtFrequency(1, frequency);
 
   // Return the maximum magnitude from both channels
   return std::max(leftMagnitude, rightMagnitude);
