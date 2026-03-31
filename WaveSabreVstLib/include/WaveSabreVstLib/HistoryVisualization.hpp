@@ -187,6 +187,23 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     return bestIndex;
   }
 
+  bool TryGetHoveredSample(const ImRect& bb, int& hoveredIndex, float& hoveredX, float& hoveredY) const {
+    if (mTimestamps.empty() || !ImGui::IsMouseHoveringRect(bb.Min, bb.Max, true)) {
+      return false;
+    }
+
+    hoveredIndex = FindClosestSampleIndex(bb, ImGui::GetIO().MousePos.x);
+    if (hoveredIndex < 0 || hoveredIndex >= (int)mTimestamps.size()) {
+      return false;
+    }
+
+    hoveredX = SampleToX(hoveredIndex, bb);
+    hoveredY = ImGui::GetIO().MousePos.y;
+    hoveredY = hoveredY < bb.Min.y ? bb.Min.y : hoveredY;
+    hoveredY = hoveredY > bb.Max.y ? bb.Max.y : hoveredY;
+    return true;
+  }
+
   void RenderPauseButton(const ImRect& bb) {
     const ImVec2 savedCursorPos = ImGui::GetCursorPos();
     ImGui::PushID(this);
@@ -198,15 +215,50 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     ImGui::SetCursorPos(savedCursorPos);
   }
 
-  void RenderTooltip(const ImRect& bb,
-                     const std::array<HistoryViewSeriesConfig, TSeriesCount>& renderCfg,
-                     const std::array<HistoryTooltipSeriesConfig, TSeriesCount>& tooltipCfg) {
-    if (mTimestamps.empty() || !ImGui::IsMouseHoveringRect(bb.Min, bb.Max, true)) {
+  template<typename TValueToY>
+  void RenderHoverOverlay(const ImRect& bb,
+                          const std::array<HistoryViewSeriesConfig, TSeriesCount>& renderCfg,
+                          const TValueToY& valueToY) {
+    int hoveredIndex = -1;
+    float hoveredX = 0.0f;
+    float hoveredY = 0.0f;
+    if (!TryGetHoveredSample(bb, hoveredIndex, hoveredX, hoveredY)) {
       return;
     }
 
-    const int hoveredIndex = FindClosestSampleIndex(bb, ImGui::GetIO().MousePos.x);
-    if (hoveredIndex < 0 || hoveredIndex >= (int)mTimestamps.size()) {
+    auto* dl = ImGui::GetWindowDrawList();
+    const ImU32 verticalGuideColor = ColorFromHTML("ffffff", 0.35f);
+    const ImU32 horizontalGuideColor = ColorFromHTML("ffffff", 0.18f);
+    const ImU32 markerOutlineColor = ColorFromHTML("111111", 0.95f);
+
+    dl->PushClipRect(bb.Min, bb.Max, true);
+    dl->AddLine({hoveredX, bb.Min.y}, {hoveredX, bb.Max.y}, verticalGuideColor, 1.0f);
+    dl->AddLine({bb.Min.x, hoveredY}, {bb.Max.x, hoveredY}, horizontalGuideColor, 1.0f);
+
+    for (size_t iSeries = 0; iSeries < TSeriesCount; ++iSeries) {
+      if (renderCfg[iSeries].mLineColor.Value.w <= 0.0f) {
+        continue;
+      }
+      if (hoveredIndex >= (int)mSeries[iSeries].mHistDecibels.size()) {
+        continue;
+      }
+
+      const float markerY = valueToY(mSeries[iSeries].mHistDecibels[hoveredIndex], iSeries);
+      const float markerRadius = std::max(3.0f, renderCfg[iSeries].mLineThickness + 1.5f);
+      dl->AddCircleFilled({hoveredX, markerY}, markerRadius + 1.0f, markerOutlineColor, 16);
+      dl->AddCircleFilled({hoveredX, markerY}, markerRadius, renderCfg[iSeries].mLineColor, 16);
+    }
+
+    dl->PopClipRect();
+  }
+
+  void RenderTooltip(const ImRect& bb,
+                     const std::array<HistoryViewSeriesConfig, TSeriesCount>& renderCfg,
+                     const std::array<HistoryTooltipSeriesConfig, TSeriesCount>& tooltipCfg) {
+    int hoveredIndex = -1;
+    float hoveredX = 0.0f;
+    float hoveredY = 0.0f;
+    if (!TryGetHoveredSample(bb, hoveredIndex, hoveredX, hoveredY)) {
       return;
     }
 
@@ -301,6 +353,7 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     }
 
     ImGui::Dummy(gHistViewSize);
+    RenderHoverOverlay(bb, cfg, [&](float value, size_t) { return DbToY(value); });
     RenderPauseButton(bb);
     if (tooltipCfg) {
       RenderTooltip(bb, cfg, *tooltipCfg);
@@ -405,6 +458,7 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     }
 
     ImGui::Dummy(gHistViewSize);
+    RenderHoverOverlay(bb, cfg, [&](float value, size_t seriesIndex) { return ValueToYForSeries(value, seriesIndex); });
     RenderPauseButton(bb);
     if (tooltipCfg) {
       RenderTooltip(bb, cfg, *tooltipCfg);

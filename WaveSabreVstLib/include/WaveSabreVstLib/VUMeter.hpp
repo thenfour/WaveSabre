@@ -871,7 +871,8 @@ inline void VUMeterAtten(const char* id,
                         ImVec2 size = {30, 300},
                         const std::string& tooltipLeft = "",
                         const std::string& tooltipRight = "",
-                        VUMeterTooltipStripScope* tooltipGroup = nullptr)
+                        VUMeterTooltipStripScope* tooltipGroup = nullptr,
+                        const VUMeterConfig* cfgOverride = nullptr)
 {
   static const std::vector<VUMeterTick> smallTickSet = {
       {-1, nullptr},
@@ -882,7 +883,8 @@ inline void VUMeterAtten(const char* id,
       {-12, "-12"},
   };
 
-  const VUMeterConfig cfg = {size, VUMeterLevelMode::Attenuation, VUMeterUnits::Linear, -12.0f, 0.3f, smallTickSet};
+  const VUMeterConfig defaultCfg = {size, VUMeterLevelMode::Attenuation, VUMeterUnits::Linear, -12.0f, 0.3f, smallTickSet};
+  const VUMeterConfig cfg = cfgOverride ? *cfgOverride : defaultCfg;
   VUMeterColors resolvedColors;
   VUMeterResolveColors(cfg, nullptr, resolvedColors);
 

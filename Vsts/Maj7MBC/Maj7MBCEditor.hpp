@@ -1152,6 +1152,25 @@ public:
         ImGui::SameLine();
 
         {
+          static const std::vector<VUMeterTick> softClipAttenuationTicks = {
+            {-1, nullptr},
+            {-2, nullptr},
+            {-3, "-3"},
+            {-6, "-6"},
+            {-9, "-9"},
+            {-12, "-12"},
+            {-18, "-18"},
+            {-24, "-24"},
+          };
+          const VUMeterConfig softClipAttenuationCfg = {
+            kSoftClipAttenuationVuSize,
+            VUMeterLevelMode::Attenuation,
+            VUMeterUnits::Linear,
+            -24.0f,
+            0.3f,
+            softClipAttenuationTicks,
+          };
+
           VUMeterTooltipStripScope tooltipStrip{"mbc_main_vu_strip"};
           VUMeterAtten("scclip",
                        ca[0],
@@ -1159,7 +1178,8 @@ public:
                        kSoftClipAttenuationVuSize,
                        "Soft clip attenuation Left",
                        "Soft clip attenuation Right",
-                       &tooltipStrip);
+                 &tooltipStrip,
+                 &softClipAttenuationCfg);
           ImGui::SameLine();
           VUMeter("main_vu_inp",     //
                   ia[0],             //
