@@ -888,14 +888,14 @@ inline void VUMeterAtten(const char* id,
 
   ImGui::BeginGroup();
   ImGui::PushID(id);
-  if (VUMeter("VU L", nullptr, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
+  if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
   {
     a0.Reset();
     a1.Reset();
   }
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
   ImGui::SameLine();
-  if (VUMeter("VU R", nullptr, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg))
+  if (VUMeter("VU R", &a1.mCurrentRMSValue, &a1.mCurrentPeak, &a1.mCurrentHeldPeak, &a1.mClipIndicator, false, cfg))
   {
     a0.Reset();
     a1.Reset();
@@ -907,14 +907,14 @@ inline void VUMeterAtten(const char* id,
   if (tooltipGroup)
   {
     tooltipGroup->BeginSubBank();
-    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, false, true, resolvedColors.foregroundRMS);
-    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, false, true, resolvedColors.foregroundRMS);
+    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, true, false, resolvedColors.foregroundRMS);
+    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, true, false, resolvedColors.foregroundRMS);
   }
   else if ((!tooltipLeft.empty() || !tooltipRight.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
   {
     std::vector<VUMeterTooltipRow> rows;
-    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, false, true, resolvedColors.foregroundRMS));
-    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, false, true, resolvedColors.foregroundRMS));
+    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, true, false, resolvedColors.foregroundRMS));
+    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, true, false, resolvedColors.foregroundRMS));
     if (!rows.empty())
     {
       ImGui::BeginTooltip();

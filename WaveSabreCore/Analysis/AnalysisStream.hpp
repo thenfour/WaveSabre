@@ -58,11 +58,13 @@ struct AnalysisStream : IAnalysisStream
 // Attenuation/gain reduction analysis for compressor/clipper visualization
 struct AttenuationAnalysisStream : IAnalysisStream
 {
+  RMSDetector mRMSDetector;
   PeakDetector mPeakDetector;
   PeakDetector mPeakHoldDetector;
 
   explicit AttenuationAnalysisStream(double peakFalloffMS = 1200)
   {
+    mRMSDetector.SetWindowSize(200);
     mPeakDetector.SetParams(0, 0, peakFalloffMS);
     mPeakHoldDetector.SetParams(1000, 1000, peakFalloffMS);
   }
@@ -75,6 +77,7 @@ struct AttenuationAnalysisStream : IAnalysisStream
     const double clampedGain = std::max(1.0e-6, std::min(1.0, s));
     const double reciprocalGain = 1.0 / clampedGain;
 
+    mCurrentRMSValue = 1.0 / std::max(1.0, mRMSDetector.ProcessSample(reciprocalGain));
     mPeakDetector.ProcessSample(reciprocalGain);
     mPeakHoldDetector.ProcessSample(reciprocalGain);
 
@@ -85,9 +88,11 @@ struct AttenuationAnalysisStream : IAnalysisStream
 
   virtual void Reset() override
   {
+    mRMSDetector.Reset();
     mPeakHoldDetector.Reset();
     mPeakDetector.Reset();
     mClipIndicator = 0;
+    mCurrentRMSValue = 0;
     mCurrentPeak = 0;
     mCurrentHeldPeak = 0;
   }
