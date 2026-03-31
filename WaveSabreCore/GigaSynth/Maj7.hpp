@@ -30,6 +30,7 @@
 
 #include "../DSP/Maj7Envelope.hpp"
 #include "../Filters/Maj7Filter.hpp"
+#include "../Filters/DCFilter.hpp"
 #include "../GigaSynth/GigaParams.hpp"
 #include "../GigaSynth/Maj7Basic.hpp"
 #include "../GigaSynth/Maj7ModMatrix.hpp"
@@ -217,6 +218,8 @@ struct Maj7 : public Maj7SynthDevice
 
   float mParamCache[(int)GigaSynthParamIndices::NumParams];
   ParamAccessor mParams{mParamCache, 0};
+
+  DCFilter mDCFilters[2];
 
   // these are not REALLY lfos, they are used to track phase at the device level, for when an LFO's phase should be synced between all voices.
   // that would happen only when all of the following are satisfied:
@@ -488,6 +491,7 @@ struct Maj7 : public Maj7SynthDevice
       {
         float o = s[ioutput];
         o *= masterGain;
+        o = mDCFilters[ioutput].ProcessSample(o);
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
         outputs[ioutput][iSample] = SelectStreamValue(mOutputStreams[ioutput], o);
         if (isGuiVisible)

@@ -211,16 +211,16 @@ static constexpr int16_t gLevellerDefaults16[(int)ParamIndices::NumParams] = {
     {
       float s1 = inputs[0][iSample];
       float s2 = inputs[1][iSample];
-
+      
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       if (IsGuiVisible())
       {
-        mInputAnalysis[0].WriteSample(inputs[0][iSample]);
-        mInputAnalysis[1].WriteSample(inputs[1][iSample]);
+        mInputAnalysis[0].WriteSample(s1);
+        mInputAnalysis[1].WriteSample(s2);
         mInputSpectrumSmoother.ProcessSamples(s1, s2);
       }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
-
+      
       if (enableDC)
       {
         s1 = mDCFilters[0].ProcessSample(s1);
