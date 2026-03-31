@@ -11,10 +11,7 @@ using namespace WaveSabreCore;
 #include <WaveSabreCore/../../Analysis/StereoImageAnalysis.hpp>
 #include <WaveSabreVstLib/FreqMagnitudeGraph/FrequencyResponseRendererLayered.hpp>
 #include <WaveSabreVstLib/HistoryVisualization.hpp>
-#include <WaveSabreVstLib/Width/CorrelationMeter.hpp>
-#include <WaveSabreVstLib/Width/Goniometer.hpp>
-#include <WaveSabreVstLib/Width/PolarL.hpp>
-#include <WaveSabreVstLib/Width/StereoBalance.hpp>
+#include <WaveSabreVstLib/Width/StereoImagingDisplay.hpp>
 
 
 struct Maj7AnalyzeEditor : public VstEditor
@@ -135,7 +132,9 @@ struct Maj7AnalyzeEditor : public VstEditor
     ImGui::SameLine();
     {
       ImGuiGroupScope _grp("stereo_imaging_sig");
-      RenderStereoImagingDisplay("stereo_imaging_sig", mpMaj7Analyze->mInputImagingAnalysis);
+      RenderStereoImagingDisplay("stereo_imaging_sig",
+                 mpMaj7Analyze->mInputImagingAnalysis,
+                 {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
 
       // Layer toggles
       ButtonArray<4>("analyze_scope_layers", {
@@ -436,132 +435,6 @@ private:
   VstSerializableBoolParamRef mShowSideLevelParam{"ShowSideLevel", mStereoHistory.mShowSideLevel};
 
 
-  // Main layered visualization renderer (single stream)
-  void RenderLayeredStereoVisualization(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size)
-  {
-    auto* dl = ImGui::GetWindowDrawList();
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    ImRect bb(pos, {pos.x + size.x, pos.y + size.y});
-
-    // Background and grid (always shown)
-    dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(20, 20, 20, 255));
-    dl->AddRect(bb.Min, bb.Max, IM_COL32(100, 100, 100, 255));
-
-    ImVec2 center = {bb.Min.x + size.x * 0.5f, bb.Min.y + size.y * 0.5f};
-    const float radius = std::min(size.x, size.y) * 0.45f;
-
-    // Draw concentric circles for magnitude reference
-    for (int i = 1; i <= 4; ++i)
-    {
-      float r = radius * i * 0.25f;
-      dl->AddCircle(center, r, IM_COL32(60, 60, 60, 100), 32, 1.0f);
-    }
-
-    // Draw angular reference lines
-    for (int angle = 0; angle < 360; angle += 30)
-    {
-      float rad = angle * 3.14159f / 180.0f;
-      ImVec2 lineEnd = {center.x + cos(rad) * radius, center.y + sin(rad) * radius};
-      ImU32 color = (angle % 90 == 0) ? IM_COL32(120, 120, 120, 150) : IM_COL32(80, 80, 80, 100);
-      dl->AddLine(center, lineEnd, color, (angle % 90 == 0) ? 1.5f : 1.0f);
-    }
-
-    // Add reference labels for key angles
-    dl->AddText({center.x - 4, bb.Min.y + 2}, IM_COL32(100, 255, 100, 150), "M");      // Mono
-    dl->AddText({bb.Max.x - 15, center.y - 8}, IM_COL32(150, 150, 255, 150), "R");     // Right
-    dl->AddText({center.x - 20, bb.Max.y - 16}, IM_COL32(255, 100, 100, 150), "inv");  // Side/Phase
-    dl->AddText({bb.Min.x + 2, center.y - 8}, IM_COL32(150, 150, 255, 150), "L");      // Left
-
-    // Render layers in order (bottom to top)
-    if (mShowPolarL)
-    {
-      RenderPolarLLayer(id, analysis, size, center, radius);
-    }
-
-    if (mShowGoniometerPoints)
-    {
-      RenderGoniometerLayer(id, analysis, size, center, radius, true);
-    }
-
-    if (mShowGoniometerLines)
-    {
-      RenderGoniometerLayer(id, analysis, size, center, radius, false);
-    }
-
-    if (mShowPhaseX)
-    {
-      RenderPhaseCorrelationOverlay(id, analysis, size, center, radius);
-    }
-
-    ImGui::Dummy(size);
-  }
-
-
-  void RenderStereoImagingDisplay(const char* id, const StereoImagingAnalysisStream& analysis)
-  {
-    ImGuiGroupScope _scope(id);
-
-    static constexpr int dim = 250;
-    ImVec2 meterSize(dim, 30);
-
-    RenderCorrelationMeter("correlation", analysis.mPhaseCorrelation, {dim, 30});
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::Text("Phase correlation");
-      ImGui::Separator();
-      ImGui::Text("Indicates stereo phase correlation:");
-      ImGui::BulletText("-1.0: out of phase (180\xC2\xB0)");
-      ImGui::BulletText(" 0.0: No correlation (random phase)");
-      ImGui::BulletText("+1.0: Perfectly in phase (0\xC2\xB0)");
-      ImGui::EndTooltip();
-    }
-
-    RenderGeneralMeter(
-        analysis.mStereoWidth, 0, 1, meterSize, "Stereo width", 0, {"008800", 0.5, "ffff00", 1.0, "ff0000"});
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::Text("Stereo width");
-      ImGui::Separator();
-      ImGui::Text("Indicates how much of the total signal energy is the side channel.");
-      ImGui::BulletText("0.0: Mono (no side channel)");
-      ImGui::BulletText("1.0: Widest possible (no mid signal)");
-      ImGui::EndTooltip();
-    }
-
-    RenderGeneralMeter(analysis.mStereoBalance,
-                       -1,
-                       1,
-                       meterSize,
-                       "Left-right balance",
-                       0,
-                       {
-                           "ff0000",
-                           -0.5,
-                           "ffff00",
-                           -0.2,
-                           "00ff00",
-                           +0.2,
-                           "ffff00",
-                           +0.5,
-                           "ff0000",
-                       });
-
-    if (ImGui::IsItemHovered())
-    {
-      ImGui::BeginTooltip();
-      ImGui::Text("Left-right balance");
-      ImGui::Separator();
-      ImGui::Text("Indicates the balance between left and right channels:");
-      ImGui::BulletText("-1.0: Full left (right channel silent)");
-      ImGui::BulletText(" 0.0: Centered (equal left/right)");
-      ImGui::BulletText("+1.0: Full right (left channel silent)");
-      ImGui::EndTooltip();
-    }
-
-    RenderLayeredStereoVisualization("stereovis", analysis, {dim, dim});
-  }
 };
 
 WaveSabreVstLib::VstEditor* createEditor(AudioEffect* audioEffect)
