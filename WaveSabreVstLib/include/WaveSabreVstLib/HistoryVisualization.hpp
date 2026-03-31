@@ -7,6 +7,8 @@
 #include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
 #include <deque>
 #include <array>
+#include <cmath>
+#include <cstdio>
 
 using namespace WaveSabreCore;
 
@@ -31,6 +33,108 @@ struct HistoryViewSeries {
   }
 };
 
+enum class HistoryTooltipValueFormat {
+  StoredDecibels,
+  LinearToDecibels,
+  SignedFloat,
+  UnsignedFloat,
+};
+
+struct HistoryTooltipSeriesConfig {
+  const char* mLabel = nullptr;
+  ImColor mSwatchColor;
+  bool mShowInTooltip = true;
+  HistoryTooltipValueFormat mValueFormat = HistoryTooltipValueFormat::StoredDecibels;
+  int mPrecision = 1;
+  const char* mUnitSuffix = "";
+
+  HistoryTooltipSeriesConfig() = default;
+
+  HistoryTooltipSeriesConfig(const char* label,
+                             ImColor swatchColor,
+                             bool showInTooltip,
+                             HistoryTooltipValueFormat valueFormat = HistoryTooltipValueFormat::StoredDecibels,
+                             int precision = 1,
+                             const char* unitSuffix = "")
+      : mLabel(label)
+      , mSwatchColor(swatchColor)
+      , mShowInTooltip(showInTooltip)
+      , mValueFormat(valueFormat)
+      , mPrecision(precision)
+      , mUnitSuffix(unitSuffix)
+  {
+  }
+};
+
+static inline void HistoryTooltipFormatValue(char* buffer,
+                                             size_t bufferSize,
+                                             float value,
+                                             const HistoryTooltipSeriesConfig& cfg) {
+  float displayValue = value;
+
+  switch (cfg.mValueFormat) {
+    case HistoryTooltipValueFormat::StoredDecibels:
+      if (!std::isfinite(displayValue)) {
+        std::snprintf(buffer, bufferSize, " -inf dB");
+        return;
+      }
+      std::snprintf(buffer, bufferSize, "%+6.1f dB", displayValue);
+      return;
+
+    case HistoryTooltipValueFormat::LinearToDecibels:
+      displayValue = M7::math::LinearToDecibels(std::fabs(displayValue));
+      if (!std::isfinite(displayValue)) {
+        std::snprintf(buffer, bufferSize, " -inf dB");
+        return;
+      }
+      std::snprintf(buffer, bufferSize, "%+6.1f dB", displayValue);
+      return;
+
+    case HistoryTooltipValueFormat::SignedFloat:
+      std::snprintf(buffer,
+                    bufferSize,
+                    "%+.*f%s%s",
+                    cfg.mPrecision,
+                    displayValue,
+                    (cfg.mUnitSuffix && cfg.mUnitSuffix[0]) ? " " : "",
+                    (cfg.mUnitSuffix && cfg.mUnitSuffix[0]) ? cfg.mUnitSuffix : "");
+      return;
+
+    case HistoryTooltipValueFormat::UnsignedFloat:
+      std::snprintf(buffer,
+                    bufferSize,
+                    "%.*f%s%s",
+                    cfg.mPrecision,
+                    displayValue,
+                    (cfg.mUnitSuffix && cfg.mUnitSuffix[0]) ? " " : "",
+                    (cfg.mUnitSuffix && cfg.mUnitSuffix[0]) ? cfg.mUnitSuffix : "");
+      return;
+  }
+}
+
+static inline void HistoryTooltipNameCell(const HistoryTooltipSeriesConfig& cfg) {
+  if (cfg.mSwatchColor.Value.w > 0.0f) {
+    const float swatchSize = std::floor(ImGui::GetTextLineHeight() * 0.60f);
+    ImVec2 swatchMin = ImGui::GetCursorScreenPos();
+    swatchMin.y += std::floor((ImGui::GetTextLineHeight() - swatchSize) * 0.5f);
+    ImVec2 swatchMax = {swatchMin.x + swatchSize, swatchMin.y + swatchSize};
+    ImGui::GetWindowDrawList()->AddRectFilled(swatchMin, swatchMax, cfg.mSwatchColor, 1.5f);
+    ImGui::Dummy({swatchSize, 0.0f});
+    ImGui::SameLine(0, 6.0f);
+  }
+
+  ImGui::TextUnformatted(cfg.mLabel ? cfg.mLabel : "");
+}
+
+static inline void HistoryTooltipValueCell(const char* value) {
+  const float available = ImGui::GetContentRegionAvail().x;
+  const float textWidth = ImGui::CalcTextSize(value).x;
+  if (available > textWidth) {
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + available - textWidth);
+  }
+  ImGui::TextUnformatted(value);
+}
+
 static constexpr float gHistoryViewMinDB = -50;
 
 template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
@@ -38,22 +142,138 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
   static constexpr float gPixelsPerSample = 4;
   static constexpr int gSamplesInHist =
       (int)(gHistViewSize.x / gPixelsPerSample);
+  static constexpr ImVec2 gOverlayButtonPadding = {6.0f, 6.0f};
 
   HistoryViewSeries mSeries[TSeriesCount];
+  std::deque<double> mTimestamps;
+  bool mPaused = false;
 
-  void Render(const std::array<HistoryViewSeriesConfig, TSeriesCount> &cfg,
-              const std::array<float, TSeriesCount> &linValues) {
-    ImRect bb;
-    bb.Min = ImGui::GetCursorScreenPos();
-    bb.Max = bb.Min + gHistViewSize;
+  float SampleToX(int sample, const ImRect& bb) const {
+    float sx = (float)sample;
+    sx /= gSamplesInHist;
+    return M7::math::lerp(bb.Min.x, bb.Max.x, sx);
+  }
+
+  template<typename TValueArray>
+  void PushSamples(const TValueArray& values) {
+    mTimestamps.push_back(ImGui::GetTime());
+    if (mTimestamps.size() > gSamplesInHist) {
+      mTimestamps.pop_front();
+    }
 
     for (size_t i = 0; i < TSeriesCount; ++i) {
-      float lin = linValues[i];
-
-      mSeries[i].mHistDecibels.push_back(M7::math::LinearToDecibels(lin));
+      mSeries[i].mHistDecibels.push_back(values[i]);
       if (mSeries[i].mHistDecibels.size() > gSamplesInHist) {
         mSeries[i].mHistDecibels.pop_front();
       }
+    }
+  }
+
+  int FindClosestSampleIndex(const ImRect& bb, float mouseX) const {
+    if (mTimestamps.empty()) {
+      return -1;
+    }
+
+    int bestIndex = 0;
+    float bestDistance = std::fabs(mouseX - SampleToX(0, bb));
+    for (int i = 1; i < (int)mTimestamps.size(); ++i) {
+      const float distance = std::fabs(mouseX - SampleToX(i, bb));
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIndex = i;
+      }
+    }
+
+    return bestIndex;
+  }
+
+  void RenderPauseButton(const ImRect& bb) {
+    const ImVec2 savedCursorPos = ImGui::GetCursorPos();
+    ImGui::PushID(this);
+    ImGui::SetCursorScreenPos({bb.Min.x + gOverlayButtonPadding.x, bb.Min.y + gOverlayButtonPadding.y});
+    if (ImGui::SmallButton(mPaused ? "Resume" : "Pause")) {
+      mPaused = !mPaused;
+    }
+    ImGui::PopID();
+    ImGui::SetCursorPos(savedCursorPos);
+  }
+
+  void RenderTooltip(const ImRect& bb,
+                     const std::array<HistoryViewSeriesConfig, TSeriesCount>& renderCfg,
+                     const std::array<HistoryTooltipSeriesConfig, TSeriesCount>& tooltipCfg) {
+    if (mTimestamps.empty() || !ImGui::IsMouseHoveringRect(bb.Min, bb.Max, true)) {
+      return;
+    }
+
+    const int hoveredIndex = FindClosestSampleIndex(bb, ImGui::GetIO().MousePos.x);
+    if (hoveredIndex < 0 || hoveredIndex >= (int)mTimestamps.size()) {
+      return;
+    }
+
+    double elapsedSeconds = mTimestamps[hoveredIndex] - mTimestamps.back();
+    if (std::fabs(elapsedSeconds) < 0.0005) {
+      elapsedSeconds = 0.0;
+    }
+    const double elapsedMilliseconds = elapsedSeconds * 1000.0;
+    const double elapsedSamples = elapsedSeconds * Helpers::CurrentSampleRateF;
+
+    char headerBuffer[128];
+    std::snprintf(headerBuffer,
+                  sizeof(headerBuffer),
+                  "Hovered: %+.3fs (%+.0f ms, %+.0f samples)",
+                  elapsedSeconds,
+                  elapsedMilliseconds,
+                  elapsedSamples);
+
+    ImGui::BeginTooltip();
+    ImGui::TextUnformatted(headerBuffer);
+    ImGui::Spacing();
+
+    if (ImGui::BeginTable("##history_tooltip", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV)) {
+      ImGui::TableSetupColumn("Series");
+      ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthFixed);
+
+      for (size_t i = 0; i < TSeriesCount; ++i) {
+        const auto& ttCfg = tooltipCfg[i];
+        if (!ttCfg.mShowInTooltip || !ttCfg.mLabel || !ttCfg.mLabel[0]) {
+          continue;
+        }
+        if (renderCfg[i].mLineColor.Value.w <= 0.0f) {
+          continue;
+        }
+        if (hoveredIndex >= (int)mSeries[i].mHistDecibels.size()) {
+          continue;
+        }
+
+        char valueBuffer[64];
+        HistoryTooltipFormatValue(valueBuffer, sizeof(valueBuffer), mSeries[i].mHistDecibels[hoveredIndex], ttCfg);
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex(0);
+        HistoryTooltipNameCell(ttCfg);
+        ImGui::TableSetColumnIndex(1);
+        HistoryTooltipValueCell(valueBuffer);
+      }
+
+      ImGui::EndTable();
+    }
+
+    ImGui::EndTooltip();
+  }
+
+  void Render(const std::array<HistoryViewSeriesConfig, TSeriesCount> &cfg,
+              const std::array<float, TSeriesCount> &linValues,
+              const std::array<HistoryTooltipSeriesConfig, TSeriesCount>* tooltipCfg = nullptr) {
+    ImRect bb;
+    bb.Min = ImGui::GetCursorScreenPos();
+    bb.Max = {bb.Min.x + gHistViewSize.x, bb.Min.y + gHistViewSize.y};
+
+    std::array<float, TSeriesCount> dbValues{};
+    for (size_t i = 0; i < TSeriesCount; ++i) {
+      dbValues[i] = M7::math::LinearToDecibels(linValues[i]);
+    }
+    if (!mPaused) {
+      PushSamples(dbValues);
     }
 
     ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
@@ -64,12 +284,6 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
       x = M7::math::clamp01(x);
       return M7::math::lerp(bb.Max.y, bb.Min.y, x);
     };
-    auto SampleToX = [&](int sample) {
-      float sx = (float)sample;
-      sx /= gSamplesInHist; // 0,1
-      return M7::math::lerp(bb.Min.x, bb.Max.x, sx);
-    };
-
     auto *dl = ImGui::GetWindowDrawList();
 
     ImGui::RenderFrame(bb.Min, bb.Max, backgroundColor);
@@ -79,7 +293,7 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
       for (int isample = 0;
            isample < ((signed)mSeries[iSeries].mHistDecibels.size());
            ++isample) {
-        points.push_back({SampleToX(isample),
+        points.push_back({SampleToX(isample, bb),
                           DbToY(mSeries[iSeries].mHistDecibels[isample])});
       }
       dl->AddPolyline(points.data(), (int)points.size(),
@@ -87,23 +301,24 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     }
 
     ImGui::Dummy(gHistViewSize);
+    RenderPauseButton(bb);
+    if (tooltipCfg) {
+      RenderTooltip(bb, cfg, *tooltipCfg);
+    }
   }
 
   // Custom render method for non-dB values (like stereo phase correlation, width, balance)
   void RenderCustom(const std::array<HistoryViewSeriesConfig, TSeriesCount> &cfg,
                     const std::array<float, TSeriesCount> &values,
-                    float globalMinValue = -1.0f, float globalMaxValue = 2.0f) {
+                    float globalMinValue = -1.0f,
+                    float globalMaxValue = 2.0f,
+                    const std::array<HistoryTooltipSeriesConfig, TSeriesCount>* tooltipCfg = nullptr) {
     ImRect bb;
     bb.Min = ImGui::GetCursorScreenPos();
-    bb.Max = bb.Min + gHistViewSize;
+    bb.Max = {bb.Min.x + gHistViewSize.x, bb.Min.y + gHistViewSize.y};
 
-    for (size_t i = 0; i < TSeriesCount; ++i) {
-      float val = values[i];
-      // Store raw values instead of converting to dB
-      mSeries[i].mHistDecibels.push_back(val);
-      if (mSeries[i].mHistDecibels.size() > gSamplesInHist) {
-        mSeries[i].mHistDecibels.pop_front();
-      }
+    if (!mPaused) {
+      PushSamples(values);
     }
 
     ImColor backgroundColor = ColorFromHTML("222222", 1.0f);
@@ -128,12 +343,6 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
       float normalized = (value - globalMinValue) / range;
       normalized = M7::math::clamp01(normalized);
       return M7::math::lerp(bb.Max.y, bb.Min.y, normalized);
-    };
-
-    auto SampleToX = [&](int sample) {
-      float sx = (float)sample;
-      sx /= gSamplesInHist; // 0,1
-      return M7::math::lerp(bb.Min.x, bb.Max.x, sx);
     };
 
     auto *dl = ImGui::GetWindowDrawList();
@@ -186,7 +395,7 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
       for (int isample = 0;
            isample < ((signed)mSeries[iSeries].mHistDecibels.size());
            ++isample) {
-        points.push_back({SampleToX(isample),
+        points.push_back({SampleToX(isample, bb),
                           ValueToYForSeries(mSeries[iSeries].mHistDecibels[isample], iSeries)});
       }
       if (points.size() > 1) {
@@ -196,6 +405,10 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     }
 
     ImGui::Dummy(gHistViewSize);
+    RenderPauseButton(bb);
+    if (tooltipCfg) {
+      RenderTooltip(bb, cfg, *tooltipCfg);
+    }
   }
 };
 

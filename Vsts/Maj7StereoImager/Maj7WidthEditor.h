@@ -404,6 +404,22 @@ private:
 			ImGui::BeginGroup();
 			static constexpr float lineWidth = 2.0f;
 
+			const std::array<HistoryTooltipSeriesConfig, 13> historyTooltipCfg = {
+				HistoryTooltipSeriesConfig{nullptr, ImColor(), false},
+				HistoryTooltipSeriesConfig{nullptr, ImColor(), false},
+				HistoryTooltipSeriesConfig{nullptr, ImColor(), false},
+				HistoryTooltipSeriesConfig{"Input Correlation", ColorFromHTML(kInputCorrellationColor, 0.9f), true, HistoryTooltipValueFormat::SignedFloat, 2},
+				HistoryTooltipSeriesConfig{"Input Width", ColorFromHTML(kInputWidthColor, 0.9f), true, HistoryTooltipValueFormat::UnsignedFloat, 2, "x"},
+				HistoryTooltipSeriesConfig{"Input Balance", ColorFromHTML(kInputBalanceColor, 0.9f), true, HistoryTooltipValueFormat::SignedFloat, 2},
+				HistoryTooltipSeriesConfig{"Input Mid", ColorFromHTML(kInputMidLevelColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels},
+				HistoryTooltipSeriesConfig{"Input Side", ColorFromHTML(kInputSideLevelColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels},
+				HistoryTooltipSeriesConfig{"Output Correlation", ColorFromHTML(kOutputCorrellationColor, 0.9f), true, HistoryTooltipValueFormat::SignedFloat, 2},
+				HistoryTooltipSeriesConfig{"Output Width", ColorFromHTML(kOutputWidthColor, 0.9f), true, HistoryTooltipValueFormat::UnsignedFloat, 2, "x"},
+				HistoryTooltipSeriesConfig{"Output Balance", ColorFromHTML(kOutputBalanceColor, 0.9f), true, HistoryTooltipValueFormat::SignedFloat, 2},
+				HistoryTooltipSeriesConfig{"Output Mid", ColorFromHTML(kOutputMidLevelColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels},
+				HistoryTooltipSeriesConfig{"Output Side", ColorFromHTML(kOutputSideLevelColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels},
+			};
+
 			mHistoryView.RenderCustom({
 				// a unity line
 				HistoryViewSeriesConfig{
@@ -509,7 +525,7 @@ private:
 					static_cast<float>(outputAnalysis.mStereoBalance),                      // -1 to +1  
 					static_cast<float>(outputAnalysis.mMidLevelDetector.mCurrentRMSValue),  // 0 to 1
 					static_cast<float>(outputAnalysis.mSideLevelDetector.mCurrentRMSValue), // 0 to 1
-				}, historyViewMinValue, historyViewMaxValue);
+				}, historyViewMinValue, historyViewMaxValue, &historyTooltipCfg);
 
 				if (showToggles) {
 					ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, { 2, 0 });
@@ -606,7 +622,7 @@ private:
 	void RenderLayeredStereoVisualization(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size) {
 		auto* dl = ImGui::GetWindowDrawList();
 		ImVec2 pos = ImGui::GetCursorScreenPos();
-		ImRect bb(pos, pos + size);
+		ImRect bb(pos, { pos.x + size.x, pos.y + size.y });
 
 		// Background and grid (always shown)
 		dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(20, 20, 20, 255));

@@ -63,6 +63,18 @@ struct CompressorVis
     }
 
     ImGui::SameLine();
+    const std::array<HistoryTooltipSeriesConfig, 9> historyTooltipCfg = {
+      HistoryTooltipSeriesConfig{"Input Left", ColorFromHTML("666666", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Input Right", ColorFromHTML("505050", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Detector Left", ColorFromHTML("ffcc00", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Detector Right", ColorFromHTML("aa8800", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Attenuation Left", ColorFromHTML("cc3333", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Attenuation Right", ColorFromHTML("881111", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Output Left", ColorFromHTML("00cccc", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Output Right", ColorFromHTML("009999", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+      HistoryTooltipSeriesConfig{"Threshold", ColorFromHTML("ffff00", 0.9f), true, HistoryTooltipValueFormat::StoredDecibels},
+    };
+
     mHistoryView.Render(
         {
             // input
@@ -92,7 +104,8 @@ struct CompressorVis
             float(outputAnalysis[0].mCurrentPeak),
             float(outputAnalysis[1].mCurrentPeak),
             M7::math::DecibelsToLinear(comp.mThreshold),
-        });
+          },
+          &historyTooltipCfg);
 
     if (showToggles)
     {
@@ -133,36 +146,24 @@ struct CompressorVis
     VUMeterConfig disabledCfg = mainCfg;
     disabledCfg.levelMode = VUMeterLevelMode::Disabled;
 
-        ImGui::SameLine();
-        {
-          VUMeterTooltipStripScope tooltipStrip{"compressor_vis_vu_strip"};
+    ImGui::SameLine();
+    {
+      VUMeterTooltipStripScope tooltipStrip{"compressor_vis_vu_strip"};
 
-          VUMeter("vu_inp",
-            inputAnalysis[0],
-            inputAnalysis[1],
-            mainCfg,
-            "Input Left",
-            "Input Right",
-            &tooltipStrip);
+      VUMeter("vu_inp", inputAnalysis[0], inputAnalysis[1], mainCfg, "Input Left", "Input Right", &tooltipStrip);
 
-          ImGui::SameLine();
-          VUMeter("vu_atten",
-            attenuationAnalysis[0],
-            attenuationAnalysis[1],
-            enabled ? attenCfg : disabledCfg,
-            "Compression attenuation Left",
-            "Compression attenuation Right",
-            &tooltipStrip);
+      ImGui::SameLine();
+      VUMeter("vu_atten",
+              attenuationAnalysis[0],
+              attenuationAnalysis[1],
+              enabled ? attenCfg : disabledCfg,
+              "Compression attenuation Left",
+              "Compression attenuation Right",
+              &tooltipStrip);
 
-          ImGui::SameLine();
-          VUMeter("vu_outp",
-            outputAnalysis[0],
-            outputAnalysis[1],
-            mainCfg,
-            "Output Left",
-            "Output Right",
-            &tooltipStrip);
-        }
+      ImGui::SameLine();
+      VUMeter("vu_outp", outputAnalysis[0], outputAnalysis[1], mainCfg, "Output Left", "Output Right", &tooltipStrip);
+    }
   }
 };
 

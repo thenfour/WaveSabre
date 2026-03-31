@@ -351,6 +351,15 @@ private:
       ImGuiGroupScope __group{"history"};
       static constexpr float lineWidth = 2.0f;
 
+          std::array<HistoryTooltipSeriesConfig, 10> historyTooltipCfg{};
+          historyTooltipCfg[3] = HistoryTooltipSeriesConfig{"Left Peak", ColorFromHTML(kLeftPeakColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels};
+          historyTooltipCfg[4] = HistoryTooltipSeriesConfig{"Right Peak", ColorFromHTML(kRightPeakColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels};
+          historyTooltipCfg[5] = HistoryTooltipSeriesConfig{"Correlation", ColorFromHTML(kCorrelationColor, 0.9f), true, HistoryTooltipValueFormat::SignedFloat, 2};
+          historyTooltipCfg[6] = HistoryTooltipSeriesConfig{"Width", ColorFromHTML(kWidthColor, 0.9f), true, HistoryTooltipValueFormat::UnsignedFloat, 2, "x"};
+          historyTooltipCfg[7] = HistoryTooltipSeriesConfig{"Balance", ColorFromHTML(kBalanceColor, 0.9f), true, HistoryTooltipValueFormat::SignedFloat, 2};
+          historyTooltipCfg[8] = HistoryTooltipSeriesConfig{"Mid", ColorFromHTML(kMidLevelColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels};
+          historyTooltipCfg[9] = HistoryTooltipSeriesConfig{"Side", ColorFromHTML(kSideLevelColor, 0.9f), true, HistoryTooltipValueFormat::LinearToDecibels};
+
       mHistoryView.RenderCustom(
           {
               // reference lines
@@ -388,7 +397,8 @@ private:
               static_cast<float>(analysis.mSideLevelDetector.mCurrentRMSValue),
           },
           historyViewMinValue,
-          historyViewMaxValue);
+              historyViewMaxValue,
+              &historyTooltipCfg);
 
       if (showToggles)
       {
@@ -425,7 +435,7 @@ private:
   {
     auto* dl = ImGui::GetWindowDrawList();
     ImVec2 pos = ImGui::GetCursorScreenPos();
-    ImRect bb(pos, pos + size);
+    ImRect bb(pos, {pos.x + size.x, pos.y + size.y});
 
     // Background and grid (always shown)
     dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(20, 20, 20, 255));
