@@ -199,83 +199,83 @@ struct Maj7MBC : public Device
   }
   // clang-format on
 
-static_assert((int)ParamIndices::NumParams == 74, "param count probably changed and this needs to be regenerated.");
-static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-  8230, // InGain = 0.25118863582611083984
-  0, // ChMode = 0
-  0, // MBEnable = 0
-  13557, // xAFreq = 0.4137503504753112793
-  21576, // xBFreq = 0.65849626064300537109
-  3, // xASlope = 0.0001220703125
-  3, // xBSlope = 0.0001220703125
-  8230, // OutGain = 0.25118863582611083984
-  32767, // SCEn = 1
-  23197, // SCThr = 0.70794582366943359375
-  32205, // SCOutp = 0.98287886381149291992
-  8230, // AInVol = 0.25118863582611083984
-  8230, // AOutVol = 0.25118863582611083984
-  21844, // AThresh = 0.6666666865348815918
-  15268, // AAttack = 0.46597486734390258789
-  15909, // ARelease = 0.48552104830741882324
-  18938, // ARatio = 0.57798200845718383789
-  4368, // AKnee = 0.13333334028720855713
-  26213, // AChanLnk = 0.80000001192092895508
-  0, // AEnable = 0
-  0, // ASCFEn = 0
-  5949, // AHPF = 0.18155753612518310547
-  11176, // AHPQ = 0.34108528494834899902
-  26213, // ALPF = 0.80000001192092895508
-  11176, // ALPQ = 0.34108528494834899902
-  0, // ADrive = 0
-  7, // ASatMod = 0.000244140625
-  20674, // ASatThr = 0.63095736503601074219
-  0, // AAnalog = 0
-  0, // AWidth = 0
-  0, // APan = 0
-  32767, // ADryWet = 1
-  8230, // BInVol = 0.25118863582611083984
-  8230, // BOutVol = 0.25118863582611083984
-  21844, // BThresh = 0.6666666865348815918
-  15268, // BAttack = 0.46597486734390258789
-  15909, // BRelease = 0.48552104830741882324
-  18938, // BRatio = 0.57798200845718383789
-  4368, // BKnee = 0.13333334028720855713
-  26213, // BChanLnk = 0.80000001192092895508
-  32767, // BEnable = 1
-  0, // BSCFEn = 0
-  5949, // BHPF = 0.18155753612518310547
-  11176, // BHPQ = 0.34108528494834899902
-  26213, // BLPF = 0.80000001192092895508
-  11176, // BLPQ = 0.34108528494834899902
-  0, // BDrive = 0
-  7, // BSatMod = 0.000244140625
-  20674, // BSatThr = 0.63095736503601074219
-  0, // BAnalog = 0
-  0, // BWidth = 0
-  0, // BPan = 0
-  32767, // BDryWet = 1
-  8230, // CInVol = 0.25118863582611083984
-  8230, // COutVol = 0.25118863582611083984
-  21844, // CThresh = 0.6666666865348815918
-  15268, // CAttack = 0.46597486734390258789
-  15909, // CRelease = 0.48552104830741882324
-  18938, // CRatio = 0.57798200845718383789
-  4368, // CKnee = 0.13333334028720855713
-  26213, // CChanLnk = 0.80000001192092895508
-  0, // CEnable = 0
-  0, // CSCFEn = 0
-  5949, // CHPF = 0.18155753612518310547
-  11176, // CHPQ = 0.34108528494834899902
-  26213, // CLPF = 0.80000001192092895508
-  11176, // CLPQ = 0.34108528494834899902
-  0, // CDrive = 0
-  7, // CSatMod = 0.000244140625
-  20674, // CSatThr = 0.63095736503601074219
-  0, // CAnalog = 0
-  0, // CWidth = 0
-  0, // CPan = 0
-  32767, // CDryWet = 1
-};
+  static_assert((int)ParamIndices::NumParams == 74, "param count probably changed and this needs to be regenerated.");
+  static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
+      8230,   // InGain = 0.25118863582611083984
+      0,      // ChMode = 0
+      0,      // MBEnable = 0
+      13557,  // xAFreq = 0.4137503504753112793
+      21576,  // xBFreq = 0.65849626064300537109
+      3,      // xASlope = 0.0001220703125
+      3,      // xBSlope = 0.0001220703125
+      8230,   // OutGain = 0.25118863582611083984
+      32767,  // SCEn = 1
+      23197,  // SCThr = 0.70794582366943359375
+      32205,  // SCOutp = 0.98287886381149291992
+      8230,   // AInVol = 0.25118863582611083984
+      8230,   // AOutVol = 0.25118863582611083984
+      21844,  // AThresh = 0.6666666865348815918
+      15268,  // AAttack = 0.46597486734390258789
+      15909,  // ARelease = 0.48552104830741882324
+      18938,  // ARatio = 0.57798200845718383789
+      4368,   // AKnee = 0.13333334028720855713
+      26213,  // AChanLnk = 0.80000001192092895508
+      0,      // AEnable = 0
+      0,      // ASCFEn = 0
+      5949,   // AHPF = 0.18155753612518310547
+      11176,  // AHPQ = 0.34108528494834899902
+      26213,  // ALPF = 0.80000001192092895508
+      11176,  // ALPQ = 0.34108528494834899902
+      0,      // ADrive = 0
+      7,      // ASatMod = 0.000244140625
+      20674,  // ASatThr = 0.63095736503601074219
+      0,      // AAnalog = 0
+      0,      // AWidth = 0
+      0,      // APan = 0
+      32767,  // ADryWet = 1
+      8230,   // BInVol = 0.25118863582611083984
+      8230,   // BOutVol = 0.25118863582611083984
+      21844,  // BThresh = 0.6666666865348815918
+      15268,  // BAttack = 0.46597486734390258789
+      15909,  // BRelease = 0.48552104830741882324
+      18938,  // BRatio = 0.57798200845718383789
+      4368,   // BKnee = 0.13333334028720855713
+      26213,  // BChanLnk = 0.80000001192092895508
+      32767,  // BEnable = 1
+      0,      // BSCFEn = 0
+      5949,   // BHPF = 0.18155753612518310547
+      11176,  // BHPQ = 0.34108528494834899902
+      26213,  // BLPF = 0.80000001192092895508
+      11176,  // BLPQ = 0.34108528494834899902
+      0,      // BDrive = 0
+      7,      // BSatMod = 0.000244140625
+      20674,  // BSatThr = 0.63095736503601074219
+      0,      // BAnalog = 0
+      0,      // BWidth = 0
+      0,      // BPan = 0
+      32767,  // BDryWet = 1
+      8230,   // CInVol = 0.25118863582611083984
+      8230,   // COutVol = 0.25118863582611083984
+      21844,  // CThresh = 0.6666666865348815918
+      15268,  // CAttack = 0.46597486734390258789
+      15909,  // CRelease = 0.48552104830741882324
+      18938,  // CRatio = 0.57798200845718383789
+      4368,   // CKnee = 0.13333334028720855713
+      26213,  // CChanLnk = 0.80000001192092895508
+      0,      // CEnable = 0
+      0,      // CSCFEn = 0
+      5949,   // CHPF = 0.18155753612518310547
+      11176,  // CHPQ = 0.34108528494834899902
+      26213,  // CLPF = 0.80000001192092895508
+      11176,  // CLPQ = 0.34108528494834899902
+      0,      // CDrive = 0
+      7,      // CSatMod = 0.000244140625
+      20674,  // CSatThr = 0.63095736503601074219
+      0,      // CAnalog = 0
+      0,      // CWidth = 0
+      0,      // CPan = 0
+      32767,  // CDryWet = 1
+  };
 
 
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -336,7 +336,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
         , mInputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
         , mOutputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
         , mDetectorAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
-        , mAttenuationAnalysis{AnalysisStream{gCompressionAttenuationFalloffMS}, AnalysisStream{gCompressionAttenuationFalloffMS}}
+        , mAttenuationAnalysis{AnalysisStream{gCompressionAttenuationFalloffMS},
+                               AnalysisStream{gCompressionAttenuationFalloffMS}}
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     {
     }
@@ -521,6 +522,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   AttenuationAnalysisStream mClippingAnalysis[2];
   SmoothedStereoFFT mInputSpectrum;
   SmoothedStereoFFT mOutputSpectrum;
+  SmoothedMonoFFT mInputMidSpectrum;
+  SmoothedMonoFFT mInputSideSpectrum;
+  SmoothedMonoFFT mOutputMidSpectrum;
+  SmoothedMonoFFT mOutputSideSpectrum;
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   Maj7MBC()
@@ -529,7 +534,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       , mInputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
       , mOutputAnalysis{AnalysisStream{gAnalysisFalloffMS}, AnalysisStream{gAnalysisFalloffMS}}
-      , mClippingAnalysis{AttenuationAnalysisStream{gSoftclipAttenuationFalloffMS}, AttenuationAnalysisStream{gSoftclipAttenuationFalloffMS}}
+      , mClippingAnalysis{AttenuationAnalysisStream{gSoftclipAttenuationFalloffMS},
+                          AttenuationAnalysisStream{gSoftclipAttenuationFalloffMS}}
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   {
     LoadDefaults();
@@ -537,6 +543,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
     // Keep FFT visualization active while reducing analysis CPU cost.
     mInputSpectrum.SetInputDecimationFactor(2);
     mOutputSpectrum.SetInputDecimationFactor(2);
+    mInputMidSpectrum.SetInputDecimationFactor(2);
+    mInputSideSpectrum.SetInputDecimationFactor(2);
+    mOutputMidSpectrum.SetInputDecimationFactor(2);
+    mOutputSideSpectrum.SetInputDecimationFactor(2);
 #endif
   }
 
@@ -608,6 +618,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
     {
       M7::FloatPair s{inputs[0][i], inputs[1][i]};
       s *= inputGainLin;
+      const M7::FloatPair inputStereo = s;
+      const M7::FloatPair inputMs = inputStereo.MSEncode();
 
       // channel mode processing. everything internally is 2-channel, and there's the channel mix knob,
       // so for mid or side modes, we could
@@ -618,7 +630,7 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       // 4. don't set the other channel. in this case it's the original input signal but it just doesn't matter because chan link shall be 0 for mid/side modes.
       if (channelMode != ChannelMode::Stereo)
       {
-        s = s.MSEncode();
+        s = inputMs;
       }
 
       // accumulates either mid or side.
@@ -628,7 +640,12 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[0], s[0]);
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[1], s[1]);
-      WRITE_SPECTRUM_SAMPLE(isGuiVisible, mInputSpectrum, s);
+      WRITE_SPECTRUM_SAMPLE(isGuiVisible, mInputSpectrum, inputStereo);
+      if (isGuiVisible)
+      {
+        mInputMidSpectrum.ProcessSample(inputMs[0]);
+        mInputSideSpectrum.ProcessSample(inputMs[1]);
+      }
 
       if (mbEnable)
       {
@@ -656,8 +673,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       }
       else
       {
-         // single wide band
-        auto& band = mBands[1]; // use middle band for processing
+        // single wide band
+        auto& band = mBands[1];  // use middle band for processing
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
         if (band.mMuteSoloEnable)
         {
@@ -702,6 +719,12 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[0], s[0]);
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mOutputAnalysis[1], s[1]);
       WRITE_SPECTRUM_SAMPLE(isGuiVisible, mOutputSpectrum, s);
+      if (isGuiVisible)
+      {
+        const M7::FloatPair outputMs = s.MSEncode();
+        mOutputMidSpectrum.ProcessSample(outputMs[0]);
+        mOutputSideSpectrum.ProcessSample(outputMs[1]);
+      }
 
       outputs[0][i] = s[0];
       outputs[1][i] = s[1];

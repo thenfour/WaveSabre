@@ -20,6 +20,8 @@ struct Maj7MBCEditor : public VstEditor
     Stereo = 0,
     Left,
     Right,
+    Mid,
+    Side,
   };
 
   enum class FftAnalysisSelection
@@ -815,12 +817,61 @@ public:
         mpMaj7MBCVst->setParameter((int)ParamIndices::MultibandEnable, backing);
       }
 
+      ImGui::SameLine(0, 100);
+
+      auto selectedSeries = (FftSeriesSelection)mFftSeriesSelection;
+      auto selectedAnalysis = (FftAnalysisSelection)mFftAnalysisSelection;
+
+      ImGui::AlignTextToFramePadding();
+      //ImGui::TextUnformatted("Series");
+      //ImGui::SameLine();
+      EnumSelectionButtonArray<FftSeriesSelection, 5>(
+          "mbc_fft_series",
+          &selectedSeries,
+          {
+              MakeEnumSelectionSpec(
+                  "Stereo", FftSeriesSelection::Stereo, "888888", "Show the combined stereo spectrum view."),
+              MakeEnumSelectionSpec("Left", FftSeriesSelection::Left, "4f7ddb", "Show the left-channel spectrum view."),
+              MakeEnumSelectionSpec(
+                  "Right", FftSeriesSelection::Right, "cc6b7a", "Show the right-channel spectrum view."),
+              MakeEnumSelectionSpec(
+                  "Mid", FftSeriesSelection::Mid, "bb88ff", "Show the mid / mono spectrum view.", 12.0f),
+              MakeEnumSelectionSpec(
+                  "Side", FftSeriesSelection::Side, "ffbb88", "Show the side / stereo-difference spectrum view."),
+          });
+
+      ImGui::SameLine(0, 20);
+      ImGui::AlignTextToFramePadding();
+      //ImGui::TextUnformatted("Analysis");
+      //ImGui::SameLine();
+      EnumSelectionButtonArray<FftAnalysisSelection, 3>(
+          "mbc_fft_analysis",
+          &selectedAnalysis,
+          {
+              MakeEnumSelectionSpec("In+Out",
+                                    FftAnalysisSelection::InputOutput,
+                                    "66aa88",
+                                    "Overlay the selected input and output spectra."),
+              MakeEnumSelectionSpec("Diff",
+                                    FftAnalysisSelection::Diff,
+                                    "ff8844",
+                                    "Show the spectral difference between output and input.",
+                                    12.0f),
+              MakeEnumSelectionSpec("Flat Diff",
+                                    FftAnalysisSelection::DiffFlat,
+                                    "cc66ff",
+                                    "Show the flattened spectral difference view."),
+          });
+      mFftSeriesSelection = (int)selectedSeries;
+      mFftAnalysisSelection = (int)selectedAnalysis;
+
+
       if (mbEnabled)
       {
         CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
         using CrossoverSlope = M7::CrossoverSlope;
 
-        ImGui::SameLine(0, 40);
+        //ImGui::SameLine(0, 40);
         Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
             ParamIndices::CrossoverASlope,
             "xA slope",
@@ -859,61 +910,17 @@ public:
             });
       }
 
-      ImGui::SameLine(0, 200);
-
-      auto selectedSeries = (FftSeriesSelection)mFftSeriesSelection;
-      auto selectedAnalysis = (FftAnalysisSelection)mFftAnalysisSelection;
-
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Series");
-        ImGui::SameLine();
-        EnumSelectionButtonArray<FftSeriesSelection, 3>("mbc_fft_series",
-                       &selectedSeries,
-                               {
-                                 MakeEnumSelectionSpec("Stereo",
-                                           FftSeriesSelection::Stereo,
-                                           "888888",
-                                           "Show the combined stereo spectrum view."),
-                                 MakeEnumSelectionSpec("Left",
-                                           FftSeriesSelection::Left,
-                                           "4f7ddb",
-                                           "Show the left-channel spectrum view."),
-                                 MakeEnumSelectionSpec("Right",
-                                           FftSeriesSelection::Right,
-                                           "cc6b7a",
-                                           "Show the right-channel spectrum view."),
-                               });
-
-        ImGui::SameLine(0, 20);
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Analysis");
-        ImGui::SameLine();
-        EnumSelectionButtonArray<FftAnalysisSelection, 3>("mbc_fft_analysis",
-                                                       &selectedAnalysis,
-                               {
-                                 MakeEnumSelectionSpec("In+Out",
-                                             FftAnalysisSelection::InputOutput,
-                                             "66aa88",
-                                             "Overlay the selected input and output spectra."),
-                                 MakeEnumSelectionSpec("Diff",
-                                             FftAnalysisSelection::Diff,
-                                             "ff8844",
-                                             "Show the spectral difference between output and input.",
-                                             12.0f),
-                                 MakeEnumSelectionSpec("Flat Diff",
-                                             FftAnalysisSelection::DiffFlat,
-                                             "cc66ff",
-                                             "Show the flattened spectral difference view."),
-                               });
-                mFftSeriesSelection = (int)selectedSeries;
-                mFftAnalysisSelection = (int)selectedAnalysis;
 
       if (mbEnabled)
       {
         ImGui::SameLine();
-        ButtonArray<1>("mbc_crossover_response", {
-            MakeButtonSpec("Crossover response", &mShowCrossoverResponse, "ff00ff", "Show the crossover filter response curves."),
-        });
+        ButtonArray<1>("mbc_crossover_response",
+                       {
+                           MakeButtonSpec("Crossover response",
+                                          &mShowCrossoverResponse,
+                                          "ff00ff",
+                                          "Show the crossover filter response curves."),
+                       });
       }
 
       ImGui::Spacing();
@@ -952,6 +959,20 @@ public:
           outputLabel = "Output R";
           break;
 
+        case FftSeriesSelection::Mid:
+          inputSpectrum = &mpMaj7MBC->mInputMidSpectrum;
+          outputSpectrum = &mpMaj7MBC->mOutputMidSpectrum;
+          inputLabel = "Input M";
+          outputLabel = "Output M";
+          break;
+
+        case FftSeriesSelection::Side:
+          inputSpectrum = &mpMaj7MBC->mInputSideSpectrum;
+          outputSpectrum = &mpMaj7MBC->mOutputSideSpectrum;
+          inputLabel = "Input S";
+          outputLabel = "Output S";
+          break;
+
         case FftSeriesSelection::Stereo:
         default:
           break;
@@ -960,11 +981,8 @@ public:
       crossoverCfg.fftOverlays.clear();
       if (selectedAnalysis == FftAnalysisSelection::InputOutput)
       {
-        crossoverCfg.fftOverlays.push_back({inputSpectrum,
-                                            ColorFromHTML("888888", 0.8f),
-                                            ColorFromHTML("444444", 0.3f),
-                                            true,
-                                            inputLabel});
+        crossoverCfg.fftOverlays.push_back(
+            {inputSpectrum, ColorFromHTML("888888", 0.8f), ColorFromHTML("444444", 0.3f), true, inputLabel});
         crossoverCfg.fftOverlays.push_back({outputSpectrum,
                                             ColorFromHTML(bandColors[1], 0.5f),
                                             ColorFromHTML(bandColors[1], 0.2f),
@@ -1228,22 +1246,22 @@ public:
 
         {
           static const std::vector<VUMeterTick> softClipAttenuationTicks = {
-            {-1, nullptr},
-            {-2, nullptr},
-            {-3, "-3"},
-            {-6, "-6"},
-            {-9, "-9"},
-            {-12, "-12"},
-            {-18, "-18"},
-            {-24, "-24"},
+              {-1, nullptr},
+              {-2, nullptr},
+              {-3, "-3"},
+              {-6, "-6"},
+              {-9, "-9"},
+              {-12, "-12"},
+              {-18, "-18"},
+              {-24, "-24"},
           };
           const VUMeterConfig softClipAttenuationCfg = {
-            kSoftClipAttenuationVuSize,
-            VUMeterLevelMode::Attenuation,
-            VUMeterUnits::Linear,
-            -24.0f,
-            0.3f,
-            softClipAttenuationTicks,
+              kSoftClipAttenuationVuSize,
+              VUMeterLevelMode::Attenuation,
+              VUMeterUnits::Linear,
+              -24.0f,
+              0.3f,
+              softClipAttenuationTicks,
           };
 
           VUMeterTooltipStripScope tooltipStrip{"mbc_main_vu_strip"};
@@ -1253,8 +1271,8 @@ public:
                        kSoftClipAttenuationVuSize,
                        "Soft clip attenuation Left",
                        "Soft clip attenuation Right",
-                 &tooltipStrip,
-                 &softClipAttenuationCfg);
+                       &tooltipStrip,
+                       &softClipAttenuationCfg);
           ImGui::SameLine();
           VUMeter("main_vu_inp",     //
                   ia[0],             //
