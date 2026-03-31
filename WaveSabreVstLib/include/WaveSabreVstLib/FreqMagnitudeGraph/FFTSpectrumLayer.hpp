@@ -155,16 +155,18 @@ public:
       }
 
       if (pts.size() >= 2) {
+        const ImDrawListFlags savedFlags = dl->Flags;
+        dl->Flags &= ~(ImDrawListFlags_AntiAliasedLines | ImDrawListFlags_AntiAliasedLinesUseTex | ImDrawListFlags_AntiAliasedFill);
         dl->PushClipRect(bb.Min, bb.Max, true);
 
+        const float baseline = bb.Max.y;
+        static constexpr float kBaselineClassifyEps = 0.05f;
+
+        auto isInsideFill = [&](const ImVec2& p) {
+          return p.y <= (baseline + kBaselineClassifyEps);
+        };
+
         if (overlay.enableFftFill) {
-          const float baseline = bb.Max.y;
-          static constexpr float kBaselineClassifyEps = 0.05f;
-
-          auto isInsideFill = [&](const ImVec2& p) {
-            return p.y <= (baseline + kBaselineClassifyEps);
-          };
-
           for (size_t i = 0; i + 1 < pts.size(); ++i) {
             const ImVec2& p0 = pts[i];
             const ImVec2& p1 = pts[i + 1];
@@ -193,8 +195,35 @@ public:
           }
         }
 
-        dl->AddPolyline(pts.data(), (int)pts.size(), overlay.fftColor, 0, 1.5f);
+        for (size_t i = 0; i + 1 < pts.size(); ++i) {
+          const ImVec2& p0 = pts[i];
+          const ImVec2& p1 = pts[i + 1];
+          const bool p0AboveBaseline = isInsideFill(p0);
+          const bool p1AboveBaseline = isInsideFill(p1);
+
+          if (!p0AboveBaseline && !p1AboveBaseline) {
+            continue;
+          }
+
+          if (p0AboveBaseline && p1AboveBaseline) {
+            dl->AddLine(p0, p1, overlay.fftColor, 1.0f);
+            continue;
+          }
+
+          const float dy = p1.y - p0.y;
+          const float t = (dy != 0.0f) ? M7::math::clamp01((baseline - p0.y) / dy) : 0.0f;
+          const float xCross = M7::math::lerp(p0.x, p1.x, t);
+          const ImVec2 crossPoint{xCross, baseline};
+
+          if (p0AboveBaseline) {
+            dl->AddLine(p0, crossPoint, overlay.fftColor, 1.0f);
+          } else {
+            dl->AddLine(crossPoint, p1, overlay.fftColor, 1.0f);
+          }
+        }
+
         dl->PopClipRect();
+        dl->Flags = savedFlags;
       }
     }
     
