@@ -136,6 +136,9 @@ struct VUMeterConfig
 struct VUMeterTooltipRow
 {
   std::string name;
+  bool hasSwatch = false;
+  ImColor swatchColor;
+  bool separatorBefore = false;
   bool hasPeak = false;
   float peakDB = 0;
   bool hasRMS = false;
@@ -143,6 +146,70 @@ struct VUMeterTooltipRow
   bool hasClip = false;
   float clipDB = 0;
 };
+
+static inline void VUMeterResolveColors(const VUMeterConfig& cfg,
+                                        const VUMeterColors* colorsOverride,
+                                        VUMeterColors& colors)
+{
+  if (colorsOverride)
+  {
+    colors = *colorsOverride;
+    return;
+  }
+
+  switch (cfg.levelMode)
+  {
+    case VUMeterLevelMode::Audio:
+    {
+      colors.background = ColorFromHTML("2b321c");
+      colors.foregroundRMS = ColorFromHTML("6c9b0a");
+      colors.foregroundPeak = ColorFromHTML("4a6332");
+
+      colors.backgroundOverUnity = ColorFromHTML("440000");
+      colors.foregroundOverUnity = ColorFromHTML("cccc00");
+
+      colors.text = ColorFromHTML("ffffff");
+      colors.tick = ColorFromHTML("00ffff");
+      colors.clipTick = ColorFromHTML("ff0000");
+      colors.peak = ColorFromHTML("6c9b0a", 0.8f);
+      break;
+    }
+    case VUMeterLevelMode::Attenuation:
+    {
+      colors.background = ColorFromHTML("402e2e");
+      colors.foregroundRMS = ColorFromHTML("900000");
+      colors.foregroundPeak = ColorFromHTML("600000");
+
+      colors.backgroundOverUnity = ColorFromHTML("440000");
+      colors.foregroundOverUnity = ColorFromHTML("cccc00");
+
+      colors.text = ColorFromHTML("ffffff");
+      colors.tick = ColorFromHTML("00ffff");
+      colors.clipTick = ColorFromHTML("ff0000");
+      colors.peak = ColorFromHTML("6c9b0a", 0.8f);
+      break;
+    }
+    default:
+    case VUMeterLevelMode::Disabled:
+    {
+      colors.background = ColorFromHTML("222222");
+      colors.foregroundRMS = ColorFromHTML("eeeeee", 0);
+      colors.foregroundPeak = ColorFromHTML("666666", 0);
+
+      colors.backgroundOverUnity = ColorFromHTML("666666", 0);
+      colors.foregroundOverUnity = ColorFromHTML("777777", 0);
+
+      colors.text = ColorFromHTML("555555", .5);
+      colors.tick = ColorFromHTML("666666", 0);
+      colors.clipTick = colors.foregroundRMS;
+      colors.peak = ColorFromHTML("cccccc", 0);
+      break;
+    }
+  }
+
+  colors.text.Value.w = 0.33f;
+  colors.tick.Value.w = 0.33f;
+}
 
 static inline float VUMeterValueToDisplayDB(const VUMeterConfig& cfg, double value)
 {
@@ -158,10 +225,13 @@ static inline VUMeterTooltipRow MakeVUMeterTooltipRow(const std::string& name,
                                                       const IAnalysisStream& analysis,
                                                       const VUMeterConfig& cfg,
                                                       bool includeRMS,
-                                                      bool includeClip)
+                                                      bool includeClip,
+                                                      ImColor swatchColor = ImColor(0, 0, 0, 0))
 {
   VUMeterTooltipRow row;
   row.name = name;
+  row.hasSwatch = swatchColor.Value.w > 0.0f;
+  row.swatchColor = swatchColor;
   row.hasPeak = true;
   row.peakDB = VUMeterValueToDisplayDB(cfg, analysis.mCurrentHeldPeak);
   row.hasRMS = includeRMS;
@@ -188,6 +258,22 @@ static inline void VUMeterFormatTooltipValue(char* buffer, size_t bufferSize, fl
   }
 
   std::snprintf(buffer, bufferSize, "%+6.1f", value);
+}
+
+static inline void VUMeterTooltipNameCell(const VUMeterTooltipRow& row)
+{
+  if (row.hasSwatch)
+  {
+    const float swatchSize = std::floor(ImGui::GetTextLineHeight() * 0.60f);
+    ImVec2 swatchMin = ImGui::GetCursorScreenPos();
+    swatchMin.y += std::floor((ImGui::GetTextLineHeight() - swatchSize) * 0.5f);
+    ImVec2 swatchMax = {swatchMin.x + swatchSize, swatchMin.y + swatchSize};
+    ImGui::GetWindowDrawList()->AddRectFilled(swatchMin, swatchMax, row.swatchColor, 1.5f);
+    ImGui::Dummy({swatchSize, 0.0f});
+    ImGui::SameLine(0, 6.0f);
+  }
+
+  ImGui::TextUnformatted(row.name.c_str());
 }
 
 static inline void VUMeterTooltipValueCell(const char* value)
@@ -218,6 +304,19 @@ static inline void VUMeterRenderTooltipRows(const std::vector<VUMeterTooltipRow>
 
     for (const auto& row : rows)
     {
+      if (row.separatorBefore)
+      {
+        ImGui::TableNextRow(ImGuiTableRowFlags_None, 6.0f);
+        ImGui::TableSetColumnIndex(0);
+        ImVec2 lineMin = ImGui::GetCursorScreenPos();
+        const float lineY = lineMin.y + 2.0f;
+        const float lineRight = ImGui::GetWindowPos().x + ImGui::GetWindowContentRegionMax().x;
+        ImGui::GetWindowDrawList()->AddLine({lineMin.x, lineY},
+                                            {lineRight, lineY},
+                                            ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.08f)));
+        ImGui::Dummy({0.0f, 3.0f});
+      }
+
       char peakBuffer[32] = "";
       char rmsBuffer[32] = "";
       char clipBuffer[32] = "";
@@ -237,7 +336,7 @@ static inline void VUMeterRenderTooltipRows(const std::vector<VUMeterTooltipRow>
 
       ImGui::TableNextRow();
       ImGui::TableSetColumnIndex(0);
-      ImGui::TextUnformatted(row.name.c_str());
+  VUMeterTooltipNameCell(row);
       ImGui::TableSetColumnIndex(1);
       VUMeterTooltipValueCell(peakBuffer);
       ImGui::TableSetColumnIndex(2);
@@ -253,6 +352,7 @@ static inline void VUMeterRenderTooltipRows(const std::vector<VUMeterTooltipRow>
 struct VUMeterTooltipStripScope
 {
   bool mIdSet = false;
+  bool mPendingSubBankSeparator = false;
   std::vector<VUMeterTooltipRow> mRows;
 
   explicit VUMeterTooltipStripScope(const char* id)
@@ -275,7 +375,9 @@ struct VUMeterTooltipStripScope
     }
 
     ImGui::EndGroup();
-    if (!mRows.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    const ImVec2 groupMin = ImGui::GetItemRectMin();
+    const ImVec2 groupMax = ImGui::GetItemRectMax();
+    if (!mRows.empty() && ImGui::IsMouseHoveringRect(groupMin, groupMax, true))
     {
       ImGui::BeginTooltip();
       VUMeterRenderTooltipRows(mRows);
@@ -285,16 +387,28 @@ struct VUMeterTooltipStripScope
 
   void AddRow(const VUMeterTooltipRow& row)
   {
-    mRows.push_back(row);
+    VUMeterTooltipRow resolvedRow = row;
+    resolvedRow.separatorBefore = resolvedRow.separatorBefore || mPendingSubBankSeparator;
+    mPendingSubBankSeparator = false;
+    mRows.push_back(resolvedRow);
+  }
+
+  void BeginSubBank()
+  {
+    if (!mRows.empty())
+    {
+      mPendingSubBankSeparator = true;
+    }
   }
 
   void AddAnalysisRow(const std::string& name,
                       const IAnalysisStream& analysis,
                       const VUMeterConfig& cfg,
                       bool includeRMS,
-                      bool includeClip = true)
+                      bool includeClip = true,
+                      ImColor swatchColor = ImColor(0, 0, 0, 0))
   {
-    AddRow(MakeVUMeterTooltipRow(name, analysis, cfg, includeRMS, includeClip));
+    AddRow(MakeVUMeterTooltipRow(name, analysis, cfg, includeRMS, includeClip, swatchColor));
   }
 };
 
@@ -438,64 +552,7 @@ inline bool VUMeter(const char* id,
                     const VUMeterColors* colorsOverride = nullptr)
 {
   VUMeterColors colors;
-  if (colorsOverride)
-  {
-    colors = *colorsOverride;
-  }
-  else
-  {
-    switch (cfg.levelMode)
-    {
-      case VUMeterLevelMode::Audio:
-      {
-        colors.background = ColorFromHTML("2b321c");
-        colors.foregroundRMS = ColorFromHTML("6c9b0a");
-        colors.foregroundPeak = ColorFromHTML("4a6332");
-
-        colors.backgroundOverUnity = ColorFromHTML("440000");
-        colors.foregroundOverUnity = ColorFromHTML("cccc00");
-
-        colors.text = ColorFromHTML("ffffff");
-        colors.tick = ColorFromHTML("00ffff");
-        colors.clipTick = ColorFromHTML("ff0000");
-        colors.peak = ColorFromHTML("6c9b0a", 0.8f);
-        break;
-      }
-      case VUMeterLevelMode::Attenuation:
-      {
-        colors.background = ColorFromHTML("402e2e");
-        colors.foregroundRMS = ColorFromHTML("900000");
-        colors.foregroundPeak = ColorFromHTML("600000");
-
-        colors.backgroundOverUnity = ColorFromHTML("440000");
-        colors.foregroundOverUnity = ColorFromHTML("cccc00");
-
-        colors.text = ColorFromHTML("ffffff");
-        colors.tick = ColorFromHTML("00ffff");
-        colors.clipTick = ColorFromHTML("ff0000");
-        colors.peak = ColorFromHTML("6c9b0a", 0.8f);
-        break;
-      }
-      default:
-      case VUMeterLevelMode::Disabled:
-      {
-        colors.background = ColorFromHTML("222222");
-        colors.foregroundRMS = ColorFromHTML("eeeeee", 0);
-        colors.foregroundPeak = ColorFromHTML("666666", 0);
-
-        colors.backgroundOverUnity = ColorFromHTML("666666", 0);
-        colors.foregroundOverUnity = ColorFromHTML("777777", 0);
-
-        colors.text = ColorFromHTML("555555", .5);
-        colors.tick = ColorFromHTML("666666", 0);
-        colors.clipTick = colors.foregroundRMS;  // don't bother with clipping for attenuation
-        colors.peak = ColorFromHTML("cccccc", 0);
-        break;
-      }
-    }
-    colors.text.Value.w = 0.33f;
-    colors.tick.Value.w = 0.33f;
-  }
+  VUMeterResolveColors(cfg, colorsOverride, colors);
 
 
   float rmsDB = 0;
@@ -539,7 +596,7 @@ inline bool VUMeter(const char* id,
 
   ImRect bb;
   bb.Min = ImGui::GetCursorScreenPos();
-  bb.Max = bb.Min + cfg.size;
+  bb.Max = {bb.Min.x + cfg.size.x, bb.Min.y + cfg.size.y};
 
   auto* dl = ImGui::GetWindowDrawList();
 
@@ -654,6 +711,9 @@ inline void VUMeter(const char* id,
     pColorOverride = &colorOverride;
   }
 
+  VUMeterColors resolvedColors;
+  VUMeterResolveColors(cfg, pColorOverride, resolvedColors);
+
   ImGui::BeginGroup();
   ImGui::PushID(id);
   if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg, pColorOverride))
@@ -674,14 +734,15 @@ inline void VUMeter(const char* id,
 
   if (tooltipGroup)
   {
-    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, true);
-    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, true);
+    tooltipGroup->BeginSubBank();
+    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, true, true, resolvedColors.foregroundRMS);
+    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, true, true, resolvedColors.foregroundRMS);
   }
   else if ((!tooltipLeft.empty() || !tooltipRight.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
   {
     std::vector<VUMeterTooltipRow> rows;
-    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, true, true));
-    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, true, true));
+    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, true, true, resolvedColors.foregroundRMS));
+    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, true, true, resolvedColors.foregroundRMS));
     if (!rows.empty())
     {
       ImGui::BeginTooltip();
@@ -699,6 +760,9 @@ inline void VUMeter(const char* id,
                     const std::string& tooltipRight = "",
                     VUMeterTooltipStripScope* tooltipGroup = nullptr)
 {
+  VUMeterColors resolvedColors;
+  VUMeterResolveColors(cfg, nullptr, resolvedColors);
+
   ImGui::BeginGroup();
   ImGui::PushID(id);
   if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
@@ -719,14 +783,15 @@ inline void VUMeter(const char* id,
 
   if (tooltipGroup)
   {
-    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, true);
-    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, true);
+    tooltipGroup->BeginSubBank();
+    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, true, true, resolvedColors.foregroundRMS);
+    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, true, true, resolvedColors.foregroundRMS);
   }
   else if ((!tooltipLeft.empty() || !tooltipRight.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
   {
     std::vector<VUMeterTooltipRow> rows;
-    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, true, true));
-    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, true, true));
+    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, true, true, resolvedColors.foregroundRMS));
+    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, true, true, resolvedColors.foregroundRMS));
     if (!rows.empty())
     {
       ImGui::BeginTooltip();
@@ -782,14 +847,15 @@ inline void VUMeterMS(const char* id,
 
   if (tooltipGroup)
   {
-    if (!tooltipMid.empty()) tooltipGroup->AddAnalysisRow(tooltipMid, mid, cfg, true);
-    if (!tooltipSide.empty()) tooltipGroup->AddAnalysisRow(tooltipSide, side, cfg, true);
+    tooltipGroup->BeginSubBank();
+    if (!tooltipMid.empty()) tooltipGroup->AddAnalysisRow(tooltipMid, mid, cfg, true, true, msColors.foregroundRMS);
+    if (!tooltipSide.empty()) tooltipGroup->AddAnalysisRow(tooltipSide, side, cfg, true, true, msColors.foregroundRMS);
   }
   else if ((!tooltipMid.empty() || !tooltipSide.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
   {
     std::vector<VUMeterTooltipRow> rows;
-    if (!tooltipMid.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipMid, mid, cfg, true, true));
-    if (!tooltipSide.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipSide, side, cfg, true, true));
+    if (!tooltipMid.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipMid, mid, cfg, true, true, msColors.foregroundRMS));
+    if (!tooltipSide.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipSide, side, cfg, true, true, msColors.foregroundRMS));
     if (!rows.empty())
     {
       ImGui::BeginTooltip();
@@ -817,6 +883,8 @@ inline void VUMeterAtten(const char* id,
   };
 
   const VUMeterConfig cfg = {size, VUMeterLevelMode::Attenuation, VUMeterUnits::Linear, -12.0f, 0.3f, smallTickSet};
+  VUMeterColors resolvedColors;
+  VUMeterResolveColors(cfg, nullptr, resolvedColors);
 
   ImGui::BeginGroup();
   ImGui::PushID(id);
@@ -838,14 +906,15 @@ inline void VUMeterAtten(const char* id,
 
   if (tooltipGroup)
   {
-    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, false);
-    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, false);
+    tooltipGroup->BeginSubBank();
+    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, false, true, resolvedColors.foregroundRMS);
+    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, false, true, resolvedColors.foregroundRMS);
   }
   else if ((!tooltipLeft.empty() || !tooltipRight.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
   {
     std::vector<VUMeterTooltipRow> rows;
-    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, false, true));
-    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, false, true));
+    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, false, true, resolvedColors.foregroundRMS));
+    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, false, true, resolvedColors.foregroundRMS));
     if (!rows.empty())
     {
       ImGui::BeginTooltip();
