@@ -201,16 +201,19 @@ namespace WaveSabreCore
         // Track current settings to avoid overwriting each other
         float mCurrentHoldTimeMs;
         float mCurrentFalloffTimeMs;
+        float mCurrentAveragingWindowMs;
 
         // Helper to get inactive buffer index
         int InactiveBufferIndex() const { return 1 - mActiveBuffer.load(std::memory_order_acquire); }
         void PublishBuffer(int idx) { mActiveBuffer.store(idx, std::memory_order_release); mHasNewOutput.store(true, std::memory_order_release); }
+        void ConfigurePeakDetector(PeakDetector& detector);
+        void ConfigurePeakDetectors();
 
     public:
         SmoothedStereoFFT();
 
         // Configure FFT/analyzer behavior
-        void SetSampleRate(float sampleRate) { mFFTAnalysis.SetSampleRate(sampleRate); }
+        void SetSampleRate(float sampleRate) { mFFTAnalysis.SetSampleRate(sampleRate); ConfigurePeakDetectors(); }
         void SetWindowType(MonoFFTAnalysis::WindowType windowType) { mFFTAnalysis.SetWindowType(windowType); }
         void SetFFTSmoothing(float smoothing) { mFFTAnalysis.SetSmoothingFactor(smoothing); }
         void SetOverlapFactor(int factor) { mFFTAnalysis.SetOverlapFactor(factor); SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), factor); }
@@ -226,10 +229,12 @@ namespace WaveSabreCore
         // Configure display behavior
         void SetPeakHoldTime(float holdTimeMs);
         void SetFalloffRate(float falloffTimeMs);  // Time for -60dB falloff
+        void SetAveragingWindow(float averagingWindowMs);
         void SetFFTUpdateRate(int fftSize, int overlapFactor); // Update timing parameters
 
         float GetPeakHoldTime() const { return mCurrentHoldTimeMs; }
         float GetFalloffTime() const { return mCurrentFalloffTimeMs; }
+        float GetAveragingWindow() const { return mCurrentAveragingWindowMs; }
 
         // Feed samples and update smoothing when new spectrum is available
         void ProcessSamples(float leftSample, float rightSample);
@@ -265,9 +270,24 @@ namespace WaveSabreCore
 
         float mCurrentHoldTimeMs;
         float mCurrentFalloffTimeMs;
+        float mCurrentAveragingWindowMs;
 
         int InactiveBufferIndex() const { return 1 - mActiveBuffer.load(std::memory_order_acquire); }
         void PublishBuffer(int idx) { mActiveBuffer.store(idx, std::memory_order_release); mHasNewOutput.store(true, std::memory_order_release); }
+        void ConfigurePeakDetector(IPeakDetector& detector)
+        {
+            detector.SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+            detector.SetUseExponentialFalloff(true);
+            detector.SetAveragingWindowMS(mCurrentAveragingWindowMs);
+        }
+
+        void ConfigurePeakDetectors()
+        {
+            for (auto& detector : mPeakDetectors)
+            {
+                ConfigurePeakDetector(detector);
+            }
+        }
 
     public:
         SmoothedMonoFFT()
@@ -275,17 +295,19 @@ namespace WaveSabreCore
             , mSamplesPerFFTUpdate(512)
             , mCurrentHoldTimeMs(0.0f)
             , mCurrentFalloffTimeMs(200.0f)
+            , mCurrentAveragingWindowMs(1000.0f)
         {
             // Reasonable defaults similar to stereo variant
             mFFTAnalysis.SetSmoothingFactor(0.7f);
             mFFTAnalysis.SetOverlapFactor(2);
             SetPeakHoldTime(60);
             SetFalloffRate(1200);
+            SetAveragingWindow(1000);
             SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
         }
 
         // Configure FFT/analyzer behavior
-        void SetSampleRate(float sampleRate) { mFFTAnalysis.SetSampleRate(sampleRate); }
+        void SetSampleRate(float sampleRate) { mFFTAnalysis.SetSampleRate(sampleRate); ConfigurePeakDetectors(); }
         void SetWindowType(MonoFFTAnalysis::WindowType windowType) { mFFTAnalysis.SetWindowType(windowType); }
         void SetFFTSmoothing(float smoothing) { mFFTAnalysis.SetSmoothingFactor(smoothing); }
 		void SetFFTSize(MonoFFTAnalysis::FFTSize fftSize) { 
@@ -304,27 +326,23 @@ namespace WaveSabreCore
         void SetPeakHoldTime(float holdTimeMs)
         {
             mCurrentHoldTimeMs = holdTimeMs;
-            for (size_t i = 0; i < mPeakDetectors.size(); ++i)
-            {
-                //float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
-                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
-                mPeakDetectors[i].SetUseExponentialFalloff(true);
-            }
+            ConfigurePeakDetectors();
         }
         void SetFalloffRate(float falloffTimeMs)
         {
             mCurrentFalloffTimeMs = falloffTimeMs;
-            for (size_t i = 0; i < mPeakDetectors.size(); ++i)
-            {
-                //float frequency = (i < mBuffers[mActiveBuffer.load()].size()) ? mBuffers[mActiveBuffer.load()][i].frequency : 0.0f;
-                mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
-                mPeakDetectors[i].SetUseExponentialFalloff(true);
-            }
+            ConfigurePeakDetectors();
+        }
+        void SetAveragingWindow(float averagingWindowMs)
+        {
+            mCurrentAveragingWindowMs = averagingWindowMs;
+            ConfigurePeakDetectors();
         }
         void SetFFTUpdateRate(int fftSize, int overlapFactor) { mSamplesPerFFTUpdate = (overlapFactor > 0) ? (fftSize / overlapFactor) : fftSize; }
 
         float GetPeakHoldTime() const { return mCurrentHoldTimeMs; }
         float GetFalloffTime() const { return mCurrentFalloffTimeMs; }
+        float GetAveragingWindow() const { return mCurrentAveragingWindowMs; }
 
         // Feed samples and update smoothing when new spectrum is available
         void ProcessSample(float sample)
@@ -338,13 +356,7 @@ namespace WaveSabreCore
                 if (mPeakDetectors.size() != raw.size())
                 {
                     mPeakDetectors.resize(raw.size());
-                    // initialize detectors with current settings and per-bin frequency
-                    for (size_t i = 0; i < mPeakDetectors.size(); ++i)
-                    {
-                        //float frequency = (i < raw.size()) ? raw[i].frequency : 0.0f;
-                        mPeakDetectors[i].SetParams(0, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
-                        mPeakDetectors[i].SetUseExponentialFalloff(true);
-                    }
+                    ConfigurePeakDetectors();
                     // ensure both buffers sized
                     mBuffers[0].resize(raw.size());
                     mBuffers[1].resize(raw.size());

@@ -1134,22 +1134,45 @@ public:
         AnalysisStream ca[2];  // mock
 #endif
 
-        ImGui::SameLine();
-        VUMeterAtten("scclip", ca[0], ca[1], {30, 120});
+          ImGui::SameLine();
+          {
+            VUMeterTooltipStripScope tooltipStrip{"mbc_main_vu_strip"};
+            VUMeterAtten("scclip",
+                 ca[0],
+                 ca[1],
+                 {30, 120},
+                 "Soft clip attenuation Left",
+                 "Soft clip attenuation Right",
+                 &tooltipStrip);
+
+      #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+            auto& ia = mpMaj7MBC->mInputAnalysis;
+            auto& oa = mpMaj7MBC->mOutputAnalysis;
+      #else
+            AnalysisStream ia[2];  // mock
+            AnalysisStream oa[2];  // mock
+      #endif
+
+            ImGui::SameLine();
+            VUMeter("main_vu_inp",
+            ia[0],
+            ia[1],
+            kMainVuMeterSize,
+            "Input Left",
+            "Input Right",
+            nullptr,
+            &tooltipStrip);
+            ImGui::SameLine();
+            VUMeter("main_vu_outp",
+            oa[0],
+            oa[1],
+            kMainVuMeterSize,
+            "Output Left",
+            "Output Right",
+            nullptr,
+            &tooltipStrip);
+          }
       }
-
-#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-      auto& ia = mpMaj7MBC->mInputAnalysis;
-      auto& oa = mpMaj7MBC->mOutputAnalysis;
-#else
-      AnalysisStream ia[2];  // mock
-      AnalysisStream oa[2];  // mock
-#endif
-
-      ImGui::SameLine();
-      VUMeter("main_vu_inp", ia[0], ia[0], kMainVuMeterSize, "Input Left", "Input Right");
-      ImGui::SameLine();
-      VUMeter("main_vu_outp", oa[0], oa[0], kMainVuMeterSize, "Output Left", "Output Right");
     }
     //if (mbEnabled) {
     //}

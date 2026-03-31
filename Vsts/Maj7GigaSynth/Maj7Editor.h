@@ -919,7 +919,16 @@ public:
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
       ImGui::SameLine(0, 160);
-      VUMeter("outputVU", pMaj7->mOutputAnalysis[0], pMaj7->mOutputAnalysis[1], mainCfg);
+  {
+    VUMeterTooltipStripScope tooltipStrip{"gigasynth_output_vu_strip"};
+    VUMeter("outputVU",
+        pMaj7->mOutputAnalysis[0],
+        pMaj7->mOutputAnalysis[1],
+        mainCfg,
+        "Output Left",
+        "Output Right",
+        &tooltipStrip);
+  }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
     }
 

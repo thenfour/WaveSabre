@@ -167,8 +167,13 @@ struct Maj7SatEditor : public VstEditor
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 
-				ImGui::SameLine(); VUMeter("inputVU", iaL, iaR, {15,100 });
-				ImGui::SameLine(); VUMeter("outputVU", oaL, oaR, { 15,100 });
+				ImGui::SameLine();
+				{
+					VUMeterTooltipStripScope tooltipStrip{"sat_vu_strip_a"};
+					VUMeter("inputVU", iaL, iaR, {15,100 }, "Input Left", "Input Right", nullptr, &tooltipStrip);
+					ImGui::SameLine();
+					VUMeter("outputVU", oaL, oaR, { 15,100 }, "Output Left", "Output Right", nullptr, &tooltipStrip);
+				}
 
 				ImGui::EndDisabled();
 
@@ -213,8 +218,13 @@ struct Maj7SatEditor : public VstEditor
         AnalysisStream oaR{};
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-				ImGui::SameLine(); VUMeter("inputVU", iaL, iaR, { 15,100 });
-				ImGui::SameLine(); VUMeter("outputVU", oaL, oaR, { 15,100 });
+				ImGui::SameLine();
+				{
+					VUMeterTooltipStripScope tooltipStrip{"sat_vu_strip_b"};
+					VUMeter("inputVU", iaL, iaR, { 15,100 }, "Input Left", "Input Right", nullptr, &tooltipStrip);
+					ImGui::SameLine();
+					VUMeter("outputVU", oaL, oaR, { 15,100 }, "Output Left", "Output Right", nullptr, &tooltipStrip);
+				}
 
 
 				bool showWarning = false;

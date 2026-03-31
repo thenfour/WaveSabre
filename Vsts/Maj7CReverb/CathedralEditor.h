@@ -77,10 +77,13 @@ public:
     AnalysisStream oaL {};
     AnalysisStream oaR {};
 #endif
-    VUMeter("vu_inp", iaL, iaR);
+    {
+      VUMeterTooltipStripScope tooltipStrip{"cathedral_vu_strip"};
+      VUMeter("vu_inp", iaL, iaR, {30, 300}, "Input Left", "Input Right", nullptr, &tooltipStrip);
 
-    ImGui::SameLine();
-    VUMeter("vu_outp", oaL, oaR);
+      ImGui::SameLine();
+      VUMeter("vu_outp", oaL, oaR, {30, 300}, "Output Left", "Output Right", nullptr, &tooltipStrip);
+    }
   }
 };
 

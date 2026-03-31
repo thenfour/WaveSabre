@@ -133,14 +133,36 @@ struct CompressorVis
     VUMeterConfig disabledCfg = mainCfg;
     disabledCfg.levelMode = VUMeterLevelMode::Disabled;
 
-    ImGui::SameLine();
-    VUMeter("vu_inp", inputAnalysis[0], inputAnalysis[1], mainCfg);
+        ImGui::SameLine();
+        {
+          VUMeterTooltipStripScope tooltipStrip{"compressor_vis_vu_strip"};
 
-    ImGui::SameLine();
-    VUMeter("vu_atten", attenuationAnalysis[0], attenuationAnalysis[1], enabled ? attenCfg : disabledCfg);
+          VUMeter("vu_inp",
+            inputAnalysis[0],
+            inputAnalysis[1],
+            mainCfg,
+            "Input Left",
+            "Input Right",
+            &tooltipStrip);
 
-    ImGui::SameLine();
-    VUMeter("vu_outp", outputAnalysis[0], outputAnalysis[1], mainCfg);
+          ImGui::SameLine();
+          VUMeter("vu_atten",
+            attenuationAnalysis[0],
+            attenuationAnalysis[1],
+            enabled ? attenCfg : disabledCfg,
+            "Compression attenuation Left",
+            "Compression attenuation Right",
+            &tooltipStrip);
+
+          ImGui::SameLine();
+          VUMeter("vu_outp",
+            outputAnalysis[0],
+            outputAnalysis[1],
+            mainCfg,
+            "Output Left",
+            "Output Right",
+            &tooltipStrip);
+        }
   }
 };
 

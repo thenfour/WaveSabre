@@ -102,20 +102,25 @@ struct Maj7AnalyzeEditor : public VstEditor
     };
 
     // Signal meters (single stream)
-    ImGui::SameLine();
-    VUMeter("vu_sig",
+        ImGui::SameLine();
+        {
+          VUMeterTooltipStripScope tooltipStrip{"analyze_vu_strip"};
+          VUMeter("vu_sig",
             mpMaj7Analyze->mLoudnessAnalysis[0],
             mpMaj7Analyze->mLoudnessAnalysis[1],
             mainCfg,
-            "Input left channel",
-            "Input right channel");
-    ImGui::SameLine();
-    VUMeterMS("ms_sig",
-              mpMaj7Analyze->mInputImagingAnalysis.mMidLevelDetector,
-              mpMaj7Analyze->mInputImagingAnalysis.mSideLevelDetector,
-              mainCfg,
-              "Mid channel",
-              "Side channel");
+            "Input Left",
+            "Input Right",
+            &tooltipStrip);
+          ImGui::SameLine();
+          VUMeterMS("ms_sig",
+        mpMaj7Analyze->mInputImagingAnalysis.mMidLevelDetector,
+        mpMaj7Analyze->mInputImagingAnalysis.mSideLevelDetector,
+        mainCfg,
+        "Input Mid",
+        "Input Side",
+        &tooltipStrip);
+        }
 
     ImGui::SameLine();
     {

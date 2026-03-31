@@ -100,9 +100,12 @@ public:
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
     ImGui::SameLine();
-    VUMeter("vu_inp", iaL, iaR);
-    ImGui::SameLine();
-    VUMeter("vu_outp", oaL, oaR);
+        {
+            VUMeterTooltipStripScope tooltipStrip{"echo_vu_strip"};
+            VUMeter("vu_inp", iaL, iaR, {30, 300}, "Input Left", "Input Right", nullptr, &tooltipStrip);
+            ImGui::SameLine();
+            VUMeter("vu_outp", oaL, oaR, {30, 300}, "Output Left", "Output Right", nullptr, &tooltipStrip);
+        }
 
     using ParamIndices = WaveSabreCore::Echo::ParamIndices;
     float leftBufferLengthMs = M7::DelayCore::CalcDelayMS(mpEcho->mParams,

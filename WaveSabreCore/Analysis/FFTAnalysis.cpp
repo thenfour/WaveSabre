@@ -239,38 +239,49 @@ SmoothedStereoFFT::SmoothedStereoFFT()
     , mInputDecimationCounter(0)
     , mCurrentHoldTimeMs(0.0f)       // Default hold time
     , mCurrentFalloffTimeMs(200.0f)  // Default falloff time
+    , mCurrentAveragingWindowMs(1000.0f)
 {
   SetFFTSmoothing(0.7f);
   // Set analyzer overlap and then sync our update rate from the analyzer's actual settings
   SetOverlapFactor(2);
   SetPeakHoldTime(60);
   SetFalloffRate(1200);
+  SetAveragingWindow(1000);
   // Ensure update rate matches current analyzer configuration (no hardcoded size)
   SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
+}
+
+void SmoothedStereoFFT::ConfigurePeakDetector(PeakDetector& detector)
+{
+  detector.SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
+  detector.SetUseExponentialFalloff(true);
+  detector.SetAveragingWindowMS(mCurrentAveragingWindowMs);
+}
+
+void SmoothedStereoFFT::ConfigurePeakDetectors()
+{
+  for (auto& detector : mPeakDetectors)
+  {
+    ConfigurePeakDetector(detector);
+  }
 }
 
 void SmoothedStereoFFT::SetPeakHoldTime(float holdTimeMs)
 {
   mCurrentHoldTimeMs = holdTimeMs;  // Store the new hold time
-
-  // Update all existing peak detectors with current timing and FFT-appropriate falloff mode.
-  for (size_t i = 0; i < mPeakDetectors.size(); ++i)
-  {
-    mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
-    mPeakDetectors[i].SetUseExponentialFalloff(true);
-  }
+  ConfigurePeakDetectors();
 }
 
 void SmoothedStereoFFT::SetFalloffRate(float falloffTimeMs)
 {
   mCurrentFalloffTimeMs = falloffTimeMs;  // Store the new falloff time
+  ConfigurePeakDetectors();
+}
 
-  // Update all existing peak detectors with current timing and FFT-appropriate falloff mode.
-  for (size_t i = 0; i < mPeakDetectors.size(); ++i)
-  {
-    mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
-    mPeakDetectors[i].SetUseExponentialFalloff(true);
-  }
+void SmoothedStereoFFT::SetAveragingWindow(float averagingWindowMs)
+{
+  mCurrentAveragingWindowMs = averagingWindowMs;
+  ConfigurePeakDetectors();
 }
 
 void SmoothedStereoFFT::SetFFTUpdateRate(int fftSize, int overlapFactor)
@@ -293,12 +304,7 @@ void SmoothedStereoFFT::ProcessSpectrum(const std::vector<SpectrumBin>& rawSpect
   if (mPeakDetectors.size() != rawSpectrum.size())
   {
     mPeakDetectors.resize(rawSpectrum.size());
-    // initialize detectors with current settings and FFT-appropriate falloff behavior
-    for (size_t i = 0; i < mPeakDetectors.size(); ++i)
-    {
-      mPeakDetectors[i].SetParams(mCurrentHoldTimeMs, mCurrentHoldTimeMs, mCurrentFalloffTimeMs);
-      mPeakDetectors[i].SetUseExponentialFalloff(true);
-    }
+    ConfigurePeakDetectors();
     // resize buffers
     mBuffers[0].resize(rawSpectrum.size());
     mBuffers[1].resize(rawSpectrum.size());

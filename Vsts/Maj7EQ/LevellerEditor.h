@@ -388,9 +388,12 @@ public:
 
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-    VUMeter("vu_inp", iaL, iaR, kvuMeterSize);
-    ImGui::SameLine();
-    VUMeter("vu_outp", oaL, oaR, kvuMeterSize);
+    {
+      VUMeterTooltipStripScope tooltipStrip{"leveller_vu_strip"};
+      VUMeter("vu_inp", iaL, iaR, kvuMeterSize, "Input Left", "Input Right", nullptr, &tooltipStrip);
+      ImGui::SameLine();
+      VUMeter("vu_outp", oaL, oaR, kvuMeterSize, "Output Left", "Output Right", nullptr, &tooltipStrip);
+    }
 
     ImGui::Spacing();
 

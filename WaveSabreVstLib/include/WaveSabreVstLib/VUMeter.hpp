@@ -6,6 +6,8 @@
 #include "Maj7VstUtils.hpp"
 #include <WaveSabreCore/../../Basic/Helpers.h>
 #include <WaveSabreCore/../../GigaSynth/Maj7Basic.hpp>
+#include <cstdio>
+#include <string>
 #include <vector>
 
 using namespace WaveSabreCore;
@@ -129,6 +131,171 @@ struct VUMeterConfig
   // New optional rendering customization (defaults preserve existing behavior)
   VUMeterRenderStyle renderStyle = VUMeterRenderStyle::ContinuousFill;
   VUMeterStepOptions stepOptions{};
+};
+
+struct VUMeterTooltipRow
+{
+  std::string name;
+  bool hasPeak = false;
+  float peakDB = 0;
+  bool hasRMS = false;
+  float rmsDB = 0;
+  bool hasClip = false;
+  float clipDB = 0;
+};
+
+static inline float VUMeterValueToDisplayDB(const VUMeterConfig& cfg, double value)
+{
+  if (cfg.units == VUMeterUnits::Linear)
+  {
+    return M7::math::LinearToDecibels((float)fabs(value));
+  }
+
+  return (float)value;
+}
+
+static inline VUMeterTooltipRow MakeVUMeterTooltipRow(const std::string& name,
+                                                      const IAnalysisStream& analysis,
+                                                      const VUMeterConfig& cfg,
+                                                      bool includeRMS,
+                                                      bool includeClip)
+{
+  VUMeterTooltipRow row;
+  row.name = name;
+  row.hasPeak = true;
+  row.peakDB = VUMeterValueToDisplayDB(cfg, analysis.mCurrentHeldPeak);
+  row.hasRMS = includeRMS;
+  if (includeRMS)
+  {
+    row.rmsDB = VUMeterValueToDisplayDB(cfg, analysis.mCurrentRMSValue);
+  }
+
+  row.hasClip = includeClip && analysis.mClipIndicator;
+  if (row.hasClip)
+  {
+    row.clipDB = row.peakDB;
+  }
+
+  return row;
+}
+
+static inline void VUMeterFormatTooltipValue(char* buffer, size_t bufferSize, float value)
+{
+  if (!std::isfinite(value))
+  {
+    std::snprintf(buffer, bufferSize, " -inf");
+    return;
+  }
+
+  std::snprintf(buffer, bufferSize, "%+6.1f", value);
+}
+
+static inline void VUMeterTooltipValueCell(const char* value)
+{
+  const float available = ImGui::GetContentRegionAvail().x;
+  const float textWidth = ImGui::CalcTextSize(value).x;
+  if (available > textWidth)
+  {
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + available - textWidth);
+  }
+  ImGui::TextUnformatted(value);
+}
+
+static inline void VUMeterRenderTooltipRows(const std::vector<VUMeterTooltipRow>& rows)
+{
+  if (rows.empty())
+  {
+    return;
+  }
+
+  if (ImGui::BeginTable("##vu_tooltip", 4, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV))
+  {
+    ImGui::TableSetupColumn("Meter");
+    ImGui::TableSetupColumn("Peak(dB)", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("RMS(dB)", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableSetupColumn("Clip(dB)", ImGuiTableColumnFlags_WidthFixed);
+    ImGui::TableHeadersRow();
+
+    for (const auto& row : rows)
+    {
+      char peakBuffer[32] = "";
+      char rmsBuffer[32] = "";
+      char clipBuffer[32] = "";
+
+      if (row.hasPeak)
+      {
+        VUMeterFormatTooltipValue(peakBuffer, sizeof(peakBuffer), row.peakDB);
+      }
+      if (row.hasRMS)
+      {
+        VUMeterFormatTooltipValue(rmsBuffer, sizeof(rmsBuffer), row.rmsDB);
+      }
+      if (row.hasClip)
+      {
+        VUMeterFormatTooltipValue(clipBuffer, sizeof(clipBuffer), row.clipDB);
+      }
+
+      ImGui::TableNextRow();
+      ImGui::TableSetColumnIndex(0);
+      ImGui::TextUnformatted(row.name.c_str());
+      ImGui::TableSetColumnIndex(1);
+      VUMeterTooltipValueCell(peakBuffer);
+      ImGui::TableSetColumnIndex(2);
+      VUMeterTooltipValueCell(row.hasRMS ? rmsBuffer : "");
+      ImGui::TableSetColumnIndex(3);
+      VUMeterTooltipValueCell(row.hasClip ? clipBuffer : "");
+    }
+
+    ImGui::EndTable();
+  }
+}
+
+struct VUMeterTooltipStripScope
+{
+  bool mIdSet = false;
+  std::vector<VUMeterTooltipRow> mRows;
+
+  explicit VUMeterTooltipStripScope(const char* id)
+      : mIdSet(true)
+  {
+    ImGui::BeginGroup();
+    ImGui::PushID(id);
+  }
+
+  VUMeterTooltipStripScope()
+  {
+    ImGui::BeginGroup();
+  }
+
+  ~VUMeterTooltipStripScope()
+  {
+    if (mIdSet)
+    {
+      ImGui::PopID();
+    }
+
+    ImGui::EndGroup();
+    if (!mRows.empty() && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+    {
+      ImGui::BeginTooltip();
+      VUMeterRenderTooltipRows(mRows);
+      ImGui::EndTooltip();
+    }
+  }
+
+  void AddRow(const VUMeterTooltipRow& row)
+  {
+    mRows.push_back(row);
+  }
+
+  void AddAnalysisRow(const std::string& name,
+                      const IAnalysisStream& analysis,
+                      const VUMeterConfig& cfg,
+                      bool includeRMS,
+                      bool includeClip = true)
+  {
+    AddRow(MakeVUMeterTooltipRow(name, analysis, cfg, includeRMS, includeClip));
+  }
 };
 
 // Map a dB value to a Y coordinate inside the meter bounding box.
@@ -452,7 +619,8 @@ inline void VUMeter(const char* id,
                     ImVec2 size = {30, 300},
                     const std::string& tooltipLeft = "",
                     const std::string& tooltipRight = "",
-    const char *htmlColor = nullptr)
+          const char* htmlColor = nullptr,
+          VUMeterTooltipStripScope* tooltipGroup = nullptr)
 {
   static const std::vector<VUMeterTick> standardTickSet = {
       {-3.0f, "3db"},
@@ -486,17 +654,12 @@ inline void VUMeter(const char* id,
     pColorOverride = &colorOverride;
   }
 
+  ImGui::BeginGroup();
   ImGui::PushID(id);
   if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg, pColorOverride))
   {
     a0.Reset();
     a1.Reset();
-  }
-  if (!tooltipLeft.empty() && ImGui::IsItemHovered())
-  {
-    ImGui::BeginTooltip();
-    ImGui::Text(tooltipLeft.c_str());
-    ImGui::EndTooltip();
   }
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
   ImGui::SameLine();
@@ -505,14 +668,27 @@ inline void VUMeter(const char* id,
     a0.Reset();
     a1.Reset();
   }
-  if (!tooltipRight.empty() && ImGui::IsItemHovered())
-  {
-    ImGui::BeginTooltip();
-    ImGui::Text(tooltipRight.c_str());
-    ImGui::EndTooltip();
-  }
   ImGui::PopID();
   ImGui::PopStyleVar();
+  ImGui::EndGroup();
+
+  if (tooltipGroup)
+  {
+    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, true);
+    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, true);
+  }
+  else if ((!tooltipLeft.empty() || !tooltipRight.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+  {
+    std::vector<VUMeterTooltipRow> rows;
+    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, true, true));
+    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, true, true));
+    if (!rows.empty())
+    {
+      ImGui::BeginTooltip();
+      VUMeterRenderTooltipRows(rows);
+      ImGui::EndTooltip();
+    }
+  }
 }
 
 inline void VUMeter(const char* id,
@@ -520,19 +696,15 @@ inline void VUMeter(const char* id,
                     IAnalysisStream& a1,
                     const VUMeterConfig& cfg,
                     const std::string& tooltipLeft = "",
-                    const std::string& tooltipRight = "")
+                    const std::string& tooltipRight = "",
+                    VUMeterTooltipStripScope* tooltipGroup = nullptr)
 {
+  ImGui::BeginGroup();
   ImGui::PushID(id);
   if (VUMeter("VU L", &a0.mCurrentRMSValue, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
   {
     a0.Reset();
     a1.Reset();
-  }
-  if (!tooltipLeft.empty() && ImGui::IsItemHovered())
-  {
-    ImGui::BeginTooltip();
-    ImGui::Text(tooltipLeft.c_str());
-    ImGui::EndTooltip();
   }
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
   ImGui::SameLine();
@@ -541,14 +713,27 @@ inline void VUMeter(const char* id,
     a0.Reset();
     a1.Reset();
   }
-  if (!tooltipRight.empty() && ImGui::IsItemHovered())
-  {
-    ImGui::BeginTooltip();
-    ImGui::Text(tooltipRight.c_str());
-    ImGui::EndTooltip();
-  }
   ImGui::PopID();
   ImGui::PopStyleVar();
+  ImGui::EndGroup();
+
+  if (tooltipGroup)
+  {
+    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, true);
+    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, true);
+  }
+  else if ((!tooltipLeft.empty() || !tooltipRight.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+  {
+    std::vector<VUMeterTooltipRow> rows;
+    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, true, true));
+    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, true, true));
+    if (!rows.empty())
+    {
+      ImGui::BeginTooltip();
+      VUMeterRenderTooltipRows(rows);
+      ImGui::EndTooltip();
+    }
+  }
 }
 
 // Mid-Side VU Meter with blue color scheme
@@ -557,10 +742,12 @@ inline void VUMeterMS(const char* id,
                       IAnalysisStream& side,
                       const VUMeterConfig& cfg,
                       const std::string& tooltipMid,
-                      const std::string& tooltipSide)
+                      const std::string& tooltipSide,
+                      VUMeterTooltipStripScope* tooltipGroup = nullptr)
 {
   VUMeterColors msColors = GetVUMeterColorsForMidSideLevel();
 
+  ImGui::BeginGroup();
   ImGui::PushID(id);
   if (VUMeter("VU M",
               &mid.mCurrentRMSValue,
@@ -573,12 +760,6 @@ inline void VUMeterMS(const char* id,
   {
     mid.Reset();
     side.Reset();
-  }
-  if (!tooltipMid.empty() && ImGui::IsItemHovered())
-  {
-    ImGui::BeginTooltip();
-    ImGui::Text(tooltipMid.c_str());
-    ImGui::EndTooltip();
   }
 
   ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, {1, 0});
@@ -595,17 +776,36 @@ inline void VUMeterMS(const char* id,
     mid.Reset();
     side.Reset();
   }
-  if (!tooltipSide.empty() && ImGui::IsItemHovered())
-  {
-    ImGui::BeginTooltip();
-    ImGui::Text(tooltipSide.c_str());
-    ImGui::EndTooltip();
-  }
   ImGui::PopID();
   ImGui::PopStyleVar();
+  ImGui::EndGroup();
+
+  if (tooltipGroup)
+  {
+    if (!tooltipMid.empty()) tooltipGroup->AddAnalysisRow(tooltipMid, mid, cfg, true);
+    if (!tooltipSide.empty()) tooltipGroup->AddAnalysisRow(tooltipSide, side, cfg, true);
+  }
+  else if ((!tooltipMid.empty() || !tooltipSide.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+  {
+    std::vector<VUMeterTooltipRow> rows;
+    if (!tooltipMid.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipMid, mid, cfg, true, true));
+    if (!tooltipSide.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipSide, side, cfg, true, true));
+    if (!rows.empty())
+    {
+      ImGui::BeginTooltip();
+      VUMeterRenderTooltipRows(rows);
+      ImGui::EndTooltip();
+    }
+  }
 }
 
-inline void VUMeterAtten(const char* id, IAnalysisStream& a0, IAnalysisStream& a1, ImVec2 size = {30, 300})
+inline void VUMeterAtten(const char* id,
+                        IAnalysisStream& a0,
+                        IAnalysisStream& a1,
+                        ImVec2 size = {30, 300},
+                        const std::string& tooltipLeft = "",
+                        const std::string& tooltipRight = "",
+                        VUMeterTooltipStripScope* tooltipGroup = nullptr)
 {
   static const std::vector<VUMeterTick> smallTickSet = {
       {-1, nullptr},
@@ -618,6 +818,7 @@ inline void VUMeterAtten(const char* id, IAnalysisStream& a0, IAnalysisStream& a
 
   const VUMeterConfig cfg = {size, VUMeterLevelMode::Attenuation, VUMeterUnits::Linear, -12.0f, 0.3f, smallTickSet};
 
+  ImGui::BeginGroup();
   ImGui::PushID(id);
   if (VUMeter("VU L", nullptr, &a0.mCurrentPeak, &a0.mCurrentHeldPeak, &a0.mClipIndicator, true, cfg))
   {
@@ -633,6 +834,25 @@ inline void VUMeterAtten(const char* id, IAnalysisStream& a0, IAnalysisStream& a
   }
   ImGui::PopID();
   ImGui::PopStyleVar();
+  ImGui::EndGroup();
+
+  if (tooltipGroup)
+  {
+    if (!tooltipLeft.empty()) tooltipGroup->AddAnalysisRow(tooltipLeft, a0, cfg, false);
+    if (!tooltipRight.empty()) tooltipGroup->AddAnalysisRow(tooltipRight, a1, cfg, false);
+  }
+  else if ((!tooltipLeft.empty() || !tooltipRight.empty()) && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+  {
+    std::vector<VUMeterTooltipRow> rows;
+    if (!tooltipLeft.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipLeft, a0, cfg, false, true));
+    if (!tooltipRight.empty()) rows.push_back(MakeVUMeterTooltipRow(tooltipRight, a1, cfg, false, true));
+    if (!rows.empty())
+    {
+      ImGui::BeginTooltip();
+      VUMeterRenderTooltipRows(rows);
+      ImGui::EndTooltip();
+    }
+  }
 }
 
 }  // namespace WaveSabreVstLib

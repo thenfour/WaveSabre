@@ -172,10 +172,17 @@ struct Maj7WidthEditor : public VstEditor
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
-		ImGui::SameLine(); VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg, "Input left channel", "Input right channel");
-		ImGui::SameLine(); VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg, "Output left channel", "Output right channel");
-		ImGui::SameLine(); VUMeterMS("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg, "Input mid channel", "Input side channel");
-		ImGui::SameLine(); VUMeterMS("ms_outp", mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector, mainCfg, "Output mid channel", "Output side channel");
+		ImGui::SameLine();
+		{
+			VUMeterTooltipStripScope tooltipStrip{"width_vu_strip"};
+			VUMeter("vu_inp", mpMaj7Width->mInputAnalysis[0], mpMaj7Width->mInputAnalysis[1], mainCfg, "Input Left", "Input Right", &tooltipStrip);
+			ImGui::SameLine();
+			VUMeter("vu_outp", mpMaj7Width->mOutputAnalysis[0], mpMaj7Width->mOutputAnalysis[1], mainCfg, "Output Left", "Output Right", &tooltipStrip);
+			ImGui::SameLine();
+			VUMeterMS("ms_inp", mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector, mainCfg, "Input Mid", "Input Side", &tooltipStrip);
+			ImGui::SameLine();
+			VUMeterMS("ms_outp", mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector, mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector, mainCfg, "Output Mid", "Output Side", &tooltipStrip);
+		}
 
 		ImGui::SameLine();
 		// Stereo imaging visualization

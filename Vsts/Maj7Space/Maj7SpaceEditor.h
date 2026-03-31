@@ -164,15 +164,46 @@ struct Maj7SpaceEditor : public VstEditor
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 
       ImGui::SameLine();
-      VUMeter("vu_inp", mpMaj7Space->mInputAnalysis[0], mpMaj7Space->mInputAnalysis[1], vuSize, "Input Left", "Input Right");
-      ImGui::SameLine();
-      VUMeter("vu_delay", mpMaj7Space->mDelayAnalysis[0], mpMaj7Space->mDelayAnalysis[1], vuSize, "Delay Left", "Delay Right", delayColorHtml);
+      {
+  VUMeterTooltipStripScope tooltipStrip{"space_vu_strip"};
+  VUMeter("vu_inp",
+    mpMaj7Space->mInputAnalysis[0],
+    mpMaj7Space->mInputAnalysis[1],
+    vuSize,
+    "Input Left",
+    "Input Right",
+    nullptr,
+    &tooltipStrip);
+  ImGui::SameLine();
+  VUMeter("vu_delay",
+    mpMaj7Space->mDelayAnalysis[0],
+    mpMaj7Space->mDelayAnalysis[1],
+    vuSize,
+    "Delay Left",
+    "Delay Right",
+    delayColorHtml,
+    &tooltipStrip);
 
-      ImGui::SameLine();
-      VUMeter("vu_verb", mpMaj7Space->mReverbAnalysis[0], mpMaj7Space->mReverbAnalysis[1], vuSize, "Reverb Left", "Reverb Right", reverbColorHtml);
+  ImGui::SameLine();
+  VUMeter("vu_verb",
+    mpMaj7Space->mReverbAnalysis[0],
+    mpMaj7Space->mReverbAnalysis[1],
+    vuSize,
+    "Reverb Left",
+    "Reverb Right",
+    reverbColorHtml,
+    &tooltipStrip);
 
-      ImGui::SameLine();
-      VUMeter("vu_outp", mpMaj7Space->mOutputAnalysis[0], mpMaj7Space->mOutputAnalysis[1], vuSize, "Output Left", "Output Right");
+  ImGui::SameLine();
+  VUMeter("vu_outp",
+    mpMaj7Space->mOutputAnalysis[0],
+    mpMaj7Space->mOutputAnalysis[1],
+    vuSize,
+    "Output Left",
+    "Output Right",
+    nullptr,
+    &tooltipStrip);
+      }
 
 #endif
 
