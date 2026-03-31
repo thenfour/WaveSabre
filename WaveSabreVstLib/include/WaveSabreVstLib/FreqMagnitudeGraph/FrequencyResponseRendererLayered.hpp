@@ -27,6 +27,10 @@ private:
   FFTDiffFlatLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTDiffFlatLayer = nullptr;
   FFTDiffLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTDiffLayer = nullptr;
   FFTSpectrumLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount>* mFFTLayer = nullptr;
+  FFTDiffOverlay mCurrentDiffOverlay{};
+  bool mHasCurrentDiffOverlay = false;
+  FFTDiffFlatOverlay mCurrentDiffFlatOverlay{};
+  bool mHasCurrentDiffFlatOverlay = false;
 #endif
 
   EQResponseLayer<FrequencyMagnitudeGraph<TWidth, THeight, TShowGridLabels>::gSegmentCount, TFilterCount, TParamCount>* mEQLayer = nullptr;
@@ -131,17 +135,29 @@ public:
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     float fftStableMaxHz = 0.0f;
-    for (const auto& overlay : cfg.fftOverlays) {
-      if (!overlay.frequencyAnalysis) continue;
+    auto considerFrequencyAnalysis = [&](const WaveSabreCore::IFrequencyAnalysis* analysis) {
+      if (!analysis) return;
 
-      const float nyquist = overlay.frequencyAnalysis->GetNyquistFrequency();
-      const float binRes = overlay.frequencyAnalysis->GetFrequencyResolution();
-      if (nyquist <= 0.0f || binRes <= 0.0f) continue;
+      const float nyquist = analysis->GetNyquistFrequency();
+      const float binRes = analysis->GetFrequencyResolution();
+      if (nyquist <= 0.0f || binRes <= 0.0f) return;
 
       // Keep the visible FFT range a bit inside Nyquist so the graph only shows stable, trustworthy bins.
       // 44.1khz -> 22050 nyquist * 0.9 = 19845 stable max (~20kHz)
       const float stableMaxHz = std::max(20.0f, std::min(nyquist * 0.9f, nyquist - binRes));
       fftStableMaxHz = (fftStableMaxHz > 0.0f) ? std::min(fftStableMaxHz, stableMaxHz) : stableMaxHz;
+    };
+
+    for (const auto& overlay : cfg.fftOverlays) {
+      considerFrequencyAnalysis(overlay.frequencyAnalysis);
+    }
+    if (mHasCurrentDiffOverlay) {
+      considerFrequencyAnalysis(mCurrentDiffOverlay.sourceA);
+      considerFrequencyAnalysis(mCurrentDiffOverlay.sourceB);
+    }
+    if (mHasCurrentDiffFlatOverlay) {
+      considerFrequencyAnalysis(mCurrentDiffFlatOverlay.sourceA);
+      considerFrequencyAnalysis(mCurrentDiffFlatOverlay.sourceB);
     }
 
     if (fftStableMaxHz > 0.0f) {
@@ -246,17 +262,25 @@ public:
 
   // FFT diff helpers
   void SetFFTDiffOverlay(const FFTDiffOverlay& overlay) {
+    mCurrentDiffOverlay = overlay;
+    mHasCurrentDiffOverlay = (overlay.enabled && overlay.sourceA && overlay.sourceB);
     if (mFFTDiffLayer) mFFTDiffLayer->SetOverlay(overlay);
   }
   void ClearFFTDiffOverlay() {
+    mHasCurrentDiffOverlay = false;
+    mCurrentDiffOverlay = FFTDiffOverlay{};
     if (mFFTDiffLayer) mFFTDiffLayer->ClearOverlay();
   }
 
   // FFT diff flat helpers
   void SetFFTDiffFlatOverlay(const FFTDiffFlatOverlay& overlay) {
+    mCurrentDiffFlatOverlay = overlay;
+    mHasCurrentDiffFlatOverlay = (overlay.enabled && overlay.sourceA && overlay.sourceB);
     if (mFFTDiffFlatLayer) mFFTDiffFlatLayer->SetOverlay(overlay);
   }
   void ClearFFTDiffFlatOverlay() {
+    mHasCurrentDiffFlatOverlay = false;
+    mCurrentDiffFlatOverlay = FFTDiffFlatOverlay{};
     if (mFFTDiffFlatLayer) mFFTDiffFlatLayer->ClearOverlay();
   }
   void SetFFTDiffFlatScaling(float minDB, float maxDB, bool independent = true) {
