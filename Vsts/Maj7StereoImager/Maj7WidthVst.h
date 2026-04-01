@@ -54,8 +54,7 @@ public:
 		p.SetN11Value(Params::RightSource, 1.0f);
 		p.SetBoolValue(Params::LInvert, false);
 		p.SetBoolValue(Params::RInvert, false);
-		p.SetRangedValue(Params::SampleRotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter, 0.0f);
-		p.SetRangedValue(Params::MSRotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter, 0.0f);
+		p.SetRangedValue(Params::RotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter, 0.0f);
 		//p.SetFrequencyAssumingNoKeytracking(Params::SideHPFrequency, M7::gFilterFreqConfig, 20.0f);
 		p.SetRawVal(Params::SideHPFrequency, 0);
 		p.SetN11Value(Params::MidSideBalance, 0.0f);

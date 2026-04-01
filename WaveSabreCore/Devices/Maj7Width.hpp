@@ -17,8 +17,7 @@ struct Maj7Width : public Device
     RightSource,  // 0 = left, 1 = right
     LInvert,
     RInvert,
-    SampleRotationAngle, // rotates L/R geometrically
-    MSRotationAngle, // rotate M/S geometrically
+    RotationAngle, // rotates L/R geometrically
     SideHPFrequency,
     MidSideBalance,
     Pan,
@@ -37,7 +36,6 @@ struct Maj7Width : public Device
     {"LInv"},\
     {"RInv"},\
     {"Rot"},\
-    {"MSRot"},\
     {"SideHPF"},\
     {"MSBal"},\
     {"Pan"},\
@@ -50,14 +48,13 @@ struct Maj7Width : public Device
   float mParamCache[(int)ParamIndices::NumParams];
   M7::ParamAccessor mParams;
 
-  static_assert((int)ParamIndices::NumParams == 10, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 9, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       -32767,  // LSrc = -1
       32767,   // RSrc = 1
       0,       // LInv = false
       0,       // RInv = false
       16383,   // Rot = 0.5
-      16383,   // MSRot = 0.5
       0,       // SideHPF = 0
       0,       // MSBal = 0
       0,       // Pan = 0
@@ -98,15 +95,16 @@ struct Maj7Width : public Device
     a = t;
   }
 
-  void RotateMS(M7::FloatPair& ms)
-  {
-    float mid = ms.Mid();
-    float side = ms.Side();
-    Rotate2(side, mid, ParamIndices::MSRotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter);
-    ms.x[0] = mid;
-    ms.x[1] = side;
-  }
+  // void RotateMS(M7::FloatPair& ms)
+  // {
+  //   float mid = ms.Mid();
+  //   float side = ms.Side();
+  //   Rotate2(side, mid, ParamIndices::MSRotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter);
+  //   ms.x[0] = mid;
+  //   ms.x[1] = side;
+  // }
 
+  // interesting but it feels the same as rotation, but preserving L or R power.
   // void ShearMS(M7::FloatPair& ms)
   // {
   //   const float shearAngle =
@@ -168,14 +166,10 @@ struct Maj7Width : public Device
       auto stereo = ms.MSDecode();
 
 #ifdef MAJ7WIDTH_FULL_FEATURE
-      Rotate2(stereo.x[0], stereo.x[1], ParamIndices::SampleRotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter);
+      Rotate2(stereo.x[0], stereo.x[1], ParamIndices::RotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter);
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
       ms = stereo.MSEncode();
-
-#ifdef MAJ7WIDTH_FULL_FEATURE
-      RotateMS(ms);
-#endif  // MAJ7WIDTH_FULL_FEATURE
 
       auto outputPrePan = ms.MSDecode() * masterLinearGain;
       auto output = outputPrePan.mul(panGains);

@@ -185,7 +185,7 @@ struct Maj7WidthEditor : public VstEditor
 
       // Rotation stage
       ImGui::BeginGroup();
-      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SampleRotationAngle,
+      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle,
                                 "L/R rotation",
                                 -M7::math::gPIQuarter,
                                 M7::math::gPIQuarter,
@@ -204,24 +204,8 @@ struct Maj7WidthEditor : public VstEditor
 
       ImGui::SameLine();
 
-      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MSRotationAngle,
-                                "M/S rotation",
-                                -M7::math::gPIQuarter,
-                                M7::math::gPIQuarter,
-                                0,
-                                0,
-                                0,
-                                {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("M/S Rotation");
-        ImGui::Separator();
-        ImGui::Text("Rotate the stereo image in mid/side space after width shaping.");
-        ImGui::BulletText("Directly rotates the goniometer point cloud.");
-        ImGui::BulletText("Range is limited to +/-90 degrees for finer control.");
-        ImGui::EndTooltip();
-      }
+
+      Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
 
       ImGui::EndGroup();
 
@@ -230,8 +214,6 @@ struct Maj7WidthEditor : public VstEditor
       // Final Output Section with Tooltips
       {
         ImGuiGroupScope _grp;
-
-        Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
 
         ImGui::SameLine();
         Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain,
