@@ -340,6 +340,16 @@ private:
 // Stereo imaging analysis stream for real-time stereo field visualization
 struct StereoImagingAnalysisStream
 {
+  enum class BalanceBallisticsSpeed : int
+  {
+    Momentary,
+    Fast,
+    Medium,
+    Slow,
+    Section,
+    Default = Fast,
+  };
+
   RMSDetector mLeftLevelDetector;   // *** LEFT CHANNEL RMS ***
   RMSDetector mRightLevelDetector;  // *** RIGHT CHANNEL RMS ***
   RMSDetector mWidthDetector;       // For stereo width RMS
@@ -371,12 +381,71 @@ struct StereoImagingAnalysisStream
   size_t mCorrelationSampleCount = 0;
   static constexpr size_t gCorrelationWindowSize = 4800;
 
+  std::atomic<int> mBalanceBallisticsSpeedRequested{static_cast<int>(BalanceBallisticsSpeed::Default)};
+  BalanceBallisticsSpeed mAppliedBalanceBallisticsSpeed = BalanceBallisticsSpeed::Default;
+
   std::unique_ptr<MidSideFrequencyAnalyzer> mFrequencyAnalyzer;
+
+  static constexpr double GetBalanceBallisticsWindowMs(BalanceBallisticsSpeed speed)
+  {
+    switch (speed)
+    {
+      case BalanceBallisticsSpeed::Momentary:
+        return 50.0;
+      case BalanceBallisticsSpeed::Fast:
+        return 200.0;
+      case BalanceBallisticsSpeed::Medium:
+        return 1000.0;
+      case BalanceBallisticsSpeed::Slow:
+        return 3000.0;
+      case BalanceBallisticsSpeed::Section:
+        return 10000.0;
+    }
+
+    return 200.0;
+  }
+
+  static constexpr const char* GetBalanceBallisticsSpeedLabel(BalanceBallisticsSpeed speed)
+  {
+    switch (speed)
+    {
+      case BalanceBallisticsSpeed::Momentary:
+        return "Momentary";
+      case BalanceBallisticsSpeed::Fast:
+        return "Fast";
+      case BalanceBallisticsSpeed::Medium:
+        return "Medium";
+      case BalanceBallisticsSpeed::Slow:
+        return "Slow";
+      case BalanceBallisticsSpeed::Section:
+        return "Section";
+    }
+
+    return "Fast";
+  }
+
+  static constexpr const char* GetBalanceBallisticsSpeedDescription(BalanceBallisticsSpeed speed)
+  {
+    switch (speed)
+    {
+      case BalanceBallisticsSpeed::Momentary:
+        return "50 ms - track quick left/right shifts.";
+      case BalanceBallisticsSpeed::Fast:
+        return "200 ms - responsive general-purpose balance view.";
+      case BalanceBallisticsSpeed::Medium:
+        return "1 s - smoother musical balance view.";
+      case BalanceBallisticsSpeed::Slow:
+        return "3 s - stable phrase-level energy balance.";
+      case BalanceBallisticsSpeed::Section:
+        return "10 s - very slow section-level energy balance.";
+    }
+
+    return "200 ms - responsive general-purpose balance view.";
+  }
 
   explicit StereoImagingAnalysisStream()
   {
-    mLeftLevelDetector.SetWindowSize(200);
-    mRightLevelDetector.SetWindowSize(200);
+    ApplyBalanceBallistics(BalanceBallisticsSpeed::Default);
     mWidthDetector.SetWindowSize(200);
     mFrequencyAnalyzer = std::make_unique<MidSideFrequencyAnalyzer>();
     Reset();
@@ -384,6 +453,8 @@ struct StereoImagingAnalysisStream
 
   inline void WriteStereoSample(double left, double right)
   {
+    ApplyPendingBalanceBallistics();
+
     mHistory[mHistoryIndex].left = static_cast<float>(left);
     mHistory[mHistoryIndex].right = static_cast<float>(right);
     mHistoryIndex = (mHistoryIndex + 1) % gHistorySize;
@@ -444,6 +515,8 @@ struct StereoImagingAnalysisStream
 
   inline void Reset()
   {
+    ApplyPendingBalanceBallistics();
+
     mPhaseCorrelation = 0.0;
     mStereoWidth = 0.0;
     mStereoBalance = 0.0;
@@ -504,7 +577,34 @@ struct StereoImagingAnalysisStream
     return mHistoryIndex;
   }
 
+  BalanceBallisticsSpeed GetBalanceBallisticsSpeed() const
+  {
+    return static_cast<BalanceBallisticsSpeed>(mBalanceBallisticsSpeedRequested.load(std::memory_order_acquire));
+  }
+
+  void SetBalanceBallisticsSpeed(BalanceBallisticsSpeed speed)
+  {
+    mBalanceBallisticsSpeedRequested.store(static_cast<int>(speed), std::memory_order_release);
+  }
+
 private:
+  void ApplyBalanceBallistics(BalanceBallisticsSpeed speed)
+  {
+    const double windowMs = GetBalanceBallisticsWindowMs(speed);
+    mLeftLevelDetector.SetWindowSize(windowMs);
+    mRightLevelDetector.SetWindowSize(windowMs);
+    mAppliedBalanceBallisticsSpeed = speed;
+  }
+
+  void ApplyPendingBalanceBallistics()
+  {
+    const auto requested = static_cast<BalanceBallisticsSpeed>(mBalanceBallisticsSpeedRequested.load(std::memory_order_acquire));
+    if (requested != mAppliedBalanceBallisticsSpeed)
+    {
+      ApplyBalanceBallistics(requested);
+    }
+  }
+
   inline void UpdateCorrelation()
   {
     if (mCorrelationSampleCount < 2)

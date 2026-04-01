@@ -32,14 +32,18 @@ inline const StereoImagingDisplayStyle& GetDefaultStereoImagingDisplayStyle()
 }
 
 inline void RenderStereoImagingScope(const char* id,
-                                     const StereoImagingAnalysisStream& analysis,
+                                     StereoImagingAnalysisStream& analysis,
                                      ImVec2 size,
                                      const StereoImagingScopeLayerVisibility& visibility,
                                      const StereoImagingDisplayStyle& style = GetDefaultStereoImagingDisplayStyle())
 {
+  ImGui::PushID(id);
+  ImGui::InvisibleButton("##stereoScope", size);
+  const bool scopeHovered = ImGui::IsItemHovered();
+  const bool openPopup = ImGui::IsItemClicked(ImGuiMouseButton_Left);
+
   auto* dl = ImGui::GetWindowDrawList();
-  ImVec2 pos = ImGui::GetCursorScreenPos();
-  ImRect bb(pos, {pos.x + size.x, pos.y + size.y});
+  ImRect bb(ImGui::GetItemRectMin(), ImGui::GetItemRectMax());
 
   dl->AddRectFilled(bb.Min, bb.Max, IM_COL32(20, 20, 20, 255));
   dl->AddRect(bb.Min, bb.Max, IM_COL32(100, 100, 100, 255));
@@ -86,11 +90,59 @@ inline void RenderStereoImagingScope(const char* id,
     RenderPhaseCorrelationOverlay(id, analysis, size, center, radius, style.fieldOverlay);
   }
 
-  ImGui::Dummy(size);
+  if (openPopup)
+  {
+    ImGui::OpenPopup("##balanceSpeedPopup");
+    ImGui::SetNextWindowPos(ImGui::GetIO().MouseClickedPos[ImGuiMouseButton_Left], ImGuiCond_Appearing);
+  }
+
+  if (ImGui::BeginPopup("##balanceSpeedPopup"))
+  {
+    ImGui::Text("Left-right balance speed");
+    ImGui::Separator();
+
+    using BalanceSpeed = StereoImagingAnalysisStream::BalanceBallisticsSpeed;
+    const BalanceSpeed speedOptions[] = {
+        BalanceSpeed::Momentary,
+        BalanceSpeed::Fast,
+        BalanceSpeed::Medium,
+        BalanceSpeed::Slow,
+        BalanceSpeed::Section,
+    };
+
+    for (auto speed : speedOptions)
+    {
+      const bool selected = analysis.GetBalanceBallisticsSpeed() == speed;
+      if (ImGui::Selectable(StereoImagingAnalysisStream::GetBalanceBallisticsSpeedLabel(speed), selected))
+      {
+        analysis.SetBalanceBallisticsSpeed(speed);
+        ImGui::CloseCurrentPopup();
+      }
+
+      ImGui::SameLine();
+      ImGui::TextDisabled("%s", StereoImagingAnalysisStream::GetBalanceBallisticsSpeedDescription(speed));
+    }
+
+    ImGui::EndPopup();
+  }
+
+  if (scopeHovered && !ImGui::IsPopupOpen("##balanceSpeedPopup"))
+  {
+    ImGui::BeginTooltip();
+    ImGui::Text("Stereo field");
+    ImGui::Separator();
+    ImGui::Text("Click to change left-right balance speed.");
+    const auto currentSpeed = analysis.GetBalanceBallisticsSpeed();
+    ImGui::Text("Current: %s", StereoImagingAnalysisStream::GetBalanceBallisticsSpeedLabel(currentSpeed));
+    ImGui::TextDisabled("%s", StereoImagingAnalysisStream::GetBalanceBallisticsSpeedDescription(currentSpeed));
+    ImGui::EndTooltip();
+  }
+
+  ImGui::PopID();
 }
 
 inline void RenderStereoImagingDisplay(const char* id,
-                                       const StereoImagingAnalysisStream& analysis,
+                                       StereoImagingAnalysisStream& analysis,
                                        const StereoImagingScopeLayerVisibility& visibility,
                                        int dimension = 250,
                                        const StereoImagingDisplayStyle& style = GetDefaultStereoImagingDisplayStyle())
@@ -154,6 +206,10 @@ inline void RenderStereoImagingDisplay(const char* id,
     ImGui::BulletText("-1.0: Full left (right channel silent)");
     ImGui::BulletText(" 0.0: Centered (equal left/right)");
     ImGui::BulletText("+1.0: Full right (left channel silent)");
+    ImGui::Separator();
+    const auto currentSpeed = analysis.GetBalanceBallisticsSpeed();
+    ImGui::Text("Speed: %s", StereoImagingAnalysisStream::GetBalanceBallisticsSpeedLabel(currentSpeed));
+    ImGui::TextDisabled("%s", StereoImagingAnalysisStream::GetBalanceBallisticsSpeedDescription(currentSpeed));
     ImGui::EndTooltip();
   }
 

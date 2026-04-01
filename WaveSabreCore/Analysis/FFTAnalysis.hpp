@@ -13,6 +13,9 @@
 
 namespace WaveSabreCore
 {
+#ifndef WAVESABRE_FREQUENCY_ANALYSIS_TYPES_DEFINED
+#define WAVESABRE_FREQUENCY_ANALYSIS_TYPES_DEFINED
+
 struct SpectrumBin
 {
   float frequency;  // Hz
@@ -35,6 +38,8 @@ public:
   // Get the maximum frequency represented
   virtual float GetNyquistFrequency() const = 0;
 };
+
+#endif  // WAVESABRE_FREQUENCY_ANALYSIS_TYPES_DEFINED
 
 // Single-channel FFT analyzer
 class MonoFFTAnalysis
