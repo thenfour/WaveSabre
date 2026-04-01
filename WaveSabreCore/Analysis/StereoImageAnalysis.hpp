@@ -124,9 +124,6 @@ public:
 
       mMidAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::Default);
       mSideAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::Default);
-
-      mMidAnalyzer->SetFFTSmoothing(0.3f);
-      mSideAnalyzer->SetFFTSmoothing(0.3f);
       mMidAnalyzer->SetOverlapFactor(4);
       mSideAnalyzer->SetOverlapFactor(4);
 

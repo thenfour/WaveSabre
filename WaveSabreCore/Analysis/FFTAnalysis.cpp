@@ -17,11 +17,10 @@ MonoFFTAnalysis::MonoFFTAnalysis(FFTSize fftSize, WindowType windowType, float s
     , mFFTSizeInt(static_cast<int>(fftSize))
     , mSampleRate(sampleRate)
     , mOverlapFactor(4)
-    , mSmoothingFactor(0.3f)  // Light technical smoothing only
+  , mWindowSum(1.0f)
     , mInputIndex(0)
     , mSamplesUntilProcess(mFFTSizeInt / mOverlapFactor)
     , mHasNewData(false)
-//, mDisplayBoostDB(18.0f) // Default +18dB boost for visual appeal
 {
   // Initialize buffers
   mInputBuffer.resize(mFFTSizeInt, 0.0f);
@@ -29,7 +28,6 @@ MonoFFTAnalysis::MonoFFTAnalysis(FFTSize fftSize, WindowType windowType, float s
 
   int spectrumSize = mFFTSizeInt / 2;  // Only need positive frequencies (exclude Nyquist)
   mSpectrum.resize(spectrumSize);
-  mMagnitudeHistory.resize(spectrumSize, -80.0f);
 
   GenerateWindow();
 }
@@ -39,11 +37,6 @@ MonoFFTAnalysis::~MonoFFTAnalysis() {}
 void MonoFFTAnalysis::SetSampleRate(float sampleRate)
 {
   mSampleRate = sampleRate;
-}
-
-void MonoFFTAnalysis::SetSmoothingFactor(float smoothing)
-{
-  mSmoothingFactor = std::max(0.0f, std::min(0.99f, smoothing));
 }
 
 void MonoFFTAnalysis::SetOverlapFactor(int factor)
@@ -66,6 +59,7 @@ void MonoFFTAnalysis::SetWindowType(WindowType windowType)
 void MonoFFTAnalysis::GenerateWindow()
 {
   mWindow.resize(mFFTSizeInt);
+  mWindowSum = 0.0f;
   const float N = static_cast<float>(mFFTSizeInt - 1);
 
   for (int i = 0; i < mFFTSizeInt; ++i)
@@ -90,6 +84,8 @@ void MonoFFTAnalysis::GenerateWindow()
         mWindow[i] = 0.42f - 0.5f * std::cos(2.0f * 3.14159265f * n / N) + 0.08f * std::cos(4.0f * 3.14159265f * n / N);
         break;
     }
+
+    mWindowSum += mWindow[i];
   }
 }
 
@@ -138,6 +134,8 @@ void MonoFFTAnalysis::ComputeSpectrum()
 {
   const float frequencyResolution = GetFrequencyResolution();
   const int spectrumSize = static_cast<int>(mSpectrum.size());
+  const float dcNormalization = std::max(mWindowSum, 1.0e-20f);
+  const float oneSidedNormalization = std::max(mWindowSum * 0.5f, 1.0e-20f);
 
   for (int i = 0; i < spectrumSize; ++i)
   {
@@ -146,17 +144,12 @@ void MonoFFTAnalysis::ComputeSpectrum()
     const float imag = mFFTBuffer[i].imag();
     const float magnitude = std::sqrt(real * real + imag * imag);
 
-    // Convert to dB with floor to prevent log(0), and apply display boost
-    // todo: use a more sophisticated scaling
-    const float magScaleFact = mFFTSizeInt * 0.5f;                                   // Scale factor for normalization
-    const float magnitudeDB = M7::math::LinearToDecibels(magnitude / magScaleFact);  // magnitude > 1e-10f ?
-
-    // Light technical smoothing only (no peak-hold here)
-    mMagnitudeHistory[i] = mMagnitudeHistory[i] * mSmoothingFactor + magnitudeDB * (1.0f - mSmoothingFactor);
+    const float normalization = (i == 0) ? dcNormalization : oneSidedNormalization;
+    const float magnitudeDB = M7::math::LinearToDecibels(magnitude / normalization);
 
     // Store in spectrum bin
     mSpectrum[i].frequency = i * frequencyResolution;
-    mSpectrum[i].magnitudeDB = mMagnitudeHistory[i];
+    mSpectrum[i].magnitudeDB = magnitudeDB;
     //mSpectrum[i].phase = std::atan2(imag, real);
   }
 }
@@ -224,7 +217,6 @@ float MonoFFTAnalysis::GetMagnitudeAtFrequency(float frequency) const
 void MonoFFTAnalysis::Reset()
 {
   std::fill(mInputBuffer.begin(), mInputBuffer.end(), 0.0f);
-  std::fill(mMagnitudeHistory.begin(), mMagnitudeHistory.end(), -80.0f);
 
   mInputIndex = 0;
   mSamplesUntilProcess = mFFTSizeInt / mOverlapFactor;
@@ -243,7 +235,6 @@ SmoothedStereoFFT::SmoothedStereoFFT()
     , mCurrentFalloffTimeMs(200.0f)  // Default falloff time
     , mCurrentAveragingWindowMs(1000.0f)
 {
-  SetFFTSmoothing(0.7f);
   // Set analyzer overlap and then sync our update rate from the analyzer's actual settings
   SetOverlapFactor(2);
   SetPeakHoldTime(60);
@@ -451,10 +442,10 @@ void FFTAnalysis::SetSampleRate(float sampleRate)
     analyzer.SetSampleRate(sampleRate);
 }
 
-void FFTAnalysis::SetSmoothingFactor(float smoothing)
+void FFTAnalysis::SetFFTSize(FFTSize fftSize)
 {
   for (auto& analyzer : mAnalyzers)
-    analyzer.SetSmoothingFactor(smoothing);
+    analyzer.SetFFTSize(fftSize);
 }
 
 void FFTAnalysis::SetOverlapFactor(int factor)

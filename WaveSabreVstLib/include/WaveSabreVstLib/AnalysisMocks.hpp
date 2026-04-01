@@ -66,7 +66,10 @@ struct MonoFFTAnalysis
     FFT512 = 512,
     FFT1024 = 1024,
     FFT2048 = 2048,
-    FFT4096 = 4096
+    FFT4096 = 4096,
+    FFT8192 = 8192,
+    FFT16384 = 16384,
+    Default = FFT4096
   };
 
   enum class WindowType

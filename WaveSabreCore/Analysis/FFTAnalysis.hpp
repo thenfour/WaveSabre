@@ -47,6 +47,8 @@ public:
     FFT1024 = 1024,
     FFT2048 = 2048,
     FFT4096 = 4096,
+    FFT8192 = 8192,
+    FFT16384 = 16384,
     Default = FFT4096,
   };
 
@@ -71,16 +73,13 @@ private:
 
   // Window function coefficients
   std::vector<float> mWindow;
+  float mWindowSum;
 
   // FFT working buffer
   std::vector<std::complex<float>> mFFTBuffer;
 
   // Output spectrum data
   std::vector<SpectrumBin> mSpectrum;
-
-  // Basic smoothing for technical stability (light)
-  std::vector<float> mMagnitudeHistory;
-  float mSmoothingFactor;
 
   // Input management
   int mInputIndex;
@@ -99,7 +98,6 @@ public:
   ~MonoFFTAnalysis();
 
   void SetSampleRate(float sampleRate);
-  void SetSmoothingFactor(float smoothing);   // 0.0 = no smoothing, 0.9 = heavy smoothing
   void SetOverlapFactor(int factor);          // 1, 2, 4, 8, or 16
   void SetWindowType(WindowType windowType);  // Change window function at runtime
 
@@ -125,8 +123,6 @@ public:
       mFFTBuffer.resize(mFFTSizeInt);
       // Keep spectrum size consistent with constructor: positive frequencies only
       mSpectrum.resize(mFFTSizeInt / 2);
-      // Keep magnitude history in sync with spectrum
-      mMagnitudeHistory.resize(mSpectrum.size(), -80.0f);
       GenerateWindow();
       Reset();
     }
@@ -138,10 +134,6 @@ public:
   int GetOverlapFactor() const
   {
     return mOverlapFactor;
-  }
-  float GetSmoothingFactor() const
-  {
-    return mSmoothingFactor;
   }
 
   void ProcessSample(float sample);
@@ -188,7 +180,7 @@ public:
 
   // Configuration
   void SetSampleRate(float sampleRate);
-  void SetSmoothingFactor(float smoothing);
+  void SetFFTSize(FFTSize fftSize);
   void SetOverlapFactor(int factor);
   //void SetDisplayBoost(float boostDB);
   void SetWindowType(WindowType windowType);  // Change window function at runtime
@@ -212,10 +204,6 @@ public:
   int GetOverlapFactor() const
   {
     return mAnalyzers[0].GetOverlapFactor();
-  }
-  float GetSmoothingFactor() const
-  {
-    return mAnalyzers[0].GetSmoothingFactor();
   }
 
   // Input processing (call once per sample)
@@ -312,9 +300,10 @@ public:
   {
     mFFTAnalysis.SetWindowType(windowType);
   }
-  void SetFFTSmoothing(float smoothing)
+  void SetFFTSize(MonoFFTAnalysis::FFTSize fftSize)
   {
-    mFFTAnalysis.SetSmoothingFactor(smoothing);
+    mFFTAnalysis.SetFFTSize(fftSize);
+    SetFFTUpdateRate(mFFTAnalysis.GetFFTSizeInt(), mFFTAnalysis.GetOverlapFactor());
   }
   void SetOverlapFactor(int factor)
   {
@@ -334,10 +323,6 @@ public:
   int GetFFTSizeInt() const
   {
     return mFFTAnalysis.GetFFTSizeInt();
-  }
-  float GetFFTSmoothing() const
-  {
-    return mFFTAnalysis.GetSmoothingFactor();
   }
   int GetOverlapFactor() const
   {
@@ -463,7 +448,6 @@ public:
       , mCurrentAveragingWindowMs(1000.0f)
   {
     // Reasonable defaults similar to stereo variant
-    mFFTAnalysis.SetSmoothingFactor(0.7f);
     mFFTAnalysis.SetOverlapFactor(2);
     SetPeakHoldTime(60);
     SetFalloffRate(1200);
@@ -480,10 +464,6 @@ public:
   void SetWindowType(MonoFFTAnalysis::WindowType windowType)
   {
     mFFTAnalysis.SetWindowType(windowType);
-  }
-  void SetFFTSmoothing(float smoothing)
-  {
-    mFFTAnalysis.SetSmoothingFactor(smoothing);
   }
   void SetFFTSize(MonoFFTAnalysis::FFTSize fftSize)
   {
@@ -513,10 +493,6 @@ public:
   int GetFFTSizeInt() const
   {
     return mFFTAnalysis.GetFFTSizeInt();
-  }
-  float GetFFTSmoothing() const
-  {
-    return mFFTAnalysis.GetSmoothingFactor();
   }
   int GetOverlapFactor() const
   {
