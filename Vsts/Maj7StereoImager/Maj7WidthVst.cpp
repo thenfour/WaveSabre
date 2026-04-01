@@ -45,10 +45,22 @@ void Maj7WidthVst::getParameterName(VstInt32 index, char *text) {
   case Maj7Width::ParamIndices::RightSource:
     vst_strncpy(text, "RightSource", kVstMaxParamStrLen);
     break;
+  case Maj7Width::ParamIndices::LInvert:
+    vst_strncpy(text, "LInvert", kVstMaxParamStrLen);
+    break;
+  case Maj7Width::ParamIndices::RInvert:
+    vst_strncpy(text, "RInvert", kVstMaxParamStrLen);
+    break;
+  case Maj7Width::ParamIndices::SampleRotationAngle:
+    vst_strncpy(text, "LrRot", kVstMaxParamStrLen);
+    break;
+  case Maj7Width::ParamIndices::MSRotationAngle:
+    vst_strncpy(text, "MsRot", kVstMaxParamStrLen);
+    break;
   // case Maj7Width::ParamIndices::MidAmt: vst_strncpy(text, "MidAmt",
   // kVstMaxParamStrLen); break;
   case Maj7Width::ParamIndices::MidSideBalance:
-    vst_strncpy(text, "MSBal", kVstMaxParamStrLen);
+    vst_strncpy(text, "Width", kVstMaxParamStrLen);
     break;
   case Maj7Width::ParamIndices::SideHPFrequency:
     vst_strncpy(text, "SideHPF", kVstMaxParamStrLen);
@@ -58,6 +70,9 @@ void Maj7WidthVst::getParameterName(VstInt32 index, char *text) {
     break;
   case Maj7Width::ParamIndices::OutputGain:
     vst_strncpy(text, "OutGain", kVstMaxParamStrLen);
+    break;
+  default:
+    vst_strncpy(text, "", kVstMaxParamStrLen);
     break;
   }
 }

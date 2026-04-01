@@ -15,7 +15,10 @@ struct Maj7Width : public Device
   {
     LeftSource,   // 0 = left, 1 = right
     RightSource,  // 0 = left, 1 = right
-    RotationAngle,
+    LInvert,
+    RInvert,
+    SampleRotationAngle, // rotates L/R geometrically
+    MSRotationAngle, // rotate M/S geometrically
     SideHPFrequency,
     MidSideBalance,
     Pan,
@@ -24,23 +27,37 @@ struct Maj7Width : public Device
     NumParams,
   };
 
-  // NB: max 8 chars per string.
+// clang-format off
+// NB: max 8 chars per string.
 #define MAJ7WIDTH_PARAM_VST_NAMES(symbolName)                                                                          \
   static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Width::ParamIndices::NumParams]              \
   {                                                                                                                    \
-    {"LSrc"}, {"RSrc"}, {"Rot"}, {"SideHPF"}, {"MSBal"}, {"Pan"}, {"OutGain"},                                         \
+    {"LSrc"},\
+    {"RSrc"},\
+    {"LInv"},\
+    {"RInv"},\
+    {"Rot"},\
+    {"MSRot"},\
+    {"SideHPF"},\
+    {"MSBal"},\
+    {"Pan"},\
+    {"OutGain"},\
   }
+// clang-format on
 
   static constexpr M7::VolumeParamConfig gVolumeCfg{3.9810717055349722f, 12.0f};
 
   float mParamCache[(int)ParamIndices::NumParams];
   M7::ParamAccessor mParams;
 
-  static_assert((int)ParamIndices::NumParams == 7, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 10, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       -32767,  // LSrc = -1
       32767,   // RSrc = 1
+      0,       // LInv = false
+      0,       // RInv = false
       16383,   // Rot = 0.5
+      16383,   // MSRot = 0.5
       0,       // SideHPF = 0
       0,       // MSBal = 0
       0,       // Pan = 0
@@ -71,17 +88,32 @@ struct Maj7Width : public Device
 
 #ifdef MAJ7WIDTH_FULL_FEATURE
   // 2D rotation around origin
-  void Rotate2(float& l, float& r, ParamIndices param)
+  void Rotate2(float& a, float& b, ParamIndices param, float minAngle, float maxAngle)
   {
-    // https://www.musicdsp.org/en/latest/Effects/255-stereo-field-rotation-via-transformation-matrix.html
-    //r = rotation_angle
-    float rot = mParams.GetScaledRealValue(param, -M7::math::gPIHalf, M7::math::gPIHalf, 0);
+    float rot = mParams.GetScaledRealValue(param, minAngle, maxAngle, 0);
     float s = M7::math::sin(rot);
     float c = M7::math::cos(rot);
-    float t = l * c - r * s;
-    r = l * s + r * c;
-    l = t;
+    float t = a * c - b * s;
+    b = a * s + b * c;
+    a = t;
   }
+
+  void RotateMS(M7::FloatPair& ms)
+  {
+    float mid = ms.Mid();
+    float side = ms.Side();
+    Rotate2(side, mid, ParamIndices::MSRotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter);
+    ms.x[0] = mid;
+    ms.x[1] = side;
+  }
+
+  // void ShearMS(M7::FloatPair& ms)
+  // {
+  //   const float shearAngle =
+  //       mParams.GetScaledRealValue(ParamIndices::MSShearAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter, 0);
+  //   const float shearFactor = M7::math::tan(shearAngle);
+  //   ms.x[1] += ms.x[0] * shearFactor;
+  // }
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
   virtual void Run(float** inputs, float** outputs, int numSamples) override
@@ -107,34 +139,49 @@ struct Maj7Width : public Device
       float left = M7::math::lerp(l, r, leftSrcN11 * 0.5f + 0.5f);    // rescale from -1,1 to 0,1 for lerp
       float right = M7::math::lerp(l, r, rightSrcN11 * 0.5f + 0.5f);  // rescale from -1,1 to 0,1 for lerp
 
-#ifdef MAJ7WIDTH_FULL_FEATURE
-      Rotate2(left, right, ParamIndices::RotationAngle);
-#endif  // MAJ7WIDTH_FULL_FEATURE
+      if (mParams.GetBoolValue(ParamIndices::LInvert))
+      {
+        left = -left;
+      }
+      if (mParams.GetBoolValue(ParamIndices::RInvert))
+      {
+        right = -right;
+      }
 
       auto ms = M7::FloatPair{left, right}.MSEncode();
 
-      // hp on side channel
+      // Width-shaping stage: side-only HPF and width amount both define the M/S image
+      // before any later geometric rotations or shearing are applied.
       ms.x[1] = mFilter.ProcessSample(ms.Side());
-      float msbal = mParams.GetN11Value(ParamIndices::MidSideBalance, 0);
-      if (msbal < 0)
+      float width = mParams.GetN11Value(ParamIndices::MidSideBalance, 0);
+      if (width < 0)
       {
-        // reduce side
-        ms.x[1] *= msbal + 1.0f;
+        // reduce side toward mono
+        ms.x[1] *= width + 1.0f;
       }
-      if (msbal > 0)
+      if (width > 0)
       {
-        ms.x[0] *= 1.0f - msbal;
+        // reduce mid toward side-only
+        ms.x[0] *= 1.0f - width;
       }
+
+      auto stereo = ms.MSDecode();
+
+#ifdef MAJ7WIDTH_FULL_FEATURE
+      Rotate2(stereo.x[0], stereo.x[1], ParamIndices::SampleRotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter);
+#endif  // MAJ7WIDTH_FULL_FEATURE
+
+      ms = stereo.MSEncode();
+
+#ifdef MAJ7WIDTH_FULL_FEATURE
+      RotateMS(ms);
+#endif  // MAJ7WIDTH_FULL_FEATURE
 
       auto outputPrePan = ms.MSDecode() * masterLinearGain;
       auto output = outputPrePan.mul(panGains);
 
-      //M7::MSDecode(mid, side, &left, &right);
-      //left *= gains.x[0] * masterLinearGain;
       outputs[0][i] = output.Left();
-      //right *= gains.x[1] * masterLinearGain;
       outputs[1][i] = output.Right();
-
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       if (IsGuiVisible())

@@ -60,7 +60,7 @@ struct Maj7WidthEditor : public VstEditor
 
   Maj7WidthEditor(AudioEffect* audioEffect)
       :  //
-      VstEditor(audioEffect, 950, 900)
+      VstEditor(audioEffect, 1000, 900)
       ,  // Increase height to accommodate frequency graph
       mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
   {
@@ -84,64 +84,70 @@ struct Maj7WidthEditor : public VstEditor
   {
     {
       ImGuiGroupScope _grp;
-      // Left/Right Source Controls with Tooltip
-      ImGui::BeginGroup();
-      Maj7ImGuiParamFloatN11WithCenter(
-          (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LeftSource, "Left source", -1, -1, 0, {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("Left Channel Source");
-        ImGui::Separator();
-        ImGui::Text("Select where the left channel originates from:");
-        ImGui::BulletText("-1.0: Pure left input signal");
-        ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
-        ImGui::BulletText("+1.0: Pure right input signal");
-        ImGui::EndTooltip();
-      }
 
-      ImGui::SameLine();
-      Maj7ImGuiParamFloatN11WithCenter(
-          (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RightSource, "Right source", 1, 1, 0, {});
-      if (ImGui::IsItemHovered())
+      // Source and polarity stage
+      //ImGui::BeginGroup();
       {
-        ImGui::BeginTooltip();
-        ImGui::Text("Right Channel Source");
-        ImGui::Separator();
-        ImGui::Text("Select where the right channel originates from:");
-        ImGui::BulletText("-1.0: Pure left input signal");
-        ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
-        ImGui::BulletText("+1.0: Pure right input signal");
-        ImGui::EndTooltip();
-      }
-      ImGui::EndGroup();
+        ImGuiGroupScope _grpSources;
 
-      // Rotation Control with Tooltip
-      ImGui::BeginGroup();
-      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle,
-                                "Rotation",
-                                -M7::math::gPI,
-                                M7::math::gPI,
-                                0,
-                                0,
-                                0,
-                                {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("Stereo Field Rotation");
-        ImGui::Separator();
-        ImGui::Text("Rotate the stereo image around the center point.");
-        ImGui::Spacing();
-        ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.7f, 1.0f), "Use Cases:");
-        ImGui::BulletText("Correct imbalanced recordings");
-        ImGui::BulletText("Fix poor microphone placement");
-        ImGui::BulletText("Creative stereo field manipulation");
-        ImGui::EndTooltip();
-      }
-      ImGui::EndGroup();
+        Maj7ImGuiParamFloatN11WithCenter(
+            (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LeftSource, "Left source", -1, -1, 0, {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Left Channel Source");
+          ImGui::Separator();
+          ImGui::Text("Select where the left channel originates from:");
+          ImGui::BulletText("-1.0: Pure left input signal");
+          ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
+          ImGui::BulletText("+1.0: Pure right input signal");
+          ImGui::EndTooltip();
+        }
 
-      // Side HPF Control with Tooltip
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11WithCenter(
+            (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RightSource, "Right source", 1, 1, 0, {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Right Channel Source");
+          ImGui::Separator();
+          ImGui::Text("Select where the right channel originates from:");
+          ImGui::BulletText("-1.0: Pure left input signal");
+          ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
+          ImGui::BulletText("+1.0: Pure right input signal");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        {
+          ImGuiGroupScope _grpPolarity;
+          Maj7ImGuiBoolParamToggleButton((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LInvert, "L flip", "cc6666");
+          if (ImGui::IsItemHovered())
+          {
+            ImGui::BeginTooltip();
+            ImGui::Text("Left Polarity Flip");
+            ImGui::Separator();
+            ImGui::Text("Invert the polarity of the constructed left channel before width shaping.");
+            ImGui::EndTooltip();
+          }
+
+          //ImGui::SameLine();
+          Maj7ImGuiBoolParamToggleButton((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RInvert, "R flip", "6699cc");
+          if (ImGui::IsItemHovered())
+          {
+            ImGui::BeginTooltip();
+            ImGui::Text("Right Polarity Flip");
+            ImGui::Separator();
+            ImGui::Text("Invert the polarity of the constructed right channel before width shaping.");
+            ImGui::EndTooltip();
+          }
+        }
+      }  // _grpSources
+
+      ImGui::Spacing();
+
+      // Width-shaping stage
       ImGui::BeginGroup();
       Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SideHPFrequency,
                               -1,
@@ -154,24 +160,72 @@ struct Maj7WidthEditor : public VstEditor
         ImGui::BeginTooltip();
         ImGui::Text("Side Channel High-Pass Filter");
         ImGui::Separator();
-        ImGui::Text("Reduces stereo width of low frequencies using a 6dB/octave slope.");
+        ImGui::Text("Frequency-dependent width control for the side channel.");
+        ImGui::BulletText("Reduces low-frequency width with a 6dB/octave slope.");
+        ImGui::EndTooltip();
+      }
+
+      ImGui::SameLine();
+
+      Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MidSideBalance, "Width", 0.0f, 0, {});
+      if (ImGui::IsItemHovered())
+      {
+        ImGui::BeginTooltip();
+        ImGui::Text("Width");
+        ImGui::Separator();
+        ImGui::Text("Adjust the overall stereo width before the rotation stage:");
+        ImGui::BulletText("-1.0: Mono (side removed)");
+        ImGui::BulletText(" 0.0: Unchanged");
+        ImGui::BulletText("+1.0: Side-only (mid removed)");
         ImGui::EndTooltip();
       }
       ImGui::EndGroup();
 
-      // Mid-Side Balance Control with Tooltip
+      ImGui::Spacing();
+
+      // Rotation stage
       ImGui::BeginGroup();
-      Maj7ImGuiParamFloatN11(
-          (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MidSideBalance, "Mid-Side balance", 0.0f, 0, {});
+      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SampleRotationAngle,
+                                "L/R rotation",
+                                -M7::math::gPIQuarter,
+                                M7::math::gPIQuarter,
+                                0,
+                                0,
+                                0,
+                                {});
       if (ImGui::IsItemHovered())
       {
         ImGui::BeginTooltip();
-        ImGui::Text("Mid-Side Balance Control");
+        ImGui::Text("L/R Geometric Rotation");
         ImGui::Separator();
-        ImGui::Text("Blend between mono (mid) and stereo (side) content:");
+        ImGui::Text("Rotate the left/right sample axes directly after width shaping.");
         ImGui::EndTooltip();
       }
+
+      ImGui::SameLine();
+
+      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MSRotationAngle,
+                                "M/S rotation",
+                                -M7::math::gPIQuarter,
+                                M7::math::gPIQuarter,
+                                0,
+                                0,
+                                0,
+                                {});
+      if (ImGui::IsItemHovered())
+      {
+        ImGui::BeginTooltip();
+        ImGui::Text("M/S Rotation");
+        ImGui::Separator();
+        ImGui::Text("Rotate the stereo image in mid/side space after width shaping.");
+        ImGui::BulletText("Directly rotates the goniometer point cloud.");
+        ImGui::BulletText("Range is limited to +/-90 degrees for finer control.");
+        ImGui::EndTooltip();
+      }
+
       ImGui::EndGroup();
+
+      ImGui::Spacing();
 
       // Final Output Section with Tooltips
       {
@@ -255,12 +309,12 @@ struct Maj7WidthEditor : public VstEditor
     {
       ImGuiGroupScope _grp("stereo_imaging");
       RenderStereoImagingDisplay("stereo_imaging_inp",
-                 mpMaj7Width->mInputImagingAnalysis,
-                 {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
+                                 mpMaj7Width->mInputImagingAnalysis,
+                                 {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
       ImGui::SameLine();
       RenderStereoImagingDisplay("stereo_imaging_outp",
-                 mpMaj7Width->mOutputImagingAnalysis,
-                 {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
+                                 mpMaj7Width->mOutputImagingAnalysis,
+                                 {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
     }  // stereo imaging group
 
     // Toggle buttons for layer visibility
@@ -721,5 +775,4 @@ private:
   };
 
   StereoHistoryVis<508, 120> mStereoHistory;
-
 };
