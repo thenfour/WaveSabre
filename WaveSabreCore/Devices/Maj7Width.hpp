@@ -25,30 +25,44 @@ struct Maj7Width : public Device
   // roughly in order of processing,
   enum class ParamIndices
   {
-    LeftSource,   // 0 = left, 1 = right
-    RightSource,  // 0 = left, 1 = right
     LInvert,
     RInvert,
     RotationAngle,  // rotates L/R geometrically
     MSShear,
     SideHPFrequency,
-    MidSideBalance,
-    Pan,
-    OutputGain,
+    MultibandEnable,
     CrossoverAFrequency,
     CrossoverBFrequency,
     CrossoverASlope,
     CrossoverBSlope,
-    Band1Gain,
-    Band2Gain,
-    Band3Gain,
-    Band1Rotation,
-    Band2Rotation,
-    Band3Rotation,
-    Band1Shear,
-    Band2Shear,
-    Band3Shear,
-    Asymmetry,
+    OutputGain,
+
+    ALeftSource,
+    ARightSource,
+    AWidth,
+    APan,
+    AAsymmetry,
+    ASideGain,
+    ARotation,
+    AShear,
+
+    BLeftSource,
+    BRightSource,
+    BWidth,
+    BPan,
+    BAsymmetry,
+    BSideGain,
+    BRotation,
+    BShear,
+
+    CLeftSource,
+    CRightSource,
+    CWidth,
+    CPan,
+    CAsymmetry,
+    CSideGain,
+    CRotation,
+    CShear,
 
     NumParams,
   };
@@ -58,68 +72,208 @@ struct Maj7Width : public Device
 #define MAJ7WIDTH_PARAM_VST_NAMES(symbolName)                                                                          \
   static constexpr char const* const symbolName[(int)::WaveSabreCore::Maj7Width::ParamIndices::NumParams]              \
   {                                                                                                                    \
-    {"LSrc"},\
-    {"RSrc"},\
     {"LInv"},\
     {"RInv"},\
     {"Rot"},\
     {"MSShear"},\
     {"SideHPF"},\
-    {"MSBal"},\
-    {"Pan"},\
-    {"OutGain"},\
+    {"MBEn"},\
     {"xAFreq"},\
     {"xBFreq"},\
     {"xASlope"},\
     {"xBSlope"},\
-    {"B1Gain"},\
-    {"B2Gain"},\
-    {"B3Gain"},\
-    {"MS1Rot"},\
-    {"MS2Rot"},\
-    {"MS3Rot"},\
-    {"MS1Shr"},\
-    {"MS2Shr"},\
-    {"MS3Shr"},\
-    {"Asym"},\
+    {"OutGain"},\
+    {"ALSrc"},\
+    {"ARSrc"},\
+    {"AWidth"},\
+    {"APan"},\
+    {"AAsym"},\
+    {"ASideG"},\
+    {"ARot"},\
+    {"AShear"},\
+    {"BLSrc"},\
+    {"BRSrc"},\
+    {"BWidth"},\
+    {"BPan"},\
+    {"BAsym"},\
+    {"BSideG"},\
+    {"BRot"},\
+    {"BShear"},\
+    {"CLSrc"},\
+    {"CRSrc"},\
+    {"CWidth"},\
+    {"CPan"},\
+    {"CAsym"},\
+    {"CSideG"},\
+    {"CRot"},\
+    {"CShear"},\
   }
   // clang-format on
 
   float mParamCache[(int)ParamIndices::NumParams];
   M7::ParamAccessor mParams;
-  M7::BandSplitter mMidSplitter;
-  M7::BandSplitter mSideSplitter;
   BandConfig mBandConfig[gBandCount];
 
-    static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
+  struct FreqBand
+  {
+    enum class BandParam : uint8_t
+    {
+      LeftSource,
+      RightSource,
+      Width,
+      Pan,
+      Asymmetry,
+      SideGain,
+      Rotation,
+      Shear,
+      Count__,
+    };
+
+    static_assert((int)ParamIndices::BLeftSource - (int)ParamIndices::ALeftSource == (int)BandParam::Count__,
+                  "band params need to be in sync with main params");
+
+    M7::ParamAccessor mParams;
+    M7::MoogOnePoleFilter mSideFilter;
+    float mLeftSourceN11 = -1.0f;
+    float mRightSourceN11 = 1.0f;
+    float mWidthN11 = 0.0f;
+    float mAsymmetryN11 = 0.0f;
+    float mSideGainLin = 1.0f;
+    float mRotation = 0.0f;
+    float mShearFactor = 0.0f;
+    bool mSideHpfActive = false;
+    bool mMuteSoloEnable = true;
+    M7::FloatPair mPanGains{1.0f, 1.0f};
+
+    FreqBand(float* paramCache, ParamIndices baseParamID)
+        : mParams(paramCache, baseParamID)
+    {
+    }
+
+    void Slider(bool sideHpfActive, float sideHpfFreq)
+    {
+      mLeftSourceN11 = mParams.GetN11Value(BandParam::LeftSource, 0);
+      mRightSourceN11 = mParams.GetN11Value(BandParam::RightSource, 0);
+      mWidthN11 = mParams.GetN11Value(BandParam::Width, 0);
+      mPanGains = M7::math::PanToFactor(mParams.GetN11Value(BandParam::Pan, 0));
+      mAsymmetryN11 = mParams.GetN11Value(BandParam::Asymmetry, 0);
+      mSideGainLin = mParams.GetLinearVolume(BandParam::SideGain, gVolumeCfg);
+      mRotation = mParams.GetScaledRealValue(BandParam::Rotation, -gRotationExtent, gRotationExtent, 0);
+      mShearFactor = -M7::math::tan(mParams.GetScaledRealValue(BandParam::Shear, -gShearAngleLimit, gShearAngleLimit, 0));
+      mSideHpfActive = sideHpfActive;
+      if (mSideHpfActive)
+      {
+        mSideFilter.SetParams(M7::FilterCircuit::OnePole,
+                              M7::FilterSlope::Slope6dbOct,
+                              M7::FilterResponse::Highpass,
+                              sideHpfFreq,
+                              M7::Param01{0},
+                              0);
+      }
+    }
+
+    M7::FloatPair ProcessSample(const M7::FloatPair& inputMs, bool leftInvert, bool rightInvert)
+    {
+      if (!mMuteSoloEnable)
+      {
+        return {};
+      }
+
+      const float inputMid = inputMs.Mid();
+      const float inputSide = inputMs.Side();
+
+      float left = inputMid - mLeftSourceN11 * inputSide;
+      float right = inputMid - mRightSourceN11 * inputSide;
+
+      if (leftInvert)
+      {
+        left = -left;
+      }
+      if (rightInvert)
+      {
+        right = -right;
+      }
+
+      auto ms = M7::FloatPair{left, right}.MSEncode();
+      if (mSideHpfActive)
+      {
+        ms.x[1] = mSideFilter.ProcessSample(ms.Side());
+      }
+
+      if (mWidthN11 < 0.0f)
+      {
+        ms.x[1] *= mWidthN11 + 1.0f;
+      }
+      else if (mWidthN11 > 0.0f)
+      {
+        ms.x[0] *= 1.0f - mWidthN11;
+      }
+
+      ms.x[1] *= mSideGainLin;
+
+#ifdef MAJ7WIDTH_FULL_FEATURE
+      Shear2(ms.x[1], ms.x[0], mShearFactor);
+      Rotate2(ms.x[1], ms.x[0], mRotation);
+#endif  // MAJ7WIDTH_FULL_FEATURE
+
+      auto stereo = ms.MSDecode();
+      if (mAsymmetryN11 < 0.0f)
+      {
+        stereo.x[1] = M7::math::lerp(stereo.x[1], stereo.x[0], -mAsymmetryN11);
+      }
+      else if (mAsymmetryN11 > 0.0f)
+      {
+        stereo.x[0] = M7::math::lerp(stereo.x[0], stereo.x[1], mAsymmetryN11);
+      }
+
+      stereo = stereo.mul(mPanGains);
+      stereo *= M7::math::gPanCompensationGainLin;
+      return stereo;
+    }
+  };
+
+  static_assert((int)ParamIndices::NumParams == 35, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-      -32767,  // LSrc = -1
-      32767,   // RSrc = 1
       0,       // LInv = 0
       0,       // RInv = 0
       16383,   // Rot = 0.5
       16383,   // MSShear = 0.5
       0,       // SideHPF = 0
-      0,       // MSBal = 0
-      0,       // Pan = 0
-      16422,   // OutGain = 0.50118720531463623047
+      0,       // MBEn = 0
       14347,   // xAFreq = 0.43785116076469421387
       22305,   // xBFreq = 0.68073546886444091797
       3,       // xASlope = 0.0001220703125
       3,       // xBSlope = 0.0001220703125
-      16422,   // B1Gain = 0.50118720531463623047
-      16422,   // B2Gain = 0.50118720531463623047
-      16422,   // B3Gain = 0.50118720531463623047
-      16383,   // MS1Rot = 0.5
-      16383,   // MS2Rot = 0.5
-      16383,   // MS3Rot = 0.5
-      16383,   // MS1Shr = 0.5
-      16383,   // MS2Shr = 0.5
-      16383,   // MS3Shr = 0.5
-        0,       // Asym = 0
+      16422,   // OutGain = 0.50118720531463623047
+      -32767,  // ALSrc = -1
+      32767,   // ARSrc = 1
+      0,       // AWidth = 0
+      0,       // APan = 0
+      0,       // AAsym = 0
+      16422,   // ASideG = 0dB
+      16383,   // ARot = 0
+      16383,   // AShear = 0
+      -32767,  // BLSrc = -1
+      32767,   // BRSrc = 1
+      0,       // BWidth = 0
+      0,       // BPan = 0
+      0,       // BAsym = 0
+      16422,   // BSideG = 0dB
+      16383,   // BRot = 0
+      16383,   // BShear = 0
+      -32767,  // CLSrc = -1
+      32767,   // CRSrc = 1
+      0,       // CWidth = 0
+      0,       // CPan = 0
+      0,       // CAsym = 0
+      16422,   // CSideG = 0dB
+      16383,   // CRot = 0
+      16383,   // CShear = 0
   };
 
-  M7::MoogOnePoleFilter mFilter;
+  M7::BandSplitter mMidSplitter;
+  M7::BandSplitter mSideSplitter;
+  FreqBand mBands[gBandCount];
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   AnalysisStream mInputAnalysis[2];
@@ -131,6 +285,11 @@ struct Maj7Width : public Device
   Maj7Width()
       : Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults)
       , mParams(mParamCache, 0)
+      , mBands{
+        FreqBand{mParamCache, ParamIndices::ALeftSource},
+        FreqBand{mParamCache, ParamIndices::BLeftSource},
+        FreqBand{mParamCache, ParamIndices::CLeftSource},
+      }
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       ,
       // quite fast moving here because the user's looking for transients.
@@ -151,23 +310,6 @@ struct Maj7Width : public Device
     mSideSplitter.SetParams(crossoverFreqA, crossoverSlopeA, crossoverFreqB, crossoverSlopeB);
   }
 
-#ifdef MAJ7WIDTH_FULL_FEATURE
-  // 2D rotation around origin
-  void Rotate2(float& a, float& b, ParamIndices param, float minAngle, float maxAngle)
-  {
-    float rot = mParams.GetScaledRealValue(param, minAngle, maxAngle, 0);
-    float s = M7::math::sin(rot);
-    float c = M7::math::cos(rot);
-    float t = a * c - b * s;
-    b = a * s + b * c;
-    a = t;
-  }
-
-  static void Shear2(float& side, float mid, float shearFactor)
-  {
-    side += mid * shearFactor;
-  }
-
   static void CalculateBandMuteSolo(bool (&mutes)[gBandCount], bool (&solos)[gBandCount], bool (&outputs)[gBandCount])
   {
     bool soloExists = false;
@@ -186,139 +328,72 @@ struct Maj7Width : public Device
     }
   }
 
+#ifdef MAJ7WIDTH_FULL_FEATURE
+  // 2D rotation around origin
+  static void Rotate2(float& a, float& b, float rot)
+  {
+    float s = M7::math::sin(rot);
+    float c = M7::math::cos(rot);
+    float t = a * c - b * s;
+    b = a * s + b * c;
+    a = t;
+  }
+
+  static void Shear2(float& side, float mid, float shearFactor)
+  {
+    side += mid * shearFactor;
+  }
+
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
   virtual void Run(float** inputs, float** outputs, int numSamples) override
   {
-    const float asymmetry = mParams.GetN11Value(ParamIndices::Asymmetry, 0);
-    auto panGains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
-    const float sideBandGains[gBandCount] = {
-        mParams.GetLinearVolume(ParamIndices::Band1Gain, gVolumeCfg),
-        mParams.GetLinearVolume(ParamIndices::Band2Gain, gVolumeCfg),
-        mParams.GetLinearVolume(ParamIndices::Band3Gain, gVolumeCfg),
-    };
-    constexpr float bandGainBypassThresholdLin = 0.005f;
-    constexpr float bandRotationBypassThreshold = 0.001f;
-    constexpr float bandShearBypassThreshold = 0.001f;
+    const bool multibandEnable = mParams.GetBoolValue(ParamIndices::MultibandEnable);
+    const bool leftInvert = mParams.GetBoolValue(ParamIndices::LInvert);
+    const bool rightInvert = mParams.GetBoolValue(ParamIndices::RInvert);
+    const bool sideHpfActive = mParams.GetRawVal(ParamIndices::SideHPFrequency) > 0.001f;
+    const float sideHpfFreq = mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig);
+    const float outputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg);
+
     bool muteSoloEnabled[gBandCount] = {true, true, true};
-    const bool bandRoutingActive =
-        mBandConfig[0].mMute || mBandConfig[0].mSolo || mBandConfig[1].mMute || mBandConfig[1].mSolo ||
-        mBandConfig[2].mMute || mBandConfig[2].mSolo;
-    if (bandRoutingActive)
+    bool mutes[gBandCount] = {mBandConfig[0].mMute, mBandConfig[1].mMute, mBandConfig[2].mMute};
+    bool solos[gBandCount] = {mBandConfig[0].mSolo, mBandConfig[1].mSolo, mBandConfig[2].mSolo};
+    CalculateBandMuteSolo(mutes, solos, muteSoloEnabled);
+
+    for (int iBand = 0; iBand < gBandCount; ++iBand)
     {
-      bool mutes[gBandCount] = {mBandConfig[0].mMute, mBandConfig[1].mMute, mBandConfig[2].mMute};
-      bool solos[gBandCount] = {mBandConfig[0].mSolo, mBandConfig[1].mSolo, mBandConfig[2].mSolo};
-      CalculateBandMuteSolo(mutes, solos, muteSoloEnabled);
+      mBands[iBand].mMuteSoloEnable = muteSoloEnabled[iBand];
+      mBands[iBand].Slider(sideHpfActive, sideHpfFreq);
     }
   #ifdef MAJ7WIDTH_FULL_FEATURE
+    constexpr float bandShearBypassThreshold = 0.001f;
     const float broadbandShearAngle = mParams.GetScaledRealValue(ParamIndices::MSShear, -gShearAngleLimit, gShearAngleLimit, 0);
     const float broadbandShearFactor = -M7::math::tan(broadbandShearAngle);
-    const float bandRotations[gBandCount] = {
-      mParams.GetScaledRealValue(ParamIndices::Band1Rotation, -gRotationExtent, gRotationExtent, 0),
-      mParams.GetScaledRealValue(ParamIndices::Band2Rotation, -gRotationExtent, gRotationExtent, 0),
-      mParams.GetScaledRealValue(ParamIndices::Band3Rotation, -gRotationExtent, gRotationExtent, 0),
-    };
-    const float bandShearAngles[gBandCount] = {
-      mParams.GetScaledRealValue(ParamIndices::Band1Shear, -gShearAngleLimit, gShearAngleLimit, 0),
-      mParams.GetScaledRealValue(ParamIndices::Band2Shear, -gShearAngleLimit, gShearAngleLimit, 0),
-      mParams.GetScaledRealValue(ParamIndices::Band3Shear, -gShearAngleLimit, gShearAngleLimit, 0),
-    };
-    const float bandShearFactors[gBandCount] = {
-      -M7::math::tan(bandShearAngles[0]),
-      -M7::math::tan(bandShearAngles[1]),
-      -M7::math::tan(bandShearAngles[2]),
-    };
+    const float broadbandRotation = mParams.GetScaledRealValue(ParamIndices::RotationAngle, -gRotationExtent, gRotationExtent, 0);
     const bool broadbandShearActive = !M7::math::FloatEquals(broadbandShearAngle, 0.0f, bandShearBypassThreshold);
   #endif  // MAJ7WIDTH_FULL_FEATURE
-    const bool multibandActive = !M7::math::FloatEquals(sideBandGains[0], 1.0f, bandGainBypassThresholdLin) ||
-                                 !M7::math::FloatEquals(sideBandGains[1], 1.0f, bandGainBypassThresholdLin) ||
-                   !M7::math::FloatEquals(sideBandGains[2], 1.0f, bandGainBypassThresholdLin) || bandRoutingActive
-  #ifdef MAJ7WIDTH_FULL_FEATURE
-                   || !M7::math::FloatEquals(bandRotations[0], 0.0f, bandRotationBypassThreshold) ||
-                   !M7::math::FloatEquals(bandRotations[1], 0.0f, bandRotationBypassThreshold) ||
-                   !M7::math::FloatEquals(bandRotations[2], 0.0f, bandRotationBypassThreshold) ||
-                   !M7::math::FloatEquals(bandShearAngles[0], 0.0f, bandShearBypassThreshold) ||
-                   !M7::math::FloatEquals(bandShearAngles[1], 0.0f, bandShearBypassThreshold) ||
-                   !M7::math::FloatEquals(bandShearAngles[2], 0.0f, bandShearBypassThreshold)
-  #endif  // MAJ7WIDTH_FULL_FEATURE
-      ;
-    const bool sideHpfActive = mParams.GetRawVal(ParamIndices::SideHPFrequency) > 0.001f;
-    if (sideHpfActive)
-    {
-      mFilter.SetParams(M7::FilterCircuit::OnePole,
-                        M7::FilterSlope::Slope6dbOct,
-                        M7::FilterResponse::Highpass,
-                        mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig),
-                        M7::Param01{0} /*reso*/,
-                        0 /*gain*/);
-    }
-    float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg) *
-                             M7::math::gPanCompensationGainLin;
 
     for (size_t i = 0; i < (size_t)numSamples; ++i)
     {
-      float l = inputs[0][i];
-      float r = inputs[1][i];
+      const M7::FloatPair inputStereo{inputs[0][i], inputs[1][i]};
+      const M7::FloatPair inputMs = inputStereo.MSEncode();
+      M7::FloatPair stereo{};
 
-      float leftSrcN11 = mParams.GetN11Value(ParamIndices::LeftSource, 0);
-      float rightSrcN11 = mParams.GetN11Value(ParamIndices::RightSource, 0);
-
-      float left = M7::math::lerp(l, r, leftSrcN11 * 0.5f + 0.5f);    // rescale from -1,1 to 0,1 for lerp
-      float right = M7::math::lerp(l, r, rightSrcN11 * 0.5f + 0.5f);  // rescale from -1,1 to 0,1 for lerp
-
-      if (mParams.GetBoolValue(ParamIndices::LInvert))
+      if (multibandEnable)
       {
-        left = -left;
-      }
-      if (mParams.GetBoolValue(ParamIndices::RInvert))
-      {
-        right = -right;
-      }
-
-      auto ms = M7::FloatPair{left, right}.MSEncode();
-
-      // Width-shaping stage: side-only HPF and width amount both define the M/S image
-      // before any later geometric rotations or shearing are applied.
-      if (sideHpfActive)
-      {
-        ms.x[1] = mFilter.ProcessSample(ms.Side());
-      }
-      float width = mParams.GetN11Value(ParamIndices::MidSideBalance, 0);
-      if (width < 0)
-      {
-        // reduce side toward mono
-        ms.x[1] *= width + 1.0f;
-      }
-      if (width > 0)
-      {
-        // reduce mid toward side-only
-        ms.x[0] *= 1.0f - width;
-      }
-
-      if (multibandActive)
-      {
-        const auto sideBands = mSideSplitter.Process(ms.Side());
-        const auto midBands = mMidSplitter.Process(ms.Mid());
-
-        M7::FloatPair multibandMs{};
+        const auto sideBands = mSideSplitter.Process(inputMs.Side());
+        const auto midBands = mMidSplitter.Process(inputMs.Mid());
         for (int iBand = 0; iBand < gBandCount; ++iBand)
         {
-          if (!muteSoloEnabled[iBand])
-          {
-            continue;
-          }
-
-          float bandMid = midBands[iBand];
-          float bandSide = sideBands[iBand] * sideBandGains[iBand];
-#ifdef MAJ7WIDTH_FULL_FEATURE
-          Shear2(bandSide, bandMid, bandShearFactors[iBand]);
-          Rotate2(bandSide, bandMid, (ParamIndices)((int)ParamIndices::Band1Rotation + iBand), -gRotationExtent, gRotationExtent);
-#endif  // MAJ7WIDTH_FULL_FEATURE
-          multibandMs.x[0] += bandMid;
-          multibandMs.x[1] += bandSide;
+          stereo.Accumulate(mBands[iBand].ProcessSample({midBands.s[iBand], sideBands.s[iBand]}, leftInvert, rightInvert));
         }
-        ms = multibandMs;
       }
+      else
+      {
+        stereo = mBands[1].ProcessSample(inputMs, leftInvert, rightInvert);
+      }
+
+      auto ms = stereo.MSEncode();
 
 #ifdef MAJ7WIDTH_FULL_FEATURE
       if (broadbandShearActive)
@@ -327,25 +402,13 @@ struct Maj7Width : public Device
       }
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
-      auto stereo = ms.MSDecode();
+      stereo = ms.MSDecode();
 
 #ifdef MAJ7WIDTH_FULL_FEATURE
-      Rotate2(stereo.x[0], stereo.x[1], ParamIndices::RotationAngle, -gRotationExtent, gRotationExtent);
+      Rotate2(stereo.x[0], stereo.x[1], broadbandRotation);
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
-      if (asymmetry < 0.0f)
-      {
-        stereo.x[1] = M7::math::lerp(stereo.x[1], stereo.x[0], -asymmetry);
-      }
-      else if (asymmetry > 0.0f)
-      {
-        stereo.x[0] = M7::math::lerp(stereo.x[0], stereo.x[1], asymmetry);
-      }
-
-      ms = stereo.MSEncode();
-
-      auto outputPrePan = ms.MSDecode() * masterLinearGain;
-      auto output = outputPrePan.mul(panGains);
+      auto output = stereo * outputGainLin;
 
       outputs[0][i] = output.Left();
       outputs[1][i] = output.Right();

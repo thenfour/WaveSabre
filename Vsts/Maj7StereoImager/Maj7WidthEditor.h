@@ -84,111 +84,50 @@ struct Maj7WidthEditor : public VstEditor
   {
     {
       ImGuiGroupScope _grp;
+      using Params = WaveSabreCore::Maj7Width::ParamIndices;
+      using BandParam = WaveSabreCore::Maj7Width::FreqBand::BandParam;
 
-      // Source and polarity stage
-      //ImGui::BeginGroup();
-      {
-        ImGuiGroupScope _grpSources;
-
-        Maj7ImGuiParamFloatN11WithCenter(
-            (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LeftSource, "Left source", -1, -1, 0, {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Left Channel Source");
-          ImGui::Separator();
-          ImGui::Text("Select where the left channel originates from:");
-          ImGui::BulletText("-1.0: Pure left input signal");
-          ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
-          ImGui::BulletText("+1.0: Pure right input signal");
-          ImGui::EndTooltip();
-        }
-
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11WithCenter(
-            (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RightSource, "Right source", 1, 1, 0, {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Right Channel Source");
-          ImGui::Separator();
-          ImGui::Text("Select where the right channel originates from:");
-          ImGui::BulletText("-1.0: Pure left input signal");
-          ImGui::BulletText(" 0.0: Mono mix (L+R)/2");
-          ImGui::BulletText("+1.0: Pure right input signal");
-          ImGui::EndTooltip();
-        }
-
-        ImGui::SameLine();
-        {
-          ImGuiGroupScope _grpPolarity;
-          Maj7ImGuiBoolParamToggleButton((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::LInvert, "L flip", "cc6666");
-          if (ImGui::IsItemHovered())
-          {
-            ImGui::BeginTooltip();
-            ImGui::Text("Left Polarity Flip");
-            ImGui::Separator();
-            ImGui::Text("Invert the polarity of the constructed left channel before width shaping.");
-            ImGui::EndTooltip();
-          }
-
-          //ImGui::SameLine();
-          Maj7ImGuiBoolParamToggleButton((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RInvert, "R flip", "6699cc");
-          if (ImGui::IsItemHovered())
-          {
-            ImGui::BeginTooltip();
-            ImGui::Text("Right Polarity Flip");
-            ImGui::Separator();
-            ImGui::Text("Invert the polarity of the constructed right channel before width shaping.");
-            ImGui::EndTooltip();
-          }
-        }
-      }  // _grpSources
-
-      ImGui::Spacing();
-
-      // Width-shaping stage
-      ImGui::BeginGroup();
-      Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::SideHPFrequency,
-                              -1,
-                              "Side HPF",
-                              M7::gFilterFreqConfig,
-                              0,
-                              {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("Side Channel High-Pass Filter");
-        ImGui::Separator();
-        ImGui::Text("Frequency-dependent width control for the side channel.");
-        ImGui::BulletText("Reduces low-frequency width with a 6dB/octave slope.");
-        ImGui::EndTooltip();
-      }
-
-      ImGui::SameLine();
-
-      Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MidSideBalance, "Width", 0.0f, 0, {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("Width");
-        ImGui::Separator();
-        ImGui::Text("Adjust the overall stereo width before the rotation stage:");
-        ImGui::BulletText("-1.0: Mono (side removed)");
-        ImGui::BulletText(" 0.0: Unchanged");
-        ImGui::BulletText("+1.0: Side-only (mid removed)");
-        ImGui::EndTooltip();
-      }
-      ImGui::EndGroup();
-
-      ImGui::Spacing();
+      auto bandParam = [](int bandIndex, BandParam param) {
+        return (VstInt32)((int)Params::ALeftSource + bandIndex * (int)BandParam::Count__ + (int)param);
+      };
 
       {
         ImGuiGroupScope _grp;
         CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
         using CrossoverSlope = M7::CrossoverSlope;
 
-        Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::CrossoverAFrequency,
+        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::LInvert, "L flip", "cc6666");
+        ImGui::SameLine();
+        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::RInvert, "R flip", "6699cc");
+        ImGui::SameLine();
+        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::MultibandEnable, "3-band", "8d6e63");
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Multiband Mode");
+          ImGui::Separator();
+          ImGui::Text("Off: process broadband with the mid band's controls.");
+          ImGui::Text("On: process low, mid, and high bands independently.");
+          ImGui::EndTooltip();
+        }
+
+        Maj7ImGuiParamFrequency((VstInt32)Params::SideHPFrequency,
+              -1,
+              "Side HPF",
+              M7::gFilterFreqConfig,
+              0,
+              {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Side Channel High-Pass Filter");
+          ImGui::Separator();
+          ImGui::Text("Broadband side high-pass applied inside each band processor.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamFrequency((VstInt32)Params::CrossoverAFrequency,
                                 -1,
                                 "Xover 1",
                                 M7::gFilterFreqConfig,
@@ -199,12 +138,12 @@ struct Maj7WidthEditor : public VstEditor
           ImGui::BeginTooltip();
           ImGui::Text("Crossover 1");
           ImGui::Separator();
-          ImGui::Text("Split point between the low and mid side-shaping bands.");
+          ImGui::Text("Split point between the low and mid bands.");
           ImGui::EndTooltip();
         }
 
         ImGui::SameLine();
-        Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::CrossoverBFrequency,
+        Maj7ImGuiParamFrequency((VstInt32)Params::CrossoverBFrequency,
                                 -1,
                                 "Xover 2",
                                 M7::gFilterFreqConfig,
@@ -215,12 +154,12 @@ struct Maj7WidthEditor : public VstEditor
           ImGui::BeginTooltip();
           ImGui::Text("Crossover 2");
           ImGui::Separator();
-          ImGui::Text("Split point between the mid and high side-shaping bands.");
+          ImGui::Text("Split point between the mid and high bands.");
           ImGui::EndTooltip();
         }
 
         Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
-            WaveSabreCore::Maj7Width::ParamIndices::CrossoverASlope,
+            Params::CrossoverASlope,
             "Slope 1",
             {
                 EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
@@ -247,7 +186,7 @@ struct Maj7WidthEditor : public VstEditor
 
         ImGui::SameLine();
         Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
-            WaveSabreCore::Maj7Width::ParamIndices::CrossoverBSlope,
+            Params::CrossoverBSlope,
             "Slope 2",
             {
                 EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
@@ -339,52 +278,57 @@ struct Maj7WidthEditor : public VstEditor
           ImGui::EndGroup();
         }
 
+        ImGui::TextDisabled("Broadband mode uses the mid band controls.");
 
-        Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Gain,
+        Maj7ImGuiParamFloatN11WithCenter(bandParam(0, BandParam::LeftSource), "L src low", -1, -1, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11WithCenter(bandParam(1, BandParam::LeftSource), "L src mid", -1, -1, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11WithCenter(bandParam(2, BandParam::LeftSource), "L src hi", -1, -1, 0, {});
+
+        Maj7ImGuiParamFloatN11WithCenter(bandParam(0, BandParam::RightSource), "R src low", 1, 1, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11WithCenter(bandParam(1, BandParam::RightSource), "R src mid", 1, 1, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11WithCenter(bandParam(2, BandParam::RightSource), "R src hi", 1, 1, 0, {});
+
+        Maj7ImGuiParamFloatN11(bandParam(0, BandParam::Width), "Width low", 0.0f, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11(bandParam(1, BandParam::Width), "Width mid", 0.0f, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11(bandParam(2, BandParam::Width), "Width hi", 0.0f, 0, {});
+
+        Maj7ImGuiParamFloatN11(bandParam(0, BandParam::Pan), "Pan low", 0.0f, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11(bandParam(1, BandParam::Pan), "Pan mid", 0.0f, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11(bandParam(2, BandParam::Pan), "Pan hi", 0.0f, 0, {});
+
+        Maj7ImGuiParamFloatN11(bandParam(0, BandParam::Asymmetry), "Asym low", 0.0f, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11(bandParam(1, BandParam::Asymmetry), "Asym mid", 0.0f, 0, {});
+        ImGui::SameLine();
+        Maj7ImGuiParamFloatN11(bandParam(2, BandParam::Asymmetry), "Asym hi", 0.0f, 0, {});
+
+        Maj7ImGuiParamVolume(bandParam(0, BandParam::SideGain),
                              "Side low",
                              WaveSabreCore::Maj7Width::gVolumeCfg,
                              0,
                              {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Low Band Side Gain");
-          ImGui::Separator();
-          ImGui::Text("Adjust the side level of the low crossover band.");
-          ImGui::EndTooltip();
-        }
-
         ImGui::SameLine();
-        Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band2Gain,
+        Maj7ImGuiParamVolume(bandParam(1, BandParam::SideGain),
                              "Side mid",
                              WaveSabreCore::Maj7Width::gVolumeCfg,
                              0,
                              {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Mid Band Side Gain");
-          ImGui::Separator();
-          ImGui::Text("Adjust the side level of the middle crossover band.");
-          ImGui::EndTooltip();
-        }
-
         ImGui::SameLine();
-        Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band3Gain,
+        Maj7ImGuiParamVolume(bandParam(2, BandParam::SideGain),
                              "Side hi",
                              WaveSabreCore::Maj7Width::gVolumeCfg,
                              0,
                              {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("High Band Side Gain");
-          ImGui::Separator();
-          ImGui::Text("Adjust the side level of the high crossover band.");
-          ImGui::EndTooltip();
-        }
 
-        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Rotation,
+        Maj7ImGuiParamScaledFloat(bandParam(0, BandParam::Rotation),
                                   "MS rot low",
                                   -WaveSabreCore::Maj7Width::gRotationExtent,
                                   WaveSabreCore::Maj7Width::gRotationExtent,
@@ -392,17 +336,8 @@ struct Maj7WidthEditor : public VstEditor
                                   0,
                                   0,
                                   {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Low Band M/S Rotation");
-          ImGui::Separator();
-          ImGui::Text("Rotate the mid/side axes within the low crossover band.");
-          ImGui::EndTooltip();
-        }
-
         ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band2Rotation,
+        Maj7ImGuiParamScaledFloat(bandParam(1, BandParam::Rotation),
                                   "MS rot mid",
                                   -WaveSabreCore::Maj7Width::gRotationExtent,
                                   WaveSabreCore::Maj7Width::gRotationExtent,
@@ -410,17 +345,8 @@ struct Maj7WidthEditor : public VstEditor
                                   0,
                                   0,
                                   {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Mid Band M/S Rotation");
-          ImGui::Separator();
-          ImGui::Text("Rotate the mid/side axes within the middle crossover band.");
-          ImGui::EndTooltip();
-        }
-
         ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band3Rotation,
+        Maj7ImGuiParamScaledFloat(bandParam(2, BandParam::Rotation),
                                   "MS rot hi",
                                   -WaveSabreCore::Maj7Width::gRotationExtent,
                                   WaveSabreCore::Maj7Width::gRotationExtent,
@@ -428,16 +354,8 @@ struct Maj7WidthEditor : public VstEditor
                                   0,
                                   0,
                                   {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("High Band M/S Rotation");
-          ImGui::Separator();
-          ImGui::Text("Rotate the mid/side axes within the high crossover band.");
-          ImGui::EndTooltip();
-        }
 
-        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Shear,
+        Maj7ImGuiParamScaledFloat(bandParam(0, BandParam::Shear),
                                   "MS shr low",
                                   -WaveSabreCore::Maj7Width::gShearAngleLimit,
                                   WaveSabreCore::Maj7Width::gShearAngleLimit,
@@ -445,17 +363,8 @@ struct Maj7WidthEditor : public VstEditor
                                   0,
                                   0,
                                   {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Low Band M/S Shear");
-          ImGui::Separator();
-          ImGui::Text("Skew the mid/side axes within the low crossover band.");
-          ImGui::EndTooltip();
-        }
-
         ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band2Shear,
+        Maj7ImGuiParamScaledFloat(bandParam(1, BandParam::Shear),
                                   "MS shr mid",
                                   -WaveSabreCore::Maj7Width::gShearAngleLimit,
                                   WaveSabreCore::Maj7Width::gShearAngleLimit,
@@ -463,17 +372,8 @@ struct Maj7WidthEditor : public VstEditor
                                   0,
                                   0,
                                   {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Mid Band M/S Shear");
-          ImGui::Separator();
-          ImGui::Text("Skew the mid/side axes within the middle crossover band.");
-          ImGui::EndTooltip();
-        }
-
         ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band3Shear,
+        Maj7ImGuiParamScaledFloat(bandParam(2, BandParam::Shear),
                                   "MS shr hi",
                                   -WaveSabreCore::Maj7Width::gShearAngleLimit,
                                   WaveSabreCore::Maj7Width::gShearAngleLimit,
@@ -481,21 +381,12 @@ struct Maj7WidthEditor : public VstEditor
                                   0,
                                   0,
                                   {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("High Band M/S Shear");
-          ImGui::Separator();
-          ImGui::Text("Skew the mid/side axes within the high crossover band.");
-          ImGui::EndTooltip();
-        }
       }
 
       ImGui::Spacing();
 
-      // Rotation stage
       ImGui::BeginGroup();
-      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle,
+      Maj7ImGuiParamScaledFloat((VstInt32)Params::RotationAngle,
                                 "L/R rotation",
                                 -WaveSabreCore::Maj7Width::gRotationExtent,
                                 WaveSabreCore::Maj7Width::gRotationExtent,
@@ -514,7 +405,7 @@ struct Maj7WidthEditor : public VstEditor
 
       ImGui::SameLine();
 
-      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MSShear,
+    Maj7ImGuiParamScaledFloat((VstInt32)Params::MSShear,
                                 "MS shear",
                                 -WaveSabreCore::Maj7Width::gShearAngleLimit,
                                 WaveSabreCore::Maj7Width::gShearAngleLimit,
@@ -532,40 +423,12 @@ struct Maj7WidthEditor : public VstEditor
       }
 
       ImGui::SameLine();
-
-      Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Asymmetry, "Asym", 0, 0, {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("Asymmetry");
-        ImGui::Separator();
-        ImGui::Text("Morph the stereo output between dual-left, original, and dual-right.");
-        ImGui::BulletText("-1.0: dual-left mono");
-        ImGui::BulletText(" 0.0: unchanged");
-        ImGui::BulletText("+1.0: dual-right mono");
-        ImGui::EndTooltip();
-      }
-
-      ImGui::SameLine();
-
-
-      Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Pan, "Pan", 0, 0, {});
-
+      Maj7ImGuiParamVolume((VstInt32)Params::OutputGain,
+                           "Output",
+                           WaveSabreCore::Maj7Width::gVolumeCfg,
+                           0,
+                           {});
       ImGui::EndGroup();
-
-      ImGui::Spacing();
-
-      // Final Output Section with Tooltips
-      {
-        ImGuiGroupScope _grp;
-
-        ImGui::SameLine();
-        Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::OutputGain,
-                             "Output",
-                             WaveSabreCore::Maj7Width::gVolumeCfg,
-                             0,
-                             {});
-      }
 
     }  // group scope
 
