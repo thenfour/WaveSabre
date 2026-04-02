@@ -11,6 +11,14 @@ namespace WaveSabreCore
 {
 struct Maj7Width : public Device
 {
+  static constexpr int gBandCount = M7::kBandSplitterBands;
+
+  struct BandConfig
+  {
+    bool mMute = false;
+    bool mSolo = false;
+  };
+
   // roughly in order of processing,
   enum class ParamIndices
   {
@@ -79,6 +87,7 @@ struct Maj7Width : public Device
   M7::ParamAccessor mParams;
   M7::BandSplitter mMidSplitter;
   M7::BandSplitter mSideSplitter;
+  BandConfig mBandConfig[gBandCount];
 
     static_assert((int)ParamIndices::NumParams == 23, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
@@ -156,12 +165,30 @@ struct Maj7Width : public Device
     side += mid * shearFactor;
   }
 
+  static void CalculateBandMuteSolo(bool (&mutes)[gBandCount], bool (&solos)[gBandCount], bool (&outputs)[gBandCount])
+  {
+    bool soloExists = false;
+    for (int iBand = 0; iBand < gBandCount; ++iBand)
+    {
+      if (solos[iBand])
+      {
+        soloExists = true;
+        break;
+      }
+    }
+
+    for (int iBand = 0; iBand < gBandCount; ++iBand)
+    {
+      outputs[iBand] = soloExists ? solos[iBand] : !mutes[iBand];
+    }
+  }
+
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
   virtual void Run(float** inputs, float** outputs, int numSamples) override
   {
     auto panGains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
-    const float sideBandGains[M7::kBandSplitterBands] = {
+    const float sideBandGains[gBandCount] = {
         mParams.GetLinearVolume(ParamIndices::Band1Gain, gVolumeCfg),
         mParams.GetLinearVolume(ParamIndices::Band2Gain, gVolumeCfg),
         mParams.GetLinearVolume(ParamIndices::Band3Gain, gVolumeCfg),
@@ -169,29 +196,39 @@ struct Maj7Width : public Device
     constexpr float bandGainBypassThresholdLin = 0.005f;
     constexpr float bandRotationBypassThreshold = 0.001f;
     constexpr float bandShearBypassThreshold = 0.001f;
+    bool muteSoloEnabled[gBandCount] = {true, true, true};
+    const bool bandRoutingActive =
+        mBandConfig[0].mMute || mBandConfig[0].mSolo || mBandConfig[1].mMute || mBandConfig[1].mSolo ||
+        mBandConfig[2].mMute || mBandConfig[2].mSolo;
+    if (bandRoutingActive)
+    {
+      bool mutes[gBandCount] = {mBandConfig[0].mMute, mBandConfig[1].mMute, mBandConfig[2].mMute};
+      bool solos[gBandCount] = {mBandConfig[0].mSolo, mBandConfig[1].mSolo, mBandConfig[2].mSolo};
+      CalculateBandMuteSolo(mutes, solos, muteSoloEnabled);
+    }
   #ifdef MAJ7WIDTH_FULL_FEATURE
     const float broadbandShearAngle = mParams.GetScaledRealValue(ParamIndices::MSShear, -gShearAngleLimit, gShearAngleLimit, 0);
-    const float broadbandShearFactor = M7::math::tan(broadbandShearAngle);
-    const float bandRotations[M7::kBandSplitterBands] = {
+    const float broadbandShearFactor = -M7::math::tan(broadbandShearAngle);
+    const float bandRotations[gBandCount] = {
       mParams.GetScaledRealValue(ParamIndices::Band1Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
       mParams.GetScaledRealValue(ParamIndices::Band2Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
       mParams.GetScaledRealValue(ParamIndices::Band3Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
     };
-    const float bandShearAngles[M7::kBandSplitterBands] = {
+    const float bandShearAngles[gBandCount] = {
       mParams.GetScaledRealValue(ParamIndices::Band1Shear, -gShearAngleLimit, gShearAngleLimit, 0),
       mParams.GetScaledRealValue(ParamIndices::Band2Shear, -gShearAngleLimit, gShearAngleLimit, 0),
       mParams.GetScaledRealValue(ParamIndices::Band3Shear, -gShearAngleLimit, gShearAngleLimit, 0),
     };
-    const float bandShearFactors[M7::kBandSplitterBands] = {
-      M7::math::tan(bandShearAngles[0]),
-      M7::math::tan(bandShearAngles[1]),
-      M7::math::tan(bandShearAngles[2]),
+    const float bandShearFactors[gBandCount] = {
+      -M7::math::tan(bandShearAngles[0]),
+      -M7::math::tan(bandShearAngles[1]),
+      -M7::math::tan(bandShearAngles[2]),
     };
     const bool broadbandShearActive = !M7::math::FloatEquals(broadbandShearAngle, 0.0f, bandShearBypassThreshold);
   #endif  // MAJ7WIDTH_FULL_FEATURE
     const bool multibandActive = !M7::math::FloatEquals(sideBandGains[0], 1.0f, bandGainBypassThresholdLin) ||
                                  !M7::math::FloatEquals(sideBandGains[1], 1.0f, bandGainBypassThresholdLin) ||
-                   !M7::math::FloatEquals(sideBandGains[2], 1.0f, bandGainBypassThresholdLin)
+                   !M7::math::FloatEquals(sideBandGains[2], 1.0f, bandGainBypassThresholdLin) || bandRoutingActive
   #ifdef MAJ7WIDTH_FULL_FEATURE
                    || !M7::math::FloatEquals(bandRotations[0], 0.0f, bandRotationBypassThreshold) ||
                    !M7::math::FloatEquals(bandRotations[1], 0.0f, bandRotationBypassThreshold) ||
@@ -260,8 +297,13 @@ struct Maj7Width : public Device
         const auto midBands = mMidSplitter.Process(ms.Mid());
 
         M7::FloatPair multibandMs{};
-        for (int iBand = 0; iBand < M7::kBandSplitterBands; ++iBand)
+        for (int iBand = 0; iBand < gBandCount; ++iBand)
         {
+          if (!muteSoloEnabled[iBand])
+          {
+            continue;
+          }
+
           float bandMid = midBands[iBand];
           float bandSide = sideBands[iBand] * sideBandGains[iBand];
 #ifdef MAJ7WIDTH_FULL_FEATURE

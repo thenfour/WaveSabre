@@ -25,6 +25,12 @@ public:
 	{
 		MAJ7WIDTH_PARAM_VST_NAMES(paramNames);
 		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Width()->mParamCache, paramNames, [&](clarinoid::JsonVariantWriter& elem) {
+			elem.Object_MakeKey("Band1Mute").WriteBoolean(GetMaj7Width()->mBandConfig[0].mMute);
+			elem.Object_MakeKey("Band1Solo").WriteBoolean(GetMaj7Width()->mBandConfig[0].mSolo);
+			elem.Object_MakeKey("Band2Mute").WriteBoolean(GetMaj7Width()->mBandConfig[1].mMute);
+			elem.Object_MakeKey("Band2Solo").WriteBoolean(GetMaj7Width()->mBandConfig[1].mSolo);
+			elem.Object_MakeKey("Band3Mute").WriteBoolean(GetMaj7Width()->mBandConfig[2].mMute);
+			elem.Object_MakeKey("Band3Solo").WriteBoolean(GetMaj7Width()->mBandConfig[2].mSolo);
 			auto& editor = *static_cast<WaveSabreVstLib::VstEditor*>(getEditor());
 			auto map = editor.GetVstOnlyParams();
 			for (auto& p : map) {
@@ -37,6 +43,30 @@ public:
 	{
 		MAJ7WIDTH_PARAM_VST_NAMES(paramNames);
 		return SetSimpleJSONVstChunk(GetMaj7Width(), GetJSONTagName(), data, byteSize, GetMaj7Width()->mParamCache, paramNames, [&](clarinoid::JsonVariantReader& elem) {
+			if (elem.mKeyName == "Band1Mute")
+			{
+				GetMaj7Width()->mBandConfig[0].mMute = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "Band1Solo")
+			{
+				GetMaj7Width()->mBandConfig[0].mSolo = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "Band2Mute")
+			{
+				GetMaj7Width()->mBandConfig[1].mMute = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "Band2Solo")
+			{
+				GetMaj7Width()->mBandConfig[1].mSolo = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "Band3Mute")
+			{
+				GetMaj7Width()->mBandConfig[2].mMute = elem.mBooleanValue;
+			}
+			else if (elem.mKeyName == "Band3Solo")
+			{
+				GetMaj7Width()->mBandConfig[2].mSolo = elem.mBooleanValue;
+			}
 			auto& editor = *static_cast<WaveSabreVstLib::VstEditor*>(getEditor());
 			auto map = editor.GetVstOnlyParams();
 			for (auto& p : map) {

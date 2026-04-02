@@ -187,11 +187,12 @@ struct Maj7WidthEditor : public VstEditor
         ImGuiGroupScope _grp;
         CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
         using CrossoverSlope = M7::CrossoverSlope;
+
         Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::CrossoverAFrequency,
                                 -1,
                                 "Xover 1",
                                 M7::gFilterFreqConfig,
-                                550,
+                                M7::gFilterFreqConfig.GetParam01ValueForFrequencyAssumingNoKeytracking(650),
                                 {});
         if (ImGui::IsItemHovered())
         {
@@ -207,7 +208,7 @@ struct Maj7WidthEditor : public VstEditor
                                 -1,
                                 "Xover 2",
                                 M7::gFilterFreqConfig,
-                                3000,
+                                M7::gFilterFreqConfig.GetParam01ValueForFrequencyAssumingNoKeytracking(3500),
                                 {});
         if (ImGui::IsItemHovered())
         {
@@ -270,6 +271,74 @@ struct Maj7WidthEditor : public VstEditor
           ImGui::Text("Linkwitz-Riley slope used at the second split point.");
           ImGui::EndTooltip();
         }
+
+        {
+          ImGui::BeginGroup();
+          ImGui::Text("Low band");
+          ToggleButton(&mpMaj7Width->mBandConfig[0].mMute,
+                       "MUTE##width_band1",
+                       {0, 0},
+                       {
+                           "990000",
+                           "294a7a",
+                           "999999",
+                       });
+          ImGui::SameLine(0, 0);
+          ToggleButton(&mpMaj7Width->mBandConfig[0].mSolo,
+                       "SOLO##width_band1",
+                       {0, 0},
+                       {
+                           "999900",
+                           "294a7a",
+                           "999999",
+                       });
+          ImGui::EndGroup();
+
+          ImGui::SameLine();
+          ImGui::BeginGroup();
+          ImGui::Text("Mid band");
+          ToggleButton(&mpMaj7Width->mBandConfig[1].mMute,
+                       "MUTE##width_band2",
+                       {0, 0},
+                       {
+                           "990000",
+                           "294a7a",
+                           "999999",
+                       });
+          ImGui::SameLine(0, 0);
+          ToggleButton(&mpMaj7Width->mBandConfig[1].mSolo,
+                       "SOLO##width_band2",
+                       {0, 0},
+                       {
+                           "999900",
+                           "294a7a",
+                           "999999",
+                       });
+          ImGui::EndGroup();
+
+          ImGui::SameLine();
+          ImGui::BeginGroup();
+          ImGui::Text("High band");
+          ToggleButton(&mpMaj7Width->mBandConfig[2].mMute,
+                       "MUTE##width_band3",
+                       {0, 0},
+                       {
+                           "990000",
+                           "294a7a",
+                           "999999",
+                       });
+          ImGui::SameLine(0, 0);
+          ToggleButton(&mpMaj7Width->mBandConfig[2].mSolo,
+                       "SOLO##width_band3",
+                       {0, 0},
+                       {
+                           "999900",
+                           "294a7a",
+                           "999999",
+                       });
+          ImGui::EndGroup();
+        }
+
 
         Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Gain,
                              "Side low",
@@ -568,7 +637,8 @@ struct Maj7WidthEditor : public VstEditor
         ButtonArray<4>(
             "width_scope_layers",
             {
-                MakeButtonSpec("Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
+                MakeButtonSpec(
+                    "Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
                 MakeButtonSpec(
                     "Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
                 MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
@@ -607,7 +677,8 @@ struct Maj7WidthEditor : public VstEditor
                   MakeButtonSpec(
                       "Out M", &mShowOutputMid, kOutputMidFftColor, "Show the output mid / center FFT overlay."),
                   MakeButtonSpec("Out S", &mShowOutputSide, kOutputSideFftColor, "Show the output side FFT overlay."),
-                  MakeButtonSpec("Out W", &mShowOutputWidth, kOutputWidthFftColor, "Show the output width FFT overlay."),
+                  MakeButtonSpec(
+                      "Out W", &mShowOutputWidth, kOutputWidthFftColor, "Show the output width FFT overlay."),
               });
         }
 
