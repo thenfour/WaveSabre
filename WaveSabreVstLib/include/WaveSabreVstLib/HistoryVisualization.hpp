@@ -204,15 +204,10 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     return true;
   }
 
-  void RenderPauseButton(const ImRect& bb) {
-    const ImVec2 savedCursorPos = ImGui::GetCursorPos();
-    ImGui::PushID(this);
-    ImGui::SetCursorScreenPos({bb.Min.x + gOverlayButtonPadding.x, bb.Min.y + gOverlayButtonPadding.y});
-    if (ImGui::SmallButton(mPaused ? "Resume" : "Pause")) {
+  void HandlePauseToggleInteraction() {
+    if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
       mPaused = !mPaused;
     }
-    ImGui::PopID();
-    ImGui::SetCursorPos(savedCursorPos);
   }
 
   template<typename TValueToY>
@@ -353,8 +348,8 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     }
 
     ImGui::Dummy(gHistViewSize);
+    HandlePauseToggleInteraction();
     RenderHoverOverlay(bb, cfg, [&](float value, size_t) { return DbToY(value); });
-    RenderPauseButton(bb);
     if (tooltipCfg) {
       RenderTooltip(bb, cfg, *tooltipCfg);
     }
@@ -458,8 +453,8 @@ template <size_t TSeriesCount, int Twidth, int Theight> struct HistoryView {
     }
 
     ImGui::Dummy(gHistViewSize);
+    HandlePauseToggleInteraction();
     RenderHoverOverlay(bb, cfg, [&](float value, size_t seriesIndex) { return ValueToYForSeries(value, seriesIndex); });
-    RenderPauseButton(bb);
     if (tooltipCfg) {
       RenderTooltip(bb, cfg, *tooltipCfg);
     }

@@ -224,51 +224,54 @@ private:
       mpMaj7WidthVst->setParameter((int)Params::MultibandEnable, mbBacking);
     }
 
-    ImGui::SameLine(0, 20);
-    Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+    if (renderContext.multibandEnabled)
+    {
+      ImGui::SameLine(0, 20);
+      Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
         Params::CrossoverASlope,
         "Slope 1",
         {
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
-                                      CrossoverSlope::Slope_12dB,
-                                      "8d6e63"},
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
-                                      CrossoverSlope::Slope_24dB,
-                                      "8d6e63"},
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
-                                      CrossoverSlope::Slope_36dB,
-                                      "8d6e63"},
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
-                                      CrossoverSlope::Slope_48dB,
-                                      "8d6e63"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                      CrossoverSlope::Slope_12dB,
+                      "8d6e63"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                      CrossoverSlope::Slope_24dB,
+                      "8d6e63"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                      CrossoverSlope::Slope_36dB,
+                      "8d6e63"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                      CrossoverSlope::Slope_48dB,
+                      "8d6e63"},
         });
-    if (ImGui::IsItemHovered())
-    {
+      if (ImGui::IsItemHovered())
+      {
       ImGui::BeginTooltip();
       ImGui::Text("Crossover 1 Slope");
       ImGui::Separator();
       ImGui::Text("Linkwitz-Riley slope used at the first split point.");
       ImGui::EndTooltip();
-    }
+      }
 
-    ImGui::SameLine();
-    Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+      ImGui::SameLine();
+      Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
         Params::CrossoverBSlope,
         "Slope 2",
         {
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
-                                      CrossoverSlope::Slope_12dB,
-                                      "3f7a93"},
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
-                                      CrossoverSlope::Slope_24dB,
-                                      "3f7a93"},
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
-                                      CrossoverSlope::Slope_36dB,
-                                      "3f7a93"},
-            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
-                                      CrossoverSlope::Slope_48dB,
-                                      "3f7a93"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                      CrossoverSlope::Slope_12dB,
+                      "3f7a93"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                      CrossoverSlope::Slope_24dB,
+                      "3f7a93"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                      CrossoverSlope::Slope_36dB,
+                      "3f7a93"},
+          EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                      CrossoverSlope::Slope_48dB,
+                      "3f7a93"},
         });
+    }
 
     ImGui::SameLine(0, 20);
     auto selectedFftSeries = (FftSeriesSelection)mFftSeriesSelection;
@@ -289,9 +292,10 @@ private:
     ImGuiGroupScope _grp("fft_and_band_selector");
     EnsureFrequencyAnalysisEnabled();
     RenderFrequencyAnalysis(renderContext.multibandEnabled, renderContext.muteSoloEnabled);
-    ImGui::TextDisabled(renderContext.multibandEnabled
-                            ? "Drag crossover lines, click a band to edit it, or use M/S buttons on the graph."
-                            : "Single-band mode uses the mid band's controls. Switch to multi-band to edit crossovers on the graph.");
+    if (renderContext.multibandEnabled)
+    {
+      ImGui::TextDisabled("Drag crossover lines, click a band to edit it, or use M/S buttons on the graph.");
+    }
 #else
     (void)renderContext;
 #endif
@@ -736,20 +740,27 @@ private:
     mWidthGraph.ClearFFTDiffOverlay();
     mWidthGraph.ClearFFTDiffFlatOverlay();
     mWidthGraph.SetFFTScaleCaption(selectedSeries == FftSeriesSelection::Width ? "Width" : "dB");
-    mWidthGraph.SetCrossoverDataSource(
-        [this](int crossoverIndex) -> float {
-          using Params = WaveSabreCore::Maj7Width::ParamIndices;
-          const auto paramIndex = crossoverIndex == 0 ? Params::CrossoverAFrequency : Params::CrossoverBFrequency;
-          float raw = mpMaj7Width->mParamCache[(int)paramIndex];
-          M7::ParamAccessor param{&raw, 0};
-          return param.GetFrequency(0, M7::gFilterFreqConfig);
-        },
-        [this](float freqHz) -> std::array<float, 3> {
-          auto mags = mpMaj7Width->mMidSplitter.GetMagnitudesAtFrequency(freqHz);
-          return {mags[0], mags[1], mags[2]};
-        });
+    if (multibandEnabled)
+    {
+      mWidthGraph.SetCrossoverDataSource(
+          [this](int crossoverIndex) -> float {
+            using Params = WaveSabreCore::Maj7Width::ParamIndices;
+            const auto paramIndex = crossoverIndex == 0 ? Params::CrossoverAFrequency : Params::CrossoverBFrequency;
+            float raw = mpMaj7Width->mParamCache[(int)paramIndex];
+            M7::ParamAccessor param{&raw, 0};
+            return param.GetFrequency(0, M7::gFilterFreqConfig);
+          },
+          [this](float freqHz) -> std::array<float, 3> {
+            auto mags = mpMaj7Width->mMidSplitter.GetMagnitudesAtFrequency(freqHz);
+            return {mags[0], mags[1], mags[2]};
+          });
+    }
+    else
+    {
+      mWidthGraph.SetCrossoverDataSource(nullptr, nullptr);
+    }
 
-    mWidthGraph.mCrossoverLayer->mShowResponses = true;
+    mWidthGraph.mCrossoverLayer->mShowResponses = multibandEnabled;
     mWidthGraph.mCrossoverLayer->mGetBandColor = [multibandEnabled, muteSoloEnabled](size_t bandIndex, bool hovered) -> ImColor {
       if (bandIndex >= WaveSabreCore::Maj7Width::gBandCount)
       {
