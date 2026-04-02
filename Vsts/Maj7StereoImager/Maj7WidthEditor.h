@@ -57,7 +57,7 @@ struct Maj7WidthEditor : public VstEditor
 
   Maj7WidthEditor(AudioEffect* audioEffect)
       :  //
-      VstEditor(audioEffect, 1400, 850)
+      VstEditor(audioEffect, 1140, 820)
       ,  // Increase height to accommodate frequency graph
       mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
   {
@@ -321,7 +321,23 @@ private:
   void RenderPerBandControls(const RenderContext& renderContext)
   {
     ImGuiGroupScope _grp("per_band_controls");
-    RenderSelectedBandControls(renderContext.multibandEnabled ? mEditingBand : 1, renderContext.multibandEnabled);
+    if (!renderContext.multibandEnabled)
+    {
+      RenderBandControlSection(1, false);
+      return;
+    }
+
+    ImGui::TextDisabled("All bands are shown here. The highlighted tab still follows the crossover graph selection.");
+    ImGui::Spacing();
+
+    for (int bandIndex = 0; bandIndex < WaveSabreCore::Maj7Width::gBandCount; ++bandIndex)
+    {
+      RenderBandControlSection(bandIndex, true);
+      if (bandIndex + 1 < WaveSabreCore::Maj7Width::gBandCount)
+      {
+        ImGui::SameLine(0, 14.0f);
+      }
+    }
   }
 
   void RenderGlobalControls()
@@ -638,14 +654,44 @@ private:
     ImGui::EndTooltip();
   }
 
-  void RenderSelectedBandControls(int bandIndex, bool multibandEnabled)
+  void RenderBandTabHeader(int bandIndex)
+  {
+    const bool isSelected = mEditingBand == bandIndex;
+    const auto label = GetBandLabel(bandIndex);
+    ImGui::PushStyleColor(ImGuiCol_Text,
+                          (isSelected ? ColorFromHTML("000000") : ColorFromHTML("cccccc")).operator ImVec4());
+    bool tabSelected = isSelected;
+    if (ToggleButton(&tabSelected,
+                     label,
+                     {250.0f, 22.0f},
+                     ButtonColorSpec{
+                         ColorFromHTML(bandColors[bandIndex], 0.8f),
+                         ColorFromHTML(bandColors[bandIndex], 0.12f),
+                         ColorFromHTML(bandColors[bandIndex], 0.5f)}))
+    {
+      mEditingBand = bandIndex;
+    }
+    ImGui::PopStyleColor();
+  }
+
+  void RenderBandControlSection(int bandIndex, bool multibandEnabled)
   {
     using BandParam = WaveSabreCore::Maj7Width::FreqBand::BandParam;
 
+    ImGui::PushID(multibandEnabled ? bandIndex : -1);
     ImGui::BeginGroup();
-    ImGui::TextUnformatted(multibandEnabled ? GetBandLabel(bandIndex) : "Broadband (Uses Mid Band Controls)");
-    ImGui::TextDisabled(multibandEnabled ? "Click a band in the response graph to edit it."
-                                         : "Switch to multi-band mode to edit the low and high bands separately.");
+    if (multibandEnabled)
+    {
+      RenderBandTabHeader(bandIndex);
+      ImGui::Spacing();
+    }
+    else
+    {
+      ImGui::TextUnformatted("Broadband (Uses Mid Band Controls)");
+      ImGui::TextDisabled("Switch to multi-band mode to edit the low and high bands separately.");
+    }
+
+    auto knobToken = KnobColorMod{bandColors[bandIndex], !multibandEnabled || mEditingBand == bandIndex}.Push();
 
     Maj7ImGuiParamFloatN11(GetBandParamIndex(bandIndex, BandParam::Width), "Width", 0.0f, 0, {});
     ShowBandControlTooltip("Width", "Scales stereo spread without moving the image center");
@@ -678,6 +724,7 @@ private:
                            "Rotates the stereo image geometrically. Best used for small adjustments / corrections.");
 
     ImGui::EndGroup();
+    ImGui::PopID();
   }
 
   // Render frequency analysis graph
