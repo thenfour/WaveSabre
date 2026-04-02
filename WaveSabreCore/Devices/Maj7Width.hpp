@@ -14,7 +14,7 @@ struct Maj7Width : public Device
   static constexpr int gBandCount = M7::kBandSplitterBands;
   static constexpr M7::VolumeParamConfig gVolumeCfg{3.9810717055349722f, 12.0f};
   static constexpr auto gRotationExtent = M7::math::gPIQuarter;
-  static constexpr auto gShearAngleLimit = M7::math::gPIQuarter;
+  //static constexpr auto gShearAngleLimit = M7::math::gPIQuarter;
 
   struct BandConfig
   {
@@ -35,32 +35,32 @@ struct Maj7Width : public Device
     CrossoverBSlope,
     OutputGain,
 
-    ALeftSource,
-    ARightSource,
+    // ALeftSource,
+    // ARightSource,
     AWidth,
     APan,
     AAsymmetry,
     ASideGain,
     ARotation,
-    AShear,
+    //AShear,
 
-    BLeftSource,
-    BRightSource,
+    // BLeftSource,
+    // BRightSource,
     BWidth,
     BPan,
     BAsymmetry,
     BSideGain,
     BRotation,
-    BShear,
+    //BShear,
 
-    CLeftSource,
-    CRightSource,
+    // CLeftSource,
+    // CRightSource,
     CWidth,
     CPan,
     CAsymmetry,
     CSideGain,
     CRotation,
-    CShear,
+    //CShear,
 
     NumParams,
   };
@@ -79,30 +79,21 @@ struct Maj7Width : public Device
     {"xASlope"},\
     {"xBSlope"},\
     {"OutGain"},\
-    {"ALSrc"},\
-    {"ARSrc"},\
     {"AWidth"},\
     {"APan"},\
     {"AAsym"},\
     {"ASideG"},\
     {"ARot"},\
-    {"AShear"},\
-    {"BLSrc"},\
-    {"BRSrc"},\
     {"BWidth"},\
     {"BPan"},\
     {"BAsym"},\
     {"BSideG"},\
     {"BRot"},\
-    {"BShear"},\
-    {"CLSrc"},\
-    {"CRSrc"},\
     {"CWidth"},\
     {"CPan"},\
     {"CAsym"},\
     {"CSideG"},\
     {"CRot"},\
-    {"CShear"},\
   }
   // clang-format on
 
@@ -114,29 +105,27 @@ struct Maj7Width : public Device
   {
     enum class BandParam : uint8_t
     {
-      LeftSource,
-      RightSource,
       Width,
       Pan,
       Asymmetry,
       SideGain,
       Rotation,
-      Shear,
       Count__,
+      First = Width,
     };
 
-    static_assert((int)ParamIndices::BLeftSource - (int)ParamIndices::ALeftSource == (int)BandParam::Count__,
+    static_assert((int)ParamIndices::BWidth - (int)ParamIndices::AWidth == (int)BandParam::Count__,
                   "band params need to be in sync with main params");
 
     M7::ParamAccessor mParams;
     M7::MoogOnePoleFilter mSideFilter;
-    float mLeftSourceN11 = -1.0f;
-    float mRightSourceN11 = 1.0f;
+    //float mLeftSourceN11 = -1.0f;
+    //float mRightSourceN11 = 1.0f;
     float mWidthN11 = 0.0f;
     float mAsymmetryN11 = 0.0f;
     float mSideGainLin = 1.0f;
     float mRotation = 0.0f;
-    float mShearFactor = 0.0f;
+    //float mShearFactor = 0.0f;
     bool mSideHpfActive = false;
     bool mMuteSoloEnable = true;
     M7::FloatPair mPanGains{1.0f, 1.0f};
@@ -148,14 +137,14 @@ struct Maj7Width : public Device
 
     void Slider(bool sideHpfActive, float sideHpfFreq)
     {
-      mLeftSourceN11 = mParams.GetN11Value(BandParam::LeftSource, 0);
-      mRightSourceN11 = mParams.GetN11Value(BandParam::RightSource, 0);
+      //mLeftSourceN11 = mParams.GetN11Value(BandParam::LeftSource, 0);
+      //mRightSourceN11 = mParams.GetN11Value(BandParam::RightSource, 0);
       mWidthN11 = mParams.GetN11Value(BandParam::Width, 0);
       mPanGains = M7::math::PanToFactor(mParams.GetN11Value(BandParam::Pan, 0));
       mAsymmetryN11 = mParams.GetN11Value(BandParam::Asymmetry, 0);
       mSideGainLin = mParams.GetLinearVolume(BandParam::SideGain, gVolumeCfg);
       mRotation = mParams.GetScaledRealValue(BandParam::Rotation, -gRotationExtent, gRotationExtent, 0);
-      mShearFactor = -M7::math::tan(mParams.GetScaledRealValue(BandParam::Shear, -gShearAngleLimit, gShearAngleLimit, 0));
+      //mShearFactor = -M7::math::tan(mParams.GetScaledRealValue(BandParam::Shear, -gShearAngleLimit, gShearAngleLimit, 0));
       mSideHpfActive = sideHpfActive;
       if (mSideHpfActive)
       {
@@ -178,8 +167,11 @@ struct Maj7Width : public Device
       const float inputMid = inputMs.Mid();
       const float inputSide = inputMs.Side();
 
-      float left = inputMid - mLeftSourceN11 * inputSide;
-      float right = inputMid - mRightSourceN11 * inputSide;
+      // float left = inputMid - mLeftSourceN11 * inputSide;
+      // float right = inputMid - mRightSourceN11 * inputSide;
+
+      float left = inputMid + inputSide;
+      float right = inputMid - inputSide;
 
       if (leftInvert)
       {
@@ -208,7 +200,7 @@ struct Maj7Width : public Device
       ms.x[1] *= mSideGainLin;
 
 #ifdef MAJ7WIDTH_FULL_FEATURE
-      Shear2(ms.x[1], ms.x[0], mShearFactor);
+      //Shear2(ms.x[1], ms.x[0], mShearFactor);
       Rotate2(ms.x[1], ms.x[0], mRotation);
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
@@ -228,7 +220,7 @@ struct Maj7Width : public Device
     }
   };
 
-  static_assert((int)ParamIndices::NumParams == 33, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       0,       // LInv = 0
       0,       // RInv = 0
@@ -239,30 +231,21 @@ struct Maj7Width : public Device
       3,       // xASlope = 0.0001220703125
       3,       // xBSlope = 0.0001220703125
       16422,   // OutGain = 0.50118720531463623047
-      -32767,  // ALSrc = -1
-      32767,   // ARSrc = 1
       0,       // AWidth = 0
       0,       // APan = 0
       0,       // AAsym = 0
       16422,   // ASideG = 0dB
       16383,   // ARot = 0
-      16383,   // AShear = 0
-      -32767,  // BLSrc = -1
-      32767,   // BRSrc = 1
       0,       // BWidth = 0
       0,       // BPan = 0
       0,       // BAsym = 0
       16422,   // BSideG = 0dB
       16383,   // BRot = 0
-      16383,   // BShear = 0
-      -32767,  // CLSrc = -1
-      32767,   // CRSrc = 1
       0,       // CWidth = 0
       0,       // CPan = 0
       0,       // CAsym = 0
       16422,   // CSideG = 0dB
       16383,   // CRot = 0
-      16383,   // CShear = 0
   };
 
   M7::BandSplitter mMidSplitter;
@@ -280,9 +263,9 @@ struct Maj7Width : public Device
       : Device((int)ParamIndices::NumParams, mParamCache, gParamDefaults)
       , mParams(mParamCache, 0)
       , mBands{
-        FreqBand{mParamCache, ParamIndices::ALeftSource},
-        FreqBand{mParamCache, ParamIndices::BLeftSource},
-        FreqBand{mParamCache, ParamIndices::CLeftSource},
+        FreqBand{mParamCache, ParamIndices::AWidth},
+        FreqBand{mParamCache, ParamIndices::BWidth},
+        FreqBand{mParamCache, ParamIndices::CWidth},
       }
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       ,

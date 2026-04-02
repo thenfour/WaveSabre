@@ -83,14 +83,14 @@ public:
 
 		auto setBandDefaults = [&](Params baseParam) {
 			M7::ParamAccessor bandParams{GetMaj7Width()->mParamCache, baseParam};
-			bandParams.SetN11Value(BandParam::LeftSource, -1.0f);
-			bandParams.SetN11Value(BandParam::RightSource, 1.0f);
+			//bandParams.SetN11Value(BandParam::LeftSource, -1.0f);
+			//bandParams.SetN11Value(BandParam::RightSource, 1.0f);
 			bandParams.SetN11Value(BandParam::Width, 0.0f);
 			bandParams.SetN11Value(BandParam::Pan, 0.0f);
 			bandParams.SetN11Value(BandParam::Asymmetry, 0.0f);
 			bandParams.SetDecibels(BandParam::SideGain, Maj7Width::gVolumeCfg, 0.0f);
 			bandParams.SetRangedValue(BandParam::Rotation, -Maj7Width::gRotationExtent, Maj7Width::gRotationExtent, 0.0f);
-			bandParams.SetRangedValue(BandParam::Shear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
+			//bandParams.SetRangedValue(BandParam::Shear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
 		};
 
 		p.SetBoolValue(Params::LInvert, false);
@@ -105,8 +105,8 @@ public:
 		p.SetEnumValue(Params::CrossoverASlope, M7::CrossoverSlope::Slope_24dB);
 		p.SetEnumValue(Params::CrossoverBSlope, M7::CrossoverSlope::Slope_24dB);
 
-		setBandDefaults(Params::ALeftSource);
-		setBandDefaults(Params::BLeftSource);
-		setBandDefaults(Params::CLeftSource);
+		setBandDefaults(Params::AWidth);
+		setBandDefaults(Params::BWidth);
+		setBandDefaults(Params::CWidth);
 	}
 };
