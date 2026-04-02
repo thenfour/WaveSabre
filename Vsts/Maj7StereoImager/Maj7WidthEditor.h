@@ -22,13 +22,6 @@ using namespace WaveSabreCore;
 
 struct Maj7WidthEditor : public VstEditor
 {
-  enum class FftSeriesSelection
-  {
-    Mid = 0,
-    Side,
-    Width,
-  };
-
   Maj7Width* mpMaj7Width;
   Maj7WidthVst* mpMaj7WidthVst;
 
@@ -37,15 +30,37 @@ struct Maj7WidthEditor : public VstEditor
       mWidthGraph;
 
   int mEditingBand = 1;
-  int mFftSeriesSelection = (int)FftSeriesSelection::Side;
+
+  bool mShowFftLeft = false;
+  bool mShowFftRight = false;
+  bool mShowFftStereo = false;
+  bool mShowFftMid = false;
+  bool mShowFftSide = true;
+  bool mShowFftWidth = false;
+  bool mShowFftInput = true;
+  bool mShowFftOutput = true;
 
   VstSerializableIntParamRef<int> mEditingBandParam{"EditingBand", mEditingBand};
-  VstSerializableIntParamRef<int> mFftSeriesSelectionParam{"FftSeriesSelection", mFftSeriesSelection};
+  VstSerializableBoolParamRef mShowFftLeftParam{"ShowFftLeft", mShowFftLeft};
+  VstSerializableBoolParamRef mShowFftRightParam{"ShowFftRight", mShowFftRight};
+  VstSerializableBoolParamRef mShowFftStereoParam{"ShowFftStereo", mShowFftStereo};
+  VstSerializableBoolParamRef mShowFftMidParam{"ShowFftMid", mShowFftMid};
+  VstSerializableBoolParamRef mShowFftSideParam{"ShowFftSide", mShowFftSide};
+  VstSerializableBoolParamRef mShowFftWidthParam{"ShowFftWidth", mShowFftWidth};
+  VstSerializableBoolParamRef mShowFftInputParam{"ShowFftInput", mShowFftInput};
+  VstSerializableBoolParamRef mShowFftOutputParam{"ShowFftOutput", mShowFftOutput};
+
+  const char* kInputLeftFftColor = "5f7088";
+  const char* kInputRightFftColor = "866572";
+  const char* kInputStereoFftColor = "7c7a61";
 
   const char* kInputMidFftColor = "664444";
   const char* kInputSideFftColor = "446644";
   const char* kInputWidthFftColor = "444466";
 
+  const char* kOutputLeftFftColor = "4f7ddb";
+  const char* kOutputRightFftColor = "cc6b7a";
+  const char* kOutputStereoFftColor = bandColors[3];
   const char* kOutputMidFftColor = bandColors[0];
   const char* kOutputSideFftColor = bandColors[1];
   const char* kOutputWidthFftColor = bandColors[2];
@@ -99,7 +114,14 @@ struct Maj7WidthEditor : public VstEditor
   {
     return {
         &mEditingBandParam,
-        &mFftSeriesSelectionParam,
+        &mShowFftLeftParam,
+        &mShowFftRightParam,
+        &mShowFftStereoParam,
+        &mShowFftMidParam,
+        &mShowFftSideParam,
+        &mShowFftWidthParam,
+        &mShowFftInputParam,
+        &mShowFftOutputParam,
         &mShowGoniometerLinesParam,
         &mShowGoniometerPointsParam,
         &mShowPolarLParam,
@@ -273,20 +295,25 @@ private:
           });
     }
 
-    ImGui::SameLine(0, 20);
-    auto selectedFftSeries = (FftSeriesSelection)mFftSeriesSelection;
-    EnumSelectionButtonArray<FftSeriesSelection, 3>(
-        "width_fft_series",
-        &selectedFftSeries,
-        {
-            MakeEnumSelectionSpec(
-                "Mid", FftSeriesSelection::Mid, kOutputMidFftColor, "Show input and output mid spectra."),
-            MakeEnumSelectionSpec(
-                "Side", FftSeriesSelection::Side, kOutputSideFftColor, "Show input and output side spectra."),
-            MakeEnumSelectionSpec(
-                "Width", FftSeriesSelection::Width, kOutputWidthFftColor, "Show input and output width spectra."),
-        });
-    mFftSeriesSelection = (int)selectedFftSeries;
+                      ImGui::Spacing();
+                      ButtonArray<6>(
+                        "width_fft_series",
+                        {
+                          MakeButtonSpec("L", &mShowFftLeft, kOutputLeftFftColor, "Show the left-channel FFT overlay."),
+                          MakeButtonSpec("R", &mShowFftRight, kOutputRightFftColor, "Show the right-channel FFT overlay."),
+                          MakeButtonSpec("Stereo", &mShowFftStereo, kOutputStereoFftColor, "Show the combined stereo FFT overlay."),
+                          MakeButtonSpec("Mid", &mShowFftMid, kOutputMidFftColor, "Show the mid-channel FFT overlay."),
+                          MakeButtonSpec("Side", &mShowFftSide, kOutputSideFftColor, "Show the side-channel FFT overlay."),
+                          MakeButtonSpec("Width", &mShowFftWidth, kOutputWidthFftColor, "Show the width FFT overlay."),
+                        });
+
+                      ImGui::SameLine(0, 40);
+                      ButtonArray<2>(
+                        "width_fft_groups",
+                        {
+                          MakeButtonSpec("Input", &mShowFftInput, kInputLeftFftColor, "Show enabled input FFT overlays."),
+                          MakeButtonSpec("Output", &mShowFftOutput, kOutputLeftFftColor, "Show enabled output FFT overlays."),
+                        });
   }
 
   void RenderFftVisualizationAndBandSelector(const RenderContext& renderContext)
@@ -764,12 +791,6 @@ private:
 
     cfg.fftOverlays.clear();
 
-    const auto selectedSeries = (FftSeriesSelection)mFftSeriesSelection;
-    const WaveSabreCore::IFrequencyAnalysis* inputSpectrum = nullptr;
-    const WaveSabreCore::IFrequencyAnalysis* outputSpectrum = nullptr;
-    const char* inputLabel = nullptr;
-    const char* outputLabel = nullptr;
-
     auto widthAsDbScale = [](float v) -> float
     {
       if (v <= 0.0f)
@@ -781,69 +802,50 @@ private:
       return M7::math::lerp(scaleMinDb, 0.0f, t01);
     };
 
-    std::function<float(float)> valueTransform{};
-    switch (selectedSeries)
+    const auto widthTransform = std::function<float(float)>(widthAsDbScale);
+    auto addOverlay = [&cfg](bool showSignalPath,
+                             bool showSeries,
+                             const WaveSabreCore::IFrequencyAnalysis* spectrum,
+                             const char* colorHtml,
+                             const char* label,
+                             const std::function<float(float)>& valueTransform = {})
     {
-      case FftSeriesSelection::Mid:
-        inputSpectrum = analyzerIn->GetMidAnalyzer();
-        outputSpectrum = analyzerOut->GetMidAnalyzer();
-        inputLabel = "Input Mid";
-        outputLabel = "Output Mid";
-        break;
-      case FftSeriesSelection::Width:
-        inputSpectrum = analyzerIn;
-        outputSpectrum = analyzerOut;
-        inputLabel = "Input Width";
-        outputLabel = "Output Width";
-        valueTransform = widthAsDbScale;
-        break;
-      case FftSeriesSelection::Side:
-      default:
-        inputSpectrum = analyzerIn->GetSideAnalyzer();
-        outputSpectrum = analyzerOut->GetSideAnalyzer();
-        inputLabel = "Input Side";
-        outputLabel = "Output Side";
-        break;
-    }
+      if (!showSignalPath || !showSeries || !spectrum)
+      {
+        return;
+      }
 
-    if (inputSpectrum)
-    {
       cfg.fftOverlays.push_back(
-          {inputSpectrum,
-           ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
-                             ? kInputMidFftColor
-                             : (selectedSeries == FftSeriesSelection::Side ? kInputSideFftColor : kInputWidthFftColor),
-                         0.9f),
-           ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
-                             ? kInputMidFftColor
-                             : (selectedSeries == FftSeriesSelection::Side ? kInputSideFftColor : kInputWidthFftColor),
-                         0.25f),
+          {spectrum,
+           ColorFromHTML(colorHtml, 0.9f),
+           ColorFromHTML(colorHtml, 0.25f),
            true,
-           inputLabel,
+           label,
            valueTransform});
-    }
-    if (outputSpectrum)
-    {
-      cfg.fftOverlays.push_back(
-          {outputSpectrum,
-           ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
-                             ? kOutputMidFftColor
-                             : (selectedSeries == FftSeriesSelection::Side ? kOutputSideFftColor
-                                                                           : kOutputWidthFftColor),
-                         0.9f),
-           ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
-                             ? kOutputMidFftColor
-                             : (selectedSeries == FftSeriesSelection::Side ? kOutputSideFftColor
-                                                                           : kOutputWidthFftColor),
-                         0.25f),
-           true,
-           outputLabel,
-           valueTransform});
-    }
+    };
+
+    addOverlay(mShowFftInput, mShowFftLeft, analyzerIn->GetLeftAnalyzer(), kInputLeftFftColor, "Input L");
+    addOverlay(mShowFftInput, mShowFftRight, analyzerIn->GetRightAnalyzer(), kInputRightFftColor, "Input R");
+    addOverlay(mShowFftInput, mShowFftStereo, analyzerIn->GetStereoAnalyzer(), kInputStereoFftColor, "Input Stereo");
+    addOverlay(mShowFftInput, mShowFftMid, analyzerIn->GetMidAnalyzer(), kInputMidFftColor, "Input Mid");
+    addOverlay(mShowFftInput, mShowFftSide, analyzerIn->GetSideAnalyzer(), kInputSideFftColor, "Input Side");
+    addOverlay(mShowFftInput, mShowFftWidth, analyzerIn, kInputWidthFftColor, "Input Width", widthTransform);
+
+    addOverlay(mShowFftOutput, mShowFftLeft, analyzerOut->GetLeftAnalyzer(), kOutputLeftFftColor, "Output L");
+    addOverlay(mShowFftOutput, mShowFftRight, analyzerOut->GetRightAnalyzer(), kOutputRightFftColor, "Output R");
+    addOverlay(
+        mShowFftOutput, mShowFftStereo, analyzerOut->GetStereoAnalyzer(), kOutputStereoFftColor, "Output Stereo");
+    addOverlay(mShowFftOutput, mShowFftMid, analyzerOut->GetMidAnalyzer(), kOutputMidFftColor, "Output Mid");
+    addOverlay(mShowFftOutput, mShowFftSide, analyzerOut->GetSideAnalyzer(), kOutputSideFftColor, "Output Side");
+    addOverlay(mShowFftOutput, mShowFftWidth, analyzerOut, kOutputWidthFftColor, "Output Width", widthTransform);
+
+    const bool anyWidthVisible = mShowFftWidth && (mShowFftInput || mShowFftOutput);
+    const bool anyDbVisible = (mShowFftLeft || mShowFftRight || mShowFftStereo || mShowFftMid || mShowFftSide) &&
+                              (mShowFftInput || mShowFftOutput);
 
     mWidthGraph.ClearFFTDiffOverlay();
     mWidthGraph.ClearFFTDiffFlatOverlay();
-    mWidthGraph.SetFFTScaleCaption(selectedSeries == FftSeriesSelection::Width ? "Width" : "dB");
+    mWidthGraph.SetFFTScaleCaption(anyWidthVisible ? (anyDbVisible ? "dB / Width" : "Width") : "dB");
     if (multibandEnabled)
     {
       mWidthGraph.SetCrossoverDataSource(

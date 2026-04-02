@@ -87,6 +87,7 @@ struct StereoWidthUtil
 class MidSideFrequencyAnalyzer : public IFrequencyAnalysis
 {
 private:
+  std::unique_ptr<SmoothedStereoFFT> mStereoAnalyzer;
   std::unique_ptr<SmoothedMonoFFT> mMidAnalyzer;
   std::unique_ptr<SmoothedMonoFFT> mSideAnalyzer;
   mutable std::vector<SpectrumBin>
@@ -102,6 +103,16 @@ private:
   // Shared setting used in current implementation
   static constexpr float kNoiseFloorDB = -120.0f;
 
+  template <typename TAnalyzer>
+  static void ConfigureAnalyzerDefaults(TAnalyzer& analyzer)
+  {
+    analyzer.SetSampleRate(Helpers::CurrentSampleRateF);
+    analyzer.SetFFTSize(MonoFFTAnalysis::FFTSize::Default);
+    analyzer.SetOverlapFactor(4);
+    analyzer.SetPeakHoldTime(100);
+    analyzer.SetFalloffRate(3000.0f);
+  }
+
 public:
   MidSideFrequencyAnalyzer() = default;
   ~MidSideFrequencyAnalyzer() = default;
@@ -116,26 +127,18 @@ public:
 
     if (enabled && !mEnabled)
     {
+      mStereoAnalyzer = std::make_unique<SmoothedStereoFFT>();
       mMidAnalyzer = std::make_unique<SmoothedMonoFFT>();
       mSideAnalyzer = std::make_unique<SmoothedMonoFFT>();
 
-      mMidAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
-      mSideAnalyzer->SetSampleRate(Helpers::CurrentSampleRateF);
-
-      mMidAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::Default);
-      mSideAnalyzer->SetFFTSize(MonoFFTAnalysis::FFTSize::Default);
-      mMidAnalyzer->SetOverlapFactor(4);
-      mSideAnalyzer->SetOverlapFactor(4);
-
-      mMidAnalyzer->SetPeakHoldTime(100);
-      mSideAnalyzer->SetPeakHoldTime(100);
-
-      mMidAnalyzer->SetFalloffRate(3000.0f);
-      mSideAnalyzer->SetFalloffRate(3000.0f);
+      ConfigureAnalyzerDefaults(*mStereoAnalyzer);
+      ConfigureAnalyzerDefaults(*mMidAnalyzer);
+      ConfigureAnalyzerDefaults(*mSideAnalyzer);
     }
     else if (!enabled && mEnabled)
     {
       // release analyzers safely
+      mStereoAnalyzer.reset();
       mMidAnalyzer.reset();
       mSideAnalyzer.reset();
       mWidthSpectrum.clear();
@@ -153,6 +156,8 @@ public:
   inline void SetSampleRate(float sampleRate)
   {
     std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
+    if (mStereoAnalyzer)
+      mStereoAnalyzer->SetSampleRate(sampleRate);
     if (mMidAnalyzer)
       mMidAnalyzer->SetSampleRate(sampleRate);
     if (mSideAnalyzer)
@@ -162,6 +167,8 @@ public:
   inline void SetFFTConfiguration(MonoFFTAnalysis::FFTSize /*fftSize*/, MonoFFTAnalysis::WindowType windowType)
   {
     std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
+    if (mStereoAnalyzer)
+      mStereoAnalyzer->SetWindowType(windowType);
     if (mMidAnalyzer)
       mMidAnalyzer->SetWindowType(windowType);
     if (mSideAnalyzer)
@@ -171,6 +178,11 @@ public:
   inline void SetSmoothingParameters(float peakHoldTimeMs, float falloffTimeMs)
   {
     std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
+    if (mStereoAnalyzer)
+    {
+      mStereoAnalyzer->SetPeakHoldTime(peakHoldTimeMs);
+      mStereoAnalyzer->SetFalloffRate(falloffTimeMs);
+    }
     if (mMidAnalyzer)
     {
       mMidAnalyzer->SetPeakHoldTime(peakHoldTimeMs);
@@ -185,14 +197,15 @@ public:
 
   // Processing
   // AUDIO THREAD
-  inline void ProcessMidSideSamples(float midSample, float sideSample)
+  inline void ProcessStereoMidSideSamples(float leftSample, float rightSample, float midSample, float sideSample)
   {
     if (!mEnabled)
       return;
     std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
-    if (!mMidAnalyzer || !mSideAnalyzer)
+    if (!mStereoAnalyzer || !mMidAnalyzer || !mSideAnalyzer)
       return;
 
+    mStereoAnalyzer->ProcessSamples(leftSample, rightSample);
     mMidAnalyzer->ProcessSample(midSample);
     mSideAnalyzer->ProcessSample(sideSample);
 
@@ -212,6 +225,8 @@ public:
   {
     std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
     std::lock_guard<std::mutex> sLock(mSpectrumMutex);
+    if (mStereoAnalyzer)
+      mStereoAnalyzer->Reset();
     if (mMidAnalyzer)
       mMidAnalyzer->Reset();
     if (mSideAnalyzer)
@@ -259,6 +274,21 @@ public:
   {
     std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
     return mMidAnalyzer.get();
+  }
+  const IFrequencyAnalysis* GetLeftAnalyzer() const
+  {
+    std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
+    return mStereoAnalyzer ? &mStereoAnalyzer->GetLeftView() : nullptr;
+  }
+  const IFrequencyAnalysis* GetRightAnalyzer() const
+  {
+    std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
+    return mStereoAnalyzer ? &mStereoAnalyzer->GetRightView() : nullptr;
+  }
+  const IFrequencyAnalysis* GetStereoAnalyzer() const
+  {
+    std::lock_guard<std::mutex> aLock(mAnalyzerMutex);
+    return mStereoAnalyzer.get();
   }
   const IFrequencyAnalysis* GetSideAnalyzer() const
   {
@@ -470,7 +500,8 @@ struct StereoImagingAnalysisStream
 
     if (mFrequencyAnalyzer && mFrequencyAnalyzer->IsEnabled())
     {
-      mFrequencyAnalyzer->ProcessMidSideSamples(static_cast<float>(mid), static_cast<float>(side));
+      mFrequencyAnalyzer->ProcessStereoMidSideSamples(
+          static_cast<float>(left), static_cast<float>(right), static_cast<float>(mid), static_cast<float>(side));
     }
 
     // Keep original gating � only update when mid peak is sufficiently strong
