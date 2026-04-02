@@ -12,6 +12,9 @@ namespace WaveSabreCore
 struct Maj7Width : public Device
 {
   static constexpr int gBandCount = M7::kBandSplitterBands;
+  static constexpr M7::VolumeParamConfig gVolumeCfg{3.9810717055349722f, 12.0f};
+  static constexpr auto gRotationExtent = M7::math::gPIQuarter;
+  static constexpr auto gShearAngleLimit = M7::math::gPIQuarter;
 
   struct BandConfig
   {
@@ -45,6 +48,7 @@ struct Maj7Width : public Device
     Band1Shear,
     Band2Shear,
     Band3Shear,
+    Asymmetry,
 
     NumParams,
   };
@@ -77,11 +81,9 @@ struct Maj7Width : public Device
     {"MS1Shr"},\
     {"MS2Shr"},\
     {"MS3Shr"},\
+    {"Asym"},\
   }
   // clang-format on
-
-  static constexpr M7::VolumeParamConfig gVolumeCfg{3.9810717055349722f, 12.0f};
-  static constexpr float gShearAngleLimit = M7::math::gPIQuarter;
 
   float mParamCache[(int)ParamIndices::NumParams];
   M7::ParamAccessor mParams;
@@ -89,7 +91,7 @@ struct Maj7Width : public Device
   M7::BandSplitter mSideSplitter;
   BandConfig mBandConfig[gBandCount];
 
-    static_assert((int)ParamIndices::NumParams == 23, "param count probably changed and this needs to be regenerated.");
+    static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       -32767,  // LSrc = -1
       32767,   // RSrc = 1
@@ -114,6 +116,7 @@ struct Maj7Width : public Device
       16383,   // MS1Shr = 0.5
       16383,   // MS2Shr = 0.5
       16383,   // MS3Shr = 0.5
+        0,       // Asym = 0
   };
 
   M7::MoogOnePoleFilter mFilter;
@@ -187,6 +190,7 @@ struct Maj7Width : public Device
 
   virtual void Run(float** inputs, float** outputs, int numSamples) override
   {
+    const float asymmetry = mParams.GetN11Value(ParamIndices::Asymmetry, 0);
     auto panGains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
     const float sideBandGains[gBandCount] = {
         mParams.GetLinearVolume(ParamIndices::Band1Gain, gVolumeCfg),
@@ -210,9 +214,9 @@ struct Maj7Width : public Device
     const float broadbandShearAngle = mParams.GetScaledRealValue(ParamIndices::MSShear, -gShearAngleLimit, gShearAngleLimit, 0);
     const float broadbandShearFactor = -M7::math::tan(broadbandShearAngle);
     const float bandRotations[gBandCount] = {
-      mParams.GetScaledRealValue(ParamIndices::Band1Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
-      mParams.GetScaledRealValue(ParamIndices::Band2Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
-      mParams.GetScaledRealValue(ParamIndices::Band3Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
+      mParams.GetScaledRealValue(ParamIndices::Band1Rotation, -gRotationExtent, gRotationExtent, 0),
+      mParams.GetScaledRealValue(ParamIndices::Band2Rotation, -gRotationExtent, gRotationExtent, 0),
+      mParams.GetScaledRealValue(ParamIndices::Band3Rotation, -gRotationExtent, gRotationExtent, 0),
     };
     const float bandShearAngles[gBandCount] = {
       mParams.GetScaledRealValue(ParamIndices::Band1Shear, -gShearAngleLimit, gShearAngleLimit, 0),
@@ -308,7 +312,7 @@ struct Maj7Width : public Device
           float bandSide = sideBands[iBand] * sideBandGains[iBand];
 #ifdef MAJ7WIDTH_FULL_FEATURE
           Shear2(bandSide, bandMid, bandShearFactors[iBand]);
-          Rotate2(bandSide, bandMid, (ParamIndices)((int)ParamIndices::Band1Rotation + iBand), -M7::math::gPIHalf, M7::math::gPIHalf);
+          Rotate2(bandSide, bandMid, (ParamIndices)((int)ParamIndices::Band1Rotation + iBand), -gRotationExtent, gRotationExtent);
 #endif  // MAJ7WIDTH_FULL_FEATURE
           multibandMs.x[0] += bandMid;
           multibandMs.x[1] += bandSide;
@@ -326,8 +330,17 @@ struct Maj7Width : public Device
       auto stereo = ms.MSDecode();
 
 #ifdef MAJ7WIDTH_FULL_FEATURE
-      Rotate2(stereo.x[0], stereo.x[1], ParamIndices::RotationAngle, -M7::math::gPIHalf, M7::math::gPIHalf);
+      Rotate2(stereo.x[0], stereo.x[1], ParamIndices::RotationAngle, -gRotationExtent, gRotationExtent);
 #endif  // MAJ7WIDTH_FULL_FEATURE
+
+      if (asymmetry < 0.0f)
+      {
+        stereo.x[1] = M7::math::lerp(stereo.x[1], stereo.x[0], -asymmetry);
+      }
+      else if (asymmetry > 0.0f)
+      {
+        stereo.x[0] = M7::math::lerp(stereo.x[0], stereo.x[1], asymmetry);
+      }
 
       ms = stereo.MSEncode();
 

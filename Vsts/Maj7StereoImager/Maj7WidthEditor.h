@@ -386,8 +386,8 @@ struct Maj7WidthEditor : public VstEditor
 
         Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Rotation,
                                   "MS rot low",
-                                  -M7::math::gPIHalf,
-                                  M7::math::gPIHalf,
+                                  -WaveSabreCore::Maj7Width::gRotationExtent,
+                                  WaveSabreCore::Maj7Width::gRotationExtent,
                                   0,
                                   0,
                                   0,
@@ -404,8 +404,8 @@ struct Maj7WidthEditor : public VstEditor
         ImGui::SameLine();
         Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band2Rotation,
                                   "MS rot mid",
-                                  -M7::math::gPIHalf,
-                                  M7::math::gPIHalf,
+                                  -WaveSabreCore::Maj7Width::gRotationExtent,
+                                  WaveSabreCore::Maj7Width::gRotationExtent,
                                   0,
                                   0,
                                   0,
@@ -422,8 +422,8 @@ struct Maj7WidthEditor : public VstEditor
         ImGui::SameLine();
         Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band3Rotation,
                                   "MS rot hi",
-                                  -M7::math::gPIHalf,
-                                  M7::math::gPIHalf,
+                                  -WaveSabreCore::Maj7Width::gRotationExtent,
+                                  WaveSabreCore::Maj7Width::gRotationExtent,
                                   0,
                                   0,
                                   0,
@@ -497,8 +497,8 @@ struct Maj7WidthEditor : public VstEditor
       ImGui::BeginGroup();
       Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle,
                                 "L/R rotation",
-                                -M7::math::gPIHalf,
-                                M7::math::gPIHalf,
+                                -WaveSabreCore::Maj7Width::gRotationExtent,
+                                WaveSabreCore::Maj7Width::gRotationExtent,
                                 0,
                                 0,
                                 0,
@@ -528,6 +528,21 @@ struct Maj7WidthEditor : public VstEditor
         ImGui::Text("Broadband M/S Shear");
         ImGui::Separator();
         ImGui::Text("Skew the mid/side axes after the multiband stage.");
+        ImGui::EndTooltip();
+      }
+
+      ImGui::SameLine();
+
+      Maj7ImGuiParamFloatN11((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Asymmetry, "Asym", 0, 0, {});
+      if (ImGui::IsItemHovered())
+      {
+        ImGui::BeginTooltip();
+        ImGui::Text("Asymmetry");
+        ImGui::Separator();
+        ImGui::Text("Morph the stereo output between dual-left, original, and dual-right.");
+        ImGui::BulletText("-1.0: dual-left mono");
+        ImGui::BulletText(" 0.0: unchanged");
+        ImGui::BulletText("+1.0: dual-right mono");
         ImGui::EndTooltip();
       }
 

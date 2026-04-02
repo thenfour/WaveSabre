@@ -84,7 +84,7 @@ public:
 		p.SetN11Value(Params::RightSource, 1.0f);
 		p.SetBoolValue(Params::LInvert, false);
 		p.SetBoolValue(Params::RInvert, false);
-		p.SetRangedValue(Params::RotationAngle, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
+		p.SetRangedValue(Params::RotationAngle, -Maj7Width::gRotationExtent, Maj7Width::gRotationExtent, 0.0f);
 		p.SetRangedValue(Params::MSShear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
 		p.SetRawVal(Params::SideHPFrequency, 0);
 		p.SetN11Value(Params::MidSideBalance, 0.0f);
@@ -97,11 +97,12 @@ public:
 		p.SetDecibels(Params::Band1Gain, Maj7Width::gVolumeCfg, 0.0f);
 		p.SetDecibels(Params::Band2Gain, Maj7Width::gVolumeCfg, 0.0f);
 		p.SetDecibels(Params::Band3Gain, Maj7Width::gVolumeCfg, 0.0f);
-		p.SetRangedValue(Params::Band1Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
-		p.SetRangedValue(Params::Band2Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
-		p.SetRangedValue(Params::Band3Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
+		p.SetRangedValue(Params::Band1Rotation, -Maj7Width::gRotationExtent, Maj7Width::gRotationExtent, 0.0f);
+		p.SetRangedValue(Params::Band2Rotation, -Maj7Width::gRotationExtent, Maj7Width::gRotationExtent, 0.0f);
+		p.SetRangedValue(Params::Band3Rotation, -Maj7Width::gRotationExtent, Maj7Width::gRotationExtent, 0.0f);
 		p.SetRangedValue(Params::Band1Shear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
 		p.SetRangedValue(Params::Band2Shear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
 		p.SetRangedValue(Params::Band3Shear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
+		p.SetN11Value(Params::Asymmetry, 0.0f);
 	}
 };
