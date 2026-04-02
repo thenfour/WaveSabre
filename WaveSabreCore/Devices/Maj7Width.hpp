@@ -164,14 +164,9 @@ struct Maj7Width : public Device
         return {};
       }
 
-      const float inputMid = inputMs.Mid();
-      const float inputSide = inputMs.Side();
-
-      // float left = inputMid - mLeftSourceN11 * inputSide;
-      // float right = inputMid - mRightSourceN11 * inputSide;
-
-      float left = inputMid + inputSide;
-      float right = inputMid - inputSide;
+      auto stereoIn = inputMs.MSDecode();
+      float left = stereoIn.Left();
+      float right = stereoIn.Right();
 
       if (leftInvert)
       {
@@ -222,30 +217,30 @@ struct Maj7Width : public Device
 
   static_assert((int)ParamIndices::NumParams == 24, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
-      0,       // LInv = 0
-      0,       // RInv = 0
-      0,       // SideHPF = 0
-      0,       // MBEn = 0
-      14347,   // xAFreq = 0.43785116076469421387
-      22305,   // xBFreq = 0.68073546886444091797
-      3,       // xASlope = 0.0001220703125
-      3,       // xBSlope = 0.0001220703125
-      16422,   // OutGain = 0.50118720531463623047
-      0,       // AWidth = 0
-      0,       // APan = 0
-      0,       // AAsym = 0
-      16422,   // ASideG = 0dB
-      16383,   // ARot = 0
-      0,       // BWidth = 0
-      0,       // BPan = 0
-      0,       // BAsym = 0
-      16422,   // BSideG = 0dB
-      16383,   // BRot = 0
-      0,       // CWidth = 0
-      0,       // CPan = 0
-      0,       // CAsym = 0
-      16422,   // CSideG = 0dB
-      16383,   // CRot = 0
+      0,      // LInv = 0
+      0,      // RInv = 0
+      0,      // SideHPF = 0
+      0,      // MBEn = 0
+      12051,  // xAFreq = 0.36780720949172973633
+      21576,  // xBFreq = 0.65849626064300537109
+      3,      // xASlope = 0.0001220703125
+      3,      // xBSlope = 0.0001220703125
+      16422,  // OutGain = 0.50118720531463623047
+      0,      // AWidth = 0
+      0,      // APan = 0
+      0,      // AAsym = 0
+      16422,  // ASideG = 0.50118720531463623047
+      16383,  // ARot = 0.5
+      0,      // BWidth = 0
+      0,      // BPan = 0
+      0,      // BAsym = 0
+      16422,  // BSideG = 0.50118720531463623047
+      16383,  // BRot = 0.5
+      0,      // CWidth = 0
+      0,      // CPan = 0
+      0,      // CAsym = 0
+      16422,  // CSideG = 0.50118720531463623047
+      16383,  // CRot = 0.5
   };
 
   M7::BandSplitter mMidSplitter;
@@ -342,13 +337,13 @@ struct Maj7Width : public Device
       mBands[iBand].mMuteSoloEnable = muteSoloEnabled[iBand];
       mBands[iBand].Slider(sideHpfActive, sideHpfFreq);
     }
-  #ifdef MAJ7WIDTH_FULL_FEATURE
+#ifdef MAJ7WIDTH_FULL_FEATURE
     // constexpr float bandShearBypassThreshold = 0.001f;
     // const float broadbandShearAngle = mParams.GetScaledRealValue(ParamIndices::MSShear, -gShearAngleLimit, gShearAngleLimit, 0);
     // const float broadbandShearFactor = -M7::math::tan(broadbandShearAngle);
     // const float broadbandRotation = mParams.GetScaledRealValue(ParamIndices::RotationAngle, -gRotationExtent, gRotationExtent, 0);
     // const bool broadbandShearActive = !M7::math::FloatEquals(broadbandShearAngle, 0.0f, bandShearBypassThreshold);
-  #endif  // MAJ7WIDTH_FULL_FEATURE
+#endif  // MAJ7WIDTH_FULL_FEATURE
 
     for (size_t i = 0; i < (size_t)numSamples; ++i)
     {
@@ -362,7 +357,8 @@ struct Maj7Width : public Device
         const auto midBands = mMidSplitter.Process(inputMs.Mid());
         for (int iBand = 0; iBand < gBandCount; ++iBand)
         {
-          stereo.Accumulate(mBands[iBand].ProcessSample({midBands.s[iBand], sideBands.s[iBand]}, leftInvert, rightInvert));
+          stereo.Accumulate(
+              mBands[iBand].ProcessSample({midBands.s[iBand], sideBands.s[iBand]}, leftInvert, rightInvert));
         }
       }
       else
@@ -372,18 +368,18 @@ struct Maj7Width : public Device
 
       auto ms = stereo.MSEncode();
 
-// #ifdef MAJ7WIDTH_FULL_FEATURE
-//       if (broadbandShearActive)
-//       {
-//         Shear2(ms.x[1], ms.x[0], broadbandShearFactor);
-//       }
-// #endif  // MAJ7WIDTH_FULL_FEATURE
+      // #ifdef MAJ7WIDTH_FULL_FEATURE
+      //       if (broadbandShearActive)
+      //       {
+      //         Shear2(ms.x[1], ms.x[0], broadbandShearFactor);
+      //       }
+      // #endif  // MAJ7WIDTH_FULL_FEATURE
 
       stereo = ms.MSDecode();
 
-// #ifdef MAJ7WIDTH_FULL_FEATURE
-//       Rotate2(stereo.x[0], stereo.x[1], broadbandRotation);
-// #endif  // MAJ7WIDTH_FULL_FEATURE
+      // #ifdef MAJ7WIDTH_FULL_FEATURE
+      //       Rotate2(stereo.x[0], stereo.x[1], broadbandRotation);
+      // #endif  // MAJ7WIDTH_FULL_FEATURE
 
       auto output = stereo * outputGainLin;
 

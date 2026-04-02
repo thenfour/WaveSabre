@@ -100,8 +100,8 @@ public:
 		p.SetRawVal(Params::SideHPFrequency, 0);
 		p.SetBoolValue(Params::MultibandEnable, false);
 		p.SetDecibels(Params::OutputGain, Maj7Width::gVolumeCfg, 0.0f);
-		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverAFrequency, M7::gFilterFreqConfig, 650.0f);
-		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverBFrequency, M7::gFilterFreqConfig, 3500.0f);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverAFrequency, M7::gFilterFreqConfig, 400.0f);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverBFrequency, M7::gFilterFreqConfig, 3000.0f);
 		p.SetEnumValue(Params::CrossoverASlope, M7::CrossoverSlope::Slope_24dB);
 		p.SetEnumValue(Params::CrossoverBSlope, M7::CrossoverSlope::Slope_24dB);
 
