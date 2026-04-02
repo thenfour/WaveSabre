@@ -50,12 +50,11 @@ inline void RenderPolarLLayer(const char* id,
 		float radius,
 		const StereoImagingColorScheme& colorScheme = GetDefaultStereoImagingColorScheme()) {
 	auto* dl = ImGui::GetWindowDrawList();
+	(void)size;
 
 	// All the same static state management as in the original PolarL implementation
 	constexpr size_t kMaxSectorCount = 128;
 	static size_t kSectorCount = 96;
-	static float kSmoothnessK = 0.f;
-	static int kSmoothingKernelSize = 3;
 	static float kVisualBoost = 1.0f;
 
 	static std::map<std::string, std::array<float, kMaxSectorCount>> sectorPeakRadiiMap;
@@ -131,64 +130,37 @@ inline void RenderPolarLLayer(const char* id,
 		}
 	}
 
-	// Smoothing algorithm
-	float averageRadius = 0.0f;
-	float maxRadius = 0.0f;
+	std::array<ImVec2, kMaxSectorCount> envelopePoints = {};
 	for (size_t i = 0; i < kSectorCount; ++i) {
-		averageRadius += sectorPeakRadii[i];
-		maxRadius = std::max(maxRadius, sectorPeakRadii[i]);
-	}
-	averageRadius /= static_cast<float>(kSectorCount);
-
-	std::array<float, kMaxSectorCount> smoothedRadii = {};
-	for (size_t i = 0; i < kSectorCount; ++i) {
-		float smoothedValue = 0.0f;
-		float weightSum = 0.0f;
-
-		for (int k = -kSmoothingKernelSize; k <= kSmoothingKernelSize; ++k) {
-			size_t sampleIndex = (i + k + kSectorCount) % kSectorCount;
-			float weight = std::exp(-0.5f * (k * k) / (kSmoothingKernelSize * kSmoothingKernelSize * 0.25f));
-			smoothedValue += sectorPeakRadii[sampleIndex] * weight;
-			weightSum += weight;
-		}
-
-		float kernelSmoothed = smoothedValue / weightSum;
-		float circularFallback = averageRadius;
-		smoothedRadii[i] = kernelSmoothed * (1.0f - kSmoothnessK) + circularFallback * kSmoothnessK;
-
-		float enhancedMinimumRadius = std::max(maxRadius * 0.15f, radius * 0.05f);
-		smoothedRadii[i] = std::max(smoothedRadii[i], enhancedMinimumRadius);
+		float angle = (static_cast<float>(i) / static_cast<float>(kSectorCount)) * 2.0f * 3.14159f;
+		float envelopeRadius = sectorPeakRadii[i];
+		envelopePoints[i] = {
+			center.x + cos(angle) * envelopeRadius,
+			center.y - sin(angle) * envelopeRadius
+		};
 	}
 
-	// Build and draw envelope polygon
-	std::vector<ImVec2> envelopePoints;
-	envelopePoints.reserve(kSectorCount);
+	float correlation = static_cast<float>(analysis.mPhaseCorrelation);
+	ImU32 envelopeFillColor = GetCorrellationColor(correlation, 0.15f, colorScheme);
+	ImU32 envelopeLineColor = GetCorrellationColor(correlation, 0.45f, colorScheme);
+
+	const ImDrawListFlags oldFlags = dl->Flags;
+	dl->Flags &= ~(ImDrawListFlags_AntiAliasedLines | ImDrawListFlags_AntiAliasedLinesUseTex | ImDrawListFlags_AntiAliasedFill);
 
 	for (size_t i = 0; i < kSectorCount; ++i) {
-		float angle = (static_cast<float>(i) / static_cast<float>(kSectorCount)) * 2 * 3.14159f;
-		float envelopeRadius = smoothedRadii[i];
-
-		if (envelopeRadius > 0.01f) {
-			ImVec2 point = {
-				center.x + cos(angle) * envelopeRadius,
-				center.y - sin(angle) * envelopeRadius
-			};
-			envelopePoints.push_back(point);
+		size_t nextIdx = (i + 1) % kSectorCount;
+		const float r0 = sectorPeakRadii[i];
+		const float r1 = sectorPeakRadii[nextIdx];
+		if (r0 <= 0.01f && r1 <= 0.01f) {
+			continue;
 		}
+
+		const ImVec2 p0 = envelopePoints[i];
+		const ImVec2 p1 = envelopePoints[nextIdx];
+		const ImVec2 fillSegment[3] = {center, p0, p1};
+		dl->AddConvexPolyFilled(fillSegment, 3, envelopeFillColor);
+		dl->AddLine(p0, p1, envelopeLineColor, 1.0f);
 	}
 
-	if (envelopePoints.size() >= 3) {
-		float correlation = static_cast<float>(analysis.mPhaseCorrelation);
-		ImU32 envelopeFillColor = GetCorrellationColor(correlation, 0.15f, colorScheme);
-		ImU32 envelopeLineColor = GetCorrellationColor(correlation, 0.4f, colorScheme);
-
-		std::vector<ImVec2> reversedEnvelopePoints = envelopePoints;
-		std::reverse(reversedEnvelopePoints.begin(), reversedEnvelopePoints.end());
-		dl->AddConcavePolyFilled(reversedEnvelopePoints.data(), static_cast<int>(reversedEnvelopePoints.size()), envelopeFillColor);
-
-		for (size_t i = 0; i < envelopePoints.size(); i++) {
-			size_t nextIdx = (i + 1) % envelopePoints.size();
-			dl->AddLine(envelopePoints[i], envelopePoints[nextIdx], envelopeLineColor, 1.3f);
-		}
-	}
+	dl->Flags = oldFlags;
 }
