@@ -54,18 +54,20 @@ public:
 		p.SetN11Value(Params::RightSource, 1.0f);
 		p.SetBoolValue(Params::LInvert, false);
 		p.SetBoolValue(Params::RInvert, false);
-		p.SetRangedValue(Params::RotationAngle, -M7::math::gPIQuarter, M7::math::gPIQuarter, 0.0f);
-		//p.SetFrequencyAssumingNoKeytracking(Params::SideHPFrequency, M7::gFilterFreqConfig, 20.0f);
+		p.SetRangedValue(Params::RotationAngle, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
 		p.SetRawVal(Params::SideHPFrequency, 0);
 		p.SetN11Value(Params::MidSideBalance, 0.0f);
 		p.SetN11Value(Params::Pan, 0.0f);
 		p.SetDecibels(Params::OutputGain, Maj7Width::gVolumeCfg, 0.0f);
-		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverAFrequency, M7::gFilterFreqConfig, 550.0f);
-		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverBFrequency, M7::gFilterFreqConfig, 3000.0f);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverAFrequency, M7::gFilterFreqConfig, 650.0f);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverBFrequency, M7::gFilterFreqConfig, 3500.0f);
 		p.SetEnumValue(Params::CrossoverASlope, M7::CrossoverSlope::Slope_24dB);
 		p.SetEnumValue(Params::CrossoverBSlope, M7::CrossoverSlope::Slope_24dB);
 		p.SetDecibels(Params::Band1Gain, Maj7Width::gVolumeCfg, 0.0f);
 		p.SetDecibels(Params::Band2Gain, Maj7Width::gVolumeCfg, 0.0f);
 		p.SetDecibels(Params::Band3Gain, Maj7Width::gVolumeCfg, 0.0f);
+		p.SetRangedValue(Params::Band1Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
+		p.SetRangedValue(Params::Band2Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
+		p.SetRangedValue(Params::Band3Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0.0f);
 	}
 };

@@ -60,7 +60,7 @@ struct Maj7WidthEditor : public VstEditor
 
   Maj7WidthEditor(AudioEffect* audioEffect)
       :  //
-      VstEditor(audioEffect, 1000, 900)
+      VstEditor(audioEffect, 1080, 810)
       ,  // Increase height to accommodate frequency graph
       mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
   {
@@ -314,6 +314,59 @@ struct Maj7WidthEditor : public VstEditor
           ImGui::Text("Adjust the side level of the high crossover band.");
           ImGui::EndTooltip();
         }
+
+        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Rotation,
+                                  "MS rot low",
+                                  -M7::math::gPIHalf,
+                                  M7::math::gPIHalf,
+                                  0,
+                                  0,
+                                  0,
+                                  {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Low Band M/S Rotation");
+          ImGui::Separator();
+          ImGui::Text("Rotate the mid/side axes within the low crossover band.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band2Rotation,
+                                  "MS rot mid",
+                                  -M7::math::gPIHalf,
+                                  M7::math::gPIHalf,
+                                  0,
+                                  0,
+                                  0,
+                                  {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Mid Band M/S Rotation");
+          ImGui::Separator();
+          ImGui::Text("Rotate the mid/side axes within the middle crossover band.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band3Rotation,
+                                  "MS rot hi",
+                                  -M7::math::gPIHalf,
+                                  M7::math::gPIHalf,
+                                  0,
+                                  0,
+                                  0,
+                                  {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("High Band M/S Rotation");
+          ImGui::Separator();
+          ImGui::Text("Rotate the mid/side axes within the high crossover band.");
+          ImGui::EndTooltip();
+        }
       }
 
       ImGui::Spacing();
@@ -322,8 +375,8 @@ struct Maj7WidthEditor : public VstEditor
       ImGui::BeginGroup();
       Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle,
                                 "L/R rotation",
-                                -M7::math::gPIQuarter,
-                                M7::math::gPIQuarter,
+                                -M7::math::gPIHalf,
+                                M7::math::gPIHalf,
                                 0,
                                 0,
                                 0,
@@ -384,107 +437,110 @@ struct Maj7WidthEditor : public VstEditor
     attenCfg.levelMode = VUMeterLevelMode::Attenuation;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-
-    ImGui::SameLine();
+    ImGui::SameLine(0, 20);
     {
-      VUMeterTooltipStripScope tooltipStrip{"width_vu_strip"};
-      VUMeter("vu_inp",
-              mpMaj7Width->mInputAnalysis[0],
-              mpMaj7Width->mInputAnalysis[1],
-              mainCfg,
-              "Input Left",
-              "Input Right",
-              &tooltipStrip);
-      ImGui::SameLine();
-      VUMeter("vu_outp",
-              mpMaj7Width->mOutputAnalysis[0],
-              mpMaj7Width->mOutputAnalysis[1],
-              mainCfg,
-              "Output Left",
-              "Output Right",
-              &tooltipStrip);
-      ImGui::SameLine();
-      VUMeterMS("ms_inp",
-                mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector,
-                mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector,
-                mainCfg,
-                "Input Mid",
-                "Input Side",
-                &tooltipStrip);
-      ImGui::SameLine();
-      VUMeterMS("ms_outp",
-                mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector,
-                mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector,
-                mainCfg,
-                "Output Mid",
-                "Output Side",
-                &tooltipStrip);
-    }
+      ImGuiGroupScope _grp("width_visualizations");
 
-    ImGui::SameLine();
-    // Stereo imaging visualization
-    {
-      ImGuiGroupScope _grp("stereo_imaging");
-      RenderStereoImagingDisplay("stereo_imaging_inp",
-                                 mpMaj7Width->mInputImagingAnalysis,
-                                 {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
-      ImGui::SameLine();
-      RenderStereoImagingDisplay("stereo_imaging_outp",
-                                 mpMaj7Width->mOutputImagingAnalysis,
-                                 {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
-    }  // stereo imaging group
-
-    // Toggle buttons for layer visibility
-    {
-      ButtonArray<4>(
-          "width_scope_layers",
-          {
-              MakeButtonSpec("Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
-              MakeButtonSpec(
-                  "Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
-              MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
-              MakeButtonSpec("Wedge", &mShowPhaseX, kScopeScissorColor, "Show the wedge-style phase view."),
-          });
-    }
-    {
-      mStereoHistory.Render(true, mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
-    }
-
-    // Frequency analysis visualization (when enabled)
-
-    // Frequency Analysis Controls
-    {
-      ImGuiGroupScope _grp;
-      bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
-      if (!frequencyAnalysisEnabled)
       {
-        mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
-        mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
+        VUMeterTooltipStripScope tooltipStrip{"width_vu_strip"};
+        VUMeter("vu_inp",
+                mpMaj7Width->mInputAnalysis[0],
+                mpMaj7Width->mInputAnalysis[1],
+                mainCfg,
+                "Input Left",
+                "Input Right",
+                &tooltipStrip);
+        ImGui::SameLine();
+        VUMeter("vu_outp",
+                mpMaj7Width->mOutputAnalysis[0],
+                mpMaj7Width->mOutputAnalysis[1],
+                mainCfg,
+                "Output Left",
+                "Output Right",
+                &tooltipStrip);
+        ImGui::SameLine();
+        VUMeterMS("ms_inp",
+                  mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector,
+                  mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector,
+                  mainCfg,
+                  "Input Mid",
+                  "Input Side",
+                  &tooltipStrip);
+        ImGui::SameLine();
+        VUMeterMS("ms_outp",
+                  mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector,
+                  mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector,
+                  mainCfg,
+                  "Output Mid",
+                  "Output Side",
+                  &tooltipStrip);
       }
 
-      // FFT overlay toggles and scale selection
+      ImGui::SameLine();
+      // Stereo imaging visualization
       {
-        ImGui::Separator();
-        ImGui::Text("Freq overlays:");
-        ButtonArray<3>(
-            "width_fft_input",
+        ImGuiGroupScope _grp("stereo_imaging");
+        RenderStereoImagingDisplay("stereo_imaging_inp",
+                                   mpMaj7Width->mInputImagingAnalysis,
+                                   {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
+        ImGui::SameLine();
+        RenderStereoImagingDisplay("stereo_imaging_outp",
+                                   mpMaj7Width->mOutputImagingAnalysis,
+                                   {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
+      }  // stereo imaging group
+
+      ImGui::Spacing();
+
+      // Toggle buttons for layer visibility
+      {
+        ButtonArray<4>(
+            "width_scope_layers",
             {
-                MakeButtonSpec("In M", &mShowInputMid, kInputMidFftColor, "Show the input mid / center FFT overlay."),
-                MakeButtonSpec("In S", &mShowInputSide, kInputSideFftColor, "Show the input side FFT overlay."),
-                MakeButtonSpec("In W", &mShowInputWidth, kInputWidthFftColor, "Show the input width FFT overlay."),
-            });
-        ImGui::SameLine(0, 20);
-        ButtonArray<3>(
-            "width_fft_output",
-            {
+                MakeButtonSpec("Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
                 MakeButtonSpec(
-                    "Out M", &mShowOutputMid, kOutputMidFftColor, "Show the output mid / center FFT overlay."),
-                MakeButtonSpec("Out S", &mShowOutputSide, kOutputSideFftColor, "Show the output side FFT overlay."),
-                MakeButtonSpec("Out W", &mShowOutputWidth, kOutputWidthFftColor, "Show the output width FFT overlay."),
+                    "Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
+                MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
+                MakeButtonSpec("Wedge", &mShowPhaseX, kScopeScissorColor, "Show the wedge-style phase view."),
             });
       }
+      {
+        mStereoHistory.Render(true, mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
+      }
 
-      RenderFrequencyAnalysis();
+      // Frequency Analysis Controls
+      {
+        ImGuiGroupScope _grp;
+        bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
+        if (!frequencyAnalysisEnabled)
+        {
+          mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
+          mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
+        }
+
+        // FFT overlay toggles and scale selection
+        {
+          ImGui::Separator();
+          ImGui::Text("Freq overlays:");
+          ButtonArray<3>(
+              "width_fft_input",
+              {
+                  MakeButtonSpec("In M", &mShowInputMid, kInputMidFftColor, "Show the input mid / center FFT overlay."),
+                  MakeButtonSpec("In S", &mShowInputSide, kInputSideFftColor, "Show the input side FFT overlay."),
+                  MakeButtonSpec("In W", &mShowInputWidth, kInputWidthFftColor, "Show the input width FFT overlay."),
+              });
+          ImGui::SameLine(0, 20);
+          ButtonArray<3>(
+              "width_fft_output",
+              {
+                  MakeButtonSpec(
+                      "Out M", &mShowOutputMid, kOutputMidFftColor, "Show the output mid / center FFT overlay."),
+                  MakeButtonSpec("Out S", &mShowOutputSide, kOutputSideFftColor, "Show the output side FFT overlay."),
+                  MakeButtonSpec("Out W", &mShowOutputWidth, kOutputWidthFftColor, "Show the output width FFT overlay."),
+              });
+        }
+
+        RenderFrequencyAnalysis();
+      }
     }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   }
