@@ -354,10 +354,10 @@ private:
     StereoImagingDisplayStyle stereoImagingStyle{};
     stereoImagingStyle.primarySeries.label = "Input";
     stereoImagingStyle.primarySeries.colors = {
-        ColorFromHTML("#7CFF9A"), ColorFromHTML("#FFE066"), ColorFromHTML("#FF6B6B")};
+        ColorFromHTML("#8FA6B3"), ColorFromHTML("#B6AA84"), ColorFromHTML("#B79298")};
     stereoImagingStyle.secondarySeries.label = "Output";
     stereoImagingStyle.secondarySeries.colors = {
-        ColorFromHTML("#32D4C0"), ColorFromHTML("#F6BD60"), ColorFromHTML("#F28482")};
+        ColorFromHTML("#1FE0A8"), ColorFromHTML("#FFD24D"), ColorFromHTML("#FF623D")};
     return stereoImagingStyle;
   }
 
@@ -594,16 +594,16 @@ private:
     ImGui::SameLine();
     Maj7ImGuiParamFloatN11(GetBandParamIndex(bandIndex, BandParam::Pan), "Pan", 0.0f, 0, {});
 
-    Maj7ImGuiParamFloatN11(GetBandParamIndex(bandIndex, BandParam::Asymmetry), "Asym", 0.0f, 0, {});
+    Maj7ImGuiParamFloatN11(GetBandParamIndex(bandIndex, BandParam::Asymmetry), "Asymmetry", 0.0f, 0, {});
     ImGui::SameLine();
     Maj7ImGuiParamVolume(GetBandParamIndex(bandIndex, BandParam::SideGain),
-                         "Side",
+                         "Side Gain",
                          WaveSabreCore::Maj7Width::gVolumeCfg,
                          0,
                          {});
     ImGui::SameLine();
     Maj7ImGuiParamScaledFloat(GetBandParamIndex(bandIndex, BandParam::Rotation),
-                              "MS rot",
+                              "Rotation",
                               -WaveSabreCore::Maj7Width::gRotationExtent,
                               WaveSabreCore::Maj7Width::gRotationExtent,
                               0,
@@ -612,7 +612,7 @@ private:
                               {});
     ImGui::SameLine();
     Maj7ImGuiParamScaledFloat(GetBandParamIndex(bandIndex, BandParam::Shear),
-                              "MS shear",
+                              "Shear",
                               -WaveSabreCore::Maj7Width::gShearAngleLimit,
                               WaveSabreCore::Maj7Width::gShearAngleLimit,
                               0,
