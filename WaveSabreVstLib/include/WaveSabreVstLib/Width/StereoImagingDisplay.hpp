@@ -241,10 +241,17 @@ inline void RenderStereoImagingScope(const char* id,
 
   if (visibility.showPolarL)
   {
-    RenderPolarLLayer(id, primaryAnalysis, size, center, radius, style.primarySeries.colors);
+    const std::string primaryPolarId = std::string(id) + "_primary";
+    RenderPolarLLayer(primaryPolarId.c_str(), primaryAnalysis, size, center, radius, style.primarySeries.colors);
     if (secondaryAnalysis)
     {
-      RenderPolarLLayer(id, *secondaryAnalysis, size, center, radius, style.secondarySeries.colors);
+      const std::string secondaryPolarId = std::string(id) + "_secondary";
+      RenderPolarLLayer(secondaryPolarId.c_str(),
+                        *secondaryAnalysis,
+                        size,
+                        center,
+                        radius,
+                        style.secondarySeries.colors);
     }
   }
 
@@ -279,13 +286,13 @@ inline void RenderStereoImagingScope(const char* id,
 
   if (openPopup)
   {
-    ImGui::OpenPopup("##balanceSpeedPopup");
+    ImGui::OpenPopup("##stereoVisSpeedPopup");
     ImGui::SetNextWindowPos(ImGui::GetIO().MouseClickedPos[ImGuiMouseButton_Left], ImGuiCond_Appearing);
   }
 
-  if (ImGui::BeginPopup("##balanceSpeedPopup"))
+  if (ImGui::BeginPopup("##stereoVisSpeedPopup"))
   {
-    ImGui::Text("Left-right balance speed");
+    ImGui::Text("Stereo visualization speed");
     ImGui::Separator();
 
     using BalanceSpeed = StereoImagingAnalysisStream::BalanceBallisticsSpeed;
@@ -317,12 +324,12 @@ inline void RenderStereoImagingScope(const char* id,
     ImGui::EndPopup();
   }
 
-  if (scopeHovered && !ImGui::IsPopupOpen("##balanceSpeedPopup"))
+  if (scopeHovered && !ImGui::IsPopupOpen("##stereoVisSpeedPopup"))
   {
     ImGui::BeginTooltip();
     ImGui::Text("Stereo field");
     ImGui::Separator();
-    ImGui::Text("Click to change left-right balance speed.");
+    ImGui::Text("Click to change stereo visualization speed.");
     const auto currentSpeed = primaryAnalysis.GetBalanceBallisticsSpeed();
     ImGui::Text("Current: %s", StereoImagingAnalysisStream::GetBalanceBallisticsSpeedLabel(currentSpeed));
     ImGui::TextDisabled("%s", StereoImagingAnalysisStream::GetBalanceBallisticsSpeedDescription(currentSpeed));

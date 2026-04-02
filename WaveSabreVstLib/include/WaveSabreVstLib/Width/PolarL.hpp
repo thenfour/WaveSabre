@@ -20,6 +20,28 @@ inline std::vector<T> VectorFromArray(std::array<T, N> arr) {
 	return std::vector<T>(arr.begin(), arr.end());
 }
 
+struct PolarLBallisticsConfig {
+	float holdTimeMs = 0.0f;
+	float falloffTimeMs = 200.0f;
+};
+
+inline PolarLBallisticsConfig GetPolarLBallisticsConfig(StereoImagingAnalysisStream::BalanceBallisticsSpeed speed) {
+	switch (speed) {
+		case StereoImagingAnalysisStream::BalanceBallisticsSpeed::Momentary:
+			return {0.0f, 50.0f};
+		case StereoImagingAnalysisStream::BalanceBallisticsSpeed::Fast:
+			return {0.0f, 200.0f};
+		case StereoImagingAnalysisStream::BalanceBallisticsSpeed::Medium:
+			return {40.0f, 1000.0f};
+		case StereoImagingAnalysisStream::BalanceBallisticsSpeed::Slow:
+			return {120.0f, 3000.0f};
+		case StereoImagingAnalysisStream::BalanceBallisticsSpeed::Section:
+			return {250.0f, 10000.0f};
+	}
+
+	return {0.0f, 200.0f};
+}
+
 // Polar L layer renderer (based on RenderPolarL but without background/grid)
 inline void RenderPolarLLayer(const char* id,
 		const StereoImagingAnalysisStream& analysis,
@@ -42,8 +64,7 @@ inline void RenderPolarLLayer(const char* id,
 	static std::map<std::string, bool> wasVisibleLastFrameMap;
 
 	std::string instanceId = std::string(id) + "_polar";
-	constexpr float kHoldTimeMs = 200.0f;
-	constexpr float kFalloffTimeMs = 2000.0f;
+	const auto ballistics = GetPolarLBallisticsConfig(analysis.GetBalanceBallisticsSpeed());
 
 	auto& sectorPeakRadii = sectorPeakRadiiMap[instanceId];
 	auto& sectorHoldTimers = sectorHoldTimersMap[instanceId];
@@ -91,7 +112,7 @@ inline void RenderPolarLLayer(const char* id,
 
 				if (currentRadius > sectorPeakRadii[sectorIndex]) {
 					sectorPeakRadii[sectorIndex] = currentRadius;
-					sectorHoldTimers[sectorIndex] = kHoldTimeMs;
+					sectorHoldTimers[sectorIndex] = ballistics.holdTimeMs;
 				}
 			}
 		}
@@ -101,7 +122,7 @@ inline void RenderPolarLLayer(const char* id,
 				sectorHoldTimers[i] = std::max(0.0f, sectorHoldTimers[i] - deltaTimeMs);
 			}
 			else {
-				float falloffRate = 2.0f / kFalloffTimeMs;
+				float falloffRate = 2.0f / std::max(ballistics.falloffTimeMs, 1.0f);
 				sectorPeakRadii[i] *= std::exp(-falloffRate * deltaTimeMs);
 				if (sectorPeakRadii[i] < 0.01f) {
 					sectorPeakRadii[i] = 0.0f;

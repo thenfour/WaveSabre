@@ -327,7 +327,6 @@ private:
       return;
     }
 
-    ImGui::TextDisabled("All bands are shown here. The highlighted tab still follows the crossover graph selection.");
     ImGui::Spacing();
 
     for (int bandIndex = 0; bandIndex < WaveSabreCore::Maj7Width::gBandCount; ++bandIndex)
@@ -345,7 +344,9 @@ private:
     using Params = WaveSabreCore::Maj7Width::ParamIndices;
 
     ImGuiGroupScope _grp("global_controls");
-    
+
+    ImGui::Separator();
+
     Maj7ImGuiParamFrequency((VstInt32)Params::SideHPFrequency, -1, "Side HPF", M7::gFilterFreqConfig, 0, {});
     // display a tooltip for the side HPF control
     if (ImGui::IsItemHovered())
@@ -664,10 +665,9 @@ private:
     if (ToggleButton(&tabSelected,
                      label,
                      {250.0f, 22.0f},
-                     ButtonColorSpec{
-                         ColorFromHTML(bandColors[bandIndex], 0.8f),
-                         ColorFromHTML(bandColors[bandIndex], 0.12f),
-                         ColorFromHTML(bandColors[bandIndex], 0.5f)}))
+                     ButtonColorSpec{ColorFromHTML(bandColors[bandIndex], 0.8f),
+                                     ColorFromHTML(bandColors[bandIndex], 0.12f),
+                                     ColorFromHTML(bandColors[bandIndex], 0.5f)}))
     {
       mEditingBand = bandIndex;
     }

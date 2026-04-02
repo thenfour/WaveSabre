@@ -84,7 +84,7 @@ inline void RenderGoniometerLayer(const char* id,
       {
         // Draw line between previous and current position
 		// lines are a LOT more surface area, so make them more transparent.
-        float alphaF = M7::math::lerp(0.08f, 0.01f, ageFactor);
+        float alphaF = M7::math::lerp(0.12f, 0.05f, ageFactor);
         ImU32 color = (baseColor & 0x00FFFFFF) | (static_cast<int>(alphaF * 255) << 24);
 
         dl->AddLine(prevPos, currPos, color, 1.5f);

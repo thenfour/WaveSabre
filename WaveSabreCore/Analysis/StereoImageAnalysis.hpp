@@ -429,18 +429,18 @@ struct StereoImagingAnalysisStream
     switch (speed)
     {
       case BalanceBallisticsSpeed::Momentary:
-        return "50 ms - track quick left/right shifts.";
+        return "50 ms - highly responsive stereo visualization.";
       case BalanceBallisticsSpeed::Fast:
-        return "200 ms - responsive general-purpose balance view.";
+        return "200 ms - responsive general-purpose stereo view.";
       case BalanceBallisticsSpeed::Medium:
-        return "1 s - smoother musical balance view.";
+        return "1 s - smoother musical stereo view.";
       case BalanceBallisticsSpeed::Slow:
-        return "3 s - stable phrase-level energy balance.";
+        return "3 s - stable phrase-level stereo view.";
       case BalanceBallisticsSpeed::Section:
-        return "10 s - very slow section-level energy balance.";
+        return "10 s - very slow section-level stereo view.";
     }
 
-    return "200 ms - responsive general-purpose balance view.";
+    return "200 ms - responsive general-purpose stereo view.";
   }
 
   explicit StereoImagingAnalysisStream()
