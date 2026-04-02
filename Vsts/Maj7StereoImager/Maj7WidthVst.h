@@ -60,5 +60,12 @@ public:
 		p.SetN11Value(Params::MidSideBalance, 0.0f);
 		p.SetN11Value(Params::Pan, 0.0f);
 		p.SetDecibels(Params::OutputGain, Maj7Width::gVolumeCfg, 0.0f);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverAFrequency, M7::gFilterFreqConfig, 550.0f);
+		p.SetFrequencyAssumingNoKeytracking(Params::CrossoverBFrequency, M7::gFilterFreqConfig, 3000.0f);
+		p.SetEnumValue(Params::CrossoverASlope, M7::CrossoverSlope::Slope_24dB);
+		p.SetEnumValue(Params::CrossoverBSlope, M7::CrossoverSlope::Slope_24dB);
+		p.SetDecibels(Params::Band1Gain, Maj7Width::gVolumeCfg, 0.0f);
+		p.SetDecibels(Params::Band2Gain, Maj7Width::gVolumeCfg, 0.0f);
+		p.SetDecibels(Params::Band3Gain, Maj7Width::gVolumeCfg, 0.0f);
 	}
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../Analysis/StereoImageAnalysis.hpp"
+#include "../Filters/BandSplitter.hpp"
 #include "../Filters/FilterOnePole.hpp"
 #include "../GigaSynth/Maj7Basic.hpp"
 #include "../WSCore/Device.h"
@@ -22,6 +23,13 @@ struct Maj7Width : public Device
     MidSideBalance,
     Pan,
     OutputGain,
+    CrossoverAFrequency,
+    CrossoverBFrequency,
+    CrossoverASlope,
+    CrossoverBSlope,
+    Band1Gain,
+    Band2Gain,
+    Band3Gain,
 
     NumParams,
   };
@@ -40,6 +48,13 @@ struct Maj7Width : public Device
     {"MSBal"},\
     {"Pan"},\
     {"OutGain"},\
+    {"xAFreq"},\
+    {"xBFreq"},\
+    {"xASlope"},\
+    {"xBSlope"},\
+    {"B1Gain"},\
+    {"B2Gain"},\
+    {"B3Gain"},\
   }
 // clang-format on
 
@@ -47,8 +62,10 @@ struct Maj7Width : public Device
 
   float mParamCache[(int)ParamIndices::NumParams];
   M7::ParamAccessor mParams;
+  M7::BandSplitter mMidSplitter;
+  M7::BandSplitter mSideSplitter;
 
-  static_assert((int)ParamIndices::NumParams == 9, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 16, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       -32767,  // LSrc = -1
       32767,   // RSrc = 1
@@ -59,6 +76,13 @@ struct Maj7Width : public Device
       0,       // MSBal = 0
       0,       // Pan = 0
       16422,   // OutGain = 0.50118720531463623047
+        13557,   // xAFreq = 0.4137503504753112793
+        21576,   // xBFreq = 0.65849626064300537109
+        3,       // xASlope = 0.0001220703125
+        3,       // xBSlope = 0.0001220703125
+        16422,   // B1Gain = 0.50118720531463623047
+        16422,   // B2Gain = 0.50118720531463623047
+        16422,   // B3Gain = 0.50118720531463623047
   };
 
   M7::MoogOnePoleFilter mFilter;
@@ -81,6 +105,16 @@ struct Maj7Width : public Device
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   {
     LoadDefaults();
+  }
+
+  virtual void OnParamsChanged() override
+  {
+    const float crossoverFreqA = mParams.GetFrequency(ParamIndices::CrossoverAFrequency, M7::gFilterFreqConfig);
+    const float crossoverFreqB = mParams.GetFrequency(ParamIndices::CrossoverBFrequency, M7::gFilterFreqConfig);
+    const auto crossoverSlopeA = mParams.GetEnumValue<M7::CrossoverSlope>(ParamIndices::CrossoverASlope);
+    const auto crossoverSlopeB = mParams.GetEnumValue<M7::CrossoverSlope>(ParamIndices::CrossoverBSlope);
+    mMidSplitter.SetParams(crossoverFreqA, crossoverSlopeA, crossoverFreqB, crossoverSlopeB);
+    mSideSplitter.SetParams(crossoverFreqA, crossoverSlopeA, crossoverFreqB, crossoverSlopeB);
   }
 
 #ifdef MAJ7WIDTH_FULL_FEATURE
@@ -117,12 +151,26 @@ struct Maj7Width : public Device
   virtual void Run(float** inputs, float** outputs, int numSamples) override
   {
     auto panGains = M7::math::PanToFactor(mParams.GetN11Value(ParamIndices::Pan, 0));
-    mFilter.SetParams(M7::FilterCircuit::OnePole,
-                      M7::FilterSlope::Slope6dbOct,
-                      M7::FilterResponse::Highpass,
-                      mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig),
-                      M7::Param01{0} /*reso*/,
-                      0 /*gain*/);
+    const float sideBandGains[M7::kBandSplitterBands] = {
+        mParams.GetLinearVolume(ParamIndices::Band1Gain, gVolumeCfg),
+        mParams.GetLinearVolume(ParamIndices::Band2Gain, gVolumeCfg),
+        mParams.GetLinearVolume(ParamIndices::Band3Gain, gVolumeCfg),
+    };
+    constexpr float bandGainBypassThresholdLin = 0.005f;
+    const bool multibandActive =
+      !M7::math::FloatEquals(sideBandGains[0], 1.0f, bandGainBypassThresholdLin)
+      || !M7::math::FloatEquals(sideBandGains[1], 1.0f, bandGainBypassThresholdLin)
+      || !M7::math::FloatEquals(sideBandGains[2], 1.0f, bandGainBypassThresholdLin);
+    const bool sideHpfActive = mParams.GetRawVal(ParamIndices::SideHPFrequency) > 0.001f;
+    if (sideHpfActive)
+    {
+      mFilter.SetParams(M7::FilterCircuit::OnePole,
+                        M7::FilterSlope::Slope6dbOct,
+                        M7::FilterResponse::Highpass,
+                        mParams.GetFrequency(ParamIndices::SideHPFrequency, M7::gFilterFreqConfig),
+                        M7::Param01{0} /*reso*/,
+                        0 /*gain*/);
+    }
     float masterLinearGain = mParams.GetLinearVolume(ParamIndices::OutputGain, gVolumeCfg) *
                              M7::math::gPanCompensationGainLin;
 
@@ -150,7 +198,10 @@ struct Maj7Width : public Device
 
       // Width-shaping stage: side-only HPF and width amount both define the M/S image
       // before any later geometric rotations or shearing are applied.
-      ms.x[1] = mFilter.ProcessSample(ms.Side());
+      if (sideHpfActive)
+      {
+        ms.x[1] = mFilter.ProcessSample(ms.Side());
+      }
       float width = mParams.GetN11Value(ParamIndices::MidSideBalance, 0);
       if (width < 0)
       {
@@ -161,6 +212,20 @@ struct Maj7Width : public Device
       {
         // reduce mid toward side-only
         ms.x[0] *= 1.0f - width;
+      }
+
+      if (multibandActive)
+      {
+        const auto sideBands = mSideSplitter.Process(ms.Side());
+        const auto midBands = mMidSplitter.Process(ms.Mid());
+
+        M7::FloatPair multibandMs{};
+        for (int iBand = 0; iBand < M7::kBandSplitterBands; ++iBand)
+        {
+          multibandMs.x[0] += midBands[iBand];
+          multibandMs.x[1] += sideBands[iBand] * sideBandGains[iBand];
+        }
+        ms = multibandMs;
       }
 
       auto stereo = ms.MSDecode();

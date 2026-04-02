@@ -183,6 +183,141 @@ struct Maj7WidthEditor : public VstEditor
 
       ImGui::Spacing();
 
+      {
+        ImGuiGroupScope _grp;
+        CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
+        using CrossoverSlope = M7::CrossoverSlope;
+        Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::CrossoverAFrequency,
+                                -1,
+                                "Xover 1",
+                                M7::gFilterFreqConfig,
+                                550,
+                                {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Crossover 1");
+          ImGui::Separator();
+          ImGui::Text("Split point between the low and mid side-shaping bands.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamFrequency((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::CrossoverBFrequency,
+                                -1,
+                                "Xover 2",
+                                M7::gFilterFreqConfig,
+                                3000,
+                                {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Crossover 2");
+          ImGui::Separator();
+          ImGui::Text("Split point between the mid and high side-shaping bands.");
+          ImGui::EndTooltip();
+        }
+
+        Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+            WaveSabreCore::Maj7Width::ParamIndices::CrossoverASlope,
+            "Slope 1",
+            {
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                                          CrossoverSlope::Slope_12dB,
+                                          "8d6e63"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                                          CrossoverSlope::Slope_24dB,
+                                          "8d6e63"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                                          CrossoverSlope::Slope_36dB,
+                                          "8d6e63"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                                          CrossoverSlope::Slope_48dB,
+                                          "8d6e63"},
+            });
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Crossover 1 Slope");
+          ImGui::Separator();
+          ImGui::Text("Linkwitz-Riley slope used at the first split point.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+            WaveSabreCore::Maj7Width::ParamIndices::CrossoverBSlope,
+            "Slope 2",
+            {
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                                          CrossoverSlope::Slope_12dB,
+                                          "3f7a93"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                                          CrossoverSlope::Slope_24dB,
+                                          "3f7a93"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                                          CrossoverSlope::Slope_36dB,
+                                          "3f7a93"},
+                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                                          CrossoverSlope::Slope_48dB,
+                                          "3f7a93"},
+            });
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Crossover 2 Slope");
+          ImGui::Separator();
+          ImGui::Text("Linkwitz-Riley slope used at the second split point.");
+          ImGui::EndTooltip();
+        }
+
+        Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Gain,
+                             "Side low",
+                             WaveSabreCore::Maj7Width::gVolumeCfg,
+                             0,
+                             {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Low Band Side Gain");
+          ImGui::Separator();
+          ImGui::Text("Adjust the side level of the low crossover band.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band2Gain,
+                             "Side mid",
+                             WaveSabreCore::Maj7Width::gVolumeCfg,
+                             0,
+                             {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Mid Band Side Gain");
+          ImGui::Separator();
+          ImGui::Text("Adjust the side level of the middle crossover band.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamVolume((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band3Gain,
+                             "Side hi",
+                             WaveSabreCore::Maj7Width::gVolumeCfg,
+                             0,
+                             {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("High Band Side Gain");
+          ImGui::Separator();
+          ImGui::Text("Adjust the side level of the high crossover band.");
+          ImGui::EndTooltip();
+        }
+      }
+
+      ImGui::Spacing();
+
       // Rotation stage
       ImGui::BeginGroup();
       Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::RotationAngle,
