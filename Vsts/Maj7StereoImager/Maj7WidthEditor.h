@@ -79,269 +79,18 @@ struct Maj7WidthEditor : public VstEditor
 
   virtual void renderImgui() override
   {
-    using Params = WaveSabreCore::Maj7Width::ParamIndices;
+    auto renderContext = BuildRenderContext();
 
-    bool muteSoloEnabled[WaveSabreCore::Maj7Width::gBandCount] = {true, true, true};
-    bool mutes[WaveSabreCore::Maj7Width::gBandCount] = {
-        mpMaj7Width->mBandConfig[0].mMute,
-        mpMaj7Width->mBandConfig[1].mMute,
-        mpMaj7Width->mBandConfig[2].mMute,
-    };
-    bool solos[WaveSabreCore::Maj7Width::gBandCount] = {
-        mpMaj7Width->mBandConfig[0].mSolo,
-        mpMaj7Width->mBandConfig[1].mSolo,
-        mpMaj7Width->mBandConfig[2].mSolo,
-    };
-    Maj7Width::CalculateBandMuteSolo(mutes, solos, muteSoloEnabled);
-
-    float mbBacking = mpMaj7WidthVst->getParameter((int)Params::MultibandEnable);
-    M7::ParamAccessor mbEnableParam{&mbBacking, 0};
-    bool multibandEnabled = mbEnableParam.GetBoolValue(0);
-    if (!multibandEnabled)
     {
-      mEditingBand = 1;
+      ImGuiGroupScope _leftColumnGroup("imager_left_column");
+      RenderLeftColumn(renderContext);
     }
-    mEditingBand = std::clamp(mEditingBand, 0, WaveSabreCore::Maj7Width::gBandCount - 1);
-    auto selectedFftSeries = (FftSeriesSelection)mFftSeriesSelection;
-
-    {
-      ImGuiGroupScope _grp;
-
-      {
-        ImGuiGroupScope _grp;
-        CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
-        using CrossoverSlope = M7::CrossoverSlope;
-
-        bool singleBand = !multibandEnabled;
-        if (ToggleButton(&singleBand, "Single-band", {90, 20}))
-        {
-          mbEnableParam.SetBoolValue(0, false);
-          mpMaj7WidthVst->setParameter((int)Params::MultibandEnable, mbBacking);
-          multibandEnabled = false;
-          mEditingBand = 1;
-        }
-        ImGui::SameLine();
-        if (ToggleButton(&multibandEnabled, "Multi-band", {90, 20}))
-        {
-          mbEnableParam.SetBoolValue(0, true);
-          mpMaj7WidthVst->setParameter((int)Params::MultibandEnable, mbBacking);
-          multibandEnabled = true;
-        }
-
-        ImGui::SameLine(0, 20);
-        EnumSelectionButtonArray<FftSeriesSelection, 3>(
-            "width_fft_series",
-            &selectedFftSeries,
-            {
-                MakeEnumSelectionSpec("Mid", FftSeriesSelection::Mid, kOutputMidFftColor, "Show input and output mid spectra."),
-                MakeEnumSelectionSpec("Side", FftSeriesSelection::Side, kOutputSideFftColor, "Show input and output side spectra."),
-                MakeEnumSelectionSpec("Width", FftSeriesSelection::Width, kOutputWidthFftColor, "Show input and output width spectra."),
-            });
-        mFftSeriesSelection = (int)selectedFftSeries;
-
-        ImGui::Spacing();
-        Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
-            Params::CrossoverASlope,
-            "Slope 1",
-            {
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
-                                          CrossoverSlope::Slope_12dB,
-                                          "8d6e63"},
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
-                                          CrossoverSlope::Slope_24dB,
-                                          "8d6e63"},
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
-                                          CrossoverSlope::Slope_36dB,
-                                          "8d6e63"},
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
-                                          CrossoverSlope::Slope_48dB,
-                                          "8d6e63"},
-            });
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Crossover 1 Slope");
-          ImGui::Separator();
-          ImGui::Text("Linkwitz-Riley slope used at the first split point.");
-          ImGui::EndTooltip();
-        }
-
-        ImGui::SameLine();
-        Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
-            Params::CrossoverBSlope,
-            "Slope 2",
-            {
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
-                                          CrossoverSlope::Slope_12dB,
-                                          "3f7a93"},
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
-                                          CrossoverSlope::Slope_24dB,
-                                          "3f7a93"},
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
-                                          CrossoverSlope::Slope_36dB,
-                                          "3f7a93"},
-                EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
-                                          CrossoverSlope::Slope_48dB,
-                                          "3f7a93"},
-            });
-        ImGui::Spacing();
-        Maj7ImGuiParamFrequency((VstInt32)Params::SideHPFrequency, -1, "Side HPF", M7::gFilterFreqConfig, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::LInvert, "L flip", "cc6666");
-        ImGui::SameLine();
-        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::RInvert, "R flip", "6699cc");
-
-        ImGui::Spacing();
-        RenderSelectedBandControls(multibandEnabled ? mEditingBand : 1, multibandEnabled);
-
-        ImGui::Spacing();
-        ImGui::BeginGroup();
-        // Maj7ImGuiParamScaledFloat((VstInt32)Params::RotationAngle,
-        //                           "L/R rotation",
-        //                           -WaveSabreCore::Maj7Width::gRotationExtent,
-        //                           WaveSabreCore::Maj7Width::gRotationExtent,
-        //                           0,
-        //                           0,
-        //                           0,
-        //                           {});
-        // ImGui::SameLine();
-        // Maj7ImGuiParamScaledFloat((VstInt32)Params::MSShear,
-        //                           "MS shear",
-        //                           -WaveSabreCore::Maj7Width::gShearAngleLimit,
-        //                           WaveSabreCore::Maj7Width::gShearAngleLimit,
-        //                           0,
-        //                           0,
-        //                           0,
-        //                           {});
-        // ImGui::SameLine();
-        Maj7ImGuiParamVolume((VstInt32)Params::OutputGain,
-                             "Output",
-                             WaveSabreCore::Maj7Width::gVolumeCfg,
-                             0,
-                             {});
-        ImGui::EndGroup();
-      }
-
-    }  // group scope
-
-    static const std::vector<VUMeterTick> tickSet = {
-        {-3.0f, "3db"},
-        {-6.0f, "6db"},
-        {-12.0f, "12db"},
-        {-18.0f, "18db"},
-        {-24.0f, "24db"},
-        {-30.0f, "30db"},
-        {-40.0f, "40db"},
-        //{-50.0f, "50db"},
-    };
-
-    VUMeterConfig mainCfg = {
-        {24, 300},
-        VUMeterLevelMode::Audio,
-        VUMeterUnits::Linear,
-        -50,
-        6,
-        tickSet,
-    };
-
-    VUMeterConfig attenCfg = mainCfg;
-    attenCfg.levelMode = VUMeterLevelMode::Attenuation;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
     ImGui::SameLine(0, 20);
     {
-      ImGuiGroupScope _grp("width_visualizations");
-
-      {
-        VUMeterTooltipStripScope tooltipStrip{"width_vu_strip"};
-        VUMeter("vu_inp",
-                mpMaj7Width->mInputAnalysis[0],
-                mpMaj7Width->mInputAnalysis[1],
-                mainCfg,
-                "Input Left",
-                "Input Right",
-                &tooltipStrip);
-        ImGui::SameLine();
-        VUMeter("vu_outp",
-                mpMaj7Width->mOutputAnalysis[0],
-                mpMaj7Width->mOutputAnalysis[1],
-                mainCfg,
-                "Output Left",
-                "Output Right",
-                &tooltipStrip);
-        ImGui::SameLine();
-        VUMeterMS("ms_inp",
-                  mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector,
-                  mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector,
-                  mainCfg,
-                  "Input Mid",
-                  "Input Side",
-                  &tooltipStrip);
-        ImGui::SameLine();
-        VUMeterMS("ms_outp",
-                  mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector,
-                  mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector,
-                  mainCfg,
-                  "Output Mid",
-                  "Output Side",
-                  &tooltipStrip);
-      }
-
-      ImGui::SameLine();
-      // Stereo imaging visualization
-      {
-        ImGuiGroupScope _grp("stereo_imaging");
-        StereoImagingDisplayStyle stereoImagingStyle{};
-        stereoImagingStyle.primarySeries.label = "Input";
-        stereoImagingStyle.primarySeries.colors = {
-          ColorFromHTML("#7CFF9A"), ColorFromHTML("#FFE066"), ColorFromHTML("#FF6B6B")};
-        stereoImagingStyle.secondarySeries.label = "Output";
-        stereoImagingStyle.secondarySeries.colors = {
-          ColorFromHTML("#32D4C0"), ColorFromHTML("#F6BD60"), ColorFromHTML("#F28482")};
-
-        RenderStereoImagingDisplay("stereo_imaging_io",
-                       mpMaj7Width->mInputImagingAnalysis,
-                       &mpMaj7Width->mOutputImagingAnalysis,
-                       {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX},
-                       300,
-                       stereoImagingStyle);
-      }  // stereo imaging group
-
-      ImGui::Spacing();
-
-      // Toggle buttons for layer visibility
-      {
-        ButtonArray<4>(
-            "width_scope_layers",
-            {
-                MakeButtonSpec(
-                    "Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
-                MakeButtonSpec(
-                    "Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
-                MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
-                MakeButtonSpec("Wedge", &mShowPhaseX, kScopeScissorColor, "Show the wedge-style phase view."),
-            });
-      }
-      {
-        mStereoHistory.Render(true, mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
-      }
-
-      // Frequency Analysis Controls
-      {
-        ImGuiGroupScope _grp;
-        bool frequencyAnalysisEnabled = mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled();
-        if (!frequencyAnalysisEnabled)
-        {
-          mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
-          mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
-        }
-
-        ImGui::Separator();
-        ImGui::TextDisabled(multibandEnabled
-                    ? "Drag crossover lines, click a band to edit it, or use M/S buttons on the graph."
-                    : "Single-band mode uses the mid band's controls. Switch to multi-band to edit crossovers on the graph.");
-        RenderFrequencyAnalysis(multibandEnabled, muteSoloEnabled);
-      }
+      ImGuiGroupScope _rightColumnGroup("imager_right_column");
+      RenderRightColumn();
     }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
   }
@@ -367,6 +116,12 @@ struct Maj7WidthEditor : public VstEditor
 
 
 private:
+  struct RenderContext
+  {
+    bool multibandEnabled = false;
+    std::array<bool, WaveSabreCore::Maj7Width::gBandCount> muteSoloEnabled = {true, true, true};
+  };
+
   bool mShowGoniometerLines = false;
   bool mShowGoniometerPoints = true;
   bool mShowPolarL = false;
@@ -383,6 +138,307 @@ private:
   VstSerializableBoolParamRef mShowSideLevelParam{"ShowSideLevel", mStereoHistory.mShowSideLevel};
   VstSerializableBoolParamRef mShowInputParam{"ShowInput", mStereoHistory.mShowInput};
   VstSerializableBoolParamRef mShowOutputParam{"ShowOutput", mStereoHistory.mShowOutput};
+
+  RenderContext BuildRenderContext()
+  {
+    using Params = WaveSabreCore::Maj7Width::ParamIndices;
+
+    RenderContext context;
+    bool mutes[WaveSabreCore::Maj7Width::gBandCount] = {
+        mpMaj7Width->mBandConfig[0].mMute,
+        mpMaj7Width->mBandConfig[1].mMute,
+        mpMaj7Width->mBandConfig[2].mMute,
+    };
+    bool solos[WaveSabreCore::Maj7Width::gBandCount] = {
+        mpMaj7Width->mBandConfig[0].mSolo,
+        mpMaj7Width->mBandConfig[1].mSolo,
+        mpMaj7Width->mBandConfig[2].mSolo,
+    };
+    bool muteSoloEnabled[WaveSabreCore::Maj7Width::gBandCount] = {true, true, true};
+    Maj7Width::CalculateBandMuteSolo(mutes, solos, muteSoloEnabled);
+    for (int i = 0; i < WaveSabreCore::Maj7Width::gBandCount; ++i)
+    {
+      context.muteSoloEnabled[i] = muteSoloEnabled[i];
+    }
+
+    float mbBacking = mpMaj7WidthVst->getParameter((int)Params::MultibandEnable);
+    M7::ParamAccessor mbEnableParam{&mbBacking, 0};
+    context.multibandEnabled = mbEnableParam.GetBoolValue(0);
+    if (!context.multibandEnabled)
+    {
+      mEditingBand = 1;
+    }
+
+    mEditingBand = std::clamp(mEditingBand, 0, WaveSabreCore::Maj7Width::gBandCount - 1);
+    return context;
+  }
+
+  void RenderLeftColumn(RenderContext& renderContext)
+  {
+    RenderFftDisplayControlsRow(renderContext);
+    ImGui::Spacing();
+    RenderFftVisualizationAndBandSelector(renderContext);
+    ImGui::Spacing();
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    RenderHistorySeriesSelectionButtons();
+    ImGui::Spacing();
+    RenderHistoryGraph();
+    ImGui::Spacing();
+#endif
+    RenderPerBandControls(renderContext);
+    ImGui::Spacing();
+    RenderGlobalControls();
+  }
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  void RenderRightColumn()
+  {
+    RenderStereoImageVisualizer();
+    ImGui::Spacing();
+    RenderVuMeterBank();
+  }
+#endif
+
+  void RenderFftDisplayControlsRow(RenderContext& renderContext)
+  {
+    using Params = WaveSabreCore::Maj7Width::ParamIndices;
+    using CrossoverSlope = M7::CrossoverSlope;
+
+    ImGuiGroupScope _row("fft_display_controls_row");
+    CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
+
+    float mbBacking = mpMaj7WidthVst->getParameter((int)Params::MultibandEnable);
+    M7::ParamAccessor mbEnableParam{&mbBacking, 0};
+    bool singleBand = !renderContext.multibandEnabled;
+    if (ToggleButton(&singleBand, "Single-band", {90, 20}))
+    {
+      mbEnableParam.SetBoolValue(0, false);
+      mpMaj7WidthVst->setParameter((int)Params::MultibandEnable, mbBacking);
+      renderContext.multibandEnabled = false;
+      mEditingBand = 1;
+    }
+    ImGui::SameLine();
+    if (ToggleButton(&renderContext.multibandEnabled, "Multi-band", {90, 20}))
+    {
+      mbEnableParam.SetBoolValue(0, true);
+      mpMaj7WidthVst->setParameter((int)Params::MultibandEnable, mbBacking);
+    }
+
+    ImGui::SameLine(0, 20);
+    Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+        Params::CrossoverASlope,
+        "Slope 1",
+        {
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                                      CrossoverSlope::Slope_12dB,
+                                      "8d6e63"},
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                                      CrossoverSlope::Slope_24dB,
+                                      "8d6e63"},
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                                      CrossoverSlope::Slope_36dB,
+                                      "8d6e63"},
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                                      CrossoverSlope::Slope_48dB,
+                                      "8d6e63"},
+        });
+    if (ImGui::IsItemHovered())
+    {
+      ImGui::BeginTooltip();
+      ImGui::Text("Crossover 1 Slope");
+      ImGui::Separator();
+      ImGui::Text("Linkwitz-Riley slope used at the first split point.");
+      ImGui::EndTooltip();
+    }
+
+    ImGui::SameLine();
+    Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
+        Params::CrossoverBSlope,
+        "Slope 2",
+        {
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_12dB],
+                                      CrossoverSlope::Slope_12dB,
+                                      "3f7a93"},
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_24dB],
+                                      CrossoverSlope::Slope_24dB,
+                                      "3f7a93"},
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_36dB],
+                                      CrossoverSlope::Slope_36dB,
+                                      "3f7a93"},
+            EnumToggleButtonArrayItem{crossoverSlopeCaptions[(int)CrossoverSlope::Slope_48dB],
+                                      CrossoverSlope::Slope_48dB,
+                                      "3f7a93"},
+        });
+
+    ImGui::SameLine(0, 20);
+    auto selectedFftSeries = (FftSeriesSelection)mFftSeriesSelection;
+    EnumSelectionButtonArray<FftSeriesSelection, 3>(
+        "width_fft_series",
+        &selectedFftSeries,
+        {
+            MakeEnumSelectionSpec("Mid", FftSeriesSelection::Mid, kOutputMidFftColor, "Show input and output mid spectra."),
+            MakeEnumSelectionSpec("Side", FftSeriesSelection::Side, kOutputSideFftColor, "Show input and output side spectra."),
+            MakeEnumSelectionSpec("Width", FftSeriesSelection::Width, kOutputWidthFftColor, "Show input and output width spectra."),
+        });
+    mFftSeriesSelection = (int)selectedFftSeries;
+  }
+
+  void RenderFftVisualizationAndBandSelector(const RenderContext& renderContext)
+  {
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    ImGuiGroupScope _grp("fft_and_band_selector");
+    EnsureFrequencyAnalysisEnabled();
+    RenderFrequencyAnalysis(renderContext.multibandEnabled, renderContext.muteSoloEnabled);
+    ImGui::TextDisabled(renderContext.multibandEnabled
+                            ? "Drag crossover lines, click a band to edit it, or use M/S buttons on the graph."
+                            : "Single-band mode uses the mid band's controls. Switch to multi-band to edit crossovers on the graph.");
+#else
+    (void)renderContext;
+#endif
+  }
+
+  void RenderHistorySeriesSelectionButtons()
+  {
+    ImGuiGroupScope _grp("history_series_selection_buttons");
+    mStereoHistory.RenderSeriesSelectionButtons();
+  }
+
+  void RenderHistoryGraph()
+  {
+    ImGuiGroupScope _grp("history_graph");
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    mStereoHistory.RenderGraph(mpMaj7Width->mInputImagingAnalysis, mpMaj7Width->mOutputImagingAnalysis);
+#endif
+  }
+
+  void RenderPerBandControls(const RenderContext& renderContext)
+  {
+    ImGuiGroupScope _grp("per_band_controls");
+    RenderSelectedBandControls(renderContext.multibandEnabled ? mEditingBand : 1, renderContext.multibandEnabled);
+  }
+
+  void RenderGlobalControls()
+  {
+    using Params = WaveSabreCore::Maj7Width::ParamIndices;
+
+    ImGuiGroupScope _grp("global_controls");
+    Maj7ImGuiParamFrequency((VstInt32)Params::SideHPFrequency, -1, "Side HPF", M7::gFilterFreqConfig, 0, {});
+    ImGui::SameLine();
+    Maj7ImGuiBoolParamToggleButton((VstInt32)Params::LInvert, "L flip", "cc6666");
+    ImGui::SameLine();
+    Maj7ImGuiBoolParamToggleButton((VstInt32)Params::RInvert, "R flip", "6699cc");
+    ImGui::SameLine(0, 24);
+    Maj7ImGuiParamVolume((VstInt32)Params::OutputGain,
+                         "Output",
+                         WaveSabreCore::Maj7Width::gVolumeCfg,
+                         0,
+                         {});
+  }
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  void EnsureFrequencyAnalysisEnabled()
+  {
+    if (!mpMaj7Width->mInputImagingAnalysis.IsFrequencyAnalysisEnabled())
+    {
+      mpMaj7Width->mInputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
+      mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
+    }
+  }
+
+  StereoImagingDisplayStyle MakeStereoImagingStyle() const
+  {
+    StereoImagingDisplayStyle stereoImagingStyle{};
+    stereoImagingStyle.primarySeries.label = "Input";
+    stereoImagingStyle.primarySeries.colors = {
+        ColorFromHTML("#7CFF9A"), ColorFromHTML("#FFE066"), ColorFromHTML("#FF6B6B")};
+    stereoImagingStyle.secondarySeries.label = "Output";
+    stereoImagingStyle.secondarySeries.colors = {
+        ColorFromHTML("#32D4C0"), ColorFromHTML("#F6BD60"), ColorFromHTML("#F28482")};
+    return stereoImagingStyle;
+  }
+
+  VUMeterConfig MakeMainVUMeterConfig() const
+  {
+    static const std::vector<VUMeterTick> tickSet = {
+        {-3.0f, "3db"},
+        {-6.0f, "6db"},
+        {-12.0f, "12db"},
+        {-18.0f, "18db"},
+        {-24.0f, "24db"},
+        {-30.0f, "30db"},
+        {-40.0f, "40db"},
+    };
+
+    return {
+        {24, 300},
+        VUMeterLevelMode::Audio,
+        VUMeterUnits::Linear,
+        -50,
+        6,
+        tickSet,
+    };
+  }
+
+  void RenderStereoImageVisualizer()
+  {
+    ImGuiGroupScope _grp("stereo_image_visualizer");
+    RenderStereoImagingDisplay("stereo_imaging_io",
+                               mpMaj7Width->mInputImagingAnalysis,
+                               &mpMaj7Width->mOutputImagingAnalysis,
+                               {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX},
+                               300,
+                               MakeStereoImagingStyle());
+
+    ImGui::Spacing();
+    ButtonArray<4>(
+        "width_scope_layers",
+        {
+            MakeButtonSpec("Lines", &mShowGoniometerLines, kScopeLinesColor, "Show line trails in the stereo scope."),
+            MakeButtonSpec("Points", &mShowGoniometerPoints, kScopePointsColor, "Show point cloud dots in the stereo scope."),
+            MakeButtonSpec("Poly", &mShowPolarL, kScopePolyColor, "Show the polygon / polar envelope layer."),
+            MakeButtonSpec("Wedge", &mShowPhaseX, kScopeScissorColor, "Show the wedge-style phase view."),
+        });
+  }
+
+  void RenderVuMeterBank()
+  {
+    ImGuiGroupScope _grp("vu_meter_bank");
+    const auto mainCfg = MakeMainVUMeterConfig();
+    VUMeterTooltipStripScope tooltipStrip{"width_vu_strip"};
+
+    VUMeter("vu_inp",
+            mpMaj7Width->mInputAnalysis[0],
+            mpMaj7Width->mInputAnalysis[1],
+            mainCfg,
+            "Input Left",
+            "Input Right",
+            &tooltipStrip);
+    ImGui::SameLine();
+    VUMeter("vu_outp",
+            mpMaj7Width->mOutputAnalysis[0],
+            mpMaj7Width->mOutputAnalysis[1],
+            mainCfg,
+            "Output Left",
+            "Output Right",
+            &tooltipStrip);
+    ImGui::SameLine();
+    VUMeterMS("ms_inp",
+              mpMaj7Width->mInputImagingAnalysis.mMidLevelDetector,
+              mpMaj7Width->mInputImagingAnalysis.mSideLevelDetector,
+              mainCfg,
+              "Input Mid",
+              "Input Side",
+              &tooltipStrip);
+    ImGui::SameLine();
+    VUMeterMS("ms_outp",
+              mpMaj7Width->mOutputImagingAnalysis.mMidLevelDetector,
+              mpMaj7Width->mOutputImagingAnalysis.mSideLevelDetector,
+              mainCfg,
+              "Output Mid",
+              "Output Side",
+              &tooltipStrip);
+  }
+#endif
 
   static const char* GetBandLabel(int bandIndex)
   {
@@ -564,7 +620,8 @@ private:
 
   // Render frequency analysis graph
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  void RenderFrequencyAnalysis(bool multibandEnabled, const bool (&muteSoloEnabled)[WaveSabreCore::Maj7Width::gBandCount])
+  void RenderFrequencyAnalysis(bool multibandEnabled,
+                               const std::array<bool, WaveSabreCore::Maj7Width::gBandCount>& muteSoloEnabled)
   {
     const auto* analyzerIn = mpMaj7Width->mInputImagingAnalysis.GetFrequencyAnalyzer();
     const auto* analyzerOut = mpMaj7Width->mOutputImagingAnalysis.GetFrequencyAnalyzer();
@@ -693,25 +750,23 @@ private:
         });
 
     mWidthGraph.mCrossoverLayer->mShowResponses = true;
-    const std::array<bool, WaveSabreCore::Maj7Width::gBandCount> muteSoloState = {
-        muteSoloEnabled[0], muteSoloEnabled[1], muteSoloEnabled[2]};
-    mWidthGraph.mCrossoverLayer->mGetBandColor = [multibandEnabled, muteSoloState](size_t bandIndex, bool hovered) -> ImColor {
+    mWidthGraph.mCrossoverLayer->mGetBandColor = [multibandEnabled, muteSoloEnabled](size_t bandIndex, bool hovered) -> ImColor {
       if (bandIndex >= WaveSabreCore::Maj7Width::gBandCount)
       {
         return ColorFromHTML("888888", 0.5f);
       }
 
-      const bool active = multibandEnabled ? muteSoloState[bandIndex] : bandIndex == 1;
+      const bool active = multibandEnabled ? muteSoloEnabled[bandIndex] : bandIndex == 1;
       const char* baseColor = active ? bandColors[bandIndex] : "444444";
       return ColorFromHTML(baseColor, hovered ? 0.95f : (active ? 0.75f : 0.55f));
     };
     mWidthGraph.SetCurrentEditingBand(multibandEnabled ? mEditingBand : 1);
 
-    auto bandRenderer = [this, multibandEnabled, muteSoloState](int bandIndex,
-                                                                const ImRect& bandRect,
-                                                                bool isHovered,
-                                                                bool isSelected,
-                                                                ImDrawList* drawList) -> bool {
+    auto bandRenderer = [this, multibandEnabled, muteSoloEnabled](int bandIndex,
+                                                                  const ImRect& bandRect,
+                                                                  bool isHovered,
+                                                                  bool isSelected,
+                                                                  ImDrawList* drawList) -> bool {
       if (!multibandEnabled || bandIndex < 0 || bandIndex >= WaveSabreCore::Maj7Width::gBandCount)
       {
         return false;
@@ -730,7 +785,7 @@ private:
                                isHovered,
                                isSelected,
                                drawList,
-                               muteSoloState[bandIndex],
+                               muteSoloEnabled[bandIndex],
                                multibandEnabled);
     };
     mWidthGraph.SetBandRenderer(bandRenderer);
@@ -792,11 +847,9 @@ private:
     const char* kInputSideLevelColor = "ffbb88";
     const char* kOutputSideLevelColor = "cc9966";
 
-    void Render(bool showToggles,
-                const StereoImagingAnalysisStream& inputAnalysis,
-                const StereoImagingAnalysisStream& outputAnalysis)
+    void RenderGraph(const StereoImagingAnalysisStream& inputAnalysis,
+                     const StereoImagingAnalysisStream& outputAnalysis)
     {
-      ImGui::BeginGroup();
       static constexpr float lineWidth = 2.0f;
 
       const std::array<HistoryTooltipSeriesConfig, 13> historyTooltipCfg = {
@@ -982,33 +1035,46 @@ private:
           historyViewMinValue,
           historyViewMaxValue,
           &historyTooltipCfg);
+    }
 
+    void RenderSeriesSelectionButtons()
+    {
+      ButtonArray<5>(
+          "width_history_metrics",
+          {
+              MakeButtonSpec("Correllation",
+                             &mShowPhaseCorrelation,
+                             kInputCorrellationColor,
+                             "Show stereo correlation history."),
+              MakeButtonSpec("Width", &mShowStereoWidth, kInputWidthColor, "Show stereo width history."),
+              MakeButtonSpec("Balance", &mShowStereoBalance, kInputBalanceColor, "Show stereo balance history."),
+              MakeButtonSpec("Mid", &mShowMidLevel, kInputMidLevelColor, "Show mid-channel level history.", 20.0f),
+              MakeButtonSpec("Side", &mShowSideLevel, kInputSideLevelColor, "Show side-channel level history."),
+          });
+
+      ImGui::SameLine(0, 40);
+      ButtonArray<2>(
+          "width_history_groups",
+          {
+              MakeButtonSpec("Input", &mShowInput, kInputCorrellationColor, "Show input history series."),
+              MakeButtonSpec("Output", &mShowOutput, kOutputCorrellationColor, "Show output history series."),
+          });
+    }
+
+    void Render(bool showToggles,
+                const StereoImagingAnalysisStream& inputAnalysis,
+                const StereoImagingAnalysisStream& outputAnalysis)
+    {
+      ImGui::BeginGroup();
       if (showToggles)
       {
-        ButtonArray<5>(
-            "width_history_metrics",
-            {
-                MakeButtonSpec("Correllation",
-                               &mShowPhaseCorrelation,
-                               kInputCorrellationColor,
-                               "Show stereo correlation history."),
-                MakeButtonSpec("Width", &mShowStereoWidth, kInputWidthColor, "Show stereo width history."),
-                MakeButtonSpec("Balance", &mShowStereoBalance, kInputBalanceColor, "Show stereo balance history."),
-                MakeButtonSpec("Mid", &mShowMidLevel, kInputMidLevelColor, "Show mid-channel level history.", 20.0f),
-                MakeButtonSpec("Side", &mShowSideLevel, kInputSideLevelColor, "Show side-channel level history."),
-            });
-
-        ImGui::SameLine(0, 40);
-        ButtonArray<2>(
-            "width_history_groups",
-            {
-                MakeButtonSpec("Input", &mShowInput, kInputCorrellationColor, "Show input history series."),
-                MakeButtonSpec("Output", &mShowOutput, kOutputCorrellationColor, "Show output history series."),
-            });
+        RenderSeriesSelectionButtons();
+        ImGui::Spacing();
       }
+      RenderGraph(inputAnalysis, outputAnalysis);
       ImGui::EndGroup();
     }
   };
 
-  StereoHistoryVis<508, 120> mStereoHistory;
+  StereoHistoryVis<800, 120> mStereoHistory;
 };
