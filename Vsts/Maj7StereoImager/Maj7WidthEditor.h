@@ -291,13 +291,20 @@ struct Maj7WidthEditor : public VstEditor
       // Stereo imaging visualization
       {
         ImGuiGroupScope _grp("stereo_imaging");
-        RenderStereoImagingDisplay("stereo_imaging_inp",
-                                   mpMaj7Width->mInputImagingAnalysis,
-                                   {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
-        ImGui::SameLine();
-        RenderStereoImagingDisplay("stereo_imaging_outp",
-                                   mpMaj7Width->mOutputImagingAnalysis,
-                                   {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX});
+        StereoImagingDisplayStyle stereoImagingStyle{};
+        stereoImagingStyle.primarySeries.label = "Input";
+        stereoImagingStyle.primarySeries.colors = {
+          ColorFromHTML("#7CFF9A"), ColorFromHTML("#FFE066"), ColorFromHTML("#FF6B6B")};
+        stereoImagingStyle.secondarySeries.label = "Output";
+        stereoImagingStyle.secondarySeries.colors = {
+          ColorFromHTML("#32D4C0"), ColorFromHTML("#F6BD60"), ColorFromHTML("#F28482")};
+
+        RenderStereoImagingDisplay("stereo_imaging_io",
+                       mpMaj7Width->mInputImagingAnalysis,
+                       &mpMaj7Width->mOutputImagingAnalysis,
+                       {mShowPolarL, mShowGoniometerPoints, mShowGoniometerLines, mShowPhaseX},
+                       300,
+                       stereoImagingStyle);
       }  // stereo imaging group
 
       ImGui::Spacing();

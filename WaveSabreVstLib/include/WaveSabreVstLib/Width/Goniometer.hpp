@@ -17,7 +17,13 @@ using namespace WaveSabreCore;
 #include "WidthBase.hpp"
 
 	// Goniometer layer renderer (based on RenderGoniometer but without background/grid)
-inline void RenderGoniometerLayer(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, ImVec2 center, float radius, bool renderAsPoints) {
+inline void RenderGoniometerLayer(const char* id,
+		const StereoImagingAnalysisStream& analysis,
+		ImVec2 size,
+		ImVec2 center,
+		float radius,
+		bool renderAsPoints,
+		const StereoImagingColorScheme& colorScheme = GetDefaultStereoImagingColorScheme()) {
 	auto* dl = ImGui::GetWindowDrawList();
 
 	constexpr bool kNormalizeToCircle = true;
@@ -59,7 +65,7 @@ inline void RenderGoniometerLayer(const char* id, const StereoImagingAnalysisStr
 
 			float ageFactor = static_cast<float>(i) / static_cast<float>(historySize);
 			float correlation = static_cast<float>(analysis.mPhaseCorrelation);
-			ImU32 baseColor = GetCorrellationColor(correlation, 1);
+			ImU32 baseColor = GetCorrellationColor(correlation, 1, colorScheme);
 			int alpha = static_cast<int>((1.0f - ageFactor) * 180 + 50);
 			ImU32 color = (baseColor & 0x00FFFFFF) | (alpha << 24);
 

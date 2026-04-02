@@ -224,7 +224,8 @@ inline void RenderStereoFieldOverlay(const char* id,
 								 ImVec2 size,
 								 ImVec2 center,
 								 float radius,
-								 const StereoFieldOverlayStyle& style = GetDefaultStereoFieldOverlayStyle()) {
+								 const StereoFieldOverlayStyle& style = GetDefaultStereoFieldOverlayStyle(),
+								 const StereoImagingColorScheme& colorScheme = GetDefaultStereoImagingColorScheme()) {
 	(void)id;
 	(void)size;
 	auto* dl = ImGui::GetWindowDrawList();
@@ -255,10 +256,10 @@ inline void RenderStereoFieldOverlay(const char* id,
 	const float sectorInnerRadius = radius * style.sectorInnerRadiusRatio;
 	const float emphasis = 0.45f + 0.55f * fabsf(correlation);
 
-	const ImU32 backgroundColor = GetCorrellationColor(correlation, style.backgroundPieAlpha * visibility);
-	const ImU32 fillColor = GetCorrellationColor(correlation, style.sectorFillAlpha * emphasis * visibility);
-	const ImU32 outlineColor = GetCorrellationColor(correlation, style.sectorOutlineAlpha * emphasis * visibility);
-	const ImU32 spokeColor = GetCorrellationColor(correlation, style.spokeAlpha * visibility);
+	const ImU32 backgroundColor = GetCorrellationColor(correlation, style.backgroundPieAlpha * visibility, colorScheme);
+	const ImU32 fillColor = GetCorrellationColor(correlation, style.sectorFillAlpha * emphasis * visibility, colorScheme);
+	const ImU32 outlineColor = GetCorrellationColor(correlation, style.sectorOutlineAlpha * emphasis * visibility, colorScheme);
+	const ImU32 spokeColor = GetCorrellationColor(correlation, style.spokeAlpha * visibility, colorScheme);
 
 	if (style.showBackgroundPie) {
 		auto piePoints = BuildStereoFieldPiePoints(center, startAngle, endAngle, backgroundOuterRadius, style.arcSegments);
@@ -369,6 +370,7 @@ inline void RenderPhaseCorrelationOverlay(const char* id,
 									   ImVec2 size,
 									   ImVec2 center,
 									   float radius,
-									   const StereoFieldOverlayStyle& style = GetDefaultStereoFieldOverlayStyle()) {
-	RenderStereoFieldOverlay(id, analysis, size, center, radius, style);
+									   const StereoFieldOverlayStyle& style = GetDefaultStereoFieldOverlayStyle(),
+									   const StereoImagingColorScheme& colorScheme = GetDefaultStereoImagingColorScheme()) {
+	RenderStereoFieldOverlay(id, analysis, size, center, radius, style, colorScheme);
 }

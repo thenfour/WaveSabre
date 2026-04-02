@@ -21,7 +21,12 @@ inline std::vector<T> VectorFromArray(std::array<T, N> arr) {
 }
 
 // Polar L layer renderer (based on RenderPolarL but without background/grid)
-inline void RenderPolarLLayer(const char* id, const StereoImagingAnalysisStream& analysis, ImVec2 size, ImVec2 center, float radius) {
+inline void RenderPolarLLayer(const char* id,
+		const StereoImagingAnalysisStream& analysis,
+		ImVec2 size,
+		ImVec2 center,
+		float radius,
+		const StereoImagingColorScheme& colorScheme = GetDefaultStereoImagingColorScheme()) {
 	auto* dl = ImGui::GetWindowDrawList();
 
 	// All the same static state management as in the original PolarL implementation
@@ -153,8 +158,8 @@ inline void RenderPolarLLayer(const char* id, const StereoImagingAnalysisStream&
 
 	if (envelopePoints.size() >= 3) {
 		float correlation = static_cast<float>(analysis.mPhaseCorrelation);
-		ImU32 envelopeFillColor = GetCorrellationColor(correlation, 0.15f);
-		ImU32 envelopeLineColor = GetCorrellationColor(correlation, 0.4f);
+		ImU32 envelopeFillColor = GetCorrellationColor(correlation, 0.15f, colorScheme);
+		ImU32 envelopeLineColor = GetCorrellationColor(correlation, 0.4f, colorScheme);
 
 		std::vector<ImVec2> reversedEnvelopePoints = envelopePoints;
 		std::reverse(reversedEnvelopePoints.begin(), reversedEnvelopePoints.end());
