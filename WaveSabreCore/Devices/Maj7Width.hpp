@@ -19,6 +19,7 @@ struct Maj7Width : public Device
     LInvert,
     RInvert,
     RotationAngle,  // rotates L/R geometrically
+    MSShear,
     SideHPFrequency,
     MidSideBalance,
     Pan,
@@ -33,6 +34,9 @@ struct Maj7Width : public Device
     Band1Rotation,
     Band2Rotation,
     Band3Rotation,
+    Band1Shear,
+    Band2Shear,
+    Band3Shear,
 
     NumParams,
   };
@@ -47,6 +51,7 @@ struct Maj7Width : public Device
     {"LInv"},\
     {"RInv"},\
     {"Rot"},\
+    {"MSShear"},\
     {"SideHPF"},\
     {"MSBal"},\
     {"Pan"},\
@@ -61,23 +66,28 @@ struct Maj7Width : public Device
     {"MS1Rot"},\
     {"MS2Rot"},\
     {"MS3Rot"},\
+    {"MS1Shr"},\
+    {"MS2Shr"},\
+    {"MS3Shr"},\
   }
   // clang-format on
 
   static constexpr M7::VolumeParamConfig gVolumeCfg{3.9810717055349722f, 12.0f};
+  static constexpr float gShearAngleLimit = M7::math::gPIQuarter;
 
   float mParamCache[(int)ParamIndices::NumParams];
   M7::ParamAccessor mParams;
   M7::BandSplitter mMidSplitter;
   M7::BandSplitter mSideSplitter;
 
-  static_assert((int)ParamIndices::NumParams == 19, "param count probably changed and this needs to be regenerated.");
+    static_assert((int)ParamIndices::NumParams == 23, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       -32767,  // LSrc = -1
       32767,   // RSrc = 1
       0,       // LInv = 0
       0,       // RInv = 0
       16383,   // Rot = 0.5
+      16383,   // MSShear = 0.5
       0,       // SideHPF = 0
       0,       // MSBal = 0
       0,       // Pan = 0
@@ -89,9 +99,12 @@ struct Maj7Width : public Device
       16422,   // B1Gain = 0.50118720531463623047
       16422,   // B2Gain = 0.50118720531463623047
       16422,   // B3Gain = 0.50118720531463623047
-        16383,   // MS1Rot = 0.5
-        16383,   // MS2Rot = 0.5
-        16383,   // MS3Rot = 0.5
+      16383,   // MS1Rot = 0.5
+      16383,   // MS2Rot = 0.5
+      16383,   // MS3Rot = 0.5
+      16383,   // MS1Shr = 0.5
+      16383,   // MS2Shr = 0.5
+      16383,   // MS3Shr = 0.5
   };
 
   M7::MoogOnePoleFilter mFilter;
@@ -138,23 +151,11 @@ struct Maj7Width : public Device
     a = t;
   }
 
-  // void RotateMS(M7::FloatPair& ms)
-  // {
-  //   float mid = ms.Mid();
-  //   float side = ms.Side();
-  //   Rotate2(side, mid, ParamIndices::MSRotationAngle, -M7::math::gPIHalf, M7::math::gPIHalf);
-  //   ms.x[0] = mid;
-  //   ms.x[1] = side;
-  // }
+  static void Shear2(float& side, float mid, float shearFactor)
+  {
+    side += mid * shearFactor;
+  }
 
-  // interesting but it feels the same as rotation, but preserving L or R power.
-  // void ShearMS(M7::FloatPair& ms)
-  // {
-  //   const float shearAngle =
-  //       mParams.GetScaledRealValue(ParamIndices::MSShearAngle, -M7::math::gPIHalf, M7::math::gPIHalf, 0);
-  //   const float shearFactor = M7::math::tan(shearAngle);
-  //   ms.x[1] += ms.x[0] * shearFactor;
-  // }
 #endif  // MAJ7WIDTH_FULL_FEATURE
 
   virtual void Run(float** inputs, float** outputs, int numSamples) override
@@ -167,12 +168,26 @@ struct Maj7Width : public Device
     };
     constexpr float bandGainBypassThresholdLin = 0.005f;
     constexpr float bandRotationBypassThreshold = 0.001f;
+    constexpr float bandShearBypassThreshold = 0.001f;
   #ifdef MAJ7WIDTH_FULL_FEATURE
+    const float broadbandShearAngle = mParams.GetScaledRealValue(ParamIndices::MSShear, -gShearAngleLimit, gShearAngleLimit, 0);
+    const float broadbandShearFactor = M7::math::tan(broadbandShearAngle);
     const float bandRotations[M7::kBandSplitterBands] = {
       mParams.GetScaledRealValue(ParamIndices::Band1Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
       mParams.GetScaledRealValue(ParamIndices::Band2Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
       mParams.GetScaledRealValue(ParamIndices::Band3Rotation, -M7::math::gPIHalf, M7::math::gPIHalf, 0),
     };
+    const float bandShearAngles[M7::kBandSplitterBands] = {
+      mParams.GetScaledRealValue(ParamIndices::Band1Shear, -gShearAngleLimit, gShearAngleLimit, 0),
+      mParams.GetScaledRealValue(ParamIndices::Band2Shear, -gShearAngleLimit, gShearAngleLimit, 0),
+      mParams.GetScaledRealValue(ParamIndices::Band3Shear, -gShearAngleLimit, gShearAngleLimit, 0),
+    };
+    const float bandShearFactors[M7::kBandSplitterBands] = {
+      M7::math::tan(bandShearAngles[0]),
+      M7::math::tan(bandShearAngles[1]),
+      M7::math::tan(bandShearAngles[2]),
+    };
+    const bool broadbandShearActive = !M7::math::FloatEquals(broadbandShearAngle, 0.0f, bandShearBypassThreshold);
   #endif  // MAJ7WIDTH_FULL_FEATURE
     const bool multibandActive = !M7::math::FloatEquals(sideBandGains[0], 1.0f, bandGainBypassThresholdLin) ||
                                  !M7::math::FloatEquals(sideBandGains[1], 1.0f, bandGainBypassThresholdLin) ||
@@ -180,7 +195,10 @@ struct Maj7Width : public Device
   #ifdef MAJ7WIDTH_FULL_FEATURE
                    || !M7::math::FloatEquals(bandRotations[0], 0.0f, bandRotationBypassThreshold) ||
                    !M7::math::FloatEquals(bandRotations[1], 0.0f, bandRotationBypassThreshold) ||
-                   !M7::math::FloatEquals(bandRotations[2], 0.0f, bandRotationBypassThreshold)
+                   !M7::math::FloatEquals(bandRotations[2], 0.0f, bandRotationBypassThreshold) ||
+                   !M7::math::FloatEquals(bandShearAngles[0], 0.0f, bandShearBypassThreshold) ||
+                   !M7::math::FloatEquals(bandShearAngles[1], 0.0f, bandShearBypassThreshold) ||
+                   !M7::math::FloatEquals(bandShearAngles[2], 0.0f, bandShearBypassThreshold)
   #endif  // MAJ7WIDTH_FULL_FEATURE
       ;
     const bool sideHpfActive = mParams.GetRawVal(ParamIndices::SideHPFrequency) > 0.001f;
@@ -247,6 +265,7 @@ struct Maj7Width : public Device
           float bandMid = midBands[iBand];
           float bandSide = sideBands[iBand] * sideBandGains[iBand];
 #ifdef MAJ7WIDTH_FULL_FEATURE
+          Shear2(bandSide, bandMid, bandShearFactors[iBand]);
           Rotate2(bandSide, bandMid, (ParamIndices)((int)ParamIndices::Band1Rotation + iBand), -M7::math::gPIHalf, M7::math::gPIHalf);
 #endif  // MAJ7WIDTH_FULL_FEATURE
           multibandMs.x[0] += bandMid;
@@ -254,6 +273,13 @@ struct Maj7Width : public Device
         }
         ms = multibandMs;
       }
+
+#ifdef MAJ7WIDTH_FULL_FEATURE
+      if (broadbandShearActive)
+      {
+        Shear2(ms.x[1], ms.x[0], broadbandShearFactor);
+      }
+#endif  // MAJ7WIDTH_FULL_FEATURE
 
       auto stereo = ms.MSDecode();
 

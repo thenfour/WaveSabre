@@ -367,6 +367,59 @@ struct Maj7WidthEditor : public VstEditor
           ImGui::Text("Rotate the mid/side axes within the high crossover band.");
           ImGui::EndTooltip();
         }
+
+        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band1Shear,
+                                  "MS shr low",
+                                  -WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                  WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                  0,
+                                  0,
+                                  0,
+                                  {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Low Band M/S Shear");
+          ImGui::Separator();
+          ImGui::Text("Skew the mid/side axes within the low crossover band.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band2Shear,
+                                  "MS shr mid",
+                                  -WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                  WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                  0,
+                                  0,
+                                  0,
+                                  {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("Mid Band M/S Shear");
+          ImGui::Separator();
+          ImGui::Text("Skew the mid/side axes within the middle crossover band.");
+          ImGui::EndTooltip();
+        }
+
+        ImGui::SameLine();
+        Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::Band3Shear,
+                                  "MS shr hi",
+                                  -WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                  WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                  0,
+                                  0,
+                                  0,
+                                  {});
+        if (ImGui::IsItemHovered())
+        {
+          ImGui::BeginTooltip();
+          ImGui::Text("High Band M/S Shear");
+          ImGui::Separator();
+          ImGui::Text("Skew the mid/side axes within the high crossover band.");
+          ImGui::EndTooltip();
+        }
       }
 
       ImGui::Spacing();
@@ -387,6 +440,25 @@ struct Maj7WidthEditor : public VstEditor
         ImGui::Text("L/R Geometric Rotation");
         ImGui::Separator();
         ImGui::Text("Rotate the left/right sample axes directly after width shaping.");
+        ImGui::EndTooltip();
+      }
+
+      ImGui::SameLine();
+
+      Maj7ImGuiParamScaledFloat((VstInt32)WaveSabreCore::Maj7Width::ParamIndices::MSShear,
+                                "MS shear",
+                                -WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                WaveSabreCore::Maj7Width::gShearAngleLimit,
+                                0,
+                                0,
+                                0,
+                                {});
+      if (ImGui::IsItemHovered())
+      {
+        ImGui::BeginTooltip();
+        ImGui::Text("Broadband M/S Shear");
+        ImGui::Separator();
+        ImGui::Text("Skew the mid/side axes after the multiband stage.");
         ImGui::EndTooltip();
       }
 
