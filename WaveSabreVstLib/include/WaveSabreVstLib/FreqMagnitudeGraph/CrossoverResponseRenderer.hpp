@@ -6,6 +6,7 @@
 #include <queue>
 #include <string>
 #include <vector>
+#include <array>
 #include <algorithm>  // for std::sort
 
 #include <imgui-knobs.h>
@@ -30,8 +31,10 @@ namespace WaveSabreVstLib {
 	template <int TSegmentCount>
 	class CrossoverResponseLayer : public IFrequencyGraphLayer {
 	private:
-		// Connected device for param access
-		const WaveSabreCore::Maj7MBC* mDevice = nullptr;
+		static constexpr int kBandCount = 3;
+
+		std::function<float(int crossoverIndex)> mGetCrossoverFrequencyHz;
+		std::function<std::array<float, kBandCount>(float freqHz)> mGetBandMagnitudesAtFrequency;
 
 		std::vector<float> mFrequencies;
 		std::vector<float> mScreenX;
@@ -91,17 +94,22 @@ namespace WaveSabreVstLib {
 
 		// Hit test against frequency labels and vertical crossover lines
 		// This allows dragging to work by clicking either on the frequency labels or near the vertical lines
+		bool HasCrossoverData() const {
+			return static_cast<bool>(mGetCrossoverFrequencyHz) && static_cast<bool>(mGetBandMagnitudesAtFrequency);
+		}
+
+		float GetCrossoverFrequencyHz(int crossoverIndex) const {
+			if (!mGetCrossoverFrequencyHz) return 0.0f;
+			return mGetCrossoverFrequencyHz(crossoverIndex);
+		}
+
 		FrequencyLabelHitTest HitTestFrequencyLabelsAndLines(ImVec2 mousePos, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) {
 			FrequencyLabelHitTest result;
 
-			if (!mDevice) return result;
+			if (!HasCrossoverData()) return result;
 
-			float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
-			float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-			M7::ParamAccessor paA{ &rawA, 0 };
-			M7::ParamAccessor paB{ &rawB, 0 };
-			float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-			float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+			float fA = GetCrossoverFrequencyHz(0);
+			float fB = GetCrossoverFrequencyHz(1);
 
 			std::vector<std::pair<float, int>> crossovers;
 			if (fA > 0) crossovers.push_back({ fA, 0 });
@@ -150,16 +158,12 @@ namespace WaveSabreVstLib {
 
 		// Helper to determine which band the mouse is in based on crossover frequencies
 		int GetBandIndexAtMousePosition(ImVec2 mousePos, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) {
-			if (!mDevice || !ImGui::IsMouseHoveringRect(bb.Min, bb.Max)) {
+			if (!HasCrossoverData() || !ImGui::IsMouseHoveringRect(bb.Min, bb.Max)) {
 				return -1;
 			}
 
-			float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
-			float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-			M7::ParamAccessor paA{ &rawA, 0 };
-			M7::ParamAccessor paB{ &rawB, 0 };
-			float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-			float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+			float fA = GetCrossoverFrequencyHz(0);
+			float fB = GetCrossoverFrequencyHz(1);
 
 			// Ensure crossovers are in correct order (A < B)
 			if (fA > 0.0f && fB > 0.0f && fA > fB) std::swap(fA, fB);
@@ -186,7 +190,35 @@ namespace WaveSabreVstLib {
 		}
 
 		void SetCrossoverDevice(const WaveSabreCore::Maj7MBC* device) {
-			mDevice = device;
+			if (!device) {
+				SetCrossoverDataSource(nullptr, nullptr);
+				return;
+			}
+
+			SetCrossoverDataSource(
+				[device](int crossoverIndex) -> float {
+					switch (crossoverIndex) {
+						case 0: {
+							float raw = device->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
+							return M7::ParamAccessor{&raw, 0}.GetFrequency(0, M7::gFilterFreqConfig);
+						}
+						case 1: {
+							float raw = device->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
+							return M7::ParamAccessor{&raw, 0}.GetFrequency(0, M7::gFilterFreqConfig);
+						}
+						default: return 0.0f;
+					}
+				},
+				[device](float freqHz) -> std::array<float, kBandCount> {
+					auto mags = device->splitter0.GetMagnitudesAtFrequency(freqHz);
+					return {mags[0], mags[1], mags[2]};
+				});
+		}
+
+		void SetCrossoverDataSource(std::function<float(int crossoverIndex)> getCrossoverFrequencyHz,
+												 std::function<std::array<float, kBandCount>(float freqHz)> getBandMagnitudesAtFrequency) {
+			mGetCrossoverFrequencyHz = std::move(getCrossoverFrequencyHz);
+			mGetBandMagnitudesAtFrequency = std::move(getBandMagnitudesAtFrequency);
 		}
 
 		// Set parameter change handler for frequency dragging
@@ -220,17 +252,13 @@ namespace WaveSabreVstLib {
 	private:
 		// Helper to calculate the bounding rectangle for a specific band region - NEW
 		ImRect GetBandRect(int bandIndex, const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb) const {
-			if (!mDevice || bandIndex < 0) {
+			if (!HasCrossoverData() || bandIndex < 0) {
 				return ImRect();
 			}
 
 			// Get crossover frequencies
-			float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
-			float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-			M7::ParamAccessor paA{ &rawA, 0 };
-			M7::ParamAccessor paB{ &rawB, 0 };
-			float fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-			float fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+			float fA = GetCrossoverFrequencyHz(0);
+			float fB = GetCrossoverFrequencyHz(1);
 
 			// Ensure crossovers are in correct order (A < B)
 			if (fA > 0.0f && fB > 0.0f && fA > fB) std::swap(fA, fB);
@@ -377,23 +405,17 @@ namespace WaveSabreVstLib {
 			ScreenSpaceFrequencySampler::GenerateFrequencyPoints(TSegmentCount, mFrequencies, mScreenX, coords, bb);
 
 			// Default: empty responses if no device
-			if (!mDevice) {
+			if (!HasCrossoverData()) {
 				for (auto& br : mBandResponses) br.assign(TSegmentCount, -100.0f);
 				return;
 			}
-
-			// Read crossover frequencies from device params
-			float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
-			float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-			// Use splitter magnitudes from the device
-			auto* pSplitter = &mDevice->splitter0;
 
 			// Calculate responses for each band
 			for (int i = 0; i < TSegmentCount; ++i) {
 				float f = mFrequencies[i];
 
 				// Low/Mid/High band magnitudes from the active splitter topology.
-				auto mags = pSplitter->GetMagnitudesAtFrequency(f);
+				auto mags = mGetBandMagnitudesAtFrequency(f);
 				float lowLin = mags[0];
 				float midLin = mags[1];
 				float highLin = mags[2];
@@ -412,19 +434,15 @@ namespace WaveSabreVstLib {
 		}
 
 		void Render(const FrequencyMagnitudeCoordinateSystem& coords, const ImRect& bb, ImDrawList* dl) override {
-			if (!mDevice || mBandResponses.empty()) {
+			if (!HasCrossoverData() || mBandResponses.empty()) {
 				return; // No device or no responses to render
 			}
 			// Determine hovered band region using mouse position and crossover frequencies
 			int hoveredBand = -1;
 			float fA = 0.0f, fB = 0.0f;
-			if (mDevice) {
-				float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
-				float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-				M7::ParamAccessor paA{ &rawA, 0 };
-				M7::ParamAccessor paB{ &rawB, 0 };
-				fA = paA.GetFrequency(0, M7::gFilterFreqConfig);
-				fB = paB.GetFrequency(0, M7::gFilterFreqConfig);
+			if (HasCrossoverData()) {
+				fA = GetCrossoverFrequencyHz(0);
+				fB = GetCrossoverFrequencyHz(1);
 				if (fA > 0.0f && fB > 0.0f && fA > fB) std::swap(fA, fB);
 			}
 			bool mouseInBounds = ImGui::IsMouseHoveringRect(bb.Min, bb.Max);
@@ -510,13 +528,9 @@ namespace WaveSabreVstLib {
 				}
 			}
 			// Draw crossover marker lines (if device present)
-			if (mDevice) {
-				float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
-				float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-				M7::ParamAccessor paA{ &rawA, 0 };
-				M7::ParamAccessor paB{ &rawB, 0 };
-				float fA2 = paA.GetFrequency(0, M7::gFilterFreqConfig);
-				float fB2 = paB.GetFrequency(0, M7::gFilterFreqConfig);
+			if (HasCrossoverData()) {
+				float fA2 = GetCrossoverFrequencyHz(0);
+				float fB2 = GetCrossoverFrequencyHz(1);
 
 				std::vector<std::pair<float, int>> lines;
 				if (fA2 > 0) lines.push_back({ fA2, 0 });
@@ -583,13 +597,9 @@ namespace WaveSabreVstLib {
 				
 				// Determine which bands exist based on crossover configuration
 				std::vector<int> activeBands;
-				if (mDevice) {
-					float rawA = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverAFrequency];
-					float rawB = mDevice->mParamCache[(int)WaveSabreCore::Maj7MBC::ParamIndices::CrossoverBFrequency];
-					M7::ParamAccessor paA{ &rawA, 0 };
-					M7::ParamAccessor paB{ &rawB, 0 };
-					float fA3 = paA.GetFrequency(0, M7::gFilterFreqConfig);
-					float fB3 = paB.GetFrequency(0, M7::gFilterFreqConfig);
+				if (HasCrossoverData()) {
+					float fA3 = GetCrossoverFrequencyHz(0);
+					float fB3 = GetCrossoverFrequencyHz(1);
 
 					if (fA3 > 0.0f && fB3 > 0.0f) {
 						// Both crossovers active: 3 bands

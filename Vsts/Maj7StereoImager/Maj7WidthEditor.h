@@ -22,6 +22,13 @@ using namespace WaveSabreCore;
 
 struct Maj7WidthEditor : public VstEditor
 {
+  enum class FftSeriesSelection
+  {
+    Mid = 0,
+    Side,
+    Width,
+  };
+
   Maj7Width* mpMaj7Width;
   Maj7WidthVst* mpMaj7WidthVst;
 
@@ -29,21 +36,11 @@ struct Maj7WidthEditor : public VstEditor
   FrequencyResponseRendererLayered<800, 200, 0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams, false>
       mWidthGraph;
 
-  // FFT overlay toggles
-  bool mShowInputMid = false;
-  bool mShowInputSide = true;
-  bool mShowInputWidth = false;
-  bool mShowOutputMid = false;
-  bool mShowOutputSide = true;
-  bool mShowOutputWidth = false;
+  int mEditingBand = 1;
+  int mFftSeriesSelection = (int)FftSeriesSelection::Side;
 
-  // Persist across sessions
-  VstSerializableBoolParamRef mShowInputMidParam{"ShowInputMidFFT", mShowInputMid};
-  VstSerializableBoolParamRef mShowInputSideParam{"ShowInputSideFFT", mShowInputSide};
-  VstSerializableBoolParamRef mShowInputWidthParam{"ShowInputWidthFFT", mShowInputWidth};
-  VstSerializableBoolParamRef mShowOutputMidParam{"ShowOutputMidFFT", mShowOutputMid};
-  VstSerializableBoolParamRef mShowOutputSideParam{"ShowOutputSideFFT", mShowOutputSide};
-  VstSerializableBoolParamRef mShowOutputWidthParam{"ShowOutputWidthFFT", mShowOutputWidth};
+  VstSerializableIntParamRef<int> mEditingBandParam{"EditingBand", mEditingBand};
+  VstSerializableIntParamRef<int> mFftSeriesSelectionParam{"FftSeriesSelection", mFftSeriesSelection};
 
   const char* kInputMidFftColor = "664444";
   const char* kInputSideFftColor = "446644";
@@ -60,7 +57,7 @@ struct Maj7WidthEditor : public VstEditor
 
   Maj7WidthEditor(AudioEffect* audioEffect)
       :  //
-      VstEditor(audioEffect, 1080, 810)
+      VstEditor(audioEffect, 1400, 850)
       ,  // Increase height to accommodate frequency graph
       mpMaj7WidthVst((Maj7WidthVst*)audioEffect)
   {
@@ -82,82 +79,67 @@ struct Maj7WidthEditor : public VstEditor
 
   virtual void renderImgui() override
   {
+    using Params = WaveSabreCore::Maj7Width::ParamIndices;
+
+    bool muteSoloEnabled[WaveSabreCore::Maj7Width::gBandCount] = {true, true, true};
+    bool mutes[WaveSabreCore::Maj7Width::gBandCount] = {
+        mpMaj7Width->mBandConfig[0].mMute,
+        mpMaj7Width->mBandConfig[1].mMute,
+        mpMaj7Width->mBandConfig[2].mMute,
+    };
+    bool solos[WaveSabreCore::Maj7Width::gBandCount] = {
+        mpMaj7Width->mBandConfig[0].mSolo,
+        mpMaj7Width->mBandConfig[1].mSolo,
+        mpMaj7Width->mBandConfig[2].mSolo,
+    };
+    Maj7Width::CalculateBandMuteSolo(mutes, solos, muteSoloEnabled);
+
+    float mbBacking = mpMaj7WidthVst->getParameter((int)Params::MultibandEnable);
+    M7::ParamAccessor mbEnableParam{&mbBacking, 0};
+    bool multibandEnabled = mbEnableParam.GetBoolValue(0);
+    if (!multibandEnabled)
+    {
+      mEditingBand = 1;
+    }
+    mEditingBand = std::clamp(mEditingBand, 0, WaveSabreCore::Maj7Width::gBandCount - 1);
+    auto selectedFftSeries = (FftSeriesSelection)mFftSeriesSelection;
+
     {
       ImGuiGroupScope _grp;
-      using Params = WaveSabreCore::Maj7Width::ParamIndices;
-      using BandParam = WaveSabreCore::Maj7Width::FreqBand::BandParam;
-
-      auto bandParam = [](int bandIndex, BandParam param) {
-        return (VstInt32)((int)Params::ALeftSource + bandIndex * (int)BandParam::Count__ + (int)param);
-      };
 
       {
         ImGuiGroupScope _grp;
         CROSSOVER_SLOPE_CAPTIONS(crossoverSlopeCaptions);
         using CrossoverSlope = M7::CrossoverSlope;
 
-        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::LInvert, "L flip", "cc6666");
-        ImGui::SameLine();
-        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::RInvert, "R flip", "6699cc");
-        ImGui::SameLine();
-        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::MultibandEnable, "3-band", "8d6e63");
-        if (ImGui::IsItemHovered())
+        bool singleBand = !multibandEnabled;
+        if (ToggleButton(&singleBand, "Single-band", {90, 20}))
         {
-          ImGui::BeginTooltip();
-          ImGui::Text("Multiband Mode");
-          ImGui::Separator();
-          ImGui::Text("Off: process broadband with the mid band's controls.");
-          ImGui::Text("On: process low, mid, and high bands independently.");
-          ImGui::EndTooltip();
+          mbEnableParam.SetBoolValue(0, false);
+          mpMaj7WidthVst->setParameter((int)Params::MultibandEnable, mbBacking);
+          multibandEnabled = false;
+          mEditingBand = 1;
+        }
+        ImGui::SameLine();
+        if (ToggleButton(&multibandEnabled, "Multi-band", {90, 20}))
+        {
+          mbEnableParam.SetBoolValue(0, true);
+          mpMaj7WidthVst->setParameter((int)Params::MultibandEnable, mbBacking);
+          multibandEnabled = true;
         }
 
-        Maj7ImGuiParamFrequency((VstInt32)Params::SideHPFrequency,
-              -1,
-              "Side HPF",
-              M7::gFilterFreqConfig,
-              0,
-              {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Side Channel High-Pass Filter");
-          ImGui::Separator();
-          ImGui::Text("Broadband side high-pass applied inside each band processor.");
-          ImGui::EndTooltip();
-        }
+        ImGui::SameLine(0, 20);
+        EnumSelectionButtonArray<FftSeriesSelection, 3>(
+            "width_fft_series",
+            &selectedFftSeries,
+            {
+                MakeEnumSelectionSpec("Mid", FftSeriesSelection::Mid, kOutputMidFftColor, "Show input and output mid spectra."),
+                MakeEnumSelectionSpec("Side", FftSeriesSelection::Side, kOutputSideFftColor, "Show input and output side spectra."),
+                MakeEnumSelectionSpec("Width", FftSeriesSelection::Width, kOutputWidthFftColor, "Show input and output width spectra."),
+            });
+        mFftSeriesSelection = (int)selectedFftSeries;
 
-        ImGui::SameLine();
-        Maj7ImGuiParamFrequency((VstInt32)Params::CrossoverAFrequency,
-                                -1,
-                                "Xover 1",
-                                M7::gFilterFreqConfig,
-                                M7::gFilterFreqConfig.GetParam01ValueForFrequencyAssumingNoKeytracking(650),
-                                {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Crossover 1");
-          ImGui::Separator();
-          ImGui::Text("Split point between the low and mid bands.");
-          ImGui::EndTooltip();
-        }
-
-        ImGui::SameLine();
-        Maj7ImGuiParamFrequency((VstInt32)Params::CrossoverBFrequency,
-                                -1,
-                                "Xover 2",
-                                M7::gFilterFreqConfig,
-                                M7::gFilterFreqConfig.GetParam01ValueForFrequencyAssumingNoKeytracking(3500),
-                                {});
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Crossover 2");
-          ImGui::Separator();
-          ImGui::Text("Split point between the mid and high bands.");
-          ImGui::EndTooltip();
-        }
-
+        ImGui::Spacing();
         Maj7ImGuiParamEnumToggleButtonArray<CrossoverSlope>(
             Params::CrossoverASlope,
             "Slope 1",
@@ -202,233 +184,43 @@ struct Maj7WidthEditor : public VstEditor
                                           CrossoverSlope::Slope_48dB,
                                           "3f7a93"},
             });
-        if (ImGui::IsItemHovered())
-        {
-          ImGui::BeginTooltip();
-          ImGui::Text("Crossover 2 Slope");
-          ImGui::Separator();
-          ImGui::Text("Linkwitz-Riley slope used at the second split point.");
-          ImGui::EndTooltip();
-        }
-
-        {
-          ImGui::BeginGroup();
-          ImGui::Text("Low band");
-          ToggleButton(&mpMaj7Width->mBandConfig[0].mMute,
-                       "MUTE##width_band1",
-                       {0, 0},
-                       {
-                           "990000",
-                           "294a7a",
-                           "999999",
-                       });
-          ImGui::SameLine(0, 0);
-          ToggleButton(&mpMaj7Width->mBandConfig[0].mSolo,
-                       "SOLO##width_band1",
-                       {0, 0},
-                       {
-                           "999900",
-                           "294a7a",
-                           "999999",
-                       });
-          ImGui::EndGroup();
-
-          ImGui::SameLine();
-          ImGui::BeginGroup();
-          ImGui::Text("Mid band");
-          ToggleButton(&mpMaj7Width->mBandConfig[1].mMute,
-                       "MUTE##width_band2",
-                       {0, 0},
-                       {
-                           "990000",
-                           "294a7a",
-                           "999999",
-                       });
-          ImGui::SameLine(0, 0);
-          ToggleButton(&mpMaj7Width->mBandConfig[1].mSolo,
-                       "SOLO##width_band2",
-                       {0, 0},
-                       {
-                           "999900",
-                           "294a7a",
-                           "999999",
-                       });
-          ImGui::EndGroup();
-
-          ImGui::SameLine();
-          ImGui::BeginGroup();
-          ImGui::Text("High band");
-          ToggleButton(&mpMaj7Width->mBandConfig[2].mMute,
-                       "MUTE##width_band3",
-                       {0, 0},
-                       {
-                           "990000",
-                           "294a7a",
-                           "999999",
-                       });
-          ImGui::SameLine(0, 0);
-          ToggleButton(&mpMaj7Width->mBandConfig[2].mSolo,
-                       "SOLO##width_band3",
-                       {0, 0},
-                       {
-                           "999900",
-                           "294a7a",
-                           "999999",
-                       });
-          ImGui::EndGroup();
-        }
-
-        ImGui::TextDisabled("Broadband mode uses the mid band controls.");
-
-        Maj7ImGuiParamFloatN11WithCenter(bandParam(0, BandParam::LeftSource), "L src low", -1, -1, 0, {});
+        ImGui::Spacing();
+        Maj7ImGuiParamFrequency((VstInt32)Params::SideHPFrequency, -1, "Side HPF", M7::gFilterFreqConfig, 0, {});
         ImGui::SameLine();
-        Maj7ImGuiParamFloatN11WithCenter(bandParam(1, BandParam::LeftSource), "L src mid", -1, -1, 0, {});
+        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::LInvert, "L flip", "cc6666");
         ImGui::SameLine();
-        Maj7ImGuiParamFloatN11WithCenter(bandParam(2, BandParam::LeftSource), "L src hi", -1, -1, 0, {});
+        Maj7ImGuiBoolParamToggleButton((VstInt32)Params::RInvert, "R flip", "6699cc");
 
-        Maj7ImGuiParamFloatN11WithCenter(bandParam(0, BandParam::RightSource), "R src low", 1, 1, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11WithCenter(bandParam(1, BandParam::RightSource), "R src mid", 1, 1, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11WithCenter(bandParam(2, BandParam::RightSource), "R src hi", 1, 1, 0, {});
+        ImGui::Spacing();
+        RenderSelectedBandControls(multibandEnabled ? mEditingBand : 1, multibandEnabled);
 
-        Maj7ImGuiParamFloatN11(bandParam(0, BandParam::Width), "Width low", 0.0f, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11(bandParam(1, BandParam::Width), "Width mid", 0.0f, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11(bandParam(2, BandParam::Width), "Width hi", 0.0f, 0, {});
-
-        Maj7ImGuiParamFloatN11(bandParam(0, BandParam::Pan), "Pan low", 0.0f, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11(bandParam(1, BandParam::Pan), "Pan mid", 0.0f, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11(bandParam(2, BandParam::Pan), "Pan hi", 0.0f, 0, {});
-
-        Maj7ImGuiParamFloatN11(bandParam(0, BandParam::Asymmetry), "Asym low", 0.0f, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11(bandParam(1, BandParam::Asymmetry), "Asym mid", 0.0f, 0, {});
-        ImGui::SameLine();
-        Maj7ImGuiParamFloatN11(bandParam(2, BandParam::Asymmetry), "Asym hi", 0.0f, 0, {});
-
-        Maj7ImGuiParamVolume(bandParam(0, BandParam::SideGain),
-                             "Side low",
+        ImGui::Spacing();
+        ImGui::BeginGroup();
+        // Maj7ImGuiParamScaledFloat((VstInt32)Params::RotationAngle,
+        //                           "L/R rotation",
+        //                           -WaveSabreCore::Maj7Width::gRotationExtent,
+        //                           WaveSabreCore::Maj7Width::gRotationExtent,
+        //                           0,
+        //                           0,
+        //                           0,
+        //                           {});
+        // ImGui::SameLine();
+        // Maj7ImGuiParamScaledFloat((VstInt32)Params::MSShear,
+        //                           "MS shear",
+        //                           -WaveSabreCore::Maj7Width::gShearAngleLimit,
+        //                           WaveSabreCore::Maj7Width::gShearAngleLimit,
+        //                           0,
+        //                           0,
+        //                           0,
+        //                           {});
+        // ImGui::SameLine();
+        Maj7ImGuiParamVolume((VstInt32)Params::OutputGain,
+                             "Output",
                              WaveSabreCore::Maj7Width::gVolumeCfg,
                              0,
                              {});
-        ImGui::SameLine();
-        Maj7ImGuiParamVolume(bandParam(1, BandParam::SideGain),
-                             "Side mid",
-                             WaveSabreCore::Maj7Width::gVolumeCfg,
-                             0,
-                             {});
-        ImGui::SameLine();
-        Maj7ImGuiParamVolume(bandParam(2, BandParam::SideGain),
-                             "Side hi",
-                             WaveSabreCore::Maj7Width::gVolumeCfg,
-                             0,
-                             {});
-
-        Maj7ImGuiParamScaledFloat(bandParam(0, BandParam::Rotation),
-                                  "MS rot low",
-                                  -WaveSabreCore::Maj7Width::gRotationExtent,
-                                  WaveSabreCore::Maj7Width::gRotationExtent,
-                                  0,
-                                  0,
-                                  0,
-                                  {});
-        ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat(bandParam(1, BandParam::Rotation),
-                                  "MS rot mid",
-                                  -WaveSabreCore::Maj7Width::gRotationExtent,
-                                  WaveSabreCore::Maj7Width::gRotationExtent,
-                                  0,
-                                  0,
-                                  0,
-                                  {});
-        ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat(bandParam(2, BandParam::Rotation),
-                                  "MS rot hi",
-                                  -WaveSabreCore::Maj7Width::gRotationExtent,
-                                  WaveSabreCore::Maj7Width::gRotationExtent,
-                                  0,
-                                  0,
-                                  0,
-                                  {});
-
-        Maj7ImGuiParamScaledFloat(bandParam(0, BandParam::Shear),
-                                  "MS shr low",
-                                  -WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                  WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                  0,
-                                  0,
-                                  0,
-                                  {});
-        ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat(bandParam(1, BandParam::Shear),
-                                  "MS shr mid",
-                                  -WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                  WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                  0,
-                                  0,
-                                  0,
-                                  {});
-        ImGui::SameLine();
-        Maj7ImGuiParamScaledFloat(bandParam(2, BandParam::Shear),
-                                  "MS shr hi",
-                                  -WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                  WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                  0,
-                                  0,
-                                  0,
-                                  {});
+        ImGui::EndGroup();
       }
-
-      ImGui::Spacing();
-
-      ImGui::BeginGroup();
-      Maj7ImGuiParamScaledFloat((VstInt32)Params::RotationAngle,
-                                "L/R rotation",
-                                -WaveSabreCore::Maj7Width::gRotationExtent,
-                                WaveSabreCore::Maj7Width::gRotationExtent,
-                                0,
-                                0,
-                                0,
-                                {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("L/R Geometric Rotation");
-        ImGui::Separator();
-        ImGui::Text("Rotate the left/right sample axes directly after width shaping.");
-        ImGui::EndTooltip();
-      }
-
-      ImGui::SameLine();
-
-    Maj7ImGuiParamScaledFloat((VstInt32)Params::MSShear,
-                                "MS shear",
-                                -WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                WaveSabreCore::Maj7Width::gShearAngleLimit,
-                                0,
-                                0,
-                                0,
-                                {});
-      if (ImGui::IsItemHovered())
-      {
-        ImGui::BeginTooltip();
-        ImGui::Text("Broadband M/S Shear");
-        ImGui::Separator();
-        ImGui::Text("Skew the mid/side axes after the multiband stage.");
-        ImGui::EndTooltip();
-      }
-
-      ImGui::SameLine();
-      Maj7ImGuiParamVolume((VstInt32)Params::OutputGain,
-                           "Output",
-                           WaveSabreCore::Maj7Width::gVolumeCfg,
-                           0,
-                           {});
-      ImGui::EndGroup();
 
     }  // group scope
 
@@ -537,30 +329,11 @@ struct Maj7WidthEditor : public VstEditor
           mpMaj7Width->mOutputImagingAnalysis.SetFrequencyAnalysisEnabled(true);
         }
 
-        // FFT overlay toggles and scale selection
-        {
-          ImGui::Separator();
-          ImGui::Text("Freq overlays:");
-          ButtonArray<3>(
-              "width_fft_input",
-              {
-                  MakeButtonSpec("In M", &mShowInputMid, kInputMidFftColor, "Show the input mid / center FFT overlay."),
-                  MakeButtonSpec("In S", &mShowInputSide, kInputSideFftColor, "Show the input side FFT overlay."),
-                  MakeButtonSpec("In W", &mShowInputWidth, kInputWidthFftColor, "Show the input width FFT overlay."),
-              });
-          ImGui::SameLine(0, 20);
-          ButtonArray<3>(
-              "width_fft_output",
-              {
-                  MakeButtonSpec(
-                      "Out M", &mShowOutputMid, kOutputMidFftColor, "Show the output mid / center FFT overlay."),
-                  MakeButtonSpec("Out S", &mShowOutputSide, kOutputSideFftColor, "Show the output side FFT overlay."),
-                  MakeButtonSpec(
-                      "Out W", &mShowOutputWidth, kOutputWidthFftColor, "Show the output width FFT overlay."),
-              });
-        }
-
-        RenderFrequencyAnalysis();
+        ImGui::Separator();
+        ImGui::TextDisabled(multibandEnabled
+                    ? "Drag crossover lines, click a band to edit it, or use M/S buttons on the graph."
+                    : "Single-band mode uses the mid band's controls. Switch to multi-band to edit crossovers on the graph.");
+        RenderFrequencyAnalysis(multibandEnabled, muteSoloEnabled);
       }
     }
 #endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
@@ -569,6 +342,8 @@ struct Maj7WidthEditor : public VstEditor
   virtual std::vector<IVstSerializableParam*> GetVstOnlyParams() override
   {
     return {
+        &mEditingBandParam,
+        &mFftSeriesSelectionParam,
         &mShowGoniometerLinesParam,
         &mShowGoniometerPointsParam,
         &mShowPolarLParam,
@@ -580,12 +355,6 @@ struct Maj7WidthEditor : public VstEditor
         &mShowSideLevelParam,
         &mShowInputParam,
         &mShowOutputParam,
-        &mShowInputMidParam,
-        &mShowInputSideParam,
-        &mShowInputWidthParam,
-        &mShowOutputMidParam,
-        &mShowOutputSideParam,
-        &mShowOutputWidthParam,
     };
   }
 
@@ -608,9 +377,187 @@ private:
   VstSerializableBoolParamRef mShowInputParam{"ShowInput", mStereoHistory.mShowInput};
   VstSerializableBoolParamRef mShowOutputParam{"ShowOutput", mStereoHistory.mShowOutput};
 
+  static const char* GetBandLabel(int bandIndex)
+  {
+    switch (bandIndex)
+    {
+      case 0:
+        return "Low Band";
+      case 1:
+        return "Mid Band";
+      case 2:
+        return "High Band";
+      default:
+        return "Band";
+    }
+  }
+
+  VstInt32 GetBandParamIndex(int bandIndex, WaveSabreCore::Maj7Width::FreqBand::BandParam bandParam) const
+  {
+    using Params = WaveSabreCore::Maj7Width::ParamIndices;
+    using BandParam = WaveSabreCore::Maj7Width::FreqBand::BandParam;
+    return (VstInt32)((int)Params::ALeftSource + bandIndex * (int)BandParam::Count__ + (int)bandParam);
+  }
+
+  ImRect GetBandButtonArea(const ImRect& bandRect) const
+  {
+    const float paddingY = 10.0f;
+    const float paddingX = 3.0f;
+    const float buttonWidth = 22.0f;
+    const float buttonHeight = 16.0f;
+    const float spacing = 1.5f;
+    const float totalWidth = buttonWidth * 2 + spacing + paddingX * 2;
+    const float startX = (bandRect.Min.x + bandRect.Max.x) * 0.5f - totalWidth * 0.5f;
+    return ImRect(startX, bandRect.Min.y + paddingY, startX + totalWidth, bandRect.Min.y + paddingY + buttonHeight + paddingX * 2);
+  }
+
+  bool HandleBandClick(int bandIndex, const ImRect& bandRect, bool multibandEnabled)
+  {
+    if (!multibandEnabled || bandIndex < 0 || bandIndex >= WaveSabreCore::Maj7Width::gBandCount)
+    {
+      return false;
+    }
+
+    const ImRect buttonArea = GetBandButtonArea(bandRect);
+    if (bandRect.GetWidth() < 70.0f || !buttonArea.Contains(ImGui::GetIO().MousePos))
+    {
+      return false;
+    }
+
+    auto& bandConfig = mpMaj7Width->mBandConfig[bandIndex];
+    const float buttonWidth = 22.0f;
+    const float buttonHeight = 16.0f;
+    const float spacing = 1.5f;
+    const ImVec2 mutePos{buttonArea.Min.x + 3.0f, buttonArea.Min.y + 3.0f};
+    const ImVec2 soloPos{mutePos.x + buttonWidth + spacing, mutePos.y};
+    const ImRect muteRect(mutePos, {mutePos.x + buttonWidth, mutePos.y + buttonHeight});
+    const ImRect soloRect(soloPos, {soloPos.x + buttonWidth, soloPos.y + buttonHeight});
+    const ImVec2 mousePos = ImGui::GetIO().MousePos;
+
+    if (muteRect.Contains(mousePos))
+    {
+      bandConfig.mMute = !bandConfig.mMute;
+      return true;
+    }
+    if (soloRect.Contains(mousePos))
+    {
+      bandConfig.mSolo = !bandConfig.mSolo;
+      return true;
+    }
+    return false;
+  }
+
+  bool RenderBandOverlay(int bandIndex,
+                         const ImRect& bandRect,
+                         bool isHovered,
+                         bool isSelected,
+                         ImDrawList* drawList,
+                         bool muteSoloEnabled,
+                         bool multibandEnabled)
+  {
+    if (!multibandEnabled || bandIndex < 0 || bandIndex >= WaveSabreCore::Maj7Width::gBandCount)
+    {
+      return false;
+    }
+
+    if (isSelected)
+    {
+      drawList->AddRect(bandRect.Min, bandRect.Max, ColorFromHTML(bandColors[bandIndex], 0.8f));
+      drawList->AddRectFilled(bandRect.Min,
+                              {bandRect.Max.x, bandRect.Min.y + 4.0f},
+                              ColorFromHTML(bandColors[bandIndex], 0.85f),
+                              2.0f);
+    }
+
+    const ImRect buttonArea = GetBandButtonArea(bandRect);
+    if (bandRect.GetWidth() < 70.0f)
+    {
+      return false;
+    }
+
+    auto& bandConfig = mpMaj7Width->mBandConfig[bandIndex];
+    const float buttonWidth = 22.0f;
+    const float buttonHeight = 16.0f;
+    const float spacing = 1.5f;
+    const ImVec2 mutePos{buttonArea.Min.x + 3.0f, buttonArea.Min.y + 3.0f};
+    const ImVec2 soloPos{mutePos.x + buttonWidth + spacing, mutePos.y};
+    const ImRect muteRect(mutePos, {mutePos.x + buttonWidth, mutePos.y + buttonHeight});
+    const ImRect soloRect(soloPos, {soloPos.x + buttonWidth, soloPos.y + buttonHeight});
+    const ImVec2 mousePos = ImGui::GetIO().MousePos;
+    const bool muteHovered = muteRect.Contains(mousePos);
+    const bool soloHovered = soloRect.Contains(mousePos);
+    const bool anyButtonHovered = muteHovered || soloHovered;
+
+    const bool effectivelyAudible = muteSoloEnabled && !bandConfig.mMute;
+    const ImColor muteColor = bandConfig.mMute ? ColorFromHTML("cc4444", 0.95f)
+                                               : ColorFromHTML("444444", muteHovered ? 0.85f : 0.65f);
+    const ImColor soloColor = bandConfig.mSolo ? ColorFromHTML("cccc44", 0.95f)
+                                               : ColorFromHTML("444444", soloHovered ? 0.85f : 0.65f);
+    const ImColor buttonBorder = ColorFromHTML(effectivelyAudible ? bandColors[bandIndex] : "666666", 0.8f);
+
+    drawList->AddRectFilled(muteRect.Min, muteRect.Max, muteColor, 2.0f);
+    drawList->AddRect(muteRect.Min, muteRect.Max, buttonBorder, 2.0f, 0, 1.0f);
+    drawList->AddText({muteRect.Min.x + 7.0f, muteRect.Min.y + 1.0f}, ColorFromHTML("ffffff"), "M");
+
+    drawList->AddRectFilled(soloRect.Min, soloRect.Max, soloColor, 2.0f);
+    drawList->AddRect(soloRect.Min, soloRect.Max, buttonBorder, 2.0f, 0, 1.0f);
+    drawList->AddText({soloRect.Min.x + 7.0f, soloRect.Min.y + 1.0f}, ColorFromHTML(bandConfig.mSolo ? "000000" : "ffffff"), "S");
+
+    if (anyButtonHovered)
+    {
+      ImGui::SetMouseCursor(ImGuiMouseCursor_Hand);
+    }
+
+    return anyButtonHovered || isHovered || isSelected;
+  }
+
+  void RenderSelectedBandControls(int bandIndex, bool multibandEnabled)
+  {
+    using BandParam = WaveSabreCore::Maj7Width::FreqBand::BandParam;
+
+    ImGui::BeginGroup();
+    ImGui::TextUnformatted(multibandEnabled ? GetBandLabel(bandIndex) : "Broadband (Uses Mid Band Controls)");
+    ImGui::TextDisabled(multibandEnabled ? "Click a band in the response graph to edit it." : "Switch to multi-band mode to edit the low and high bands separately.");
+
+    Maj7ImGuiParamFloatN11WithCenter(GetBandParamIndex(bandIndex, BandParam::LeftSource), "Left source", -1, -1, 0, {});
+    ImGui::SameLine();
+    Maj7ImGuiParamFloatN11WithCenter(GetBandParamIndex(bandIndex, BandParam::RightSource), "Right source", 1, 1, 0, {});
+    ImGui::SameLine();
+    Maj7ImGuiParamFloatN11(GetBandParamIndex(bandIndex, BandParam::Width), "Width", 0.0f, 0, {});
+    ImGui::SameLine();
+    Maj7ImGuiParamFloatN11(GetBandParamIndex(bandIndex, BandParam::Pan), "Pan", 0.0f, 0, {});
+
+    Maj7ImGuiParamFloatN11(GetBandParamIndex(bandIndex, BandParam::Asymmetry), "Asym", 0.0f, 0, {});
+    ImGui::SameLine();
+    Maj7ImGuiParamVolume(GetBandParamIndex(bandIndex, BandParam::SideGain),
+                         "Side",
+                         WaveSabreCore::Maj7Width::gVolumeCfg,
+                         0,
+                         {});
+    ImGui::SameLine();
+    Maj7ImGuiParamScaledFloat(GetBandParamIndex(bandIndex, BandParam::Rotation),
+                              "MS rot",
+                              -WaveSabreCore::Maj7Width::gRotationExtent,
+                              WaveSabreCore::Maj7Width::gRotationExtent,
+                              0,
+                              0,
+                              0,
+                              {});
+    ImGui::SameLine();
+    Maj7ImGuiParamScaledFloat(GetBandParamIndex(bandIndex, BandParam::Shear),
+                              "MS shear",
+                              -WaveSabreCore::Maj7Width::gShearAngleLimit,
+                              WaveSabreCore::Maj7Width::gShearAngleLimit,
+                              0,
+                              0,
+                              0,
+                              {});
+    ImGui::EndGroup();
+  }
+
   // Render frequency analysis graph
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  void RenderFrequencyAnalysis()
+  void RenderFrequencyAnalysis(bool multibandEnabled, const bool (&muteSoloEnabled)[WaveSabreCore::Maj7Width::gBandCount])
   {
     const auto* analyzerIn = mpMaj7Width->mInputImagingAnalysis.GetFrequencyAnalyzer();
     const auto* analyzerOut = mpMaj7Width->mOutputImagingAnalysis.GetFrequencyAnalyzer();
@@ -621,100 +568,188 @@ private:
       return;
     }
 
-    // Decide scale based on which overlays are active.
-    const bool anyMidSide = (mShowInputMid || mShowInputSide || mShowOutputMid || mShowOutputSide);
-    const bool anyWidth = (mShowInputWidth || mShowOutputWidth);
-
-    // If user enabled any M/S overlays, use a dB scale (-60..0) suited for them.
-    // Otherwise, use width scale (0..3.2).
     static constexpr float scaleMinDb = -90.0f;
-    const float scaleMin = scaleMinDb;  // anyMidSide ? -60.0f : 0.0f;
-    const float scaleMax = 0;           // anyMidSide ? 0.0f : 3.2f;
+    const float scaleMin = scaleMinDb;
+    const float scaleMax = 0.0f;
 
     FrequencyResponseRendererConfig<0, (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams> cfg{
-        ColorFromHTML("222222", 1.0f),  // background
-        ColorFromHTML("aaaa00", 1.0f),  // line (unused)
-        0.0f,                           // thumb radius (no thumbs)
-        {},                             // filters
-        {},                             // param cache copy (unused)
-        {},                             // major ticks (defaults)
-        {},                             // minor ticks (defaults)
-        {},                             // fft overlays (fill below)
-        scaleMin,                       // min
-        scaleMax,                       // max
-        true                            // independent scale
+        ColorFromHTML("222222", 1.0f),
+        ColorFromHTML("ff00ff", 1.0f),
+        0.0f,
+        {},
+        {},
+        {},
+        {},
+        {},
+        scaleMin,
+        scaleMax,
+        true
     };
     for (size_t i = 0; i < (size_t)WaveSabreCore::Maj7Width::ParamIndices::NumParams; ++i)
+    {
       cfg.mParamCacheCopy[i] = mpMaj7Width->mParamCache[i];
+    }
 
     cfg.fftOverlays.clear();
 
-    // Mid/Side in dB domain
-    if (mShowInputMid && analyzerIn->GetMidAnalyzer())
-    {
-      cfg.fftOverlays.push_back({analyzerIn->GetMidAnalyzer(),
-                                 ColorFromHTML(kInputMidFftColor, 0.9f),
-                                 ColorFromHTML(kInputMidFftColor, 0.25f),
-                                 true,
-                                 "Input Mid",
-                                 nullptr});
-    }
-    if (mShowInputSide && analyzerIn->GetSideAnalyzer())
-    {
-      cfg.fftOverlays.push_back({analyzerIn->GetSideAnalyzer(),
-                                 ColorFromHTML(kInputSideFftColor, 0.9f),
-                                 ColorFromHTML(kInputSideFftColor, 0.25f),
-                                 true,
-                                 "Input Side",
-                                 nullptr});
-    }
-    if (mShowOutputMid && analyzerOut->GetMidAnalyzer())
-    {
-      cfg.fftOverlays.push_back({analyzerOut->GetMidAnalyzer(),
-                                 ColorFromHTML(kOutputMidFftColor, 0.9f),
-                                 ColorFromHTML(kOutputMidFftColor, 0.25f),
-                                 true,
-                                 "Output Mid",
-                                 nullptr});
-    }
-    if (mShowOutputSide && analyzerOut->GetSideAnalyzer())
-    {
-      cfg.fftOverlays.push_back({analyzerOut->GetSideAnalyzer(),
-                                 ColorFromHTML(kOutputSideFftColor, 0.9f),
-                                 ColorFromHTML(kOutputSideFftColor, 0.25f),
-                                 true,
-                                 "Output Side",
-                                 nullptr});
-    }
+    const auto selectedSeries = (FftSeriesSelection)mFftSeriesSelection;
+    const WaveSabreCore::IFrequencyAnalysis* inputSpectrum = nullptr;
+    const WaveSabreCore::IFrequencyAnalysis* outputSpectrum = nullptr;
+    const char* inputLabel = nullptr;
+    const char* outputLabel = nullptr;
 
-    // Width overlays: choose transform based on chosen scale
-    //auto widthLog = [](float w)->float { const float a = 1.8f; return std::log1p(a * std::max(0.0f, w)) / std::log1p(a * 3.0f); };
     auto widthAsDbScale = [](float v) -> float
     {
-      // If v is a dB endpoint (negative range), pass-through so min/max remain [-60..0]
       if (v <= 0.0f)
+      {
         return v;
-      // Otherwise v is width in [0..3], map to [-60..0] using the same perceptual curve as widthLog
+      }
       const float a = 1.8f;
-      float t01 = std::log1p(a * std::max(0.0f, v)) / std::log1p(a * 3.0f);  // 0..1
-      return M7::math::lerp(scaleMinDb, 0.0f, t01);                          // map to [-60..0]
+      float t01 = std::log1p(a * std::max(0.0f, v)) / std::log1p(a * 3.0f);
+      return M7::math::lerp(scaleMinDb, 0.0f, t01);
     };
 
-    std::function<float(float)> widthTransform = std::function<float(float)>(widthAsDbScale);
-    if (mShowInputWidth)
-      cfg.fftOverlays.push_back({analyzerIn,
-                                 ColorFromHTML(kInputWidthFftColor, 0.9f),
-                                 ColorFromHTML(kInputWidthFftColor, 0.25f),
+    std::function<float(float)> valueTransform{};
+    switch (selectedSeries)
+    {
+      case FftSeriesSelection::Mid:
+        inputSpectrum = analyzerIn->GetMidAnalyzer();
+        outputSpectrum = analyzerOut->GetMidAnalyzer();
+        inputLabel = "Input Mid";
+        outputLabel = "Output Mid";
+        break;
+      case FftSeriesSelection::Width:
+        inputSpectrum = analyzerIn;
+        outputSpectrum = analyzerOut;
+        inputLabel = "Input Width";
+        outputLabel = "Output Width";
+        valueTransform = widthAsDbScale;
+        break;
+      case FftSeriesSelection::Side:
+      default:
+        inputSpectrum = analyzerIn->GetSideAnalyzer();
+        outputSpectrum = analyzerOut->GetSideAnalyzer();
+        inputLabel = "Input Side";
+        outputLabel = "Output Side";
+        break;
+    }
+
+    if (inputSpectrum)
+    {
+      cfg.fftOverlays.push_back({inputSpectrum,
+                                 ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
+                                                   ? kInputMidFftColor
+                                                   : (selectedSeries == FftSeriesSelection::Side ? kInputSideFftColor
+                                                                                                 : kInputWidthFftColor),
+                                               0.9f),
+                                 ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
+                                                   ? kInputMidFftColor
+                                                   : (selectedSeries == FftSeriesSelection::Side ? kInputSideFftColor
+                                                                                                 : kInputWidthFftColor),
+                                               0.25f),
                                  true,
-                                 "Input Width",
-                                 widthTransform});
-    if (mShowOutputWidth)
-      cfg.fftOverlays.push_back({analyzerOut,
-                                 ColorFromHTML(kOutputWidthFftColor, 0.9f),
-                                 ColorFromHTML(kOutputWidthFftColor, 0.25f),
+                                 inputLabel,
+                                 valueTransform});
+    }
+    if (outputSpectrum)
+    {
+      cfg.fftOverlays.push_back({outputSpectrum,
+                                 ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
+                                                   ? kOutputMidFftColor
+                                                   : (selectedSeries == FftSeriesSelection::Side ? kOutputSideFftColor
+                                                                                                 : kOutputWidthFftColor),
+                                               0.9f),
+                                 ColorFromHTML(selectedSeries == FftSeriesSelection::Mid
+                                                   ? kOutputMidFftColor
+                                                   : (selectedSeries == FftSeriesSelection::Side ? kOutputSideFftColor
+                                                                                                 : kOutputWidthFftColor),
+                                               0.25f),
                                  true,
-                                 "Output Width",
-                                 widthTransform});
+                                 outputLabel,
+                                 valueTransform});
+    }
+
+    mWidthGraph.ClearFFTDiffOverlay();
+    mWidthGraph.ClearFFTDiffFlatOverlay();
+    mWidthGraph.SetFFTScaleCaption(selectedSeries == FftSeriesSelection::Width ? "Width" : "dB");
+    mWidthGraph.SetCrossoverDataSource(
+        [this](int crossoverIndex) -> float {
+          using Params = WaveSabreCore::Maj7Width::ParamIndices;
+          const auto paramIndex = crossoverIndex == 0 ? Params::CrossoverAFrequency : Params::CrossoverBFrequency;
+          float raw = mpMaj7Width->mParamCache[(int)paramIndex];
+          M7::ParamAccessor param{&raw, 0};
+          return param.GetFrequency(0, M7::gFilterFreqConfig);
+        },
+        [this](float freqHz) -> std::array<float, 3> {
+          auto mags = mpMaj7Width->mMidSplitter.GetMagnitudesAtFrequency(freqHz);
+          return {mags[0], mags[1], mags[2]};
+        });
+
+    mWidthGraph.mCrossoverLayer->mShowResponses = true;
+    const std::array<bool, WaveSabreCore::Maj7Width::gBandCount> muteSoloState = {
+        muteSoloEnabled[0], muteSoloEnabled[1], muteSoloEnabled[2]};
+    mWidthGraph.mCrossoverLayer->mGetBandColor = [multibandEnabled, muteSoloState](size_t bandIndex, bool hovered) -> ImColor {
+      if (bandIndex >= WaveSabreCore::Maj7Width::gBandCount)
+      {
+        return ColorFromHTML("888888", 0.5f);
+      }
+
+      const bool active = multibandEnabled ? muteSoloState[bandIndex] : bandIndex == 1;
+      const char* baseColor = active ? bandColors[bandIndex] : "444444";
+      return ColorFromHTML(baseColor, hovered ? 0.95f : (active ? 0.75f : 0.55f));
+    };
+    mWidthGraph.SetCurrentEditingBand(multibandEnabled ? mEditingBand : 1);
+
+    auto bandRenderer = [this, multibandEnabled, muteSoloState](int bandIndex,
+                                                                const ImRect& bandRect,
+                                                                bool isHovered,
+                                                                bool isSelected,
+                                                                ImDrawList* drawList) -> bool {
+      if (!multibandEnabled || bandIndex < 0 || bandIndex >= WaveSabreCore::Maj7Width::gBandCount)
+      {
+        return false;
+      }
+
+      if (drawList == nullptr)
+      {
+        return GetBandButtonArea(bandRect).Contains(ImGui::GetIO().MousePos);
+      }
+      if (drawList == reinterpret_cast<ImDrawList*>(1))
+      {
+        return HandleBandClick(bandIndex, bandRect, multibandEnabled);
+      }
+      return RenderBandOverlay(bandIndex,
+                               bandRect,
+                               isHovered,
+                               isSelected,
+                               drawList,
+                               muteSoloState[bandIndex],
+                               multibandEnabled);
+    };
+    mWidthGraph.SetBandRenderer(bandRenderer);
+
+    if (multibandEnabled)
+    {
+      mWidthGraph.SetFrequencyChangeHandler([this](float freqHz, int crossoverIndex) {
+        M7::QuickParam freqParam;
+        freqParam.SetFrequencyAssumingNoKeytracking(M7::gFilterFreqConfig, freqHz);
+        const VstInt32 paramIndex = crossoverIndex == 0
+                                        ? (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::CrossoverAFrequency
+                                        : (VstInt32)WaveSabreCore::Maj7Width::ParamIndices::CrossoverBFrequency;
+        mpMaj7WidthVst->setParameterAutomated(paramIndex, M7::math::clamp01(freqParam.GetRawValue()));
+      });
+      mWidthGraph.SetBandChangeHandler([this](int bandIndex) {
+        if (bandIndex >= 0 && bandIndex < WaveSabreCore::Maj7Width::gBandCount)
+        {
+          mEditingBand = bandIndex;
+        }
+      });
+    }
+    else
+    {
+      mWidthGraph.SetFrequencyChangeHandler(nullptr);
+      mWidthGraph.SetBandChangeHandler(nullptr);
+    }
 
     mWidthGraph.OnRender(cfg);
   }

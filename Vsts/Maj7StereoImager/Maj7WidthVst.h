@@ -95,8 +95,8 @@ public:
 
 		p.SetBoolValue(Params::LInvert, false);
 		p.SetBoolValue(Params::RInvert, false);
-		p.SetRangedValue(Params::RotationAngle, -Maj7Width::gRotationExtent, Maj7Width::gRotationExtent, 0.0f);
-		p.SetRangedValue(Params::MSShear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
+		//p.SetRangedValue(Params::RotationAngle, -Maj7Width::gRotationExtent, Maj7Width::gRotationExtent, 0.0f);
+		//p.SetRangedValue(Params::MSShear, -Maj7Width::gShearAngleLimit, Maj7Width::gShearAngleLimit, 0.0f);
 		p.SetRawVal(Params::SideHPFrequency, 0);
 		p.SetBoolValue(Params::MultibandEnable, false);
 		p.SetDecibels(Params::OutputGain, Maj7Width::gVolumeCfg, 0.0f);

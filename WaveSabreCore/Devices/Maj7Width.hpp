@@ -27,8 +27,6 @@ struct Maj7Width : public Device
   {
     LInvert,
     RInvert,
-    RotationAngle,  // rotates L/R geometrically
-    MSShear,
     SideHPFrequency,
     MultibandEnable,
     CrossoverAFrequency,
@@ -74,8 +72,6 @@ struct Maj7Width : public Device
   {                                                                                                                    \
     {"LInv"},\
     {"RInv"},\
-    {"Rot"},\
-    {"MSShear"},\
     {"SideHPF"},\
     {"MBEn"},\
     {"xAFreq"},\
@@ -232,12 +228,10 @@ struct Maj7Width : public Device
     }
   };
 
-  static_assert((int)ParamIndices::NumParams == 35, "param count probably changed and this needs to be regenerated.");
+  static_assert((int)ParamIndices::NumParams == 33, "param count probably changed and this needs to be regenerated.");
   static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
       0,       // LInv = 0
       0,       // RInv = 0
-      16383,   // Rot = 0.5
-      16383,   // MSShear = 0.5
       0,       // SideHPF = 0
       0,       // MBEn = 0
       14347,   // xAFreq = 0.43785116076469421387
@@ -366,11 +360,11 @@ struct Maj7Width : public Device
       mBands[iBand].Slider(sideHpfActive, sideHpfFreq);
     }
   #ifdef MAJ7WIDTH_FULL_FEATURE
-    constexpr float bandShearBypassThreshold = 0.001f;
-    const float broadbandShearAngle = mParams.GetScaledRealValue(ParamIndices::MSShear, -gShearAngleLimit, gShearAngleLimit, 0);
-    const float broadbandShearFactor = -M7::math::tan(broadbandShearAngle);
-    const float broadbandRotation = mParams.GetScaledRealValue(ParamIndices::RotationAngle, -gRotationExtent, gRotationExtent, 0);
-    const bool broadbandShearActive = !M7::math::FloatEquals(broadbandShearAngle, 0.0f, bandShearBypassThreshold);
+    // constexpr float bandShearBypassThreshold = 0.001f;
+    // const float broadbandShearAngle = mParams.GetScaledRealValue(ParamIndices::MSShear, -gShearAngleLimit, gShearAngleLimit, 0);
+    // const float broadbandShearFactor = -M7::math::tan(broadbandShearAngle);
+    // const float broadbandRotation = mParams.GetScaledRealValue(ParamIndices::RotationAngle, -gRotationExtent, gRotationExtent, 0);
+    // const bool broadbandShearActive = !M7::math::FloatEquals(broadbandShearAngle, 0.0f, bandShearBypassThreshold);
   #endif  // MAJ7WIDTH_FULL_FEATURE
 
     for (size_t i = 0; i < (size_t)numSamples; ++i)
@@ -395,18 +389,18 @@ struct Maj7Width : public Device
 
       auto ms = stereo.MSEncode();
 
-#ifdef MAJ7WIDTH_FULL_FEATURE
-      if (broadbandShearActive)
-      {
-        Shear2(ms.x[1], ms.x[0], broadbandShearFactor);
-      }
-#endif  // MAJ7WIDTH_FULL_FEATURE
+// #ifdef MAJ7WIDTH_FULL_FEATURE
+//       if (broadbandShearActive)
+//       {
+//         Shear2(ms.x[1], ms.x[0], broadbandShearFactor);
+//       }
+// #endif  // MAJ7WIDTH_FULL_FEATURE
 
       stereo = ms.MSDecode();
 
-#ifdef MAJ7WIDTH_FULL_FEATURE
-      Rotate2(stereo.x[0], stereo.x[1], broadbandRotation);
-#endif  // MAJ7WIDTH_FULL_FEATURE
+// #ifdef MAJ7WIDTH_FULL_FEATURE
+//       Rotate2(stereo.x[0], stereo.x[1], broadbandRotation);
+// #endif  // MAJ7WIDTH_FULL_FEATURE
 
       auto output = stereo * outputGainLin;
 

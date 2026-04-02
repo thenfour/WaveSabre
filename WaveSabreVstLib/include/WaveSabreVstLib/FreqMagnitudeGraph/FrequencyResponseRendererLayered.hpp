@@ -204,6 +204,14 @@ public:
   void SetCrossoverFilter(const WaveSabreCore::Maj7MBC* device) {
     if (mCrossoverLayer) mCrossoverLayer->SetCrossoverDevice(device);
   }
+
+  void SetCrossoverDataSource(std::function<float(int crossoverIndex)> getCrossoverFrequencyHz,
+                              std::function<std::array<float, 3>(float freqHz)> getBandMagnitudesAtFrequency) {
+    if (mCrossoverLayer) {
+      mCrossoverLayer->SetCrossoverDataSource(std::move(getCrossoverFrequencyHz),
+                                              std::move(getBandMagnitudesAtFrequency));
+    }
+  }
   
   // Set up parameter change handler for crossover frequency dragging
   void SetFrequencyChangeHandler(std::function<void(float freqHz, int crossoverIndex)> handler) {
