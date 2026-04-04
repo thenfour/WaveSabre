@@ -103,8 +103,8 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
     case OscillatorWaveform::ShapeCoreSawTriSquare:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
 
-    case OscillatorWaveform::FoldedSine:
-      return new FoldedSineCore(w);
+    //case OscillatorWaveform::FoldedSine:
+      //return new FoldedSineCore(w);
 #ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
     case OscillatorWaveform::FoldedTriangle:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::FoldedTriGenerator);

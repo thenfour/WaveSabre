@@ -19,7 +19,7 @@
 
 // for sat / MBC saturation...
 #undef MAJ7SAT_ENABLE_RARE_MODELS
-#define MAJ7SAT_ENABLE_ANALOG
+#undef MAJ7SAT_ENABLE_ANALOG
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
 #undef ENABLE_12db_oct_CROSSOVER
@@ -39,7 +39,7 @@
 #undef MAJ7_INCLUDE_GSM_SUPPORT  // ~1kb of minified code.
 
 // see width sources for more; mostly the rotation stuff.
-#define MAJ7WIDTH_FULL_FEATURE
+#undef MAJ7WIDTH_FULL_FEATURE
 
 
 // USE_INLINE_LUTS is for perf-optimized.

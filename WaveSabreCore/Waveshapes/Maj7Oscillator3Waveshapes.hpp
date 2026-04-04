@@ -409,53 +409,53 @@ struct SineCoreExt : public OscillatorCore
   }
 };
 
-struct FoldedSineCore : public OscillatorCore
-{
-  FoldedSineCore(OscillatorWaveform waveformType)
-      : OscillatorCore(waveformType)
-  {
-  }
+// struct FoldedSineCore : public OscillatorCore
+// {
+//   FoldedSineCore(OscillatorWaveform waveformType)
+//       : OscillatorCore(waveformType)
+//   {
+//   }
 
-  float mDrive = 1.0f;  // >= 1.0
-  float mBias = 0.0f;   // DC offset before folding
+//   float mDrive = 1.0f;  // >= 1.0
+//   float mBias = 0.0f;   // DC offset before folding
 
-  void HandleParamsChanged() override
-  {
-    mDrive = 1.0f + 15.0f * mWaveshapeA;  // 1 - 16x
+//   void HandleParamsChanged() override
+//   {
+//     mDrive = 1.0f + 15.0f * mWaveshapeA;  // 1 - 16x
 
-    // B: symmetry/bias 0..1 -> -1..1; actually in theory -2..2 is usable to catch ALL signal.
-    mBias = (mWaveshapeB - 0.5f) * 4.0f;
-  }
+//     // B: symmetry/bias 0..1 -> -1..1; actually in theory -2..2 is usable to catch ALL signal.
+//     mBias = (mWaveshapeB - 0.5f) * 4.0f;
+//   }
 
-  static inline float fold_reflect(float x)
-  {
-    const float threshold = 1;
-    const float ax = std::abs(x);
-    const float per = 2 * threshold;
-    float m = math::fmodf(ax, per);
-    if (m < 0.0f)
-      m += per;
+//   static inline float fold_reflect(float x)
+//   {
+//     const float threshold = 1;
+//     const float ax = std::abs(x);
+//     const float per = 2 * threshold;
+//     float m = math::fmodf(ax, per);
+//     if (m < 0.0f)
+//       m += per;
 
-    const float r = (m <= threshold) ? m : (per - m);
-    return math::copysignf(r, x);
-  }
+//     const float r = (m <= threshold) ? m : (per - m);
+//     return math::copysignf(r, x);
+//   }
 
-  CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
-  {
-    const PhaseStep step = mPhaseAcc.advanceOneSample();
+//   CoreSample renderSampleAndAdvance(float audioRatePhaseOffset) override
+//   {
+//     const PhaseStep step = mPhaseAcc.advanceOneSample();
 
-    const double phase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
-    const float s = math::sin(math::gPITimes2 * float(phase01));
+//     const double phase01 = math::wrap01(step.phaseBegin01 + audioRatePhaseOffset);
+//     const float s = math::sin(math::gPITimes2 * float(phase01));
 
-    const float driven = mDrive * s + mBias;
-    float y = fold_reflect(driven);
+//     const float driven = mDrive * s + mBias;
+//     float y = fold_reflect(driven);
 
-    return CoreSample{
-        .amplitude = y,
-        //.phaseAdvance = step,
-    };
-  }
-};
+//     return CoreSample{
+//         .amplitude = y,
+//         //.phaseAdvance = step,
+//     };
+//   }
+// };
 
 struct SAHNoiseCore : public OscillatorCore
 {
