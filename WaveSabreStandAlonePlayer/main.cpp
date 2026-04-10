@@ -25,33 +25,33 @@ char gSavedToFilename[MAX_PATH] = {0};  // gets populated upon successful save.
 
 auto& gTheme = gThemeFancy;
 
-WaveSabreCore::Device* SongFactory(SongRenderer::DeviceId id)
+WaveSabreCore::Device* SongFactory(WaveSabreCore::DeviceId id)
 {
   switch (id)
   {
-    case SongRenderer::DeviceId::Maj7Analyze:
+    case WaveSabreCore::DeviceId::Maj7Analyze:
       return new WaveSabreCore::Maj7Analyze();
-    case SongRenderer::DeviceId::Maj7Comp:
+    case WaveSabreCore::DeviceId::Maj7Comp:
       return new WaveSabreCore::Maj7Comp();
-    case SongRenderer::DeviceId::Maj7CReverb:
+    case WaveSabreCore::DeviceId::Maj7CReverb:
       return new WaveSabreCore::Cathedral();
-    case SongRenderer::DeviceId::Maj7Delay:
+    case WaveSabreCore::DeviceId::Maj7Delay:
       return new WaveSabreCore::M7::Echo();
-    case SongRenderer::DeviceId::Maj7Crush:
+    case WaveSabreCore::DeviceId::Maj7Crush:
       return new WaveSabreCore::Maj7Crush();
-    case SongRenderer::DeviceId::Maj7EQ:
+    case WaveSabreCore::DeviceId::Maj7EQ:
       return new WaveSabreCore::M7::Leveller();
-    case SongRenderer::DeviceId::Maj7GigaSynth:
+    case WaveSabreCore::DeviceId::Maj7GigaSynth:
       return new WaveSabreCore::M7::Maj7();
-    case SongRenderer::DeviceId::Maj7MBC:
+    case WaveSabreCore::DeviceId::Maj7MBC:
       return new WaveSabreCore::Maj7MBC();
-    case SongRenderer::DeviceId::Maj7Saturation:
+    case WaveSabreCore::DeviceId::Maj7Saturation:
       return new WaveSabreCore::Maj7Sat();
-    case SongRenderer::DeviceId::Maj7Space:
+    case WaveSabreCore::DeviceId::Maj7Space:
       return new WaveSabreCore::Maj7Space();
-    case SongRenderer::DeviceId::Maj7StereoImager:
+    case WaveSabreCore::DeviceId::Maj7StereoImager:
       return new WaveSabreCore::Maj7Width();
-    case SongRenderer::DeviceId::Maj7Modulate:
+    case WaveSabreCore::DeviceId::Maj7Modulate:
       return new WaveSabreCore::Maj7Modulate();
   }
   return nullptr;
@@ -381,10 +381,10 @@ int main(int argc, char** argv)
   }
   if (blob)
   {
-    SongRenderer::Song song;
-    song.blob = blob;
-    song.factory = SongFactory;
-    gpRenderer = new Renderer(hMain, song);
+    //SongRenderer::Song song;
+    //song.blob = blob;
+    //song.factory = SongFactory;
+    gpRenderer = new Renderer(hMain);
     gpPlayer = new WaveOutPlayer(*gpRenderer);
 
     gpWaveformGen = new WaveformGen(*gpRenderer);

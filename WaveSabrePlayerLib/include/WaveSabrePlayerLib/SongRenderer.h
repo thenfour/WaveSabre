@@ -733,7 +733,7 @@ namespace WaveSabrePlayerLib
 				//d->SetSampleRate(HARD_CODED_SAMPLE_RATE);// (float)sampleRate);
 #ifndef MIN_SIZE_REL
 				// min-size builds hard-code bpm.
-				d->SetTempo(kSongTempoBPM);
+				d->SetTempo(WaveSabreCore::kSongTempoBPM);
 #endif // #ifndef MIN_SIZE_REL
 				int chunkSize = ds.ReadVarUInt32();
 				const uint8_t* expectedCursor = ds.mpCursor + chunkSize;

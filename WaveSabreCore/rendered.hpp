@@ -1,4 +1,3 @@
-
 #include "SongPayload.hpp"
 
 namespace WaveSabreCore
@@ -8,19 +7,19 @@ inline Device* SongFactory(DeviceId id)
 {
   switch (id)
   {
+    default:
     case DeviceId::Maj7EQ:
-      return new M7::Leveller();
+      return new WaveSabreCore::M7::Leveller();
     case DeviceId::Maj7GigaSynth:
-      return new M7::Maj7();
+      return new WaveSabreCore::M7::Maj7();
     case DeviceId::Maj7MBC:
-      return new Maj7MBC();
+      return new WaveSabreCore::Maj7MBC();
     case DeviceId::Maj7Space:
-      return new Maj7Space();
+      return new WaveSabreCore::Maj7Space();
   }
-  return nullptr;
 }
 
-static constexpr int kSongTempoBPM = 120; // NB: Make sure this is copied to Helpers.h.
+static constexpr int kSongTempoBPM = 120;
 static constexpr int kSongLengthSeconds = 240;
 static constexpr int kSongTimenstampScaleLog2 = 2;
 static constexpr int kSongNoteDurationScaleLog2 = 7;

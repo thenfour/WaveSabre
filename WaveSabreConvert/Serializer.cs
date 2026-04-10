@@ -14,8 +14,9 @@ namespace WaveSabreConvert
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine("#include <WaveSabreCore.h>");
-            sb.AppendLine("#include <WaveSabrePlayerLib.h>");
+            sb.AppendLine("#include \"SongPayload.hpp\"");
+            sb.AppendLine();
+            sb.AppendLine("namespace WaveSabreCore {");
             sb.AppendLine();
 
             SerializeFactory(sb, song);
@@ -24,10 +25,11 @@ namespace WaveSabreConvert
             SerializeBlob(sb, song, logger);
             sb.AppendLine();
 
-            sb.AppendLine("SongRenderer::Song Song = {");
-            sb.AppendLine("\tSongFactory,");
-            sb.AppendLine("\tSongBlob");
-            sb.AppendLine("};");
+            sb.AppendLine("extern __declspec(selectany) Song gSong = {SongFactory, SongBlob};");
+
+            sb.AppendLine();
+            sb.AppendLine("} // namespace WaveSabreCore");
+            sb.AppendLine();
 
             return sb.ToString();
         }
@@ -39,7 +41,7 @@ namespace WaveSabreConvert
 
         void SerializeFactory(StringBuilder sb, Song song)
         {
-            sb.AppendLine("WaveSabreCore::Device *SongFactory(SongRenderer::DeviceId id)");
+            sb.AppendLine("inline Device *SongFactory(DeviceId id)");
             sb.AppendLine("{");
 
             var devicesUsed = new List<Song.DeviceId>();
@@ -56,18 +58,24 @@ namespace WaveSabreConvert
             {
                 sb.AppendLine("\tswitch (id)");
                 sb.AppendLine("\t{");
+                bool first = true;
 
                 foreach (var id in devicesUsed)
                 {
                     var enumName = id.ToString();
                     var typeName = Song.GetTypeNameFromDeviceId(id);
-                    sb.AppendLine("\tcase SongRenderer::DeviceId::" + enumName + ": return new " + typeName + "();");
+                    if (first)
+                    {
+                        first = false;
+                        sb.AppendLine("\tdefault:");
+                    }
+                    sb.AppendLine("\tcase DeviceId::" + enumName + ": return new " + typeName + "();");
                 }
 
                 sb.AppendLine("\t}");
             }
 
-            sb.AppendLine("\treturn nullptr;");
+            //sb.AppendLine("\treturn nullptr;");
 
             sb.AppendLine("}");
         }
@@ -521,7 +529,7 @@ namespace WaveSabreConvert
             sb.AppendLine($"static constexpr size_t kSongTrackCount = {song.Tracks.Count};");
             sb.AppendLine("");
 
-            sb.AppendLine("const unsigned char SongBlob[] =");
+            sb.AppendLine("extern __declspec(selectany) const unsigned char SongBlob[] = ");
             sb.Append("{");
             int numsPerLine = 10;
             for (int i = 0; i < blob.Length; i++)
