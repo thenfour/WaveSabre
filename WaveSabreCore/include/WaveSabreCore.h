@@ -14,4 +14,6 @@
 
 #include "../GigaSynth/Maj7Basic.hpp"
 
+#include "../rendered.hpp"
+
 #endif

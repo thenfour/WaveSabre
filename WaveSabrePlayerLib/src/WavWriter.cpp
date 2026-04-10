@@ -4,9 +4,9 @@
 
 namespace WaveSabrePlayerLib
 {
-	WavWriter::WavWriter(const SongRenderer::Song *song, int numRenderThreads)
+	WavWriter::WavWriter(int numRenderThreads)
 	{
-		songRenderer = new SongRenderer(song, numRenderThreads);
+		songRenderer = new SongRenderer(numRenderThreads);
 	}
 
 	WavWriter::~WavWriter()
@@ -27,7 +27,7 @@ namespace WaveSabrePlayerLib
     const int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
 #endif  // MIN_SIZE_REL
 	
-	int numSamples = (int)(z * songRenderer->GetLength()) / stepSize * stepSize;
+	int numSamples = (int)(z * WaveSabreCore::kSongLengthSeconds) / stepSize * stepSize;
 
 		auto file = fopen(fileName, "wb");
 

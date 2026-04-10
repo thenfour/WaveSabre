@@ -1,6 +1,5 @@
 add_executable(Maj7ConsolePlayer
-	main.cpp
-	../WaveSabreExecutableMusicPlayer/rendered.hpp)
+	main.cpp)
 
 target_link_libraries(Maj7ConsolePlayer WaveSabrePlayerLib)
 

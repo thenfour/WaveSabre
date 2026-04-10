@@ -31,9 +31,9 @@ namespace WaveSabreCore
 		CurrentSampleRateRecipF = 1.0f / static_cast<float>(sampleRate);
 		NyquistHz = CurrentSampleRateF * 0.5f;
 	}
-#endif  // MIN_SIZE_REL
 
 	int Helpers::CurrentTempo = 120;
+#endif  // MIN_SIZE_REL
 }
 
 //thread_local size_t cc::gLogIndent = 0;

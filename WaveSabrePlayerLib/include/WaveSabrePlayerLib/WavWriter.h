@@ -12,7 +12,7 @@ namespace WaveSabrePlayerLib
 	public:
 		typedef void (*ProgressCallback)(double progress, void *data);
 
-		WavWriter(const SongRenderer::Song *song, int numRenderThreads);
+		explicit WavWriter(int numRenderThreads);
 		~WavWriter();
 
 		void Write(const char *fileName, ProgressCallback callback, void *data);

@@ -304,14 +304,14 @@ namespace WaveSabreConvert
             //writer.Write(("WSBR0001".Select(ch => Convert.ToByte(ch)).ToArray()));
 
             // song settings
-            writer.Write(song.Tempo);
+            //writer.Write(song.Tempo);
             //writer.Write(song.SampleRate);
-            writer.Write(song.Length);
-            writer.Write((byte)song.TimestampScaleLog2);
-            writer.Write((byte)song.NoteDurationScaleLog2);
+            // writer.Write(song.Length);
+            // writer.Write((byte)song.TimestampScaleLog2);
+            // writer.Write((byte)song.NoteDurationScaleLog2);
 
             // serialize all devices
-            writer.Write(song.Devices.Count);
+            //writer.Write(song.Devices.Count);
             foreach (var device in song.Devices)
             {
                 writer.Write(device.Id, (byte)device.Id);
@@ -320,7 +320,7 @@ namespace WaveSabreConvert
             }
 
             // serialize all midi lanes
-            writer.Write(song.MidiLanes.Count);
+            //writer.Write(song.MidiLanes.Count);
             for (int iMidiLane = 0; iMidiLane < song.MidiLanes.Count; ++ iMidiLane)
             {
                 var midiLane = song.MidiLanes[iMidiLane];
@@ -462,8 +462,8 @@ namespace WaveSabreConvert
 
             } // for each midi lane
 
-            // serialize each track
-            writer.Write(song.Tracks.Count);
+            // serialize each track; must be in dependency order.
+            //writer.Write(song.Tracks.Count);
             for (int iTrack = 0; iTrack < song.Tracks.Count; ++ iTrack)
             {
                 var track = song.Tracks[iTrack];
@@ -511,6 +511,15 @@ namespace WaveSabreConvert
         void SerializeBlob(StringBuilder sb, Song song, ILog logger)
         {
             var blob = CreateBinary(song, logger).CompleteSong.GetByteArray();
+
+            sb.AppendLine($"static constexpr int kSongTempoBPM = {song.Tempo};");
+            sb.AppendLine($"static constexpr int kSongLengthSeconds = {(int)Math.Floor(song.Length)};");
+            sb.AppendLine($"static constexpr int kSongTimenstampScaleLog2 = {song.TimestampScaleLog2};");
+            sb.AppendLine($"static constexpr int kSongNoteDurationScaleLog2 = {song.NoteDurationScaleLog2};");
+            sb.AppendLine($"static constexpr size_t kSongDeviceCount = {song.Devices.Count};");
+            sb.AppendLine($"static constexpr size_t kSongMidiLaneCount = {song.MidiLanes.Count};");
+            sb.AppendLine($"static constexpr size_t kSongTrackCount = {song.Tracks.Count};");
+            sb.AppendLine("");
 
             sb.AppendLine("const unsigned char SongBlob[] =");
             sb.Append("{");

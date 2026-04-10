@@ -12,7 +12,7 @@ namespace WaveSabrePlayerLib
 
 		//virtual int GetTempo() const = 0;
 		//virtual int GetSampleRate() const = 0;
-		virtual double GetLength() const = 0;
+		//virtual double GetLength() const = 0;
 		virtual double GetSongPos() const = 0;
 	};
 }

@@ -1,6 +1,7 @@
 #include <WaveSabrePlayerLib/WavWriter.h>
+#include <WaveSabrePlayerLib/WaveOutPlayer.hpp>
 
-#include "../WaveSabreExecutableMusicPlayer/rendered.hpp"
+//#include <WaveSabreCore/rendered.hpp>
 
 //static constexpr int kNumRenderThreads = 48;
 
@@ -50,7 +51,7 @@ struct ProgressContext
 };
 ProgressContext gProgressContext;
 
-double GetSongLengthSeconds(const WaveSabrePlayerLib::SongRenderer::Song& song)
+double GetSongLengthSeconds(const WaveSabreCore::Song& song)
 {
   WaveSabreCore::M7::Deserializer ds{(const uint8_t*)song.blob};
   ds.ReadUInt32();  // bpm
@@ -98,11 +99,11 @@ int main(int argc, char** argv)
     // catch up. for this prod should be more than enough.
     // create renderer and waveoutplayer.
 
-    WaveSabrePlayerLib::SongRenderer::Song song;
-    song.blob = SongBlob;
-    song.factory = SongFactory;
+    //WaveSabreCore::Song song;
+    //song.blob = SongBlob;
+    //song.factory = SongFactory;
 
-    WSPlayerApp::Renderer renderer(GetConsoleWindow(), song);
+    WSPlayerApp::Renderer renderer(GetConsoleWindow(), WaveSabreCore::gSong);
     WSPlayerApp::WaveOutPlayer player(renderer);
 
     renderer.Begin();
@@ -131,7 +132,7 @@ int main(int argc, char** argv)
     // NB: 24 is the number of render threads.
     // optimal appears to be roughly 1.5x logical processor count.
     // probably depends on the song's graph topology; i'd actually prefer a fixed thread count based on the graph; a hard-coded graph plan.
-    WaveSabrePlayerLib::WavWriter writer(&Song, 24);
+    WaveSabrePlayerLib::WavWriter writer(&WaveSabreCore::gSong, 24);
     writer.Write(outputPath, ProgressCallback, nullptr);
   }
   printf("\n");

@@ -19,7 +19,7 @@ namespace WSPlayerApp
             Rendering,
             Done,
         };
-        SongRenderer::Song gSong;
+        //WaveSabreCore::Song gSong;
         WSTime gSongLength;
         WSTime gSongRendered;
         WSTime gRenderTime;
@@ -37,18 +37,17 @@ namespace WSPlayerApp
         HANDLE mhRenderThread;
         DWORD mProcessorCount = 0;
 
-        Renderer(HWND hWndNotify, const SongRenderer::Song& song) :
+        Renderer(HWND hWndNotify) :
             mhWndNotify(hWndNotify)
         {
             SYSTEM_INFO sysInfo;
             GetSystemInfo(&sysInfo);
 
-            gSong = song;
             mProcessorCount = sysInfo.dwNumberOfProcessors;
-            gpRenderer = new SongRenderer(&gSong, mProcessorCount);
+            gpRenderer = new SongRenderer(mProcessorCount);
             //gSampleRate = gpRenderer->GetSampleRate();
 
-            gSongLength.SetMilliseconds(int32_t(gpRenderer->GetLength() * 1000));
+            gSongLength.SetMilliseconds(WaveSabreCore::kSongLengthSeconds * 1000);
             static_assert(SongRenderer::NumChannels == 2, "everything here assumes stereo");
             gAllocatedSampleCount = gSongLength.GetStereoSamples() +
                                     (WaveSabreCore::Helpers::CurrentSampleRateI *

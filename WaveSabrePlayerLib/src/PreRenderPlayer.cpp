@@ -2,13 +2,13 @@
 
 namespace WaveSabrePlayerLib
 {
-	PreRenderPlayer::PreRenderPlayer(const SongRenderer::Song *song, int numRenderThreads, ProgressCallback callback, void *data, int playbackBufferSizeMs)
+	PreRenderPlayer::PreRenderPlayer(int numRenderThreads, ProgressCallback callback, void *data, int playbackBufferSizeMs)
 	{
-		SongRenderer songRenderer(song, numRenderThreads);
+		SongRenderer songRenderer(numRenderThreads);
 
 		//tempo = songRenderer.GetTempo();
 		//sampleRate = songRenderer.GetSampleRate();
-		length = songRenderer.GetLength();
+		//length = songRenderer.GetLength();
 
 		constexpr int stepSize = 100 * SongRenderer::NumChannels;
 #ifdef MIN_SIZE_REL
@@ -16,7 +16,7 @@ namespace WaveSabrePlayerLib
 #else 
 		const int z = WaveSabreCore::Helpers::CurrentSampleRateI * SongRenderer::NumChannels;
 #endif  // MIN_SIZE_REL
-		renderBufferSize = (int)(z * songRenderer.GetLength()) / stepSize * stepSize;
+		renderBufferSize = (int)(z * WaveSabreCore::kSongLengthSeconds) / stepSize * stepSize;
 		renderBuffer = new SongRenderer::Sample[renderBufferSize];
 
 		int stepCounter = 0;
@@ -73,10 +73,10 @@ namespace WaveSabrePlayerLib
 	//	return sampleRate;
 	//}
 
-	double PreRenderPlayer::GetLength() const
-	{
-		return length;
-	}
+	//double PreRenderPlayer::GetLength() const
+	//{
+	//	return length;
+	//}
 
 	double PreRenderPlayer::GetSongPos() const
 	{

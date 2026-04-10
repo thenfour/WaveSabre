@@ -2,11 +2,10 @@
 
 namespace WaveSabrePlayerLib
 {
-	RealtimePlayer::RealtimePlayer(const SongRenderer::Song *song, int numRenderThreads, int bufferSizeMs)
-		: song(song)
-		, numRenderThreads(numRenderThreads)
+	RealtimePlayer::RealtimePlayer(int numRenderThreads, int bufferSizeMs)
+		: numRenderThreads(numRenderThreads)
 		, bufferSizeMs(bufferSizeMs)
-		, songRenderer(new SongRenderer(song, numRenderThreads))
+		, songRenderer(new SongRenderer(numRenderThreads))
 		, renderThread(nullptr)
 	{
 	}
@@ -26,7 +25,7 @@ namespace WaveSabrePlayerLib
 		if (songRenderer)
 			delete songRenderer;
 
-		songRenderer = new SongRenderer(song, numRenderThreads);
+		songRenderer = new SongRenderer(numRenderThreads);
     renderThread =
         new DirectSoundRenderThread(renderCallback, this, WaveSabreCore::Helpers::CurrentSampleRateI, bufferSizeMs);
 	}
@@ -41,10 +40,10 @@ namespace WaveSabrePlayerLib
 	//	return WaveSabreCore::Helpers::CurrentSampleRateI;  // songRenderer->GetSampleRate();
 	//}
 
-	double RealtimePlayer::GetLength() const
-	{
-		return songRenderer->GetLength();
-	}
+	//double RealtimePlayer::GetLength() const
+	//{
+	//	return songRenderer->GetLength();
+	//}
 
 	double RealtimePlayer::GetSongPos() const
 	{

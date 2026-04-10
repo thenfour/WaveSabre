@@ -1,6 +1,5 @@
 set(CMAKE_WIN32_EXECUTABLE ON)
 add_executable(WaveSabreExecutableMusicPlayer WIN32
-	rendered.hpp
 	main.cpp)
 
 target_link_libraries(WaveSabreExecutableMusicPlayer WaveSabrePlayerLib)

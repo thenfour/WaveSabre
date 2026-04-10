@@ -40,7 +40,6 @@ using namespace WSPlayerApp;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-#include "rendered.hpp"
 #define TEXT_INTRO "\"Dinette\"\r\nby tenfour/RBBS for Revision 2024\r\n\r\n"
 
 
@@ -401,10 +400,10 @@ int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR cmdline, int show)
 
     auto oldProc = (WNDPROC)::SetWindowLongPtrA(hMain, GWLP_WNDPROC, (LONG_PTR)WindowProc);
 
-    SongRenderer::Song song;
-    song.blob = SongBlob;
-    song.factory = SongFactory;
-    gpRenderer = new Renderer(hMain, song);
+    //SongRenderer::Song song;
+    //song.blob = SongBlob;
+    //song.factory = SongFactory;
+    gpRenderer = new Renderer(hMain);
     gpPlayer = new WaveOutPlayer(*gpRenderer);
 
 #ifdef FANCY_PAINT

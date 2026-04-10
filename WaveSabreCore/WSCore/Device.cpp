@@ -41,11 +41,11 @@ namespace WaveSabreCore
 		Helpers::CurrentSampleRateF = sampleRate;
 		Helpers::CurrentSampleRateRecipF = 1.0f / sampleRate;
 	}
-#endif
 	void Device::SetTempo(int tempo)
 	{
 		Helpers::CurrentTempo = tempo;
 	}
+#endif
 
 	void Device::LoadDefaults() {
 		M7::ImportDefaultsArray(numParams, mDefaults16__, mParamCache__);

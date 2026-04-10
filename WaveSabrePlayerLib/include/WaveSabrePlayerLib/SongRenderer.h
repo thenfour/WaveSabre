@@ -416,30 +416,6 @@ namespace WaveSabrePlayerLib
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	struct SongRenderer : GraphProcessor::INodeList
 	{
-		// NB: keep in sync with WaveSabreConvert/Song.cs
-		enum class DeviceId
-		{
-            Maj7Analyze,
-            Maj7Comp,
-            Maj7CReverb,
-            Maj7Crush,
-            Maj7Delay,
-            Maj7EQ,
-            Maj7GigaSynth,
-            Maj7MBC,
-            Maj7Saturation,
-            Maj7Space,
-            Maj7StereoImager,
-			Maj7Modulate,
-		};
-
-		typedef WaveSabreCore::Device* (*DeviceFactory)(DeviceId);
-
-		typedef struct {
-			DeviceFactory factory;
-			const unsigned char* blob;
-		} Song;
-
 		enum class EventType
 		{
 			NoteOff = 0,
@@ -493,7 +469,7 @@ namespace WaveSabrePlayerLib
 				float Volume;
 			} Receive;
 
-			Track(SongRenderer* songRenderer, DeviceFactory factory, WaveSabreCore::M7::Deserializer& ds, int timestampScaleLog2)
+			Track(SongRenderer* songRenderer, WaveSabreCore::DeviceFactory factory, WaveSabreCore::M7::Deserializer& ds)
 			{
 				this->songRenderer = songRenderer;
 
@@ -535,7 +511,7 @@ namespace WaveSabrePlayerLib
 					for (int i = 0; i < numAutomations; i++)
 					{
 						int deviceIndex = ds.ReadVarUInt32();
-						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]], ds, timestampScaleLog2);
+						automations[i] = new Automation(songRenderer, songRenderer->devices[devicesIndicies[deviceIndex]], ds, WaveSabreCore::kSongTimenstampScaleLog2);
 					}
 				}
 
@@ -734,28 +710,31 @@ namespace WaveSabrePlayerLib
 		}; // class track
 
 
-		SongRenderer(const Song* song, int numRenderThreads)
+		explicit SongRenderer(int numRenderThreads)
 		{
-			WaveSabreCore::M7::Deserializer ds{ (const uint8_t*)song->blob };
+			WaveSabreCore::M7::Deserializer ds{ (const uint8_t*)WaveSabreCore::gSong.blob };
 
 			//ds.ReadUInt32(); // assert(r = WSBR)
 			//ds.ReadUInt32(); // assert 4-byte version
 
-			bpm = ds.ReadUInt32();
+			//bpm = ds.ReadUInt32();
 			//sampleRate = ds.ReadUInt32();
-			length = ds.ReadDouble();
-			uint32_t timestampScaleLog2 = ds.ReadUByte();
-			uint32_t noteDurationScaleLog2 = ds.ReadUByte();
+			//length = ds.ReadDouble();
+			//uint32_t timestampScaleLog2 = ds.ReadUByte();
+			//uint32_t noteDurationScaleLog2 = ds.ReadUByte();
 
 			// deserialize all devices
-			numDevices = ds.ReadUInt32();
-			devices = new WaveSabreCore::Device * [numDevices];
-			for (int i = 0; i < numDevices; i++)
+			//numDevices = ds.ReadUInt32();
+			//devices = new WaveSabreCore::Device * [kSongDeviceCount];
+			for (int i = 0; i < WaveSabreCore::kSongDeviceCount; i++)
 			{
 				auto& d = devices[i];
-				d = song->factory((DeviceId)ds.ReadUByte());
+				d = WaveSabreCore::gSong.factory((WaveSabreCore::DeviceId)ds.ReadUByte());
 				//d->SetSampleRate(HARD_CODED_SAMPLE_RATE);// (float)sampleRate);
-				d->SetTempo(bpm);
+#ifndef MIN_SIZE_REL
+				// min-size builds hard-code bpm.
+				d->SetTempo(kSongTempoBPM);
+#endif // #ifndef MIN_SIZE_REL
 				int chunkSize = ds.ReadVarUInt32();
 				const uint8_t* expectedCursor = ds.mpCursor + chunkSize;
 				d->SetBinary16DiffChunk(ds);
@@ -767,9 +746,9 @@ namespace WaveSabrePlayerLib
 			// the payload contains just note+duration data;
 
 			// deserialize all midi event lanes
-			numMidiLanes = ds.ReadUInt32();
-			midiLanes = new MidiLane[numMidiLanes];
-			for (int i = 0; i < numMidiLanes; i++)
+			//numMidiLanes = ds.ReadUInt32();
+			midiLanes = new MidiLane[WaveSabreCore::kSongMidiLaneCount];
+			for (int i = 0; i < WaveSabreCore::kSongMidiLaneCount; i++)
 			{
 				int flags = ds.ReadUByte();
 				bool fixedVelocity = !!(flags & 1); // no velocities serialized
@@ -790,7 +769,7 @@ namespace WaveSabrePlayerLib
 					//e.Type = (EventType)(t & 3);
 					//e.TimeStamp = t >> 2;
 					e.Type = EventType::NoteOn;
-					timestampCursor += t << timestampScaleLog2;
+					timestampCursor += t << WaveSabreCore::kSongTimenstampScaleLog2;
 					e.TimeStamp = timestampCursor; // NB: this is now an absolute time! to be later handled
 					e.Note = 60;
 					e.Velocity = 100;
@@ -819,7 +798,7 @@ namespace WaveSabrePlayerLib
 				//if (!oneShot) {
 				for (int m = 0; m < numEvents; m++)
 				{
-					midiLane.events[m].DurationSamples = ds.ReadVarUInt32() << noteDurationScaleLog2;
+					midiLane.events[m].DurationSamples = ds.ReadVarUInt32() << WaveSabreCore::kSongNoteDurationScaleLog2;
 				}
 				//}
 
@@ -861,13 +840,13 @@ namespace WaveSabrePlayerLib
 
 			} // for each midi lane
 
-			numTracks = ds.ReadUInt32();
-			this->INodeList_NodeCount = numTracks;
+			//numTracks = ds.ReadUInt32();
+			this->INodeList_NodeCount = WaveSabreCore::kSongTrackCount;
 
-			this->tracks = (Track*)malloc(sizeof(Track) * numTracks);
-			for (int i = 0; i < numTracks; i++)
+			this->tracks = (Track*)malloc(sizeof(Track) * WaveSabreCore::kSongTrackCount);
+			for (int i = 0; i < WaveSabreCore::kSongTrackCount; i++)
 			{
-				new (this->tracks + i) Track(this, song->factory, ds, timestampScaleLog2);
+				new (this->tracks + i) Track(this, WaveSabreCore::gSong.factory, ds);
 			}
 
 			// it's interesting to just create a thread for each track and let the system schedule (and therefore less synchronization in our threads). but it's not more efficient.
@@ -879,42 +858,21 @@ namespace WaveSabrePlayerLib
 			mpGraphRunner->ProcessGraph(numSamples);
 
 			// Copy final output
-			float** masterTrackBuffers = tracks[numTracks - 1].Buffers;
+			float** masterTrackBuffers = tracks[WaveSabreCore::kSongTrackCount - 1].Buffers;
 			for (int i = 0; i < numSamples; i++)
 			{
 				buffer[i] = WaveSabreCore::M7::math::Sample32To16(masterTrackBuffers[i & 1][i >> 1]);
 			}
 		}
 
-		//int GetTempo() const
-		//{
-		//	return bpm;
-		//}
-		//int GetSampleRate() const
-		//{
-		//	return sampleRate;
-		//}
-		double GetLength() const
-		{
-			return length;
-		}
-
-
 		GraphProcessor* mpGraphRunner = nullptr;
 
 		int songDataIndex;
 
-		int bpm;
-		//int sampleRate;
-		double length;
+		WaveSabreCore::Device* devices[WaveSabreCore::kSongDeviceCount];
 
-		int numDevices;
-		WaveSabreCore::Device** devices;
-
-		int numMidiLanes;
 		MidiLane* midiLanes;
 
-		int numTracks;
 		Track* tracks;
 
 		virtual GraphProcessor::INode* INodeList_GetNode(int i) override {
