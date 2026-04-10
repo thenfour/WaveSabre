@@ -641,11 +641,14 @@ struct Maj7MBC : public Device
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[0], s[0]);
       WRITE_ANALYSIS_SAMPLE(isGuiVisible, mInputAnalysis[1], s[1]);
       WRITE_SPECTRUM_SAMPLE(isGuiVisible, mInputSpectrum, inputStereo);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
       if (isGuiVisible)
       {
         mInputMidSpectrum.ProcessSample(inputMs[0]);
         mInputSideSpectrum.ProcessSample(inputMs[1]);
       }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
       if (mbEnable)
       {
@@ -722,8 +725,10 @@ struct Maj7MBC : public Device
       if (isGuiVisible)
       {
         const M7::FloatPair outputMs = s.MSEncode();
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
         mOutputMidSpectrum.ProcessSample(outputMs[0]);
         mOutputSideSpectrum.ProcessSample(outputMs[1]);
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
       }
 
       outputs[0][i] = s[0];
