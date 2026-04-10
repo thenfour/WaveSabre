@@ -20,7 +20,7 @@ inline Device* SongFactory(DeviceId id)
   return nullptr;
 }
 
-static constexpr int kSongTempoBPM = 120;
+static constexpr int kSongTempoBPM = 120; // NB: Make sure this is copied to Helpers.h.
 static constexpr int kSongLengthSeconds = 240;
 static constexpr int kSongTimenstampScaleLog2 = 2;
 static constexpr int kSongNoteDurationScaleLog2 = 7;

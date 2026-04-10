@@ -1,8 +1,7 @@
 #pragma once
 
 #include <WaveSabreCore.h>
-#include <WaveSabrePlayerLib.h>
-using namespace WaveSabrePlayerLib;
+#include <WaveSabrePlayerLib/SongRenderer.h>
 
 #include "PlayerAppConfig.hpp"
 #include "PlayerAppUtils.hpp"

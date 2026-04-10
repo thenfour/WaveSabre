@@ -1,5 +1,5 @@
 #include "Helpers.h"
-
+#include "../rendered.hpp"
 
 #ifdef _DEBUG
 namespace cc

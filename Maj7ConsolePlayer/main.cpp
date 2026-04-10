@@ -103,7 +103,7 @@ int main(int argc, char** argv)
     //song.blob = SongBlob;
     //song.factory = SongFactory;
 
-    WSPlayerApp::Renderer renderer(GetConsoleWindow(), WaveSabreCore::gSong);
+    WSPlayerApp::Renderer renderer(GetConsoleWindow());
     WSPlayerApp::WaveOutPlayer player(renderer);
 
     renderer.Begin();
@@ -132,7 +132,7 @@ int main(int argc, char** argv)
     // NB: 24 is the number of render threads.
     // optimal appears to be roughly 1.5x logical processor count.
     // probably depends on the song's graph topology; i'd actually prefer a fixed thread count based on the graph; a hard-coded graph plan.
-    WaveSabrePlayerLib::WavWriter writer(&WaveSabreCore::gSong, 24);
+    WaveSabrePlayerLib::WavWriter writer(24);
     writer.Write(outputPath, ProgressCallback, nullptr);
   }
   printf("\n");
