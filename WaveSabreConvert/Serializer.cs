@@ -349,36 +349,14 @@ namespace WaveSabreConvert
                 bool fixedVel = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixedvelocity"));
 
                 // oneshot elides durations
-                //bool oneShot = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#oneshot"));
+                bool oneShot = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#oneshot"));
 
                 // fixednote elides note value for note on events.
                 bool fixedNote = song.Tracks.Where(t => t.MidiLaneId == iMidiLane).Any(t => t.Name.ToLowerInvariant().Contains("#fixednote"));
-                int flags = (fixedVel ? 1 : 0) + (fixedNote ? 2 : 0);// + (oneShot ? 4 : 0);
+                int flags = (fixedVel ? 1 : 0) + (fixedNote ? 2 : 0) + (oneShot ? 4 : 0);
                 writer.WriteMidiLane(iMidiLane, (byte)flags);
 
                 var midiEvents = midiLane.MidiEvents.Where(m => true);
-                //if (oneShot)
-                //{
-                //    // oneshot track styles just don't emit noteoffs at all. but for each event we elide, we have to roll the time delta into the next emitted event.
-                //    List<DeltaCodedEvent> l = new List<DeltaCodedEvent>();
-                //    int remainderTime = 0;
-                //    for (int i = 0; i < midiLane.MidiEvents.Count; ++ i)
-                //    {
-                //        var midiEvent = midiLane.MidiEvents[i];
-                //        if (midiEvent.Type == EventType.NoteOff)
-                //        {
-                //            remainderTime += midiEvent.TimeFromLastEvent;
-                //        } else
-                //        {
-                //            // emit.
-                //            midiEvent.TimeFromLastEvent += remainderTime;
-                //            remainderTime = 0;
-                //            l.Add(midiEvent);
-                //        }
-                //    }
-
-                //    midiEvents = l;
-                //}
 
                 writer.WriteMidiLane(iMidiLane, midiEvents.Count());
                 
@@ -448,7 +426,7 @@ namespace WaveSabreConvert
                     }
                 }
 
-                //if (!oneShot)
+                if (!oneShot)
                 {
                     foreach (var e in midiEvents)
                     {
@@ -527,6 +505,7 @@ namespace WaveSabreConvert
             sb.AppendLine($"static constexpr size_t kSongDeviceCount = {song.Devices.Count};");
             sb.AppendLine($"static constexpr size_t kSongMidiLaneCount = {song.MidiLanes.Count};");
             sb.AppendLine($"static constexpr size_t kSongTrackCount = {song.Tracks.Count};");
+            sb.AppendLine($"static constexpr int kSongOneshotDurationSamples = 256;");
             sb.AppendLine("");
 
             sb.AppendLine("extern __declspec(selectany) const unsigned char SongBlob[] = ");

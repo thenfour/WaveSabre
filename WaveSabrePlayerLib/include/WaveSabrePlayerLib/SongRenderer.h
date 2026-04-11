@@ -753,7 +753,7 @@ namespace WaveSabrePlayerLib
 				int flags = ds.ReadUByte();
 				bool fixedVelocity = !!(flags & 1); // no velocities serialized
 				bool fixedNote = !!(flags & 2); // no note values serialized
-				//bool oneShot = !!(flags & 4); // no durations serialized
+				bool oneShot = !!(flags & 4); // no durations serialized
 
 				int numEvents = ds.ReadUInt32();
 				auto& midiLane = midiLanes[i];
@@ -795,15 +795,14 @@ namespace WaveSabrePlayerLib
 				}
 
 				// duration field
-				//if (!oneShot) {
 				for (int m = 0; m < numEvents; m++)
 				{
-					midiLane.events[m].DurationSamples = ds.ReadVarUInt32() << WaveSabreCore::kSongNoteDurationScaleLog2;
+					midiLane.events[m].DurationSamples = oneShot ?
+						WaveSabreCore::kSongOneshotDurationSamples :
+						ds.ReadVarUInt32() << WaveSabreCore::kSongNoteDurationScaleLog2;
 				}
-				//}
 
 				// now we have a collection of notes, but we need to convert it to a list of note on / note off pairs.
-				//if (!oneShot) {
 				midiLane.numEvents *= 2;
 				// we already have the space allocated. we need to fill that extra space with the note off events with absolute timestamps.
 				// then, use qsort() based on timestamp
@@ -825,8 +824,6 @@ namespace WaveSabrePlayerLib
 					Event* eventB = (Event*)b;
 					return eventA->TimeStamp - eventB->TimeStamp;
 					});
-
-				//} // if !oneshot
 
 				// delta encode.
 				int lastEventTimestamp = 0;
