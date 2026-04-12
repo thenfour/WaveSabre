@@ -2,416 +2,275 @@
 
 #include <new>     // for placement new
 #include <WaveSabreCore.h>
-
-//#define HARD_CODED_SAMPLE_RATE 44100
-
-
-// Leaving this profiling code here because it was pretty useful during development & optimization of the new graph runner.
-
-//#ifdef MIN_SIZE_REL
-//
-//#else // #ifdef MIN_SIZE_REL
-//	class Stopwatch {
-//	public:
-//		Stopwatch() {
-//			LARGE_INTEGER f;
-//			QueryPerformanceFrequency(&f);
-//			m_frequency = f.QuadPart;
-//			m_ticksToMillisecondsDivisor = m_frequency / 1000;
-//		}
-//
-//		void start() {
-//			if (m_running)
-//				return;
-//			m_startTick = QueryTicks();
-//			m_running = true;
-//		}
-//
-//		void stop() {
-//			if (!m_running)
-//				return;
-//			auto currentTick = QueryTicks();
-//			m_elapsedTicks += currentTick - m_startTick;
-//			m_running = false;
-//		}
-//
-//		void reset() {
-//			m_startTick = 0;
-//			m_elapsedTicks = 0;
-//			m_running = false;
-//		}
-//
-//		uint64_t getElapsedTicks() const {
-//			uint64_t runningElapsedTicks = m_running ? (QueryTicks() - m_startTick) : 0;
-//			uint64_t r = m_elapsedTicks + runningElapsedTicks;
-//			return r;
-//		}
-//
-//		uint32_t getElapsedMilliseconds() const {
-//			return (uint32_t)(getElapsedTicks() / m_ticksToMillisecondsDivisor);
-//		}
-//
-//		void addTicks(uint64_t ms)
-//		{
-//			m_elapsedTicks += ms;
-//		}
-//
-//	private:
-//		static uint64_t QueryTicks() {
-//			LARGE_INTEGER t;
-//			QueryPerformanceCounter(&t);
-//			return t.QuadPart;
-//		}
-//
-//		uint64_t m_ticksToMillisecondsDivisor;
-//		bool m_running = false;
-//		uint64_t m_frequency = { 0 };
-//		uint64_t m_startTick = { 0 };
-//		std::atomic_uint64_t m_elapsedTicks = { 0 };
-//	};
-//
-//	struct GraphRunnerProfiler
-//	{
-//		GraphRunnerProfiler(int nMaxParallel) :
-//			mNMaxParallel(nMaxParallel),
-//			mpParallelTimes(new Stopwatch[nMaxParallel + 1]) // 0 index is valid and accumulates idle time.
-//		{
-//		}
-//		~GraphRunnerProfiler()
-//		{
-//			delete[] mpParallelTimes;
-//		}
-//
-//		const int mNMaxParallel;
-//		std::atomic_int mWorkersWorking = 0;
-//		Stopwatch mRuntime; // runtime spent in graph. no parallelism accounted for; this is what the user experiences.
-//		Stopwatch mWorktime; // amount of time spent doing work. because of parallelism this should be greater than runtime.
-//		Stopwatch* const mpParallelTimes; // runtime spent at various parallel levels. total should be roughly equal to mRuntime.
-//		std::atomic_bool mDump;
-//
-//		void BeginGraph()
-//		{
-//			if (mDump) {
-//				mDump = false;
-//				char s[200];
-//				wsprintfA(s, "Runtime:  %u\r\n", mRuntime.getElapsedMilliseconds());
-//				::OutputDebugStringA(s);
-//				wsprintfA(s, "Worktime: %u\r\n", mWorktime.getElapsedMilliseconds());
-//				::OutputDebugStringA(s);
-//				auto wrr = MulDiv(mWorktime.getElapsedMilliseconds(), 100, mRuntime.getElapsedMilliseconds());
-//				wsprintfA(s, "Work/Run ratio: %d.%02d\r\n", (wrr / 100), (wrr % 100));
-//				::OutputDebugStringA(s);
-//				uint32_t maxParallelTime = 0;
-//				for (int i = 0; i < mNMaxParallel; ++i) {
-//					maxParallelTime = std::max(maxParallelTime, mpParallelTimes[i].getElapsedMilliseconds());
-//				}
-//				for (int i = 0; i < mNMaxParallel; ++i) {
-//					static constexpr size_t maxBarSize = 50;
-//					auto barCount = MulDiv(mpParallelTimes[i].getElapsedMilliseconds(), maxBarSize, maxParallelTime);
-//					char bar[maxBarSize * 2] = { 0 };
-//					memset(bar, '#', barCount);
-//					bar[barCount] = 0;
-//					wsprintfA(s, "Parallel time [%2d]: %s\r\n", i, bar);
-//					::OutputDebugStringA(s);
-//				}
-//			}
-//			mWorkersWorking = 0;
-//			mRuntime.start();
-//		}
-//		void EndGraph()
-//		{
-//			mRuntime.stop();
-//			mWorkersWorking = 0;
-//		}
-//		void BeginWork(Stopwatch& sw)
-//		{
-//			auto p = mWorkersWorking.fetch_add(1);
-//			mpParallelTimes[p].stop();
-//			mpParallelTimes[p + 1].start();
-//			sw.start();
-//		}
-//		void EndWork(Stopwatch& sw)
-//		{
-//			mWorktime.addTicks(sw.getElapsedTicks());
-//			auto p = mWorkersWorking.fetch_sub(1);
-//			mpParallelTimes[p].stop();
-//			mpParallelTimes[p - 1].start();
-//		}
-//		void Dump()
-//		{
-//			mDump = true;
-//		}
-//	};
-//
-//#endif // #ifndef MIN_SIZE_REL
-
-
+#include "SongRenderer2.h"
 
 namespace WaveSabrePlayerLib
 {
-	struct GraphProcessor
-	{
-		enum class NodeStatus
-		{
-			Waiting,
-			ReadyToBePickedUp,
-			Processing,
-			Finished,
-		};
-		struct INode
-		{
-			NodeStatus INode_NodeStatus = NodeStatus::Waiting; // populated by graph
-			int INode_NodesDependingOnThis = 0; // populated by graph
+// 	struct GraphProcessor
+// 	{
+// 		enum class NodeStatus
+// 		{
+// 			Waiting,
+// 			ReadyToBePickedUp,
+// 			Processing,
+// 			Finished,
+// 		};
+// 		struct INode
+// 		{
+// 			NodeStatus INode_NodeStatus = NodeStatus::Waiting; // populated by graph
+// 			int INode_NodesDependingOnThis = 0; // populated by graph
 
-			virtual void INode_Run(int numSamples) = 0;
-			int INode_DirectDependencyCount = 0; // populated by child class (num receives)
-			virtual int INode_GetDependencyIndex(int index) const = 0;
-		};
-		struct INodeList
-		{
-			int INodeList_NodeCount = 0; // populated by child class
-			virtual INode* INodeList_GetNode(int i) = 0;
-		};
+// 			virtual void INode_Run(int numSamples) = 0;
+// 			int INode_DirectDependencyCount = 0; // populated by child class (num receives)
+// 			virtual int INode_GetDependencyIndex(int index) const = 0;
+// 		};
+// 		struct INodeList
+// 		{
+// 			int INodeList_NodeCount = 0; // populated by child class
+// 			virtual INode* INodeList_GetNode(int i) = 0;
+// 		};
 
-		const int mThreadCount;
-		INodeList* const mNodeList = nullptr;
+// 		const int mThreadCount;
+// 		INodeList* const mNodeList = nullptr;
 
-		HANDLE* mThreads = nullptr;
-		HANDLE mEvents[2];
-#define hWorkAvailableEvent mEvents[0]
-#define hGraphCompleteEvent mEvents[1]
+// 		HANDLE* mThreads = nullptr;
+// 		HANDLE mEvents[2];
+// #define hWorkAvailableEvent mEvents[0]
+// #define hGraphCompleteEvent mEvents[1]
 
-		void populateNodesDependingOnThis_dfs(int nodeIndex)
-		{
-			INode& node = *mNodeList->INodeList_GetNode(nodeIndex);
-			for (int i = 0; i < node.INode_DirectDependencyCount; i++)
-			{
-				int dependencyIndex = node.INode_GetDependencyIndex(i);
-				mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
-				populateNodesDependingOnThis_dfs(dependencyIndex);
-			}
-		}
+// 		void populateNodesDependingOnThis_dfs(int nodeIndex)
+// 		{
+// 			INode& node = *mNodeList->INodeList_GetNode(nodeIndex);
+// 			for (int i = 0; i < node.INode_DirectDependencyCount; i++)
+// 			{
+// 				int dependencyIndex = node.INode_GetDependencyIndex(i);
+// 				mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
+// 				populateNodesDependingOnThis_dfs(dependencyIndex);
+// 			}
+// 		}
 
-		// Function to populate INode_NodesDependingOnThis for each node in the graph, hierarchically
-		void populateNodesDependingOnThis()
-		{
-			// already initialized. could assert this.
-			//for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
-			//{
-			//	mNodeList->INodeList_GetNode(i)->INode_NodesDependingOnThis = 0;
-			//}
+// 		// Function to populate INode_NodesDependingOnThis for each node in the graph, hierarchically
+// 		void populateNodesDependingOnThis()
+// 		{
+// 			// already initialized. could assert this.
+// 			//for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
+// 			//{
+// 			//	mNodeList->INodeList_GetNode(i)->INode_NodesDependingOnThis = 0;
+// 			//}
 
-			for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
-			{
-				populateNodesDependingOnThis_dfs(i);
-				//INode& node = *mNodeList->INodeList_GetNode(i);
-				//for (int j = 0; j < node.INode_DirectDependencyCount; j++)
-				//{
-				//	int dependencyIndex = node.INode_GetDependencyIndex(j);
-				//	mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
-				//	populateNodesDependingOnThis_dfs(dependencyIndex);
-				//}
-			}
-		}
+// 			for (int i = 0; i < mNodeList->INodeList_NodeCount; i++)
+// 			{
+// 				populateNodesDependingOnThis_dfs(i);
+// 				//INode& node = *mNodeList->INodeList_GetNode(i);
+// 				//for (int j = 0; j < node.INode_DirectDependencyCount; j++)
+// 				//{
+// 				//	int dependencyIndex = node.INode_GetDependencyIndex(j);
+// 				//	mNodeList->INodeList_GetNode(dependencyIndex)->INode_NodesDependingOnThis++;
+// 				//	populateNodesDependingOnThis_dfs(dependencyIndex);
+// 				//}
+// 			}
+// 		}
 
-		WaveSabreCore::CriticalSection mStateLock;
+// 		WaveSabreCore::CriticalSection mStateLock;
 
-		GraphProcessor(int numThreads, INodeList* nodeList) :
-			mThreadCount(numThreads),
-			mNodeList(nodeList)
-		{
-			populateNodesDependingOnThis();
+// 		GraphProcessor(int numThreads, INodeList* nodeList) :
+// 			mThreadCount(numThreads),
+// 			mNodeList(nodeList)
+// 		{
+// 			populateNodesDependingOnThis();
 
-			for (int i = 0; i < 2; ++i) {
-				mEvents[i] = CreateEvent(0, FALSE, FALSE, 0);
-			}
+// 			for (int i = 0; i < 2; ++i) {
+// 				mEvents[i] = CreateEvent(0, FALSE, FALSE, 0);
+// 			}
 
-			// the calling thread counts but doesn't require a handle. allocating 1 extra saves some code size.
-			mThreads = new HANDLE[numThreads];
-			int ntm1 = numThreads - 1;
-			for (int i = 0; i < ntm1; i++)
-			{
-				mThreads[i] = CreateThread(0, 0, renderThreadProc, this, 0, 0);
-				// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
-				SetThreadPriority(mThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
-			}
-		}
+// 			// the calling thread counts but doesn't require a handle. allocating 1 extra saves some code size.
+// 			mThreads = new HANDLE[numThreads];
+// 			int ntm1 = numThreads - 1;
+// 			for (int i = 0; i < ntm1; i++)
+// 			{
+// 				mThreads[i] = CreateThread(0, 0, renderThreadProc, this, 0, 0);
+// 				// on one hand this pulls in a DLL import, on the other hand a few bytes of text is trivial and this helps us get down to the precalc requirement.
+// 				SetThreadPriority(mThreads[i], THREAD_PRIORITY_ABOVE_NORMAL);
+// 			}
+// 		}
 
-		~GraphProcessor()
-		{
-			// TODO: this.
-			// currently, since this is not in the VST, we don't really care much as this is a fire-once kind of class.
-			// ideally we would join all threads, close handles, close event handles ... but it will never be relevant.
-#pragma message("GraphProcessor::~GraphProcessor() Leaking memory to save bits.")
-		}
+// 		~GraphProcessor()
+// 		{
+// 			// TODO: this.
+// 			// currently, since this is not in the VST, we don't really care much as this is a fire-once kind of class.
+// 			// ideally we would join all threads, close handles, close event handles ... but it will never be relevant.
+// #pragma message("GraphProcessor::~GraphProcessor() Leaking memory to save bits.")
+// 		}
 
-		// when attempting to accept work, the result can be that there's just no work to be done, etc.
-		struct AcceptWorkResult
-		{
-			INode* mAcceptedWork = nullptr; // non-null and status updated if accepted
-			int mAdditionalNodesReadyToWorkCount = 0; // does not include the one that you just accepted.
-			bool HasWork() { return !!mAcceptedWork; }
-			void DoTheWork(int numSamples) {
-				mAcceptedWork->INode_Run(numSamples);
-			}
-		};
+// 		// when attempting to accept work, the result can be that there's just no work to be done, etc.
+// 		struct AcceptWorkResult
+// 		{
+// 			INode* mAcceptedWork = nullptr; // non-null and status updated if accepted
+// 			int mAdditionalNodesReadyToWorkCount = 0; // does not include the one that you just accepted.
+// 			bool HasWork() { return !!mAcceptedWork; }
+// 			void DoTheWork(int numSamples) {
+// 				mAcceptedWork->INode_Run(numSamples);
+// 			}
+// 		};
 
-		// variable for workers
-		int mNumFrames = 0;
+// 		// variable for workers
+// 		int mNumFrames = 0;
 
-		std::atomic<int> mNodesToBeProcessed = 0;
+// 		std::atomic<int> mNodesToBeProcessed = 0;
 
-		// the "main thread" or caller.
-		void ProcessGraph(int numSamples)
-		{
-			ResetEvent(hWorkAvailableEvent);
+// 		// the "main thread" or caller.
+// 		void ProcessGraph(int numSamples)
+// 		{
+// 			ResetEvent(hWorkAvailableEvent);
 
-			//gpGraphProfiler->BeginGraph();
-			mNumFrames = numSamples / 2;
-			for (int iNode = 0; iNode < mNodeList->INodeList_NodeCount; ++iNode)
-			{
-				mNodeList->INodeList_GetNode(iNode)->INode_NodeStatus = NodeStatus::Waiting;
-			}
-			mNodesToBeProcessed = mNodeList->INodeList_NodeCount;
+// 			//gpGraphProfiler->BeginGraph();
+// 			mNumFrames = numSamples / 2;
+// 			for (int iNode = 0; iNode < mNodeList->INodeList_NodeCount; ++iNode)
+// 			{
+// 				mNodeList->INodeList_GetNode(iNode)->INode_NodeStatus = NodeStatus::Waiting;
+// 			}
+// 			mNodesToBeProcessed = mNodeList->INodeList_NodeCount;
 
-			// workers all want to wait for work.
-			auto work = MarkWorkDone_Dispatch_AcceptNewWork({});
-			GraphWorkerLoop(work, true);
+// 			// workers all want to wait for work.
+// 			auto work = MarkWorkDone_Dispatch_AcceptNewWork({});
+// 			GraphWorkerLoop(work, true);
 
-			//gpGraphProfiler->EndGraph();
-		}
+// 			//gpGraphProfiler->EndGraph();
+// 		}
 
-		void WorkerThread()
-		{
-			while (true) GraphWorkerLoop({}, false);
-		}
+// 		void WorkerThread()
+// 		{
+// 			while (true) GraphWorkerLoop({}, false);
+// 		}
 
-		// exits when the entire graph has been completed.
-		// todo: return bool if we're shutting down threads
-		void GraphWorkerLoop(AcceptWorkResult work, bool breakWhenGraphComplete)
-		{
-			// the main thread is a bit different because it needs to be alerted when the graph is complete.
-			while (mNodesToBeProcessed)
-			{
-				if (!work.HasWork()) {
-					work = WaitAndAcceptWork(breakWhenGraphComplete); // if work didn't come from the previous loop
-				}
-				if (!work.HasWork()) {
-					continue; // it's theoretically possible that we heard about work being available but when we looked for it none was to be found. just go back to waiting.
-				}
-				WaveSabreCore::MxcsrFlagGuard mxcsrFlagGuard;
-				//Stopwatch sw;
-				//gpGraphProfiler->BeginWork(sw);
-				work.DoTheWork(mNumFrames);
-				//gpGraphProfiler->EndWork(sw);
-				work = MarkWorkDone_Dispatch_AcceptNewWork(work);
-			}
-			SetEvent(hGraphCompleteEvent);
-		}
+// 		// exits when the entire graph has been completed.
+// 		// todo: return bool if we're shutting down threads
+// 		void GraphWorkerLoop(AcceptWorkResult work, bool breakWhenGraphComplete)
+// 		{
+// 			// the main thread is a bit different because it needs to be alerted when the graph is complete.
+// 			while (mNodesToBeProcessed)
+// 			{
+// 				if (!work.HasWork()) {
+// 					work = WaitAndAcceptWork(breakWhenGraphComplete); // if work didn't come from the previous loop
+// 				}
+// 				if (!work.HasWork()) {
+// 					continue; // it's theoretically possible that we heard about work being available but when we looked for it none was to be found. just go back to waiting.
+// 				}
+// 				WaveSabreCore::MxcsrFlagGuard mxcsrFlagGuard;
+// 				//Stopwatch sw;
+// 				//gpGraphProfiler->BeginWork(sw);
+// 				work.DoTheWork(mNumFrames);
+// 				//gpGraphProfiler->EndWork(sw);
+// 				work = MarkWorkDone_Dispatch_AcceptNewWork(work);
+// 			}
+// 			SetEvent(hGraphCompleteEvent);
+// 		}
 
-		// accepts work, but waits if needed.
-		AcceptWorkResult WaitAndAcceptWork(bool breakWhenGraphComplete)
-		{
-			if (breakWhenGraphComplete) {
-				//HANDLE h[2] = { hWorkAvailableEvent , hGraphCompleteEvent };
-				WaitForMultipleObjects(2, mEvents, FALSE, INFINITE); // either event results in the same action
-			}
-			else {
-				WaitForSingleObject(hWorkAvailableEvent, INFINITE);
-			}
-			if (!mNodesToBeProcessed) {
-				return {}; // graph complete.
-			}
+// 		// accepts work, but waits if needed.
+// 		AcceptWorkResult WaitAndAcceptWork(bool breakWhenGraphComplete)
+// 		{
+// 			if (breakWhenGraphComplete) {
+// 				//HANDLE h[2] = { hWorkAvailableEvent , hGraphCompleteEvent };
+// 				WaitForMultipleObjects(2, mEvents, FALSE, INFINITE); // either event results in the same action
+// 			}
+// 			else {
+// 				WaitForSingleObject(hWorkAvailableEvent, INFINITE);
+// 			}
+// 			if (!mNodesToBeProcessed) {
+// 				return {}; // graph complete.
+// 			}
 
-			// it may be that another thread picked up the work before this lock is possible.
-			// in that case maybe no work is accepted, even if work was available. just know that this can happen.
-			auto lock = mStateLock.Enter();
-			return UpdateAndScanGraphForWork();
-		}
+// 			// it may be that another thread picked up the work before this lock is possible.
+// 			// in that case maybe no work is accepted, even if work was available. just know that this can happen.
+// 			auto lock = mStateLock.Enter();
+// 			return UpdateAndScanGraphForWork();
+// 		}
 
-		// this is the routine that scans all graph,
-		// - accepts the highest priority task
-		// - convert waiting tracks to ready_for_processing
-		// WARNING: ASSUMES a lock has been acquired for states. Caller do this.
-		AcceptWorkResult UpdateAndScanGraphForWork()
-		{
-			// dispatch work if there are any available.
-			// that means taking any waiting work and converting to ready/queued
-			AcceptWorkResult r;
-			int highestPrioAccepted = -1;
-			for (int iNode = 0; iNode < mNodeList->INodeList_NodeCount; ++iNode)
-			{
-				auto& node = *mNodeList->INodeList_GetNode(iNode);
+// 		// this is the routine that scans all graph,
+// 		// - accepts the highest priority task
+// 		// - convert waiting tracks to ready_for_processing
+// 		// WARNING: ASSUMES a lock has been acquired for states. Caller do this.
+// 		AcceptWorkResult UpdateAndScanGraphForWork()
+// 		{
+// 			// dispatch work if there are any available.
+// 			// that means taking any waiting work and converting to ready/queued
+// 			AcceptWorkResult r;
+// 			int highestPrioAccepted = -1;
+// 			for (int iNode = 0; iNode < mNodeList->INodeList_NodeCount; ++iNode)
+// 			{
+// 				auto& node = *mNodeList->INodeList_GetNode(iNode);
 
-				if (node.INode_NodeStatus == NodeStatus::Waiting)
-				{
-					// look at dependencies; can we promote to ReadyToBePickedUp?
-					bool allClear = true;
-					for (int iDep = 0; iDep < node.INode_DirectDependencyCount; ++iDep) {
-						auto idepnode = node.INode_GetDependencyIndex(iDep);
-						if (mNodeList->INodeList_GetNode(idepnode)->INode_NodeStatus != NodeStatus::Finished) {
-							allClear = false;
-							break;
-						}
-					}
-					if (allClear) {
-						node.INode_NodeStatus = NodeStatus::ReadyToBePickedUp;
-					}
-				}
+// 				if (node.INode_NodeStatus == NodeStatus::Waiting)
+// 				{
+// 					// look at dependencies; can we promote to ReadyToBePickedUp?
+// 					bool allClear = true;
+// 					for (int iDep = 0; iDep < node.INode_DirectDependencyCount; ++iDep) {
+// 						auto idepnode = node.INode_GetDependencyIndex(iDep);
+// 						if (mNodeList->INodeList_GetNode(idepnode)->INode_NodeStatus != NodeStatus::Finished) {
+// 							allClear = false;
+// 							break;
+// 						}
+// 					}
+// 					if (allClear) {
+// 						node.INode_NodeStatus = NodeStatus::ReadyToBePickedUp;
+// 					}
+// 				}
 
-				if (node.INode_NodeStatus == NodeStatus::ReadyToBePickedUp)
-				{
-					if (node.INode_NodesDependingOnThis > highestPrioAccepted) {
-						highestPrioAccepted = node.INode_NodesDependingOnThis;
-						//if (!r.mAcceptedWork) {
-						r.mAcceptedWork = &node;
-					}
-					r.mAdditionalNodesReadyToWorkCount++;
-				}
+// 				if (node.INode_NodeStatus == NodeStatus::ReadyToBePickedUp)
+// 				{
+// 					if (node.INode_NodesDependingOnThis > highestPrioAccepted) {
+// 						highestPrioAccepted = node.INode_NodesDependingOnThis;
+// 						//if (!r.mAcceptedWork) {
+// 						r.mAcceptedWork = &node;
+// 					}
+// 					r.mAdditionalNodesReadyToWorkCount++;
+// 				}
 
-			} // for each node
+// 			} // for each node
 
-			if (r.HasWork()) {
-				// caller is accepting a node for work. prepare that state.
-				r.mAcceptedWork->INode_NodeStatus = NodeStatus::Processing;
-				--r.mAdditionalNodesReadyToWorkCount; // deduct the one the caller is accepting.
-			}
+// 			if (r.HasWork()) {
+// 				// caller is accepting a node for work. prepare that state.
+// 				r.mAcceptedWork->INode_NodeStatus = NodeStatus::Processing;
+// 				--r.mAdditionalNodesReadyToWorkCount; // deduct the one the caller is accepting.
+// 			}
 
-			return r;
-		}
+// 			return r;
+// 		}
 
-		// Q: why a weird function that does 3 things? to avoid locking any more than i need to.
-		AcceptWorkResult MarkWorkDone_Dispatch_AcceptNewWork(AcceptWorkResult doneWork)
-		{
-			AcceptWorkResult r;
-			{
-				auto lock = mStateLock.Enter();
-				if (doneWork.HasWork())
-				{
-					doneWork.mAcceptedWork->INode_NodeStatus = NodeStatus::Finished;
-					--mNodesToBeProcessed;
-				}
-				if (!mNodesToBeProcessed)
-				{
-					return {}; // graph complete.
-				}
+// 		// Q: why a weird function that does 3 things? to avoid locking any more than i need to.
+// 		AcceptWorkResult MarkWorkDone_Dispatch_AcceptNewWork(AcceptWorkResult doneWork)
+// 		{
+// 			AcceptWorkResult r;
+// 			{
+// 				auto lock = mStateLock.Enter();
+// 				if (doneWork.HasWork())
+// 				{
+// 					doneWork.mAcceptedWork->INode_NodeStatus = NodeStatus::Finished;
+// 					--mNodesToBeProcessed;
+// 				}
+// 				if (!mNodesToBeProcessed)
+// 				{
+// 					return {}; // graph complete.
+// 				}
 
-				r = UpdateAndScanGraphForWork();
-			}
-			for (int i = 0; i < r.mAdditionalNodesReadyToWorkCount; ++i)
-			{
-				SetEvent(hWorkAvailableEvent);
-			}
-			return r;
-		}
+// 				r = UpdateAndScanGraphForWork();
+// 			}
+// 			for (int i = 0; i < r.mAdditionalNodesReadyToWorkCount; ++i)
+// 			{
+// 				SetEvent(hWorkAvailableEvent);
+// 			}
+// 			return r;
+// 		}
 
-		static DWORD WINAPI renderThreadProc(LPVOID lpParameter)
-		{
-			((GraphProcessor*)lpParameter)->WorkerThread();
-			return 0;
-		}
+// 		static DWORD WINAPI renderThreadProc(LPVOID lpParameter)
+// 		{
+// 			((GraphProcessor*)lpParameter)->WorkerThread();
+// 			return 0;
+// 		}
 
-	}; // class GraphProcessor
+// 	}; // class GraphProcessor
+
+using GraphProcessor = GraphProcessor2;
 
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	struct SongRenderer : GraphProcessor::INodeList
@@ -477,9 +336,12 @@ namespace WaveSabrePlayerLib
 					Buffers[i] = new float[WaveSabreCore::Helpers::CurrentSampleRateI];// songRenderer->sampleRate];
 				}
 
+				isLastInBatch = !!ds.ReadUByte();
+
 				volume = ds.ReadFloat();
 
-				INode_DirectDependencyCount = NumReceives = ds.ReadVarUInt32();
+				NumReceives = ds.ReadVarUInt32();
+				Receives = nullptr;
 				if (NumReceives)
 				{
 					Receives = new Receive[NumReceives];
@@ -543,10 +405,10 @@ namespace WaveSabrePlayerLib
 #endif // MIN_SIZE_REL
 			}
 
-			virtual int INode_GetDependencyIndex(int index) const override
-			{
-				return this->Receives[index].SendingTrackIndex;
-			}
+			// virtual int INode_GetDependencyIndex(int index) const override
+			// {
+			// 	return this->Receives[index].SendingTrackIndex;
+			// }
 
 			virtual void INode_Run(int numSamples) override
 			{
@@ -616,6 +478,7 @@ namespace WaveSabrePlayerLib
 
 			int NumReceives;
 			Receive* Receives;
+			bool isLastInBatch;
 
 		private:
 			class Automation
@@ -838,7 +701,7 @@ namespace WaveSabrePlayerLib
 			} // for each midi lane
 
 			//numTracks = ds.ReadUInt32();
-			this->INodeList_NodeCount = WaveSabreCore::kSongTrackCount;
+			//this->INodeList_NodeCount = WaveSabreCore::kSongTrackCount;
 
 			this->tracks = (Track*)malloc(sizeof(Track) * WaveSabreCore::kSongTrackCount);
 			for (int i = 0; i < WaveSabreCore::kSongTrackCount; i++)
@@ -847,7 +710,7 @@ namespace WaveSabrePlayerLib
 			}
 
 			// it's interesting to just create a thread for each track and let the system schedule (and therefore less synchronization in our threads). but it's not more efficient.
-			mpGraphRunner = new GraphProcessor(/*numTracks*/numRenderThreads, this);
+			mpGraphRunner = new GraphProcessor(this);
 		}
 
 		void RenderSamples(Sample* buffer, int numSamples)
@@ -874,6 +737,10 @@ namespace WaveSabrePlayerLib
 
 		virtual GraphProcessor::INode* INodeList_GetNode(int i) override {
 			return &tracks[i];
+		}
+
+		virtual bool INodeList_IsNodeLastInBatch(int i) const override {
+			return tracks[i].isLastInBatch;
 		}
 
 	}; // class SongRenderer

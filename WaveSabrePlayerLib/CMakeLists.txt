@@ -5,6 +5,7 @@ add_library(WaveSabrePlayerLib
 	include/WaveSabrePlayerLib/RealtimePlayer.h
 	include/WaveSabrePlayerLib/IPlayer.h
 	include/WaveSabrePlayerLib/SongRenderer.h
+	include/WaveSabrePlayerLib/SongRenderer2.h
 	include/WaveSabrePlayerLib/waveformgen.hpp
 	include/WaveSabrePlayerLib/OneShotWavWriter.hpp
 	include/WaveSabrePlayerLib/PlayerAppConfig.hpp

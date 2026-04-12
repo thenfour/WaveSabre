@@ -148,7 +148,7 @@ void UpdateStatusText()
         saveIndicatorText,
         renderPercent,
         renderRate / 100, renderRate % 100,
-        gpRenderer->gpRenderer->mpGraphRunner->mThreadCount,
+        WaveSabreCore::kSongMaxThreads,
         gpRenderer->gRenderTime.GetMinutes(), gpRenderer->gRenderTime.GetSecondsOfMinute(), gpRenderer->gRenderTime.GetTenthsOfSecondsOfSeconds(),
         remainingRenderTime.GetMinutes(), remainingRenderTime.GetSecondsOfMinute(), remainingRenderTime.GetTenthsOfSecondsOfSeconds(),
         estTotalRenderTime.GetMinutes(), estTotalRenderTime.GetSecondsOfMinute(), estTotalRenderTime.GetTenthsOfSecondsOfSeconds(),

@@ -13,6 +13,7 @@ namespace WaveSabreConvert
         public string Serialize(Song song, ILog logger)
         {
             var sb = new StringBuilder();
+            var executionPlan = GraphPreprocessor.CalculateExecutionPlan(song);
 
             sb.AppendLine("#include \"SongPayload.hpp\"");
             sb.AppendLine();
@@ -22,7 +23,7 @@ namespace WaveSabreConvert
             SerializeFactory(sb, song);
             sb.AppendLine();
 
-            SerializeBlob(sb, song, logger);
+            SerializeBlob(sb, song, logger, executionPlan);
             sb.AppendLine();
 
             sb.AppendLine("extern __declspec(selectany) Song gSong = {SongFactory, SongBlob};");
@@ -36,7 +37,8 @@ namespace WaveSabreConvert
 
         public BinaryOutput SerializeBinary(Song song, ILog logger)
         {
-            return CreateBinary(song, logger);
+            var executionPlan = GraphPreprocessor.CalculateExecutionPlan(song);
+            return CreateBinary(song, logger, executionPlan);
         }
 
         void SerializeFactory(StringBuilder sb, Song song)
@@ -302,9 +304,14 @@ namespace WaveSabreConvert
             }
         }
 
-        BinaryOutput CreateBinary(Song song, ILog logger)
+        BinaryOutput CreateBinary(Song song, ILog logger, SongExecutionPlan executionPlan)
         {
             BinaryOutput writer = new BinaryOutput();
+
+            if (executionPlan.ExecutionOrder.Count != song.Tracks.Count)
+            {
+                throw new InvalidDataException("Execution plan does not cover every track in the song.");
+            }
 
             // song header.
             // TODO: Organize header version numbers in some structured way. But currently it's not easy to predict what
@@ -448,18 +455,21 @@ namespace WaveSabreConvert
 
             } // for each midi lane
 
-            // serialize each track; must be in dependency order.
-            //writer.Write(song.Tracks.Count);
-            for (int iTrack = 0; iTrack < song.Tracks.Count; ++ iTrack)
+            // serialize each track
+            foreach (var batchEntry in executionPlan.ExecutionOrder)
             {
-                var track = song.Tracks[iTrack];
-                string trackID = $"{track.Name} #{iTrack}";
+                var track = song.Tracks[batchEntry.OriginalTrackIndex];
+                string trackID = $"{track.Name} #{batchEntry.ExecOrderTrackIndex}";
+                
+                writer.WriteToTrack(trackID, (byte)(batchEntry.IsLastInBatch ? 1 : 0));
+                
                 writer.WriteToTrack(trackID, track.Volume);
 
                 writer.WriteToTrackVarUint32(trackID, (UInt32)track.Receives.Count);
                 foreach (var receive in track.Receives)
                 {
-                    writer.WriteToTrackVarUint32(trackID, (UInt32)receive.SendingTrackIndex);
+                    var srcTrackExecutionIndex = executionPlan.RemapOriginalTrackIndexToExecutionOrder(receive.SendingTrackIndex);
+                    writer.WriteToTrackVarUint32(trackID, (UInt32)srcTrackExecutionIndex);
                     writer.WriteToTrackVarUint32(trackID, (UInt32)receive.ReceivingChannelIndex);
                     writer.WriteToTrack(trackID, receive.Volume);
                 }
@@ -494,9 +504,9 @@ namespace WaveSabreConvert
             return writer;
         }
 
-        void SerializeBlob(StringBuilder sb, Song song, ILog logger)
+        void SerializeBlob(StringBuilder sb, Song song, ILog logger, SongExecutionPlan executionPlan)
         {
-            var blob = CreateBinary(song, logger).CompleteSong.GetByteArray();
+            var blob = CreateBinary(song, logger, executionPlan).CompleteSong.GetByteArray();
 
             sb.AppendLine($"static constexpr int kSongTempoBPM = {song.Tempo};");
             sb.AppendLine($"static constexpr int kSongLengthSeconds = {(int)Math.Floor(song.Length)};");
@@ -506,6 +516,7 @@ namespace WaveSabreConvert
             sb.AppendLine($"static constexpr size_t kSongMidiLaneCount = {song.MidiLanes.Count};");
             sb.AppendLine($"static constexpr size_t kSongTrackCount = {song.Tracks.Count};");
             sb.AppendLine($"static constexpr int kSongOneshotDurationSamples = 256;");
+            sb.AppendLine($"static constexpr size_t kSongMaxThreads = {executionPlan.MaxThreads};");
             sb.AppendLine("");
 
             sb.AppendLine("extern __declspec(selectany) const unsigned char SongBlob[] = ");
