@@ -62,17 +62,6 @@ namespace WaveSabreCore
 			return val;
 		}
 
-		float ModMatrixNode::MapValue(ModulationSpec& spec,
-			ModSource src,
-			ModParamIndexOffsets curveParam,
-			ModParamIndexOffsets srcRangeMinParam,
-			ModParamIndexOffsets srcRangeMaxParam,
-			bool isDestN11)
-		{
-			return spec.mParams.ApplyCurveToValue(curveParam,
-				MapValue(spec, src, srcRangeMinParam, srcRangeMaxParam, isDestN11));
-		}
-
 		//void ModMatrixNode::ProcessSample(ModulationSpec* modSpecs)
 			void ModMatrixNode::ProcessSample(ModulationSpec* (&modSpecs)[gModulationCount])
 			{
@@ -135,7 +124,6 @@ namespace WaveSabreCore
 
 								float auxVal = MapValue(spec,
 									auxSource,
-									ModParamIndexOffsets::AuxCurve,
 									ModParamIndexOffsets::AuxRangeMin,
 									ModParamIndexOffsets::AuxRangeMax,
 									false);

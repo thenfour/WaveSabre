@@ -555,7 +555,7 @@ public:
 			if (!m.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled)) {
 
 				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxAttenuation, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxAttenuation]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxCurve, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxCurve]));
+				//m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxCurve, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxCurve]));
 				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxSource, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxSource]));
 				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMin, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMin]));
 				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMax, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMax]));
@@ -719,7 +719,7 @@ namespace WaveSabreCore
 
 			m->mParams.SetBoolValue(ModParamIndexOffsets::AuxEnabled, false);
 			m->mParams.SetEnumValue(ModParamIndexOffsets::AuxSource, ModSource::None);
-			m->mParams.SetN11Value(ModParamIndexOffsets::AuxCurve, 0); //m->mAuxCurve.SetN11Value(0);
+			//m->mParams.SetN11Value(ModParamIndexOffsets::AuxCurve, 0); //m->mAuxCurve.SetN11Value(0);
 			m->mParams.Set01Val(ModParamIndexOffsets::AuxAttenuation, 1);
 
 			m->mParams.SetRangedValue(ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);

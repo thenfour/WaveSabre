@@ -987,12 +987,6 @@ struct ModMatrixNode
                  ModParamIndexOffsets srcRangeMinParam,
                  ModParamIndexOffsets srcRangeMaxParam,
                  bool isDestN11);
-  float MapValue(ModulationSpec& spec,
-                 ModSource src,
-                 ModParamIndexOffsets curveParam,
-                 ModParamIndexOffsets srcRangeMinParam,
-                 ModParamIndexOffsets srcRangeMaxParam,
-                 bool isDestN11);
 };  // ModMatrixNode
 
 static constexpr size_t gOscillatorCount = 4;

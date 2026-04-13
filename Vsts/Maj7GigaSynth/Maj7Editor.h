@@ -1812,20 +1812,12 @@ public:
                  M7::ModParamIndexOffsets rangeMinParam,
                  M7::ModParamIndexOffsets rangeMaxParam,
                  bool isTargetN11,
-                 bool isEnabled,
-                 M7::ModParamIndexOffsets curveParam = M7::ModParamIndexOffsets::Count)
+                 bool isEnabled)
   {
     float srcVal = mRenderContext.mModSourceValues[(int)modSource];
     float rangeMin = spec.mParams.GetScaledRealValue(rangeMinParam, -3, 3, 0);
     float rangeMax = spec.mParams.GetScaledRealValue(rangeMaxParam, -3, 3, 0);
-    float resultingValue = curveParam == M7::ModParamIndexOffsets::Count
-                               ? mRenderContext.mpModMatrix->MapValue(spec, modSource, rangeMinParam, rangeMaxParam, isTargetN11)
-                               : mRenderContext.mpModMatrix->MapValue(spec,
-                                                                      modSource,
-                                                                      curveParam,
-                                                                      rangeMinParam,
-                                                                      rangeMaxParam,
-                                                                      isTargetN11);
+    float resultingValue = mRenderContext.mpModMatrix->MapValue(spec, modSource, rangeMinParam, rangeMaxParam, isTargetN11);
     if (!visible)
     {
       return resultingValue;
@@ -1914,8 +1906,7 @@ public:
                    1,
                    resultingValue,
                    largeStyle);
-            TooltipF(curveParam == M7::ModParamIndexOffsets::Count ? "Value after selected range applied"
-                                         : "Value after selected range and curve applied");
+            TooltipF("Value after selected range applied");
 
     return resultingValue;
   }
@@ -2097,21 +2088,13 @@ public:
             Maj7ImGuiParamScaledFloat(
                 enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMax, "Max", -3, 3, 1, 1, 30, {});
 
-            ImGui::SameLine();
-            Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve,
-                                "Aux Curve",
-                                0,
-                                M7CurveRenderStyle::Rising,
-                                {});
-
             auxVal = ModMeter(true,
                               spec,
                               spec.mAuxSource,
                               M7::ModParamIndexOffsets::AuxRangeMin,
                               M7::ModParamIndexOffsets::AuxRangeMax,
                               false,
-                              isEnabled && isAuxEnabled,
-                              M7::ModParamIndexOffsets::AuxCurve);
+                      isEnabled && isAuxEnabled);
 
             if (ImGui::SmallButton("Reset"))
             {
@@ -2144,8 +2127,7 @@ public:
                               M7::ModParamIndexOffsets::AuxRangeMin,
                               M7::ModParamIndexOffsets::AuxRangeMax,
                               false,
-                              isEnabled && isAuxEnabled,
-                              M7::ModParamIndexOffsets::AuxCurve);
+                              isEnabled && isAuxEnabled);
             if (ImGui::SmallButton("show advanced"))
             {
               mpMaj7VST->mShowAdvancedModAuxControls[imod] = true;
