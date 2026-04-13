@@ -23,8 +23,8 @@
 #undef MAJ7SAT_ENABLE_ANALOG
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
-#define ENABLE_12db_oct_CROSSOVER
-#define ENABLE_36db_oct_CROSSOVER
+#undef ENABLE_12db_oct_CROSSOVER
+#undef ENABLE_36db_oct_CROSSOVER
 #undef FIXED_SLOPE_CROSSOVER_ONLY  // if you enable this, only the 24db/oct crossover will be available. simpler LR filter implementation, smaller binary size.
 
 // Pitchbend is basically not a good idea for size-optimized music. A huge number of discrete values is surprisingly bloaty.

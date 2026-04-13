@@ -334,6 +334,38 @@ inline float ClampFrequencyHz(float hz)
   return math::ClampI(hz, 20.0f, 20000.0f);
 }
 
+inline float SineSoftClip(float amp)
+{
+  // clips amp, which is expected to be a -1,+1 bipolar audio signal that's being overdriven,
+  // with a sine-shaped curve. because of shape, the full range of signal is non-linearly processed.
+  amp = clampN11(amp);
+  return math::sin(amp * math::gPIHalf);
+}
+
+inline float SineSoftClipWithThresh(float amp, float thresh01)
+{
+  // similar to sine soft clip, but specify a point where the shape changes from linear.
+  // i find this more pleasant; it's a kind of clarity control.
+
+  //float sign = (amp < 0.0f) ? -1.0f : 1.0f;
+  float a = abs(amp);
+  // Linear region
+  if (a <= thresh01)
+    return amp;
+  if (thresh01 >= 1.0f)
+    return math::sign(amp);  // if thresh is 1 or above, it's just a hard clip at -1 and 1. also prevents div0 later
+  a = clamp01(a);
+
+  // Normalize [thresh..1] -> [0..1]
+  const float threshRange = 1.0f - thresh01;
+  float x = (a - thresh01) / threshRange;
+  x = math::sin(x * math::gPIHalf);  // apply sine curve to normalized value
+
+  // remap back to [thresh..1]
+  float shaped = thresh01 + threshRange * x;
+  return math::copysignf(shaped, amp);
+}
+
 }  // namespace math
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT

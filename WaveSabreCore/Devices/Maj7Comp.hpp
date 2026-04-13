@@ -183,6 +183,10 @@ namespace WaveSabreCore
 			EnableSidechainFilter,
 			HighPassFrequency, // biquad freq; default lo
 			//HighPassQ, // default 0.2
+
+    SoftClipEnable,
+    SoftClipDrive,
+
 			OutputSignal, //
 			OutputGain, // -inf to +24
 			NumParams,
@@ -201,11 +205,13 @@ namespace WaveSabreCore
 	{"DryWet"},\
 	{"SCFEn"},\
 	{"HPF"},\
+    {"SCEn"},\
+    {"SCDrive"},\
 	{"OutSig"},\
 	{"OutGain"},\
 }
 
-static_assert((int)ParamIndices::NumParams == 13, "param count probably changed and this needs to be regenerated.");
+static_assert((int)ParamIndices::NumParams == 15, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   8230, // InpGain = 0.25118863582611083984
   21844, // Thresh = 0.6666666865348815918
@@ -218,6 +224,8 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   32767, // DryWet = 1
   0, // SCFEn = 0
   5949, // HPF = 0.18155753612518310547
+	0,  // SCEn = 1
+	0,  // SCDrive = 0.98287886381149291992
   0, // OutSig = 0
   8230, // OutGain = 0.25118863582611083984
 };
@@ -323,7 +331,14 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 					
 					// Apply dry/wet mix
 					float finalSignal = M7::math::lerp(inpAudio[ich], wetSignal, mDryWetMix);
-					
+
+					// soft clip
+					if (mParams.GetBoolValue(ParamIndices::SoftClipEnable)) {
+						float drive = mParams.GetLinearVolume(ParamIndices::SoftClipDrive, M7::gVolumeCfg36db);
+						finalSignal = M7::math::SineSoftClip(finalSignal * drive);
+						//finalSignal = M7::math::SineSoftClipWithThresh(finalSignal * drive, 0.5f);
+					}
+
 					// Apply output gain
 					outputs[ich][iSample] = finalSignal * mOutputGainLin;
 
