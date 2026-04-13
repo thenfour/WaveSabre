@@ -79,8 +79,9 @@ namespace WaveSabreCore
 		float mDiff;
 
 		Maj7CompFollower mFollower;
-		M7::BiquadFilter mHighpassFilter;
-		M7::BiquadFilter mLowpassFilter;
+		//M7::BiquadFilter mHighpassFilter;
+		M7::VanillaOnePoleFilter mHighpassFilter;
+		//M7::BiquadFilter mLowpassFilter;
 
 		void SetParams(
 			//float inputGainLin,
@@ -91,10 +92,10 @@ namespace WaveSabreCore
 			float attackMS,
 			float releaseMS,
 			bool enableFilter,
-			float highPassFreq, // hz
-			M7::Decibels highPassQ, // biquad q ~0.2 - ~12.0f
-			float lowPassFreq, // hz
-			M7::Decibels lowPassQ // biquad q ~0.2 - ~12.0f
+			float highPassFreq // hz
+			//M7::Decibels highPassQ // biquad q ~0.2 - ~12.0f
+			//float lowPassFreq, // hz
+			//M7::Decibels lowPassQ // biquad q ~0.2 - ~12.0f
 		)
 		{
 			//mInputGainLin = inputGainLin;
@@ -106,8 +107,14 @@ namespace WaveSabreCore
 
 			mFollower.SetParams(attackMS, releaseMS);
 
-			mHighpassFilter.SetBiquadParams(M7::FilterResponse::Highpass, highPassFreq, highPassQ, 0);
-			mLowpassFilter.SetBiquadParams(M7::FilterResponse::Lowpass, lowPassFreq, lowPassQ, 0);
+			mHighpassFilter.SetParams(
+					M7::FilterResponse::Highpass,
+					highPassFreq,
+					M7::Param01{0}, // q is ignored for one pole
+					0 // gain is ignored for highpass
+			);
+			//mHighpassFilter.SetBiquadParams(M7::FilterResponse::Highpass, highPassFreq, highPassQ, 0);
+			//mLowpassFilter.SetBiquadParams(M7::FilterResponse::Lowpass, lowPassFreq, lowPassQ, 0);
 		}
 
 		// this function defines the transfer curve.
@@ -131,7 +138,7 @@ namespace WaveSabreCore
 			else {
 				// apply highpass and lowpass
 				mSidechain = mHighpassFilter.ProcessSample(detectorInput);
-				mSidechain = mLowpassFilter.ProcessSample(mSidechain);
+				//mSidechain = mLowpassFilter.ProcessSample(mSidechain);
 			}
 			return std::abs(mSidechain);
 		}
@@ -175,9 +182,7 @@ namespace WaveSabreCore
 			//PeakRMSMix, // 0-100%, default 0 (peak)
 			EnableSidechainFilter,
 			HighPassFrequency, // biquad freq; default lo
-			HighPassQ, // default 0.2
-			LowPassFrequency, // biquad freq; default hi
-			LowPassQ, // default 0.2
+			//HighPassQ, // default 0.2
 			OutputSignal, //
 			OutputGain, // -inf to +24
 			NumParams,
@@ -196,14 +201,11 @@ namespace WaveSabreCore
 	{"DryWet"},\
 	{"SCFEn"},\
 	{"HPF"},\
-	{"HPQ"},\
-	{"LPF"},\
-	{"LPQ"},\
 	{"OutSig"},\
 	{"OutGain"},\
 }
 
-static_assert((int)ParamIndices::NumParams == 16, "param count probably changed and this needs to be regenerated.");
+static_assert((int)ParamIndices::NumParams == 13, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   8230, // InpGain = 0.25118863582611083984
   21844, // Thresh = 0.6666666865348815918
@@ -216,9 +218,6 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   32767, // DryWet = 1
   0, // SCFEn = 0
   5949, // HPF = 0.18155753612518310547
-  6553, // HPQ = 0.20000000298023223877
-  26213, // LPF = 0.80000001192092895508
-  6553, // LPQ = 0.20000000298023223877
   0, // OutSig = 0
   8230, // OutGain = 0.25118863582611083984
 };
@@ -291,10 +290,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 					mParams.GetPowCurvedValue(ParamIndices::Attack, MonoCompressor::gAttackCfg, 0),
 					mParams.GetPowCurvedValue(ParamIndices::Release, MonoCompressor::gReleaseCfg, 0),
 					mParams.GetBoolValue(ParamIndices::EnableSidechainFilter),
-					mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig),
-                    M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg)},
-					mParams.GetFrequency(ParamIndices::LowPassFrequency, M7::gFilterFreqConfig),
-                    M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::LowPassQ, M7::gBiquadFilterQCfg)}
+					mParams.GetFrequency(ParamIndices::HighPassFrequency, M7::gFilterFreqConfig)
+                    //M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::HighPassQ, M7::gBiquadFilterQCfg)}
+					//mParams.GetFrequency(ParamIndices::LowPassFrequency, M7::gFilterFreqConfig),
+                    //M7::Decibels{mParams.GetDivCurvedValue(ParamIndices::LowPassQ, M7::gBiquadFilterQCfg)}
 				);
 			}
 		}
