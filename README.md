@@ -17,6 +17,8 @@ And disadvantages:
 
 - Consumes more space (though still comfortably fits in a 32kb EXE music entry)
 
+**NOTE**: A divergent branch, `prepfor64kb`, has been created which removes the less-used or bloaty luxury features, which is a lot smaller (~5kb smaller)
+
 ## Usage
 
 In general, the workflow is like this:
