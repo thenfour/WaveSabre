@@ -84,6 +84,7 @@ void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, Decibels
       b2 = 1.0f - alpha * A;
       break;
     }
+#ifdef ENABLE_SHELVING_FILTERS
     case FilterResponse::LowShelf:
     case FilterResponse::HighShelf:
     {
@@ -107,6 +108,7 @@ void BiquadConfig::SetBiquadParams(FilterResponse response, float freq, Decibels
 
       break;
     }
+#endif // ENABLE_SHELVING_FILTERS
   }
 
   for (int i = 1; i < 6; ++i)

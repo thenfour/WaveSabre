@@ -17,6 +17,7 @@
 #undef ENABLE_BUTTERWORTH_FILTER  // about 150 bytes of compressed binary.
 #undef ENABLE_NOTCH_FILTER
 #undef ENABLE_ALLPASS_FILTER
+#undef ENABLE_SHELVING_FILTERS
 
 // for sat / MBC saturation...
 #undef MAJ7SAT_ENABLE_RARE_MODELS
