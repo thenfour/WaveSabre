@@ -54,8 +54,8 @@ namespace WaveSabreCore {
       32767, // S1RelX = 1
       0, // S1Dly = 0
     };
-    static_assert((int)M7::ModParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultModSpecParams[19] = {
+    static_assert((int)M7::ModParamIndexOffsets::Count == 13, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultModSpecParams[13] = {
       0, // M1en = 0
       0, // M1src = 0
       0, // M1dest1 = 0
@@ -67,14 +67,8 @@ namespace WaveSabreCore {
       24575, // M1scl2 = 0.75
       24575, // M1scl3 = 0.75
       24575, // M1scl4 = 0.75
-      0, // M1Aen = 0
-      0, // M1Asrc = 0
-      32767, // M1Aatt = 1
-      0, // M1Acrv = 0
       10922, // M1rngA = 0.3333333432674407959
       21844, // M1rngB = 0.6666666865348815918
-      16383, // M1rngXA = 0.5
-      21844, // M1rngXB = 0.6666666865348815918
     };
     static_assert((int)M7::LFOParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
     extern const int16_t gDefaultLFOParams[7] = {

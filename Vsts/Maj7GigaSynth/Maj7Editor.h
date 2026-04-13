@@ -2067,99 +2067,99 @@ public:
       }
       ImGui::EndDisabled();
 
-      //ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
-      ImGui::SameLine(0, 60);
-      Maj7ImGuiBoolParamToggleButton((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled,
-                                     "Aux Enable");
-      bool isAuxEnabled = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
+      ////ImGui::SameLine(0, 60); WSImGuiParamCheckbox((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled, "Aux Enable");
+      //ImGui::SameLine(0, 60);
+      //Maj7ImGuiBoolParamToggleButton((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxEnabled,
+      //                               "Aux Enable");
+      //bool isAuxEnabled = spec.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
 
-      {
-        ColorMod& cmaux = isAuxEnabled ? mNopColors : mModulationDisabledColors;
-        auto auxToken = cmaux.Push();
-        ImGui::PushID("aux");
-        ImGui::SameLine();
-        {
-          ImGui::BeginGroup();
-          Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource,
-                                  "Aux Src",
-                                  (int)M7::ModSource::Count,
-                                  M7::ModSource::None,
-                                  modSourceCaptions,
-                                  180);
-          float auxVal = 0;
-          if (mpMaj7VST->mShowAdvancedModAuxControls[imod])
-          {
-            Maj7ImGuiParamScaledFloat(
-                enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMin, "AuxRangeMin", -3, 3, 0, 0, 30, {});
-            ImGui::SameLine();
-            Maj7ImGuiParamScaledFloat(
-                enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMax, "Max", -3, 3, 1, 1, 30, {});
+      //{
+      //  ColorMod& cmaux = isAuxEnabled ? mNopColors : mModulationDisabledColors;
+      //  auto auxToken = cmaux.Push();
+      //  ImGui::PushID("aux");
+      //  ImGui::SameLine();
+      //  {
+      //    ImGui::BeginGroup();
+      //    Maj7ImGuiParamEnumCombo((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxSource,
+      //                            "Aux Src",
+      //                            (int)M7::ModSource::Count,
+      //                            M7::ModSource::None,
+      //                            modSourceCaptions,
+      //                            180);
+      //    float auxVal = 0;
+      //    if (mpMaj7VST->mShowAdvancedModAuxControls[imod])
+      //    {
+      //      Maj7ImGuiParamScaledFloat(
+      //          enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMin, "AuxRangeMin", -3, 3, 0, 0, 30, {});
+      //      ImGui::SameLine();
+      //      Maj7ImGuiParamScaledFloat(
+      //          enabledParamID + (int)M7::ModParamIndexOffsets::AuxRangeMax, "Max", -3, 3, 1, 1, 30, {});
 
-            ImGui::SameLine();
-            Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve,
-                                "Aux Curve",
-                                0,
-                                M7CurveRenderStyle::Rising,
-                                {});
+      //      ImGui::SameLine();
+      //      Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::AuxCurve,
+      //                          "Aux Curve",
+      //                          0,
+      //                          M7CurveRenderStyle::Rising,
+      //                          {});
 
-            auxVal = ModMeter(true,
-                              spec,
-                              spec.mAuxSource,
-                              M7::ModParamIndexOffsets::AuxCurve,
-                              M7::ModParamIndexOffsets::AuxRangeMin,
-                              M7::ModParamIndexOffsets::AuxRangeMax,
-                              false,
-                              isEnabled && isAuxEnabled);
+      //      auxVal = ModMeter(true,
+      //                        spec,
+      //                        spec.mAuxSource,
+      //                        M7::ModParamIndexOffsets::AuxCurve,
+      //                        M7::ModParamIndexOffsets::AuxRangeMin,
+      //                        M7::ModParamIndexOffsets::AuxRangeMax,
+      //                        false,
+      //                        isEnabled && isAuxEnabled);
 
-            if (ImGui::SmallButton("Reset"))
-            {
-              spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
-              spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
-            }
-            ImGui::SameLine();
-            if (ImGui::SmallButton("bip. to pos"))
-            {
-              spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, -3);
-              spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
-            }
-            ImGui::SameLine();
-            if (ImGui::SmallButton("neg"))
-            {
-              spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 1);
-              spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 0);
-            }
+      //      if (ImGui::SmallButton("Reset"))
+      //      {
+      //        spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
+      //        spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+      //      }
+      //      ImGui::SameLine();
+      //      if (ImGui::SmallButton("bip. to pos"))
+      //      {
+      //        spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, -3);
+      //        spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+      //      }
+      //      ImGui::SameLine();
+      //      if (ImGui::SmallButton("neg"))
+      //      {
+      //        spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMin, -3, 3, 1);
+      //        spec.mParams.SetRangedValue(M7::ModParamIndexOffsets::AuxRangeMax, -3, 3, 0);
+      //      }
 
-            if (ImGui::SmallButton("hide advanced"))
-            {
-              mpMaj7VST->mShowAdvancedModAuxControls[imod] = false;
-            }
-          }
-          else
-          {
-            auxVal = ModMeter(false,
-                              spec,
-                              spec.mAuxSource,
-                              M7::ModParamIndexOffsets::AuxCurve,
-                              M7::ModParamIndexOffsets::AuxRangeMin,
-                              M7::ModParamIndexOffsets::AuxRangeMax,
-                              false,
-                              isEnabled && isAuxEnabled);
-            if (ImGui::SmallButton("show advanced"))
-            {
-              mpMaj7VST->mShowAdvancedModAuxControls[imod] = true;
-            }
-          }
+      //      if (ImGui::SmallButton("hide advanced"))
+      //      {
+      //        mpMaj7VST->mShowAdvancedModAuxControls[imod] = false;
+      //      }
+      //    }
+      //    else
+      //    {
+      //      auxVal = ModMeter(false,
+      //                        spec,
+      //                        spec.mAuxSource,
+      //                        M7::ModParamIndexOffsets::AuxCurve,
+      //                        M7::ModParamIndexOffsets::AuxRangeMin,
+      //                        M7::ModParamIndexOffsets::AuxRangeMax,
+      //                        false,
+      //                        isEnabled && isAuxEnabled);
+      //      if (ImGui::SmallButton("show advanced"))
+      //      {
+      //        mpMaj7VST->mShowAdvancedModAuxControls[imod] = true;
+      //      }
+      //    }
 
-          float auxAtten = spec.mParams.Get01Value(M7::ModParamIndexOffsets::AuxAttenuation);
-          float auxScale = M7::math::lerp(1, 1.0f - auxAtten, auxVal);
-          modVal *= auxScale;
+      //    float auxAtten = spec.mParams.Get01Value(M7::ModParamIndexOffsets::AuxAttenuation);
+      //    float auxScale = M7::math::lerp(1, 1.0f - auxAtten, auxVal);
+      //    modVal *= auxScale;
 
-          ImGui::EndGroup();
-        }
-        ImGui::SameLine();
-        WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "Atten");
-        ImGui::PopID();
-      }
+      //    ImGui::EndGroup();
+      //  }
+      //  ImGui::SameLine();
+      //  WSImGuiParamKnob(enabledParamID + (int)M7::ModParamIndexOffsets::AuxAttenuation, "Atten");
+      //  ImGui::PopID();
+      //}
 
       ImGui::SameLine();
       ImGui::BeginGroup();

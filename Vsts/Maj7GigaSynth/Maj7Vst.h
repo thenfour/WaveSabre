@@ -537,15 +537,15 @@ public:
 				m.mParams.SetBoolValue(M7::ModParamIndexOffsets::Enabled, false);
 			}
 
-			// still, try and optimize the aux part. 
-			if (!m.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled)) {
+			//// still, try and optimize the aux part. 
+			//if (!m.mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled)) {
 
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxAttenuation, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxAttenuation]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxCurve, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxCurve]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxSource, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxSource]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMin, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMin]));
-				m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMax, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMax]));
-			}
+			//	m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxAttenuation, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxAttenuation]));
+			//	m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxCurve, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxCurve]));
+			//	m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxSource, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxSource]));
+			//	m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMin, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMin]));
+			//	m.mParams.SetRawVal(M7::ModParamIndexOffsets::AuxRangeMax, M7::math::Default16ToFloatN11(M7::gDefaultModSpecParams[(size_t)M7::ModParamIndexOffsets::AuxRangeMax]));
+			//}
 			// set destination scales
 			for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
 			{
@@ -559,10 +559,10 @@ public:
 			}
 
 			OptimizeBoolParam(m.mParams, M7::ModParamIndexOffsets::Enabled);
-			OptimizeBoolParam(m.mParams, M7::ModParamIndexOffsets::AuxEnabled);
+			//OptimizeBoolParam(m.mParams, M7::ModParamIndexOffsets::AuxEnabled);
 
 			OptimizeEnumParam<M7::ModSource>(m.mParams, M7::ModParamIndexOffsets::Source);
-			OptimizeEnumParam <M7::ModSource>(m.mParams, M7::ModParamIndexOffsets::AuxSource);
+			//OptimizeEnumParam <M7::ModSource>(m.mParams, M7::ModParamIndexOffsets::AuxSource);
 
 			OptimizeEnumParam< M7::ModDestination>(m.mParams, M7::ModParamIndexOffsets::Destination1);
 			OptimizeEnumParam < M7::ModDestination>(m.mParams, M7::ModParamIndexOffsets::Destination2);
@@ -588,9 +588,9 @@ public:
 				continue;
 			}
 			auto src__ = m->mParams.GetEnumValue<M7::ModSource>(M7::ModParamIndexOffsets::Source);
-			auto auxEnabled__ = m->mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
-			auto auxModSource__ = m->mParams.GetEnumValue<M7::ModSource>(M7::ModParamIndexOffsets::AuxSource);
-			if ((src__ == modSource) || (auxEnabled__ && (auxModSource__ == modSource))) {
+			//auto auxEnabled__ = m->mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
+			//auto auxModSource__ = m->mParams.GetEnumValue<M7::ModSource>(M7::ModParamIndexOffsets::AuxSource);
+			if ((src__ == modSource)) {// || (auxEnabled__ && (auxModSource__ == modSource))) {
 				// it's referenced by aux or main source. check that the destination is enabled.
 				for (size_t id = 0; id < M7::gModulationSpecDestinationCount; ++id)
 				{
@@ -632,9 +632,9 @@ public:
 				continue;
 			}
 			auto src__ = m->mParams.GetEnumValue<M7::ModSource>(M7::ModParamIndexOffsets::Source);
-			auto auxEnabled__ = m->mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
-			auto auxModSource__ = m->mParams.GetEnumValue<M7::ModSource>(M7::ModParamIndexOffsets::AuxSource);
-			if ((src__ == modSource) || (auxEnabled__ && (auxModSource__ == modSource))) {
+			//auto auxEnabled__ = m->mParams.GetBoolValue(M7::ModParamIndexOffsets::AuxEnabled);
+			//auto auxModSource__ = m->mParams.GetEnumValue<M7::ModSource>(M7::ModParamIndexOffsets::AuxSource);
+			if ((src__ == modSource)) {// || (auxEnabled__ && (auxModSource__ == modSource))) {
 				// it's referenced by aux or main source.
 				return true;
 			}
@@ -704,16 +704,16 @@ namespace WaveSabreCore
 			}
 
 			m->mParams.SetN11Value(ModParamIndexOffsets::Curve, 0);// mCurve.SetN11Value(0);
-			m->mParams.SetBoolValue(ModParamIndexOffsets::AuxEnabled, false);
-			
-			m->mParams.SetEnumValue(ModParamIndexOffsets::AuxSource, ModSource::None);
-			m->mParams.SetN11Value(ModParamIndexOffsets::AuxCurve, 0); //m->mAuxCurve.SetN11Value(0);
-			m->mParams.Set01Val(ModParamIndexOffsets::AuxAttenuation, 1);
+			//m->mParams.SetBoolValue(ModParamIndexOffsets::AuxEnabled, false);
+			//
+			//m->mParams.SetEnumValue(ModParamIndexOffsets::AuxSource, ModSource::None);
+			//m->mParams.SetN11Value(ModParamIndexOffsets::AuxCurve, 0); //m->mAuxCurve.SetN11Value(0);
+			//m->mParams.Set01Val(ModParamIndexOffsets::AuxAttenuation, 1);
 
 			m->mParams.SetRangedValue(ModParamIndexOffsets::SrcRangeMin, -3, 3, -1);
 			m->mParams.SetRangedValue(ModParamIndexOffsets::SrcRangeMax, -3, 3, 1);
-			m->mParams.SetRangedValue(ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
-			m->mParams.SetRangedValue(ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
+			//m->mParams.SetRangedValue(ModParamIndexOffsets::AuxRangeMin, -3, 3, 0);
+			//m->mParams.SetRangedValue(ModParamIndexOffsets::AuxRangeMax, -3, 3, 1);
 		}
 
 		static inline void GenerateDefaults_Env(EnvelopeNode* n)

@@ -854,14 +854,14 @@ struct ModulationSpec
   bool const* mpDestSourceEnabledCached = &gAlwaysTrue;
 
   float mScales[gModulationSpecDestinationCount];
-  float mAuxAttenuation;
+  //float mAuxAttenuation;
 
   ModulationSpecType mType = ModulationSpecType::General;
   ModSource mSource;
-  ModSource mAuxSource;
+  //ModSource mAuxSource;
   ModDestination mDestinations[gModulationSpecDestinationCount];
   bool mEnabled;
-  bool mAuxEnabled;
+  //bool mAuxEnabled;
   //ModValueMapping mValueMapping;
   //ModValueMapping mAuxValueMapping;
 
@@ -883,11 +883,11 @@ struct ModulationSpec
       mScales[i] = mParams.GetN11Value((int)ModParamIndexOffsets::Scale1 + i, 0);
     }
 
-    mAuxEnabled = mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+    //mAuxEnabled = mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
     //mValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::ValueMapping);
     //mAuxValueMapping = mParams.GetEnumValue<ModValueMapping>(ModParamIndexOffsets::AuxValueMapping);
-    mAuxSource = mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
-    mAuxAttenuation = mParams.Get01Value(ModParamIndexOffsets::AuxAttenuation);
+    //mAuxSource = mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource);
+    //mAuxAttenuation = mParams.Get01Value(ModParamIndexOffsets::AuxAttenuation);
   }
 
   void SetSourceAmp(ModSource mAmpEnvModSourceID,
