@@ -187,7 +187,7 @@ namespace WaveSabreCore
     SoftClipEnable,
     SoftClipDrive,
 
-			OutputSignal, //
+			//OutputSignal, //
 			OutputGain, // -inf to +24
 			NumParams,
 		};
@@ -207,11 +207,10 @@ namespace WaveSabreCore
 	{"HPF"},\
     {"SCEn"},\
     {"SCDrive"},\
-	{"OutSig"},\
 	{"OutGain"},\
 }
 
-static_assert((int)ParamIndices::NumParams == 15, "param count probably changed and this needs to be regenerated.");
+static_assert((int)ParamIndices::NumParams == 14, "param count probably changed and this needs to be regenerated.");
 static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   8230, // InpGain = 0.25118863582611083984
   21844, // Thresh = 0.6666666865348815918
@@ -226,7 +225,6 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
   5949, // HPF = 0.18155753612518310547
 	0,  // SCEn = 1
 	0,  // SCDrive = 0.98287886381149291992
-  0, // OutSig = 0
   8230, // OutGain = 0.25118863582611083984
 };
 
@@ -248,9 +246,10 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		float mCompensationGainLin;
 		float mDryWetMix;
 
-		OutputSignal mOutputSignal = OutputSignal::Normal;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		OutputSignal mOutputSignal = OutputSignal::Normal;
+
 		AnalysisStream mInputAnalysis[2];
 		AnalysisStream mOutputAnalysis[2];
 		AnalysisStream mDetectorAnalysis[2];
@@ -283,7 +282,7 @@ static constexpr int16_t gParamDefaults[(int)ParamIndices::NumParams] = {
 		virtual void SetParam(int index, float value) override
 		{
 			mParamCache[index] = value;
-			mOutputSignal = mParams.GetEnumValue<OutputSignal>(ParamIndices::OutputSignal);
+			//mOutputSignal = mParams.GetEnumValue<OutputSignal>(ParamIndices::OutputSignal);
 			mInputGainLin = mParams.GetLinearVolume(ParamIndices::InputGain, M7::gVolumeCfg24db);
 			mOutputGainLin = mParams.GetLinearVolume(ParamIndices::OutputGain, M7::gVolumeCfg24db);
 			mCompensationGainLin = mParams.GetLinearVolume(ParamIndices::CompensationGain, M7::gVolumeCfg24db);
