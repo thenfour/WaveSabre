@@ -39,9 +39,6 @@ enum class ModSource  // : uint8_t
   Macro2,
   Macro3,
   Macro4,
-  Macro5,
-  Macro6,
-  Macro7,
   Const_1,
   Const_0_5,
   Const_0,
@@ -69,8 +66,7 @@ enum class ModSource  // : uint8_t
       "UnisonoVoice",                                                                            \
       "Macro1",         "Macro2",                                                                                      \
       "Macro3",         "Macro4",                                                                                      \
-      "Macro5",         "Macro6",                                                                                      \
-      "Macro7",         "1 (const)",                                                                                   \
+      "1 (const)",                                                                                                     \
       "0.5 (const)",    "0 (const)",                                                                                   \
       "-0.5 (const)",   "-1 (const)",                                                                                  \
   }
@@ -78,7 +74,7 @@ enum class ModSource  // : uint8_t
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{                           \
       "-",     "O1Env", "O2Env", "O3Env", "O4Env", "S1Env", "S2Env", "S3Env", "S4Env", "MEnv1",   "MEnv2", "MEnv3",    \
       "MEnv4", "LFO1",  "LFO2",  "LFO3",  "LFO4",    "Vel",   "Note",  "Rng",   "|:0,1:|", "UVox",       \
-      "Knob1", "Knob2", "Knob3", "Knob4", "Knob5", "Knob6", "Knob7", "1",     "0.5",   "0",       "-.5",   "-1",       \
+      "Knob1", "Knob2", "Knob3", "Knob4", "1",     "0.5",   "0",       "-.5",   "-1",       \
   };
 
 enum class ModDestination  //: uint8_t
@@ -227,36 +223,24 @@ enum class ModDestination  //: uint8_t
   LFO1WaveshapeA,
   LFO1WaveshapeB,
   LFO1FrequencyParam,
-  LFO1DurationEighthsFine,
-  LFO1DurationMilliseconds,
-  LFO1PhaseRestartTrigger,
   LFO1Phase,
   LFO1Sharpness,
 
   LFO2WaveshapeA,
   LFO2WaveshapeB,
   LFO2FrequencyParam,
-  LFO2DurationEighthsFine,
-  LFO2DurationMilliseconds,
-  LFO2PhaseRestartTrigger,
   LFO2Phase,
   LFO2Sharpness,
 
   LFO3WaveshapeA,
   LFO3WaveshapeB,
   LFO3FrequencyParam,
-  LFO3DurationEighthsFine,
-  LFO3DurationMilliseconds,
-  LFO3PhaseRestartTrigger,
   LFO3Phase,
   LFO3Sharpness,
 
   LFO4WaveshapeA,
   LFO4WaveshapeB,
   LFO4FrequencyParam,
-  LFO4DurationEighthsFine,
-  LFO4DurationMilliseconds,
-  LFO4PhaseRestartTrigger,
   LFO4Phase,
   LFO4Sharpness,
 
@@ -408,9 +392,6 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
   WaveshapeA,
   WaveshapeB,
   FrequencyParam,
-  DurationEighthsFine,
-  DurationMilliseconds,
-  PhaseRestartTrigger,
   Phase,
   Sharpness,
 };
@@ -540,33 +521,21 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
       "LFO1WaveshapeA",                                                                                                \
       "LFO1WaveshapeB",                                                                                                \
       "LFO1FrequencyParam",                                                                                            \
-  "LFO1DurationEighthsFine",\
-  "LFO1DurationMilliseconds",\
-  "LFO1PhaseRestartTrigger",\
       "LFO1Phase",                                                                                                     \
       "LFO1Sharpness",                                                                                                 \
       "LFO2WaveshapeA",                                                                                                \
       "LFO2WaveshapeB",                                                                                                \
       "LFO2FrequencyParam",                                                                                            \
-      "LFO2DurationEighthsFine",\
-      "LFO2DurationMilliseconds",\
-      "LFO2PhaseRestartTrigger",\
       "LFO2Phase",                                                                                                     \
       "LFO2Sharpness",                                                                                                 \
       "LFO3WaveshapeA",                                                                                                \
       "LFO3WaveshapeB",                                                                                                \
       "LFO3FrequencyParam",                                                                                            \
-      "LFO3DurationEighthsFine",\
-      "LFO3DurationMilliseconds",\
-      "LFO3PhaseRestartTrigger",\
       "LFO3Phase",                                                                                                     \
       "LFO3Sharpness",                                                                                                 \
       "LFO4WaveshapeA",                                                                                                \
       "LFO4WaveshapeB",                                                                                                \
       "LFO4FrequencyParam",                                                                                            \
-      "LFO4DurationEighthsFine",\
-      "LFO4DurationMilliseconds",\
-      "LFO4PhaseRestartTrigger",\
       "LFO4Phase",                                                                                                     \
       "LFO4Sharpness",                                                                                                 \
       "FMAmt2to1",                                                                                                     \
@@ -771,33 +740,21 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
 "LFO1ShpA",  \
 "LFO1ShpB",  \
 "LFO1Freq",  \
-"LFO1_8ths",  \
-"LFO1_Ms",  \
-"LFO1_Trig",  \
 "LFO1Ph",  \
 "LFO1Shrp",  \
 "LFO2ShpA",  \
 "LFO2ShpB",  \
 "LFO2Freq",  \
-"LFO2_8ths",  \
-"LFO2_Ms",  \
-"LFO2_Trig",  \
 "LFO2Ph",  \
 "LFO2Shrp",  \
 "LFO3ShpA",  \
 "LFO3ShpB",  \
 "LFO3Freq",  \
-"LFO3_8ths",  \
-"LFO3_Ms",  \
-"LFO3_Trig",  \
 "LFO3Ph",  \
 "LFO3Shrp",  \
 "LFO4ShpA",  \
 "LFO4ShpB",  \
 "LFO4Freq",  \
-"LFO4_8ths",  \
-"LFO4_Ms",  \
-"LFO4_Trig",  \
 "LFO4Ph",  \
 "LFO4Shrp",  \
 "FM2to1",  \
@@ -1037,7 +994,7 @@ static constexpr size_t gOscillatorCount = 4;
 static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
 static constexpr size_t gSamplerCount = 4;
 static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
-static constexpr size_t gMacroCount = 7;
+static constexpr size_t gMacroCount = 4;
 
 static constexpr size_t gModEnvCount = 4;
 static constexpr size_t gModLFOCount = 4;

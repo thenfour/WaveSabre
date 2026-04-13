@@ -27,9 +27,6 @@ enum class GigaSynthParamIndices : uint16_t
   Macro2,
   Macro3,
   Macro4,
-  Macro5,
-  Macro6,
-  Macro7,
 
   FMAmt2to1,
   FMAmt3to1,
@@ -231,11 +228,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO1Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO1PhaseOffset,
   LFO1FrequencyParam,
-  LFO1TimeBasis, // enum TimeBasis
-    LFO1BeatNumerator,
-    LFO1BeatDenominator,
-    LFO1EighthsFine,    // -1 to 1 8th
-    LFO1MS,      // -200,200 ms
   LFO1Sharpness,
 
   LFO2Waveform,  // KEEP IN SYNC WITH LFOParamIndexOffsets
@@ -244,11 +236,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO2Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO2PhaseOffset,
   LFO2FrequencyParam,
-  LFO2TimeBasis, // enum TimeBasis
-    LFO2BeatNumerator,
-    LFO2BeatDenominator,
-    LFO2EighthsFine,    // -1 to 1 8th
-    LFO2MS,      // -200,200 ms
   LFO2Sharpness,
 
   LFO3Waveform,  // KEEP IN SYNC WITH LFOParamIndexOffsets
@@ -257,11 +244,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO3Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO3PhaseOffset,
   LFO3FrequencyParam,
-  LFO3TimeBasis, // enum TimeBasis
-    LFO3BeatNumerator,
-    LFO3BeatDenominator,
-    LFO3EighthsFine,    // -1 to 1 8th
-    LFO3MS,      // -200,200 ms
   LFO3Sharpness,
 
   LFO4Waveform,  // KEEP IN SYNC WITH LFOParamIndexOffsets
@@ -270,11 +252,6 @@ enum class GigaSynthParamIndices : uint16_t
   LFO4Restart,  // if restart, then LFO is per voice. if no restart, then it's per synth.
   LFO4PhaseOffset,
   LFO4FrequencyParam,
-  LFO4TimeBasis, // enum TimeBasis
-    LFO4BeatNumerator,
-    LFO4BeatDenominator,
-    LFO4EighthsFine,    // -1 to 1 8th
-    LFO4MS,      // -200,200 ms
   LFO4Sharpness,
 
   Filter1Enabled,
@@ -800,9 +777,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"Macro2"}, \
 {"Macro3"}, \
 {"Macro4"}, \
-{"Macro5"}, \
-{"Macro6"},           \
-{"Macro7"}, \
 {"FM2to1"}, \
 {"FM3to1"}, \
 {"FM4to1"}, \
@@ -989,11 +963,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO1rst"},\
 {"LFO1ph"},           \
 {"LFO1fr"}, \
-    {"LFO1TmB"}, \
-    {"LFO1Num"}, \
-    {"LFO1Den"}, \
-    {"LFO1F8s"}, \
-    {"LFO1ms"}, \
 {"LFO1lp"}, \
 {"LFO2wav"},\
 {"LFO2shA"},\
@@ -1001,11 +970,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO2rst"},\
 {"LFO2ph"},           \
 {"LFO2fr"}, \
-    {"LFO2TmB"}, \
-    {"LFO2Num"}, \
-    {"LFO2Den"}, \
-    {"LFO2F8s"}, \
-    {"LFO2ms"}, \
 {"LFO2lp"}, \
 {"LFO3wav"},\
 {"LFO3shA"},\
@@ -1013,11 +977,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO3rst"},\
 {"LFO3ph"},           \
 {"LFO3fr"}, \
-    {"LFO3TmB"}, \
-    {"LFO3Num"}, \
-    {"LFO3Den"}, \
-    {"LFO3F8s"}, \
-    {"LFO3ms"}, \
 {"LFO3lp"}, \
 {"LFO4wav"},\
 {"LFO4shA"},\
@@ -1025,11 +984,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"LFO4rst"},\
 {"LFO4ph"},           \
 {"LFO4fr"}, \
-    {"LFO4TmB"}, \
-    {"LFO4Num"}, \
-    {"LFO4Den"}, \
-    {"LFO4F8s"}, \
-    {"LFO4ms"}, \
 {"LFO4lp"}, \
 {"F1En"},   \
 {"F1Resp"}, \
@@ -1528,9 +1482,6 @@ enum class MainParamIndices //: uint8_t
   Macro2,
   Macro3,
   Macro4,
-  Macro5,
-  Macro6,
-  Macro7,
 
   FMAmt2to1,
   FMAmt3to1,
@@ -1647,11 +1598,6 @@ enum class LFOParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   Restart,
   PhaseOffset,
   FrequencyParam,
-  TimeBasis, // enum TimeBasis
-    BeatNumerator,
-    BeatDenominator,
-  DurationEighthsFine,
-  DurationMS,
   Sharpness,
   Count,
 };

@@ -1,8 +1,8 @@
 #include "../GigaSynth/GigaParams.hpp"
 namespace WaveSabreCore {
   namespace M7 {
-    static_assert((int)M7::MainParamIndices::Count == 29, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultMasterParams[29] = {
+    static_assert((int)M7::MainParamIndices::Count == 26, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultMasterParams[26] = {
       16422, // Master = 0.50118726491928100586
       0, // Pan = 0
       0, // PolyMon = 0
@@ -17,9 +17,6 @@ namespace WaveSabreCore {
       0, // Macro2 = 0
       0, // Macro3 = 0
       0, // Macro4 = 0
-      0, // Macro5 = 0
-      0, // Macro6 = 0
-      0, // Macro7 = 0
       0, // FM2to1 = 0
       0, // FM3to1 = 0
       0, // FM4to1 = 0
@@ -79,19 +76,14 @@ namespace WaveSabreCore {
       16383, // M1rngXA = 0.5
       21844, // M1rngXB = 0.6666666865348815918
     };
-    static_assert((int)M7::LFOParamIndexOffsets::Count == 12, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultLFOParams[12] = {
+    static_assert((int)M7::LFOParamIndexOffsets::Count == 7, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultLFOParams[7] = {
       15, // LFO1wav = 0.00048828125
       16383, // LFO1shA = 0.5
       16383, // LFO1shB = 0.5
       0, // LFO1rst = 0
       0, // LFO1ph = 0
       19660, // LFO1fr = 0.60000002384185791016
-      0, // LFO1TmB = 0
-      11, // LFO1Num = 0.0003662109375
-      3, // LFO1Den = 0.0001220703125
-      0, // LFO1F8s = 0
-      16383, // LFO1ms = 0.5
       16383, // LFO1lp = 0.5
     };
     static_assert((int)M7::EnvParamIndexOffsets::Count == 11, "param count probably changed and this needs to be regenerated.");

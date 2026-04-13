@@ -189,14 +189,11 @@ public:
 				break;
 			}
 			if (pvst) {
-				static_assert(M7::gMacroCount == 7, "update this here shiz");
+				static_assert(M7::gMacroCount == 4, "update this here shiz");
 				if (ch.mKeyName == "MacroName0") pvst->mMacroNames[0] = ch.mStringValue;
 				if (ch.mKeyName == "MacroName1") pvst->mMacroNames[1] = ch.mStringValue;
 				if (ch.mKeyName == "MacroName2") pvst->mMacroNames[2] = ch.mStringValue;
 				if (ch.mKeyName == "MacroName3") pvst->mMacroNames[3] = ch.mStringValue;
-				if (ch.mKeyName == "MacroName4") pvst->mMacroNames[4] = ch.mStringValue;
-				if (ch.mKeyName == "MacroName5") pvst->mMacroNames[5] = ch.mStringValue;
-				if (ch.mKeyName == "MacroName6") pvst->mMacroNames[6] = ch.mStringValue;
 
 				static_assert(M7::gSourceCount == 8, "update this here shiz");
 				if (ch.mKeyName == "SourceName0") pvst->mSourceNames[0] = ch.mStringValue;
@@ -331,14 +328,11 @@ public:
 		auto settingsObj = doc.Object_MakeKey("PluginSettings");
 		settingsObj.BeginObject();
 			
-		static_assert(M7::gMacroCount == 7, "update this here shiz");
+		static_assert(M7::gMacroCount == 4, "update this here shiz");
 		settingsObj.Object_MakeKey("MacroName0").WriteStringValue(mMacroNames[0]);
 		settingsObj.Object_MakeKey("MacroName1").WriteStringValue(mMacroNames[1]);
 		settingsObj.Object_MakeKey("MacroName2").WriteStringValue(mMacroNames[2]);
 		settingsObj.Object_MakeKey("MacroName3").WriteStringValue(mMacroNames[3]);
-		settingsObj.Object_MakeKey("MacroName4").WriteStringValue(mMacroNames[4]);
-		settingsObj.Object_MakeKey("MacroName5").WriteStringValue(mMacroNames[5]);
-		settingsObj.Object_MakeKey("MacroName6").WriteStringValue(mMacroNames[6]);
 
 		static_assert(M7::gSourceCount == 8, "update this here shiz");
 		settingsObj.Object_MakeKey("SourceName0").WriteStringValue(mSourceNames[0]);
@@ -518,9 +512,9 @@ public:
 		for (auto* lfo : p->mpLFOs) {
 			OptimizeEnumParam<M7::OscillatorWaveform>(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::Waveform);
 			OptimizeBoolParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::Restart);
-      OptimizeEnumParam<M7::TimeBasis>(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::TimeBasis);
-			OptimizeIntParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::BeatNumerator);
-			OptimizeIntParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::BeatDenominator);
+   //   OptimizeEnumParam<M7::TimeBasis>(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::TimeBasis);
+			//OptimizeIntParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::BeatNumerator);
+			//OptimizeIntParam(lfo->mDevice.mParams, M7::LFOParamIndexOffsets::BeatDenominator);
 		}
 
 		// envelopes
@@ -750,11 +744,11 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults_LFO(OscillatorDevice* p)
 		{
 			p->mParams.Set01Val(LFOParamIndexOffsets::FrequencyParam, 0.6f);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
-			p->mParams.SetEnumValue<TimeBasis>(LFOParamIndexOffsets::TimeBasis, TimeBasis::Frequency);
-			p->mParams.SetIntValue(LFOParamIndexOffsets::BeatNumerator, 3);
-			p->mParams.SetIntValue(LFOParamIndexOffsets::BeatDenominator, 1);
-			p->mParams.Set01Val(LFOParamIndexOffsets::DurationEighthsFine, 0);
-			p->mParams.SetBipolarPowCurvedValue(LFOParamIndexOffsets::DurationMS, gEnvTimeCfg, 0);
+			//p->mParams.SetEnumValue<TimeBasis>(LFOParamIndexOffsets::TimeBasis, TimeBasis::Frequency);
+			//p->mParams.SetIntValue(LFOParamIndexOffsets::BeatNumerator, 3);
+			//p->mParams.SetIntValue(LFOParamIndexOffsets::BeatDenominator, 1);
+			//p->mParams.Set01Val(LFOParamIndexOffsets::DurationEighthsFine, 0);
+			//p->mParams.SetBipolarPowCurvedValue(LFOParamIndexOffsets::DurationMS, gEnvTimeCfg, 0);
 
 			p->mParams.SetEnumValue(LFOParamIndexOffsets::Waveform, OscillatorWaveform::DefaultForLFO);// p->mWaveform.SetEnumValue(OscillatorWaveform::TriTrunc);
 			p->mParams.Set01Val(LFOParamIndexOffsets::WaveshapeA, 0.5f);// p->mWaveshape.SetParamValue(0.5f);

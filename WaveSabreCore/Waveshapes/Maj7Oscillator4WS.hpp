@@ -295,7 +295,7 @@ struct TrapezoidCoreBandLimited : public OscillatorCore
 };
 
 using TrapezoidCore = TrapezoidCoreNaive;
-//using TrapezoidCore = TrapezoidCoreBandLimited;
+//using TrapezoidCore = TrapezoidCoreBandLimited; // it's like 500 bytes additional code for blep/blamp.
 
 }  // namespace M7Osc4
 

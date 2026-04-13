@@ -94,7 +94,6 @@ private:
   float mPreviousSample = 0;
   float mCurrentFrequencyHz = 0;
   float mFMFeedbackAmt = 0.0f;
-  bool mPhaseRestartTriggerWasHigh = false;
 
   float mCorrectionFactor = 1;
 
@@ -199,7 +198,6 @@ public:
     mPreviousSample = 0.0f;
     //mCurrentFrequencyHz = 0.0f;
     //mFMFeedbackAmt = 0.0f;
-    mPhaseRestartTriggerWasHigh = false;
     //mLastSample = {};
     mKRateRecalc.Invalidate();
   }
@@ -342,29 +340,12 @@ public:
 #endif  // ENABLE_OSC_LOG
     auto modDestBaseId = mpSrcDevice->mModDestBaseID;
 
-    const float phaseRestartTrigger =
-        mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::PhaseRestartTrigger);
-    const bool phaseRestartTriggerHigh = phaseRestartTrigger > 0.5f;
-    if (phaseRestartTriggerHigh && !mPhaseRestartTriggerWasHigh)
-    {
-      // rising edge on the trigger, restart phase "non-legato" style
-      mCore->ResetOscillator(OscillatorCoreResetFlags::PhaseRestart);
-    }
-    mPhaseRestartTriggerWasHigh = phaseRestartTriggerHigh;
-
     mKRateRecalc.visit(
         [&]()
         {
           auto& params = mpSrcDevice->mParams;
-          const auto timeBasis = params.GetEnumValue<TimeBasis>(
-              LFOParamIndexOffsets::TimeBasis);  // ensure time basis is cached for GetFrequency call below
 
           float finalFreq = 0;
-          switch (timeBasis)
-          {
-            case TimeBasis::Frequency:
-            {
-              // nothing to do, already in frequency mode
               const float freqModVal = mpModMatrix->GetDestinationValue(modDestBaseId,
                                                                         LFOModParamIndexOffsets::FrequencyParam);
               finalFreq = params.GetFrequency(LFOParamIndexOffsets::FrequencyParam,
@@ -372,34 +353,6 @@ public:
                                               gLFOFreqConfig,
                                               0,  // note hz (no keytracking)
                                               freqModVal);
-              break;
-            }
-            case TimeBasis::Time:
-            {
-              const float durationMSModVal =
-                  mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::DurationMilliseconds);
-              const float durationMS = params.GetPowCurvedValue(LFOParamIndexOffsets::DurationMS,
-                                                                gLFOTimeCfg,
-                                                                durationMSModVal);
-              // config has a minimum but still need to clamp becasue of modulation.
-              finalFreq = MillisecondsToHertz(std::max(durationMS, 1.0f));
-              break;
-            }
-            case TimeBasis::Beats:
-            {
-              const int beatNumerator = params.GetIntValue(LFOParamIndexOffsets::BeatNumerator);
-              const int beatDenominator = params.GetIntValue(LFOParamIndexOffsets::BeatDenominator);
-
-              const float eighthsFineModVal =
-                  mpModMatrix->GetDestinationValue(modDestBaseId, LFOModParamIndexOffsets::DurationEighthsFine);
-              const float eighthsFine = params.GetN11Value(LFOParamIndexOffsets::DurationEighthsFine,
-                                                           eighthsFineModVal);
-
-              // convert to frequency.
-              finalFreq = CalcFrequencyHz(beatNumerator, beatDenominator, eighthsFine);
-              break;
-            }
-          }
 
           // 0 frequencies would cause math problems, denormals, infinites... but fortunately they're inaudible so...
           //finalFreq = std::max(finalFreq, 0.0001f);
