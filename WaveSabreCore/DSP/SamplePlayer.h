@@ -8,14 +8,14 @@
 namespace WaveSabreCore
 {
 
-enum class LoopMode  // : uint8_t
-{
-  Disabled,
-  Repeat,
-  // PingPong,
+// enum class LoopMode  // : uint8_t
+// {
+//   Disabled,
+//   Repeat,
+//   // PingPong,
 
-  NumLoopModes,
-};
+//   NumLoopModes,
+// };
 
 class SamplePlayer
 {
@@ -27,7 +27,6 @@ public:
   void RunPrep();
   float Next();
 
-  //WaveSabreCore::LoopMode LoopMode;
   bool mLoopEnabled;
 
   float SampleStart;

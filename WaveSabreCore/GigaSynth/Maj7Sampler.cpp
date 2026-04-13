@@ -278,6 +278,9 @@ float SamplerVoice::ProcessSample(real_t midiNote, float detuneFreqMul, float fm
       mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID + (int)SamplerModParamIndexOffsets::Delay));
   mDelayStep = math::CalculateInc01PerSampleForMS(ms);
 
+  // todo: unify freq calculation with oscillator.
+  // but it would mean changing mod dest offsets so they are the same
+  // and changing param offsets to match as well. for maybe a savings of like 60 bytes of squished code.
   float pitchFineMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID +
                                                         (int)SamplerModParamIndexOffsets::PitchFine);
   float freqMod = mpModMatrix->GetDestinationValue((int)mpSrcDevice->mModDestBaseID +

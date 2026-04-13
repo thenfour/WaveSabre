@@ -6,7 +6,6 @@ namespace WaveSabreCore
 SamplePlayer::SamplePlayer()
 {
   SampleStart = 0.0f;
-  //Reverse = false;
   mLoopEnabled = false;
   LoopStart = 0.0f;
   LoopLength = 1.0f;
@@ -79,16 +78,8 @@ float SamplePlayer::Next()
 
   if (mLoopEnabled)
   {
-      if (sampleDelta > 0.0)
-      {
-        while (samplePos >= (double)roundedLoopEnd)
-          samplePos -= (double)roundedLoopLength;
-      }
-      else
-      {
-        while (samplePos < (double)roundedLoopStart)
-          samplePos += (double)roundedLoopLength;
-      }
+    while (samplePos >= (double)roundedLoopEnd)
+      samplePos -= (double)roundedLoopLength;
   }
 
   return sample;
