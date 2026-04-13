@@ -3,6 +3,7 @@
 
 namespace WaveSabreCore::M7
 {
+#ifdef ENABLE_MOOG_FILTER
 
 void MoogLadderFilter::SetParams(FilterCircuit circuit,
                                  FilterSlope slope,
@@ -99,5 +100,6 @@ void MoogLadderFilter::Recalc()
   m_alpha_0 = real2(1) / (m_k * m_gamma + 1);
 }
 
+#endif // ENABLE_MOOG_FILTER
 
 }  // namespace WaveSabreCore::M7

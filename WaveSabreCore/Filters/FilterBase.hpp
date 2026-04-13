@@ -32,18 +32,18 @@ namespace WaveSabreCore::M7
 //     HP4 = 7,
 // };
 
-enum class FilterCircuit  // : uint8_t
-{
-  Disabled = 0,
-  OnePole,
-  Biquad,
-  Butterworth,
-  Moog,
-  K35,
-  Diode,
+// enum class FilterCircuit  // : uint8_t
+// {
+//   Disabled = 0,
+//   OnePole,
+//   Biquad,
+//   Butterworth,
+//   Moog,
+//   K35,
+//   Diode,
 
-  Count,
-};
+//   Count,
+// };
 
 // 0 = bypass,
 // 1 stage = 12db/oct.
@@ -52,21 +52,21 @@ enum class FilterCircuit  // : uint8_t
 // 4 stage = 48db/oct.
 // ...
 // 8 stage = 96db/oct.
-enum class FilterSlope  // : uint8_t
-{
-  Flat = 0,
-  Slope6dbOct = 1,
-  Slope12dbOct = 2,  // 1 stage of biquad
-  Slope24dbOct = 3,
-  Slope36dbOct = 4,
-  Slope48dbOct = 5,
-  Slope60dbOct = 6,
-  Slope72dbOct = 7,
-  Slope84dbOct = 8,
-  Slope96dbOct = 9,  // 8 stages of biquad
+// enum class FilterSlope  // : uint8_t
+// {
+//   Flat = 0,
+//   Slope6dbOct = 1,
+//   Slope12dbOct = 2,  // 1 stage of biquad
+//   Slope24dbOct = 3,
+//   Slope36dbOct = 4,
+//   Slope48dbOct = 5,
+//   Slope60dbOct = 6,
+//   Slope72dbOct = 7,
+//   Slope84dbOct = 8,
+//   Slope96dbOct = 9,  // 8 stages of biquad
 
-  Count,
-};
+//   Count,
+// };
 
 enum class FilterResponse  // : uint8_t
 {
@@ -121,8 +121,8 @@ INLINE bool DoesFilterSupport(M7::FilterCircuit circuit, M7::FilterSlope slope, 
 
 struct FilterParams
 {
-  FilterCircuit circuit;
-  FilterSlope slope;
+  // FilterCircuit circuit;
+  // FilterSlope slope;
   FilterResponse response;
   real cutoffHz;
   Param01 reso01;
@@ -132,8 +132,8 @@ struct FilterParams
 struct IFilter
 {
   virtual void SetParams(
-      FilterCircuit circuit,
-      FilterSlope slope,
+      // FilterCircuit circuit,
+      // FilterSlope slope,
       FilterResponse response,
       real cutoffHz,
       // NB: this must be a 0-1 param value, because different filters interpret "resonance" differently.
@@ -154,8 +154,9 @@ struct IFilter
 
 struct NullFilter : IFilter
 {
-  virtual void SetParams(FilterCircuit circuit,
-                         FilterSlope slope,
+  virtual void SetParams(
+    // FilterCircuit circuit,
+    //                      FilterSlope slope,
                          FilterResponse response,
                          real cutoffHz,
                          Param01 reso01,

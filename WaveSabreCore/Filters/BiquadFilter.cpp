@@ -175,123 +175,124 @@ float BiquadFilter::GetMagnitudeAtFrequency(float freqHz) const
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
-                                           FilterResponse response,
-                                           float cutoffHz,
-                                           Decibels q,
-                                           float gainDb
-#ifdef ENABLE_BUTTERWORTH_FILTER
-                                           ,
-                                           QStrategy qStrategy
-#endif  // ENABLE_BUTTERWORTH_FILTER
-)
-{
-  CCASSERT(nStages >= 0 && nStages <= kMaxStages);
-
-  // if nStages has increased since last call, we need to reset the new stages.
-  if (nStages > mNStages)
-  {
-    for (size_t i = mNStages; i < nStages; ++i)
-    {
-      mFilters[i].Reset();
-    }
-  }
-
-  mNStages = nStages;
-
-  if (nStages == 0)
-    return;
-
-  const bool splitGainAcrossStages =
-      nStages > 1 &&
-      (response == FilterResponse::Peak || response == FilterResponse::LowShelf || response == FilterResponse::HighShelf);
-  const float perStageGainDb = splitGainAcrossStages ? (gainDb / (float)nStages) : gainDb;
-
-#ifdef ENABLE_BUTTERWORTH_FILTER
-  if (qStrategy == QStrategy::UserResonance)
-  {
-    // Compute coefficients once, then copy to remaining stages.
-    mFilters[0].SetBiquadParams(response, cutoffHz, q, perStageGainDb);
-    for (size_t i = 1; i < nStages; ++i)
-    {
-      mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
-    }
-  }
-  else
-  {
-    for (size_t i = 0; i < nStages; ++i)
-    {
-      const auto sectionQ = ButterworthQForSection(i, nStages);
-      mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, perStageGainDb);
-    }
-  }
-#else   // ENABLE_BUTTERWORTH_FILTER
-  for (size_t i = 0; i < nStages; ++i)
-  {
-    mFilters[i].SetBiquadParams(response, cutoffHz, q, perStageGainDb);
-  }
-#endif  // ENABLE_BUTTERWORTH_FILTER
-
-  //mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
-}
-
-void CascadedBiquadFilter::SetParams(FilterCircuit circuit,
-                                     FilterSlope slope,
-                                     FilterResponse response,
-                                     real cutoffHz,
-                                     Param01 reso01, real gainDb)
-{
-  // convert slope to n stages.
-  int nStages = (int)slope - 1;
-  static_assert(((int)(FilterSlope::Slope12dbOct)-1) == 1, "filter slope enum values must match n stages + 1");
-  static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
-  static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
-
-#ifdef ENABLE_BUTTERWORTH_FILTER
-  if (circuit == FilterCircuit::Butterworth)
-  {
-    SetBiquadParams(nStages, response, cutoffHz, Decibels{0}, gainDb, QStrategy::Butterworth);
-  }
-  else
-  {
-    const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
-    SetBiquadParams(nStages, response, cutoffHz, q, gainDb, QStrategy::UserResonance);
-  }
-#else   // ENABLE_BUTTERWORTH_FILTER
-  const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
-  SetBiquadParams(nStages, response, cutoffHz, q, gainDb);
-#endif  // ENABLE_BUTTERWORTH_FILTER
-}
-
-// IFilter
-float CascadedBiquadFilter::ProcessSample(float x)
-{
-  float y = x;
-  for (size_t i = 0; i < mNStages; ++i)
-  {
-    y = mFilters[i].ProcessSample(y);
-  }
-  return y;  // * mGainCompensationLinear;
-}
-
-
-#ifdef ENABLE_BUTTERWORTH_FILTER
-Decibels ButterworthQForSection(size_t sectionIndex, size_t nStages)
-{
-  // const float angle = (2 * sectionIndex + 1) * math::gPI / (nStages * 4);
-  // const float c2 = 2 * math::cos(angle);
-  // return 1.0f / c2;
-
-  const size_t N = nStages * 2;  // filter order
-  const float k = (float)(sectionIndex + 1);
-  const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
-  const float c = math::cos(angle);
-  return Decibels{1.0f / (2.0f * c)};
-  //const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
-  //return 1.0f / denom;
-
-}
-#endif  // ENABLE_BUTTERWORTH_FILTER
+//void CascadedBiquadFilter::SetBiquadParams(size_t nStages,
+//                                           FilterResponse response,
+//                                           float cutoffHz,
+//                                           Decibels q,
+//                                           float gainDb
+//#ifdef ENABLE_BUTTERWORTH_FILTER
+//                                           ,
+//                                           QStrategy qStrategy
+//#endif  // ENABLE_BUTTERWORTH_FILTER
+//)
+//{
+//  CCASSERT(nStages >= 0 && nStages <= kMaxStages);
+//
+//  // if nStages has increased since last call, we need to reset the new stages.
+//  if (nStages > mNStages)
+//  {
+//    for (size_t i = mNStages; i < nStages; ++i)
+//    {
+//      mFilters[i].Reset();
+//    }
+//  }
+//
+//  mNStages = nStages;
+//
+//  if (nStages == 0)
+//    return;
+//
+//  const bool splitGainAcrossStages =
+//      nStages > 1 &&
+//      (response == FilterResponse::Peak || response == FilterResponse::LowShelf || response == FilterResponse::HighShelf);
+//  const float perStageGainDb = splitGainAcrossStages ? (gainDb / (float)nStages) : gainDb;
+//
+//#ifdef ENABLE_BUTTERWORTH_FILTER
+//  if (qStrategy == QStrategy::UserResonance)
+//  {
+//    // Compute coefficients once, then copy to remaining stages.
+//    mFilters[0].SetBiquadParams(response, cutoffHz, q, perStageGainDb);
+//    for (size_t i = 1; i < nStages; ++i)
+//    {
+//      mFilters[i].CopyParamsAndCoeffsFrom(mFilters[0]);
+//    }
+//  }
+//  else
+//  {
+//    for (size_t i = 0; i < nStages; ++i)
+//    {
+//      const auto sectionQ = ButterworthQForSection(i, nStages);
+//      mFilters[i].SetBiquadParams(response, cutoffHz, sectionQ, perStageGainDb);
+//    }
+//  }
+//#else   // ENABLE_BUTTERWORTH_FILTER
+//  for (size_t i = 0; i < nStages; ++i)
+//  {
+//    mFilters[i].SetBiquadParams(response, cutoffHz, q, perStageGainDb);
+//  }
+//#endif  // ENABLE_BUTTERWORTH_FILTER
+//
+//  //mGainCompensationLinear = mEnableCompensationGain ? CalculateCompensationGainLinear() : 1.0f;
+//}
+//
+//void CascadedBiquadFilter::SetParams(
+//    //FilterCircuit circuit,
+//    //                                 FilterSlope slope,
+//                                     FilterResponse response,
+//                                     real cutoffHz,
+//                                     Param01 reso01, real gainDb)
+//{
+//  // convert slope to n stages.
+//  int nStages = (int)slope - 1;
+//  static_assert(((int)(FilterSlope::Slope12dbOct)-1) == 1, "filter slope enum values must match n stages + 1");
+//  static_assert(((int)(FilterSlope::Slope24dbOct)-1) == 2, "filter slope enum values must match n stages + 1");
+//  static_assert(((int)(FilterSlope::Slope96dbOct)-1) == 8, "filter slope enum values must match n stages + 1");
+//
+//#ifdef ENABLE_BUTTERWORTH_FILTER
+//  if (circuit == FilterCircuit::Butterworth)
+//  {
+//    SetBiquadParams(nStages, response, cutoffHz, Decibels{0}, gainDb, QStrategy::Butterworth);
+//  }
+//  else
+//  {
+//    const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
+//    SetBiquadParams(nStages, response, cutoffHz, q, gainDb, QStrategy::UserResonance);
+//  }
+//#else   // ENABLE_BUTTERWORTH_FILTER
+//  const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
+//  SetBiquadParams(nStages, response, cutoffHz, q, gainDb);
+//#endif  // ENABLE_BUTTERWORTH_FILTER
+//}
+//
+//// IFilter
+//float CascadedBiquadFilter::ProcessSample(float x)
+//{
+//  float y = x;
+//  for (size_t i = 0; i < mNStages; ++i)
+//  {
+//    y = mFilters[i].ProcessSample(y);
+//  }
+//  return y;  // * mGainCompensationLinear;
+//}
+//
+//
+//#ifdef ENABLE_BUTTERWORTH_FILTER
+//Decibels ButterworthQForSection(size_t sectionIndex, size_t nStages)
+//{
+//  // const float angle = (2 * sectionIndex + 1) * math::gPI / (nStages * 4);
+//  // const float c2 = 2 * math::cos(angle);
+//  // return 1.0f / c2;
+//
+//  const size_t N = nStages * 2;  // filter order
+//  const float k = (float)(sectionIndex + 1);
+//  const float angle = ((2.0f * k) - 1.0f) * math::gPI / (2.0f * (float)N);
+//  const float c = math::cos(angle);
+//  return Decibels{1.0f / (2.0f * c)};
+//  //const float denom = (2.0f * c > 1e-6f) ? (2.0f * c) : 1e-6f;
+//  //return 1.0f / denom;
+//
+//}
+//#endif  // ENABLE_BUTTERWORTH_FILTER
 
 
 }  // namespace M7

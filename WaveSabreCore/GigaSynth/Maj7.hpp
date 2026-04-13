@@ -683,7 +683,7 @@ struct Maj7 : public Maj7SynthDevice
       explicit LFOVoice(LFODevice& device, ModMatrixNode& modMatrix);
       LFODevice& mDevice;
       OscillatorNode mNode;
-      FilterNode mFilter;
+      VanillaOnePoleFilter mFilter;
     };
 
     FilterAuxNode* mpFilters[gFilterCount][2];
@@ -723,7 +723,7 @@ struct Maj7 : public Maj7SynthDevice
       for (auto& p : mpLFOs)
       {
         p->mNode.ClearState();
-        p->mFilter.ResetState();
+        p->mFilter.Reset();
       }
 
       for (auto* p : mpOscillatorNodes)
@@ -836,8 +836,7 @@ struct Maj7 : public Maj7SynthDevice
                                                                  (int)lfo.mDevice.mDevice.mModDestBaseID +
                                                                  (int)LFOModParamIndexOffsets::Sharpness));
 
-        lfo.mFilter.SetParams(FilterCircuit::OnePole,
-                              FilterSlope::Slope6dbOct,
+        lfo.mFilter.SetParams(
                               FilterResponse::Lowpass,
                               freq,
                               Param01{0} /*reso*/,

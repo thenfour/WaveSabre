@@ -59,7 +59,7 @@ struct ButterworthFilter : IFilter
 };  // class ButterworthFilter
 
 #else   // ENABLE_BUTTERWORTH_FILTER
-using ButterworthFilter = CascadedBiquadFilter;  // placeholder, to avoid #ifdefs in the code that uses this.
+//using ButterworthFilter = CascadedBiquadFilter;  // placeholder, to avoid #ifdefs in the code that uses this.
 #endif  // ENABLE_BUTTERWORTH_FILTER
 
 }  // namespace M7

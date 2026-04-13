@@ -11,6 +11,7 @@
 // level. So while there may be some interesting use for it, it's not useful right now.
 #undef ENABLE_BIQUAD_COMPENSATION_GAIN
 
+#undef ENABLE_MOOG_FILTER
 #undef ENABLE_DIODE_FILTER         // is about ~350 bytes of compressed binary.
 #undef ENABLE_K35_FILTER           // is about ~380 bytes of binary.
 #undef ENABLE_BUTTERWORTH_FILTER  // about 150 bytes of compressed binary.
@@ -19,7 +20,7 @@
 
 // for sat / MBC saturation...
 #undef MAJ7SAT_ENABLE_RARE_MODELS
-#define MAJ7SAT_ENABLE_ANALOG
+#undef MAJ7SAT_ENABLE_ANALOG
 #undef MAJ7SAT_ENABLE_MIDSIDE
 
 #define ENABLE_12db_oct_CROSSOVER
@@ -39,7 +40,7 @@
 #undef MAJ7_INCLUDE_GSM_SUPPORT  // ~1kb of minified code.
 
 // see width sources for more; mostly the rotation stuff.
-#define MAJ7WIDTH_FULL_FEATURE
+#undef MAJ7WIDTH_FULL_FEATURE
 
 
 // USE_INLINE_LUTS is for perf-optimized.

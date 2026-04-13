@@ -18,38 +18,33 @@ namespace M7
 
 struct FilterNode
 {
-  NullFilter mNullFilter;
-  MoogOnePoleFilter mOnePole;
-  CascadedBiquadFilter mBiquad;
-  ButterworthFilter mButterworth;
-  DiodeFilter mDiode;
-  K35Filter mK35;
-  MoogLadderFilter mMoog;
+  BiquadFilter mFilter;
 
-  IFilter* mSelectedFilter = &mNullFilter;
-
-  void SetParams(FilterCircuit circuit,
-                 FilterSlope slope,
-                 FilterResponse response,
+  void SetParams(FilterResponse response,
                  float cutoffHz,
                  Param01 reso01,
                  float gainDb);
 
-  void ResetState();
-  float ProcessSample(float inputSample);
+  void ResetState()
+  {
+    mFilter.Reset();
+  }
+  float ProcessSample(float inputSample)
+  {
+    return mFilter.ProcessSample(inputSample);
+  }
 
 };  // FilterNode
 
 
 struct FilterAuxNode  // : IAuxEffect
 {
-  FilterNode
-      mFilter;  // stereo. cpu optimization: combine into a stereo filter to eliminate double recalc. but it's more code size.
+  FilterNode mFilter;
 
   ParamAccessor mParams;
 
-  FilterCircuit mFilterCircuit;
-  FilterSlope mFilterSlope;
+  //FilterCircuit mFilterCircuit;
+  //FilterSlope mFilterSlope;
   FilterResponse mFilterResponse;
 
   ModDestination mModDestBase;
@@ -69,8 +64,8 @@ struct FilterAuxNode  // : IAuxEffect
     mModMatrix = &modMatrix;
     mnSampleCount = 0;  // ensure reprocessing after setting these params to avoid corrupt state.
     mNoteHz = noteHz;
-    mFilterCircuit = mParams.GetEnumValue<FilterCircuit>(FilterParamIndexOffsets::FilterCircuit);
-    mFilterSlope = mParams.GetEnumValue<FilterSlope>(FilterParamIndexOffsets::FilterSlope);
+    //mFilterCircuit = mParams.GetEnumValue<FilterCircuit>(FilterParamIndexOffsets::FilterCircuit);
+    //mFilterSlope = mParams.GetEnumValue<FilterSlope>(FilterParamIndexOffsets::FilterSlope);
     mFilterResponse = mParams.GetEnumValue<FilterResponse>(FilterParamIndexOffsets::FilterResponse);
     mEnabledCached = mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);
   }
@@ -88,17 +83,23 @@ struct FilterAuxNode  // : IAuxEffect
           mParams.Get01Value(FilterParamIndexOffsets::Q,
                              mModMatrix->GetDestinationValue((int)mModDestBase + (int)FilterAuxModDestOffsets::Q))};
 
-      mFilter.SetParams(mFilterCircuit,
-                        mFilterSlope,
-                        mFilterResponse,
-                        mParams.GetFrequency(FilterParamIndexOffsets::Freq,
-                                             FilterParamIndexOffsets::FreqKT,
-                                             gFilterFreqConfig,
-                                             mNoteHz,
-                                             mModMatrix->GetDestinationValue((int)mModDestBase +
-                                                                             (int)FilterAuxModDestOffsets::Freq)),
-                        reso01,
-                        0 /* no gain here; it's only for filter types we don't support */);
+      auto freq = mParams.GetFrequency(FilterParamIndexOffsets::Freq,
+                                   FilterParamIndexOffsets::FreqKT,
+                                   gFilterFreqConfig,
+                                   mNoteHz,
+                                   mModMatrix->GetDestinationValue((int)mModDestBase +
+                                                                       (int)FilterAuxModDestOffsets::Freq));
+
+      //const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
+
+      // mFilter
+      //     .SetBiquadParams(mFilterResponse, freq, q, 0);
+
+      mFilter.SetParams(
+                       mFilterResponse,
+                       freq,
+                       reso01,
+                       0 /* no gain here; it's only for filter types we don't support */);
     }
 
     return mFilter.ProcessSample(inputSample);

@@ -9,7 +9,7 @@ inline Device *SongFactory(DeviceId id)
 	default:
 	case DeviceId::Maj7EQ: return new WaveSabreCore::M7::Leveller();
 	case DeviceId::Maj7GigaSynth: return new WaveSabreCore::M7::Maj7();
-	case DeviceId::Maj7MBC: return new WaveSabreCore::Maj7MBC();
+	case DeviceId::Maj7Comp: return new WaveSabreCore::Maj7Comp();
 	case DeviceId::Maj7Space: return new WaveSabreCore::Maj7Space();
 	}
 }

@@ -8,6 +8,7 @@
 #include "../Filters/BiquadFilter.h"
 #include "../Filters/LinkwitzRileyFilter.hpp"
 #include "../Filters/SVFilter.hpp"
+#include "../Filters/Maj7Filter.hpp"
 #include "../GigaSynth/Maj7Basic.hpp"
 #include "../GigaSynth/Maj7Oscillator3Base.hpp"
 #include "./Maj7Oscillator3Shape.hpp"
@@ -480,7 +481,8 @@ struct SAHNoiseCore : public OscillatorCore
   float mHeld = 0.0f;
 
   CorrectionSpill mSpill;
-  CascadedBiquadFilter mFilter;
+  //BiquadFilter mFilter;
+  FilterNode mFilter;
 
   SAHNoiseCore(OscillatorWaveform waveformType, ControlStyle controlStyle)
       : OscillatorCore(waveformType)
@@ -497,8 +499,11 @@ struct SAHNoiseCore : public OscillatorCore
     const FilterResponse responseType = (mControlStyle == ControlStyle::HP_Jitter) ? FilterResponse::Highpass
                                                                                    : FilterResponse::Lowpass;
 
-    mFilter.SetParams(FilterCircuit::Biquad,
-                      FilterSlope::Slope24dbOct,  // 2 stage.
+
+
+    mFilter.SetParams(
+        //FilterCircuit::Biquad,
+        //              FilterSlope::Slope24dbOct,  // 2 stage.
                       responseType,
                       this->GetFrequency(mWaveshapeA),
                       fixedReso01,
@@ -574,7 +579,7 @@ struct SAHNoiseCore : public OscillatorCore
     OscillatorCore::ResetOscillator(flags);
     if (!HasFlag(flags, OscillatorCoreResetFlags::Legato))
     {
-      mFilter.Reset();
+      mFilter.ResetState();
       mSpill.reset();
     }
   }

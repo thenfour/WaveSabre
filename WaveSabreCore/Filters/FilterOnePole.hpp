@@ -16,8 +16,9 @@ namespace M7
 {
 struct MoogOnePoleFilter : public IFilter
 {
-  virtual void SetParams(FilterCircuit circuit,
-                         FilterSlope slope,
+  virtual void SetParams(
+    // FilterCircuit circuit,
+    //                      FilterSlope slope,
                          FilterResponse response,
                          float cutoffHz,
                          Param01 reso01,
@@ -105,6 +106,55 @@ private:
   real2 m_z_1L = 0;  // z-1 storage location, left/mono
 
   void Recalc();
+};
+
+
+class VanillaOnePoleFilter : public IFilter
+{
+public:
+  virtual void SetParams(
+                         FilterResponse response,
+                         float cutoffHz,
+                         Param01 reso01, // ignored,
+                         float gainDb // ignored
+                        ) override
+    {
+      if (response == mResponse && cutoffHz == m_cutoffHz)
+        return;
+      mResponse = response;
+      m_cutoffHz = cutoffHz;
+      float g = CalculateFilterG(cutoffHz);
+      m_a0 = 1.0f - g;
+      m_b1 = g;
+    }
+
+  virtual void Reset() override
+  {
+    m_a0 = 1.0f;
+    m_b1 = 0.0f;
+    m_z_1 = 0.0f;
+  }
+
+virtual float ProcessSample(float xn) override
+{
+   float lp = m_a0 * xn + m_b1 * m_z_1;
+   m_z_1 = lp;
+
+   switch (mResponse)
+   {
+      default:
+      case FilterResponse::Lowpass:
+         return lp;
+      case FilterResponse::Highpass:
+         return xn - lp;
+   }
+}
+  private:
+  FilterResponse mResponse;
+  float m_cutoffHz;
+  real2 m_a0 = 1;
+  real2 m_b1 = 0;
+  real2 m_z_1 = 0;  // z-1 storage location
 };
 
 

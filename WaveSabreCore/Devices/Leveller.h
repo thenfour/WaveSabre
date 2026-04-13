@@ -169,8 +169,8 @@ static constexpr int16_t gLevellerDefaults16[(int)ParamIndices::NumParams] = {
 
     void RecalcFilters()
     {
-      const auto circuit = mParams.GetEnumValue<FilterCircuit>(BandParamOffsets::Circuit);
-      const auto slope = mParams.GetEnumValue<FilterSlope>(BandParamOffsets::Slope);
+      //const auto circuit = mParams.GetEnumValue<FilterCircuit>(BandParamOffsets::Circuit);
+      //const auto slope = mParams.GetEnumValue<FilterSlope>(BandParamOffsets::Slope);
       const auto response = mParams.GetEnumValue<FilterResponse>(BandParamOffsets::Response);
       const auto cutoffHz = mParams.GetFrequency(BandParamOffsets::Freq, gFilterFreqConfig);
       const auto reso01 = Param01{mParams.Get01Value(BandParamOffsets::Q)};
@@ -178,7 +178,7 @@ static constexpr int16_t gLevellerDefaults16[(int)ParamIndices::NumParams] = {
 
       for (size_t i = 0; i < 2; ++i)
       {
-        mFilters[i].SetParams(circuit, slope, response, cutoffHz, reso01, gain);
+        mFilters[i].SetParams(response, cutoffHz, reso01, gain);
       }
     }
 

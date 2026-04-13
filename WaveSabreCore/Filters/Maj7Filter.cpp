@@ -4,57 +4,24 @@
 namespace WaveSabreCore::M7
 {
 
-void FilterNode::SetParams(FilterCircuit circuit,
-                           FilterSlope slope,
-                           FilterResponse response,
+void FilterNode::SetParams(FilterResponse response,
                            float cutoffHz,
                            Param01 reso01,
                            float gainDb)
 {
-  // select filter & set type
-  IFilter* nextFilter = nullptr;
-  switch (circuit)
-  {
-    default:
-    case FilterCircuit::Disabled:
-      nextFilter = &mNullFilter;
-      break;
-    case FilterCircuit::OnePole:
-      nextFilter = &mOnePole;
-      break;
-    case FilterCircuit::Biquad:
-      nextFilter = &mBiquad;
-      break;
-    case FilterCircuit::Butterworth:
-      nextFilter = &mButterworth;
-      break;
-    case FilterCircuit::Diode:
-      nextFilter = &mDiode;
-      break;
-    case FilterCircuit::K35:
-      nextFilter = &mK35;
-      break;
-    case FilterCircuit::Moog:
-      nextFilter = &mMoog;
-      break;
-  }
-  if (mSelectedFilter != nextFilter)
-  {
-    nextFilter->Reset();
-    mSelectedFilter = nextFilter;
-  }
-  mSelectedFilter->SetParams(circuit, slope, response, cutoffHz, reso01, gainDb);
+  const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
+  mFilter.SetBiquadParams(response, cutoffHz, q, gainDb);
 }
 
-void FilterNode::ResetState()
-{
-  mSelectedFilter->Reset();
-}
+// void FilterNode::ResetState()
+// {
+//   mFilter.Reset();
+// }
 
-float FilterNode::ProcessSample(float inputSample)
-{
-  return mSelectedFilter->ProcessSample(inputSample);
-}
+// float FilterNode::ProcessSample(float inputSample)
+// {
+//   return mFilter.ProcessSample(inputSample);
+// }
 
 
 }  // namespace WaveSabreCore::M7

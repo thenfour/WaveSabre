@@ -118,7 +118,7 @@ struct Maj7Width : public Device
                   "band params need to be in sync with main params");
 
     M7::ParamAccessor mParams;
-    M7::MoogOnePoleFilter mSideFilter;
+    M7::VanillaOnePoleFilter mSideFilter;
     //float mLeftSourceN11 = -1.0f;
     //float mRightSourceN11 = 1.0f;
     float mWidthN11 = 0.0f;
@@ -148,8 +148,9 @@ struct Maj7Width : public Device
       mSideHpfActive = sideHpfActive;
       if (mSideHpfActive)
       {
-        mSideFilter.SetParams(M7::FilterCircuit::OnePole,
-                              M7::FilterSlope::Slope6dbOct,
+        mSideFilter.SetParams(
+            //M7::FilterCircuit::OnePole,
+            //                  M7::FilterSlope::Slope6dbOct,
                               M7::FilterResponse::Highpass,
                               sideHpfFreq,
                               M7::Param01{0},

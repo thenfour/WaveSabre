@@ -9,6 +9,7 @@ namespace WaveSabreCore
 {
 namespace M7
 {
+#ifdef ENABLE_MOOG_FILTER
 struct MoogLadderFilter : IFilter
 {
   // assumes that lpfs are initialized with LP
@@ -89,5 +90,6 @@ private:
   real m_cutoffHz;  // = 0;
   real mReso01;     // = 0;// Real(-1); // cached resonance (0..1) for knowing when recalc is not needed.
 };
+#endif // ENABLE_MOOG_FILTER
 }  // namespace M7
 }  // namespace WaveSabreCore
