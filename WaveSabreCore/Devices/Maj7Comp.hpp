@@ -82,6 +82,7 @@ namespace WaveSabreCore
 		M7::BiquadFilter mHighpassFilter;
 		//M7::VanillaOnePoleFilter mHighpassFilter;
 		//M7::BiquadFilter mLowpassFilter;
+		static constexpr float kSidechainHighpassQ = 0.707106781187f;
 
 		void SetParams(
 			//float inputGainLin,
@@ -110,7 +111,7 @@ namespace WaveSabreCore
 			mHighpassFilter.SetBiquadParams(
 					M7::FilterResponse::Highpass,
 					highPassFreq,
-                                      M7::Decibels{0},
+				                      M7::Decibels{kSidechainHighpassQ},
                                 //M7::gBiquadFilterQCfg.ValueToParam01(),  // q is ignored for one pole
 					0 // gain is ignored for highpass
 			);

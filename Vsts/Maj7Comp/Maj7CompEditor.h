@@ -16,16 +16,103 @@ struct Maj7CompEditor : public VstEditor
 	Maj7CompVst* mpMaj7CompVst;
 
 	using ParamIndices = WaveSabreCore::Maj7Comp::ParamIndices;
+	static constexpr float kSoftClipTransferCurveWidth = 120.0f;
+	static constexpr float kSoftClipTransferCurveHeight = 100.0f;
 
 	FrequencyResponseRendererLayered<160, 75, 1, (size_t)Maj7Comp::ParamIndices::NumParams, false> mResponseGraph;
 
 	CompressorVis<480, 180> mCompressorVis[Maj7MBC::gBandCount];
+	const ImVec2 kSoftClipTransferCurveSize{ kSoftClipTransferCurveWidth, kSoftClipTransferCurveHeight };
 
 	Maj7CompEditor(AudioEffect* audioEffect) :
 		VstEditor(audioEffect, 834, 680),
 		mpMaj7CompVst((Maj7CompVst*)audioEffect)
 	{
 		mpMaj7Comp = ((Maj7CompVst *)audioEffect)->GetMaj7Comp();
+	}
+
+	void RenderSoftClipControls()
+	{
+		Maj7ImGuiBoolParamToggleButton(ParamIndices::SoftClipEnable, "Softclip");
+		M7::QuickParam enabledParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::SoftClipEnable) };
+		if (!enabledParam.GetBoolValue()) return;
+
+		ImGui::SameLine();
+		Maj7ImGuiParamVolume((VstInt32)ParamIndices::SoftClipDrive, "Drive", M7::gVolumeCfg36db, 0, {});
+
+		M7::QuickParam driveParam{ GetEffectX()->getParameter((VstInt32)ParamIndices::SoftClipDrive) };
+		float softClipDriveLin = driveParam.GetVolumeLin(M7::gVolumeCfg36db);
+
+		ImGui::SameLine();
+		RenderTransferCurve(kSoftClipTransferCurveSize,
+			{
+				ColorFromHTML("222222"),
+				ColorFromHTML("8888cc"),
+				ColorFromHTML("ffff00"),
+				ColorFromHTML("444444"),
+			},
+			[softClipDriveLin](float x) -> float
+			{
+				return M7::math::SineSoftClip(x * softClipDriveLin);
+			});
+	}
+
+	void RenderOutputSignalControl()
+	{
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		struct OutputSignalOption
+		{
+			Maj7Comp::OutputSignal mValue;
+			const char* mLabel;
+		};
+
+		static constexpr OutputSignalOption outputSignalOptions[] = {
+			{ Maj7Comp::OutputSignal::Normal, "Normal" },
+			{ Maj7Comp::OutputSignal::Sidechain, "Sidechain" },
+			{ Maj7Comp::OutputSignal::Diff, "Delta" },
+		};
+
+		auto currentSignal = mpMaj7Comp->mOutputSignal;
+		const char* preview = outputSignalOptions[0].mLabel;
+		for (const auto& option : outputSignalOptions)
+		{
+			if (option.mValue == currentSignal)
+			{
+				preview = option.mLabel;
+				break;
+			}
+		}
+
+		ImGui::SetNextItemWidth(140);
+		if (ImGui::BeginCombo("Output signal", preview))
+		{
+			for (const auto& option : outputSignalOptions)
+			{
+				bool isSelected = currentSignal == option.mValue;
+				if (ImGui::Selectable(option.mLabel, isSelected))
+				{
+					mpMaj7Comp->mOutputSignal = option.mValue;
+					currentSignal = option.mValue;
+				}
+				if (isSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+
+		if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+		{
+			ImGui::BeginTooltip();
+			ImGui::TextUnformatted("Normal: processed output signal.");
+			ImGui::TextUnformatted("Sidechain: hear the detector path after filtering.");
+			ImGui::TextUnformatted("Delta: hear only the material removed by compression.");
+			ImGui::EndTooltip();
+		}
+#else
+		ImGui::Text("Output signal\r\n#undef");
+#endif
 	}
 
 
@@ -113,9 +200,13 @@ struct Maj7CompEditor : public VstEditor
 				Maj7ImGuiParamVolume((VstInt32)ParamIndices::InputGain, "Input gain", M7::gVolumeCfg24db, 0, {});
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
-				static constexpr char const* const signalNames[] = { "Normal", "Diff", "Sidechain" };//  , "GainReduction", "Detector"};
-				//ImGui::SameLine(0, 80); Maj7ImGuiParamEnumList<WaveSabreCore::Maj7Comp::OutputSignal>(ParamIndices::OutputSignal,
-				//	"Output signal", (int)WaveSabreCore::Maj7Comp::OutputSignal::Count__, WaveSabreCore::Maj7Comp::OutputSignal::Normal, signalNames);
+				ImGui::Spacing();
+				ImGui::SeparatorText("Soft clip");
+				RenderSoftClipControls();
+
+				ImGui::Spacing();
+				ImGui::SeparatorText("Output signal");
+				RenderOutputSignalControl();
 
 				ImGui::EndTabItem();
 			}

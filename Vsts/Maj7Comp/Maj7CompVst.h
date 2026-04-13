@@ -39,14 +39,29 @@ public:
 
 	virtual VstInt32 getChunk(void** data, bool isPreset) override
 	{
+		auto p = GetMaj7Comp();
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
-		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Comp()->mParamCache, paramNames, [](clarinoid::JsonVariantWriter&) {});
+		return GetSimpleJSONVstChunk(GetJSONTagName(), data, GetMaj7Comp()->mParamCache, paramNames, [&](clarinoid::JsonVariantWriter& elem)
+		{
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			elem.Object_MakeKey("OutputSignal").WriteNumberValue((int)p->mOutputSignal);
+#endif
+		});
 	}
 
 	virtual VstInt32 setChunk(void* data, VstInt32 byteSize, bool isPreset) override
 	{
+		auto p = GetMaj7Comp();
 		MAJ7COMP_PARAM_VST_NAMES(paramNames);
-		return SetSimpleJSONVstChunk(GetMaj7Comp(), GetJSONTagName(), data, byteSize, GetMaj7Comp()->mParamCache, paramNames, [](clarinoid::JsonVariantReader&) {});
+		return SetSimpleJSONVstChunk(GetMaj7Comp(), GetJSONTagName(), data, byteSize, GetMaj7Comp()->mParamCache, paramNames, [&](clarinoid::JsonVariantReader& elem)
+		{
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+			if (elem.mKeyName == "OutputSignal")
+			{
+				p->mOutputSignal = ToEnum(elem, Maj7Comp::OutputSignal::Count__);
+			}
+#endif
+		});
 	}
 
 	Maj7Comp* GetMaj7Comp() const {
@@ -59,6 +74,9 @@ public:
 		using Params = Maj7Comp::ParamIndices;
 		M7::ParamAccessor defaults{ mDefaultParamCache.data(), 0 };
 		M7::ParamAccessor p{ GetMaj7Comp()->mParamCache, 0 };
+		if (!p.GetBoolValue(Params::SoftClipEnable)) {
+			p.SetRawVal(Params::SoftClipDrive, defaults.GetRawVal(Params::SoftClipDrive));
+		}
 		if (!p.GetBoolValue(Params::EnableSidechainFilter)) {
 			p.SetRawVal(Params::HighPassFrequency, defaults.GetRawVal(Params::HighPassFrequency));
 			//p.SetRawVal(Params::HighPassQ, defaults.GetRawVal(Params::HighPassQ));
@@ -68,7 +86,8 @@ public:
 	}
 
 	virtual void GenerateDefaults() override {
-		auto& p = GetMaj7Comp()->mParams;
+		auto* pDevice = GetMaj7Comp();
+		auto& p = pDevice->mParams;
 		using Params = Maj7Comp::ParamIndices;
 
 		p.SetDecibels(Params::InputGain, M7::gVolumeCfg24db, 0.0f);
@@ -93,6 +112,10 @@ public:
 
 		//p.SetEnumValue(Params::OutputSignal, Maj7Comp::OutputSignal::Normal);
 		p.SetDecibels(Params::OutputGain, M7::gVolumeCfg24db, 0.0f);
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+		pDevice->mOutputSignal = Maj7Comp::OutputSignal::Normal;
+#endif
 	}
 
 };
