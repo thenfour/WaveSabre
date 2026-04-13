@@ -17,14 +17,6 @@ enum class LoopMode  // : uint8_t
   NumLoopModes,
 };
 
-enum class LoopBoundaryMode  // : uint8_t
-{
-  FromSample,
-  Manual,
-
-  NumLoopBoundaryModes,
-};
-
 class SamplePlayer
 {
 public:
@@ -37,7 +29,6 @@ public:
 
   //WaveSabreCore::LoopMode LoopMode;
   bool mLoopEnabled;
-  WaveSabreCore::LoopBoundaryMode LoopBoundaryMode;
 
   float SampleStart;
   float LoopStart;

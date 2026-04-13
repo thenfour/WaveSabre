@@ -442,10 +442,7 @@ public:
 			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::KeyRangeMin);
 			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::KeyRangeMax);
 
-			OptimizeEnumParam<LoopMode>(s.mParams, M7::SamplerParamIndexOffsets::LoopMode);
-
-			//OptimizeEnumParam(p, s.mLoopMode, LoopMode::NumLoopModes, s.mBaseParamID, SamplerParamIndexOffsets::LoopMode);
-			OptimizeEnumParam< LoopBoundaryMode>(s.mParams, M7::SamplerParamIndexOffsets::LoopSource);
+			OptimizeBoolParam(s.mParams, M7::SamplerParamIndexOffsets::LoopEnable);
 			//OptimizeEnumParam < InterpolationMode>(s.mParams, M7::SamplerParamIndexOffsets::InterpolationType);
 			//OptimizeEnumParam < M7::SampleSource>(s.mParams, M7::SamplerParamIndexOffsets::SampleSource);
 
@@ -814,8 +811,7 @@ namespace WaveSabreCore
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::ReleaseExitsLoop, true);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::SampleStart, 0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 1);
-			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopMode, LoopMode::Repeat);
-			p->mParams.SetEnumValue(SamplerParamIndexOffsets::LoopSource, LoopBoundaryMode::FromSample);
+			p->mParams.SetBoolValue(SamplerParamIndexOffsets::LoopEnable, true);
 			//p->mParams.SetEnumValue(SamplerParamIndexOffsets::InterpolationType, InterpolationMode::Linear);
 
 			p->mParams.Set01Val(SamplerParamIndexOffsets::LoopStart, 0);

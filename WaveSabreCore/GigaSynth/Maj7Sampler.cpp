@@ -205,8 +205,6 @@ void SamplerVoice::ConfigPlayer()
     //mSamplePlayer.LoopMode = mpSamplerDevice->mLoopMode.GetEnumValue();
     mSamplePlayer.mLoopEnabled = mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::LoopEnable);
   }
-  mSamplePlayer.LoopBoundaryMode = mpSamplerDevice->mParams.GetEnumValue<LoopBoundaryMode>(
-      SamplerParamIndexOffsets::LoopSource);  //mpSamplerDevice->mLoopSource.GetEnumValue();
 }
 
 void SamplerVoice::NoteOn(bool legato)

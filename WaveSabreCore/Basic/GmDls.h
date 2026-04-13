@@ -14,6 +14,7 @@ struct GmDls
   static constexpr int kWaveListOffset = 0x00044602;
   static uint8_t *gpData;
   static void EnsureInitialized();
+  static bool TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart, int& loopLength);
   // GmDls();
   // ~GmDls();
 };
@@ -22,8 +23,6 @@ struct GmDlsSample
 {
   static constexpr int kSampleRate = 44100;
   int mSampleIndex = 0;
-  int mSampleLoopStart = 0;
-  int mSampleLoopLength = 0;
 
   M7::PodVector<float> mSampleData;
 

@@ -591,7 +591,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler1GmDlsIndex,
   Sampler1SampleStart,
   Sampler1LoopEnable,
-  Sampler1LoopSource,
   Sampler1LoopStart,
   Sampler1LoopLength,
   Sampler1TuneSemis,
@@ -624,7 +623,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler2GmDlsIndex,
   Sampler2SampleStart,
   Sampler2LoopEnable,
-  Sampler2LoopSource,
   Sampler2LoopStart,
   Sampler2LoopLength,
   Sampler2TuneSemis,
@@ -657,7 +655,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler3GmDlsIndex,
   Sampler3SampleStart,
   Sampler3LoopEnable,
-  Sampler3LoopSource,
   Sampler3LoopStart,
   Sampler3LoopLength,
   Sampler3TuneSemis,
@@ -690,7 +687,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler4GmDlsIndex,
   Sampler4SampleStart,
   Sampler4LoopEnable,
-  Sampler4LoopSource,
   Sampler4LoopStart,
   Sampler4LoopLength,
   Sampler4TuneSemis,
@@ -1259,7 +1255,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1gmidx"},\
 {"S1strt"}, \
 {"S1Lpen"},\
-{"S1LSrc"},           \
 {"S1Lbeg"}, \
 {"S1Llen"}, \
 {"S1TunS"}, \
@@ -1290,7 +1285,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S2gmidx"},\
 {"S2strt"}, \
 {"S2Lpen"},\
-{"S2LSrc"}, \
 {"S2Lbeg"}, \
 {"S2Llen"}, \
 {"S2TunS"}, \
@@ -1321,7 +1315,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S3gmidx"},\
 {"S3strt"},           \
 {"S3Lpen"},\
-{"S3LSrc"}, \
 {"S3Lbeg"}, \
 {"S3Llen"}, \
 {"S3TunS"}, \
@@ -1352,7 +1345,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S4gmidx"},          \
 {"S4strt"}, \
 {"S4Lpen"},\
-{"S4LSrc"}, \
 {"S4Lbeg"}, \
 {"S4Llen"}, \
 {"S4TunS"}, \
@@ -1435,7 +1427,6 @@ enum class SamplerParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   GmDlsIndex,
   SampleStart,
   LoopEnable,
-  LoopSource,
   LoopStart,
   LoopLength,
   TuneSemis,

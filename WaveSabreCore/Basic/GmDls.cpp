@@ -27,8 +27,68 @@ void GmDls::EnsureInitialized()
   fclose(file);
 }
 
+bool GmDls::TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart, int& loopLength)
+{
+  if (sampleIndex < 0 || sampleIndex >= kGmDlsSampleCount)
+  {
+    sampleLength = 0;
+    loopStart = 0;
+    loopLength = 0;
+    return false;
+  }
+
+  EnsureInitialized();
+
+  auto ptr = gpData + kWaveListOffset;
+  for (int i = 0; i <= sampleIndex; i++)
+  {
+    ptr += 4;
+    auto waveListSize = *((unsigned int*)ptr);
+    ptr += 4;
+
+    if (i != sampleIndex)
+    {
+      ptr += waveListSize;
+      continue;
+    }
+
+    auto wave = ptr + 4;
+    auto fmtSize = *((unsigned int*)(wave + 4));
+    wave += fmtSize + 8;
+
+    WaveSabreCore::Wsmp wsmp;
+    memcpy(&wsmp, wave, sizeof(wsmp));
+    auto wsmpSize = *((unsigned int*)(wave + 4));
+    wave += wsmpSize + 8;
+
+    wave += 4;
+    auto dataChunkSize = *((unsigned int*)wave);
+    sampleLength = int(dataChunkSize / 2);
+
+    if (wsmp.loopCount)
+    {
+      loopStart = wsmp.loopStart;
+      loopLength = wsmp.loopLength;
+    }
+    else
+    {
+      loopStart = 0;
+      loopLength = sampleLength;
+    }
+    return true;
+  }
+
+  sampleLength = 0;
+  loopStart = 0;
+  loopLength = 0;
+  return false;
+}
+
 void GmDlsSample::LoadGmDlsIndex(int sampleIndex)
 {
+  if (sampleIndex < 0 || sampleIndex >= GmDls::kGmDlsSampleCount)
+    return;
+
   GmDls::EnsureInitialized();
   mSampleIndex = sampleIndex;
 
@@ -56,15 +116,11 @@ void GmDlsSample::LoadGmDlsIndex(int sampleIndex)
     //auto waveTag = *((unsigned int*)wave);  // Should be 'wave'
     wave += 4;
 
-    // Read fmt chunk
-    WaveSabreCore::Fmt fmt;
-    memcpy(&fmt, wave, sizeof(fmt));
-    wave += fmt.size + 8;  // size field doesn't account for tag or length fields
+    auto fmtSize = *((unsigned int*)(wave + 4));
+    wave += fmtSize + 8;
 
-    // Read wsmp chunk
-    WaveSabreCore::Wsmp wsmp;
-    memcpy(&wsmp, wave, sizeof(wsmp));
-    wave += wsmp.size + 8;  // size field doesn't account for tag or length fields
+    auto wsmpSize = *((unsigned int*)(wave + 4));
+    wave += wsmpSize + 8;
 
     // Read data chunk
     //auto dataChunkTag = *((unsigned int*)wave);  // Should be 'data'
@@ -81,17 +137,7 @@ void GmDlsSample::LoadGmDlsIndex(int sampleIndex)
       auto sample = wave16[j];
       mSampleData[j] = M7::math::Sample16To32Bit(sample);
     }
-
-    if (wsmp.loopCount)
-    {
-      mSampleLoopStart = wsmp.loopStart;
-      mSampleLoopLength = wsmp.loopLength;
-    }
-    else
-    {
-      mSampleLoopStart = 0;
-      mSampleLoopLength = sampleLength;
-    }
+    return;
   }
 }
 

@@ -73,11 +73,10 @@ static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions() {
 #ifdef ENABLE_SAMPLER_DEVICE
 
   // Read gm.dls file
-  //auto gmDls = GmDls::Load();
-  GmDls gmDls;
+  GmDls::EnsureInitialized();
 
   // Seek to wave pool chunk's data
-  auto ptr = gmDls.mpData + GmDls::kWaveListOffset;
+  auto ptr = GmDls::gpData + GmDls::kWaveListOffset;
 
   // Walk wave pool entries
   for (int i = 0; i < M7::gGmDlsSampleCount; i++) {
@@ -148,7 +147,6 @@ static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions() {
   }
   #endif  // ENABLE_SAMPLER_DEVICE
 
-  //delete[] gmDls;
   return mOptions;
 }
 
