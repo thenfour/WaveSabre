@@ -4,42 +4,36 @@
 
 namespace WaveSabreCore
 {
-GmDls::GmDls()
+
+uint8_t* GmDls::gpData = nullptr;
+
+void GmDls::EnsureInitialized()
 {
+  if (gpData)
+    return;
   static const char* gmDlsPaths[2] = {
       "drivers/gm.dls",      //
       "drivers/etc/gm.dls",  //
   };
+  gpData = new uint8_t[kGmDlsFileSize];
+#pragma message("GmDls Leaking memory to save bits.")
 
-  HANDLE gmDlsFile = INVALID_HANDLE_VALUE;
-  for (int i = 0; gmDlsFile == INVALID_HANDLE_VALUE; i++)
+  FILE* file = nullptr;
+  for (int i = 0; !file; i++)
   {
-    OFSTRUCT reOpenBuff;
-    gmDlsFile = (HANDLE)(UINT_PTR)OpenFile(gmDlsPaths[i], &reOpenBuff, OF_READ);
+    file = fopen(gmDlsPaths[i], "rb");
   }
-
-  auto gmDlsFileSize = GetFileSize(gmDlsFile, NULL);
-  auto gmDlsData = new uint8_t[gmDlsFileSize];
-  unsigned int bytesRead;
-  ReadFile(gmDlsFile, gmDlsData, gmDlsFileSize, (LPDWORD)&bytesRead, NULL);
-  CloseHandle(gmDlsFile);
-
-  mpData = gmDlsData;
-}
-
-GmDls::~GmDls()
-{
-  delete[] mpData;
+  fread(gpData, 1, kGmDlsFileSize, file);
+  fclose(file);
 }
 
 void GmDlsSample::LoadGmDlsIndex(int sampleIndex)
 {
-  if (sampleIndex >= kGmDlsSampleCount)
-    return;
+  GmDls::EnsureInitialized();
   mSampleIndex = sampleIndex;
 
   // Seek to wave pool chunk's data
-  auto ptr = mGmDls.mpData + GmDls::kWaveListOffset;
+  auto ptr = GmDls::gpData + GmDls::kWaveListOffset;
 
   // Walk wave pool entries
   for (int i = 0; i <= sampleIndex; i++)
