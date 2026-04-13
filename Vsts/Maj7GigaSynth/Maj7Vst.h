@@ -800,7 +800,7 @@ namespace WaveSabreCore
 			p->mParams.SetBoolValue(SamplerParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
 			p->mParams.SetN11Value(SamplerParamIndexOffsets::Pan, 0);
 			p->mParams.SetDecibels(SamplerParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
-			p->mParams.SetDecibels(SamplerParamIndexOffsets::CompensationGain, M7::gVolumeCfg12db, 0);
+			//p->mParams.SetDecibels(SamplerParamIndexOffsets::CompensationGain, M7::gVolumeCfg12db, 0);
 			//p->mParams.SetN11Value(SamplerParamIndexOffsets::AuxMix, 0);//p->mAuxPanParam.SetN11Value(0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(SamplerParamIndexOffsets::FreqKT, 0);//p->mFrequencyParam.mKTValue.SetParamValue(0);

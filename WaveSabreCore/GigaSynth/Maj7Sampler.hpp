@@ -1,11 +1,5 @@
 #pragma once
 
-#ifdef ENABLE_SAMPLER_DEVICE
-
-#include <Windows.h>
-// correction for windows.h macros.
-#undef min
-#undef max
 
 //#include <WaveSabreCore/Maj7Basic.hpp>
 //#include <WaveSabreCore/Maj7ModMatrix.hpp>
@@ -13,6 +7,8 @@
 #include "../Basic/GmDls.h"
 #include "../Basic/PodVector.hpp"
 #include "../Basic/Serializer.hpp"
+
+#ifdef ENABLE_SAMPLER_DEVICE
 
 #ifdef MAJ7_INCLUDE_GSM_SUPPORT
   #include "GsmSample.h"

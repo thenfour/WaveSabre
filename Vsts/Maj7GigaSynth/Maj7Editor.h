@@ -2921,12 +2921,12 @@ public:
                            0,
                            lGetModInfo(M7::SamplerModParamIndexOffsets::Volume));
 
-                           ImGui::SameLine();
-      Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::CompensationGain),
-                           "Comp.Vol",
-                           M7::gVolumeCfg12db,
-                           0,
-                           {});
+      //                     ImGui::SameLine();
+      //Maj7ImGuiParamVolume((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::CompensationGain),
+      //                     "Comp.Vol",
+      //                     M7::gVolumeCfg12db,
+      //                     0,
+      //                     {});
 
       ImGui::SameLine(0, 50);
       Maj7ImGuiParamFrequency((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::FreqParam),
