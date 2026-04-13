@@ -35,11 +35,11 @@ public:
 	virtual void OptimizeParams() override
 	{
 		using Params = Leveller::ParamIndices;
-		OptimizeBand(Params::Band1Circuit);
-		OptimizeBand(Params::Band2Circuit);
-		OptimizeBand(Params::Band3Circuit);
-		OptimizeBand(Params::Band4Circuit);
-		OptimizeBand(Params::Band5Circuit);
+		OptimizeBand(Params::Band1Response);
+		OptimizeBand(Params::Band2Response);
+		OptimizeBand(Params::Band3Response);
+		OptimizeBand(Params::Band4Response);
+		OptimizeBand(Params::Band5Response);
 	}
 
 	void OptimizeBand(Leveller::ParamIndices baseParam) {
@@ -47,14 +47,10 @@ public:
 		M7::ParamAccessor p{ ((Leveller*)getDevice())->mParamCache, baseParam };
 		using Param = Leveller::BandParamOffsets;
 		OptimizeBoolParam(p, Param::Enable);
-		OptimizeEnumParam<M7::FilterCircuit>(p, Param::Circuit);
-		OptimizeEnumParam<M7::FilterSlope>(p, Param::Slope);
 		OptimizeEnumParam<M7::FilterResponse>(p, Param::Response);
 
 		if (!p.GetBoolValue(Param::Enable)) {
 			// effect not enabled; set defaults to params.
-			p.SetRawVal(Param::Circuit, defaults.GetRawVal(Param::Circuit));
-			p.SetRawVal(Param::Slope, defaults.GetRawVal(Param::Slope));
 			p.SetRawVal(Param::Response, defaults.GetRawVal(Param::Response));
 			p.SetRawVal(Param::Freq, defaults.GetRawVal(Param::Freq));
 			p.SetRawVal(Param::Gain, defaults.GetRawVal(Param::Gain));
@@ -80,8 +76,6 @@ public:
 		                   float q01)
 		{
 			M7::ParamAccessor b{pDevice->mParamCache, base};
-			b.SetEnumValue(Band::Circuit, M7::FilterCircuit::Biquad);
-			b.SetEnumValue(Band::Slope, M7::FilterSlope::Slope24dbOct);
 			b.SetEnumValue(Band::Response, response);
 			b.SetFrequencyAssumingNoKeytracking(Band::Freq, M7::gFilterFreqConfig, freqHz);
 			b.SetRangedValue(Band::Gain, M7::gEqBandGainMin, M7::gEqBandGainMax, gainDb);
@@ -89,11 +83,11 @@ public:
 			b.SetBoolValue(Band::Enable, enabled);
 		};
 
-		setBand(Params::Band1Circuit, true, M7::FilterResponse::Highpass, 90.0f, 0.0f, 0.335f);
-		setBand(Params::Band2Circuit, false, M7::FilterResponse::Peak, 250.0f, 0.0f, 0.5f);
-		setBand(Params::Band3Circuit, true, M7::FilterResponse::Peak, 1100.0f, 0.0f, 0.5f);
-		setBand(Params::Band4Circuit, false, M7::FilterResponse::Peak, 3000.0f, 0.0f, 0.5f);
-		setBand(Params::Band5Circuit, false, M7::FilterResponse::Lowpass, 8500.0f, 0.0f, 0.335f);
+		setBand(Params::Band1Response, true, M7::FilterResponse::Highpass, 90.0f, 0.0f, 0.335f);
+		setBand(Params::Band2Response, false, M7::FilterResponse::Peak, 250.0f, 0.0f, 0.5f);
+		setBand(Params::Band3Response, true, M7::FilterResponse::Peak, 1100.0f, 0.0f, 0.5f);
+		setBand(Params::Band4Response, false, M7::FilterResponse::Peak, 3000.0f, 0.0f, 0.5f);
+		setBand(Params::Band5Response, false, M7::FilterResponse::Lowpass, 8500.0f, 0.0f, 0.335f);
 	}
 };
 

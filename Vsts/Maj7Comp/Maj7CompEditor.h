@@ -17,7 +17,7 @@ struct Maj7CompEditor : public VstEditor
 
 	using ParamIndices = WaveSabreCore::Maj7Comp::ParamIndices;
 
-	FrequencyResponseRendererLayered<160, 75, 2, (size_t)Maj7Comp::ParamIndices::NumParams, false> mResponseGraph;
+	FrequencyResponseRendererLayered<160, 75, 1, (size_t)Maj7Comp::ParamIndices::NumParams, false> mResponseGraph;
 
 	CompressorVis<480, 180> mCompressorVis[Maj7MBC::gBandCount];
 
@@ -72,18 +72,18 @@ struct Maj7CompEditor : public VstEditor
 				if (scfEnabled) {
 
 					ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::HighPassFrequency, -1, "HP(Hz)", M7::gFilterFreqConfig, 0, {});
-					ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);
-					ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
-					ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::LowPassQ, "LP Q", 0.2f, 0.2f);
+					//ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::HighPassQ, "HP Q", 0.2f, 0.2f);
+					//ImGui::SameLine(); Maj7ImGuiParamFrequency((int)ParamIndices::LowPassFrequency, -1, "LP(Hz)", M7::gFilterFreqConfig, 22000, {});
+					//ImGui::SameLine(); Maj7ImGuiParamFloat01((int)ParamIndices::LowPassQ, "LP Q", 0.2f, 0.2f);
 
 
 
-					const std::array<FrequencyResponseRendererFilter, 2> filters{
-						FrequencyResponseRendererFilter{"cc4444", &mpMaj7Comp->mComp[0].mLowpassFilter},
+					const std::array<FrequencyResponseRendererFilter, 1> filters{
+						//FrequencyResponseRendererFilter{"cc4444", &mpMaj7Comp->mComp[0].mLowpassFilter},
 						FrequencyResponseRendererFilter{"4444cc", &mpMaj7Comp->mComp[0].mHighpassFilter}
 					};
 
-					FrequencyResponseRendererConfig<2, (size_t)Maj7Comp::ParamIndices::NumParams> cfg{
+					FrequencyResponseRendererConfig<1, (size_t)Maj7Comp::ParamIndices::NumParams> cfg{
 						ColorFromHTML("222222", 1.0f), // background
 							ColorFromHTML("ff8800", 1.0f), // line
 							4.0f,
@@ -114,8 +114,8 @@ struct Maj7CompEditor : public VstEditor
 				ImGui::SameLine(); Maj7ImGuiParamVolume((VstInt32)ParamIndices::OutputGain, "Output gain", M7::gVolumeCfg24db, 0, {});
 
 				static constexpr char const* const signalNames[] = { "Normal", "Diff", "Sidechain" };//  , "GainReduction", "Detector"};
-				ImGui::SameLine(0, 80); Maj7ImGuiParamEnumList<WaveSabreCore::Maj7Comp::OutputSignal>(ParamIndices::OutputSignal,
-					"Output signal", (int)WaveSabreCore::Maj7Comp::OutputSignal::Count__, WaveSabreCore::Maj7Comp::OutputSignal::Normal, signalNames);
+				//ImGui::SameLine(0, 80); Maj7ImGuiParamEnumList<WaveSabreCore::Maj7Comp::OutputSignal>(ParamIndices::OutputSignal,
+				//	"Output signal", (int)WaveSabreCore::Maj7Comp::OutputSignal::Count__, WaveSabreCore::Maj7Comp::OutputSignal::Normal, signalNames);
 
 				ImGui::EndTabItem();
 			}

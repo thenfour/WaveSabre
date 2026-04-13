@@ -529,8 +529,8 @@ public:
 		}
 
 		// envelopes
-		for (auto& f : p->mMaj7Voice[0]->mpFilters) {
-			OptimizeFilter(*f[0]);
+		for (auto& f : p->mMaj7Voice[0]->mFilter) {
+			OptimizeFilter(f);
 		}
 
 		// modulations.
@@ -672,13 +672,13 @@ public:
 	inline void OptimizeFilter(M7::FilterAuxNode& f)
 	{
 		OptimizeBoolParam(f.mParams, M7::FilterParamIndexOffsets::Enabled);
-		OptimizeEnumParam<M7::FilterCircuit>(f.mParams, M7::FilterParamIndexOffsets::FilterCircuit);
-		OptimizeEnumParam<M7::FilterSlope>(f.mParams, M7::FilterParamIndexOffsets::FilterSlope);
+		//OptimizeEnumParam<M7::FilterCircuit>(f.mParams, M7::FilterParamIndexOffsets::FilterCircuit);
+		//OptimizeEnumParam<M7::FilterSlope>(f.mParams, M7::FilterParamIndexOffsets::FilterSlope);
 		OptimizeEnumParam<M7::FilterResponse>(f.mParams, M7::FilterParamIndexOffsets::FilterResponse);
 
 		bool enabled = f.mParams.GetBoolValue(M7::FilterParamIndexOffsets::Enabled);
-		M7::FilterCircuit circuit = f.mParams.GetEnumValue<M7::FilterCircuit>(M7::FilterParamIndexOffsets::FilterCircuit);
-		if (!enabled || circuit == M7::FilterCircuit::Disabled) {
+		//M7::FilterCircuit circuit = f.mParams.GetEnumValue<M7::FilterCircuit>(M7::FilterParamIndexOffsets::FilterCircuit);
+		if (!enabled) {
 			Copy16bitDefaults(f.mParams.GetOffsetParamCache(), M7::gDefaultFilterParams);
 			return;
 		}
@@ -739,8 +739,8 @@ namespace WaveSabreCore
 		static inline void GenerateDefaults(FilterAuxNode* p)
 		{
 			p->mParams.SetBoolValue(FilterParamIndexOffsets::Enabled, false);
-			p->mParams.SetEnumValue<FilterCircuit>(FilterParamIndexOffsets::FilterCircuit, FilterCircuit::Moog); // LP MOOG 4
-			p->mParams.SetEnumValue<FilterSlope>(FilterParamIndexOffsets::FilterSlope, FilterSlope::Slope24dbOct);
+			//p->mParams.SetEnumValue<FilterCircuit>(FilterParamIndexOffsets::FilterCircuit, FilterCircuit::Moog); // LP MOOG 4
+			//p->mParams.SetEnumValue<FilterSlope>(FilterParamIndexOffsets::FilterSlope, FilterSlope::Slope24dbOct);
 			p->mParams.SetEnumValue<FilterResponse>(FilterParamIndexOffsets::FilterResponse, FilterResponse::Lowpass);
 			p->mParams.Set01Val(FilterParamIndexOffsets::Freq, 0.3f);
 			p->mParams.Set01Val(FilterParamIndexOffsets::FreqKT, 1.0f);
@@ -867,8 +867,8 @@ namespace WaveSabreCore
 			for (auto& m : p->mpModulations) {
 				GenerateDefaults(m);
 			}
-			for (auto& m : p->mMaj7Voice[0]->mpFilters) {
-				GenerateDefaults(m[0]);
+			for (auto& m : p->mMaj7Voice[0]->mFilter) {
+				GenerateDefaults(&m);
 			}
 			for  (auto& e : p->mMaj7Voice[0]->mpEnvelopes) {
 				GenerateDefaults_Env(e);

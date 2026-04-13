@@ -402,31 +402,31 @@ struct Maj7MBCEditor : public VstEditor
             };
 
 
-            const std::array<FrequencyResponseRendererFilter, 2> filters{
-                FrequencyResponseRendererFilter{"cc4444",
-                                                &band.mComp[0].mLowpassFilter,
-                                                "LP",
-                                                makeBandHandler(param(BandParam::LowPassFrequency)),
-                                                makeBandResoHandler(param(BandParam::LowPassQ))},
-                FrequencyResponseRendererFilter{"4444cc",
-                                                &band.mComp[0].mHighpassFilter,
-                                                "HP",
-                                                makeBandHandler(param(BandParam::HighPassFrequency)),
-                                                makeBandResoHandler(param(BandParam::HighPassQ))}};
+            //const std::array<FrequencyResponseRendererFilter, 2> filters{
+            //    FrequencyResponseRendererFilter{"cc4444",
+            //                                    &band.mComp[0].mLowpassFilter,
+            //                                    "LP",
+            //                                    makeBandHandler(param(BandParam::LowPassFrequency)),
+            //                                    makeBandResoHandler(param(BandParam::LowPassQ))},
+            //    FrequencyResponseRendererFilter{"4444cc",
+            //                                    &band.mComp[0].mHighpassFilter,
+            //                                    "HP",
+            //                                    makeBandHandler(param(BandParam::HighPassFrequency)),
+            //                                    makeBandResoHandler(param(BandParam::HighPassQ))}};
 
-            FrequencyResponseRendererConfig<2, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
-                ColorFromHTML("222222", 1.0f),  // background
-                ColorFromHTML("ff8800", 1.0f),  // line
-                7.0f,
-                filters,
-            };
-            for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i)
-            {
-              cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
-            }
-            ImGui::SameLine();
+            //FrequencyResponseRendererConfig<2, (size_t)Maj7MBC::ParamIndices::NumParams> cfg{
+            //    ColorFromHTML("222222", 1.0f),  // background
+            //    ColorFromHTML("ff8800", 1.0f),  // line
+            //    7.0f,
+            //    filters,
+            //};
+            //for (size_t i = 0; i < (size_t)Maj7MBC::ParamIndices::NumParams; ++i)
+            //{
+            //  cfg.mParamCacheCopy[i] = GetEffectX()->getParameter((VstInt32)i);
+            //}
+            //ImGui::SameLine();
 
-            mResponseGraphs[iBand].OnRender(cfg);
+            //mResponseGraphs[iBand].OnRender(cfg);
           }
 
         }  // band enabled

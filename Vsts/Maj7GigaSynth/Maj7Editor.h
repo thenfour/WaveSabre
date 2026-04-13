@@ -55,8 +55,6 @@ class Maj7Editor : public VstEditor
     int filterIndex = -1;
     int width = 0;
     int height = 0;
-    M7::FilterCircuit circuit = M7::FilterCircuit::Disabled;
-    M7::FilterSlope slope = M7::FilterSlope::Slope6dbOct;
     M7::FilterResponse response = M7::FilterResponse::Lowpass;
     float cutoffHz = 0.0f;
     float reso01 = 0.0f;
@@ -654,7 +652,7 @@ public:
     GenerateArray("gDefaultFilterParams",
                   (int)M7::FilterParamIndexOffsets::Count,
                   "M7::FilterParamIndexOffsets::Count",
-                  (int)pMaj7->mMaj7Voice[0]->mpFilters[0][0]->mParams.mBaseParamID);
+                  (int)M7::GigaSynthParamIndices::Filter1Enabled);
 
     ss << "  } // namespace M7" << std::endl;
     ss << "} // namespace WaveSabreCore" << std::endl;
@@ -1085,16 +1083,7 @@ public:
     // aux
     if (BeginTabBar2("aux", ImGuiTabBarFlags_None, 340))
     {
-      AuxEffectTab("Filter1", 0);
-      EndTabBarWithColoredSeparator();
-    }
-
-    ImGui::TableNextColumn();
-
-    // aux
-    if (BeginTabBar2("aux2", ImGuiTabBarFlags_None, 340))
-    {
-      AuxEffectTab("Filter2", 1);
+      AuxEffectTab("Filter1");
       EndTabBarWithColoredSeparator();
     }
 
@@ -2269,19 +2258,19 @@ public:
   }
 
 
-  void AuxEffectTab(const char* labelID, int ifilter /*, ColorMod* auxTabColors[], ColorMod* auxTabDisabledColors[]*/)
+  void AuxEffectTab(const char* labelID)
   {
-    auto& filter = *pMaj7->mMaj7Voice[0]->mpFilters[ifilter][0];
+    auto& filter = pMaj7->mMaj7Voice[0]->mFilter[0];
 
     ColorMod& cm = filter.mParams.GetBoolValue(M7::FilterParamIndexOffsets::Enabled) ? mAuxLeftColors
                                                                                      : mAuxLeftDisabledColors;
     auto token = cm.Push();
 
-    if (WSBeginTabItemWithSel(labelID, ifilter, mFilterTabSelHelper))
+    if (WSBeginTabItemWithSel(labelID, 0, mFilterTabSelHelper))
     {
-      auto lGetModInfo = [&](M7::FilterAuxModDestOffsets x)
+      auto lGetModInfo = [&](M7::ModDestination x)
       {
-        return GetModInfo((M7::ModDestination)((int)filter.mModDestBase + (int)x));
+        return GetModInfo(x);
       };
 
       //WSImGuiParamCheckbox(filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::Enabled), "Enabled");
@@ -2289,35 +2278,23 @@ public:
 
       ImGui::SameLine(0, 0);
 
-      const int filterCircuitParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterCircuit);
-      const int filterSlopeParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterSlope);
       const int filterResponseParamID = filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FilterResponse);
 
-      M7::QuickParam filterCircuitParam{GetEffectX()->getParameter(filterCircuitParamID)};
-      M7::QuickParam filterSlopeParam{GetEffectX()->getParameter(filterSlopeParamID)};
       M7::QuickParam filterResponseParam{GetEffectX()->getParameter(filterResponseParamID)};
 
-      M7::FilterCircuit selectedCircuit = filterCircuitParam.GetEnumValue<M7::FilterCircuit>();
-      M7::FilterSlope selectedSlope = filterSlopeParam.GetEnumValue<M7::FilterSlope>();
       M7::FilterResponse selectedResponse = filterResponseParam.GetEnumValue<M7::FilterResponse>();
       const float selectedCutoffHz = filter.mParams.GetFrequency(M7::FilterParamIndexOffsets::Freq, M7::gFilterFreqConfig);
       const float selectedReso01 = filter.mParams.Get01Value(M7::FilterParamIndexOffsets::Q);
 
-      auto applySelection = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
+      auto applySelection = [&](M7::FilterResponse response)
       {
         M7::QuickParam qp{};
-        GetEffectX()->setParameter(filterCircuitParamID, qp.SetEnumValue(circuit));
-        GetEffectX()->setParameter(filterSlopeParamID, qp.SetEnumValue(slope));
         GetEffectX()->setParameter(filterResponseParamID, qp.SetEnumValue(response));
-        selectedCircuit = circuit;
-        selectedSlope = slope;
         selectedResponse = response;
       };
       RenderFilterSelectionWidget(
           labelID,
-          ifilter + 9000,
-          selectedCircuit,
-          selectedSlope,
+          9000,
           selectedResponse,
           WaveSabreCore::M7::DoesFilterSupport,
           [](M7::FilterResponse response)
@@ -2338,16 +2315,14 @@ public:
           {
             auto* dl = ImGui::GetWindowDrawList();
             dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
-            const auto& filterPreview = GetOrBuildFilterPreviewCache(ifilter,
+            const auto& filterPreview = GetOrBuildFilterPreviewCache(0,
                                                                       std::max(8, (int)bb.GetWidth() - 8),
                                                                       std::max(8, (int)bb.GetHeight() - 8),
-                                                                      selectedCircuit,
-                                                                      selectedSlope,
                                                                       selectedResponse,
                                                                       selectedCutoffHz,
                                                                       selectedReso01);
             DrawFilterPreview(bb, filterPreview);
-            DrawShadowText(BuildFilterSelectionButtonLabel(selectedCircuit, selectedSlope, selectedResponse),
+            DrawShadowText(BuildFilterSelectionButtonLabel(selectedResponse),
                            ImVec2(bb.Min.x + 6, bb.Min.y + 3));
           });
 
@@ -2356,7 +2331,7 @@ public:
                               "Freq##filt",
                               M7::gFilterFreqConfig,
                               M7::gFreqParamKTUnity,
-                              lGetModInfo(M7::FilterAuxModDestOffsets::Freq));
+                              lGetModInfo(M7::ModDestination::Filter1Freq));
       ImGui::SameLine();
       Maj7ImGuiParamScaledFloat(
           filter.mParams.GetParamIndex(M7::FilterParamIndexOffsets::FreqKT), "KT##filt", 0, 1, 1, 1, 0, {});
@@ -2366,7 +2341,7 @@ public:
                             0,
                             0,
                             0,
-                            lGetModInfo(M7::FilterAuxModDestOffsets::Q));
+                            lGetModInfo(M7::ModDestination::Filter1Q));
 
       ImGui::EndTabItem();
     }
@@ -2396,29 +2371,25 @@ public:
                                         int filterIndex,
                                         int width,
                                         int height,
-                                        M7::FilterCircuit circuit,
-                                        M7::FilterSlope slope,
                                         M7::FilterResponse response,
                                         float cutoffHz,
                                         float reso01)
   {
     return entry.filterIndex == filterIndex && entry.width == width && entry.height == height &&
-           entry.circuit == circuit && entry.slope == slope && entry.response == response &&
+           entry.response == response &&
            entry.cutoffHz == cutoffHz && entry.reso01 == reso01;
   }
 
   FilterPreviewCacheEntry& GetOrBuildFilterPreviewCache(int filterIndex,
                                                         int width,
                                                         int height,
-                                                        M7::FilterCircuit circuit,
-                                                        M7::FilterSlope slope,
                                                         M7::FilterResponse response,
                                                         float cutoffHz,
                                                         float reso01)
   {
     for (auto& entry : mFilterPreviewCache)
     {
-      if (FilterPreviewCacheMatches(entry, filterIndex, width, height, circuit, slope, response, cutoffHz, reso01))
+      if (FilterPreviewCacheMatches(entry, filterIndex, width, height, response, cutoffHz, reso01))
       {
         return entry;
       }
@@ -2428,78 +2399,36 @@ public:
     newEntry.filterIndex = filterIndex;
     newEntry.width = width;
     newEntry.height = height;
-    newEntry.circuit = circuit;
-    newEntry.slope = slope;
     newEntry.response = response;
     newEntry.cutoffHz = cutoffHz;
     newEntry.reso01 = reso01;
     newEntry.y01.resize((size_t)std::max(1, width));
 
-    if (circuit == M7::FilterCircuit::Disabled)
-    {
-      std::fill(newEntry.y01.begin(), newEntry.y01.end(), 0.55f);
-    }
-    else
-    {
-      M7::NullFilter nullFilter;
-      M7::MoogOnePoleFilter onePole;
-      M7::CascadedBiquadFilter biquad;
-      M7::ButterworthFilter butter;
-      M7::MoogLadderFilter moog;
-      M7::K35Filter k35;
-      M7::DiodeFilter diode;
+    M7::FilterNode filterPreview;
+    const float safeCutoff = M7::math::clamp(cutoffHz, 20.0f, 20000.0f);
+    const float safeReso = M7::math::clamp01(reso01);
+    filterPreview.SetParams(response, safeCutoff, M7::Param01{safeReso}, 0 /*gainDb*/);
 
-      M7::IFilter* f = &nullFilter;
-      switch (circuit)
-      {
-        case M7::FilterCircuit::OnePole:
-          f = &onePole;
-          break;
-        case M7::FilterCircuit::Biquad:
-          f = &biquad;
-          break;
-        case M7::FilterCircuit::Butterworth:
-          f = &butter;
-          break;
-        case M7::FilterCircuit::Moog:
-          f = &moog;
-          break;
-        case M7::FilterCircuit::K35:
-          f = &k35;
-          break;
-        case M7::FilterCircuit::Diode:
-          f = &diode;
-          break;
-        default:
-          f = &nullFilter;
-          break;
-      }
+    static constexpr float kMinFreq = 20.0f;
+    static constexpr float kMaxFreq = 20000.0f;
+    static constexpr float kFreqRatio = kMaxFreq / kMinFreq;
+    static constexpr float kMinDb = -36.0f;
+    static constexpr float kMaxDb = 12.0f;
 
-      const float safeCutoff = M7::math::clamp(cutoffHz, 20.0f, 20000.0f);
-      const float safeReso = M7::math::clamp01(reso01);
-      f->SetParams(circuit, slope, response, safeCutoff, M7::Param01{safeReso}, 0 /*gainDb*/);
-
-      static constexpr float kMinFreq = 20.0f;
-      static constexpr float kMaxFreq = 20000.0f;
-      static constexpr float kFreqRatio = kMaxFreq / kMinFreq;
-      static constexpr float kMinDb = -36.0f;
-      static constexpr float kMaxDb = 12.0f;
-
-      const int sampleCount = (int)newEntry.y01.size();
+    const int sampleCount = (int)newEntry.y01.size();
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-      for (int i = 0; i < sampleCount; ++i)
-      {
-        const float t = (sampleCount <= 1) ? 0.0f : ((float)i / (float)(sampleCount - 1));
-        const float freq = kMinFreq * M7::math::pow(kFreqRatio, t);
-        const float mag = std::max(1e-6f, f->GetMagnitudeAtFrequency(freq));
-        const float db = M7::math::clamp(20.0f * M7::math::log10(mag), kMinDb, kMaxDb);
-        const float yNorm = 1.0f - M7::math::clamp01(M7::math::lerp_rev(kMinDb, kMaxDb, db));
-        newEntry.y01[(size_t)i] = yNorm;
-      }
-#else
-      std::fill(newEntry.y01.begin(), newEntry.y01.end(), 0.55f);
-#endif
+    for (int i = 0; i < sampleCount; ++i)
+    {
+      const float t = (sampleCount <= 1) ? 0.0f : ((float)i / (float)(sampleCount - 1));
+      const float freq = kMinFreq * M7::math::pow(kFreqRatio, t);
+      const float mag = std::max(1e-6f, filterPreview.mFilter.GetMagnitudeAtFrequency(freq));
+      const float db = M7::math::clamp(20.0f * M7::math::log10(mag), kMinDb, kMaxDb);
+      const float yNorm = 1.0f - M7::math::clamp01(M7::math::lerp_rev(kMinDb, kMaxDb, db));
+      newEntry.y01[(size_t)i] = yNorm;
     }
+#else
+    std::fill(newEntry.y01.begin(), newEntry.y01.end(), 0.55f);
+#endif
 
     if (mFilterPreviewCache.size() < gFilterPreviewCacheMaxEntries)
     {

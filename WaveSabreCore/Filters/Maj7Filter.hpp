@@ -16,23 +16,38 @@ namespace WaveSabreCore
 namespace M7
 {
 
-struct FilterNode
+struct FilterNode  : IFilter
 {
   BiquadFilter mFilter;
 
-  void SetParams(FilterResponse response,
+  virtual void SetParams(FilterResponse response,
                  float cutoffHz,
                  Param01 reso01,
-                 float gainDb);
+                 float gainDb) override;
 
-  void ResetState()
+  virtual void Reset() override
   {
     mFilter.Reset();
   }
-  float ProcessSample(float inputSample)
+  virtual float ProcessSample(float inputSample) override
   {
     return mFilter.ProcessSample(inputSample);
   }
+
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+  virtual bool DoesSupport(FilterResponse response)  override {
+      return true;
+  }
+  virtual real GetMagnitudeAtFrequency(real freqHz) const override
+  {
+    return mFilter.GetMagnitudeAtFrequency(freqHz);
+  }
+  // needed in order for VSTs to be able to clone filters for the response graph without interrupting realtime audio processing.
+  virtual std::unique_ptr<IFilter> Clone() const override
+  {
+    return std::make_unique<FilterNode>(*this);
+  }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 };  // FilterNode
 
@@ -51,8 +66,8 @@ struct FilterAuxNode  // : IAuxEffect
   ModMatrixNode* mModMatrix = nullptr;
   bool mEnabledCached = false;
 
-  explicit FilterAuxNode(float* paramCache)
-      : mParams(paramCache, 0)
+    explicit FilterAuxNode(float* paramCache, GigaSynthParamIndices baseParamID)
+      : mParams(paramCache, baseParamID)
   {
   }
 
@@ -63,8 +78,8 @@ struct FilterAuxNode  // : IAuxEffect
     mNoteHz = noteHz;
     //mFilterCircuit = mParams.GetEnumValue<FilterCircuit>(FilterParamIndexOffsets::FilterCircuit);
     //mFilterSlope = mParams.GetEnumValue<FilterSlope>(FilterParamIndexOffsets::FilterSlope);
-    mFilterResponse = mParams.GetEnumValue<FilterResponse>(GigaSynthParamIndices::Filter1Response);
-    mEnabledCached = mParams.GetBoolValue(GigaSynthParamIndices::Filter1Enabled);
+    mFilterResponse = mParams.GetEnumValue<FilterResponse>(FilterParamIndexOffsets::FilterResponse);
+    mEnabledCached = mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);
   }
 
   float AuxProcessSample(float inputSample)
@@ -77,14 +92,14 @@ struct FilterAuxNode  // : IAuxEffect
     if (calc)
     {
       auto reso01 = Param01{
-          mParams.Get01Value(GigaSynthParamIndices::Filter1Q,
-                             mModMatrix->GetDestinationValue(ModDestination::Filter1Q))};
+          mParams.Get01Value(FilterParamIndexOffsets::Q,
+                   mModMatrix->GetDestinationValue(ModDestination::Filter1Q))};
 
-      auto freq = mParams.GetFrequency(GigaSynthParamIndices::Filter1Freq,
-                                   GigaSynthParamIndices::Filter1FreqKT,
-                                   gFilterFreqConfig,
-                                   mNoteHz,
-                                   mModMatrix->GetDestinationValue(ModDestination::Filter1Freq));
+        auto freq = mParams.GetFrequency(FilterParamIndexOffsets::Freq,
+                         FilterParamIndexOffsets::FreqKT,
+                         gFilterFreqConfig,
+                         mNoteHz,
+                         mModMatrix->GetDestinationValue(ModDestination::Filter1Freq));
 
       //const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
 

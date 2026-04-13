@@ -425,8 +425,6 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
       "Pan",                                                                                                           \
       "Filt1Freq",                                                                                                     \
       "Filt1Q",                                                                                                        \
-      "Filt2Freq",                                                                                                     \
-      "Filt2Q",                                                                                                        \
       "Osc1Volume",                                                                                                    \
       "Osc1Pan",                                                                                                       \
       "Osc1PreFMVolume",                                                                                               \
@@ -658,8 +656,6 @@ enum class LFOModParamIndexOffsets  // : uint8_t // MUST BE IN SYNC WITH ABOVE
 "Pan",  \
 "Filt1 Hz",  \
 "Filt1 Q",  \
-"Filt2 Hz",  \
-"Filt2 Q",  \
 "O1Vol",  \
 "O1Pan",  \
 "O1PreVol",  \

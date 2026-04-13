@@ -79,8 +79,8 @@ namespace WaveSabreCore
 		float mDiff;
 
 		Maj7CompFollower mFollower;
-		//M7::BiquadFilter mHighpassFilter;
-		M7::VanillaOnePoleFilter mHighpassFilter;
+		M7::BiquadFilter mHighpassFilter;
+		//M7::VanillaOnePoleFilter mHighpassFilter;
 		//M7::BiquadFilter mLowpassFilter;
 
 		void SetParams(
@@ -107,10 +107,11 @@ namespace WaveSabreCore
 
 			mFollower.SetParams(attackMS, releaseMS);
 
-			mHighpassFilter.SetParams(
+			mHighpassFilter.SetBiquadParams(
 					M7::FilterResponse::Highpass,
 					highPassFreq,
-					M7::Param01{0}, // q is ignored for one pole
+                                      M7::Decibels{0},
+                                //M7::gBiquadFilterQCfg.ValueToParam01(),  // q is ignored for one pole
 					0 // gain is ignored for highpass
 			);
 			//mHighpassFilter.SetBiquadParams(M7::FilterResponse::Highpass, highPassFreq, highPassQ, 0);

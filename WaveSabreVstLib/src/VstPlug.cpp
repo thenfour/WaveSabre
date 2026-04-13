@@ -471,7 +471,7 @@ VstInt32 VstPlug::processEvents(VstEvents* ev)
           }
           else
           {
-            device->MidiCC(midiData[1], midiData[2], midiEvent->deltaFrames);
+            //device->MidiCC(midiData[1], midiData[2], midiEvent->deltaFrames);
           }
         }
         else if (status == 0x90 || status == 0x80)
@@ -487,7 +487,7 @@ VstInt32 VstPlug::processEvents(VstEvents* ev)
         {
           int msb = midiData[2];
           int lsb = midiData[1];
-          device->PitchBend(lsb, msb, midiEvent->deltaFrames);
+          //device->PitchBend(lsb, msb, midiEvent->deltaFrames);
         }
       }
     }

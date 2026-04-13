@@ -105,9 +105,9 @@ void LinkwitzRileyFilter::SetParams(real freq, CrossoverSlope slope, FilterRespo
       break;
   }
 
-  apf1.SetParams(
-      //FilterCircuit::OnePole, FilterSlope::Slope6dbOct,
-      FilterResponse::Allpass, freq, Param01(0), 0);
+  //apf1.SetParams(
+  //    //FilterCircuit::OnePole, FilterSlope::Slope6dbOct,
+  //    FilterResponse::Allpass, freq, Param01(0), 0);
 }
 
 real LinkwitzRileyFilter::Process(real x)

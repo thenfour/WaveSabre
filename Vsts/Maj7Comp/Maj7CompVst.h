@@ -61,9 +61,9 @@ public:
 		M7::ParamAccessor p{ GetMaj7Comp()->mParamCache, 0 };
 		if (!p.GetBoolValue(Params::EnableSidechainFilter)) {
 			p.SetRawVal(Params::HighPassFrequency, defaults.GetRawVal(Params::HighPassFrequency));
-			p.SetRawVal(Params::HighPassQ, defaults.GetRawVal(Params::HighPassQ));
-			p.SetRawVal(Params::LowPassFrequency, defaults.GetRawVal(Params::LowPassFrequency));
-			p.SetRawVal(Params::LowPassQ, defaults.GetRawVal(Params::LowPassQ));
+			//p.SetRawVal(Params::HighPassQ, defaults.GetRawVal(Params::HighPassQ));
+			//p.SetRawVal(Params::LowPassFrequency, defaults.GetRawVal(Params::LowPassFrequency));
+			//p.SetRawVal(Params::LowPassQ, defaults.GetRawVal(Params::LowPassQ));
 		}
 	}
 
@@ -84,11 +84,14 @@ public:
 
 		p.SetBoolValue(Params::EnableSidechainFilter, false);
 		p.SetFrequencyAssumingNoKeytracking(Params::HighPassFrequency, M7::gFilterFreqConfig, 110.0f);
-		p.Set01Val(Params::HighPassQ, 0.2f);
-		p.SetFrequencyAssumingNoKeytracking(Params::LowPassFrequency, M7::gFilterFreqConfig, 8000.0f);
-		p.Set01Val(Params::LowPassQ, 0.2f);
+		//p.Set01Val(Params::HighPassQ, 0.2f);
+		//p.SetFrequencyAssumingNoKeytracking(Params::LowPassFrequency, M7::gFilterFreqConfig, 8000.0f);
+		//p.Set01Val(Params::LowPassQ, 0.2f);
 
-		p.SetEnumValue(Params::OutputSignal, Maj7Comp::OutputSignal::Normal);
+		p.SetBoolValue(Params::SoftClipEnable, false);
+		p.SetDecibels(Params::SoftClipDrive, M7::gVolumeCfg36db, 0.0f);
+
+		//p.SetEnumValue(Params::OutputSignal, Maj7Comp::OutputSignal::Normal);
 		p.SetDecibels(Params::OutputGain, M7::gVolumeCfg24db, 0.0f);
 	}
 

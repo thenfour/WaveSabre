@@ -579,7 +579,7 @@ struct SAHNoiseCore : public OscillatorCore
     OscillatorCore::ResetOscillator(flags);
     if (!HasFlag(flags, OscillatorCoreResetFlags::Legato))
     {
-      mFilter.ResetState();
+      mFilter.Reset();
       mSpill.reset();
     }
   }

@@ -614,7 +614,8 @@ struct Maj7 : public Maj7SynthDevice
     Maj7Voice(Maj7* owner)
         : mpOwner(owner)
         , mPortamento(owner->mParamCache)
-        , mFilter{FilterAuxNode(owner->mParamCache), FilterAuxNode(owner->mParamCache)}
+      , mFilter{FilterAuxNode(owner->mParamCache, GigaSynthParamIndices::Filter1Enabled),
+            FilterAuxNode(owner->mParamCache, GigaSynthParamIndices::Filter1Enabled)}
     {
       //for (int ich = 0; ich < 2; ++ich)
       //{
@@ -650,14 +651,6 @@ struct Maj7 : public Maj7SynthDevice
 #ifdef MIN_SIZE_REL
   #pragma message("Maj7Voice::~Maj7Voice() Leaking memory to save bits.")
 #else
-      for (int ich = 0; ich < 2; ++ich)
-      {
-        for (int ifilt = 0; ifilt < 2; ++ifilt)
-        {
-          delete mpFilters[ifilt][ich];
-        }
-      }
-
       for (int i = 0; i < (gSourceCount + gModEnvCount); ++i)
       {
         delete mpEnvelopes[i];

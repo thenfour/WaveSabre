@@ -64,7 +64,7 @@ struct LinkwitzRileyFilter
   static constexpr real q48_2 = 1.30656296488f;   // 0.5 / cos($pi / 8 * 3);
 
   SVFilter svf[4];
-  MoogOnePoleFilter apf1;
+  //MoogOnePoleFilter apf1;
 
   real mFrequency = -1.0f;
   CrossoverSlope mSlope;

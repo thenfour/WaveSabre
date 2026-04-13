@@ -110,35 +110,21 @@ public:
 
     }
     {
-      const int filterCircuitParamID = (int)paramOffset + (int)Leveller::BandParamOffsets::Circuit;
-      const int filterSlopeParamID = (int)paramOffset + (int)Leveller::BandParamOffsets::Slope;
       const int filterResponseParamID = (int)paramOffset + (int)Leveller::BandParamOffsets::Response;
 
-      M7::QuickParam filterCircuitParam{GetEffectX()->getParameter(filterCircuitParamID)};
-      M7::QuickParam filterSlopeParam{GetEffectX()->getParameter(filterSlopeParamID)};
       M7::QuickParam filterResponseParam{GetEffectX()->getParameter(filterResponseParamID)};
 
-      M7::FilterCircuit selectedCircuit = filterCircuitParam.GetEnumValue<M7::FilterCircuit>();
-      M7::FilterSlope selectedSlope = filterSlopeParam.GetEnumValue<M7::FilterSlope>();
       M7::FilterResponse selectedResponse = filterResponseParam.GetEnumValue<M7::FilterResponse>();
-      float selectedCutoffRaw = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Freq);
-      M7::ParamAccessor selectedCutoffPA{&selectedCutoffRaw, 0};
-      const float selectedCutoffHz = selectedCutoffPA.GetFrequency(0, M7::gFilterFreqConfig);
-      const float selectedReso01 = GetEffectX()->getParameter((int)paramOffset + (int)Leveller::BandParamOffsets::Q);
 
-      auto applySelection = [&](M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
+      auto applySelection = [&](M7::FilterResponse response)
       {
         M7::QuickParam qp{};
-        GetEffectX()->setParameter(filterCircuitParamID, qp.SetEnumValue(circuit));
-        GetEffectX()->setParameter(filterSlopeParamID, qp.SetEnumValue(slope));
         GetEffectX()->setParameter(filterResponseParamID, qp.SetEnumValue(response));
       };
 
       RenderFilterSelectionWidget(
           "LevellerFilterSelector",
           id + 100,
-          selectedCircuit,
-          selectedSlope,
           selectedResponse,
           WaveSabreCore::M7::DoesFilterSupport,
           applySelection,
@@ -146,7 +132,7 @@ public:
           {
             auto* dl = ImGui::GetWindowDrawList();
             dl->AddRect(bb.Min, bb.Max, ColorFromHTML("2a2a2a"), 3.0f, 0, 1.5f);
-            auto label = BuildFilterSelectionButtonLabel(selectedCircuit, selectedSlope, selectedResponse);
+            auto label = BuildFilterSelectionButtonLabel(selectedResponse);
             dl->AddText(ImVec2(bb.Min.x + 6, bb.Min.y + 3), ColorFromHTML("cccccc"), label.c_str());
           });
     }
@@ -264,7 +250,7 @@ public:
                       0,
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band1Enable) >
                        0.5f)
-                        ? mpLeveller->mBands[0].mFilters[0].mSelectedFilter
+                ? &mpLeveller->mBands[0].mFilters[0]
                         : nullptr,
                       makeBandFreqGetter(0),
                       makeBandResoGetter(0)},
@@ -279,7 +265,7 @@ public:
                       1,
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band2Enable) >
                        0.5f)
-                        ? mpLeveller->mBands[1].mFilters[0].mSelectedFilter
+                        ? &mpLeveller->mBands[1].mFilters[0]
                         : nullptr,
                       makeBandFreqGetter(1),
                       makeBandResoGetter(1)},
@@ -294,7 +280,7 @@ public:
                       2,
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band3Enable) >
                        0.5f)
-                        ? mpLeveller->mBands[2].mFilters[0].mSelectedFilter
+                        ? &mpLeveller->mBands[2].mFilters[0]
                         : nullptr,
                       makeBandFreqGetter(2),
                       makeBandResoGetter(2)},
@@ -309,7 +295,7 @@ public:
                       3,
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band4Enable) >
                        0.5f)
-                        ? mpLeveller->mBands[3].mFilters[0].mSelectedFilter
+                        ? &mpLeveller->mBands[3].mFilters[0]
                         : nullptr,
                       makeBandFreqGetter(3),
                       makeBandResoGetter(3)},
@@ -324,7 +310,7 @@ public:
                       4,
                       (GetEffectX()->getParameter((VstInt32)Leveller::ParamIndices::Band5Enable) >
                        0.5f)
-                        ? mpLeveller->mBands[4].mFilters[0].mSelectedFilter
+                        ? &mpLeveller->mBands[4].mFilters[0]
                         : nullptr,
                       makeBandFreqGetter(4),
                       makeBandResoGetter(4)},
@@ -399,15 +385,15 @@ public:
 
     //ImGui::BeginGroup();
 
-    RenderBand(0, "A", Leveller::ParamIndices::Band1Circuit, 90, bandColors[0]);
+    RenderBand(0, "A", Leveller::ParamIndices::Band1Response, 90, bandColors[0]);
     ImGui::SameLine();
-    RenderBand(1, "B", Leveller::ParamIndices::Band2Circuit, 250, bandColors[1]);
-    ImGui::SameLine();
-    RenderBand(2, "C", Leveller::ParamIndices::Band3Circuit, 1100, bandColors[2]);
-    ImGui::SameLine();
-    RenderBand(3, "D", Leveller::ParamIndices::Band4Circuit, 3000, bandColors[3]);
-    ImGui::SameLine();
-    RenderBand(4, "E", Leveller::ParamIndices::Band5Circuit, 8500, bandColors[4]);
+    RenderBand(1, "B", Leveller::ParamIndices::Band2Response, 250, bandColors[1]);
+    ImGui::SameLine();                              
+    RenderBand(2, "C", Leveller::ParamIndices::Band3Response, 1100, bandColors[2]);
+    ImGui::SameLine();                              
+    RenderBand(3, "D", Leveller::ParamIndices::Band4Response, 3000, bandColors[3]);
+    ImGui::SameLine();                              
+    RenderBand(4, "E", Leveller::ParamIndices::Band5Response, 8500, bandColors[4]);
 
     ImGui::Spacing();
 

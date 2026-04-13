@@ -88,34 +88,35 @@ extern float CalculateFilterG(float cutoffHz);
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 // NB: This duplicated matrix is acceptable; the class-specific instances should actually be removed.
 // we need to be able to check capabilities without an instance.
-INLINE bool DoesFilterSupport(M7::FilterCircuit circuit, M7::FilterSlope slope, M7::FilterResponse response)
+INLINE bool DoesFilterSupport(M7::FilterResponse response)
 {
-  switch (circuit)
-  {
-    case M7::FilterCircuit::Disabled:
-      return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
-    case M7::FilterCircuit::OnePole:
-      return slope == M7::FilterSlope::Slope6dbOct &&
-             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
-              response == M7::FilterResponse::Allpass);
-    case M7::FilterCircuit::Biquad:
-      return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct;
-    case M7::FilterCircuit::Butterworth:
-      return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct &&
-             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
-    case M7::FilterCircuit::Moog:
-      return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
-             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
-              response == M7::FilterResponse::Bandpass);
-    case M7::FilterCircuit::K35:
-      return (slope == M7::FilterSlope::Slope12dbOct || slope == M7::FilterSlope::Slope24dbOct) &&
-             (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
-    case M7::FilterCircuit::Diode:
-      return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
-             response == M7::FilterResponse::Lowpass;
-    default:
-      return false;
-  }
+  //switch (circuit)
+  //{
+  //  case M7::FilterCircuit::Disabled:
+  //    return slope == M7::FilterSlope::Slope6dbOct && response == M7::FilterResponse::Lowpass;
+  //  case M7::FilterCircuit::OnePole:
+  //    return slope == M7::FilterSlope::Slope6dbOct &&
+  //           (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
+  //            response == M7::FilterResponse::Allpass);
+  //  case M7::FilterCircuit::Biquad:
+  //    return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct;
+  //  case M7::FilterCircuit::Butterworth:
+  //    return slope >= M7::FilterSlope::Slope12dbOct && slope <= M7::FilterSlope::Slope96dbOct &&
+  //           (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+  //  case M7::FilterCircuit::Moog:
+  //    return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
+  //           (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass ||
+  //            response == M7::FilterResponse::Bandpass);
+  //  case M7::FilterCircuit::K35:
+  //    return (slope == M7::FilterSlope::Slope12dbOct || slope == M7::FilterSlope::Slope24dbOct) &&
+  //           (response == M7::FilterResponse::Lowpass || response == M7::FilterResponse::Highpass);
+  //  case M7::FilterCircuit::Diode:
+  //    return (slope == M7::FilterSlope::Slope24dbOct || slope == M7::FilterSlope::Slope48dbOct) &&
+  //           response == M7::FilterResponse::Lowpass;
+  //  default:
+      //return false;
+  //}
+  return true;
 };
 #endif // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
@@ -132,8 +133,6 @@ struct FilterParams
 struct IFilter
 {
   virtual void SetParams(
-      // FilterCircuit circuit,
-      // FilterSlope slope,
       FilterResponse response,
       real cutoffHz,
       // NB: this must be a 0-1 param value, because different filters interpret "resonance" differently.
@@ -143,7 +142,7 @@ struct IFilter
   virtual real ProcessSample(real x) = 0;
 
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) = 0;
+  virtual bool DoesSupport(FilterResponse response) = 0;
   virtual real GetMagnitudeAtFrequency(real freqHz) const = 0;
   // needed in order for VSTs to be able to clone filters for the response graph without interrupting realtime audio processing.
   virtual std::unique_ptr<IFilter> Clone() const = 0;
@@ -168,7 +167,7 @@ struct NullFilter : IFilter
     return x;
   }
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
-  virtual bool DoesSupport(FilterCircuit circuit, FilterSlope slope, FilterResponse response) override
+  virtual bool DoesSupport(FilterResponse response) override
   {
     return true;
   }
