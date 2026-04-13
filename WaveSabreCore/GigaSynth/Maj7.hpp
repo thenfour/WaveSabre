@@ -892,13 +892,13 @@ struct Maj7 : public Maj7SynthDevice
         if (!m->mParams.GetBoolValue(ModParamIndexOffsets::Enabled))
           continue;
         auto srcMain = m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::Source);
-        //bool auxEnabled = m->mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
-        //auto srcAux = auxEnabled ? m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource)
-        //                         : ModSource::None;
+        bool auxEnabled = m->mParams.GetBoolValue(ModParamIndexOffsets::AuxEnabled);
+        auto srcAux = auxEnabled ? m->mParams.GetEnumValue<ModSource>(ModParamIndexOffsets::AuxSource)
+                                 : ModSource::None;
         for (size_t i = 0; i < gModLFOCount; ++i)
         {
           auto lfoSrc = mpOwner->mpLFOs[i]->mInfo.mModSource;
-          if (srcMain == lfoSrc)// || srcAux == lfoSrc)
+          if (srcMain == lfoSrc || srcAux == lfoSrc)
           {
             mLFOUsedCache[i] = true;
           }

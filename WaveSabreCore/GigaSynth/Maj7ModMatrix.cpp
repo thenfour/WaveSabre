@@ -60,7 +60,17 @@ namespace WaveSabreCore
 				val = math::clamp01(val);
 			}
 			return val;
-			//return spec.mParams.ApplyCurveToValue(curveParam, val);
+		}
+
+		float ModMatrixNode::MapValue(ModulationSpec& spec,
+			ModSource src,
+			ModParamIndexOffsets curveParam,
+			ModParamIndexOffsets srcRangeMinParam,
+			ModParamIndexOffsets srcRangeMaxParam,
+			bool isDestN11)
+		{
+			return spec.mParams.ApplyCurveToValue(curveParam,
+				MapValue(spec, src, srcRangeMinParam, srcRangeMaxParam, isDestN11));
 		}
 
 		//void ModMatrixNode::ProcessSample(ModulationSpec* modSpecs)
@@ -117,21 +127,26 @@ namespace WaveSabreCore
 						}
 
 						float sourceVal = MapValue(spec, modSource, ModParamIndexOffsets::SrcRangeMin, ModParamIndexOffsets::SrcRangeMax, true);
-						// if (spec.mAuxEnabled)
-						// {
-						// 	// attenuate the value
-						// 	auto auxSource = spec.mAuxSource;
-						// 	if (auxSource != ModSource::None) {
+						if (spec.mAuxEnabled)
+						{
+							// attenuate the value
+							auto auxSource = spec.mAuxSource;
+							if (auxSource != ModSource::None) {
 
-						// 		float auxVal = MapValue(spec, auxSource, ModParamIndexOffsets::AuxCurve, ModParamIndexOffsets::AuxRangeMin, ModParamIndexOffsets::AuxRangeMax, false);
+								float auxVal = MapValue(spec,
+									auxSource,
+									ModParamIndexOffsets::AuxCurve,
+									ModParamIndexOffsets::AuxRangeMin,
+									ModParamIndexOffsets::AuxRangeMax,
+									false);
 
-						// 		// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
-						// 		// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
-						// 		float auxAtten = spec.mAuxAttenuation;
-						// 		float auxScale = math::lerp(1, 1.0f - auxAtten, auxVal);
-						// 		sourceVal *= auxScale;
-						// 	}
-						// }
+								// when auxAtten is 1.00, then auxVal will map from 0,1 to a scale factor of 1, 0
+								// when auxAtten is 0.33, then auxVal will map from 0,1 to a scale factor of 1, .66
+								float auxAtten = spec.mAuxAttenuation;
+								float auxScale = math::lerp(1, 1.0f - auxAtten, auxVal);
+								sourceVal *= auxScale;
+							}
+						}
 
 						for (size_t id = 0; id < gModulationSpecDestinationCount; ++id) {
 							const auto& d = spec.mDestinations[id];

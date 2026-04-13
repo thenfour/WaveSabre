@@ -266,8 +266,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod1Scale2,
   Mod1Scale3,
   Mod1Scale4,
+  Mod1AuxEnabled,
+  Mod1AuxSource,
+  Mod1AuxAttenuation,
+  Mod1AuxCurve,
   Mod1SrcRangeMin,
   Mod1SrcRangeMax,
+  Mod1AuxRangeMin,
+  Mod1AuxRangeMax,
 
   Mod2Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod2Source,
@@ -279,8 +285,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod2Scale2,
   Mod2Scale3,
   Mod2Scale4,
+  Mod2AuxEnabled,
+  Mod2AuxSource,
+  Mod2AuxAttenuation,
+  Mod2AuxCurve,
   Mod2SrcRangeMin,
   Mod2SrcRangeMax,
+  Mod2AuxRangeMin,
+  Mod2AuxRangeMax,
 
   Mod3Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod3Source,
@@ -292,8 +304,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod3Scale2,
   Mod3Scale3,
   Mod3Scale4,
+  Mod3AuxEnabled,
+  Mod3AuxSource,
+  Mod3AuxAttenuation,
+  Mod3AuxCurve,
   Mod3SrcRangeMin,
   Mod3SrcRangeMax,
+  Mod3AuxRangeMin,
+  Mod3AuxRangeMax,
 
   Mod4Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod4Source,
@@ -305,8 +323,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod4Scale2,
   Mod4Scale3,
   Mod4Scale4,
+  Mod4AuxEnabled,
+  Mod4AuxSource,
+  Mod4AuxAttenuation,
+  Mod4AuxCurve,
   Mod4SrcRangeMin,
   Mod4SrcRangeMax,
+  Mod4AuxRangeMin,
+  Mod4AuxRangeMax,
 
   Mod5Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod5Source,
@@ -318,8 +342,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod5Scale2,
   Mod5Scale3,
   Mod5Scale4,
+  Mod5AuxEnabled,
+  Mod5AuxSource,
+  Mod5AuxAttenuation,
+  Mod5AuxCurve,
   Mod5SrcRangeMin,
   Mod5SrcRangeMax,
+  Mod5AuxRangeMin,
+  Mod5AuxRangeMax,
 
   Mod6Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod6Source,
@@ -331,8 +361,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod6Scale2,
   Mod6Scale3,
   Mod6Scale4,
+  Mod6AuxEnabled,
+  Mod6AuxSource,
+  Mod6AuxAttenuation,
+  Mod6AuxCurve,
   Mod6SrcRangeMin,
   Mod6SrcRangeMax,
+  Mod6AuxRangeMin,
+  Mod6AuxRangeMax,
 
   Mod7Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod7Source,
@@ -344,8 +380,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod7Scale2,
   Mod7Scale3,
   Mod7Scale4,
+  Mod7AuxEnabled,
+  Mod7AuxSource,
+  Mod7AuxAttenuation,
+  Mod7AuxCurve,
   Mod7SrcRangeMin,
   Mod7SrcRangeMax,
+  Mod7AuxRangeMin,
+  Mod7AuxRangeMax,
 
   Mod8Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod8Source,
@@ -357,8 +399,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod8Scale2,
   Mod8Scale3,
   Mod8Scale4,
+  Mod8AuxEnabled,
+  Mod8AuxSource,
+  Mod8AuxAttenuation,
+  Mod8AuxCurve,
   Mod8SrcRangeMin,
   Mod8SrcRangeMax,
+  Mod8AuxRangeMin,
+  Mod8AuxRangeMax,
 
   Mod9Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod9Source,
@@ -370,8 +418,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod9Scale2,
   Mod9Scale3,
   Mod9Scale4,
+  Mod9AuxEnabled,
+  Mod9AuxSource,
+  Mod9AuxAttenuation,
+  Mod9AuxCurve,
   Mod9SrcRangeMin,
   Mod9SrcRangeMax,
+  Mod9AuxRangeMin,
+  Mod9AuxRangeMax,
 
   Mod10Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod10Source,
@@ -383,8 +437,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod10Scale2,
   Mod10Scale3,
   Mod10Scale4,
+  Mod10AuxEnabled,
+  Mod10AuxSource,
+  Mod10AuxAttenuation,
+  Mod10AuxCurve,
   Mod10SrcRangeMin,
   Mod10SrcRangeMax,
+  Mod10AuxRangeMin,
+  Mod10AuxRangeMax,
 
   Mod11Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod11Source,
@@ -396,8 +456,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod11Scale2,
   Mod11Scale3,
   Mod11Scale4,
+  Mod11AuxEnabled,
+  Mod11AuxSource,
+  Mod11AuxAttenuation,
+  Mod11AuxCurve,
   Mod11SrcRangeMin,
   Mod11SrcRangeMax,
+  Mod11AuxRangeMin,
+  Mod11AuxRangeMax,
 
   Mod12Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod12Source,
@@ -409,8 +475,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod12Scale2,
   Mod12Scale3,
   Mod12Scale4,
+  Mod12AuxEnabled,
+  Mod12AuxSource,
+  Mod12AuxAttenuation,
+  Mod12AuxCurve,
   Mod12SrcRangeMin,
   Mod12SrcRangeMax,
+  Mod12AuxRangeMin,
+  Mod12AuxRangeMax,
 
   Mod13Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod13Source,
@@ -422,8 +494,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod13Scale2,
   Mod13Scale3,
   Mod13Scale4,
+  Mod13AuxEnabled,
+  Mod13AuxSource,
+  Mod13AuxAttenuation,
+  Mod13AuxCurve,
   Mod13SrcRangeMin,
   Mod13SrcRangeMax,
+  Mod13AuxRangeMin,
+  Mod13AuxRangeMax,
 
   Mod14Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod14Source,
@@ -435,8 +513,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod14Scale2,
   Mod14Scale3,
   Mod14Scale4,
+  Mod14AuxEnabled,
+  Mod14AuxSource,
+  Mod14AuxAttenuation,
+  Mod14AuxCurve,
   Mod14SrcRangeMin,
   Mod14SrcRangeMax,
+  Mod14AuxRangeMin,
+  Mod14AuxRangeMax,
 
   Mod15Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod15Source,
@@ -448,8 +532,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod15Scale2,
   Mod15Scale3,
   Mod15Scale4,
+  Mod15AuxEnabled,
+  Mod15AuxSource,
+  Mod15AuxAttenuation,
+  Mod15AuxCurve,
   Mod15SrcRangeMin,
   Mod15SrcRangeMax,
+  Mod15AuxRangeMin,
+  Mod15AuxRangeMax,
 
   Mod16Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod16Source,
@@ -461,8 +551,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod16Scale2,
   Mod16Scale3,
   Mod16Scale4,
+  Mod16AuxEnabled,
+  Mod16AuxSource,
+  Mod16AuxAttenuation,
+  Mod16AuxCurve,
   Mod16SrcRangeMin,
   Mod16SrcRangeMax,
+  Mod16AuxRangeMin,
+  Mod16AuxRangeMax,
 
   Mod17Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod17Source,
@@ -474,8 +570,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod17Scale2,
   Mod17Scale3,
   Mod17Scale4,
+  Mod17AuxEnabled,
+  Mod17AuxSource,
+  Mod17AuxAttenuation,
+  Mod17AuxCurve,
   Mod17SrcRangeMin,
   Mod17SrcRangeMax,
+  Mod17AuxRangeMin,
+  Mod17AuxRangeMax,
 
   Mod18Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod18Source,
@@ -487,8 +589,14 @@ enum class GigaSynthParamIndices : uint16_t
   Mod18Scale2,
   Mod18Scale3,
   Mod18Scale4,
+  Mod18AuxEnabled,
+  Mod18AuxSource,
+  Mod18AuxAttenuation,
+  Mod18AuxCurve,
   Mod18SrcRangeMin,
   Mod18SrcRangeMax,
+  Mod18AuxRangeMin,
+  Mod18AuxRangeMax,
 
   Sampler1Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler1Volume,
@@ -862,8 +970,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M1scl2"}, \
 {"M1scl3"}, \
 {"M1scl4"},           \
+{"M1Aen"},  \
+{"M1Asrc"}, \
+{"M1Aatt"}, \
+{"M1Acrv"}, \
 {"M1rngA"}, \
 {"M1rngB"}, \
+{"M1rngXA"},\
+{"M1rngXB"},          \
 {"M2en"},   \
 {"M2src"},  \
 {"M2dest1"},\
@@ -874,8 +988,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M2scl2"}, \
 {"M2scl3"}, \
 {"M2scl4"}, \
+{"M2Aen"},  \
+{"M2Asrc"}, \
+{"M2Aatt"}, \
+{"M2Acrv"}, \
 {"M2rngA"},           \
 {"M2rngB"}, \
+{"M2rngXA"},\
+{"M2rngXB"},\
 {"M3en"},   \
 {"M3src"},  \
 {"M3dest1"},\
@@ -886,8 +1006,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M3scl2"}, \
 {"M3scl3"}, \
 {"M3scl4"}, \
+{"M3Aen"},  \
+{"M3Asrc"},           \
+{"M3Aatt"}, \
+{"M3Acrv"}, \
 {"M3rngA"}, \
 {"M3rngB"}, \
+{"M3rngXA"},\
+{"M3rngXB"},\
 {"M4en"},   \
 {"M4src"},            \
 {"M4dest1"},\
@@ -898,8 +1024,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M4scl2"}, \
 {"M4scl3"},           \
 {"M4scl4"}, \
+{"M4Aen"},  \
+{"M4Asrc"}, \
+{"M4Aatt"}, \
+{"M4Acrv"}, \
 {"M4rngA"}, \
 {"M4rngB"}, \
+{"M4rngXA"},          \
+{"M4rngXB"},\
 {"M5en"},   \
 {"M5src"},  \
 {"M5dest1"},\
@@ -910,8 +1042,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M5scl2"}, \
 {"M5scl3"}, \
 {"M5scl4"}, \
+{"M5Aen"},  \
+{"M5Asrc"}, \
+{"M5Aatt"}, \
+{"M5Acrv"},           \
 {"M5rngA"}, \
 {"M5rngB"}, \
+{"M5rngXA"},\
+{"M5rngXB"},\
 {"M6en"},   \
 {"M6src"},  \
 {"M6dest1"},\
@@ -922,8 +1060,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M6scl2"}, \
 {"M6scl3"}, \
 {"M6scl4"}, \
+{"M6Aen"},            \
+{"M6Asrc"}, \
+{"M6Aatt"}, \
+{"M6Acrv"}, \
 {"M6rngA"}, \
 {"M6rngB"}, \
+{"M6rngXA"},\
+{"M6rngXB"},\
 {"M7en"},             \
 {"M7src"},  \
 {"M7dest1"},\
@@ -934,8 +1078,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M7scl2"},           \
 {"M7scl3"}, \
 {"M7scl4"}, \
+{"M7Aen"},  \
+{"M7Asrc"}, \
+{"M7Aatt"}, \
+{"M7Acrv"}, \
 {"M7rngA"}, \
 {"M7rngB"},           \
+{"M7rngXA"},\
+{"M7rngXB"},\
 {"M8en"},   \
 {"M8src"},  \
 {"M8dest1"},\
@@ -946,8 +1096,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M8scl2"}, \
 {"M8scl3"}, \
 {"M8scl4"}, \
+{"M8Aen"},  \
+{"M8Asrc"}, \
+{"M8Aatt"},           \
+{"M8Acrv"}, \
 {"M8rngA"}, \
 {"M8rngB"}, \
+{"M8rngXA"},\
+{"M8rngXB"},\
 {"M9en"},   \
 {"M9src"},  \
 {"M9dest1"},          \
@@ -958,8 +1114,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M9scl2"}, \
 {"M9scl3"}, \
 {"M9scl4"},           \
+{"M9Aen"},  \
+{"M9Asrc"}, \
+{"M9Aatt"}, \
+{"M9Acrv"}, \
 {"M9rngA"}, \
 {"M9rngB"}, \
+{"M9rngXA"},\
+{"M9rngXB"},          \
 {"M10en"},  \
 {"M10src"}, \
 {"M10dst1"},\
@@ -970,8 +1132,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M10scl2"},\
 {"M10scl3"},\
 {"M10scl4"},\
+{"M10Aen"}, \
+{"M10Asrc"},\
+{"M10Aatt"},\
+{"M10Acrv"},\
 {"M10rgA"},           \
 {"M10rgB"}, \
+{"M10rgXA"},\
+{"M10rgXB"},\
 {"M11en"},  \
 {"M11src"}, \
 {"M11dst1"},\
@@ -982,8 +1150,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M11scl2"},\
 {"M11scl3"},\
 {"M11scl4"},\
+{"M11Aen"}, \
+{"M11Asrc"},          \
+{"M11Aatt"},\
+{"M11Acrv"},\
 {"M11rgA"}, \
 {"M11rgB"}, \
+{"M11rgXA"},\
+{"M11rgXB"},\
 {"M12en"},  \
 {"M12src"},           \
 {"M12dst1"},\
@@ -994,8 +1168,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M12scl2"},\
 {"M12scl3"},          \
 {"M12scl4"},\
+{"M12Aen"}, \
+{"M12Asrc"},\
+{"M12Aatt"},\
+{"M12Acrv"},\
 {"M12rgA"}, \
 {"M12rgB"}, \
+{"M12rgXA"},          \
+{"M12rgXB"},\
 {"M13en"},  \
 {"M13src"}, \
 {"M13dst1"},\
@@ -1006,8 +1186,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M13scl2"},\
 {"M13scl3"},\
 {"M13scl4"},\
+{"M13Aen"}, \
+{"M13Asrc"},\
+{"M13Aatt"},\
+{"M13Acrv"},          \
 {"M13rgA"}, \
 {"M13rgB"}, \
+{"M13rgXA"},\
+{"M13rgXB"},\
 {"M14en"},  \
 {"M14src"}, \
 {"M14dst1"},\
@@ -1018,8 +1204,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M14scl2"},\
 {"M14scl3"},\
 {"M14scl4"},\
+{"M14Aen"},           \
+{"M14Asrc"},\
+{"M14Aatt"},\
+{"M14Acrv"},\
 {"M14rgA"}, \
 {"M14rgB"}, \
+{"M14rgXA"},\
+{"M14rgXB"},\
 {"M15en"},            \
 {"M15src"}, \
 {"M15dst1"},\
@@ -1030,8 +1222,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M15scl2"},          \
 {"M15scl3"},\
 {"M15scl4"},\
+{"M15Aen"}, \
+{"M15Asrc"},\
+{"M15Aatt"},\
+{"M15Acrv"},\
 {"M15rgA"}, \
 {"M15rgB"},           \
+{"M15rgXA"},\
+{"M15rgXB"},\
 {"M16en"},  \
 {"M16src"}, \
 {"M16dst1"},\
@@ -1042,8 +1240,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M16scl2"},\
 {"M16scl3"},\
 {"M16scl4"},\
+{"M16Aen"}, \
+{"M16Asrc"},\
+{"M16Aatt"},          \
+{"M16Acrv"},\
 {"M16rgA"}, \
 {"M16rgB"}, \
+{"M16rgXA"},\
+{"M16rgXB"},\
 {"M17en"},  \
 {"M17src"}, \
 {"M17dst1"},          \
@@ -1054,8 +1258,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M17scl2"},\
 {"M17scl3"},\
 {"M17scl4"},          \
+{"M17Aen"}, \
+{"M17Asrc"},\
+{"M17Aatt"},\
+{"M17Acrv"},\
 {"M17rgA"}, \
 {"M17rgB"}, \
+{"M17rgXA"},\
+{"M17rgXB"},          \
 {"M18en"},  \
 {"M18src"}, \
 {"M18dst1"},\
@@ -1066,8 +1276,14 @@ enum class GigaSynthParamIndices : uint16_t
 {"M18scl2"},\
 {"M18scl3"},\
 {"M18scl4"},\
+{"M18Aen"}, \
+{"M18Asrc"},\
+{"M18Aatt"},\
+{"M18Acrv"},\
 {"M18rgA"},           \
 {"M18rgB"}, \
+{"M18rgXA"},\
+{"M18rgXB"},\
 {"S1En"},   \
 {"S1Vol"},  \
 {"S1Pan"},  \
@@ -1306,9 +1522,15 @@ enum class ModParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   Scale2,
   Scale3,
   Scale4,
+  AuxEnabled,
+  AuxSource,
+  AuxAttenuation,
+  AuxCurve,
 
   SrcRangeMin,
   SrcRangeMax,
+  AuxRangeMin,
+  AuxRangeMax,
 
   Count,
 };
