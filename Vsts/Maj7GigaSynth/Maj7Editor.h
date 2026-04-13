@@ -2899,8 +2899,8 @@ public:
   {
     ColorMod& cm = sampler.IsEnabled() ? mSamplerColors : mSamplerDisabledColors;
     auto token = cm.Push();
-    static constexpr char const* const interpModeNames[] = {"Nearest", "Linear"};
-    static constexpr char const* const loopModeNames[] = {"Disabled", "Repeat", "Pingpong"};
+    //static constexpr char const* const interpModeNames[] = {"Nearest", "Linear"};
+    //static constexpr char const* const loopModeNames[] = {"Disabled", "Repeat", "Pingpong"};
     static constexpr char const* const loopBoundaryModeNames[] = {"FromSample", "Manual"};
 
     auto lGetModInfo = [&](M7::SamplerModParamIndexOffsets x)
@@ -2975,12 +2975,16 @@ public:
       ImGui::EndGroup();
 
       ImGui::SameLine(0, 50);
-      Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mParams.GetParamIndex(
-                                                          M7::SamplerParamIndexOffsets::LoopMode),
-                                                      "LoopMode##mst",
-                                                      (int)WaveSabreCore::LoopMode::NumLoopModes,
-                                                      WaveSabreCore::LoopMode::Repeat,
-                                                      loopModeNames);
+
+      Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopEnable),
+                                "Loop");
+
+      // Maj7ImGuiParamEnumList<WaveSabreCore::LoopMode>((int)sampler.mParams.GetParamIndex(
+      //                                                     M7::SamplerParamIndexOffsets::LoopMode),
+      //                                                 "LoopMode##mst",
+      //                                                 (int)WaveSabreCore::LoopMode::NumLoopModes,
+      //                                                 WaveSabreCore::LoopMode::Repeat,
+      //                                                 loopModeNames);
       ImGui::SameLine();
       Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>(
           (int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopSource),

@@ -198,18 +198,15 @@ void SamplerVoice::ConfigPlayer()
   if (!mNoteIsOn && mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::ReleaseExitsLoop))
   {  // mReleaseExitsLoop.GetBoolValue()) {
      //if (!mNoteIsOn && mpSamplerDevice->mReleaseExitsLoop.GetBoolValue()) {
-    mSamplePlayer.LoopMode = LoopMode::Disabled;
+    mSamplePlayer.mLoopEnabled = false;
   }
   else
   {
     //mSamplePlayer.LoopMode = mpSamplerDevice->mLoopMode.GetEnumValue();
-    mSamplePlayer.LoopMode = mpSamplerDevice->mParams.GetEnumValue<LoopMode>(SamplerParamIndexOffsets::LoopMode);
+    mSamplePlayer.mLoopEnabled = mpSamplerDevice->mParams.GetBoolValue(SamplerParamIndexOffsets::LoopEnable);
   }
   mSamplePlayer.LoopBoundaryMode = mpSamplerDevice->mParams.GetEnumValue<LoopBoundaryMode>(
       SamplerParamIndexOffsets::LoopSource);  //mpSamplerDevice->mLoopSource.GetEnumValue();
-  //mSamplePlayer.InterpolationMode = mpSamplerDevice->mParams.GetEnumValue<InterpolationMode>(SamplerParamIndexOffsets::InterpolationType); //mpSamplerDevice->mInterpolationMode.GetEnumValue();
-  mSamplePlayer.Reverse = mpSamplerDevice->mParams.GetBoolValue(
-      SamplerParamIndexOffsets::Reverse);  //mpSamplerDevice->mReverse.GetBoolValue();
 }
 
 void SamplerVoice::NoteOn(bool legato)

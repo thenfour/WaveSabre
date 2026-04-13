@@ -12,7 +12,7 @@ enum class LoopMode  // : uint8_t
 {
   Disabled,
   Repeat,
-  PingPong,
+  // PingPong,
 
   NumLoopModes,
 };
@@ -35,8 +35,8 @@ public:
   void RunPrep();
   float Next();
 
-  bool Reverse;
-  WaveSabreCore::LoopMode LoopMode;
+  //WaveSabreCore::LoopMode LoopMode;
+  bool mLoopEnabled;
   WaveSabreCore::LoopBoundaryMode LoopBoundaryMode;
 
   float SampleStart;
@@ -61,6 +61,5 @@ private:
   int roundedLoopStart;
   int roundedLoopLength;
   int roundedLoopEnd;
-  bool reverse;
 };
 }  // namespace WaveSabreCore

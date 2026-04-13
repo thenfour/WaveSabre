@@ -6,8 +6,8 @@ namespace WaveSabreCore
 SamplePlayer::SamplePlayer()
 {
   SampleStart = 0.0f;
-  Reverse = false;
-  LoopMode = LoopMode::Repeat;
+  //Reverse = false;
+  mLoopEnabled = false;
   LoopBoundaryMode = LoopBoundaryMode::FromSample;
   LoopStart = 0.0f;
   LoopLength = 1.0f;
@@ -16,20 +16,15 @@ SamplePlayer::SamplePlayer()
 
 void SamplePlayer::SetPlayRate(double ratio)
 {
-  this->sampleDelta = reverse ? -ratio : ratio;
+  this->sampleDelta = ratio;
 }
 
 void SamplePlayer::InitPos()
 {
   if (!mpSample)
     return;
-  reverse = Reverse;
   IsActive = true;
   samplePos = (double)SampleStart * (double)(SampleLength() - 1);
-  if (reverse)
-  {
-    samplePos = 1.0 - samplePos;
-  }
 }
 
 void SamplePlayer::RunPrep()
@@ -86,16 +81,15 @@ float SamplePlayer::Next()
   // - reverse playback,
   // - loop mode (which can cause samplepos to jump around, and thus cause the next sample to be non-adjacent to the current sample)
   int rightIndex = roundedSamplePos + 1;
-  if (LoopMode == LoopMode::Repeat && rightIndex == roundedLoopEnd)
+  if (mLoopEnabled && rightIndex == roundedLoopEnd)
     rightIndex = roundedLoopStart;
   float rightSample = rightIndex < lengthSamplesI ? mpSample->mSampleData[rightIndex] : 0.0f;
   float sample = M7::math::lerp(leftSample, rightSample, (float)samplePosFract);
 
   samplePos += sampleDelta;
 
-  switch (LoopMode)
+  if (mLoopEnabled)
   {
-    case LoopMode::Repeat:
       if (sampleDelta > 0.0)
       {
         while (samplePos >= (double)roundedLoopEnd)
@@ -106,22 +100,6 @@ float SamplePlayer::Next()
         while (samplePos < (double)roundedLoopStart)
           samplePos += (double)roundedLoopLength;
       }
-      break;
-
-    case LoopMode::PingPong:
-      if (sampleDelta > 0.0 && samplePos >= (double)roundedLoopEnd)
-      {
-        samplePos = (double)(roundedLoopEnd - 1);
-        sampleDelta = -sampleDelta;
-        reverse = !reverse;
-      }
-      else if (sampleDelta < 0.0 && samplePos < (double)roundedLoopStart)
-      {
-        samplePos = (double)roundedLoopStart;
-        sampleDelta = -sampleDelta;
-        reverse = !reverse;
-      }
-      break;
   }
 
   return sample;
