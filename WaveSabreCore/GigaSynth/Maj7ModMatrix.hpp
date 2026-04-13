@@ -984,7 +984,7 @@ struct ModMatrixNode
 
   float MapValue(ModulationSpec& spec,
                  ModSource src,
-                 ModParamIndexOffsets curveParam,
+                 //ModParamIndexOffsets curveParam,
                  ModParamIndexOffsets srcRangeMinParam,
                  ModParamIndexOffsets srcRangeMaxParam,
                  bool isDestN11);

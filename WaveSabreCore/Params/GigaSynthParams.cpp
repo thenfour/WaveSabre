@@ -30,12 +30,11 @@ namespace WaveSabreCore {
       0, // FM2to4 = 0
       0, // FM3to4 = 0
     };
-    static_assert((int)M7::SamplerParamIndexOffsets::Count == 21, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultSamplerParams[21] = {
+    static_assert((int)M7::SamplerParamIndexOffsets::Count == 20, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultSamplerParams[20] = {
       0, // S1En = 0
       32767, // S1Vol = 1
       0, // S1Pan = 0
-      16422, // S1CGain = 0.50118720531463623047
       0, // S1KRmin = 0
       507, // S1KRmax = 0.0155029296875
       239, // S1base = 0.00732421875
@@ -54,15 +53,14 @@ namespace WaveSabreCore {
       32767, // S1RelX = 1
       0, // S1Dly = 0
     };
-    static_assert((int)M7::ModParamIndexOffsets::Count == 13, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultModSpecParams[13] = {
+    static_assert((int)M7::ModParamIndexOffsets::Count == 12, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultModSpecParams[12] = {
       0, // M1en = 0
       0, // M1src = 0
       0, // M1dest1 = 0
       0, // M1dest2 = 0
       0, // M1dest3 = 0
       0, // M1dest4 = 0
-      0, // M1curv = 0
       24575, // M1scl1 = 0.75
       24575, // M1scl2 = 0.75
       24575, // M1scl3 = 0.75
@@ -94,12 +92,11 @@ namespace WaveSabreCore {
       32767, // AE1rst = 1
       0, // AE1mode = 0
     };
-    static_assert((int)M7::OscParamIndexOffsets::Count == 20, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultOscillatorParams[20] = {
+    static_assert((int)M7::OscParamIndexOffsets::Count == 19, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultOscillatorParams[19] = {
       0, // O1En = 0
       32767, // O1Vol = 1
       0, // O1Pan = 0
-      16422, // O1CGain = 0.50118720531463623047
       0, // O1KRmin = 0
       507, // O1KRmax = 0.0155029296875
       0, // O1Wave = 0
@@ -118,7 +115,7 @@ namespace WaveSabreCore {
       0, // O1FMFb = 0
     };
     static_assert((int)M7::FilterParamIndexOffsets::Count == 5, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultFilterParams[7] = {
+    extern const int16_t gDefaultFilterParams[5] = {
       0, // F1En = 0
       0, // F1Resp = 0
       6553, // F1Q = 0.20000000298023223877

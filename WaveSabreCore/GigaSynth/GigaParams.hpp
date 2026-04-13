@@ -44,7 +44,6 @@ enum class GigaSynthParamIndices : uint16_t
   Osc1Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc1Volume,
   Osc1Pan,
-  Osc1CompensationGain,
   Osc1KeyrangeMin,
   Osc1KeyrangeMax,
 
@@ -78,7 +77,6 @@ enum class GigaSynthParamIndices : uint16_t
   Osc2Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc2Volume,
   Osc2Pan,
-  Osc2CompensationGain,
   Osc2KeyrangeMin,
   Osc2KeyrangeMax,
   Osc2Waveform,
@@ -111,7 +109,6 @@ enum class GigaSynthParamIndices : uint16_t
   Osc3Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc3Volume,
   Osc3Pan,
-  Osc3CompensationGain,
   Osc3KeyrangeMin,
   Osc3KeyrangeMax,
   Osc3Waveform,
@@ -144,7 +141,6 @@ enum class GigaSynthParamIndices : uint16_t
   Osc4Enabled,  // KEEP IN SYNC WITH OscParamIndexOffsets
   Osc4Volume,
   Osc4Pan,
-  Osc4CompensationGain,
   Osc4KeyrangeMin,
   Osc4KeyrangeMax,
   Osc4Waveform,
@@ -266,7 +262,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod1Destination2,
   Mod1Destination3,
   Mod1Destination4,
-  Mod1Curve,
   Mod1Scale1,
   Mod1Scale2,
   Mod1Scale3,
@@ -280,7 +275,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod2Destination2,
   Mod2Destination3,
   Mod2Destination4,
-  Mod2Curve,
   Mod2Scale1,
   Mod2Scale2,
   Mod2Scale3,
@@ -294,7 +288,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod3Destination2,
   Mod3Destination3,
   Mod3Destination4,
-  Mod3Curve,
   Mod3Scale1,
   Mod3Scale2,
   Mod3Scale3,
@@ -308,7 +301,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod4Destination2,
   Mod4Destination3,
   Mod4Destination4,
-  Mod4Curve,
   Mod4Scale1,
   Mod4Scale2,
   Mod4Scale3,
@@ -322,7 +314,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod5Destination2,
   Mod5Destination3,
   Mod5Destination4,
-  Mod5Curve,
   Mod5Scale1,
   Mod5Scale2,
   Mod5Scale3,
@@ -336,7 +327,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod6Destination2,
   Mod6Destination3,
   Mod6Destination4,
-  Mod6Curve,
   Mod6Scale1,
   Mod6Scale2,
   Mod6Scale3,
@@ -350,7 +340,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod7Destination2,
   Mod7Destination3,
   Mod7Destination4,
-  Mod7Curve,
   Mod7Scale1,
   Mod7Scale2,
   Mod7Scale3,
@@ -364,7 +353,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod8Destination2,
   Mod8Destination3,
   Mod8Destination4,
-  Mod8Curve,
   Mod8Scale1,
   Mod8Scale2,
   Mod8Scale3,
@@ -378,7 +366,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod9Destination2,
   Mod9Destination3,
   Mod9Destination4,
-  Mod9Curve,
   Mod9Scale1,
   Mod9Scale2,
   Mod9Scale3,
@@ -392,7 +379,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod10Destination2,
   Mod10Destination3,
   Mod10Destination4,
-  Mod10Curve,
   Mod10Scale1,
   Mod10Scale2,
   Mod10Scale3,
@@ -406,7 +392,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod11Destination2,
   Mod11Destination3,
   Mod11Destination4,
-  Mod11Curve,
   Mod11Scale1,
   Mod11Scale2,
   Mod11Scale3,
@@ -420,7 +405,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod12Destination2,
   Mod12Destination3,
   Mod12Destination4,
-  Mod12Curve,
   Mod12Scale1,
   Mod12Scale2,
   Mod12Scale3,
@@ -434,7 +418,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod13Destination2,
   Mod13Destination3,
   Mod13Destination4,
-  Mod13Curve,
   Mod13Scale1,
   Mod13Scale2,
   Mod13Scale3,
@@ -448,7 +431,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod14Destination2,
   Mod14Destination3,
   Mod14Destination4,
-  Mod14Curve,
   Mod14Scale1,
   Mod14Scale2,
   Mod14Scale3,
@@ -462,7 +444,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod15Destination2,
   Mod15Destination3,
   Mod15Destination4,
-  Mod15Curve,
   Mod15Scale1,
   Mod15Scale2,
   Mod15Scale3,
@@ -476,7 +457,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod16Destination2,
   Mod16Destination3,
   Mod16Destination4,
-  Mod16Curve,
   Mod16Scale1,
   Mod16Scale2,
   Mod16Scale3,
@@ -490,7 +470,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod17Destination2,
   Mod17Destination3,
   Mod17Destination4,
-  Mod17Curve,
   Mod17Scale1,
   Mod17Scale2,
   Mod17Scale3,
@@ -504,7 +483,6 @@ enum class GigaSynthParamIndices : uint16_t
   Mod18Destination2,
   Mod18Destination3,
   Mod18Destination4,
-  Mod18Curve,
   Mod18Scale1,
   Mod18Scale2,
   Mod18Scale3,
@@ -515,7 +493,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler1Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler1Volume,
   Sampler1Pan,
-  Sampler1CompensationGain,
   Sampler1KeyrangeMin,
   Sampler1KeyrangeMax,
   Sampler1BaseNote,
@@ -549,7 +526,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler2Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler2Volume,
   Sampler2Pan,
-  Sampler2CompensationGain,
   Sampler2KeyrangeMin,
   Sampler2KeyrangeMax,
   Sampler2BaseNote,
@@ -583,7 +559,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler3Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler3Volume,
   Sampler3Pan,
-  Sampler3CompensationGain,
   Sampler3KeyrangeMin,
   Sampler3KeyrangeMax,
   Sampler3BaseNote,
@@ -617,7 +592,6 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler4Enabled,  // KEEP IN SYNC WITH SamplerParamIndexOffsets
   Sampler4Volume,
   Sampler4Pan,
-  Sampler4CompensationGain,
   Sampler4KeyrangeMin,
   Sampler4KeyrangeMax,
   Sampler4BaseNote,
@@ -684,7 +658,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"O1En"},   \
 {"O1Vol"},  \
 {"O1Pan"},            \
-{"O1CGain"},\
 {"O1KRmin"},\
 {"O1KRmax"},\
 {"O1Wave"}, \
@@ -715,7 +688,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"O2En"},   \
 {"O2Vol"},  \
 {"O2Pan"},  \
-{"O2CGain"},\
 {"O2KRmin"},\
 {"O2KRmax"},          \
 {"O2Wave"}, \
@@ -746,7 +718,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"O3En"},   \
 {"O3Vol"},  \
 {"O3Pan"},  \
-{"O3CGain"},\
 {"O3KRmin"},\
 {"O3KRmax"},\
 {"O3Wave"}, \
@@ -777,7 +748,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"O4En"},             \
 {"O4Vol"},  \
 {"O4Pan"},  \
-{"O4CGain"},\
 {"O4KRmin"},\
 {"O4KRmax"},\
 {"O4Wave"}, \
@@ -888,7 +858,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M1dest2"},\
 {"M1dest3"},\
 {"M1dest4"},\
-{"M1curv"}, \
 {"M1scl1"}, \
 {"M1scl2"}, \
 {"M1scl3"}, \
@@ -901,7 +870,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M2dest2"},\
 {"M2dest3"},\
 {"M2dest4"},\
-{"M2curv"}, \
 {"M2scl1"},           \
 {"M2scl2"}, \
 {"M2scl3"}, \
@@ -914,7 +882,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M3dest2"},\
 {"M3dest3"},          \
 {"M3dest4"},\
-{"M3curv"}, \
 {"M3scl1"}, \
 {"M3scl2"}, \
 {"M3scl3"}, \
@@ -927,7 +894,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M4dest2"},\
 {"M4dest3"},\
 {"M4dest4"},\
-{"M4curv"}, \
 {"M4scl1"}, \
 {"M4scl2"}, \
 {"M4scl3"},           \
@@ -940,7 +906,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M5dest2"},\
 {"M5dest3"},\
 {"M5dest4"},\
-{"M5curv"},           \
 {"M5scl1"}, \
 {"M5scl2"}, \
 {"M5scl3"}, \
@@ -953,7 +918,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M6dest2"},          \
 {"M6dest3"},\
 {"M6dest4"},\
-{"M6curv"}, \
 {"M6scl1"}, \
 {"M6scl2"}, \
 {"M6scl3"}, \
@@ -966,7 +930,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M7dest2"},\
 {"M7dest3"},\
 {"M7dest4"},\
-{"M7curv"}, \
 {"M7scl1"}, \
 {"M7scl2"},           \
 {"M7scl3"}, \
@@ -979,7 +942,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M8dest2"},\
 {"M8dest3"},\
 {"M8dest4"},          \
-{"M8curv"}, \
 {"M8scl1"}, \
 {"M8scl2"}, \
 {"M8scl3"}, \
@@ -992,7 +954,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M9dest2"},\
 {"M9dest3"},\
 {"M9dest4"},\
-{"M9curv"}, \
 {"M9scl1"}, \
 {"M9scl2"}, \
 {"M9scl3"}, \
@@ -1005,7 +966,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M10dst2"},\
 {"M10dst3"},\
 {"M10dst4"},\
-{"M10curv"},\
 {"M10scl1"},          \
 {"M10scl2"},\
 {"M10scl3"},\
@@ -1018,7 +978,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M11dst2"},\
 {"M11dst3"},          \
 {"M11dst4"},\
-{"M11curv"},\
 {"M11scl1"},\
 {"M11scl2"},\
 {"M11scl3"},\
@@ -1031,7 +990,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M12dst2"},\
 {"M12dst3"},\
 {"M12dst4"},\
-{"M12curv"},\
 {"M12scl1"},\
 {"M12scl2"},\
 {"M12scl3"},          \
@@ -1044,7 +1002,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M13dst2"},\
 {"M13dst3"},\
 {"M13dst4"},\
-{"M13curv"},          \
 {"M13scl1"},\
 {"M13scl2"},\
 {"M13scl3"},\
@@ -1057,7 +1014,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M14dst2"},          \
 {"M14dst3"},\
 {"M14dst4"},\
-{"M14curv"},\
 {"M14scl1"},\
 {"M14scl2"},\
 {"M14scl3"},\
@@ -1070,7 +1026,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M15dst2"},\
 {"M15dst3"},\
 {"M15dst4"},\
-{"M15curv"},\
 {"M15scl1"},\
 {"M15scl2"},          \
 {"M15scl3"},\
@@ -1083,7 +1038,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M16dst2"},\
 {"M16dst3"},\
 {"M16dst4"},          \
-{"M16curv"},\
 {"M16scl1"},\
 {"M16scl2"},\
 {"M16scl3"},\
@@ -1096,7 +1050,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M17dst2"},\
 {"M17dst3"},\
 {"M17dst4"},\
-{"M17curv"},\
 {"M17scl1"},\
 {"M17scl2"},\
 {"M17scl3"},\
@@ -1109,7 +1062,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"M18dst2"},\
 {"M18dst3"},\
 {"M18dst4"},\
-{"M18curv"},\
 {"M18scl1"},          \
 {"M18scl2"},\
 {"M18scl3"},\
@@ -1119,7 +1071,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1En"},   \
 {"S1Vol"},  \
 {"S1Pan"},  \
-{"S1CGain"},\
 {"S1KRmin"},\
 {"S1KRmax"},          \
 {"S1base"}, \
@@ -1150,7 +1101,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1Emode"},\
 {"S2En"},   \
 {"S2Pan"},  \
-{"S2CGain"},\
 {"S2Vol"},  \
 {"S2KRmin"},          \
 {"S2KRmax"},\
@@ -1183,7 +1133,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S3En"},   \
 {"S3Vol"},  \
 {"S3Pan"},            \
-{"S3CGain"},\
 {"S3KRmin"},\
 {"S3KRmax"},\
 {"S3base"}, \
@@ -1215,7 +1164,6 @@ enum class GigaSynthParamIndices : uint16_t
 {"S4En"},   \
 {"S4Vol"},            \
 {"S4Pan"},  \
-{"S4CGain"},\
 {"S4KRmin"},\
 {"S4KRmax"},\
 {"S4base"}, \
@@ -1289,7 +1237,6 @@ enum class SourceParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   Enabled,      // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Volume,       // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Pan,          // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
-  CompensationGain,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMin,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMax,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
 };
@@ -1299,7 +1246,6 @@ enum class SamplerParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   Enabled,  // keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Volume,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Pan,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
-  CompensationGain,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMin,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMax,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
 
@@ -1327,7 +1273,6 @@ enum class OscParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   Enabled,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Volume,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   Pan,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
-  CompensationGain,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMin,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
   KeyRangeMax,// keep in sync: SamplerParamIndexOffsets, OscParamIndexOffsets, SourceParamIndexOffsets
 
@@ -1357,7 +1302,6 @@ enum class ModParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   Destination2,
   Destination3,
   Destination4,
-  Curve,
   Scale1,
   Scale2,
   Scale3,

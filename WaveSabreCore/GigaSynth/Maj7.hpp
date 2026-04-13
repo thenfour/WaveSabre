@@ -897,8 +897,8 @@ struct Maj7 : public Maj7SynthDevice
           float volumeMod = mModMatrix.GetDestinationValue(
               AddEnum(dev->mModDestBaseID, SourceModParamIndexOffsets::Volume));
           float volumeLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::Volume, gUnityVolumeCfg, volumeMod);
-          float compGainLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::CompensationGain, gVolumeCfg12db);
-          volumeLin *= compGainLin;
+          //float compGainLin = dev->mParams.GetLinearVolume(SourceParamIndexOffsets::CompensationGain, gVolumeCfg12db);
+          //volumeLin *= compGainLin;
 
           float masterPanN11 = 2 * mpOwner->mParams.GetN11Value(GigaSynthParamIndices::Pan,
                                                             mModMatrix.GetDestinationValue(ModDestination::Pan));

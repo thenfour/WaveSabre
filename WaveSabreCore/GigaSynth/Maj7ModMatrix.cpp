@@ -40,7 +40,7 @@ namespace WaveSabreCore
 		}
 
 		// dest range 
-		float ModMatrixNode::MapValue(ModulationSpec& spec, ModSource src, ModParamIndexOffsets curveParam, ModParamIndexOffsets srcRangeMinParam, ModParamIndexOffsets srcRangeMaxParam, bool isDestN11)
+		float ModMatrixNode::MapValue(ModulationSpec& spec, ModSource src, ModParamIndexOffsets srcRangeMinParam, ModParamIndexOffsets srcRangeMaxParam, bool isDestN11)
 		{
 			// make sourceVal from 0-1
 			float val = GetSourceValue(src);
@@ -59,7 +59,8 @@ namespace WaveSabreCore
 			else {
 				val = math::clamp01(val);
 			}
-			return spec.mParams.ApplyCurveToValue(curveParam, val);
+			return val;
+			//return spec.mParams.ApplyCurveToValue(curveParam, val);
 		}
 
 		//void ModMatrixNode::ProcessSample(ModulationSpec* modSpecs)
@@ -115,7 +116,7 @@ namespace WaveSabreCore
 							continue;
 						}
 
-						float sourceVal = MapValue(spec, modSource, ModParamIndexOffsets::Curve, ModParamIndexOffsets::SrcRangeMin, ModParamIndexOffsets::SrcRangeMax, true);
+						float sourceVal = MapValue(spec, modSource, ModParamIndexOffsets::SrcRangeMin, ModParamIndexOffsets::SrcRangeMax, true);
 						// if (spec.mAuxEnabled)
 						// {
 						// 	// attenuate the value
