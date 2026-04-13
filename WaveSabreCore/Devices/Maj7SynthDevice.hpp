@@ -25,16 +25,12 @@ public:
   Maj7SynthDevice(int numParams, float* paramCache);
 
   virtual void ProcessBlock(float* const* const outputs, int numSamples) = 0;
-  //virtual void HandlePitchBend(float pbN11) = 0;
-  //virtual void HandleMidiCC(int ccN, int val) = 0;
 
   virtual void Run(float** inputs, float** outputs, int numSamples) override;
 
   virtual void AllNotesOff();
   virtual void NoteOn(int note, int velocity, int deltaSamples);
   virtual void NoteOff(int note, int deltaSamples);
-  //virtual void MidiCC(int ccNumber, int value, int deltaSamples) override;
-  //virtual void PitchBend(int lsb, int msb, int deltaSamples) override;
 
   void SetVoiceMode(VoiceMode voiceMode);
 
@@ -69,7 +65,7 @@ public:
     EventType Type;    // = EventType::None;
   };
 
-  // always returns a voice. prefer stealing notes that are no longer physically held.
+  // always returns a voice. prefer stealing notes that are no longer musically held.
   M7::Pair<Voice*, VoiceNoteOnFlags> AllocateVoice()
   {
     Voice* oldestReleasedVoice = nullptr;
@@ -80,7 +76,7 @@ public:
       if (!v->IsPlaying())
         return { v, VoiceNoteOnFlags::None };
 
-      Voice*& bestCandidate = v->mNoteInfo.mIsPhysicallyHeld ? oldestHeldVoice : oldestReleasedVoice;
+      Voice*& bestCandidate = v->mNoteInfo.mIsMusicallyHeld ? oldestHeldVoice : oldestReleasedVoice;
       if (!bestCandidate || (v->mNoteInfo.mSequence < bestCandidate->mNoteInfo.mSequence))
       {
         bestCandidate = v;
@@ -109,31 +105,7 @@ public:
     }
   }
 
-  // do not extern; inline is best.
-  // finds the physically-held note with the highest sequence ID, which can be used as a trill note in monophonic mode.
-  // returns nullptr when no suitable note.
-  NoteInfo* FindTrillNote(int ignoreMidiNote)
-  {
-    NoteInfo* pTrill = nullptr;
-    // figure out the last physically-held note, in order to do trilling monophonic behavior.
-    // this flow happens when you for example,
-    // 1. hold note A
-    // 2. pedal down
-    // 3. hold note B, release note B. pedal is currently down so you hear note B.
-    // 4. release pedal. note A is still held so it should now be playing.
-    for (auto& x : mMonoNoteStates)
-    {
-      if (x.mIsPhysicallyHeld && (x.MidiNoteValue != ignoreMidiNote))
-      {
-        if (pTrill && x.mSequence < pTrill->mSequence)
-          continue;  // we're looking for the latest.
-        pTrill = &x;
-      }
-    }
-    return pTrill;
-  }
-
-  // finds the musically-held note with the highest sequence ID; this is the currently playing monophonic note.
+  // finds the musically-held note with the highest sequence ID; this is the currently held monophonic note.
   // returns nullptr when no suitable note.
   NoteInfo* FindCurrentlyPlayingNote()
   {
@@ -155,14 +127,8 @@ public:
   void ProcessMusicalNoteOn(Event* e, NoteInfo& myNote);
 
   void ProcessNoteOnEvent(Event* e);
-  void ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo* pPlaying);
-  // process physical state, convert to musical state.
+  void ProcessMusicalNoteOff(int note, NoteInfo& myNote);
   void ProcessNoteOffEvent(Event* e);
-
-  int FindOldestPhysicalSequenceForNote(int note);
-  void ReleasePolyphonicSequence(int note, int sequence);
-
-  //void ProcessPedalEvent(Event* e, bool isDown);
 
   void SetUnisonoVoices(int n)
   {
@@ -186,15 +152,13 @@ public:
 
   int mNoteSequence = 0;
 
-  NoteInfo mMonoNoteStates[maxActiveNotes];  // index = midi note value; mono/trill bookkeeping only
+  NoteInfo mMonoNoteStates[maxActiveNotes];  // index = midi note value; mono bookkeeping only
 
   M7::PodArray<Voice*, M7::gMaxMaxVoices>
       mVoices;  // allow child class to instantiate derived voice classes; don't template due to bloat.
-  //VoiceAllocator mVoicePool {mVoices} ; // the synth needs to populate voices in here.
   VoiceMode mVoiceMode = VoiceMode::Polyphonic;
 
   int mEventCount = 0;
   Event mEvents[maxEvents];
-  //bool mIsPedalDown = false;
 };
 }  // namespace WaveSabreCore

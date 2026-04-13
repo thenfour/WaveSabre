@@ -13,7 +13,7 @@ struct NoteInfo
   int mSequence;      // = 0;
   int MidiNoteValue;  //= 0;
   int Velocity;  // = 0; // need to store all trigger info so when you release in mono triller we can re-trigger the note.
-  bool mIsPhysicallyHeld;  // = false; // implies mIsMusicallyDown = true.
+  //bool mIsPhysicallyHeld;  // = false; // implies mIsMusicallyDown = true.
   bool mIsMusicallyHeld;   // = false;
 };
 

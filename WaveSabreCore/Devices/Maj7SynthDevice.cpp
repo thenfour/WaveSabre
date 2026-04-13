@@ -13,39 +13,6 @@
 
 namespace WaveSabreCore
 {
-int Maj7SynthDevice::FindOldestPhysicalSequenceForNote(int note)
-{
-  int sequence = -1;
-  for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-  {
-    auto* v = mVoices[iv];
-    if (v->mNoteInfo.MidiNoteValue != note)
-      continue;
-    if (!v->mNoteInfo.mIsPhysicallyHeld || !v->mNoteInfo.mIsMusicallyHeld)
-      continue;
-    if (sequence == -1 || v->mNoteInfo.mSequence < sequence)
-    {
-      sequence = v->mNoteInfo.mSequence;
-    }
-  }
-  return sequence;
-}
-
-void Maj7SynthDevice::ReleasePolyphonicSequence(int note, int sequence)
-{
-  for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-  {
-    auto* v = mVoices[iv];
-    if (v->mNoteInfo.MidiNoteValue != note || v->mNoteInfo.mSequence != sequence)
-      continue;
-    v->mNoteInfo.mIsPhysicallyHeld = false;
-    if (!v->mNoteInfo.mIsMusicallyHeld)
-      continue;
-    v->mNoteInfo.mIsMusicallyHeld = false;
-    v->NoteOff();
-  }
-}
-
 Maj7SynthDevice::Maj7SynthDevice(int numParams, float* paramCache)
     : Device(numParams, paramCache, nullptr)
 {
@@ -81,14 +48,11 @@ void Maj7SynthDevice::ProcessMusicalNoteOn(Event* __e, NoteInfo& myNote)
       }
       break;
     case VoiceMode::MonoLegatoTrill:
-      // this assumes that the trill note is the one currently playing, if exists.
-      NoteInfo* existingNote = FindTrillNote(myNote.MidiNoteValue);
-      if (existingNote)
+      NoteInfo* existingNote = FindCurrentlyPlayingNote();
+      for (auto& noteState : mMonoNoteStates)
       {
-        existingNote->mIsMusicallyHeld = false;
+        noteState.mIsMusicallyHeld = false;
       }
-
-      // important that this comes after looking for existing note, otherwise it will think THIS note is the trill note.
       myNote.mIsMusicallyHeld = true;
 
       for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
@@ -119,19 +83,17 @@ void Maj7SynthDevice::ProcessNoteOnEvent(Event* e)
       NoteInfo myNote = {};
       myNote.MidiNoteValue = note;
       myNote.Velocity = velocity;
-      myNote.mIsPhysicallyHeld = true;
       ProcessMusicalNoteOn(e, myNote);
       break;
     }
     case VoiceMode::MonoLegatoTrill:
-      mMonoNoteStates[note].mIsPhysicallyHeld = true;
       mMonoNoteStates[note].Velocity = velocity;
       ProcessMusicalNoteOn(e, mMonoNoteStates[note]);
       break;
   }
 }
 
-void Maj7SynthDevice::ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo* pPlaying)
+void Maj7SynthDevice::ProcessMusicalNoteOff(int note, NoteInfo& myNote)
 {
   myNote.mIsMusicallyHeld = false;
 
@@ -139,117 +101,46 @@ void Maj7SynthDevice::ProcessMusicalNoteOff(int note, NoteInfo& myNote, NoteInfo
   {
     case VoiceMode::Polyphonic:
     default:
+      for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
+      {
+        auto* v = mVoices[iv];
+        if (v->mNoteInfo.MidiNoteValue != note)
+          continue;
+        if (!v->mNoteInfo.mIsMusicallyHeld)
+          continue;
+        v->mNoteInfo.mIsMusicallyHeld = false;
+        v->BaseNoteOff();
+      }
       break;
     case VoiceMode::MonoLegatoTrill:
-      auto pTrillNote = FindTrillNote(myNote.MidiNoteValue);
-      if (pTrillNote)
+      for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)
       {
-        if (pPlaying && pPlaying->MidiNoteValue != myNote.MidiNoteValue)
-        {
-          // if the note being lifted is not the one playing, don't do anything;
-          // it doesn't trigger another note on, and it's not playing so shouldn't get a note off.
-          return;
-        }
-        pTrillNote->mSequence = ++mNoteSequence;
-        pTrillNote->mIsMusicallyHeld = true;
-      }
-
-      for (int iuv = 0; iuv < mVoicesUnisono; ++iuv)  // weird structuring here for size optimization
-      {
-        if (pTrillNote)
-        {
-          mVoices[iuv]->BaseNoteOn(*pTrillNote, iuv, M7::ConditionalFlag(pTrillNote, VoiceNoteOnFlags::Legato));
-        }
-        else
-        {
-          mVoices[iuv]->BaseNoteOff();
-        }
+        mVoices[iuv]->mNoteInfo.mIsMusicallyHeld = false;
+        mVoices[iuv]->BaseNoteOff();
       }
       break;
   }
 }
 
-// process physical state, convert to musical state.
 void Maj7SynthDevice::ProcessNoteOffEvent(Event* e)
 {
   int note = e->data1;
   if (mVoiceMode == VoiceMode::Polyphonic)
   {
-    // Repeated same-note note-ons are tracked on voices; release the oldest still-held trigger for this pitch.
-    const int sequence = FindOldestPhysicalSequenceForNote(note);
-    if (sequence < 0)
-    {
-      return;
-    }
-
-    ReleasePolyphonicSequence(note, sequence);
+    NoteInfo myNote = {};
+    myNote.MidiNoteValue = note;
+    ProcessMusicalNoteOff(note, myNote);
     return;
   }
 
   NoteInfo& ni = mMonoNoteStates[note];
-  if (!ni.mIsPhysicallyHeld)
+  if (!ni.mIsMusicallyHeld)
   {
     return;
   }
 
-  auto pPlaying = FindCurrentlyPlayingNote();
-
-  ni.mIsPhysicallyHeld = false;
-  for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-  {
-    auto* v = mVoices[iv];
-    if (v->mNoteInfo.MidiNoteValue == note)
-    {
-      v->mNoteInfo.mIsPhysicallyHeld = false;
-    }
-  }
-  ProcessMusicalNoteOff(note, ni, pPlaying);
+  ProcessMusicalNoteOff(note, ni);
 }
-
-//void Maj7SynthDevice::ProcessPedalEvent(Event* e, bool isDown)
-//{
-//  if (isDown)
-//  {
-//    mIsPedalDown = true;
-//    return;
-//  }
-//  if (isDown == mIsPedalDown)
-//  {
-//    return;
-//  }
-//
-//  // handle pedal up.
-//  mIsPedalDown = false;
-//
-//  if (mVoiceMode == VoiceMode::Polyphonic)
-//  {
-//    for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-//    {
-//      auto* v = mVoices[iv];
-//      if (v->mNoteInfo.mIsPhysicallyHeld || !v->mNoteInfo.mIsMusicallyHeld)
-//      {
-//        continue;
-//      }
-//      v->mNoteInfo.mIsMusicallyHeld = false;
-//      v->NoteOff();
-//    }
-//    return;
-//  }
-//
-//  // returns the currently playing note (useful for monophonic processing)
-//  auto pPlaying = FindCurrentlyPlayingNote();
-//
-//  for (size_t i = 0; i < maxActiveNotes; ++i)
-//  {
-//    auto& x = mMonoNoteStates[i];
-//    if (x.mIsPhysicallyHeld)
-//    {
-//      continue;
-//    }
-//    ProcessMusicalNoteOff(x.MidiNoteValue, x, pPlaying);
-//  }
-//}
-
 
 // plays through the buffer,
 // handling events and processing audio in sub-chunks broken up by events.
@@ -296,28 +187,11 @@ void Maj7SynthDevice::Run(float** inputs, float** __outputs, int numSamples)
       switch (e->Type)
       {
         case EventType::NoteOn:
-          //cc::log("[buf:%d] Handling note on event; note=%d, velocity=%d, deltasamples=%d", cc::gBufferCount, e->data1, e->data2, e->DeltaSamples);
           ProcessNoteOnEvent(e);
           break;
         case EventType::NoteOff:
-          //cc::log("[buf:%d] Handling note off event; note=%d, deltasamples=%d", cc::gBufferCount, e->data1, e->DeltaSamples);
           ProcessNoteOffEvent(e);
           break;
-        //case EventType::CC:
-        //  if (e->data1 == 64)
-        //  {
-        //    // handle pedal down/up
-        //    ProcessPedalEvent(e, e->data2 >= 64);
-        //  }
-        //  HandleMidiCC(e->data1, e->data2);
-        //  break;
-        //case EventType::PitchBend:
-        //  int bend14 = (e->data2 << 7) | e->data1;  // combine two 7-bit fields into 14-bit
-        //  bend14 -= 8192;
-        //  float normalized_bend = (float(bend14) / 8192);  // bend controller in -1.0 to +1.0 range
-        //  //float normalized_bend = (float(bend14) / 8192.0f) - 1.0f; // bend controller in -1.0 to +1.0 range
-        //  HandlePitchBend(normalized_bend);
-        //  break;
       }
 
       mEvents[iEvent].Type = EventType::None;
@@ -340,9 +214,6 @@ void Maj7SynthDevice::Run(float** inputs, float** __outputs, int numSamples)
   // fix event count now that we have flushed some. so remove gaps and recalculate the count.
   // iEvent points to the "end" of processed events.
   memmove(&mEvents[0], &mEvents[iEvent], (mEventCount - iEvent) * sizeof(Event));
-  //for (int i = iEvent; i < mEventCount; ++i) {
-  //	mEvents[i - iEvent] = mEvents[i];
-  //}
 
   mEventCount -= iEvent;
 }
@@ -357,7 +228,6 @@ void Maj7SynthDevice::AllNotesOff()
     mVoices[i]->Kill(VoiceNoteOnFlags::Panic);
   }
   // clear events
-  //mIsPedalDown = false;  // not strictly necessary but makes sense in the spirit of "resetting".
   mEventCount = 0;
   memset(mEvents, 0, sizeof(mEvents[0]) * maxEvents);
 
@@ -370,11 +240,8 @@ void Maj7SynthDevice::AllNotesOff()
 
 void Maj7SynthDevice::NoteOn(int note, int velocity, int deltaSamples)
 {
-  auto oec = mEventCount;
-  //cc::log("[buf:%d] Pushing note on event; note=%d, velocity=%d, deltasamples=%d", cc::gBufferCount, note, velocity, deltaSamples);
   if (velocity == 0)
   {
-    //PushEvent(EventType::NoteOff, note, 0, deltaSamples);
     NoteOff(note, deltaSamples);
   }
   else
@@ -385,19 +252,8 @@ void Maj7SynthDevice::NoteOn(int note, int velocity, int deltaSamples)
 
 void Maj7SynthDevice::NoteOff(int note, int deltaSamples)
 {
-  //cc::log("[buf:%d] Pushing note off event; note=%d, deltasamples=%d", cc::gBufferCount, note, deltaSamples);
-  auto oec = mEventCount;
   PushEvent(EventType::NoteOff, note, 0, deltaSamples);
 }
-
-//void Maj7SynthDevice::MidiCC(int ccNumber, int value, int deltaSamples)
-//{
-//  PushEvent(EventType::CC, ccNumber, value, deltaSamples);
-//}
-//void Maj7SynthDevice::PitchBend(int lsb, int msb, int deltaSamples)
-//{
-//  PushEvent(EventType::PitchBend, lsb, msb, deltaSamples);
-//}
 
 void Maj7SynthDevice::SetVoiceMode(VoiceMode voiceMode)
 {
