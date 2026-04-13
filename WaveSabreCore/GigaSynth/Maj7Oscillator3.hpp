@@ -84,7 +84,6 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new SineCoreExt(w, SineCoreExtVariant::DCClip);
     case OscillatorWaveform::SineClipSqueeze:
       return new SineCoreExt(w, SineCoreExtVariant::ClipSilence);
-
     case OscillatorWaveform::SineHarmDCClip:
       return new SineCoreExt(w, SineCoreExtVariant::ClipHarm);
     case OscillatorWaveform::SineHarmClipSqueeze:
@@ -96,22 +95,9 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::PulseGenerator);
     case OscillatorWaveform::ShapeCoreSawPulse3:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator1);
-#ifdef ENABLE_PULSE4_WAVEFORM
-    case OscillatorWaveform::ShapeCoreSawPulse4:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator2);
-#endif  // ENABLE_PULSE4_WAVEFORM
     case OscillatorWaveform::ShapeCoreSawTriSquare:
       return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
 
-    case OscillatorWaveform::FoldedSine:
-      return new FoldedSineCore(w);
-#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
-    case OscillatorWaveform::FoldedTriangle:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::FoldedTriGenerator);
-#endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
-
-    case OscillatorWaveform::EvolvingGrainNoise:
-      return new EvolvingGrainNoiseCore(w);
     case OscillatorWaveform::RotatingNoise:
       return new ContinuousNoiseCore(w);
 
@@ -132,13 +118,13 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_LP);
     case OscillatorWaveform::Noise_White_DutyBP:
       return new WhiteNoiseCore2(w, WhiteNoiseCore2::ControlStyle::Duty_BP);
-#else
-    case OscillatorWaveform::Noise_White_ProbDuty:
-    case OscillatorWaveform::Noise_White_ProbLP:
-    case OscillatorWaveform::Noise_White_ProbBP:
-    case OscillatorWaveform::Noise_White_DutyLP:
-    case OscillatorWaveform::Noise_White_DutyBP:
-      return new WhiteNoiseCore2(w);
+// #else
+//     case OscillatorWaveform::Noise_White_ProbDuty:
+//     case OscillatorWaveform::Noise_White_ProbLP:
+//     case OscillatorWaveform::Noise_White_ProbBP:
+//     case OscillatorWaveform::Noise_White_DutyLP:
+//     case OscillatorWaveform::Noise_White_DutyBP:
+//       return new WhiteNoiseCore2(w);
 #endif
   }
 }

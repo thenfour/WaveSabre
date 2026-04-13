@@ -480,7 +480,7 @@ struct SAHNoiseCore : public OscillatorCore
   // Output: held value between steps
   float mHeld = 0.0f;
 
-  CorrectionSpill mSpill;
+  //CorrectionSpill mSpill;
   //BiquadFilter mFilter;
   FilterNode mFilter;
 
@@ -530,7 +530,7 @@ struct SAHNoiseCore : public OscillatorCore
       mHeld = math::randN11();  // start value
     }
 
-    mSpill.open_sample();
+    //mSpill.open_sample();
 
     // Snapshot held value at start of sample
     const float heldAtStart = mHeld;
@@ -548,7 +548,7 @@ struct SAHNoiseCore : public OscillatorCore
       const double dAmp = double(newTarget) - double(mHeld);
 
       // Band-limit the step at alpha
-      mSpill.add_edge(alpha, {dAmp, 0}, dt);
+      //mSpill.add_edge(alpha, {dAmp, 0}, dt);
 
       // Commit the step
       mHeld = newTarget;
@@ -565,7 +565,7 @@ struct SAHNoiseCore : public OscillatorCore
       mClockPhase01 += dt;
     }
 
-    float y = heldAtStart + float(mSpill.now);
+    float y = heldAtStart;// + float(mSpill.now);
     y = mFilter.ProcessSample(y);
 
     return CoreSample{
@@ -580,7 +580,7 @@ struct SAHNoiseCore : public OscillatorCore
     if (!HasFlag(flags, OscillatorCoreResetFlags::Legato))
     {
       mFilter.Reset();
-      mSpill.reset();
+      //mSpill.reset();
     }
   }
 };
