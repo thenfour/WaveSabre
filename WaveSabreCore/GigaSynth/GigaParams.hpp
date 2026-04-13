@@ -278,20 +278,10 @@ enum class GigaSynthParamIndices : uint16_t
   LFO4Sharpness,
 
   Filter1Enabled,
-  Filter1Circuit,
-  Filter1Slope,
   Filter1Response,
   Filter1Q,
   Filter1Freq,
   Filter1FreqKT,
-
-  Filter2Enabled,
-  Filter2Circuit,
-  Filter2Slope,
-  Filter2Response,
-  Filter2Q,
-  Filter2Freq,
-  Filter2FreqKT,
 
   Mod1Enabled,  // KEEP IN SYNC WITH ModParamIndexOffsets
   Mod1Source,
@@ -1042,19 +1032,10 @@ enum class GigaSynthParamIndices : uint16_t
     {"LFO4ms"}, \
 {"LFO4lp"}, \
 {"F1En"},   \
-{"F1Circ"}, \
-{"F1Slop"}, \
 {"F1Resp"}, \
 {"F1Q"},    \
 {"F1Freq"}, \
 {"F1FKT"},            \
-{"F2En"},   \
-{"F2Circ"}, \
-{"F2Slop"}, \
-{"F2Resp"}, \
-{"F2Q"},    \
-{"F2Freq"}, \
-{"F2FKT"},  \
 {"M1en"},   \
 {"M1src"},  \
 {"M1dest1"},          \
@@ -1691,13 +1672,11 @@ enum class EnvParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
 };
 
 
-// FILTER AUX INFO  ------------------------------------------------------------
+//// FILTER AUX INFO  ------------------------------------------------------------
 enum class
     FilterParamIndexOffsets : uint8_t  // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets & FilterAuxModIndexOffsets
 {
   Enabled,
-  FilterCircuit,  // filter type
-  FilterSlope,  // filter type
   FilterResponse,  // filter type
   Q,           // param2: filter Q
   Freq,        // filter freq
@@ -1705,12 +1684,12 @@ enum class
   Count,
 };
 
-enum class FilterAuxModDestOffsets : uint8_t  // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
-{
-  Freq,  // filter freq
-  Q,     // filter Q
-  Count,
-};
+//enum class FilterAuxModDestOffsets : uint8_t  // MUST SYNC WITH PARAMINDICES & AuxParamIndexOffsets
+//{
+//  Freq,  // filter freq
+//  Q,     // filter Q
+//  Count,
+//};
 
 // ------------------------------------------------------------
 enum class EnvelopeMode : uint8_t

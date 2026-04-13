@@ -43,19 +43,16 @@ struct FilterAuxNode  // : IAuxEffect
 
   ParamAccessor mParams;
 
-  //FilterCircuit mFilterCircuit;
-  //FilterSlope mFilterSlope;
-  FilterResponse mFilterResponse;
+  FilterResponse mFilterResponse = (FilterResponse)0;
 
-  ModDestination mModDestBase;
+  //ModDestination mModDestBase;
   float mNoteHz = 0;
   size_t mnSampleCount = 0;
   ModMatrixNode* mModMatrix = nullptr;
   bool mEnabledCached = false;
 
-  FilterAuxNode(float* paramCache, GigaSynthParamIndices baseParamID, ModDestination modDestBase)
-      : mParams(paramCache, baseParamID)
-      , mModDestBase(modDestBase)
+  explicit FilterAuxNode(float* paramCache)
+      : mParams(paramCache, 0)
   {
   }
 
@@ -66,8 +63,8 @@ struct FilterAuxNode  // : IAuxEffect
     mNoteHz = noteHz;
     //mFilterCircuit = mParams.GetEnumValue<FilterCircuit>(FilterParamIndexOffsets::FilterCircuit);
     //mFilterSlope = mParams.GetEnumValue<FilterSlope>(FilterParamIndexOffsets::FilterSlope);
-    mFilterResponse = mParams.GetEnumValue<FilterResponse>(FilterParamIndexOffsets::FilterResponse);
-    mEnabledCached = mParams.GetBoolValue(FilterParamIndexOffsets::Enabled);
+    mFilterResponse = mParams.GetEnumValue<FilterResponse>(GigaSynthParamIndices::Filter1Response);
+    mEnabledCached = mParams.GetBoolValue(GigaSynthParamIndices::Filter1Enabled);
   }
 
   float AuxProcessSample(float inputSample)
@@ -80,15 +77,14 @@ struct FilterAuxNode  // : IAuxEffect
     if (calc)
     {
       auto reso01 = Param01{
-          mParams.Get01Value(FilterParamIndexOffsets::Q,
-                             mModMatrix->GetDestinationValue((int)mModDestBase + (int)FilterAuxModDestOffsets::Q))};
+          mParams.Get01Value(GigaSynthParamIndices::Filter1Q,
+                             mModMatrix->GetDestinationValue(ModDestination::Filter1Q))};
 
-      auto freq = mParams.GetFrequency(FilterParamIndexOffsets::Freq,
-                                   FilterParamIndexOffsets::FreqKT,
+      auto freq = mParams.GetFrequency(GigaSynthParamIndices::Filter1Freq,
+                                   GigaSynthParamIndices::Filter1FreqKT,
                                    gFilterFreqConfig,
                                    mNoteHz,
-                                   mModMatrix->GetDestinationValue((int)mModDestBase +
-                                                                       (int)FilterAuxModDestOffsets::Freq));
+                                   mModMatrix->GetDestinationValue(ModDestination::Filter1Freq));
 
       //const auto q = Decibels {gBiquadFilterQCfg.Param01ToValue(reso01.value)};
 

@@ -325,10 +325,13 @@ struct Maj7 : public Maj7SynthDevice
                           gDefaultModSpecParams,
                           mpModulations[i]->mParams.GetOffsetParamCache());  // mParamCache + (int)m.mBaseParamID);
     }
-    for (auto* m : mMaj7Voice[0]->mpFilters)
-    {
-      ImportDefaultsArray(std::size(gDefaultFilterParams), gDefaultFilterParams, m[0]->mParams.GetOffsetParamCache());
-    }
+    //for (auto* m : mMaj7Voice[0]->mFilter)
+    //{
+    //  ImportDefaultsArray(std::size(gDefaultFilterParams), gDefaultFilterParams, m[0]->mParams.GetOffsetParamCache());
+    //}
+    ImportDefaultsArray(std::size(gDefaultFilterParams),
+                        gDefaultFilterParams,
+                        mMaj7Voice[0]->mFilter[0].mParams.GetOffsetParamCache());
     for (auto& m : mMaj7Voice[0]->mpEnvelopes)
     {
       ImportDefaultsArray(std::size(gDefaultEnvelopeParams),
@@ -611,18 +614,19 @@ struct Maj7 : public Maj7SynthDevice
     Maj7Voice(Maj7* owner)
         : mpOwner(owner)
         , mPortamento(owner->mParamCache)
+        , mFilter{FilterAuxNode(owner->mParamCache), FilterAuxNode(owner->mParamCache)}
     {
-      for (int ich = 0; ich < 2; ++ich)
-      {
-        for (int ifilt = 0; ifilt < 2; ++ifilt)
-        {
-          mpFilters[ifilt][ich] = new FilterAuxNode(
-              owner->mParamCache,
-              (GigaSynthParamIndices)((int)GigaSynthParamIndices::Filter1Enabled +
-                                      (int)FilterParamIndexOffsets::Count * ifilt),
-              (ModDestination)((int)ModDestination::Filter1Freq + ((int)FilterAuxModDestOffsets::Count * ifilt)));
-        }
-      }
+      //for (int ich = 0; ich < 2; ++ich)
+      //{
+      //  for (int ifilt = 0; ifilt < 2; ++ifilt)
+      //  {
+      //    mpFilters[ifilt][ich] = new FilterAuxNode(
+      //        owner->mParamCache,
+      //        (GigaSynthParamIndices)((int)GigaSynthParamIndices::Filter1Enabled +
+      //                                (int)FilterParamIndexOffsets::Count * ifilt),
+      //        (ModDestination)((int)ModDestination::Filter1Freq + ((int)FilterAuxModDestOffsets::Count * ifilt)));
+      //  }
+      //}
 
       for (int i = 0; i < (gSourceCount + gModEnvCount); ++i)
       {
@@ -686,7 +690,7 @@ struct Maj7 : public Maj7SynthDevice
       VanillaOnePoleFilter mFilter;
     };
 
-    FilterAuxNode* mpFilters[gFilterCount][2];
+    FilterAuxNode mFilter[2];
     LFOVoice* mpLFOs[gModLFOCount];
 
     // first source envs, then mod envs.
@@ -843,11 +847,12 @@ struct Maj7 : public Maj7SynthDevice
                               0 /*gaindb*/);
       }
 
-      for (auto* a : mpFilters)
+      //for (auto* a : mpFilters)
       {
         for (int ich = 0; ich < 2; ++ich)
         {
-          a[ich]->AuxBeginBlock(noteHz, mModMatrix);
+          //a[ich]->AuxBeginBlock(noteHz, mModMatrix);
+          mFilter[ich].AuxBeginBlock(noteHz, mModMatrix);
         }
       }
 
@@ -1058,9 +1063,10 @@ struct Maj7 : public Maj7SynthDevice
 
       for (size_t ich = 0; ich < 2; ++ich)
       {
-        for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter)
+        //for (size_t ifilter = 0; ifilter < gFilterCount; ++ifilter)
         {
-          mixedSources.x[ich] = mpFilters[ifilter][ich]->AuxProcessSample(mixedSources.x[ich]);
+          //mixedSources.x[ich] = mpFilters[ifilter][ich]->AuxProcessSample(mixedSources.x[ich]);
+          mixedSources.x[ich] = mFilter[ich].AuxProcessSample(mixedSources.x[ich]);
         }
         s[ich] += mixedSources[ich];
       }

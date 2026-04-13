@@ -94,9 +94,6 @@ enum class ModDestination  //: uint8_t
   Filter1Freq,  // DENOTES the base filter dest; keep in sync with FilterAuxModDestOffsets
   Filter1Q,     // Aux1Param2
 
-  Filter2Freq,  // Aux2Param4
-  Filter2Q,     // Aux2Param2
-
   // NB!! the order of these must 1) be the same for all envelopes, and 2) stay in sync with the order expected by EnvelopeModulationValues::Fill
   Osc1Volume,  // arate, 01 // KEEP IN SYNC WITH OscModParamIndexOffsets
   Osc1Pan,
@@ -1050,7 +1047,7 @@ static constexpr size_t gMacroCount = 7;
 
 static constexpr size_t gModEnvCount = 4;
 static constexpr size_t gModLFOCount = 4;
-static constexpr size_t gFilterCount = 2;
+//static constexpr size_t gFilterCount = 2;
 
 struct LFOInfo
 {
