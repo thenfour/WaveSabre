@@ -12,71 +12,8 @@ namespace WaveSabreCore
 {
 namespace M7
 {
-namespace M7Osc4
+inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorIntention /*intention*/)
 {
-struct SawGenerator : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float shapeB) const override
-  {
-    return MakeSawShape(shapeA, shapeB);
-  }
-};
-struct TriGenerator : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float shapeB) const override
-  {
-    return MakeTriSquareShape(shapeA, shapeB);
-  }
-};
-struct PulseGenerator : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float /*shapeB*/) const override
-  {
-    return MakePulseShape(shapeA);
-  }
-};
-
-struct TriPulseGenerator1 : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float shapeB) const override
-  {
-    return MakeTriStatePulseShape3(shapeA, shapeB);
-  }
-};
-#ifdef ENABLE_PULSE4_WAVEFORM
-struct TriPulseGenerator2 : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float shapeB) const override
-  {
-    // shapeA = pulse width (0..1)
-    // shapeB defines the low & high duty cycles. when shapeB = 0.5, both are 0.5. when shapeB = 0, low=0, high=1; when shapeB=1, low=1, high=0
-    double lowDuty01 = shapeA;
-    double highDuty01 = 1.0 - shapeA;
-    return MakeTriStatePulseShape4(shapeB, lowDuty01, highDuty01);
-  }
-};
-#endif  // ENABLE_PULSE4_WAVEFORM
-
-#ifdef ENABLE_TRIANGLE_FOLD_WAVEFORM
-struct FoldedTriGenerator : public IShapeGenerator
-{
-  WVShape GetShape(float shapeA, float shapeB) const override
-  {
-    const float drive = 1.0f + 15.0f * math::clamp01(shapeA);
-    const float bias = (math::clamp01(shapeB) - 0.5f) * 4.0f;
-    return MakeFoldedTriangleShape(drive, bias);
-  }
-};
-#endif  // ENABLE_TRIANGLE_FOLD_WAVEFORM
-
-}  // namespace M7Osc4
-
-inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorIntention intention)
-{
-  const M7Osc4::AntiAliasingOption aaOpt = (intention == OscillatorIntention::LFO)
-                                               ? M7Osc4::AntiAliasingOption::None
-                                               : M7Osc4::AntiAliasingOption::PolyBlep;
-
   switch (w)
   {
     default:
@@ -90,13 +27,9 @@ inline OscillatorCore* InstantiateWaveformCore(OscillatorWaveform w, OscillatorI
       return new SineCoreExt(w, SineCoreExtVariant::HarmSilence);
 
     case OscillatorWaveform::ShapeCoreSawTri:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::SawGenerator);
-    case OscillatorWaveform::ShapeCoreSawPulse2:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::PulseGenerator);
-    case OscillatorWaveform::ShapeCoreSawPulse3:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriPulseGenerator1);
     case OscillatorWaveform::ShapeCoreSawTriSquare:
-      return new M7Osc4::ShapeCoreStreaming(w, aaOpt, new M7Osc4::TriGenerator);
+    case OscillatorWaveform::ShapeCoreSawPulse2:
+      return new M7Osc4::TrapezoidCore(w);
 
     case OscillatorWaveform::RotatingNoise:
       return new ContinuousNoiseCore(w);

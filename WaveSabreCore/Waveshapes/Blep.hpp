@@ -1,6 +1,6 @@
 #pragma once
 
-#include "./Maj7Oscillator3Shape.hpp"
+//#include "./Maj7Oscillator3Shape.hpp"
 #include "../Basic/Pair.hpp"
 
 namespace WaveSabreCore
