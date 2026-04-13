@@ -237,7 +237,10 @@ struct Maj7 : public Maj7SynthDevice
 
   LFODevice* mpLFOs[gModLFOCount];
   OscillatorDevice* mpOscillatorDevices[gOscillatorCount];
+
+#ifdef ENABLE_SAMPLER_DEVICE
   SamplerDevice* mpSamplerDevices[gSamplerCount];
+#endif  // ENABLE_SAMPLER_DEVICE
   ISoundSourceDevice* mSources[gSourceCount];
 
   Maj7()
@@ -250,14 +253,20 @@ struct Maj7 : public Maj7SynthDevice
                                                 ((int)ModParamIndexOffsets::Count * i)};
     }
 
+#ifdef ENABLE_SAMPLER_DEVICE
     static_assert(gModLFOCount == gOscillatorCount && gOscillatorCount == gSamplerCount, "meecro optimizutionz");
+#else
+    static_assert(gModLFOCount == gOscillatorCount, "meecro optimizutionz");
+#endif  // ENABLE_SAMPLER_DEVICE
     for (int i = 0; i < gModLFOCount; ++i)
     {
       mpLFOs[i] = new LFODevice(mParamCache, i);
       mSources[i] = mpOscillatorDevices[i] = new OscillatorDevice(mParamCache, mpModulations, gSourceInfo[i]);
+#ifdef ENABLE_SAMPLER_DEVICE
       mSources[i + gOscillatorCount] = mpSamplerDevices[i] = new SamplerDevice(mParamCache,
                                                                                mpModulations,
                                                                                gSourceInfo[i + gOscillatorCount]);
+#endif  // ENABLE_SAMPLER_DEVICE
     }
 
     for (size_t i = 0; i < mVoices.Size(); ++i)
@@ -282,7 +291,9 @@ struct Maj7 : public Maj7SynthDevice
     {
       delete mpLFOs[i];
       delete mpOscillatorDevices[i];
+#ifdef ENABLE_SAMPLER_DEVICE
       delete mpSamplerDevices[i];
+#endif  // ENABLE_SAMPLER_DEVICE
     }
 
     for (size_t i = 0; i < mVoices.Size(); ++i)
@@ -313,12 +324,14 @@ struct Maj7 : public Maj7SynthDevice
                           gDefaultOscillatorParams,
                           m->mParams.GetOffsetParamCache());  // mParamCache + (int)m.mBaseParamID);
     }
+#ifdef ENABLE_SAMPLER_DEVICE
     for (auto& s : mpSamplerDevices)
     {
       ImportDefaultsArray(std::size(gDefaultSamplerParams),
                           gDefaultSamplerParams,
                           s->mParams.GetOffsetParamCache());  // mParamCache + (int)s.mBaseParamID);
     }
+#endif  // ENABLE_SAMPLER_DEVICE
     for (int i = 0; i < (int)std::size(mpModulations); ++i)
     {
       ImportDefaultsArray(std::size(gDefaultModSpecParams),
@@ -388,10 +401,12 @@ struct Maj7 : public Maj7SynthDevice
     //Deserializer ds{ (const uint8_t*)data };
     Device::SetBinary16DiffChunk(ds);
     //SetMaj7StyleChunk(ds);
+#ifdef ENABLE_SAMPLER_DEVICE
     for (auto& s : mpSamplerDevices)
     {
       s->Deserialize(ds);
     }
+#endif  // ENABLE_SAMPLER_DEVICE
     SetVoiceInitialStates();
   }
 
@@ -634,16 +649,22 @@ struct Maj7 : public Maj7SynthDevice
         mpEnvelopes[i] = new EnvelopeNode{mModMatrix, owner->mParamCache, gEnvelopeInfo[i]};
       }
 
+#ifdef ENABLE_SAMPLER_DEVICE
       static_assert(gModLFOCount == gOscillatorCount && gOscillatorCount == gSamplerCount, "meecro optimizyshunz");
+#else
+      static_assert(gModLFOCount == gOscillatorCount, "meecro optimizyshunz");
+#endif // ENABLE_SAMPLER_DEVICE
       for (int i = 0; i < gModLFOCount; ++i)
       {
         mpLFOs[i] = new LFOVoice{*mpOwner->mpLFOs[i], mModMatrix};
 
         mSourceVoices[i] = mpOscillatorNodes[i] =
             new OscillatorNode(owner->mpOscillatorDevices[i], OscillatorIntention::Audio, &mModMatrix, mpEnvelopes[i]);
+#ifdef ENABLE_SAMPLER_DEVICE
         mSourceVoices[i + gOscillatorCount] = mpSamplerVoices[i] = new SamplerVoice(mModMatrix,
                                                                                     owner->mpSamplerDevices[i],
                                                                                     mpEnvelopes[i + gOscillatorCount]);
+#endif  // ENABLE_SAMPLER_DEVICE
       }
     }
     ~Maj7Voice()
@@ -660,7 +681,9 @@ struct Maj7 : public Maj7SynthDevice
       {
         delete mpLFOs[i];
         delete mpOscillatorNodes[i];
+#ifdef ENABLE_SAMPLER_DEVICE
         delete mpSamplerVoices[i];
+#endif  // ENABLE_SAMPLER_DEVICE
       }
 #endif  // MIN_SIZE_REL
     }
@@ -689,7 +712,9 @@ struct Maj7 : public Maj7SynthDevice
     // first source envs, then mod envs.
     EnvelopeNode* mpEnvelopes[gSourceCount + gModEnvCount];
     OscillatorNode* mpOscillatorNodes[gOscillatorCount];
+#ifdef ENABLE_SAMPLER_DEVICE
     SamplerVoice* mpSamplerVoices[gSamplerCount];
+#endif  // ENABLE_SAMPLER_DEVICE
 
     ISoundSourceDevice::Voice* mSourceVoices[gSourceCount];
 
@@ -728,10 +753,12 @@ struct Maj7 : public Maj7SynthDevice
         p->ClearState();
       }
 
+#ifdef ENABLE_SAMPLER_DEVICE
       for (auto* p : mpSamplerVoices)
       {
         p->ClearState();
       }
+#endif  // ENABLE_SAMPLER_DEVICE
 
       // Don't reset filters to avoid clicks. Maybe this could be added
       // for panic, but not general.
@@ -1021,6 +1048,7 @@ struct Maj7 : public Maj7SynthDevice
           continue;
         }
 
+#ifdef ENABLE_SAMPLER_DEVICE
         if (i >= gOscillatorCount)  // if sampler, process sample here while it's fresh
         {
           auto ps = static_cast<SamplerVoice*>(srcVoice);
@@ -1028,6 +1056,7 @@ struct Maj7 : public Maj7SynthDevice
           mixedSources.Accumulate(mOutputGainsCached[i].mul(s));
         }
         else
+#endif  // ENABLE_SAMPLER_DEVICE
         {
           auto po = static_cast<OscillatorNode*>(srcVoice);
           // #127 must apply amp gain to last samples.

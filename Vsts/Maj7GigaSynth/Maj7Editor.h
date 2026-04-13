@@ -629,10 +629,12 @@ public:
     };
 
     GenerateArray("gDefaultMasterParams", (int)M7::MainParamIndices::Count, "M7::MainParamIndices::Count", 0);
+#ifdef ENABLE_SAMPLER_DEVICE
     GenerateArray("gDefaultSamplerParams",
                   (int)M7::SamplerParamIndexOffsets::Count,
                   "M7::SamplerParamIndexOffsets::Count",
                   (int)pMaj7->mpSamplerDevices[0]->mParams.mBaseParamID);
+#endif
     GenerateArray("gDefaultModSpecParams",
                   (int)M7::ModParamIndexOffsets::Count,
                   "M7::ModParamIndexOffsets::Count",
@@ -952,11 +954,13 @@ public:
                  isrc++,
                  (int)M7::ModDestination::Osc4AmpEnvDelayTime);
 
+#ifdef ENABLE_SAMPLER_DEVICE
       static_assert(M7::gSamplerCount == 4, "sampler count");
       Sampler("Sampler 1", *pMaj7->mpSamplerDevices[0], isrc++, (int)M7::ModDestination::Sampler1AmpEnvDelayTime);
       Sampler("Sampler 2", *pMaj7->mpSamplerDevices[1], isrc++, (int)M7::ModDestination::Sampler2AmpEnvDelayTime);
       Sampler("Sampler 3", *pMaj7->mpSamplerDevices[2], isrc++, (int)M7::ModDestination::Sampler3AmpEnvDelayTime);
       Sampler("Sampler 4", *pMaj7->mpSamplerDevices[3], isrc++, (int)M7::ModDestination::Sampler4AmpEnvDelayTime);
+#endif
       EndTabBarWithColoredSeparator();
     }
 
@@ -1303,12 +1307,6 @@ public:
                             waveformUiStyle.defaultWaveshapeB,
                             0,
                             lGetModInfo(M7::OscModParamIndexOffsets::WaveshapeB));
-      ImGui::SameLine();
-      Maj7ImGuiParamVolume(enabledParamID + (int)M7::OscParamIndexOffsets::CompensationGain,
-                           "Comp.Vol",
-                           M7::gVolumeCfg12db,
-                           0,
-                           {});
 
       ImGui::SameLine(0, 40);
       Maj7ImGuiParamFrequency(enabledParamID + (int)M7::OscParamIndexOffsets::FrequencyParam,
@@ -1811,7 +1809,6 @@ public:
   float ModMeter(bool visible,
                  M7::ModulationSpec& spec,
                  M7::ModSource modSource,
-                 M7::ModParamIndexOffsets curveParam,
                  M7::ModParamIndexOffsets rangeMinParam,
                  M7::ModParamIndexOffsets rangeMaxParam,
                  bool isTargetN11,
@@ -1821,7 +1818,7 @@ public:
     float rangeMin = spec.mParams.GetScaledRealValue(rangeMinParam, -3, 3, 0);
     float rangeMax = spec.mParams.GetScaledRealValue(rangeMaxParam, -3, 3, 0);
     float resultingValue =
-        mRenderContext.mpModMatrix->MapValue(spec, modSource, curveParam, rangeMinParam, rangeMaxParam, isTargetN11);
+        mRenderContext.mpModMatrix->MapValue(spec, modSource, rangeMinParam, rangeMaxParam, isTargetN11);
     if (!visible)
     {
       return resultingValue;
@@ -1962,17 +1959,16 @@ public:
           Maj7ImGuiParamScaledFloat(
               enabledParamID + (int)M7::ModParamIndexOffsets::SrcRangeMax, "Max", -3, 3, 1, 1, 30, {});
 
-          ImGui::SameLine();
-          Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve,
-                              "Curve",
-                              0,
-                              M7CurveRenderStyle::Rising,
-                              {});
+          //ImGui::SameLine();
+          //Maj7ImGuiParamCurve((VstInt32)enabledParamID + (int)M7::ModParamIndexOffsets::Curve,
+          //                    "Curve",
+          //                    0,
+          //                    M7CurveRenderStyle::Rising,
+          //                    {});
 
           modVal = ModMeter(true,
                             spec,
                             spec.mSource,
-                            M7::ModParamIndexOffsets::Curve,
                             M7::ModParamIndexOffsets::SrcRangeMin,
                             M7::ModParamIndexOffsets::SrcRangeMax,
                             true,
@@ -2005,7 +2001,6 @@ public:
           modVal = ModMeter(false,
                             spec,
                             spec.mSource,
-                            M7::ModParamIndexOffsets::Curve,
                             M7::ModParamIndexOffsets::SrcRangeMin,
                             M7::ModParamIndexOffsets::SrcRangeMax,
                             true,
@@ -2910,6 +2905,7 @@ public:
   //	return suggestions;
   //}
 
+  #ifdef ENABLE_SAMPLER_DEVICE
   void Sampler(const char* labelWithID, M7::SamplerDevice& sampler, size_t isrc, int ampEnvModDestBase)
   {
     ColorMod& cm = sampler.IsEnabled() ? mSamplerColors : mSamplerDisabledColors;
@@ -3168,7 +3164,7 @@ public:
       ImGui::EndTabItem();
     }  // if begin tab item
   }  // sampler()
-
+#endif  // ENABLE_SAMPLER_DEVICE
 
   void WaveformGraphic(size_t isrc,
                        float height,
@@ -3248,6 +3244,7 @@ public:
   }
 
   // TODO: cache this image in a texture.
+#ifdef ENABLE_SAMPLER_DEVICE
   void SamplerWaveformDisplay(M7::SamplerDevice& sampler, size_t isrc)
   {
     auto sourceInfo = this->mSourceStatusText[isrc];
@@ -3291,5 +3288,5 @@ public:
 
     FreeBuffer(sampleDataPair.first);
   }
-
+#endif  // ENABLE_SAMPLER_DEVICE
 };  // class maj7editor

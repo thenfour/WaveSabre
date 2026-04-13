@@ -160,6 +160,7 @@ public:
 			return 0;
 		}
 
+#ifdef ENABLE_SAMPLER_DEVICE
 		for (auto* s : p->mpSamplerDevices) {
 			auto b64 = samplersArr.GetNextArrayItem();
 			if (b64.IsEOF()) break;
@@ -168,6 +169,7 @@ public:
 			M7::Deserializer ds{ data.data() };
 			s->Deserialize(ds);
 		}
+#endif  // ENABLE_SAMPLER_DEVICE
 
 		samplersArr.EnsureClosed();
 
@@ -195,15 +197,19 @@ public:
 				if (ch.mKeyName == "MacroName2") pvst->mMacroNames[2] = ch.mStringValue;
 				if (ch.mKeyName == "MacroName3") pvst->mMacroNames[3] = ch.mStringValue;
 
-				static_assert(M7::gSourceCount == 8, "update this here shiz");
 				if (ch.mKeyName == "SourceName0") pvst->mSourceNames[0] = ch.mStringValue;
 				if (ch.mKeyName == "SourceName1") pvst->mSourceNames[1] = ch.mStringValue;
 				if (ch.mKeyName == "SourceName2") pvst->mSourceNames[2] = ch.mStringValue;
 				if (ch.mKeyName == "SourceName3") pvst->mSourceNames[3] = ch.mStringValue;
+#ifdef ENABLE_SAMPLER_DEVICE
+				static_assert(M7::gSourceCount == 8, "update this here shiz");
 				if (ch.mKeyName == "SourceName4") pvst->mSourceNames[4] = ch.mStringValue;
 				if (ch.mKeyName == "SourceName5") pvst->mSourceNames[5] = ch.mStringValue;
 				if (ch.mKeyName == "SourceName6") pvst->mSourceNames[6] = ch.mStringValue;
 				if (ch.mKeyName == "SourceName7") pvst->mSourceNames[7] = ch.mStringValue;
+#else
+				static_assert(M7::gSourceCount == 4, "update this here shiz");
+#endif  // ENABLE_SAMPLER_DEVICE
 
 				static_assert(M7::gModLFOCount == 4, "update this here shiz");
 				if (ch.mKeyName == "LFOName0") pvst->mLFONames[0] = ch.mStringValue;
@@ -314,6 +320,8 @@ public:
 
 		auto samplersArray = doc.Object_MakeKey("samplers");
 		samplersArray.BeginArray();
+
+#ifdef ENABLE_SAMPLER_DEVICE
 		for (auto* sampler : GetMaj7()->mpSamplerDevices)
 		{
 			M7::Serializer samplerSerializer;
@@ -323,6 +331,7 @@ public:
       auto b64 = clarinoid::base64_encode(samplerSerializer.mBuffer.Data<uint8_t>(), (unsigned int)samplerSerializer.mBuffer.SizeBytes());
 			samplersArray.Array_MakeValue().WriteStringValue(b64);
 		}
+#endif  // ENABLE_SAMPLER_DEVICE
 		samplersArray.EnsureClosed();
 
 		auto settingsObj = doc.Object_MakeKey("PluginSettings");
@@ -334,15 +343,19 @@ public:
 		settingsObj.Object_MakeKey("MacroName2").WriteStringValue(mMacroNames[2]);
 		settingsObj.Object_MakeKey("MacroName3").WriteStringValue(mMacroNames[3]);
 
-		static_assert(M7::gSourceCount == 8, "update this here shiz");
 		settingsObj.Object_MakeKey("SourceName0").WriteStringValue(mSourceNames[0]);
 		settingsObj.Object_MakeKey("SourceName1").WriteStringValue(mSourceNames[1]);
 		settingsObj.Object_MakeKey("SourceName2").WriteStringValue(mSourceNames[2]);
 		settingsObj.Object_MakeKey("SourceName3").WriteStringValue(mSourceNames[3]);
+#ifdef ENABLE_SAMPLER_DEVICE
+		static_assert(M7::gSourceCount == 8, "update this here shiz");
 		settingsObj.Object_MakeKey("SourceName4").WriteStringValue(mSourceNames[4]);
 		settingsObj.Object_MakeKey("SourceName5").WriteStringValue(mSourceNames[5]);
 		settingsObj.Object_MakeKey("SourceName6").WriteStringValue(mSourceNames[6]);
 		settingsObj.Object_MakeKey("SourceName7").WriteStringValue(mSourceNames[7]);
+#else
+		static_assert(M7::gSourceCount == 4, "update this here shiz");
+#endif
 
 		static_assert(M7::gModLFOCount == 4, "update this here shiz");
 		settingsObj.Object_MakeKey("LFOName0").WriteStringValue(mLFONames[0]);
@@ -418,6 +431,7 @@ public:
 	virtual void OptimizeParams() override
 	{
 		auto p = GetMaj7();
+#ifdef ENABLE_SAMPLER_DEVICE
 		// samplers
 		for (auto* ps : p->mpSamplerDevices)
 		{
@@ -448,7 +462,7 @@ public:
 				s.mParams.SetBoolValue(M7::SamplerParamIndexOffsets::Enabled, false);
 			}
 		}
-
+#endif  // ENABLE_SAMPLER_DEVICE
 		// oscillators
 		bool oscEnabled[M7::gOscillatorCount];
 		int iosc = 0;
@@ -703,7 +717,7 @@ namespace WaveSabreCore
 				m->mParams.SetN11Value((int)ModParamIndexOffsets::Scale1 + i, 0.75f);
 			}
 
-			m->mParams.SetN11Value(ModParamIndexOffsets::Curve, 0);// mCurve.SetN11Value(0);
+			//m->mParams.SetN11Value(ModParamIndexOffsets::Curve, 0);// mCurve.SetN11Value(0);
 			//m->mParams.SetBoolValue(ModParamIndexOffsets::AuxEnabled, false);
 			//
 			//m->mParams.SetEnumValue(ModParamIndexOffsets::AuxSource, ModSource::None);
@@ -763,7 +777,6 @@ namespace WaveSabreCore
 			p->mParams.SetBoolValue(OscParamIndexOffsets::Enabled, false);//p->mEnabledParam.SetBoolValue(false);
 			p->mParams.SetDecibels(OscParamIndexOffsets::Volume, M7::gUnityVolumeCfg, 0);//p->mVolumeParam.SetDecibels(0);
 			p->mParams.SetN11Value(OscParamIndexOffsets::Pan, 0);
-			p->mParams.SetDecibels(OscParamIndexOffsets::CompensationGain, M7::gVolumeCfg12db, 0);
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParam, M7::gFreqParamKTUnity);//p->mFrequencyParam.mValue.SetParamValue(M7::gFreqParamKTUnity);//(paramCache[(int)freqParamID], paramCache[(int)freqKTParamID], gSourceFrequencyCenterHz, gSourceFrequencyScale, 0.4f, 1.0f),
 			p->mParams.Set01Val(OscParamIndexOffsets::FrequencyParamKT, 1);//p->mFrequencyParam.mKTValue.SetParamValue(0);
 			p->mParams.SetIntValue(OscParamIndexOffsets::PitchSemis, 0);//p->mPitchSemisParam.SetIntValue(0);// (paramCache[(int)tuneSemisParamID], -gSourcePitchSemisRange, gSourcePitchSemisRange, 0),
@@ -780,6 +793,7 @@ namespace WaveSabreCore
 			p->mParams.SetRangedValue(OscParamIndexOffsets::FreqMul, 0.0f, gFrequencyMulMax, 1);//p->mFrequencyMul.SetRangedValue(1);
 		}
 
+#ifdef ENABLE_SAMPLER_DEVICE
 		static inline void GenerateDefaults(SamplerDevice* p)
 		{
 			auto token = p->mMutex.Enter();
@@ -814,6 +828,7 @@ namespace WaveSabreCore
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, 0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::Delay, 0);
 		}
+#endif // ENABLE_SAMPLER_DEVICE
 
 		//enum class MainParamIndices : uint8_t
 		static inline void GenerateMasterParamDefaults(Maj7* p)
@@ -855,9 +870,12 @@ namespace WaveSabreCore
 			for (auto& m : p->mpOscillatorDevices) {
 				GenerateDefaults_Audio(m);
 			}
+
+#ifdef ENABLE_SAMPLER_DEVICE
 			for (auto& m : p->mpSamplerDevices) {
 				GenerateDefaults(m);
 			}
+#endif // ENABLE_SAMPLER_DEVICE
 			for (auto& m : p->mpModulations) {
 				GenerateDefaults(m);
 			}

@@ -2,6 +2,8 @@
 #include "Maj7Sampler.hpp"
 #include "../Basic/Helpers.h"
 
+#ifdef ENABLE_SAMPLER_DEVICE
+
 namespace WaveSabreCore
 {
 namespace M7
@@ -308,3 +310,5 @@ float SamplerVoice::ProcessSample(real_t midiNote, float detuneFreqMul, float fm
 
 
 }  // namespace WaveSabreCore
+
+#endif // ENABLE_SAMPLER_DEVICE

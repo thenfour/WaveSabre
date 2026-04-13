@@ -37,6 +37,7 @@
 #undef ENABLE_FILTERED_WHITENOISE_WAVEFORMS
 
 // user sample support (different than gmdls)
+#undef ENABLE_SAMPLER_DEVICE // can completely disable all sampler support
 #undef MAJ7_INCLUDE_GSM_SUPPORT  // ~1kb of minified code.
 
 // see width sources for more; mostly the rotation stuff.

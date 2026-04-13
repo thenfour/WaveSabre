@@ -37,10 +37,12 @@ namespace WaveSabreCore {
 			{gModulationCount - 7, GigaSynthParamIndices::Osc2Enabled, GigaSynthParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv, ModDestination::Osc2Volume },
 			{gModulationCount - 6, GigaSynthParamIndices::Osc3Enabled, GigaSynthParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv, ModDestination::Osc3Volume },
 			{gModulationCount - 5,  GigaSynthParamIndices::Osc4Enabled, GigaSynthParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv, ModDestination::Osc4Volume },
+#ifdef ENABLE_SAMPLER_DEVICE
 			{ gModulationCount - 4, GigaSynthParamIndices::Sampler1Enabled, GigaSynthParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv, ModDestination::Sampler1Volume },
 			{ gModulationCount - 3, GigaSynthParamIndices::Sampler2Enabled, GigaSynthParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv, ModDestination::Sampler2Volume },
 			{ gModulationCount - 2, GigaSynthParamIndices::Sampler3Enabled, GigaSynthParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv, ModDestination::Sampler3Volume },
 			{ gModulationCount - 1, GigaSynthParamIndices::Sampler4Enabled, GigaSynthParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv, ModDestination::Sampler4Volume },
+#endif  // ENABLE_SAMPLER_DEVICE
 		};
 
 		EnvelopeInfo gEnvelopeInfo[gSourceCount + gModEnvCount] = {
@@ -48,10 +50,12 @@ namespace WaveSabreCore {
 			{ModDestination::Osc2AmpEnvDelayTime, GigaSynthParamIndices::Osc2AmpEnvDelayTime, ModSource::Osc2AmpEnv },
 			{ModDestination::Osc3AmpEnvDelayTime, GigaSynthParamIndices::Osc3AmpEnvDelayTime, ModSource::Osc3AmpEnv },
 			{ModDestination::Osc4AmpEnvDelayTime, GigaSynthParamIndices::Osc4AmpEnvDelayTime, ModSource::Osc4AmpEnv },
+#ifdef ENABLE_SAMPLER_DEVICE
 			{ModDestination::Sampler1AmpEnvDelayTime, GigaSynthParamIndices::Sampler1AmpEnvDelayTime, ModSource::Sampler1AmpEnv },
 			{ModDestination::Sampler2AmpEnvDelayTime, GigaSynthParamIndices::Sampler2AmpEnvDelayTime, ModSource::Sampler2AmpEnv },
 			{ModDestination::Sampler3AmpEnvDelayTime, GigaSynthParamIndices::Sampler3AmpEnvDelayTime, ModSource::Sampler3AmpEnv },
 			{ModDestination::Sampler4AmpEnvDelayTime, GigaSynthParamIndices::Sampler4AmpEnvDelayTime, ModSource::Sampler4AmpEnv },
+#endif  // ENABLE_SAMPLER_DEVICE
 			{ModDestination::Env1DelayTime, GigaSynthParamIndices::Env1DelayTime, ModSource::ModEnv1 },
 			{ModDestination::Env2DelayTime, GigaSynthParamIndices::Env2DelayTime, ModSource::ModEnv2 },
 			{ModDestination::Env3DelayTime, GigaSynthParamIndices::Env3DelayTime, ModSource::ModEnv3 },

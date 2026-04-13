@@ -70,6 +70,7 @@ autocomplete(std::string input,
 static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions() {
   std::vector<std::pair<std::string, int>> mOptions;
   mOptions.push_back({"(no sample)", -1});
+#ifdef ENABLE_SAMPLER_DEVICE
 
   // Read gm.dls file
   //auto gmDls = GmDls::Load();
@@ -145,11 +146,11 @@ static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions() {
 
     ptr += waveListSize;
   }
+  #endif  // ENABLE_SAMPLER_DEVICE
 
   //delete[] gmDls;
   return mOptions;
 }
-
 
 } // namespace WaveSabreVstLib
 

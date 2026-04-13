@@ -984,7 +984,6 @@ struct ModMatrixNode
 
   float MapValue(ModulationSpec& spec,
                  ModSource src,
-                 //ModParamIndexOffsets curveParam,
                  ModParamIndexOffsets srcRangeMinParam,
                  ModParamIndexOffsets srcRangeMaxParam,
                  bool isDestN11);
@@ -992,8 +991,12 @@ struct ModMatrixNode
 
 static constexpr size_t gOscillatorCount = 4;
 static constexpr size_t gFMMatrixSize = gOscillatorCount * (gOscillatorCount - 1);
+#ifdef ENABLE_SAMPLER_DEVICE
 static constexpr size_t gSamplerCount = 4;
 static constexpr size_t gSourceCount = gOscillatorCount + gSamplerCount;
+#else
+static constexpr size_t gSourceCount = gOscillatorCount;
+#endif  // ENABLE_SAMPLER_DEVICE
 static constexpr size_t gMacroCount = 4;
 
 static constexpr size_t gModEnvCount = 4;

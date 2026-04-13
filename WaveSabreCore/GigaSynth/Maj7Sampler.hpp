@@ -1,5 +1,7 @@
 #pragma once
 
+#ifdef ENABLE_SAMPLER_DEVICE
+
 #include <Windows.h>
 // correction for windows.h macros.
 #undef min
@@ -99,3 +101,5 @@ struct SamplerVoice : ISoundSourceDevice::Voice
 
 
 }  // namespace WaveSabreCore
+
+#endif  // ENABLE_SAMPLER_DEVICE
