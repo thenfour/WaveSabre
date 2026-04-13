@@ -30,13 +30,11 @@ enum class ModSource  // : uint8_t
   LFO2,
   LFO3,
   LFO4,
-  PitchBend,
   Velocity,
   NoteValue,
   RandomTrigger,
   Trigger01,
   UnisonoVoice,
-  SustainPedal,
   Macro1,
   Macro2,
   Macro3,
@@ -65,10 +63,10 @@ enum class ModSource  // : uint8_t
       "ModEnv2",        "ModEnv3",                                                                                     \
       "ModEnv4",        "LFO1",                                                                                        \
       "LFO2",           "LFO3",                                                                                        \
-      "LFO4",           "PitchBend",                                                                                   \
+      "LFO4",                                                                                         \
       "Velocity",       "NoteValue",                                                                                   \
       "RandomTrigger",  "Trigger 0, 1,...",                                                                            \
-      "UnisonoVoice",   "SustainPedal",                                                                                \
+      "UnisonoVoice",                                                                            \
       "Macro1",         "Macro2",                                                                                      \
       "Macro3",         "Macro4",                                                                                      \
       "Macro5",         "Macro6",                                                                                      \
@@ -79,7 +77,7 @@ enum class ModSource  // : uint8_t
 #define MODSOURCE_SHORT_CAPTIONS(symbolName)                                                                           \
   static constexpr char const* const symbolName[(int)::WaveSabreCore::M7::ModSource::Count]{                           \
       "-",     "O1Env", "O2Env", "O3Env", "O4Env", "S1Env", "S2Env", "S3Env", "S4Env", "MEnv1",   "MEnv2", "MEnv3",    \
-      "MEnv4", "LFO1",  "LFO2",  "LFO3",  "LFO4",  "PB",    "Vel",   "Note",  "Rng",   "|:0,1:|", "UVox",  "Sus",      \
+      "MEnv4", "LFO1",  "LFO2",  "LFO3",  "LFO4",    "Vel",   "Note",  "Rng",   "|:0,1:|", "UVox",       \
       "Knob1", "Knob2", "Knob3", "Knob4", "Knob5", "Knob6", "Knob7", "1",     "0.5",   "0",       "-.5",   "-1",       \
   };
 

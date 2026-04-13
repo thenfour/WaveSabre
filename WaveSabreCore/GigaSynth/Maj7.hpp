@@ -369,17 +369,17 @@ struct Maj7 : public Maj7SynthDevice
   // when for example a NoteOn happens, the voice will have correct values in its mod matrix.
   void SetVoiceInitialStates();
 
-  virtual void HandlePitchBend(float pbN11) override
-  {
-#ifdef ENABLE_PITCHBEND
-    mPitchBendN11 = pbN11;
-#endif  // ENABLE_PITCHBEND
-  }
-
-  virtual void HandleMidiCC(int ccN, int val) override
-  {
-    // we don't care about this for the moment.
-  }
+//  virtual void HandlePitchBend(float pbN11) override
+//  {
+//#ifdef ENABLE_PITCHBEND
+//    mPitchBendN11 = pbN11;
+//#endif  // ENABLE_PITCHBEND
+//  }
+//
+//  virtual void HandleMidiCC(int ccN, int val) override
+//  {
+//    // we don't care about this for the moment.
+//  }
 
   // minified
   virtual void SetBinary16DiffChunk(M7::Deserializer& ds) override
@@ -795,16 +795,10 @@ struct Maj7 : public Maj7SynthDevice
       real_t noteHz = math::MIDINoteToFreq(mMidiNote);
 
       mModMatrix.BeginBlock();
-#ifdef ENABLE_PITCHBEND
-      mModMatrix.SetSourceValue(ModSource::PitchBend, mpOwner->mPitchBendN11);
-#else
-      mModMatrix.SetSourceValue(ModSource::PitchBend, 0);
-#endif  // ENABLE_PITCHBEND
       mModMatrix.SetSourceValue(ModSource::Velocity, mVelocity01);
       mModMatrix.SetSourceValue(ModSource::NoteValue, mMidiNote / 127.0f);
       mModMatrix.SetSourceValue(ModSource::RandomTrigger, mTriggerRandom01);
       mModMatrix.SetSourceValue(ModSource::Trigger01, mTrigger01);
-      mModMatrix.SetSourceValue(ModSource::SustainPedal, real_t(mpOwner->mIsPedalDown ? 0 : 1));  // krate, 01
       float iuv = 1;
       if (mpOwner->mVoicesUnisono > 1)
       {

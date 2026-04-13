@@ -25,16 +25,16 @@ public:
   Maj7SynthDevice(int numParams, float* paramCache);
 
   virtual void ProcessBlock(float* const* const outputs, int numSamples) = 0;
-  virtual void HandlePitchBend(float pbN11) = 0;
-  virtual void HandleMidiCC(int ccN, int val) = 0;
+  //virtual void HandlePitchBend(float pbN11) = 0;
+  //virtual void HandleMidiCC(int ccN, int val) = 0;
 
   virtual void Run(float** inputs, float** outputs, int numSamples) override;
 
   virtual void AllNotesOff();
   virtual void NoteOn(int note, int velocity, int deltaSamples);
   virtual void NoteOff(int note, int deltaSamples);
-  virtual void MidiCC(int ccNumber, int value, int deltaSamples) override;
-  virtual void PitchBend(int lsb, int msb, int deltaSamples) override;
+  //virtual void MidiCC(int ccNumber, int value, int deltaSamples) override;
+  //virtual void PitchBend(int lsb, int msb, int deltaSamples) override;
 
   void SetVoiceMode(VoiceMode voiceMode);
 
@@ -160,9 +160,9 @@ public:
   void ProcessNoteOffEvent(Event* e);
 
   int FindOldestPhysicalSequenceForNote(int note);
-  void ReleasePolyphonicSequence(int note, int sequence, bool keepSustained);
+  void ReleasePolyphonicSequence(int note, int sequence);
 
-  void ProcessPedalEvent(Event* e, bool isDown);
+  //void ProcessPedalEvent(Event* e, bool isDown);
 
   void SetUnisonoVoices(int n)
   {
@@ -195,6 +195,6 @@ public:
 
   int mEventCount = 0;
   Event mEvents[maxEvents];
-  bool mIsPedalDown = false;
+  //bool mIsPedalDown = false;
 };
 }  // namespace WaveSabreCore

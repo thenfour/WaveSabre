@@ -31,7 +31,7 @@ int Maj7SynthDevice::FindOldestPhysicalSequenceForNote(int note)
   return sequence;
 }
 
-void Maj7SynthDevice::ReleasePolyphonicSequence(int note, int sequence, bool keepSustained)
+void Maj7SynthDevice::ReleasePolyphonicSequence(int note, int sequence)
 {
   for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
   {
@@ -39,7 +39,7 @@ void Maj7SynthDevice::ReleasePolyphonicSequence(int note, int sequence, bool kee
     if (v->mNoteInfo.MidiNoteValue != note || v->mNoteInfo.mSequence != sequence)
       continue;
     v->mNoteInfo.mIsPhysicallyHeld = false;
-    if (keepSustained || !v->mNoteInfo.mIsMusicallyHeld)
+    if (!v->mNoteInfo.mIsMusicallyHeld)
       continue;
     v->mNoteInfo.mIsMusicallyHeld = false;
     v->NoteOff();
@@ -182,7 +182,7 @@ void Maj7SynthDevice::ProcessNoteOffEvent(Event* e)
       return;
     }
 
-    ReleasePolyphonicSequence(note, sequence, this->mIsPedalDown);
+    ReleasePolyphonicSequence(note, sequence);
     return;
   }
 
@@ -203,57 +203,52 @@ void Maj7SynthDevice::ProcessNoteOffEvent(Event* e)
       v->mNoteInfo.mIsPhysicallyHeld = false;
     }
   }
-  if (this->mIsPedalDown)
-  {
-    return;  // don't affect musical state; nothing more to do.
-  }
-  // pedal is up
   ProcessMusicalNoteOff(note, ni, pPlaying);
 }
 
-void Maj7SynthDevice::ProcessPedalEvent(Event* e, bool isDown)
-{
-  if (isDown)
-  {
-    mIsPedalDown = true;
-    return;
-  }
-  if (isDown == mIsPedalDown)
-  {
-    return;
-  }
-
-  // handle pedal up.
-  mIsPedalDown = false;
-
-  if (mVoiceMode == VoiceMode::Polyphonic)
-  {
-    for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
-    {
-      auto* v = mVoices[iv];
-      if (v->mNoteInfo.mIsPhysicallyHeld || !v->mNoteInfo.mIsMusicallyHeld)
-      {
-        continue;
-      }
-      v->mNoteInfo.mIsMusicallyHeld = false;
-      v->NoteOff();
-    }
-    return;
-  }
-
-  // returns the currently playing note (useful for monophonic processing)
-  auto pPlaying = FindCurrentlyPlayingNote();
-
-  for (size_t i = 0; i < maxActiveNotes; ++i)
-  {
-    auto& x = mMonoNoteStates[i];
-    if (x.mIsPhysicallyHeld)
-    {
-      continue;
-    }
-    ProcessMusicalNoteOff(x.MidiNoteValue, x, pPlaying);
-  }
-}
+//void Maj7SynthDevice::ProcessPedalEvent(Event* e, bool isDown)
+//{
+//  if (isDown)
+//  {
+//    mIsPedalDown = true;
+//    return;
+//  }
+//  if (isDown == mIsPedalDown)
+//  {
+//    return;
+//  }
+//
+//  // handle pedal up.
+//  mIsPedalDown = false;
+//
+//  if (mVoiceMode == VoiceMode::Polyphonic)
+//  {
+//    for (size_t iv = 0; iv < (size_t)mMaxVoices; ++iv)
+//    {
+//      auto* v = mVoices[iv];
+//      if (v->mNoteInfo.mIsPhysicallyHeld || !v->mNoteInfo.mIsMusicallyHeld)
+//      {
+//        continue;
+//      }
+//      v->mNoteInfo.mIsMusicallyHeld = false;
+//      v->NoteOff();
+//    }
+//    return;
+//  }
+//
+//  // returns the currently playing note (useful for monophonic processing)
+//  auto pPlaying = FindCurrentlyPlayingNote();
+//
+//  for (size_t i = 0; i < maxActiveNotes; ++i)
+//  {
+//    auto& x = mMonoNoteStates[i];
+//    if (x.mIsPhysicallyHeld)
+//    {
+//      continue;
+//    }
+//    ProcessMusicalNoteOff(x.MidiNoteValue, x, pPlaying);
+//  }
+//}
 
 
 // plays through the buffer,
@@ -308,21 +303,21 @@ void Maj7SynthDevice::Run(float** inputs, float** __outputs, int numSamples)
           //cc::log("[buf:%d] Handling note off event; note=%d, deltasamples=%d", cc::gBufferCount, e->data1, e->DeltaSamples);
           ProcessNoteOffEvent(e);
           break;
-        case EventType::CC:
-          if (e->data1 == 64)
-          {
-            // handle pedal down/up
-            ProcessPedalEvent(e, e->data2 >= 64);
-          }
-          HandleMidiCC(e->data1, e->data2);
-          break;
-        case EventType::PitchBend:
-          int bend14 = (e->data2 << 7) | e->data1;  // combine two 7-bit fields into 14-bit
-          bend14 -= 8192;
-          float normalized_bend = (float(bend14) / 8192);  // bend controller in -1.0 to +1.0 range
-          //float normalized_bend = (float(bend14) / 8192.0f) - 1.0f; // bend controller in -1.0 to +1.0 range
-          HandlePitchBend(normalized_bend);
-          break;
+        //case EventType::CC:
+        //  if (e->data1 == 64)
+        //  {
+        //    // handle pedal down/up
+        //    ProcessPedalEvent(e, e->data2 >= 64);
+        //  }
+        //  HandleMidiCC(e->data1, e->data2);
+        //  break;
+        //case EventType::PitchBend:
+        //  int bend14 = (e->data2 << 7) | e->data1;  // combine two 7-bit fields into 14-bit
+        //  bend14 -= 8192;
+        //  float normalized_bend = (float(bend14) / 8192);  // bend controller in -1.0 to +1.0 range
+        //  //float normalized_bend = (float(bend14) / 8192.0f) - 1.0f; // bend controller in -1.0 to +1.0 range
+        //  HandlePitchBend(normalized_bend);
+        //  break;
       }
 
       mEvents[iEvent].Type = EventType::None;
@@ -362,7 +357,7 @@ void Maj7SynthDevice::AllNotesOff()
     mVoices[i]->Kill(VoiceNoteOnFlags::Panic);
   }
   // clear events
-  mIsPedalDown = false;  // not strictly necessary but makes sense in the spirit of "resetting".
+  //mIsPedalDown = false;  // not strictly necessary but makes sense in the spirit of "resetting".
   mEventCount = 0;
   memset(mEvents, 0, sizeof(mEvents[0]) * maxEvents);
 
@@ -395,14 +390,14 @@ void Maj7SynthDevice::NoteOff(int note, int deltaSamples)
   PushEvent(EventType::NoteOff, note, 0, deltaSamples);
 }
 
-void Maj7SynthDevice::MidiCC(int ccNumber, int value, int deltaSamples)
-{
-  PushEvent(EventType::CC, ccNumber, value, deltaSamples);
-}
-void Maj7SynthDevice::PitchBend(int lsb, int msb, int deltaSamples)
-{
-  PushEvent(EventType::PitchBend, lsb, msb, deltaSamples);
-}
+//void Maj7SynthDevice::MidiCC(int ccNumber, int value, int deltaSamples)
+//{
+//  PushEvent(EventType::CC, ccNumber, value, deltaSamples);
+//}
+//void Maj7SynthDevice::PitchBend(int lsb, int msb, int deltaSamples)
+//{
+//  PushEvent(EventType::PitchBend, lsb, msb, deltaSamples);
+//}
 
 void Maj7SynthDevice::SetVoiceMode(VoiceMode voiceMode)
 {
