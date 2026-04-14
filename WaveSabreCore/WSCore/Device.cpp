@@ -1,8 +1,7 @@
 #include "Device.h"
-//#include <cstring>
 #include "../Basic/DSPMath.hpp"
 #include "../Basic/Helpers.h"
-//#include <WaveSabreCore/Maj7Basic.hpp>
+#include "../Basic/GmDls.h"
 
 namespace WaveSabreCore
 {
@@ -12,7 +11,8 @@ namespace WaveSabreCore
 		mParamCache__(paramCache),
 		mDefaults16__(defaults16)
 	{
-		// this is the best place to do static init
+	  // this is the best place to do static init
+	  GmDls::EnsureInitialized();
       if (!M7::math::gLuts)
       {
           M7::math::gLuts = new M7::math::LUTs();
