@@ -441,8 +441,22 @@ public:
 			OptimizeBoolParam(s.mParams, M7::SamplerParamIndexOffsets::ReleaseExitsLoop);
 
 			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::GmDlsIndex);
+			// if gmdls is not used then zero offset/length params.
+			auto gmdlsIndex = s.mParams.GetIntValue(M7::SamplerParamIndexOffsets::GmDlsIndex);
+			if (gmdlsIndex == 0) {
+				s.mParams.SetIntValue(M7::SamplerParamIndexOffsets::GmDlsOffsetHi, 0);
+				s.mParams.SetIntValue(M7::SamplerParamIndexOffsets::GmDlsOffsetLo, 0);
+				s.mParams.SetIntValue(M7::SamplerParamIndexOffsets::GmDlsLengthHi, 0);
+				s.mParams.SetIntValue(M7::SamplerParamIndexOffsets::GmDlsLengthLo, 0);
+			}
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::GmDlsOffsetHi);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::GmDlsOffsetLo);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::GmDlsLengthHi);
+			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::GmDlsLengthLo);
+
 			OptimizeIntParam(s.mParams, M7::SamplerParamIndexOffsets::BaseNote);
 
+			// if not enabled, reset all to defaults.
 			if (!s.IsEnabled()) {
 				//s.Reset();
 				Copy16bitDefaults(s.mParams.GetOffsetParamCache(), M7::gDefaultSamplerParams);
@@ -811,6 +825,10 @@ namespace WaveSabreCore
 
 			//p->mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::Embed);
 			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, 0);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsOffsetHi, 0);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsOffsetLo, 0);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsLengthHi, 0);
+			p->mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsLengthLo, 0);
 			p->mParams.Set01Val(SamplerParamIndexOffsets::Delay, 0);
 		}
 
