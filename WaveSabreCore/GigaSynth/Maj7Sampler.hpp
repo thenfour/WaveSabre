@@ -49,7 +49,9 @@ struct SamplerDevice : ISoundSourceDevice
                   const char* path);
 #endif  // MAJ7_INCLUDE_GSM_SUPPORT
 
-  void LoadGmDlsSample(int sampleIndex);
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
+    void LoadGmDlsSample(int sampleIndex);
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
   virtual void BeginBlock() override;
 

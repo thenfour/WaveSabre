@@ -1,8 +1,6 @@
 #pragma once
 
 #include "../Basic/DSPMath.hpp"
-#include "../Basic/PodVector.hpp"
-
 
 namespace WaveSabreCore
 {
@@ -17,18 +15,17 @@ struct GmDls
 #ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   static bool TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart, int& loopLength);
 #endif
-  // GmDls();
-  // ~GmDls();
 };
 
 struct GmDlsSample
 {
   static constexpr int kSampleRate = 44100;
   int mSampleIndex = 0;
-
-  M7::PodVector<float> mSampleData;
+  const int16_t*mpSampleData = nullptr;
+  int mSampleLength = 0;
 
   void LoadGmDlsIndex(int index);
+  float GetSampleAt(int sampleOffset) const;
 };
 
 

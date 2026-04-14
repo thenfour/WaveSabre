@@ -44,7 +44,28 @@ void SamplerDevice::Deserialize(Deserializer& ds)
   delete[] pCompressedData;
   delete[] pwfxComplete;
 #else   // MAJ7_INCLUDE_GSM_SUPPORT
-  LoadGmDlsSample(mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsIndex));
+  //LoadGmDlsSample(mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsIndex));
+
+  // gm.dls is ~4mb. so we require offsets / lengths to be 26 bits (~4mb)
+  // 13 bits per half; 2^13 = 8192, which is our serializable scale, so it just works out.
+  auto token = mMutex.Enter();
+
+  // this is more reliable, maintainable, and compressible. slightly smaller than below.
+  static_assert(IntParamConfig::kSerializableScale >= 8192, "");
+  const int offsetHi = mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsOffsetHi);
+  const int offsetLo = mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsOffsetLo);
+  const int lengthHi = mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsLengthHi);
+  const int lengthLo = mParams.GetIntValue(SamplerParamIndexOffsets::GmDlsLengthLo);
+  const int offset = offsetHi * 8192 + offsetLo;
+  const int length = lengthHi * 8192 + lengthLo;
+
+  // params are 0-1; they need to be scaled up to 0-8192, then combined to get the full 26 bit offset / length.
+  // const auto offset = mParams.mParamCache[(int)SamplerParamIndexOffsets::GmDlsOffsetHi] * 8192 * 8192 + mParams.mParamCache[(int)SamplerParamIndexOffsets::GmDlsOffsetLo] * 8192;
+  // const auto length = mParams.mParamCache[(int)SamplerParamIndexOffsets::GmDlsLengthHi] * 8192 * 8192 + mParams.mParamCache[(int)SamplerParamIndexOffsets::GmDlsLengthLo] * 8192; 
+
+  mSample.mpSampleData = (const int16_t*)((uintptr_t)GmDls::gpData + (uintptr_t)offset);
+  mSample.mSampleLength = (int)length;
+
 #endif  // MAJ7_INCLUDE_GSM_SUPPORT
 }
 
@@ -116,14 +137,10 @@ void SamplerDevice::LoadSample(char* compressedDataPtr,
 }
 #endif  // MAJ7_INCLUDE_GSM_SUPPORT
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 void SamplerDevice::LoadGmDlsSample(int sampleIndex)
 {
   auto token = mMutex.Enter();
-  //if (mSample)
-  //{
-  //  delete mSample;
-  //  mSample = nullptr;
-  //}
   if (sampleIndex < 0 || sampleIndex >= gGmDlsSampleCount)
   {
     return;
@@ -132,7 +149,21 @@ void SamplerDevice::LoadGmDlsSample(int sampleIndex)
   //mParams.SetEnumValue(SamplerParamIndexOffsets::SampleSource, SampleSource::GmDls);
   mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsIndex, sampleIndex);
   mSample.LoadGmDlsIndex(sampleIndex);
+
+  // store mSample.mpSampleData and mSample.mSampleLength in params so they can be serialized.
+  const int offset = (uintptr_t)mSample.mpSampleData - (uintptr_t)GmDls::gpData;
+  const int offsetHi = offset >> 13;
+  const int offsetLo = offset & ((1 << 13) - 1);
+  mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsOffsetHi, offsetHi);
+  mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsOffsetLo, offsetLo);
+
+  const int length = mSample.mSampleLength;
+  const int lengthHi = length >> 13;
+  const int lengthLo = length & ((1 << 13) - 1);
+  mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsLengthHi, lengthHi);
+  mParams.SetIntValue(SamplerParamIndexOffsets::GmDlsLengthLo, lengthLo);
 }
+#endif  // SELECTABLE_OUTPUT_STREAM_SUPPORT
 
 void SamplerDevice::BeginBlock()
 {

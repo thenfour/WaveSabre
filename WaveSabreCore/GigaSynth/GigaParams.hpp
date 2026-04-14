@@ -589,6 +589,10 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler1LegatoTrig,
   Sampler1Reverse,
   Sampler1GmDlsIndex,
+  Sampler1GmDlsOffsetHi,
+  Sampler1GmDlsOffsetLo,
+  Sampler1GmDlsLengthHi,
+  Sampler1GmDlsLengthLo,
   Sampler1SampleStart,
   Sampler1LoopEnable,
   Sampler1LoopStart,
@@ -621,6 +625,10 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler2LegatoTrig,
   Sampler2Reverse,
   Sampler2GmDlsIndex,
+  Sampler2GmDlsOffsetHi,
+  Sampler2GmDlsOffsetLo,
+  Sampler2GmDlsLengthHi,
+  Sampler2GmDlsLengthLo,
   Sampler2SampleStart,
   Sampler2LoopEnable,
   Sampler2LoopStart,
@@ -653,6 +661,10 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler3LegatoTrig,
   Sampler3Reverse,
   Sampler3GmDlsIndex,
+  Sampler3GmDlsOffsetHi,
+  Sampler3GmDlsOffsetLo,
+  Sampler3GmDlsLengthHi,
+  Sampler3GmDlsLengthLo,
   Sampler3SampleStart,
   Sampler3LoopEnable,
   Sampler3LoopStart,
@@ -685,6 +697,10 @@ enum class GigaSynthParamIndices : uint16_t
   Sampler4LegatoTrig,
   Sampler4Reverse,
   Sampler4GmDlsIndex,
+  Sampler4GmDlsOffsetHi,
+  Sampler4GmDlsOffsetLo,
+  Sampler4GmDlsLengthHi,
+  Sampler4GmDlsLengthLo,
   Sampler4SampleStart,
   Sampler4LoopEnable,
   Sampler4LoopStart,
@@ -1253,6 +1269,10 @@ enum class GigaSynthParamIndices : uint16_t
 {"S1LTrig"},\
 {"S1Rev"},  \
 {"S1gmidx"},\
+{"S1gmohi"},\
+{"S1gmolo"},\
+{"S1gmlhi"},\
+{"S1gmllo"},\
 {"S1strt"}, \
 {"S1Lpen"},\
 {"S1Lbeg"}, \
@@ -1283,6 +1303,10 @@ enum class GigaSynthParamIndices : uint16_t
 {"S2LTrig"},\
 {"S2Rev"},  \
 {"S2gmidx"},\
+{"S2gmohi"},\
+{"S2gmolo"},\
+{"S2gmlhi"},\
+{"S2gmllo"},\
 {"S2strt"}, \
 {"S2Lpen"},\
 {"S2Lbeg"}, \
@@ -1313,6 +1337,10 @@ enum class GigaSynthParamIndices : uint16_t
 {"S3LTrig"},\
 {"S3Rev"},  \
 {"S3gmidx"},\
+{"S3gmohi"},\
+{"S3gmolo"},\
+{"S3gmlhi"},\
+{"S3gmllo"},\
 {"S3strt"},           \
 {"S3Lpen"},\
 {"S3Lbeg"}, \
@@ -1343,6 +1371,10 @@ enum class GigaSynthParamIndices : uint16_t
 {"S4LTrig"},\
 {"S4Rev"},  \
 {"S4gmidx"},          \
+{"S4gmohi"},\
+{"S4gmolo"},\
+{"S4gmlhi"},\
+{"S4gmllo"},\
 {"S4strt"}, \
 {"S4Lpen"},\
 {"S4Lbeg"}, \
@@ -1425,6 +1457,10 @@ enum class SamplerParamIndexOffsets : uint8_t  // MUST BE IN SYNC WITH ABOVE
   LegatoTrig,
   Reverse,
   GmDlsIndex,
+  GmDlsOffsetHi,
+  GmDlsOffsetLo,
+  GmDlsLengthHi,
+  GmDlsLengthLo,
   SampleStart,
   LoopEnable,
   LoopStart,

@@ -3253,9 +3253,7 @@ public:
     //if (!sampler.mSample)
     //  return;
 
-    auto sampleDataPair = DupeBuffer<float>(sampler.mSample.mSampleData.mBuffer);
-    auto sampleData = sampleDataPair.first;
-    auto sampleLengthSamples = sampleDataPair.second;
+    auto sampleLengthSamples = (size_t)sampler.mSample.mSampleLength;
 
     std::vector<std::pair<float, float>> peaks;
     peaks.resize(gSamplerWaveformWidth);
@@ -3268,8 +3266,9 @@ public:
       peaks[i].second = 0;
       for (size_t s = sampleBegin; s < sampleEnd; ++s)
       {
-        peaks[i].first = std::min(peaks[i].first, sampleData[s]);
-        peaks[i].second = std::max(peaks[i].second, sampleData[s]);
+        auto sample = sampler.mSample.GetSampleAt((int)s);
+        peaks[i].first = std::min(peaks[i].first, sample);
+        peaks[i].second = std::max(peaks[i].second, sample);
       }
     }
 
@@ -3285,8 +3284,6 @@ public:
     auto loopStart = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopStart);
     auto loopLength = sampler.mParams.Get01Value(M7::SamplerParamIndexOffsets::LoopLength);
     WaveformGraphic(isrc, gSamplerWaveformHeight, peaks, sampleStart, loopStart, loopLength, (float)cursor);
-
-    FreeBuffer(sampleDataPair.first);
   }
 #endif  // ENABLE_SAMPLER_DEVICE
 };  // class maj7editor

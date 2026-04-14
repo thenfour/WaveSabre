@@ -2,20 +2,10 @@
 #pragma once
 
 #include <cstdint>
-#include "../Basic/PodVector.hpp"
 #include "../Basic/GmDls.h"
 
 namespace WaveSabreCore
 {
-
-// enum class LoopMode  // : uint8_t
-// {
-//   Disabled,
-//   Repeat,
-//   // PingPong,
-
-//   NumLoopModes,
-// };
 
 class SamplePlayer
 {
@@ -42,7 +32,7 @@ private:
   int SampleLength() const
   {
     if (!mpSample) return 0;
-    return int(mpSample->mSampleData.size());
+    return mpSample->mSampleLength;
   }
 
   bool IsActive;

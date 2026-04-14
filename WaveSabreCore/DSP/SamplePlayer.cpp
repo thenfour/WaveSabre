@@ -63,15 +63,14 @@ float SamplePlayer::Next()
     return 0.0f;
   }
 
-  float leftSample = mpSample->mSampleData[roundedSamplePos];
-
   // calculate next sample. needs to consider:
   // - reverse playback,
   // - loop mode (which can cause samplepos to jump around, and thus cause the next sample to be non-adjacent to the current sample)
   int rightIndex = roundedSamplePos + 1;
   if (mLoopEnabled && rightIndex == roundedLoopEnd)
     rightIndex = roundedLoopStart;
-  float rightSample = rightIndex < lengthSamplesI ? mpSample->mSampleData[rightIndex] : 0.0f;
+  float leftSample = mpSample->GetSampleAt(roundedSamplePos);
+  float rightSample = mpSample->GetSampleAt(rightIndex);
   float sample = M7::math::lerp(leftSample, rightSample, (float)samplePosFract);
 
   samplePos += sampleDelta;
