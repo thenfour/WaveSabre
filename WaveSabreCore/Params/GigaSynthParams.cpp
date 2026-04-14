@@ -33,8 +33,8 @@ namespace WaveSabreCore {
       0, // FM2to4 = 0
       0, // FM3to4 = 0
     };
-    static_assert((int)M7::SamplerParamIndexOffsets::Count == 20, "param count probably changed and this needs to be regenerated.");
-    extern const int16_t gDefaultSamplerParams[21] = {
+    static_assert((int)M7::SamplerParamIndexOffsets::Count == 24, "param count probably changed and this needs to be regenerated.");
+    extern const int16_t gDefaultSamplerParams[24] = {
       0, // S1En = 0
       32767, // S1Vol = 1
       0, // S1Pan = 0
@@ -45,6 +45,10 @@ namespace WaveSabreCore {
       32767, // S1LTrig = 1
       0, // S1Rev = 0
       0, // S1gmidx = 0
+      0, // S1gmohi = 0
+      0, // S1gmolo = 0
+      0, // S1gmlhi = 0
+      0, // S1gmllo = 0
       0, // S1strt = 0
       3, // S1LMode = 0.0001220703125
       0, // S1Lbeg = 0

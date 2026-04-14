@@ -36,7 +36,7 @@ struct SamplerDevice : ISoundSourceDevice
   GmDlsSample mSample;
 
   void Deserialize(Deserializer& ds);
-  
+
   explicit SamplerDevice(float* paramCache, ModulationList modulations, const SourceInfo& srcInfo);
 
 #ifdef MAJ7_INCLUDE_GSM_SUPPORT
@@ -51,7 +51,9 @@ struct SamplerDevice : ISoundSourceDevice
                   const char* path);
 #endif  // MAJ7_INCLUDE_GSM_SUPPORT
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   void LoadGmDlsSample(int sampleIndex);
+#endif
 
   virtual void BeginBlock() override;
 
