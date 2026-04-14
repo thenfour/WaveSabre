@@ -14,7 +14,9 @@ struct GmDls
   static constexpr int kWaveListOffset = 0x00044602;
   static uint8_t *gpData;
   static void EnsureInitialized();
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
   static bool TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart, int& loopLength);
+#endif
   // GmDls();
   // ~GmDls();
 };

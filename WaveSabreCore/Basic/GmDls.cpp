@@ -18,15 +18,19 @@ void GmDls::EnsureInitialized()
   gpData = new uint8_t[kGmDlsFileSize];
 #pragma message("GmDls Leaking memory to save bits.")
 
-  FILE* file = nullptr;
-  for (int i = 0; !file; i++)
+  // NB: can't use fopen or CreateFile, because they don't resolve the relative paths above.
+  HANDLE file = INVALID_HANDLE_VALUE;
+  for (int i = 0; file == INVALID_HANDLE_VALUE; i++)
   {
-    file = fopen(gmDlsPaths[i], "rb");
+    OFSTRUCT reOpenBuff;
+    file = (HANDLE)(UINT_PTR)OpenFile(gmDlsPaths[i], &reOpenBuff, OF_READ);
   }
-  fread(gpData, 1, kGmDlsFileSize, file);
-  fclose(file);
+  DWORD bytesRead;
+  (void)ReadFile(file, gpData, kGmDlsFileSize, &bytesRead, NULL);
+  ::CloseHandle(file);
 }
 
+#ifdef SELECTABLE_OUTPUT_STREAM_SUPPORT
 bool GmDls::TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart, int& loopLength)
 {
   if (sampleIndex < 0 || sampleIndex >= kGmDlsSampleCount)
@@ -83,13 +87,13 @@ bool GmDls::TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart,
   loopLength = 0;
   return false;
 }
+#endif
 
 void GmDlsSample::LoadGmDlsIndex(int sampleIndex)
 {
   if (sampleIndex < 0 || sampleIndex >= GmDls::kGmDlsSampleCount)
     return;
 
-  GmDls::EnsureInitialized();
   mSampleIndex = sampleIndex;
 
   // Seek to wave pool chunk's data

@@ -84,7 +84,7 @@ void UpdateStatusText()
         "  %s\r\n"
         "\r\n"
         //"Song length: %d:%d.%d\r\n"
-        "Render progress %d%% (%d.%02dx real-time) using %d threads\r\n"
+        "Render progress %d%% (%d.%02dx real-time)\r\n"
         //"- song rendered: %d:%02d.%d\r\n"
         //"- song remaining: %d:%02d.%d\r\n"
         "Render time elapsed: %d:%02d.%d (est remaining: %d:%02d.%d) (est total:  %d:%02d.%d)\r\n"
@@ -128,7 +128,6 @@ void UpdateStatusText()
             renderPercent,
             renderRate / 100,
             renderRate % 100,
-            gpRenderer->gpRenderer->mpGraphRunner->mThreadCount,
             gpRenderer->gRenderTime.GetMinutes(),
             gpRenderer->gRenderTime.GetSecondsOfMinute(),
             gpRenderer->gRenderTime.GetTenthsOfSecondsOfSeconds(),
