@@ -75,7 +75,7 @@ static inline std::vector<std::pair<std::string, int>> LoadGmDlsOptions() {
   GmDls::EnsureInitialized();
 
   // Seek to wave pool chunk's data
-  auto ptr = GmDls::mpData + GmDls::kWaveListOffset;
+  auto ptr = GmDls::gpData + GmDls::kWaveListOffset;
 
   // Walk wave pool entries
   for (int i = 0; i < M7::gGmDlsSampleCount; i++) {

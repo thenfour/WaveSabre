@@ -86,6 +86,9 @@ bool GmDls::TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart,
 
 void GmDlsSample::LoadGmDlsIndex(int sampleIndex)
 {
+  mpSampleData = nullptr;
+  mSampleLength = 0;
+
   if (sampleIndex < 0 || sampleIndex >= GmDls::kGmDlsSampleCount)
     return;
 
@@ -128,17 +131,17 @@ void GmDlsSample::LoadGmDlsIndex(int sampleIndex)
     auto dataChunkSize = *((unsigned int*)wave);
     wave += 4;
 
-    // Data format is assumed to be mono 16-bit signed PCM
-    auto sampleLength = int(dataChunkSize / 2);
-    mSampleData.resize(sampleLength);
-    int16_t* wave16 = (int16_t*)wave;
-    for (int j = 0; j < sampleLength; j++)
-    {
-      auto sample = wave16[j];
-      mSampleData[j] = M7::math::Sample16To32Bit(sample);
-    }
+    mpSampleData = (const int16_t*)wave;
+    mSampleLength = int(dataChunkSize / 2);
     return;
   }
+}
+
+float GmDlsSample::GetSampleAt(int sampleOffset) const
+{
+  if (sampleOffset < 0 || sampleOffset >= mSampleLength)
+    return 0.0f;
+  return M7::math::Sample16To32Bit(mpSampleData[sampleOffset]);
 }
 
 

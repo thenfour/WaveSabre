@@ -2,7 +2,6 @@
 #pragma once
 
 #include <cstdint>
-#include "../Basic/PodVector.hpp"
 #include "../Basic/GmDls.h"
 
 namespace WaveSabreCore
@@ -43,7 +42,7 @@ private:
   int SampleLength() const
   {
     if (!mpSample) return 0;
-    return int(mpSample->mSampleData.size());
+    return mpSample->mSampleLength;
   }
 
   bool IsActive;
