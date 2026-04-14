@@ -2924,6 +2924,20 @@ public:
   }
 #endif  // MAJ7_INCLUDE_GSM_SUPPORT
 
+  void ApplyGmDlsLoopDefaults(M7::SamplerDevice& sampler, int sampleIndex)
+  {
+    int sampleLength = 0;
+    int loopStart = 0;
+    int loopLength = 0;
+    if (!WaveSabreCore::GmDls::TryGetLoopConfig(sampleIndex, sampleLength, loopStart, loopLength) || sampleLength <= 0)
+    {
+      return;
+    }
+
+    sampler.mParams.Set01Val(M7::SamplerParamIndexOffsets::LoopStart, float(loopStart) / sampleLength);
+    sampler.mParams.Set01Val(M7::SamplerParamIndexOffsets::LoopLength, float(loopLength) / sampleLength);
+  }
+
   static BOOL __stdcall driverEnumCallback(HACMDRIVERID driverId, DWORD_PTR dwInstance, DWORD fdwSupport)
   {
     ACMDRIVERDETAILS driverDetails;
@@ -2991,9 +3005,7 @@ public:
   {
     ColorMod& cm = sampler.IsEnabled() ? mSamplerColors : mSamplerDisabledColors;
     auto token = cm.Push();
-    static constexpr char const* const interpModeNames[] = {"Nearest", "Linear"};
     static constexpr char const* const loopModeNames[] = {"Disabled", "Repeat", "Pingpong"};
-    static constexpr char const* const loopBoundaryModeNames[] = {"FromSample", "Manual"};
 
     auto lGetModInfo = [&](M7::SamplerModParamIndexOffsets x)
     {
@@ -3073,14 +3085,7 @@ public:
                                                       (int)WaveSabreCore::LoopMode::NumLoopModes,
                                                       WaveSabreCore::LoopMode::Repeat,
                                                       loopModeNames);
-      ImGui::SameLine();
-      Maj7ImGuiParamEnumList<WaveSabreCore::LoopBoundaryMode>(
-          (int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::LoopSource),
-          "LoopSrc##mst",
-          (int)WaveSabreCore::LoopBoundaryMode::NumLoopBoundaryModes,
-          WaveSabreCore::LoopBoundaryMode::FromSample,
-          loopBoundaryModeNames);
-      //ImGui::SameLine(); WSImGuiParamCheckbox((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop), "Rel");
+
       ImGui::SameLine();
       Maj7ImGuiBoolParamToggleButton((int)sampler.mParams.GetParamIndex(M7::SamplerParamIndexOffsets::ReleaseExitsLoop),
                                      "Rel");
@@ -3169,6 +3174,7 @@ public:
             if (isSelected)
             {
               sampler.LoadGmDlsSample(x.second);
+              ApplyGmDlsLoopDefaults(sampler, x.second);
             }
           }
         }

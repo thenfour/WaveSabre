@@ -8,7 +8,6 @@ SamplePlayer::SamplePlayer()
   SampleStart = 0.0f;
   Reverse = false;
   LoopMode = LoopMode::Repeat;
-  LoopBoundaryMode = LoopBoundaryMode::FromSample;
   LoopStart = 0.0f;
   LoopLength = 1.0f;
   IsActive = false;
@@ -38,18 +37,9 @@ void SamplePlayer::RunPrep()
     return;
   auto lengthSamplesI = SampleLength();
   auto lengthSamplesF = (float)lengthSamplesI;
-  switch (LoopBoundaryMode)
-  {
-    case LoopBoundaryMode::FromSample:
-      roundedLoopStart = mpSample->mSampleLoopStart;
-      roundedLoopLength = mpSample->mSampleLoopLength;
-      break;
 
-    case LoopBoundaryMode::Manual:
-      roundedLoopStart = (int)(lengthSamplesF * LoopStart);
-      roundedLoopLength = (int)(lengthSamplesF * LoopLength);
-      break;
-  }
+  roundedLoopStart = (int)(lengthSamplesF * LoopStart);
+  roundedLoopLength = (int)(lengthSamplesF * LoopLength);
 
   if (roundedLoopLength < 1)
     roundedLoopLength = 1;

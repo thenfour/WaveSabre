@@ -8,25 +8,23 @@ namespace WaveSabreCore
 {
 struct GmDls
 {
+  GmDls() = delete;
+  static constexpr int kGmDlsSampleCount = M7::gGmDlsSampleCount;
+  static constexpr int kGmDlsFileSize = 3440660;
   static constexpr int kWaveListOffset = 0x00044602;
-  uint8_t *mpData = nullptr;
-  GmDls();
-  ~GmDls();
+  static uint8_t *gpData;
+  static void EnsureInitialized();
+  static bool TryGetLoopConfig(int sampleIndex, int& sampleLength, int& loopStart, int& loopLength);
 };
 
 struct GmDlsSample
 {
   static constexpr int kSampleRate = 44100;
-  static constexpr int kGmDlsSampleCount = M7::gGmDlsSampleCount;
   int mSampleIndex = 0;
-  int mSampleLoopStart = 0;
-  int mSampleLoopLength = 0;
 
   M7::PodVector<float> mSampleData;
 
   void LoadGmDlsIndex(int index);
-
-  GmDls mGmDls;
 };
 
 
